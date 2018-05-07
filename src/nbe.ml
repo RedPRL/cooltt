@@ -141,6 +141,11 @@ let rec read_back_nf size nf =
     Syn.Pi
       (read_back_nf size (D.Normal (D.Uni i, src)),
        read_back_nf (size + 1) (D.Normal (D.Uni i, do_clos dest var)))
+  | D.Normal (D.Uni i, D.Sig (fst, snd)) ->
+    let var = mk_var fst size in
+    Syn.Sig
+      (read_back_nf size (D.Normal (D.Uni i, fst)),
+       read_back_nf (size + 1) (D.Normal (D.Uni i, do_clos snd var)))
   | D.Normal (D.Uni _, D.Neutral (_, ne)) -> read_back_ne size ne
   | D.Normal (D.Neutral (_, _), D.Neutral (_, ne)) -> read_back_ne size ne
   | _ -> failwith "Ill-typed read_back_nf"
