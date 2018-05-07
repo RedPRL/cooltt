@@ -38,6 +38,8 @@ struct
     | Normal of t * t
 end
 
+let mk_var tp lev = D.Neutral (tp, D.Var lev)
+
 let rec apply_subst sub env =
   match sub with
   | Syn.Shift -> List.tl env
@@ -92,7 +94,7 @@ and eval t env =
 let rec read_back_nf size nf =
   match nf with
   | D.Normal (D.Pi (src, dest), f) ->
-    let arg = D.Neutral (src, D.Var size) in
+    let arg = mk_var src size in
     let nf = D.Normal (do_clos dest arg, do_ap f arg) in
     Syn.Lam (read_back_nf (size + 1) nf)
   | D.Normal (D.Nat, D.Zero) -> Syn.Zero
@@ -100,7 +102,7 @@ let rec read_back_nf size nf =
   | D.Normal (D.Nat, D.Neutral (_, ne)) -> read_back_ne size ne
   | D.Normal (D.Uni _, D.Nat) -> Syn.Nat
   | D.Normal (D.Uni i, D.Pi (src, dest)) ->
-    let var = D.Neutral (src, D.Var size) in
+    let var = mk_var src size in
     Syn.Pi
       (read_back_nf size (D.Normal (D.Uni i, src)),
        read_back_nf (size + 1) (D.Normal (D.Uni i, do_clos dest var)))
@@ -112,7 +114,7 @@ and read_back_tp size d =
   match d with
   | D.Nat -> Syn.Nat
   | D.Pi (src, dest) ->
-    let var = D.Neutral (src, D.Var size) in
+    let var = mk_var src size in
     Syn.Pi (read_back_tp size src, read_back_tp (size + 1) (do_clos dest var))
   | D.Uni k -> Syn.Uni k
   | _ -> failwith "Not a type in read_back_tp"
@@ -123,13 +125,12 @@ and read_back_ne size ne =
   | D.Ap (ne, arg) ->
     Syn.Ap (read_back_ne size ne, read_back_nf size arg)
   | D.NRec ((_, tp_tp, _) as tp, zero, suc, n) ->
-    let tp_var = D.Neutral (tp_tp, D.Var size) in
-    let applied_tp = (do_ann_clos tp tp_var) in
-    let applied_suc_tp = (do_ann_clos tp (D.Suc tp_var)) in
-    let tp' = read_back_tp (size + 1) (do_ann_clos tp tp_var) in
-    let suc_var1 = D.Neutral (D.Nat, D.Var size) in
-    let suc_var2 = D.Neutral (applied_tp, D.Var (size + 1)) in
-    let applied_suc = do_clos2 suc suc_var1 suc_var2 in
+    let tp_var = mk_var tp_tp size in
+    let applied_tp = do_ann_clos tp tp_var in
+    let applied_suc_tp = do_ann_clos tp (D.Suc tp_var) in
+    let tp' = read_back_tp (size + 1) applied_tp in
+    let suc_var = mk_var applied_tp (size + 1) in
+    let applied_suc = do_clos2 suc tp_var suc_var in
     let suc' = read_back_nf (size + 2) (D.Normal (applied_suc_tp, applied_suc)) in
     Syn.NRec (tp', read_back_nf size zero, suc', read_back_ne size n)
 
