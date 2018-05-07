@@ -2,8 +2,9 @@ open Nbe
 open Cmdliner
 open Sexplib
 
-exception InternalFailure of string
-let mk_fail s = InternalFailure s
+exception Internal_failure of string
+
+let mk_fail s = Internal_failure s
 
 let find_idx ~equal key xs =
   let rec go i = function
@@ -122,7 +123,7 @@ let sexp_of_syn t =
 
 let perform_norm file =
   if String.equal file ""
-  then raise (InternalFailure "Failed to supply a file")
+  then raise (Internal_failure "Failed to supply a file")
   else ();
   let (s1, s2) = slurp_sexps_from_file file in
   let term = syn_of_sexp s1 in
@@ -135,7 +136,8 @@ let perform_norm file =
 
 let main file =
   try perform_norm file with
-  | InternalFailure s -> prerr_endline s; 1
+  | Internal_failure s -> prerr_endline s; 1
+  | Nbe_failed s -> Printf.eprintf "Failed to normalize: %s" s; 1
 
 let input_file =
   let doc = "File containing the term to reduce" in

@@ -42,6 +42,8 @@ struct
     | Normal of t * t
 end
 
+exception Nbe_failed of string
+
 let mk_var tp lev = D.Neutral (tp, D.Var lev)
 
 let rec apply_subst sub env =
@@ -59,14 +61,14 @@ and do_rec env tp zero suc n =
     let final_tp = do_clos tp n in
     let zero' = D.Normal (do_clos tp D.Zero, zero) in
     D.Neutral (final_tp, D.NRec (tp, zero', suc, e))
-  | _ -> failwith "Not a number"
+  | _ -> raise (Nbe_failed "Not a number")
 
 and do_fst p =
   match p with
   | D.Pair (p1, _) -> p1
   | D.Neutral (D.Sig (t, _), ne) ->
     D.Neutral(t, D.Fst ne)
-  | _ -> failwith "Couldn't fst argument in do_fst"
+  | _ -> raise (Nbe_failed "Couldn't fst argument in do_fst")
 
 and do_snd p =
   match p with
@@ -74,7 +76,7 @@ and do_snd p =
   | D.Neutral (D.Sig (_, clo), ne) ->
     let fst = do_fst p in
     D.Neutral (do_clos clo fst, D.Snd ne)
-  | _ -> failwith "Couldn't snd argument in do_snd"
+  | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
 
 and do_clos (Clos {term; env}) a = eval term (a :: env)
 
@@ -89,9 +91,9 @@ and do_ap f a =
       | D.Pi (src, dst) ->
         let dst = do_clos dst a in
         D.Neutral (dst, D.Ap (e, D.Normal (src, a)))
-      | _ -> failwith "Not a Pi in do_ap"
+      | _ -> raise (Nbe_failed "Not a Pi in do_ap")
     end
-  | _ -> failwith "Not a function in do_ap"
+  | _ -> raise (Nbe_failed "Not a function in do_ap")
 
 and eval t env =
   match t with
@@ -150,7 +152,7 @@ let rec read_back_nf size nf =
        read_back_nf (size + 1) (D.Normal (D.Uni i, do_clos snd var)))
   | D.Normal (D.Uni _, D.Neutral (_, ne)) -> read_back_ne size ne
   | D.Normal (D.Neutral (_, _), D.Neutral (_, ne)) -> read_back_ne size ne
-  | _ -> failwith "Ill-typed read_back_nf"
+  | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
 
 and read_back_tp size d =
   match d with
@@ -162,7 +164,7 @@ and read_back_tp size d =
     let var = mk_var fst size in
     Syn.Sig (read_back_tp size fst, read_back_tp (size + 1) (do_clos snd var))
   | D.Uni k -> Syn.Uni k
-  | _ -> failwith "Not a type in read_back_tp"
+  | _ -> raise (Nbe_failed "Not a type in read_back_tp")
 
 and read_back_ne size ne =
   match ne with

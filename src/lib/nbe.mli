@@ -17,4 +17,6 @@ sig
   type env = t list
 end
 
+exception Nbe_failed of string
+
 val normalize : env:Syn.env -> term:Syn.t -> tp:Syn.t -> Syn.t
