@@ -29,8 +29,6 @@ module D =
        | Zero
        | Suc of t
        | Pi of t * clos
-       | Sig of t * clos
-       | Pair of t * t
        | Uni of Syn.uni_level
      and ne =
        | Var of int (* DeBruijn levels for variables *)
@@ -100,13 +98,13 @@ let rec read_back_nf size nf =
   | D.Normal (D.Nat, D.Zero) -> Syn.Zero
   | D.Normal (D.Nat, D.Suc nf) -> Syn.Suc (read_back_nf size (D.Normal (D.Nat, nf)))
   | D.Normal (D.Nat, D.Neutral (_, ne)) -> read_back_ne size ne
-  | D.Normal (D.Uni i, D.Nat) -> Syn.Nat
+  | D.Normal (D.Uni _, D.Nat) -> Syn.Nat
   | D.Normal (D.Uni i, D.Pi (src, dest)) ->
      let var = D.Neutral (src, D.Var size) in
      Syn.Pi
        (read_back_nf size (D.Normal (D.Uni i, src)),
         read_back_nf (size + 1) (D.Normal (D.Uni i, do_clos dest var)))
-  | D.Normal (D.Uni i, D.Neutral (_, ne)) -> read_back_ne size ne
+  | D.Normal (D.Uni _, D.Neutral (_, ne)) -> read_back_ne size ne
   | D.Normal (D.Neutral (_, _), D.Neutral (_, ne)) -> read_back_ne size ne
   | _ -> failwith "Ill-typed read_back_nf"
 

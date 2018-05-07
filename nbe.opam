@@ -3,12 +3,12 @@ name: "nbe"
 version: "0.0"
 maintainer: "danny.gratzer@gmail.com"
 authors: ["Danny Gratzer"]
-homepage: "https://github.com/dannygratzer/nbe-for-mltt"
-bug-reports: "https://github.com/dannygratzer/nbe-for-mltt/issues"
-dev-repo: "https://github.com/dannygratzer/nbe-for-mltt.git"
+homepage: "https://github.com/jozefg/nbe-for-mltt"
+bug-reports: "https://github.com/jozefg/nbe-for-mltt/issues"
+dev-repo: "https://github.com/jozefg/nbe-for-mltt.git"
 license: "MIT"
 depends: [
-  "jbuilder" {build & = "1.0+beta17"}
+  "jbuilder" {build & = "1.0+beta20"}
   "topkg" {= "0.9.1"}
 ]
 build: [
