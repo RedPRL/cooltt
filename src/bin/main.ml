@@ -107,7 +107,7 @@ let sexp_of_syn t =
     | Syn.Fst t -> Sexp.List [Sexp.Atom "fst"; go env t]
     | Syn.Snd t -> Sexp.List [Sexp.Atom "snd"; go env t]
     | Syn.Uni i -> Sexp.List [Sexp.Atom "U"; Sexp.Atom (string_of_int i)]
-    | _ -> failwith "Tried to pretty-print an explicit substitution" in
+    | Syn.Subst _ -> failwith "Tried to pretty-print an explicit substitution" in
   go [] t
 
 
