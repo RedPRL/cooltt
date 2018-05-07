@@ -5,7 +5,6 @@ open Sexplib
 exception InternalFailure of string
 let mk_fail s = InternalFailure s
 
-
 let find_idx ~equal key xs =
   let rec go i = function
     | [] -> None
