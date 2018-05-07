@@ -20,9 +20,8 @@ end
 module D =
 struct
   type env = t list
-  and clos = Syn.t * env
-  and clos2 = Syn.t * env
-  and ann_clos = Syn.t * t * env
+  and clos = Clos of {term : Syn.t; env : env}
+  and clos2 = Clos2 of {term : Syn.t; env : env}
   and t =
     | Lam of clos
     | Neutral of t * ne
@@ -38,7 +37,7 @@ struct
     | Ap of ne * nf
     | Fst of ne
     | Snd of ne
-    | NRec of ann_clos * nf * clos2 * ne
+    | NRec of clos * nf * clos2 * ne
   and nf =
     | Normal of t * t
 end
@@ -57,8 +56,8 @@ and do_rec env tp zero suc n =
   | D.Zero -> zero
   | D.Suc n -> do_clos2 suc n (do_rec env tp zero suc n)
   | D.Neutral (_, e) ->
-    let final_tp = do_ann_clos tp n in
-    let zero' = D.Normal (do_ann_clos tp D.Zero, zero) in
+    let final_tp = do_clos tp n in
+    let zero' = D.Normal (do_clos tp D.Zero, zero) in
     D.Neutral (final_tp, D.NRec (tp, zero', suc, e))
   | _ -> failwith "Not a number"
 
@@ -77,11 +76,9 @@ and do_snd p =
     D.Neutral (do_clos clo fst, D.Snd ne)
   | _ -> failwith "Couldn't snd argument in do_snd"
 
-and do_clos (t, env) a = eval t (a :: env)
+and do_clos (Clos {term; env}) a = eval term (a :: env)
 
-and do_clos2 (t, env) a1 a2 = eval t (a2 :: a1 :: env)
-
-and do_ann_clos (t, _, env) a = eval t (a :: env)
+and do_clos2 (Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
 
 and do_ap f a =
   match f with
@@ -103,14 +100,19 @@ and eval t env =
   | Syn.Zero -> D.Zero
   | Syn.Suc t -> D.Suc (eval t env)
   | Syn.NRec (tp, zero, suc, n) ->
-    do_rec env (tp, D.Nat, env) (eval zero env) (suc, env) (eval n env)
+    do_rec
+      env
+      (Clos {term = tp; env})
+      (eval zero env)
+      (Clos2 {term = suc; env})
+      (eval n env)
   | Syn.Pi (src, dest) ->
-    D.Pi (eval src env, (dest, env))
+    D.Pi (eval src env, (Clos {term = dest; env}))
   | Syn.Uni i -> D.Uni i
-  | Syn.Lam t -> D.Lam (t, env)
+  | Syn.Lam t -> D.Lam (Clos {term = t; env})
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
   | Syn.Subst (t, subst) -> eval t (apply_subst subst env)
-  | Syn.Sig (t1, t2) -> D.Sig (eval t1 env, (t2, env))
+  | Syn.Sig (t1, t2) -> D.Sig (eval t1 env, (Clos {term = t2; env}))
   | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
   | Syn.Fst t -> do_fst (eval t env)
   | Syn.Snd t -> do_snd (eval t env)
@@ -167,10 +169,10 @@ and read_back_ne size ne =
   | D.Var x -> Syn.Var (size - (x + 1))
   | D.Ap (ne, arg) ->
     Syn.Ap (read_back_ne size ne, read_back_nf size arg)
-  | D.NRec ((_, tp_tp, _) as tp, zero, suc, n) ->
-    let tp_var = mk_var tp_tp size in
-    let applied_tp = do_ann_clos tp tp_var in
-    let applied_suc_tp = do_ann_clos tp (D.Suc tp_var) in
+  | D.NRec (tp, zero, suc, n) ->
+    let tp_var = mk_var D.Nat size in
+    let applied_tp = do_clos tp tp_var in
+    let applied_suc_tp = do_clos tp (D.Suc tp_var) in
     let tp' = read_back_tp (size + 1) applied_tp in
     let suc_var = mk_var applied_tp (size + 1) in
     let applied_suc = do_clos2 suc tp_var suc_var in
