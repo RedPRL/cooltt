@@ -7,12 +7,6 @@ struct
     | Pi of t * t | Lam of t | Ap of t * t
     | Sig of t * t | Pair of t * t | Fst of t | Snd of t
     | Uni of uni_level
-    | Subst of t * subst
-  and subst =
-    | Shift
-    | Id
-    | Compose of subst * subst
-    | First of subst * t
 
   type env = t list
 end
@@ -46,14 +40,7 @@ exception Nbe_failed of string
 
 let mk_var tp lev = D.Neutral {tp; term = D.Var lev}
 
-let rec apply_subst sub env =
-  match sub with
-  | Syn.Shift -> List.tl env
-  | Syn.Id -> env
-  | Syn.Compose (sub1, sub2) -> apply_subst sub2 env |> apply_subst sub1
-  | Syn.First (sub, t) -> eval t env :: apply_subst sub env
-
-and do_rec env tp zero suc n =
+let rec do_rec env tp zero suc n =
   match n with
   | D.Zero -> zero
   | D.Suc n -> do_clos2 suc n (do_rec env tp zero suc n)
@@ -113,7 +100,6 @@ and eval t env =
   | Syn.Uni i -> D.Uni i
   | Syn.Lam t -> D.Lam (Clos {term = t; env})
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
-  | Syn.Subst (t, subst) -> eval t (apply_subst subst env)
   | Syn.Sig (t1, t2) -> D.Sig (eval t1 env, (Clos {term = t2; env}))
   | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
   | Syn.Fst t -> do_fst (eval t env)

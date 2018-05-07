@@ -7,12 +7,6 @@ sig
     | Pi of t * t | Lam of t | Ap of t * t
     | Sig of t * t | Pair of t * t | Fst of t | Snd of t
     | Uni of uni_level
-    | Subst of t * subst
-  and subst =
-    | Shift
-    | Id
-    | Compose of subst * subst
-    | First of subst * t
 
   type env = t list
 end
