@@ -64,15 +64,15 @@ and do_rec env tp zero suc n =
 
 and do_fst p =
   match p with
-  | D.Pair (p1, p2) -> p1
-  | D.Neutral (D.Sig (t, clo), ne) ->
+  | D.Pair (p1, _) -> p1
+  | D.Neutral (D.Sig (t, _), ne) ->
     D.Neutral(t, D.Fst ne)
   | _ -> failwith "Couldn't fst argument in do_fst"
 
 and do_snd p =
   match p with
-  | D.Pair (p1, p2) -> p2
-  | D.Neutral (D.Sig (t, clo), ne) ->
+  | D.Pair (_, p2) -> p2
+  | D.Neutral (D.Sig (_, clo), ne) ->
     let fst = do_fst p in
     D.Neutral (do_clos clo fst, D.Snd ne)
   | _ -> failwith "Couldn't snd argument in do_snd"

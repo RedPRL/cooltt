@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(executables
+ ((names (main))
+  (libraries (nbe sexplib cmdliner))))
+
+(install
+ ((section bin)
+  (files ((main.exe as nbe)))))

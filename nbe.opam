@@ -8,7 +8,9 @@ bug-reports: "https://github.com/jozefg/nbe-for-mltt/issues"
 dev-repo: "https://github.com/jozefg/nbe-for-mltt.git"
 license: "MIT"
 depends: [
-  "jbuilder" {build & = "1.0+beta20"}
+  "jbuilder" {build & > "1.0+beta17"}
+  "sexplib" {= "0.10.0"}
+  "cmdliner" {= "1.0"}
   "topkg" {= "0.9.1"}
 ]
 build: [
