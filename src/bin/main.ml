@@ -24,21 +24,27 @@ let slurp_sexps_from_file ~file =
     Printf.sprintf "Failed while parsing %s: %s\n" file msg
     |> mk_fail
     |> raise
-  | exception Failure msg ->
-    Printf.sprintf "Failed while parsing %s: %s\n" file msg
+  | exception Failure _ ->
+    Printf.sprintf "Failed while parsing %s: file ended before the sexp was closed\n" file
     |> mk_fail
     |> raise
 
 let syn_of_sexp sexp =
   let exception Illformed in
+  let rec syn_of_int = function
+    | 0 -> Syn.Zero
+    | n -> Syn.Suc (syn_of_int (n - 1)) in
   let rec go env = function
     | Sexp.Atom "Nat" -> Syn.Nat
     | Sexp.Atom "zero" -> Syn.Zero
     | Sexp.Atom var ->
       begin
-        match find_idx ~equal:String.equal var env with
-        | Some idx -> Syn.Var idx
-        | None -> raise Illformed
+        match int_of_string_opt var with
+        | Some i when i >= 0 -> syn_of_int i
+        | _ ->
+          match find_idx ~equal:String.equal var env with
+          | Some idx -> Syn.Var idx
+          | None -> raise Illformed
       end
     | Sexp.List [Sexp.Atom "suc"; t] -> Syn.Suc (go env t)
     | Sexp.List
@@ -80,11 +86,25 @@ let syn_of_sexp sexp =
 
 let sexp_of_syn t =
   let counter = ref 0 in
+  let rec int_of_syn = function
+    | Syn.Zero -> Some 0
+    | Syn.Suc t ->
+      begin
+        match int_of_syn t with
+        | Some i -> Some (i + 1)
+        | None -> None
+      end
+    | _ -> None in
   let rec go env = function
     | Syn.Var i -> List.nth env i
     | Syn.Nat -> Sexp.Atom "Nat"
     | Syn.Zero -> Sexp.Atom "zero"
-    | Syn.Suc t -> Sexp.List [Sexp.Atom "suc"; go env t]
+    | Syn.Suc t ->
+      begin
+        match int_of_syn t with
+        | Some i -> Sexp.Atom (string_of_int (i + 1))
+        | None -> Sexp.List [Sexp.Atom "suc"; go env t]
+      end
     | Syn.NRec (motive, zero, suc, n) ->
       incr counter;
       let mvar = Sexp.Atom ("x" ^ string_of_int (! counter)) in
