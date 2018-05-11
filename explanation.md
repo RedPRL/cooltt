@@ -95,4 +95,84 @@ above, I have annotated which subterms bind variables with `(* BINDS
 *)` and `(* BINDS 2 *)` in the case of the "successor" case of natrec
 which binds 2 variables.
 
-Next up is the semantic domain.
+As is good style, all of these declarations are contained in the
+module `Syn`.
+
+Next up is the semantic domain. The semantic domain is stratified into
+3 separate syntactic categories: values, normal forms, and neutral
+terms. These are represented with 3 different OCaml types and are all
+contained in the module `D`.
+
+``` ocaml
+type env = t list
+and clos = Clos of {term : Syn.t; env : env}
+and clos2 = Clos2 of {term : Syn.t; env : env}
+and t =
+  | Lam of clos
+  | Neutral of {tp : t; term : ne}
+  | Nat
+  | Zero
+  | Suc of t
+  | Pi of t * clos
+  | Sig of t * clos
+  | Pair of t * t
+  | Uni of Syn.uni_level
+and ne =
+  | Var of int (* DeBruijn levels for variables *)
+  | Ap of ne * nf
+  | Fst of ne
+  | Snd of ne
+  | NRec of clos * nf * clos2 * ne
+and nf =
+  | Normal of {tp : t; term : t}
+```
+
+All 3 of the categories are mutually recursive. Values, in the code
+`t`, contain terms which have evaluated to a constructor which does
+not need to be reduced further. So for instance, `Lam` and `Pair` may
+contain computation further inside the term but at least the outermost
+constructor is stable and fully evaluated. Now goal is normalization,
+which means that we have to deal with open terms. Even if at the
+top-level we were to only invoke this procedure on closed terms in
+order to normalize under a `Lam`, `Pi`, `Sig`, etc it becomes
+necessary to work with open terms.
+
+This means that we have to consider the case that something wants to
+reduce further before becoming a value but cannot because its blocked
+on something. These are called neutral terms. The canonical example of
+a neutral term is just a variable `x`. It's not yet a value but
+there's no way to convert it to a value since we have no information
+on what `x` is yet. Similarly, if we have some neutral term and we
+apply `Fst` to it it's clearly still not a value. On the other hand,
+we don't have any way of reducing it further so what's there to
+do. There's a way of including neutral terms into the general category
+of values with the constructor `Neutral`. This constructor comes
+equipped with a type annotation which will prove important later for
+bookkeeping purposes.
+
+All in all, this means we have a syntactic category comprised of
+"eliminators stacked onto variables" and that is all that `ne` is. The
+final category, `nf`, is a special class of values. It comes from the
+particular style of NbE that we're doing, it associates a type with a
+value so that later during quotation we can eta expand it
+appropriately. In literature this is usually written as a shift,
+↑ᴬ. Since we use `nf` in various places this ensures that as we go
+through the process of quotation we always have sufficient annotations
+to determine how to quote a term.
+
+TODO closures
+
+One final remark about the data types, unlike before we use DeBruijn
+levels (they count the opposite way) instead of indices. This choice
+is advantage because it means we never need to apply a "shift". In
+fact by doing binding in these two distinct ways we never need to
+perform any sort of substitution or apply adjustment functions to any
+of the terms throughout the algorithm.
+
+With the data types in place, next we turn to defining the two steps
+describe above: evaluation and quotation. Evaluation depends on a
+collection of functions:
+``` ocaml
+mk_var : D.t -> int -> D.ne
+do_rec : D.env -> D.clos1 -> D.t -> D.clos2 ->
+```

@@ -3,9 +3,9 @@ struct
   type uni_level = int
   type t =
     | Var of int (* DeBruijn indices for variables *)
-    | Nat | Zero | Suc of t | NRec of t * t * t * t
-    | Pi of t * t | Lam of t | Ap of t * t
-    | Sig of t * t | Pair of t * t | Fst of t | Snd of t
+    | Nat | Zero | Suc of t | NRec of (* BINDS *) t * t * (* BINDS 2 *) t * t
+    | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
+    | Sig of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
     | Uni of uni_level
 
   type env = t list
