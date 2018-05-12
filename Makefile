@@ -1,3 +1,5 @@
+# Lifted from https://github.com/jonsterling/tt so thanks to
+# Darin Morrison (@freebroccolo)
 OPAM=opam
 EXEC=${OPAM} config exec
 DUNE=${EXEC} jbuilder --

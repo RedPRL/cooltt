@@ -402,3 +402,212 @@ let do_snd p =
 ```
 
 ## Read Back/Quotation
+
+Now we have a way to take a syntactic term and convert it to a
+semantic term which has no beta redexes. Now what remains is the
+"quotation" side of the algorithm. We need a function converting
+semantic terms back to syntactic ones.
+
+These functions are the "read back" functions. We define 3 free forms
+of read back: one for normal forms, one for neutral terms, and one for
+types. The last one is slightly different than the original
+presentation in Abel but simplifies the program. Since types can be
+read back without a type annotation having a distinguished read back
+for them which doesn't require annotations means that the motive in
+`D.NRec` does not need an annotation. The signatures for the three
+functions is as follows.
+
+``` ocaml
+val read_back_nf : int -> D.nf -> Syn.t
+val read_back_tp : int -> D.t -> Syn.t
+val read_back_ne : int -> D.ne -> Syn.t
+```
+
+All of these functions take a level to work with. It is the `int`
+argument, say `n`. This is needed for places where we need to generate
+a fresh variable. The semantic representation uses DeBruijn levels
+though so the number of binders we're under in order to generate the
+appropriate fresh variable. The invariant maintained is that the next
+binder binds `D.Var n`.
+
+Let us start with `read_back_nf`. The first case is for functions,
+this is where eta expansion is performed.
+
+``` ocaml
+let rec read_back_nf size nf =
+  match nf with
+  (* Functions *)
+  | D.Normal {tp = D.Pi (src, dest); term = f} ->
+    let arg = mk_var src size in
+    let nf = D.Normal {tp = do_clos dest arg; term = do_ap f arg} in
+    Syn.Lam (read_back_nf (size + 1) nf)
+```
+
+When we're quoting a normal form that is tagged as a function we
+create a new fresh variable with `mk_var` at the type `src` and with
+`size`. With this, we can then apply the function to this new fresh
+argument and create a new normal form at the output type. By then
+quoting this and wrapping the result in a lambda we ensure that all
+functions are eta long as we wanted. One thing to notice here is that
+we never actually cared what `f` was. We rely on `do_ap` to handle
+actually handling whatever forms a function can take and such details
+don't need to appear in the read back code.
+
+The code for pairs is similar, we also want to perform eta expansion
+so we take `p` and quote `fst p` and `snd p` and return the pair of
+those two terms.
+
+``` ocaml
+  | D.Normal {tp = D.Sig (fst, snd); term = p} ->
+    let fst' = do_fst p in
+    let snd = do_clos snd fst' in
+    let snd' = do_snd p in
+    Syn.Pair
+      (read_back_nf size (D.Normal { tp = fst; term = fst'}),
+       read_back_nf size (D.Normal { tp = snd; term = snd'}))
+```
+
+The code for numbers is less slick since we actually have to case on
+what the number is. There's a case for zero, successor and neutral
+terms. All of them proceed by recursing when necessary and appealing
+to the appropriate read back function.
+
+``` ocaml
+  | D.Normal {tp = D.Nat; term = D.Zero} -> Syn.Zero
+  | D.Normal {tp = D.Nat; term = D.Suc nf} ->
+    Syn.Suc (read_back_nf size (D.Normal {tp = D.Nat; term = nf}))
+  | D.Normal {tp = D.Nat; term = D.Neutral {term = ne}} -> read_back_ne size ne
+```
+
+Next comes a series of cases for reading back types. These are normal
+forms where the type is `Uni i` for some `i`. All of these cases are
+roughly the same. Below is the code for `Pi` as an example.
+
+``` ocaml
+  | D.Normal {tp = D.Uni i; term = D.Pi (src, dest)} ->
+    let var = mk_var src size in
+    Syn.Pi
+      (read_back_nf size (D.Normal {tp = D.Uni i; term = src}),
+       read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term = do_clos dest var}))
+```
+
+This has the same flavor as the case for functions: we create a fresh
+variable using `size` in order to apply the closure stored in
+`dest`. Then we just read back the two subterms and store them in
+`Syn.Pi`. Also notice that we increment `size` for the `dest` case
+since we have to go under a binder.
+
+The final case for just ensures that if we have a neutral type we
+handle it correctly. A neutral type can only ever be occupied by a
+neutral term so we just forward it to `read_back_ne`.
+
+``` ocaml
+  | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne}} -> read_back_ne size ne
+```
+
+The next function is `read_back_tp`. This is almost like the read back
+for normal forms but deals directly with `D.t` so there is no
+annotation tell us what type we're reading back at. The function
+itself just assumes that `d` is some term of type `Uni i` for some
+`i`. This, however, means that the cases are almost identical to the
+type cases in `read_back_nf`. The pi case is presented again as a
+contrast.
+
+``` ocaml
+  | D.Pi (src, dest) ->
+    let var = mk_var src size in
+    Syn.Pi (read_back_tp size src, read_back_tp (size + 1) (do_clos dest var))
+```
+
+The only difference is that we don't construct normal forms and we
+call `read_back_tp` recursively. This just leaves us to discuss
+`read_back_ne`. The first case handles the ugly conversion from
+DeBruijn levels to indices.
+
+``` ocaml
+let read_back_ne size ne =
+  match ne with
+  | D.Var x -> Syn.Var (size - (x + 1))
+```
+
+This formula is slightly mysterious but correct. It can be derived by
+writing out `0..n` in one direction in `n..0` in the other and
+observing the relationship between the two numbers in each column. The
+case for application is just done by calling the appropriate recursive
+functions.
+
+``` ocaml
+  | D.Ap (ne, arg) ->
+    Syn.Ap (read_back_ne size ne, read_back_nf size arg)
+```
+
+The case for `D.NRec` is unfortunately the worst piece of code in the
+entire algorithm. The issue is that we have to construct all the types
+to annotate things with before we can recursively quote the subterms.
+
+``` ocaml
+  | D.NRec (tp, zero, suc, n) ->
+    let tp_var = mk_var D.Nat size in
+    let applied_tp = do_clos tp tp_var in
+    let applied_suc_tp = do_clos tp (D.Suc tp_var) in
+    let tp' = read_back_tp (size + 1) applied_tp in
+    let suc_var = mk_var applied_tp (size + 1) in
+    let applied_suc = do_clos2 suc tp_var suc_var in
+    let suc' =
+      read_back_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc}) in
+    Syn.NRec (tp', read_back_nf size zero, suc', read_back_ne size n)
+```
+
+This code is really doing just what the application case does. The
+extra work is to find the right types for variables so that we can
+instantiate closures. For instance, we make a variable of type `Nat`
+so that we can instantiate `tp` before we quote it. For `succ` we have
+to create a variable of type `Nat` and then a variable of type `tp X`
+where `X` refers to the variable we just created. This is because
+`succ` has a dependent type. Finally, once everything is instantiated
+we just read it all back using the only functions of the correct type.
+
+This concludes the read back algorithm. Notice how easy it was to get
+eta expansion. Since we had the types of what we were quoting if we
+were ever quoting a normal form that we thought needed eta expansion
+it was straightforward to just perform the expansion right then and
+there.
+
+## Putting It All Together
+
+In order to actually run the algorithm, we need to write a little bit
+more glue code. We are given a term, its type, and the environment it
+lives in. The environment we're given is a syntactic environment so we
+first have an algorithm to convert that into a semantic
+environment. For each entry we use `eval` to convert it to a semantic
+type, `tp` and then add a neutral term `Var i` at type `tp` where `i`
+is the length of the prefix of the context we've converted. In code:
+
+``` ocaml
+let rec initial_env env =
+  match env with
+  | [] -> []
+  | t :: env ->
+    let env' = initial_env env in
+    let d = D.Neutral {tp = eval t env'; term = D.Var (List.length env)} in
+    d :: env'
+```
+
+This is just ensuring that we have an environment which will map the
+`i`th variable to `Var i` with the appropriate type. Notice that we
+don't need to worry about eta expanding them; all of that will be
+handled in read back.
+
+With this conversion defined it's straightforward to define
+normalization. We first evaluate a term and its type in this
+environment. We then read it back with `read_back_nf`.
+
+``` ocaml
+let normalize ~env ~term ~tp =
+  let env' = initial_env env in
+  let tp' = eval tp env' in
+  let term' = eval term env' in
+  read_back_nf (List.length env') (D.Normal {tp = tp'; term = term'})
+```
+
+The completes the presentation of this algorithm.

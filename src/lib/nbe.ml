@@ -111,11 +111,6 @@ let rec read_back_nf size nf =
     let arg = mk_var src size in
     let nf = D.Normal {tp = do_clos dest arg; term = do_ap f arg} in
     Syn.Lam (read_back_nf (size + 1) nf)
-  (* Numbers *)
-  | D.Normal {tp = D.Nat; term = D.Zero} -> Syn.Zero
-  | D.Normal {tp = D.Nat; term = D.Suc nf} ->
-    Syn.Suc (read_back_nf size (D.Normal {tp = D.Nat; term = nf}))
-  | D.Normal {tp = D.Nat; term = D.Neutral {term = ne}} -> read_back_ne size ne
   (* Pairs *)
   | D.Normal {tp = D.Sig (fst, snd); term = p} ->
     let fst' = do_fst p in
@@ -124,6 +119,11 @@ let rec read_back_nf size nf =
     Syn.Pair
       (read_back_nf size (D.Normal { tp = fst; term = fst'}),
        read_back_nf size (D.Normal { tp = snd; term = snd'}))
+  (* Numbers *)
+  | D.Normal {tp = D.Nat; term = D.Zero} -> Syn.Zero
+  | D.Normal {tp = D.Nat; term = D.Suc nf} ->
+    Syn.Suc (read_back_nf size (D.Normal {tp = D.Nat; term = nf}))
+  | D.Normal {tp = D.Nat; term = D.Neutral {term = ne}} -> read_back_ne size ne
   (* Types *)
   | D.Normal {tp = D.Uni _; term = D.Nat} -> Syn.Nat
   | D.Normal {tp = D.Uni i; term = D.Pi (src, dest)} ->
