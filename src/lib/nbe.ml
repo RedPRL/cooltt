@@ -40,10 +40,10 @@ exception Nbe_failed of string
 
 let mk_var tp lev = D.Neutral {tp; term = D.Var lev}
 
-let rec do_rec env tp zero suc n =
+let rec do_rec tp zero suc n =
   match n with
   | D.Zero -> zero
-  | D.Suc n -> do_clos2 suc n (do_rec env tp zero suc n)
+  | D.Suc n -> do_clos2 suc n (do_rec tp zero suc n)
   | D.Neutral {term = e} ->
     let final_tp = do_clos tp n in
     let zero' = D.Normal {tp = do_clos tp D.Zero; term = zero} in
@@ -90,16 +90,15 @@ and eval t env =
   | Syn.Suc t -> D.Suc (eval t env)
   | Syn.NRec (tp, zero, suc, n) ->
     do_rec
-      env
       (Clos {term = tp; env})
       (eval zero env)
       (Clos2 {term = suc; env})
       (eval n env)
   | Syn.Pi (src, dest) ->
     D.Pi (eval src env, (Clos {term = dest; env}))
-  | Syn.Uni i -> D.Uni i
   | Syn.Lam t -> D.Lam (Clos {term = t; env})
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
+  | Syn.Uni i -> D.Uni i
   | Syn.Sig (t1, t2) -> D.Sig (eval t1 env, (Clos {term = t2; env}))
   | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
   | Syn.Fst t -> do_fst (eval t env)

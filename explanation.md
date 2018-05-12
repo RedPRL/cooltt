@@ -160,7 +160,20 @@ appropriately. In literature this is usually written as a shift,
 through the process of quotation we always have sufficient annotations
 to determine how to quote a term.
 
-TODO closures
+One other design decision in the representation of terms under a
+binders. In other words, what should `D.Lam` contain? Some
+presentations of NbE make use of the host language's function space
+for instance, so that `D.Lam` would take `D.t -> D.t`. For our
+purposes though we opt for the "defunctionalized" variant where terms
+under a binder are represented as closures. A closure is a syntactic
+term paired with the environment in which it was being evaluated. This
+means that a closure is a syntactic term with `n + 1` free variables
+and an environment of length `n`. The idea is that the `i`th
+environment entry corresponds to the `i + 1`th variable in the
+term. This information is stored in the record `{term : Syn.t; env :
+env}`. Since we have one term which binds 2 variables (the successor
+case in natrec) there's also `clos2`. Its underlying data is the same
+but we use it only for terms with 2 free variables.
 
 One final remark about the data types, unlike before we use DeBruijn
 levels (they count the opposite way) instead of indices. This choice
@@ -172,7 +185,143 @@ of the terms throughout the algorithm.
 With the data types in place, next we turn to defining the two steps
 describe above: evaluation and quotation. Evaluation depends on a
 collection of functions:
+
 ``` ocaml
-mk_var : D.t -> int -> D.ne
-do_rec : D.env -> D.clos1 -> D.t -> D.clos2 ->
+(* Utility function *)
+val mk_var : D.t -> int -> D.ne
+
+(* Compute various eliminators *)
+val do_rec : D.clos -> D.t -> D.clos2 -> D.t -> D.t
+val do_fst : D.t -> D.t
+val do_snd : D.t -> D.t
+
+(* Various "application" like moves *)
+val do_clos : D.clos -> D.t -> D.t
+val do_clos2 : D.clos2 -> D.t -> D.t -> D.t
+val do_ap : D.t -> D.t -> D.t
+
+(* Main evaluation function *)
+val eval : Syn.t -> D.env -> D.t
+```
+
+The evaluation function depends on a good number of extraneous helper
+functions. In order to explain it, let us first start with the helper
+function and then consider each helper function as it arises.
+
+``` ocaml
+let rec eval t env =
+  match t with
+```
+
+Evaluation starts by casing on the syntactic term `t` and includes on
+case for every possible constructor. The case for variables is just
+straightforward lookup. One benefit of using DeBruijn indices is that
+it's quite straightforward to represent the environment as a list.
+
+``` ocaml
+  | Syn.Var i -> List.nth env i
+```
+
+The cases for `Nat` and `Zero` are also quite direct because there is
+no computation to perform with either of them.
+
+``` ocaml
+  | Syn.Nat -> D.Nat
+  | Syn.Zero -> D.Zero
+```
+
+The case for successor requires slightly more work. The subterm `t`
+and `Syn.Suc t` needs to be evaluated. This is done just by recursing
+with `eval`. There's no need to worry about adjusting the environment
+since no binding takes place.
+
+``` ocaml
+  | Syn.Suc t -> D.Suc (eval t env)
+```
+
+Next comes the most complicated case, `Syn.NRec`. Recall that `NRec`
+takes 4 arguments:
+
+ - The motive, which binds 1 argument
+ - The zero case, which binds 0 arguments
+ - The successor case, which binds 2 arguments
+ - The actual number, which binds 0 arguments
+
+In order to evaluate `NRec` we have the following clause
+
+``` ocaml
+  | Syn.NRec (tp, zero, suc, n) ->
+    do_rec
+      (Clos {term = tp; env})
+      (eval zero env)
+      (Clos2 {term = suc; env})
+      (eval n env)
+```
+
+Before we call the helper function `do_rec` to actually do the
+recursion we evaluate the closed terms further and construct closures
+for the terms we cannot evaluate further. Then `do_rec` will actually
+perform the computation.
+
+``` ocaml
+let rec do_rec tp zero suc n =
+  match n with
+  | D.Zero -> zero
+  | D.Suc n -> do_clos2 suc n (do_rec tp zero suc n)
+  | D.Neutral {term = e} ->
+    let final_tp = do_clos tp n in
+    let zero' = D.Normal {tp = do_clos tp D.Zero; term = zero} in
+    D.Neutral {tp = final_tp; term = D.NRec (tp, zero', suc, e)}
+  | _ -> raise (Nbe_failed "Not a number")
+```
+
+This function works by casing on `n`. There are 3 cases to
+consider. If `n` is `Zero` then we return the `zero` case. If `n` is
+`Suc n'`, then we apply the closure `suc` to `n'` and `do_rec tp zero
+suc n'`. Let us postpone explaining how `do_clos` and `do_clos2` works
+for a moment and instead consider the last case. When `n` is neutral
+we cannot evaluate `NRec` in an meaningful way so we construct a new
+neutral term. This is done by using `D.Neutral`. This needs the
+type of the result which is given by instantiating the motive's
+closure with `n`: `do_clos tp n`. Next, we need to convert `zero` from
+`D.t` into `D.nf` which again requires a type, constructed in an
+analogous way: `do_clos tp D.Zero`. We then produce the final neutral
+term:
+
+``` ocaml
+D.Neutral {tp = final_tp; term = D.NRec (tp, zero', suc, e)}
+```
+
+Now the instantiating of closures uses `eval` again. Remember that
+closures are just environments and syntactic term but lacking the last
+addition to the environment. This lacking value is what we need to
+instantiate the binder. Once we have that, we can just use `eval` to
+normalize the term.
+
+``` ocaml
+let do_clos (Clos {term; env}) a = eval term (a :: env)
+
+let do_clos2 (Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
+```
+
+Returning to `eval`, the next set of cases deal with `Pi`. Evaluating
+`Syn.Pi` proceeds by normalizing the first subterm and creating a
+closure for the second.
+
+``` ocaml
+  | Syn.Pi (src, dest) ->
+    D.Pi (eval src env, (Clos {term = dest; env}))
+```
+
+Similarly for lambdas we just create a closure.
+
+``` ocaml
+  | Syn.Lam t -> D.Lam (Clos {term = t; env})
+```
+
+The case for application is slightly more involved. We do something to
+similar to `do_rec`, it appeals to the helper function `do_ap`.
+
+``` ocaml
+  | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
 ```
