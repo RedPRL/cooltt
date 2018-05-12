@@ -58,6 +58,8 @@ domain back into the syntax and perform the tagged eta
 expansions. There are many variants on NbE but this variant seems
 to strike a pleasant balance between scalability and simplicity.
 
+## Data Types
+
 First let us review the representation of the surface syntax.
 
 ``` ocaml
@@ -181,6 +183,8 @@ is advantage because it means we never need to apply a "shift". In
 fact by doing binding in these two distinct ways we never need to
 perform any sort of substitution or apply adjustment functions to any
 of the terms throughout the algorithm.
+
+## Evaluation
 
 With the data types in place, next we turn to defining the two steps
 describe above: evaluation and quotation. Evaluation depends on a
@@ -325,3 +329,76 @@ similar to `do_rec`, it appeals to the helper function `do_ap`.
 ``` ocaml
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
 ```
+
+This helper function `do_ap` is similar to `do_rec`. It takes the
+normalized subterms and performs the application when possible,
+constructing the neutral term when it's not.
+
+``` ocaml
+let do_ap f a =
+  match f with
+  | D.Lam clos -> do_clos clos a
+  | D.Neutral {tp; term = e} ->
+    begin
+      match tp with
+      | D.Pi (src, dst) ->
+        let dst = do_clos dst a in
+        D.Neutral {tp = dst; term = D.Ap (e, D.Normal {tp = src; term = a})}
+      | _ -> raise (Nbe_failed "Not a Pi in do_ap")
+    end
+  | _ -> raise (Nbe_failed "Not a function in do_ap")
+```
+
+This helper function again makes use of `do_clos` to actually do the
+application. One quick point is that when applying a neutral type we
+actually needed the type it was annotated with. Without this we could
+not have determined the type to use for `D.Normal`.
+
+The case for universes is quite direct, we just convert `Syn.Uni i`
+to the corresponding `D.Uni i`.
+
+``` ocaml
+  | Syn.Uni i -> D.Uni i
+```
+
+All that's left is the cases for sigma types. The case for `Syn.Sig`
+is identical to the case for `Syn.Pi`.
+
+``` ocaml
+  | Syn.Sig (t1, t2) -> D.Sig (eval t1 env, (Clos {term = t2; env}))
+```
+
+The case for pairs proceeds by evaluating both the left and the right
+half and packs them back into `Syn.Pair`.
+
+``` ocaml
+  | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
+```
+
+All that remains are the eliminators: `Fst` and `Snd`. For these we
+again just appeal to some helper functions
+
+``` ocaml
+  | Syn.Fst t -> do_fst (eval t env)
+  | Syn.Snd t -> do_snd (eval t env)
+```
+
+These helper functions again perform the evaluation if it's possible
+and if it's not they construct a new neutral term. The only slight
+complication is that `do_snd` must appeal to `do_fst`. This
+dependency comes from the fact that the type of `Snd` mentions `Fst`:
+`fst p : B (snd p)` if `p : Sig A B`. Below is the code for `do_snd`
+since it includes everything interesting about `do_fst` so I have
+elided it.
+
+``` ocaml
+let do_snd p =
+  match p with
+  | D.Pair (_, p2) -> p2
+  | D.Neutral {tp = D.Sig (_, clo); term = ne} ->
+    let fst = do_fst p in
+    D.Neutral {tp = do_clos clo fst; term = D.Snd ne}
+  | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
+```
+
+## Read Back/Quotation
