@@ -5,10 +5,11 @@ The goal of this document is to give an explanation of
 scaffolding to allow the user to quickly interact with this code and
 not of much interest.
 
-First, let us define the type theory we're working with. It's a fairly
-standard Martin-Löf type theory. I will not write down all the typing
-rules since most are obvious and instead list the syntax of the type
-theory.
+First, let us define the type theory we're working with. It's a
+variant of Martin-Löf type theory. I will not write down all the typing
+rules since most are standard (and better explained at
+length). Instead I will list the syntax of the type theory with some
+informal explanation.
 
  - We have natural numbers, so a type `Nat` with constructors `zero`
    and `(suc t)`. There is an elimination form
@@ -29,8 +30,8 @@ theory.
 
  - Dependent pairs are also standard with `(Sig fst (x snd))` and
    `(pair l r)`. It comes equipped with the negative formulation of
-   the eliminator: `(fst p)` and `(snd p)`. Like for functions,
-   there's a corresponding eta rule
+   the eliminator: `(fst p)` and `(snd p)`. Like functions, there's a
+   corresponding eta rule
 
         p = (pair (fst p) (snd p))
 
@@ -42,11 +43,11 @@ this language and produce its beta-normal eta-long form. This
 procedure is more than merely evaluating it: normalization like this
 will proceed under binders and ensure that everything is fully
 eta-expanded. This is useful because it produces a canonical member of
-the equivalence class a term belongs to. Checking equivalence between
-two terms can be done by normalizing and then comparing for alpha
-equivalence. In particular, this is useful in something like a
-type-checker where we might want to compare types for beta-eta
-equality.
+the equivalence class a term belongs to under definitional
+equivalence. Checking equivalence between two terms can be done by
+normalizing and then comparing for alpha equivalence. In particular,
+this is useful in something like a type-checker where we might want to
+compare types for equality.
 
 The central idea of this code, and normalization by evaluation in
 general, is to break up the process of producing a normal form into
@@ -90,12 +91,11 @@ type t =
 type env = t list
 ```
 
-This representation of terms is fairly standard. It is worth taking a
-moment to clarify the binding structure. We use De Bruijn indices for
-representing variables so the binding in terms is silent. In the
-above, I have annotated which subterms bind variables with `(* BINDS
-*)` and `(* BINDS 2 *)` in the case of the "successor" case of natrec
-which binds 2 variables.
+It is worth taking a moment to clarify the binding structure. We use
+De Bruijn indices for representing variables so the binding in terms
+is silent. In the above, I have annotated which subterms bind
+variables with `(* BINDS *)` and `(* BINDS 2 *)` in the case of the
+"successor" case of natrec which binds 2 variables.
 
 As is good style, all of these declarations are contained in the
 module `Syn`.
@@ -145,32 +145,37 @@ on something. These are called neutral terms. The canonical example of
 a neutral term is just a variable `x`. It's not yet a value but
 there's no way to convert it to a value since we have no information
 on what `x` is yet. Similarly, if we have some neutral term and we
-apply `Fst` to it it's clearly still not a value. On the other hand,
-we don't have any way of reducing it further so what's there to
-do. There's a way of including neutral terms into the general category
-of values with the constructor `Neutral`. This constructor comes
-equipped with a type annotation which will prove important later for
-bookkeeping purposes.
+apply `Fst` to it it's clearly still not a value but we don't have any
+way of reducing it further so what's there to do. There's a way of
+including neutral terms into the general category of values with the
+constructor `Neutral`. This constructor comes equipped with a type
+annotation which will prove important later for bookkeeping
+purposes. All in all, this means we have a syntactic category
+comprised of "eliminators stacked onto variables" and that is all that
+`ne` is.
 
-All in all, this means we have a syntactic category comprised of
-"eliminators stacked onto variables" and that is all that `ne` is. The
-final category, `nf`, is a special class of values. It comes from the
-particular style of NbE that we're doing, it associates a type with a
-value so that later during quotation we can eta expand it
-appropriately. In literature this is usually written as a shift,
-↑ᴬ. Since we use `nf` in various places this ensures that as we go
-through the process of quotation we always have sufficient annotations
-to determine how to quote a term.
+The final category, `nf`, is a special class of values coming from the
+style of NbE we use. It associates a type with a value so that later
+during quotation we can eta expand it appropriately. In literature
+this is usually written as a shift, ↑ᴬ. Since we use `nf` in various
+places this ensures that as we go through the process of quotation we
+always have sufficient annotations to determine how to quote a term.
 
 One other design decision in the representation of terms under a
 binders. In other words, what should `D.Lam` contain? Some
 presentations of NbE make use of the host language's function space
-for instance, so that `D.Lam` would take `D.t -> D.t`. For our
-purposes though we opt for the "defunctionalized" variant where terms
-under a binder are represented as closures. A closure is a syntactic
-term paired with the environment in which it was being evaluated. This
-means that a closure is a syntactic term with `n + 1` free variables
-and an environment of length `n`. The idea is that the `i`th
+for instance, so that `D.Lam` would take `D.t -> D.t`. This has the
+advantage of being quite slick because application is free and binding
+is simpler. On the other hand, it becomes more difficult to construct
+the semantic domain mathematically (domains are often used) which
+complicates the proof of correctness. For our purposes though we opt
+for the "defunctionalized" variant where terms under a binder are
+represented as closures. A closure is a syntactic term paired with the
+environment in which it was being evaluated when evaluation was
+paused.
+
+This means that a closure is a syntactic term with `n + 1` free
+variables and an environment of length `n`. The idea is that the `i`th
 environment entry corresponds to the `i + 1`th variable in the
 term. This information is stored in the record `{term : Syn.t; env :
 env}`. Since we have one term which binds 2 variables (the successor
@@ -191,9 +196,6 @@ describe above: evaluation and quotation. Evaluation depends on a
 collection of functions:
 
 ``` ocaml
-(* Utility function *)
-val mk_var : D.t -> int -> D.ne
-
 (* Compute various eliminators *)
 val do_rec : D.clos -> D.t -> D.clos2 -> D.t -> D.t
 val do_fst : D.t -> D.t
@@ -235,7 +237,7 @@ no computation to perform with either of them.
 ```
 
 The case for successor requires slightly more work. The subterm `t`
-and `Syn.Suc t` needs to be evaluated. This is done just by recursing
+of `Syn.Suc t` needs to be evaluated. This is done just by recursing
 with `eval`. There's no need to worry about adjusting the environment
 since no binding takes place.
 
@@ -436,7 +438,6 @@ this is where eta expansion is performed.
 ``` ocaml
 let rec read_back_nf size nf =
   match nf with
-  (* Functions *)
   | D.Normal {tp = D.Pi (src, dest); term = f} ->
     let arg = mk_var src size in
     let nf = D.Normal {tp = do_clos dest arg; term = do_ap f arg} in
@@ -445,13 +446,20 @@ let rec read_back_nf size nf =
 
 When we're quoting a normal form that is tagged as a function we
 create a new fresh variable with `mk_var` at the type `src` and with
-`size`. With this, we can then apply the function to this new fresh
-argument and create a new normal form at the output type. By then
-quoting this and wrapping the result in a lambda we ensure that all
-functions are eta long as we wanted. One thing to notice here is that
-we never actually cared what `f` was. We rely on `do_ap` to handle
-actually handling whatever forms a function can take and such details
-don't need to appear in the read back code.
+`size`. `mk_var` here is just shorthand for building a variable and
+using the `Neutral` constructor to treat it as a value:
+
+``` ocaml
+let mk_var tp lev = D.Neutral {tp; term = D.Var lev}
+```
+
+With this, we can then apply the function to this new fresh argument
+and create a new normal form at the output type. By then quoting this
+and wrapping the result in a lambda we ensure that all functions are
+eta long as we wanted. One thing to notice here is that we never
+actually cared what `f` was. We rely on `do_ap` to handle actually
+handling whatever forms a function can take and such details don't
+need to appear in the read back code.
 
 The code for pairs is similar, we also want to perform eta expansion
 so we take `p` and quote `fst p` and `snd p` and return the pair of
@@ -566,6 +574,15 @@ to create a variable of type `Nat` and then a variable of type `tp X`
 where `X` refers to the variable we just created. This is because
 `succ` has a dependent type. Finally, once everything is instantiated
 we just read it all back using the only functions of the correct type.
+
+The final two cases are for `Fst` and `Snd`. They are both identical
+and just read back the subterm using `read_back_ne`. There is no need
+to adjust the environment nor instantiate any closures.
+
+``` ocaml
+  | D.Fst ne -> Syn.Fst (read_back_ne size ne)
+  | D.Snd ne -> Syn.Snd (read_back_ne size ne)
+```
 
 This concludes the read back algorithm. Notice how easy it was to get
 eta expansion. Since we had the types of what we were quoting if we
