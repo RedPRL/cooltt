@@ -58,6 +58,8 @@ let syn_of_sexp sexp =
          go env zero,
          go (indVar :: pVar :: env) succ,
          go env n)
+    | Sexp.List [Sexp.Atom "let"; Sexp.List [Sexp.Atom x; arg]; body] ->
+      Syn.Ap (Syn.Lam (go (x :: env) body), go env arg)
     | Sexp.List [Sexp.Atom "Pi"; src; Sexp.List [Sexp.Atom x; dest]] ->
       Syn.Pi (go env src, go (x :: env) dest)
     | Sexp.List [Sexp.Atom "lam"; Sexp.List [Sexp.Atom x; body]] ->
