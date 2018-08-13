@@ -158,7 +158,7 @@ let perform_norm file =
 let main file =
   try perform_norm file with
   | Internal_failure s -> prerr_endline s; 1
-  | Nbe_failed s -> Printf.eprintf "Failed to normalize: %s" s; 1
+  | Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
 
 let input_file =
   let doc = "File containing the term to reduce" in

@@ -136,6 +136,7 @@ let rec read_back_nf size nf =
     Syn.Sig
       (read_back_nf size (D.Normal {tp = D.Uni i; term = fst}),
        read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term = do_clos snd var}))
+  | D.Normal {tp = D.Uni i; term = D.Uni j} when i > j -> Syn.Uni j
   | D.Normal {tp = D.Uni _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
