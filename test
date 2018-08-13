@@ -18,16 +18,16 @@
 ;;    (lam (x1 (lam (x2 (ap x1 (lam (x3 (ap x2 x3))))))))
 
 ;; Compute the 25th fibonacci number.
-;; (let (plus (lam (a (lam (b (nrec (_ Nat) a (a b (suc b)) b))))))
-;;   (let (fib
-;;         (lam
-;;          (n (nrec
-;;              (_ (Sig Nat (_ Nat)))
-;;              (pair 1 0)
-;;              (_ p (pair (ap (ap plus (fst p)) (snd p)) (fst p)))
-;;              n))))
-;;     (snd (ap nfib 25))))
-;; Nat
+(let (plus (lam (a (lam (b (nrec (_ Nat) a (a b (suc b)) b))))))
+  (let (fib
+        (lam
+         (n (nrec
+             (_ (Sig Nat (_ Nat)))
+             (pair 1 0)
+             (_ p (pair (ap plus (fst p) (snd p)) (fst p)))
+             n))))
+    (snd (ap fib 25))))
+Nat
 ;;
 ;; expected result:
 ;;    75025
