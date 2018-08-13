@@ -1,0 +1,8 @@
+(executables
+ (names main)
+ (libraries nbe_lib sexplib cmdliner))
+
+(install
+ (section bin)
+ (package nbe)
+ (files (main.exe as nbe)))

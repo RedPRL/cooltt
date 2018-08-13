@@ -1,0 +1,4 @@
+(library
+ (name Nbe)
+ (flags (:standard -w -32-37))
+ (public_name nbe_lib))

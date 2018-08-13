@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name Nbe)
-  (public_name nbe)
-  ; for warning numbers (the part after "-w") see "ocamlc -warn-help"
-  (flags          (:standard -w +a-3-4-6-9-22-30-32-39-40-41-42-44-48-60 -safe-string -short-paths -strict-formats -strict-sequence))
-  (ocamlopt_flags (:standard -w +a-3-4-6-9-22-30-32-39-40-41-42-44-48-60 -safe-string -short-paths -strict-formats -strict-sequence -O3 -bin-annot -unbox-closures -inlining-report))))

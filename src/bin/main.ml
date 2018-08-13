@@ -20,7 +20,7 @@ let slurp_sexps_from_file ~file =
     Printf.sprintf "Failed while parsing %s: wrong number of sexps" file
     |> mk_fail
     |> raise
-  | exception Sexp.Parse_error {err_msg = msg} ->
+  | exception Sexp.Parse_error {err_msg = msg; _} ->
     Printf.sprintf "Failed while parsing %s: %s\n" file msg
     |> mk_fail
     |> raise
@@ -144,7 +144,7 @@ let perform_norm file =
   if String.equal file ""
   then raise (Internal_failure "Failed to supply a file")
   else ();
-  let (s1, s2) = slurp_sexps_from_file file in
+  let (s1, s2) = slurp_sexps_from_file ~file in
   let term = syn_of_sexp s1 in
   let tp = syn_of_sexp s2 in
   let norm = normalize ~env:[] ~term ~tp in

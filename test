@@ -8,26 +8,26 @@
 ;;    (lam (x (pair (fst (fst x)) (pair (fst (snd x)) (snd (snd x))))))
 
 ;; normalize an identity function for (nat -> nat) -> nat
-(lam (x x))
-(Pi
- (Pi (Pi Nat (_ Nat)) (_ Nat))
- (_
-  (Pi (Pi Nat (_ Nat)) (_ Nat))))
+;; (lam (x x))
+;; (Pi
+;;  (Pi (Pi Nat (_ Nat)) (_ Nat))
+;;  (_
+;;   (Pi (Pi Nat (_ Nat)) (_ Nat))))
 ;;
 ;; expected result:
 ;;    (lam (x1 (lam (x2 (ap x1 (lam (x3 (ap x2 x3))))))))
 
 ;; Compute the 25th fibonacci number.
-;; (snd
-;;  (nrec
-;;   (_ (Sig Nat (_ Nat)))
-;;   (pair 1 0)
-;;   (x y
-;;      (pair
-;;       (nrec (_ Nat) (fst y) (a b (suc b)) (snd y))
-;;       (fst y)))
-;;   25))
-;; Nat
+(snd
+ (nrec
+  (_ (Sig Nat (_ Nat)))
+  (pair 1 0)
+  (x y
+     (pair
+      (nrec (_ Nat) (fst y) (a b (suc b)) (snd y))
+      (fst y)))
+  25))
+Nat
 ;;
 ;; expected result:
 ;;    75025

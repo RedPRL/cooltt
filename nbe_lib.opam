@@ -1,0 +1,16 @@
+opam-version: "1.2.2"
+name: "nbe_lib"
+version: "0.0"
+maintainer: "Daniel Gratzer"
+authors: ["Daniel Gratzer"]
+homepage: "https://github.com/jozefg/nbe-for-mltt"
+bug-reports: "https://github.com/jozefg/nbe-for-mltt/issues"
+license: "MIT"
+dev-repo: "https://github.com/jozefg/nbe-for-mltt"
+build: [
+  ["dune" "build" "--only-packages" name
+   "--root" "." "-j" jobs "@install"]
+]
+depends: [
+]
+available: ocaml-version >= "4.06.1"

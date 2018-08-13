@@ -44,7 +44,7 @@ let rec do_rec tp zero suc n =
   match n with
   | D.Zero -> zero
   | D.Suc n -> do_clos2 suc n (do_rec tp zero suc n)
-  | D.Neutral {term = e} ->
+  | D.Neutral {term = e; _} ->
     let final_tp = do_clos tp n in
     let zero' = D.Normal {tp = do_clos tp D.Zero; term = zero} in
     D.Neutral {tp = final_tp; term = D.NRec (tp, zero', suc, e)}
@@ -123,7 +123,7 @@ let rec read_back_nf size nf =
   | D.Normal {tp = D.Nat; term = D.Zero} -> Syn.Zero
   | D.Normal {tp = D.Nat; term = D.Suc nf} ->
     Syn.Suc (read_back_nf size (D.Normal {tp = D.Nat; term = nf}))
-  | D.Normal {tp = D.Nat; term = D.Neutral {term = ne}} -> read_back_ne size ne
+  | D.Normal {tp = D.Nat; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   (* Types *)
   | D.Normal {tp = D.Uni _; term = D.Nat} -> Syn.Nat
   | D.Normal {tp = D.Uni i; term = D.Pi (src, dest)} ->
@@ -136,8 +136,8 @@ let rec read_back_nf size nf =
     Syn.Sig
       (read_back_nf size (D.Normal {tp = D.Uni i; term = fst}),
        read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term = do_clos snd var}))
-  | D.Normal {tp = D.Uni _; term = D.Neutral {term = ne}} -> read_back_ne size ne
-  | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne}} -> read_back_ne size ne
+  | D.Normal {tp = D.Uni _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
+  | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
 
 and read_back_tp size d =

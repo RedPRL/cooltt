@@ -1,8 +1,6 @@
-# Lifted from https://github.com/jonsterling/tt so thanks to
-# Darin Morrison (@freebroccolo)
 OPAM=opam
 EXEC=${OPAM} config exec
-DUNE=${EXEC} jbuilder --
+DUNE=${EXEC} dune --
 
 .PHONY: all build clean test top
 
@@ -17,5 +15,5 @@ clean:
 doc:
 	@${DUNE} build @doc
 
-test:
-	@${DUNE} build @runtest
+install:
+	${OPAM} reinstall nbe
