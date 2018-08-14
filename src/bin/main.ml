@@ -37,6 +37,7 @@ let syn_of_sexp sexp =
   let rec go env = function
     | Sexp.Atom "Nat" -> Syn.Nat
     | Sexp.Atom "zero" -> Syn.Zero
+    | Sexp.Atom "*" -> Syn.Bullet
     | Sexp.Atom var ->
       begin
         match int_of_string_opt var with
@@ -74,6 +75,20 @@ let syn_of_sexp sexp =
       Syn.Fst (go env t)
     | Sexp.List [Sexp.Atom "snd"; t] ->
       Syn.Snd (go env t)
+    | Sexp.List [Sexp.Atom "Later"; Sexp.List [Sexp.Atom x; t]] ->
+      Syn.Later (go (x :: env) t)
+    | Sexp.List [Sexp.Atom "next"; Sexp.List [Sexp.Atom x; t]] ->
+      Syn.Next (go (x :: env) t)
+    | Sexp.List [Sexp.Atom "prev"; term; tick] ->
+      Syn.Prev (go env term, go env tick)
+    | Sexp.List [Sexp.Atom "Box"; t] ->
+      Syn.Box (go env t)
+    | Sexp.List [Sexp.Atom "open"; t] ->
+      Syn.Open (go env t)
+    | Sexp.List [Sexp.Atom "shut"; t] ->
+      Syn.Shut (go env t)
+    | Sexp.List [Sexp.Atom "dfix"; tp; Sexp.List [Sexp.Atom x; body]] ->
+      Syn.DFix (go env tp, go (x :: env) body)
     | Sexp.List [Sexp.Atom "U"; Sexp.Atom i] ->
       begin
         match int_of_string_opt i with
@@ -139,7 +154,25 @@ let sexp_of_syn t =
       Sexp.List [Sexp.Atom "pair"; go env t1; go env t2]
     | Syn.Fst t -> Sexp.List [Sexp.Atom "fst"; go env t]
     | Syn.Snd t -> Sexp.List [Sexp.Atom "snd"; go env t]
-    | Syn.Uni i -> Sexp.List [Sexp.Atom "U"; Sexp.Atom (string_of_int i)] in
+    | Syn.Uni i -> Sexp.List [Sexp.Atom "U"; Sexp.Atom (string_of_int i)]
+    | Syn.Later t ->
+      incr counter;
+      let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
+      Sexp.List [Sexp.Atom "Later"; Sexp.List [var; go (var :: env) t]]
+    | Syn.Next t ->
+      incr counter;
+      let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
+      Sexp.List [Sexp.Atom "Next"; Sexp.List [var; go (var :: env) t]]
+    | Syn.Prev (term, tick) ->
+      Sexp.List [Sexp.Atom "prev"; go env term; go env tick]
+    | Syn.Bullet -> Sexp.Atom "*"
+    | Syn.Box t -> Sexp.List [Sexp.Atom "Box"; go env t]
+    | Syn.Open t -> Sexp.List [Sexp.Atom "open"; go env t]
+    | Syn.Shut t -> Sexp.List [Sexp.Atom "shut"; go env t]
+    | Syn.DFix (tp, body) ->
+      incr counter;
+      let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
+      Sexp.List [Sexp.Atom "dfix"; go env tp; Sexp.List [var; go (var :: env) body]] in
   go [] t
 
 
