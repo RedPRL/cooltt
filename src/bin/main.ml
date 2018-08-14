@@ -1,4 +1,4 @@
-open Nbe
+open Normalizer
 open Cmdliner
 open Sexplib
 
@@ -32,67 +32,67 @@ let slurp_sexps_from_file ~file =
 let syn_of_sexp sexp =
   let exception Illformed in
   let rec syn_of_int = function
-    | 0 -> Syn.Zero
-    | n -> Syn.Suc (syn_of_int (n - 1)) in
+    | 0 -> Syntax.Zero
+    | n -> Syntax.Suc (syn_of_int (n - 1)) in
   let rec go env = function
-    | Sexp.Atom "Nat" -> Syn.Nat
-    | Sexp.Atom "zero" -> Syn.Zero
-    | Sexp.Atom "<>" -> Syn.Bullet
+    | Sexp.Atom "Nat" -> Syntax.Nat
+    | Sexp.Atom "zero" -> Syntax.Zero
+    | Sexp.Atom "<>" -> Syntax.Bullet
     | Sexp.Atom var ->
       begin
         match int_of_string_opt var with
         | Some i when i >= 0 -> syn_of_int i
         | _ ->
           match find_idx ~equal:String.equal var env with
-          | Some idx -> Syn.Var idx
+          | Some idx -> Syntax.Var idx
           | None -> raise Illformed
       end
-    | Sexp.List [Sexp.Atom "suc"; t] -> Syn.Suc (go env t)
+    | Sexp.List [Sexp.Atom "suc"; t] -> Syntax.Suc (go env t)
     | Sexp.List
         [Sexp.Atom "nrec";
          Sexp.List [Sexp.Atom mVar; motive];
          zero;
          Sexp.List [Sexp.Atom pVar; Sexp.Atom indVar; succ];
          n] ->
-      Syn.NRec
+      Syntax.NRec
         (go (mVar :: env) motive,
          go env zero,
          go (indVar :: pVar :: env) succ,
          go env n)
     | Sexp.List [Sexp.Atom "let"; Sexp.List [Sexp.Atom x; arg]; body] ->
-      Syn.Ap (Syn.Lam (go (x :: env) body), go env arg)
+      Syntax.Ap (Syntax.Lam (go (x :: env) body), go env arg)
     | Sexp.List [Sexp.Atom "Pi"; src; Sexp.List [Sexp.Atom x; dest]] ->
-      Syn.Pi (go env src, go (x :: env) dest)
+      Syntax.Pi (go env src, go (x :: env) dest)
     | Sexp.List [Sexp.Atom "lam"; Sexp.List [Sexp.Atom x; body]] ->
-      Syn.Lam (go (x :: env) body)
+      Syntax.Lam (go (x :: env) body)
     | Sexp.List (Sexp.Atom "ap" :: f :: args) ->
-      List.fold_left (fun f a -> Syn.Ap (f, go env a)) (go env f) args
+      List.fold_left (fun f a -> Syntax.Ap (f, go env a)) (go env f) args
     | Sexp.List [Sexp.Atom "Sig"; src; Sexp.List [Sexp.Atom x; dest]] ->
-      Syn.Sig (go env src, go (x :: env) dest)
+      Syntax.Sig (go env src, go (x :: env) dest)
     | Sexp.List [Sexp.Atom "pair"; l; r] ->
-      Syn.Pair (go env l, go env r)
+      Syntax.Pair (go env l, go env r)
     | Sexp.List [Sexp.Atom "fst"; t] ->
-      Syn.Fst (go env t)
+      Syntax.Fst (go env t)
     | Sexp.List [Sexp.Atom "snd"; t] ->
-      Syn.Snd (go env t)
+      Syntax.Snd (go env t)
     | Sexp.List [Sexp.Atom "Later"; Sexp.List [Sexp.Atom x; t]] ->
-      Syn.Later (go (x :: env) t)
+      Syntax.Later (go (x :: env) t)
     | Sexp.List [Sexp.Atom "next"; Sexp.List [Sexp.Atom x; t]] ->
-      Syn.Next (go (x :: env) t)
+      Syntax.Next (go (x :: env) t)
     | Sexp.List [Sexp.Atom "prev"; term; tick] ->
-      Syn.Prev (go env term, go env tick)
+      Syntax.Prev (go env term, go env tick)
     | Sexp.List [Sexp.Atom "Box"; t] ->
-      Syn.Box (go env t)
+      Syntax.Box (go env t)
     | Sexp.List [Sexp.Atom "open"; t] ->
-      Syn.Open (go env t)
+      Syntax.Open (go env t)
     | Sexp.List [Sexp.Atom "shut"; t] ->
-      Syn.Shut (go env t)
+      Syntax.Shut (go env t)
     | Sexp.List [Sexp.Atom "dfix"; tp; Sexp.List [Sexp.Atom x; body]] ->
-      Syn.DFix (go env tp, go (x :: env) body)
+      Syntax.DFix (go env tp, go (x :: env) body)
     | Sexp.List [Sexp.Atom "U"; Sexp.Atom i] ->
       begin
         match int_of_string_opt i with
-        | Some i when i >= 0 -> Syn.Uni i
+        | Some i when i >= 0 -> Syntax.Uni i
         | _ -> raise Illformed
       end
     | _ -> raise Illformed in
@@ -105,8 +105,8 @@ let syn_of_sexp sexp =
 let sexp_of_syn t =
   let counter = ref 0 in
   let rec int_of_syn = function
-    | Syn.Zero -> Some 0
-    | Syn.Suc t ->
+    | Syntax.Zero -> Some 0
+    | Syntax.Suc t ->
       begin
         match int_of_syn t with
         | Some i -> Some (i + 1)
@@ -114,16 +114,16 @@ let sexp_of_syn t =
       end
     | _ -> None in
   let rec go env = function
-    | Syn.Var i -> List.nth env i
-    | Syn.Nat -> Sexp.Atom "Nat"
-    | Syn.Zero -> Sexp.Atom "zero"
-    | Syn.Suc t ->
+    | Syntax.Var i -> List.nth env i
+    | Syntax.Nat -> Sexp.Atom "Nat"
+    | Syntax.Zero -> Sexp.Atom "zero"
+    | Syntax.Suc t ->
       begin
         match int_of_syn t with
         | Some i -> Sexp.Atom (string_of_int (i + 1))
         | None -> Sexp.List [Sexp.Atom "suc"; go env t]
       end
-    | Syn.NRec (motive, zero, suc, n) ->
+    | Syntax.NRec (motive, zero, suc, n) ->
       incr counter;
       let mvar = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       incr counter;
@@ -136,40 +136,40 @@ let sexp_of_syn t =
          go env zero;
          Sexp.List [suc_var1; suc_var2; go (suc_var2 :: suc_var1 :: env) suc];
          go env n]
-    | Syn.Pi (src, dest) ->
+    | Syntax.Pi (src, dest) ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "Pi"; go env src; Sexp.List [var; go (var :: env) dest]]
-    | Syn.Lam t ->
+    | Syntax.Lam t ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "lam"; Sexp.List [var; go (var :: env) t]]
-    | Syn.Ap (t1, t2) ->
+    | Syntax.Ap (t1, t2) ->
       Sexp.List [Sexp.Atom "ap"; go env t1; go env t2]
-    | Syn.Sig (fst, snd) ->
+    | Syntax.Sig (fst, snd) ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "Sig"; go env fst; Sexp.List [var; go (var :: env) snd]]
-    | Syn.Pair (t1, t2) ->
+    | Syntax.Pair (t1, t2) ->
       Sexp.List [Sexp.Atom "pair"; go env t1; go env t2]
-    | Syn.Fst t -> Sexp.List [Sexp.Atom "fst"; go env t]
-    | Syn.Snd t -> Sexp.List [Sexp.Atom "snd"; go env t]
-    | Syn.Uni i -> Sexp.List [Sexp.Atom "U"; Sexp.Atom (string_of_int i)]
-    | Syn.Later t ->
+    | Syntax.Fst t -> Sexp.List [Sexp.Atom "fst"; go env t]
+    | Syntax.Snd t -> Sexp.List [Sexp.Atom "snd"; go env t]
+    | Syntax.Uni i -> Sexp.List [Sexp.Atom "U"; Sexp.Atom (string_of_int i)]
+    | Syntax.Later t ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "Later"; Sexp.List [var; go (var :: env) t]]
-    | Syn.Next t ->
+    | Syntax.Next t ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "Next"; Sexp.List [var; go (var :: env) t]]
-    | Syn.Prev (term, tick) ->
+    | Syntax.Prev (term, tick) ->
       Sexp.List [Sexp.Atom "prev"; go env term; go env tick]
-    | Syn.Bullet -> Sexp.Atom "<>"
-    | Syn.Box t -> Sexp.List [Sexp.Atom "Box"; go env t]
-    | Syn.Open t -> Sexp.List [Sexp.Atom "open"; go env t]
-    | Syn.Shut t -> Sexp.List [Sexp.Atom "shut"; go env t]
-    | Syn.DFix (tp, body) ->
+    | Syntax.Bullet -> Sexp.Atom "<>"
+    | Syntax.Box t -> Sexp.List [Sexp.Atom "Box"; go env t]
+    | Syntax.Open t -> Sexp.List [Sexp.Atom "open"; go env t]
+    | Syntax.Shut t -> Sexp.List [Sexp.Atom "shut"; go env t]
+    | Syntax.DFix (tp, body) ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "dfix"; go env tp; Sexp.List [var; go (var :: env) body]] in
@@ -183,7 +183,7 @@ let perform_norm file =
   let (s1, s2) = slurp_sexps_from_file ~file in
   let term = syn_of_sexp s1 in
   let tp = syn_of_sexp s2 in
-  let norm = normalize ~env:[] ~term ~tp in
+  let norm = Nbe.normalize ~env:[] ~term ~tp in
   let norm_sexp = sexp_of_syn norm in
   Sexp.output_hum stdout norm_sexp;
   print_newline ();
@@ -192,7 +192,7 @@ let perform_norm file =
 let main file =
   try perform_norm file with
   | Internal_failure s -> prerr_endline s; 1
-  | Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
+  | Nbe.Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
 
 let input_file =
   let doc = "File containing the term to reduce" in

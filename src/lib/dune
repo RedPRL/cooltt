@@ -1,4 +1,4 @@
 (library
- (name Nbe)
+ (name Normalizer)
  (flags (:standard -w -32-37))
- (public_name nbe_lib))
+ (public_name normalize_lib))

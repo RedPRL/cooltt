@@ -1,54 +1,6 @@
-module Syn =
-struct
-  type uni_level = int
-  type t =
-    | Var of int (* DeBruijn indices for variables & ticks *)
-    | Nat | Zero | Suc of t | NRec of (* BINDS *) t * t * (* BINDS 2 *) t * t
-    | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
-    | Sig of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
-    | Later of (* BINDS *) t | Next of (* BINDS *) t | Prev of t * t | Bullet
-    | Box of t | Open of t | Shut of t
-    | DFix of t * (* binds *) t
-    | Uni of uni_level
+module Syn = Syntax
 
-  type env = t list
-end
-
-module D =
-struct
-  type env = t list
-  and clos = Clos of {term : Syn.t; env : env}
-  and clos2 = Clos2 of {term : Syn.t; env : env}
-  and tick_clos = TickClos of {term : Syn.t; env : env} | ConstTickClos of t
-  and t =
-    | Lam of clos
-    | Neutral of {tp : t; term : ne}
-    | Nat
-    | Zero
-    | Suc of t
-    | Pi of t * clos
-    | Sig of t * clos
-    | Pair of t * t
-    | Later of tick_clos
-    | Next of tick_clos
-    | DFix of t * clos
-    | Tick of int (* DeBruijn level *)
-    | Bullet
-    | Box of t
-    | Shut of t
-    | Uni of Syn.uni_level
-  and ne =
-    | Var of int (* DeBruijn levels for variables *)
-    | Ap of ne * nf
-    | Fst of ne
-    | Snd of ne
-    | Prev of ne * int option (* None = Bullet, Some i = Tick i *)
-    | Fix of t * clos * int
-    | Open of ne
-    | NRec of clos * nf * clos2 * ne
-  and nf =
-    | Normal of {tp : t; term : t}
-end
+module D = Domain
 
 exception Nbe_failed of string
 

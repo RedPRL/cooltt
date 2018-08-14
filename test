@@ -44,20 +44,22 @@
 ;; expected result:
 ;;   (shut 1)
 
-(prev
- (dfix
-  (prev
-   (dfix
-    (U 0)
-    (x
-     (Sig Nat (_ (Later (y (prev x y)))))))
-   <>)
-  (x
-   (pair 0 (next (t (prev x t))))))
- <>)
-(prev
- (dfix
-  (U 0)
-  (x
-   (Sig Nat (_ (Later (y (prev x y)))))))
- <>)
+(shut
+ (prev
+  (dfix
+   (prev
+    (dfix
+     (U 0)
+     (x
+      (Sig Nat (_ (Later (y (prev x y)))))))
+    <>)
+   (x
+    (pair 0 (next (t (prev x t))))))
+  <>))
+(Box
+ (prev
+  (dfix
+   (U 0)
+   (x
+    (Sig Nat (_ (Later (y (prev x y)))))))
+  <>))

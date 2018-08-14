@@ -12,6 +12,7 @@ depends: [
   "sexplib" {= "0.11.0"}
   "cmdliner" {>= "1.0" & < "1.1"}
   "topkg" {= "0.9.1"}
+  "normalize_lib"
 ]
 build: [
   [make]
