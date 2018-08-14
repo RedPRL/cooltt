@@ -19,7 +19,7 @@ struct
   type env = t list
   and clos = Clos of {term : Syn.t; env : env}
   and clos2 = Clos2 of {term : Syn.t; env : env}
-  and tick_clos = TickClos of {term : Syn.t; env : env}
+  and tick_clos = TickClos of {term : Syn.t; env : env} | ConstTickClos of t
   and t =
     | Lam of clos
     | Neutral of {tp : t; term : ne}
@@ -30,7 +30,6 @@ struct
     | Sig of t * clos
     | Pair of t * t
     | Later of tick_clos
-    | PlainLater of t
     | Next of tick_clos
     | DFix of t * clos
     | Tick of int (* DeBruijn level *)
@@ -91,7 +90,9 @@ and do_snd p =
 
 and do_clos (Clos {term; env}) a = eval term (a :: env)
 
-and do_tick_clos (D.TickClos {term; env}) tick = eval term (tick :: env)
+and do_tick_clos clo tick = match clo with
+  | D.TickClos {term; env} -> eval term (tick :: env)
+  | ConstTickClos t -> t
 
 and do_clos2 (Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
 
@@ -106,9 +107,9 @@ and do_prev ~term ~tick = match term with
   | D.Neutral {tp; term = e} ->
     begin
       match tp with
-      | D.Next tp_clos ->
+      | D.Later tp_clos ->
         let tp = do_tick_clos tp_clos tick in
-        D.Neutral {tp; term = D.Prev (e, term_to_tick tick )}
+        D.Neutral {tp; term = D.Prev (e, term_to_tick tick)}
       | _ -> raise (Nbe_failed "Not a later in do_prev")
     end
   | _ -> raise (Nbe_failed "Not a neutral, dfix, or next in do_prev")
@@ -204,8 +205,6 @@ let rec read_back_nf size nf =
   | D.Normal {tp = D.Uni i; term = D.Later t} ->
     let term = do_tick_clos t (Tick size) in
     Syn.Later (read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term}))
-  | D.Normal {tp = D.Uni i; term = D.PlainLater term} ->
-    Syn.Later (read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term}))
   | D.Normal {tp = D.Uni i; term = D.Pi (src, dest)} ->
     let var = mk_var src size in
     Syn.Pi
@@ -232,8 +231,6 @@ and read_back_tp size d =
     Syn.Sig (read_back_tp size fst, read_back_tp (size + 1) (do_clos snd var))
   | D.Later t ->
     Syn.Later (read_back_tp (size + 1) (do_tick_clos t (D.Tick size)))
-  | D.PlainLater t ->
-    Syn.Later (read_back_tp (size + 1) t)
   | D.Box t -> Syn.Box (read_back_tp size t)
   | D.Uni k -> Syn.Uni k
   | _ -> raise (Nbe_failed "Not a type in read_back_tp")
@@ -257,7 +254,7 @@ and read_back_ne size ne =
   | D.Snd ne -> Syn.Snd (read_back_ne size ne)
   | D.Fix (tp, clos, i) ->
     let tick = Syn.Var (size - (i + 1)) in
-    let sem_body = do_clos clos (mk_var (D.PlainLater tp) size) in
+    let sem_body = do_clos clos (mk_var (D.Later (D.ConstTickClos tp)) size) in
     let body = read_back_nf (size + 1) (D.Normal {tp; term = sem_body}) in
     Syn.Prev (Syn.DFix (read_back_tp size tp, body), tick)
   | D.Prev (ne, i) ->
