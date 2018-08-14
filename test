@@ -38,6 +38,26 @@
 ;; expected result:
 ;;    Pi (U 2) (_ (U 0))
 
-;; (shut (open (shut 1))) (Box Nat)
+;; (shut (open (shut 1)))
+;; (Box Nat)
+;;
+;; expected result:
+;;   (shut 1)
 
-(prev (dfix (U 0) (x (Later (y (prev x y))))) *) (U 0)
+(prev
+ (dfix
+  (prev
+   (dfix
+    (U 0)
+    (x
+     (Sig Nat (_ (Later (y (prev x y)))))))
+   <>)
+  (x
+   (pair 0 (next (t (prev x t))))))
+ <>)
+(prev
+ (dfix
+  (U 0)
+  (x
+   (Sig Nat (_ (Later (y (prev x y)))))))
+ <>)

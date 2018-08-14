@@ -37,7 +37,7 @@ let syn_of_sexp sexp =
   let rec go env = function
     | Sexp.Atom "Nat" -> Syn.Nat
     | Sexp.Atom "zero" -> Syn.Zero
-    | Sexp.Atom "*" -> Syn.Bullet
+    | Sexp.Atom "<>" -> Syn.Bullet
     | Sexp.Atom var ->
       begin
         match int_of_string_opt var with
@@ -165,7 +165,7 @@ let sexp_of_syn t =
       Sexp.List [Sexp.Atom "Next"; Sexp.List [var; go (var :: env) t]]
     | Syn.Prev (term, tick) ->
       Sexp.List [Sexp.Atom "prev"; go env term; go env tick]
-    | Syn.Bullet -> Sexp.Atom "*"
+    | Syn.Bullet -> Sexp.Atom "<>"
     | Syn.Box t -> Sexp.List [Sexp.Atom "Box"; go env t]
     | Syn.Open t -> Sexp.List [Sexp.Atom "open"; go env t]
     | Syn.Shut t -> Sexp.List [Sexp.Atom "shut"; go env t]

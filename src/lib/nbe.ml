@@ -222,6 +222,7 @@ let rec read_back_nf size nf =
 
 and read_back_tp size d =
   match d with
+  | D.Neutral {term; _} -> read_back_ne size term
   | D.Nat -> Syn.Nat
   | D.Pi (src, dest) ->
     let var = mk_var src size in
