@@ -10,3 +10,6 @@ type t =
   | Uni of uni_level
 
 type env = t list
+
+val of_sexp : Sexplib.Sexp.t -> t
+val to_sexp : t -> Sexplib.Sexp.t

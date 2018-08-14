@@ -1,4 +1,5 @@
 (library
  (name Normalizer)
+ (libraries sexplib)
  (flags (:standard -w -32-37))
  (public_name normalize_lib))

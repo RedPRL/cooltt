@@ -12,5 +12,6 @@ build: [
    "--root" "." "-j" jobs "@install"]
 ]
 depends: [
+  "sexplib" {= "0.11.0"}
 ]
 available: ocaml-version >= "4.06.1"
