@@ -81,6 +81,7 @@ and do_ap f a =
 and eval t (env : D.env) =
   match t with
   | Syn.Var i -> List.nth env i
+  | Syn.Let (_, def, body) -> eval body (eval def env :: env)
   | Syn.Nat -> D.Nat
   | Syn.Zero -> D.Zero
   | Syn.Suc t -> D.Suc (eval t env)

@@ -3,6 +3,7 @@ open Sexplib
 type uni_level = int
 type t =
   | Var of int (* DeBruijn indices for variables & ticks *)
+  | Let of t * t * (* BINDS *) t
   | Nat | Zero | Suc of t | NRec of (* BINDS *) t * t * (* BINDS 2 *) t * t
   | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
   | Sig of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
@@ -39,6 +40,8 @@ let of_sexp sexp =
           | Some idx -> Var idx
           | None -> raise Illformed
       end
+    | Sexp.List [Sexp.Atom "let"; tp; Sexp.List [Sexp.Atom x; def]; body] ->
+      Let (go env tp, go env def, go (x :: env) body)
     | Sexp.List [Sexp.Atom "suc"; t] -> Suc (go env t)
     | Sexp.List
         [Sexp.Atom "nrec";
@@ -51,8 +54,6 @@ let of_sexp sexp =
          go env zero,
          go (indVar :: pVar :: env) succ,
          go env n)
-    | Sexp.List [Sexp.Atom "let"; Sexp.List [Sexp.Atom x; arg]; body] ->
-      Ap (Lam (go (x :: env) body), go env arg)
     | Sexp.List [Sexp.Atom "Pi"; src; Sexp.List [Sexp.Atom x; dest]] ->
       Pi (go env src, go (x :: env) dest)
     | Sexp.List [Sexp.Atom "lam"; Sexp.List [Sexp.Atom x; body]] ->
@@ -104,6 +105,14 @@ let to_sexp env t =
   let rec go env = function
     | Var i -> List.nth env i
     | Nat -> Sexp.Atom "Nat"
+    | Let (tp, def, body) ->
+      incr counter;
+      let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
+      Sexp.List
+        [Sexp.Atom "let";
+         go env tp;
+         Sexp.List [var; go env def];
+         go (var :: env) body]
     | Zero -> Sexp.Atom "zero"
     | Suc t ->
       begin
