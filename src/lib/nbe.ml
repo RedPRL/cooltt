@@ -4,17 +4,6 @@ module D = Domain
 
 exception Nbe_failed of string
 
-let mk_var tp lev = D.Neutral {tp; term = D.Var lev}
-
-let tick_to_term = function
-    None -> D.Bullet
-  | Some i -> D.Tick i
-
-let term_to_tick = function
-    D.Bullet -> None
-  | D.Tick i -> Some i
-  | _ -> raise (Nbe_failed "Not a tick-like term in term_to_tick")
-
 let rec do_rec tp zero suc n =
   match n with
   | D.Zero -> zero
@@ -52,7 +41,7 @@ and do_prev ~term ~tick = match term with
   | D.Next clos -> do_tick_clos clos tick
   | D.DFix (t, clos) ->
     begin
-      match term_to_tick tick with
+      match D.term_to_tick tick with
       | None -> do_clos clos (D.DFix (t, clos))
       | Some i -> D.Neutral {tp = t; term = D.Fix (t, clos, i)}
     end
@@ -61,7 +50,7 @@ and do_prev ~term ~tick = match term with
       match tp with
       | D.Later tp_clos ->
         let tp = do_tick_clos tp_clos tick in
-        D.Neutral {tp; term = D.Prev (e, term_to_tick tick)}
+        D.Neutral {tp; term = D.Prev (e, D.term_to_tick tick)}
       | _ -> raise (Nbe_failed "Not a later in do_prev")
     end
   | _ -> raise (Nbe_failed "Not a neutral, dfix, or next in do_prev")
@@ -123,7 +112,7 @@ let rec read_back_nf size nf =
   match nf with
   (* Functions *)
   | D.Normal {tp = D.Pi (src, dest); term = f} ->
-    let arg = mk_var src size in
+    let arg = D.mk_var src size in
     let nf = D.Normal {tp = do_clos dest arg; term = do_ap f arg} in
     Syn.Lam (read_back_nf (size + 1) nf)
   (* Pairs *)
@@ -158,12 +147,12 @@ let rec read_back_nf size nf =
     let term = do_tick_clos t (Tick size) in
     Syn.Later (read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term}))
   | D.Normal {tp = D.Uni i; term = D.Pi (src, dest)} ->
-    let var = mk_var src size in
+    let var = D.mk_var src size in
     Syn.Pi
       (read_back_nf size (D.Normal {tp = D.Uni i; term = src}),
        read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term = do_clos dest var}))
   | D.Normal {tp = D.Uni i; term = D.Sig (fst, snd)} ->
-    let var = mk_var fst size in
+    let var = D.mk_var fst size in
     Syn.Sig
       (read_back_nf size (D.Normal {tp = D.Uni i; term = fst}),
        read_back_nf (size + 1) (D.Normal {tp = D.Uni i; term = do_clos snd var}))
@@ -177,10 +166,10 @@ and read_back_tp size d =
   | D.Neutral {term; _} -> read_back_ne size term
   | D.Nat -> Syn.Nat
   | D.Pi (src, dest) ->
-    let var = mk_var src size in
+    let var = D.mk_var src size in
     Syn.Pi (read_back_tp size src, read_back_tp (size + 1) (do_clos dest var))
   | D.Sig (fst, snd) ->
-    let var = mk_var fst size in
+    let var = D.mk_var fst size in
     Syn.Sig (read_back_tp size fst, read_back_tp (size + 1) (do_clos snd var))
   | D.Later t ->
     Syn.Later (read_back_tp (size + 1) (do_tick_clos t (D.Tick size)))
@@ -194,11 +183,11 @@ and read_back_ne size ne =
   | D.Ap (ne, arg) ->
     Syn.Ap (read_back_ne size ne, read_back_nf size arg)
   | D.NRec (tp, zero, suc, n) ->
-    let tp_var = mk_var D.Nat size in
+    let tp_var = D.mk_var D.Nat size in
     let applied_tp = do_clos tp tp_var in
     let applied_suc_tp = do_clos tp (D.Suc tp_var) in
     let tp' = read_back_tp (size + 1) applied_tp in
-    let suc_var = mk_var applied_tp (size + 1) in
+    let suc_var = D.mk_var applied_tp (size + 1) in
     let applied_suc = do_clos2 suc tp_var suc_var in
     let suc' =
       read_back_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc}) in
@@ -207,7 +196,7 @@ and read_back_ne size ne =
   | D.Snd ne -> Syn.Snd (read_back_ne size ne)
   | D.Fix (tp, clos, i) ->
     let tick = Syn.Var (size - (i + 1)) in
-    let sem_body = do_clos clos (mk_var (D.Later (D.ConstTickClos tp)) size) in
+    let sem_body = do_clos clos (D.mk_var (D.Later (D.ConstTickClos tp)) size) in
     let body = read_back_nf (size + 1) (D.Normal {tp; term = sem_body}) in
     Syn.Prev (Syn.DFix (read_back_tp size tp, body), tick)
   | D.Prev (ne, i) ->

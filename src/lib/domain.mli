@@ -32,3 +32,16 @@ and ne =
   | NRec of clos * nf * clos2 * ne
 and nf =
   | Normal of {tp : t; term : t}
+
+val mk_var : t -> int -> t
+(* May raise Invalid_argument if the term isn't a tick *)
+val term_to_tick : t -> int option
+val tick_to_term : int option -> t
+
+val to_sexp : t -> Sexplib.Sexp.t
+val to_sexp_nf : nf -> Sexplib.Sexp.t
+val to_sexp_ne : ne -> Sexplib.Sexp.t
+
+val pp : t -> string
+val pp_nf : nf -> string
+val pp_ne : ne -> string

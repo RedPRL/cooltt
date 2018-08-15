@@ -38,28 +38,31 @@
 ;; expected result:
 ;;    Pi (U 2) (_ (U 0))
 
-;; (shut (open (shut 1)))
+;; (shut (open (shut 1))) ;; shut (open (shut 1)) = shut 1 : Box Nat
 ;; (Box Nat)
 ;;
 ;; expected result:
 ;;   (shut 1)
 
-(shut
- (prev
-  (dfix
-   (prev
-    (dfix
-     (U 0)
-     (x
-      (Sig Nat (_ (Later (y (prev x y)))))))
-    <>)
-   (x
-    (pair 0 (next (t (prev x t))))))
-  <>))
-(Box
- (prev
-  (dfix
-   (U 0)
-   (x
-    (Sig Nat (_ (Later (y (prev x y)))))))
-  <>))
+;; (shut
+;;  (prev
+;;   (dfix
+;;    (prev
+;;     (dfix
+;;      (U 0)
+;;      (x
+;;       (Sig Nat (_ (Later (y (prev x y)))))))
+;;     <>)
+;;    (x
+;;     (pair 0 (next (t (prev x t))))))
+;;   <>))
+;; (Box
+;;  (prev
+;;   (dfix
+;;    (U 0)
+;;    (x
+;;     (Sig Nat (_ (Later (y (prev x y)))))))
+;;   <>))
+
+(lam (A (lam (x (open x)))))
+(Pi (U 0) (A (Pi (Box A) (_ A))))

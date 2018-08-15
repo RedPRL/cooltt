@@ -22,8 +22,6 @@ let slurp_sexps_from_file ~file =
     |> mk_fail
     |> raise
 
-
-
 let perform_norm file =
   if String.equal file ""
   then raise (Internal_failure "Failed to supply a file")
@@ -32,7 +30,7 @@ let perform_norm file =
   let term = Syntax.of_sexp s1 in
   let tp = Syntax.of_sexp s2 in
   let norm = Nbe.normalize ~env:[] ~term ~tp in
-  let norm_sexp = Syntax.to_sexp norm in
+  let norm_sexp = Syntax.to_sexp [] norm in
   Sexp.output_hum stdout norm_sexp;
   print_newline ();
   0

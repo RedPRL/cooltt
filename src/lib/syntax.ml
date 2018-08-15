@@ -90,7 +90,7 @@ let of_sexp sexp =
     | _ -> raise Illformed in
   go [] sexp
 
-let to_sexp t =
+let to_sexp env t =
   let counter = ref 0 in
   let rec int_of_syn = function
     | Zero -> Some 0
@@ -161,4 +161,6 @@ let to_sexp t =
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "dfix"; go env tp; Sexp.List [var; go (var :: env) body]] in
-  go [] t
+  go env t
+
+let pp t = to_sexp [] t |> Sexp.to_string_hum

@@ -12,4 +12,5 @@ type t =
 type env = t list
 
 val of_sexp : Sexplib.Sexp.t -> t
-val to_sexp : t -> Sexplib.Sexp.t
+val to_sexp : Sexplib.Sexp.t list -> t -> Sexplib.Sexp.t
+val pp : t -> string
