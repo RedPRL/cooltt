@@ -67,7 +67,7 @@ and do_open t = match t with
 
 and do_ap f a =
   match f with
-  | D.Lam clos -> do_clos clos a
+  | D.Lam (_, clos) -> do_clos clos a
   | D.Neutral {tp; term = e} ->
     begin
       match tp with
@@ -94,7 +94,7 @@ and eval t (env : D.env) =
       (eval n env)
   | Syn.Pi (src, dest) ->
     D.Pi (eval src env, (Clos {term = dest; env}))
-  | Syn.Lam t -> D.Lam (Clos {term = t; env})
+  | Syn.Lam (tp, t) -> D.Lam (eval tp env, Clos {term = t; env})
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
   | Syn.Uni i -> D.Uni i
   | Syn.Sig (t1, t2) -> D.Sig (eval t1 env, (Clos {term = t2; env}))
@@ -116,7 +116,7 @@ let rec read_back_nf size nf =
   | D.Normal {tp = D.Pi (src, dest); term = f} ->
     let arg = D.mk_var src size in
     let nf = D.Normal {tp = do_clos dest arg; term = do_ap f arg} in
-    Syn.Lam (read_back_nf (size + 1) nf)
+    Syn.Lam (read_back_tp size src, read_back_nf (size + 1) nf)
   (* Pairs *)
   | D.Normal {tp = D.Sig (fst, snd); term = p} ->
     let fst' = do_fst p in
@@ -221,3 +221,7 @@ let normalize ~env ~term ~tp =
   let tp' = eval tp env' in
   let term' = eval term env' in
   read_back_nf (List.length env') (D.Normal {tp = tp'; term = term'})
+
+let rec equal env t1 t2 = failwith "todo"
+and equal_ne env t1 t2 = failwith "todo"
+and equal_nf env t1 t2 = failwith "todo"

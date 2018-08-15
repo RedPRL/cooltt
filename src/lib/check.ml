@@ -20,8 +20,8 @@ let free_vars =
   let open Syntax in
   let rec go min = function
     | Var i -> if min < i then S.singleton (i - min) else S.empty
-    | Next t | Later t | Lam t -> go (min + 1) t
-    | Let (t1, t2) | Pi (t1, t2) | Sig (t1, t2) | DFix (t1, t2) ->
+    | Next t | Later t -> go (min + 1) t
+    | Lam (t1, t2) | Let (t1, t2) | Pi (t1, t2) | Sig (t1, t2) | DFix (t1, t2) ->
       S.union (go min t1) (go (min + 1) t2)
     | Pair (t1, t2) | Check (t1, t2) | Ap (t1, t2) | Prev (t1, t2) -> S.union (go min t1) (go min t2)
     | Nat | Zero | Uni _ | Bullet -> S.empty
@@ -62,5 +62,5 @@ let use_tick i =
       Tick {is_active = is_active && j > i; under_lock} :: go (j + 1) env in
   go 0
 
-let check ~env:_ ~term:_ ~tp:_ = failwith "todo"
+let check ~env ~term ~tp = failwith "tood"
 let synth ~env:_ ~term:_ = failwith "todo"

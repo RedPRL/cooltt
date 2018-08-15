@@ -7,7 +7,7 @@ and tick_clos =
     TickClos of {term : Syntax.t; env : env}
   | ConstTickClos of t
 and t =
-  | Lam of clos
+  | Lam of t * clos
   | Neutral of {tp : t; term : ne}
   | Nat
   | Zero
@@ -72,10 +72,10 @@ let rec go_to_sexp size env = function
       [Sexp.Atom "Pi";
        go_to_sexp size env src;
        Sexp.List [var; Syntax.to_sexp new_env dest.term]]
-  | Lam (Clos t) ->
+  | Lam (tp, Clos t) ->
     let var = Sexp.Atom ("x" ^ string_of_int size) in
     let new_env = var :: List.map (go_to_sexp size env) t.env |> List.rev in
-    Sexp.List [Sexp.Atom "lam"; Sexp.List [var; Syntax.to_sexp new_env t.term]]
+    Sexp.List [Sexp.Atom "lam"; go_to_sexp size env tp; Sexp.List [var; Syntax.to_sexp new_env t.term]]
   | Sig (fst, Clos snd) ->
     let var = Sexp.Atom ("x" ^ string_of_int size) in
     let new_env = var :: List.map (go_to_sexp size env) snd.env |> List.rev in
