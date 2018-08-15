@@ -6,5 +6,5 @@ type env = env_entry list
 exception Type_error
 exception Cannot_synth
 
-val check : env:env -> term:Syntax.t -> tp:Syntax.t -> unit
+val check : env:env -> term:Syntax.t -> tp:Domain.t -> unit
 val synth : env:env -> term:Syntax.t -> Domain.t

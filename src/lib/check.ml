@@ -1,5 +1,7 @@
+module D = Domain
+module Syn = Syntax
 type env_entry =
-    Term of {term : Domain.t; tp : Domain.t; under_lock : int; is_active : bool}
+    Term of {term : D.t; tp : D.t; under_lock : int; is_active : bool}
   | Tick of {under_lock : int; is_active : bool}
 type env = env_entry list
 
@@ -62,5 +64,62 @@ let use_tick i =
       Tick {is_active = is_active && j > i; under_lock} :: go (j + 1) env in
   go 0
 
-let check ~env ~term ~tp = failwith "tood"
-let synth ~env:_ ~term:_ = failwith "todo"
+let get_var env n = match List.nth env n with
+  | Term {term = _; tp; under_lock = 0; is_active = true} -> tp
+  | Term _ -> raise Type_error
+  | Tick _ -> raise Type_error
+
+let get_tick env n = match List.nth env n with
+  | Tick {under_lock = 0; is_active = true} -> ()
+  | Term _ -> raise Type_error
+  | Tick _ -> raise Type_error
+
+let assert_eq env t1 t2 =
+  let sem_env = env_to_sem_env env in
+  if Nbe.equal sem_env t1 t2 then () else raise Type_error
+
+let assert_uni = function
+  | D.Uni _ -> ()
+  | _ -> raise Type_error
+
+let rec check ~env ~term ~tp = match term with
+  | Syn.Var i -> assert_eq env (get_var env i) tp
+  | Let (def, body) ->
+    let def_tp = synth ~env ~term:def in
+    let def_val = Nbe.eval def (env_to_sem_env env) in
+    let entry = Term {term = def_val; tp = def_tp; is_active = true; under_lock = 0} in
+    check ~env:(entry :: env) ~term:body ~tp
+  | Check (term, tp') ->
+    check ~env ~term ~tp;
+    assert_eq env tp (Nbe.eval tp' (env_to_sem_env env))
+  | Nat -> assert_uni tp
+  | Zero ->
+    begin
+      match tp with
+      | D.Nat -> ()
+      | _ -> raise Type_error
+    end
+  | Suc term ->
+    check ~env ~term ~tp:Nat;
+    begin
+      match tp with
+      | D.Nat -> ()
+      | _ -> raise Type_error
+    end
+  | NRec (mot, zero, suc, n) ->
+    check ~env ~term:n ~tp:Nat;
+    let size = List.length env in
+    let var = D.mk_var Nat size in
+    let n_entry = Term {term = var; tp = Nat; is_active = true; under_lock = 0} in
+    assert_uni (synth ~env:(n_entry :: env) ~term:mot);
+    let sem_env = env_to_sem_env env in
+    let zero_tp = Nbe.eval mot (Zero :: sem_env) in
+    let ih_tp = Nbe.eval mot (Suc var :: sem_env) in
+    let suc_tp = Nbe.eval mot (Suc var :: sem_env) in
+    let ih_entry = Term {term = D.mk_var ih_tp (size + 1); tp = ih_tp; is_active = true; under_lock = 0} in
+    check ~env ~term:zero ~tp:zero_tp;
+    check ~env:(ih_entry :: n_entry :: env) ~term:suc ~tp:suc_tp;
+    assert_eq env tp (Nbe.eval mot (Nbe.eval n sem_env :: sem_env))
+  | _ -> raise Type_error
+
+and synth ~env:_ ~term:_ = failwith "todo"
