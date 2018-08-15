@@ -38,6 +38,7 @@ let perform_norm file =
 let main file =
   try perform_norm file with
   | Internal_failure s -> prerr_endline s; 1
+  | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
   | Nbe.Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
 
 let input_file =
