@@ -1,6 +1,6 @@
 type env_entry =
-    Term of {term : Domain.t; tp : Domain.t; under_lock : int; is_active : bool}
-  | Tick of {under_lock : int; is_active : bool}
+    Term of {term : Domain.t; tp : Domain.t; locks : int; is_active : bool}
+  | Tick of {locks : int; is_active : bool}
 type env = env_entry list
 
 exception Type_error

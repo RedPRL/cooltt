@@ -18,34 +18,37 @@
 ;;    (lam (x1 (lam (x2 (ap x1 (lam (x3 (ap x2 x3))))))))
 
 ;; Compute the 25th fibonacci number.
-(let
-    ((plus
-      (check
-       (lam Nat (a (lam Nat (b (nrec (_ Nat) a (a b (suc b)) b)))))
-       (Pi Nat (_ (Pi Nat (_ Nat))))))
-     (fib
-      (check
-       (lam Nat
-            (n (nrec
-                (_ (Sig Nat (_ Nat)))
-                (pair 1 0)
-                (_ p (pair (ap plus (fst p) (snd p)) (fst p)))
-                n)))
-       (Pi Nat (_ (Sig Nat (_ Nat)))))))
-  (snd (ap fib 25)))
-Nat
+;; (let
+;;     ((plus
+;;       (check
+;;        (lam Nat (a (lam Nat (b (nrec (_ Nat) a (a b (suc b)) b)))))
+;;        (Pi Nat (_ (Pi Nat (_ Nat))))))
+;;      (fib
+;;       (check
+;;        (lam Nat
+;;             (n (nrec
+;;                 (_ (Sig Nat (_ Nat)))
+;;                 (pair 1 0)
+;;                 (_ p (pair (ap plus (fst p) (snd p)) (fst p)))
+;;                 n)))
+;;        (Pi Nat (_ (Sig Nat (_ Nat)))))))
+;;   (snd (ap fib 25)))
+;; Nat
 ;;
 ;; expected result:
 ;;    75025
 
 ;; Test computing with universes
-;; (ap (lam (x (Pi x (_ (U 0))))) (U 2)) (U 3)
+;; (ap
+;;  (check (lam (U 3) (x (Pi x (_ (U 0))))) (Pi (U 3) (_ (U 3))))
+;;  (U 2))
+;; (U 3)
 ;;
 ;; expected result:
 ;;    Pi (U 2) (_ (U 0))
 
-;; (shut (open (shut 1))) ;; shut (open (shut 1)) = shut 1 : Box Nat
-;; (Box Nat)
+(shut (open (check (shut 1) (Box Nat))))
+(Box Nat)
 ;;
 ;; expected result:
 ;;   (shut 1)
