@@ -16,4 +16,4 @@ doc:
 	@${DUNE} build @doc
 
 install:
-	${OPAM} reinstall nbe
+	${OPAM} reinstall blott
