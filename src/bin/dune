@@ -4,5 +4,5 @@
 
 (install
  (section bin)
- (package nbe)
- (files (main.exe as nbe)))
+ (package blott)
+ (files (main.exe as blott)))
