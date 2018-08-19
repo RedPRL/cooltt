@@ -19,13 +19,19 @@
 
 ;; Compute the 25th fibonacci number.
 (let
-    ((plus (lam (a (lam (b (nrec (_ Nat) a (a b (suc b)) b))))))
-     (fib (lam
-           (n (nrec
-               (_ (Sig Nat (_ Nat)))
-               (pair 1 0)
-               (_ p (pair (ap plus (fst p) (snd p)) (fst p)))
-               n)))))
+    ((plus
+      (check
+       (lam Nat (a (lam Nat (b (nrec (_ Nat) a (a b (suc b)) b)))))
+       (Pi Nat (_ (Pi Nat (_ Nat))))))
+     (fib
+      (check
+       (lam Nat
+            (n (nrec
+                (_ (Sig Nat (_ Nat)))
+                (pair 1 0)
+                (_ p (pair (ap plus (fst p) (snd p)) (fst p)))
+                n)))
+       (Pi Nat (_ (Sig Nat (_ Nat)))))))
   (snd (ap fib 25)))
 Nat
 ;;

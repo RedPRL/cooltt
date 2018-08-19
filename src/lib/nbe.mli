@@ -14,8 +14,3 @@ val read_back_ne : int -> Domain.ne -> Syntax.t
 val do_clos : Domain.clos -> Domain.t -> Domain.t
 val do_clos2 : Domain.clos2 -> Domain.t -> Domain.t -> Domain.t
 val do_tick_clos : Domain.tick_clos -> Domain.t -> Domain.t
-
-(* Check semantic elements for equality *)
-val equal : Domain.env -> Domain.t -> Domain.t -> bool
-val equal_ne : Domain.env -> Domain.ne -> Domain.ne -> bool
-val equal_nf : Domain.env -> Domain.nf -> Domain.nf -> bool

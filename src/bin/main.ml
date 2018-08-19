@@ -29,6 +29,7 @@ let perform_norm file =
   let (s1, s2) = slurp_sexps_from_file ~file in
   let term = Syntax.of_sexp s1 in
   let tp = Syntax.of_sexp s2 in
+  let () = Check.check ~env:[] ~term ~tp:(Nbe.eval tp []) in
   let norm = Nbe.normalize ~env:[] ~term ~tp in
   let norm_sexp = Syntax.to_sexp [] norm in
   Sexp.output_hum stdout norm_sexp;
@@ -39,6 +40,10 @@ let main file =
   try perform_norm file with
   | Internal_failure s -> prerr_endline s; 1
   | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
+  | Check.Cannot_synth t ->
+    Printf.eprintf "Found a term in synth position that cannot be synthesized: %s\n" (Syntax.pp t);
+    1
+  | Check.Type_error -> Printf.eprintf "Type error\n"; 1
   | Syntax.Illformed -> Printf.eprintf "Syntax error.\n"; 1
   | Nbe.Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
 

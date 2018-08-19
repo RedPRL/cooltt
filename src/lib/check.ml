@@ -6,7 +6,7 @@ type env_entry =
 type env = env_entry list
 
 exception Type_error
-exception Cannot_synth
+exception Cannot_synth of Syn.t
 
 let env_to_sem_env env =
   let size = List.length env in
@@ -80,13 +80,11 @@ let get_tick env n = match List.nth env n with
   | Term _ -> raise Type_error
   | Tick _ -> raise Type_error
 
-let assert_eq env t1 t2 =
-  let sem_env = env_to_sem_env env in
-  if Nbe.equal sem_env t1 t2 then () else raise Type_error
-
-let assert_uni = function
-  | D.Uni _ -> ()
-  | _ -> raise Type_error
+let assert_eq_tp env t1 t2 =
+  let size = List.length env in
+  let q1 = Nbe.read_back_tp size t1 in
+  let q2 = Nbe.read_back_tp size t2 in
+  if q1 = q2 then () else raise Type_error
 
 let rec check ~env ~term ~tp = match term with
   | Syn.Let (def, body) ->
@@ -94,15 +92,20 @@ let rec check ~env ~term ~tp = match term with
     let def_val = Nbe.eval def (env_to_sem_env env) in
     let entry = Term {term = def_val; tp = def_tp; is_active = true; under_lock = 0} in
     check ~env:(entry :: env) ~term:body ~tp
-  | Nat -> assert_uni tp
-  | Pi (src, dest) | Sig (src, dest) ->
-    check ~env ~term:src ~tp;
-    let src_sem = Nbe.eval src (env_to_sem_env env) in
-    let var = D.mk_var tp (List.length env) in
-    let src_entry = Term {term = var; tp = src_sem; is_active = true; under_lock = 0} in
-    check ~env:(src_entry :: env) ~term:dest ~tp
+  | Nat ->
+    begin
+      match tp with
+      | D.Uni _ -> ()
+      | _ -> raise Type_error
+    end
+  | Pi (l, r) | Sig (l, r) ->
+    check ~env ~term:l ~tp;
+    let l_sem = Nbe.eval l (env_to_sem_env env) in
+    let var = D.mk_var l_sem (List.length env) in
+    let l_entry = Term {term = var; tp = l_sem; is_active = true; under_lock = 0} in
+    check ~env:(l_entry :: env) ~term:r ~tp
   | Lam (arg_tp, body) ->
-    assert_uni (synth ~env ~term:arg_tp);
+    check_tp ~env ~term:arg_tp;
     let arg_tp_sem = Nbe.eval arg_tp (env_to_sem_env env) in
     let var = D.mk_var arg_tp_sem (List.length env) in
     let arg_entry = Term {term = var; tp = arg_tp_sem; is_active = true; under_lock = 0} in
@@ -110,7 +113,7 @@ let rec check ~env ~term ~tp = match term with
       match tp with
       | D.Pi (given_arg_tp, dest_tp) ->
         check ~env:(arg_entry :: env) ~term:body ~tp:(Nbe.do_clos dest_tp var);
-        assert_eq env given_arg_tp arg_tp_sem
+        assert_eq_tp env given_arg_tp arg_tp_sem
       | _ -> raise Type_error
     end
   | Pair (left, right) ->
@@ -146,14 +149,14 @@ let rec check ~env ~term ~tp = match term with
       | _ -> raise Type_error
     end
   | Bullet -> raise Type_error
-  | term -> assert_eq env (synth ~env ~term) tp
+  | term -> assert_eq_tp env (synth ~env ~term) tp
 
 and synth ~env ~term =
   match term with
   | Syn.Var i -> get_var env i
   | Check (term, tp') ->
-    let tp = synth ~env ~term in
-    assert_eq env tp (Nbe.eval tp' (env_to_sem_env env));
+    let tp = Nbe.eval tp' (env_to_sem_env env) in
+    check ~env ~term ~tp;
     tp
   | Zero -> D.Nat
   | Suc term -> check ~env ~term ~tp:Nat; D.Nat
@@ -204,7 +207,7 @@ and synth ~env ~term =
     let size = List.length env in
     let var = D.mk_var Nat size in
     let n_entry = Term {term = var; tp = Nat; is_active = true; under_lock = 0} in
-    assert_uni (synth ~env:(n_entry :: env) ~term:mot);
+    check_tp ~env:(n_entry :: env) ~term:mot;
     let sem_env = env_to_sem_env env in
     let zero_tp = Nbe.eval mot (Zero :: sem_env) in
     let ih_tp = Nbe.eval mot (Suc var :: sem_env) in
@@ -228,4 +231,28 @@ and synth ~env ~term =
     let entry = Term {term = var; tp = next_tp'_sem; under_lock = 0; is_active = true} in
     check ~env:(entry :: env) ~term:body ~tp:tp'_sem;
     next_tp'_sem
-  | _ -> raise Cannot_synth
+  | _ -> raise (Cannot_synth term)
+
+and check_tp ~env ~term =
+  match term with
+  | Syn.Nat -> ()
+  | Uni _ -> ()
+  | Box term -> check_tp ~env:(apply_lock env) ~term
+  | Later term -> check_tp ~env:(Tick {under_lock = 0; is_active = true} :: env) ~term
+  | Pi (l, r) | Sig (l, r) ->
+    check_tp ~env ~term:l;
+    let l_sem = Nbe.eval l (env_to_sem_env env) in
+    let var = D.mk_var l_sem (List.length env) in
+    let l_entry = Term {term = var; tp = l_sem; is_active = true; under_lock = 0} in
+    check_tp ~env:(l_entry :: env) ~term:r
+  | Let (def, body) ->
+    let def_tp = synth ~env ~term:def in
+    let def_val = Nbe.eval def (env_to_sem_env env) in
+    let entry = Term {term = def_val; tp = def_tp; is_active = true; under_lock = 0} in
+    check_tp ~env:(entry :: env) ~term:body
+  | term ->
+    begin
+      match synth ~env ~term with
+      | D.Uni _ -> ()
+      | _ -> raise Type_error
+    end
