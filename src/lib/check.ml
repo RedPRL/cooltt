@@ -55,14 +55,20 @@ let strip_env support =
       else Tick {under_lock = 0; is_active = false} :: go (i + 1) env in
   go 0
 
-let use_tick i =
+let use_tick env i =
   let rec go j = function
     | [] -> []
     | Term {term; tp; is_active; under_lock} :: env ->
       Term {term; tp; is_active = is_active && j > i; under_lock} :: go (j + 1) env
     | Tick {is_active; under_lock} :: env ->
       Tick {is_active = is_active && j > i; under_lock} :: go (j + 1) env in
-  go 0
+  go 0 env
+
+let apply_lock =
+  List.map
+    (function
+      | Tick t -> Tick {t with under_lock = t.under_lock + 1}
+      | Term t -> Term {t with under_lock = t.under_lock + 1})
 
 let get_var env n = match List.nth env n with
   | Term {term = _; tp; under_lock = 0; is_active = true} -> tp
@@ -120,6 +126,109 @@ let rec check ~env ~term ~tp = match term with
     check ~env ~term:zero ~tp:zero_tp;
     check ~env:(ih_entry :: n_entry :: env) ~term:suc ~tp:suc_tp;
     assert_eq env tp (Nbe.eval mot (Nbe.eval n sem_env :: sem_env))
-  | _ -> raise Type_error
+  | Pi (src, dest) | Sig (src, dest) ->
+    check ~env ~term:src ~tp;
+    let src_sem = Nbe.eval src (env_to_sem_env env) in
+    let var = D.mk_var tp (List.length env) in
+    let src_entry = Term {term = var; tp = src_sem; is_active = true; under_lock = 0} in
+    check ~env:(src_entry :: env) ~term:dest ~tp
+  | Lam (arg_tp, body) ->
+    assert_uni (synth ~env ~term:arg_tp);
+    let arg_tp_sem = Nbe.eval arg_tp (env_to_sem_env env) in
+    let var = D.mk_var arg_tp_sem (List.length env) in
+    let arg_entry = Term {term = var; tp = arg_tp_sem; is_active = true; under_lock = 0} in
+    begin
+      match tp with
+      | D.Pi (given_arg_tp, dest_tp) ->
+        check ~env:(arg_entry :: env) ~term:body ~tp:(Nbe.do_clos dest_tp var);
+        assert_eq env given_arg_tp arg_tp_sem
+      | _ -> raise Type_error
+    end
+  | Ap (f, a) ->
+    begin
+      match synth ~env ~term:f with
+      | Pi (src, dest) ->
+        check ~env ~term:a ~tp:src;
+        let a_sem = Nbe.eval a (env_to_sem_env env) in
+        assert_eq env tp (Nbe.do_clos dest a_sem)
+      | _ -> raise Type_error
+    end
+  | Pair (left, right) ->
+    begin
+      match tp with
+      | D.Sig (left_tp, right_tp) ->
+        check ~env ~term:left ~tp:left_tp;
+        let left_sem = Nbe.eval left (env_to_sem_env env) in
+        check ~env ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
+      | _ -> raise Type_error
+    end
+  | Fst p ->
+    begin
+      match synth ~env ~term:p with
+      | Sig (left_tp, _) -> assert_eq env left_tp tp
+      | _ -> raise Type_error
+    end
+  | Snd p ->
+    begin
+      match synth ~env ~term:p with
+      | Sig (_, right_tp) ->
+        let proj = Nbe.eval (Fst p) (env_to_sem_env env) in
+        assert_eq env (Nbe.do_clos right_tp proj) tp
+      | _ -> raise Type_error
+    end
+  | Later t ->
+    check ~env:(Tick {is_active = true; under_lock = 0} :: env) ~term:t ~tp
+  | Next t ->
+    begin
+      match tp with
+      | Next clos ->
+        let tp = Nbe.do_tick_clos clos (Tick (List.length env)) in
+        check ~env:(Tick {is_active = true; under_lock = 0} :: env) ~term:t ~tp
+      | _ -> raise Type_error
+    end
+  | Prev (term, tick) ->
+    begin
+      match tick with
+      | Var i ->
+        get_tick env i;
+        let i' = List.length env - (i + 1) in
+        begin
+          match synth ~env:(use_tick env i) ~term with
+          | Next clos -> assert_eq env (Nbe.do_tick_clos clos (Tick i')) tp
+          | _ -> raise Type_error
+        end
+      | Bullet ->
+        begin
+          match synth ~env:(apply_lock env) ~term with
+          | Next clos -> assert_eq env (Nbe.do_tick_clos clos Bullet) tp
+          | _ -> raise Type_error
+        end
+      | _ -> raise Type_error
+    end
+  | Box term -> check ~env:(apply_lock env) ~term ~tp
+  | Open term ->
+    let support = free_vars term in
+    let env = strip_env support env in
+    check ~env ~term ~tp:(Box tp)
+  | Shut term ->
+    begin
+      match tp with
+      | Box tp -> check ~env:(apply_lock env) ~term ~tp
+      | _ -> raise Type_error
+    end
+  | DFix (tp', body) ->
+    let tp'_sem = Nbe.eval tp' (env_to_sem_env env) in
+    let next_tp'_sem = D.Next (ConstTickClos tp'_sem) in
+    assert_eq env next_tp'_sem tp;
+    let var = D.mk_var next_tp'_sem (List.length env) in
+    let entry = Term {term = var; tp = next_tp'_sem; under_lock = 0; is_active = true} in
+    check ~env:(entry :: env) ~term:body ~tp:tp'_sem
+  | Uni i ->
+    begin
+      match tp with
+      | Uni j when i < j -> ()
+      | _ -> raise Type_error
+    end
+  | Bullet -> raise Type_error
 
 and synth ~env:_ ~term:_ = failwith "todo"
