@@ -47,8 +47,8 @@
 ;; expected result:
 ;;    Pi (U 2) (_ (U 0))
 
-(shut (open (check (shut 1) (Box Nat))))
-(Box Nat)
+;; (shut (open (check (shut 1) (Box Nat))))
+;; (Box Nat)
 ;;
 ;; expected result:
 ;;   (shut 1)
@@ -75,3 +75,7 @@
 
 ;; (lam (A (lam (x (open x)))))
 ;; (Pi (U 0) (A (Pi (Box A) (_ A))))
+
+;; Should fail:
+(lam (Later (_ Nat)) (x (prev x <>)))
+(Pi (Later (_ Nat)) (_ Nat))

@@ -44,6 +44,7 @@ let main file =
     Printf.eprintf "Found a term in synth position that cannot be synthesized: %s\n" (Syntax.pp t);
     1
   | Check.Type_error -> Printf.eprintf "Type error\n"; 1
+  | Check.Cannot_use_var -> Printf.eprintf "Cannot use that variable\n"; 1
   | Syntax.Illformed -> Printf.eprintf "Syntax error.\n"; 1
   | Nbe.Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
 

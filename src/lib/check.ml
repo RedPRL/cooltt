@@ -9,6 +9,7 @@ let add_term ~term ~tp env = Term {term; tp; locks = 0; is_active = true} :: env
 let add_tick env = Tick {locks = 0; is_active = true} :: env
 
 exception Type_error
+exception Cannot_use_var
 exception Cannot_synth of Syn.t
 
 let env_to_sem_env env =
@@ -73,13 +74,13 @@ let apply_lock =
 
 let get_var env n = match List.nth env n with
   | Term {term = _; tp; locks = 0; is_active = true} -> tp
-  | Term _ -> raise Type_error
-  | Tick _ -> raise Type_error
+  | Term _ -> raise Cannot_use_var
+  | Tick _ -> raise Cannot_use_var
 
 let get_tick env n = match List.nth env n with
   | Tick {locks = 0; is_active = true} -> ()
-  | Term _ -> raise Type_error
-  | Tick _ -> raise Type_error
+  | Term _ -> raise Cannot_use_var
+  | Tick _ -> raise Cannot_use_var
 
 let assert_eq_tp env t1 t2 =
   let size = List.length env in
