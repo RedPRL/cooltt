@@ -77,5 +77,9 @@
 ;; (Pi (U 0) (A (Pi (Box A) (_ A))))
 
 ;; Should fail:
-(lam (Later (_ Nat)) (x (prev x <>)))
-(Pi (Later (_ Nat)) (_ Nat))
+;; (lam (Later (_ Nat)) (x (prev x <>)))
+;; (Pi (Later (_ Nat)) (_ Nat))
+
+;; Should also fail
+;; (lam (Later (_ (Later (_ Nat)))) (x (next (y (prev (prev x y) y)))))
+;; (Pi (Later (_ (Later (_ Nat)))) (_ (Later (_ Nat))))

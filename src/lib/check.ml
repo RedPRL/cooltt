@@ -129,7 +129,7 @@ let rec check ~env ~size ~term ~tp =
   | Next t ->
     begin
       match tp with
-      | Next clos ->
+      | Later clos ->
         let tp = Nbe.do_tick_clos clos (Tick size) in
         check ~env:(add_tick env) ~size:(size + 1) ~term:t ~tp
       | _ -> raise Type_error
@@ -190,13 +190,13 @@ and synth ~env ~size ~term =
         let i' = size - (i + 1) in
         begin
           match synth ~env:(use_tick env i) ~size ~term with
-          | Next clos -> Nbe.do_tick_clos clos (Tick i')
+          | Later clos -> Nbe.do_tick_clos clos (Tick i')
           | _ -> raise Type_error
         end
       | Bullet ->
         begin
           match synth ~env:(apply_lock env) ~size ~term with
-          | Next clos -> Nbe.do_tick_clos clos Bullet
+          | Later clos -> Nbe.do_tick_clos clos Bullet
           | _ -> raise Type_error
         end
       | _ -> raise Type_error
@@ -228,10 +228,10 @@ and synth ~env ~size ~term =
     end
   | DFix (tp', body) ->
     let tp'_sem = Nbe.eval tp' (env_to_sem_env env) in
-    let next_tp'_sem = D.Next (ConstTickClos tp'_sem) in
-    let var = D.mk_var next_tp'_sem size in
-    check ~env:(add_term ~term:var ~tp:next_tp'_sem env) ~size:(size + 1) ~term:body ~tp:tp'_sem;
-    next_tp'_sem
+    let later_tp'_sem = D.Later (ConstTickClos tp'_sem) in
+    let var = D.mk_var later_tp'_sem size in
+    check ~env:(add_term ~term:var ~tp:later_tp'_sem env) ~size:(size + 1) ~term:body ~tp:tp'_sem;
+    later_tp'_sem
   | _ -> raise (Cannot_synth term)
 
 and check_tp ~env ~size ~term =
