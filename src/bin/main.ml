@@ -29,7 +29,7 @@ let perform_norm file =
   let (s1, s2) = slurp_sexps_from_file ~file in
   let term = Syntax.of_sexp s1 in
   let tp = Syntax.of_sexp s2 in
-  let () = Check.check ~env:[] ~term ~tp:(Nbe.eval tp []) in
+  let () = Check.check ~env:[] ~size:0 ~term ~tp:(Nbe.eval tp []) in
   let norm = Nbe.normalize ~env:[] ~term ~tp in
   let norm_sexp = Syntax.to_sexp [] norm in
   Sexp.output_hum stdout norm_sexp;

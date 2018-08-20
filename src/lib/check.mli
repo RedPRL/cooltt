@@ -7,5 +7,5 @@ exception Type_error
 exception Cannot_use_var
 exception Cannot_synth of Syntax.t
 
-val check : env:env -> term:Syntax.t -> tp:Domain.t -> unit
-val synth : env:env -> term:Syntax.t -> Domain.t
+val check : env:env -> size:int -> term:Syntax.t -> tp:Domain.t -> unit
+val synth : env:env -> size:int -> term:Syntax.t -> Domain.t
