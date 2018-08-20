@@ -83,3 +83,11 @@
 ;; Should also fail
 ;; (lam (Later (_ (Later (_ Nat)))) (x (next (y (prev (prev x y) y)))))
 ;; (Pi (Later (_ (Later (_ Nat)))) (_ (Later (_ Nat))))
+
+(lam
+ (U 0)
+ (A
+  (lam
+   (Pi (Later (_ A)) (_ A))
+   (f (ap f (dfix A (x (ap f x))))))))
+(Pi (U 0) (A (Pi (Pi (Later (_ A)) (_ A)) (_ A))))
