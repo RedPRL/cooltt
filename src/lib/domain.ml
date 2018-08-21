@@ -1,7 +1,9 @@
 open Sexplib
 
 type env = t list
-and clos = Clos of {term : Syntax.t; env : env}
+and clos =
+    Clos of {term : Syntax.t; env : env}
+  | ConstClos of t
 and clos2 = Clos2 of {term : Syntax.t; env : env}
 and tick_clos =
     TickClos of {term : Syntax.t; env : env}
@@ -18,6 +20,7 @@ and t =
   | Later of tick_clos
   | Next of tick_clos
   | DFix of t * clos
+  | Fold of Syntax.uni_level * t * clos * t * t * int
   | Tick of int (* DeBruijn level *)
   | Bullet
   | Box of t
@@ -30,6 +33,7 @@ and ne =
   | Snd of ne
   | Prev of ne * int option (* None = Bullet, Some i = Tick i *)
   | Fix of t * clos * int
+  | Unfold of Syntax.uni_level * t * clos * t * t * int
   | Open of ne
   | NRec of clos * nf * clos2 * ne
 and nf =
@@ -65,57 +69,57 @@ let rec go_to_sexp size env = function
       | Some i -> Sexp.Atom (string_of_int (i + 1))
       | None -> Sexp.List [Sexp.Atom "suc"; go_to_sexp size env t]
     end
-  | Pi (src, Clos dest) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    let new_env = var :: List.map (go_to_sexp size env) dest.env |> List.rev in
+  | Pi (src, dest) ->
     Sexp.List
       [Sexp.Atom "Pi";
        go_to_sexp size env src;
-       Sexp.List [var; Syntax.to_sexp new_env dest.term]]
-  | Lam (tp, Clos t) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    let new_env = var :: List.map (go_to_sexp size env) t.env |> List.rev in
-    Sexp.List [Sexp.Atom "lam"; go_to_sexp size env tp; Sexp.List [var; Syntax.to_sexp new_env t.term]]
-  | Sig (fst, Clos snd) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    let new_env = var :: List.map (go_to_sexp size env) snd.env |> List.rev in
+       go_to_sexp_clos size env dest]
+  | Lam (tp, t) ->
+    Sexp.List [Sexp.Atom "lam"; go_to_sexp size env tp; go_to_sexp_clos size env t]
+  | Sig (fst, snd) ->
     Sexp.List
       [Sexp.Atom "Sig";
        go_to_sexp size env fst;
-       Sexp.List [var; Syntax.to_sexp new_env snd.term]]
+       go_to_sexp_clos size env snd]
   | Pair (t1, t2) ->
     Sexp.List [Sexp.Atom "pair"; go_to_sexp size env t1; go_to_sexp size env t2]
   | Uni i -> Sexp.List [Sexp.Atom "U"; Sexp.Atom (string_of_int i)]
-  | Later (TickClos t) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    let new_env = var :: List.map (go_to_sexp size env) t.env |> List.rev in
-    Sexp.List
-      [Sexp.Atom "Later";
-       Sexp.List [var; Syntax.to_sexp new_env t.term]]
-  | Later (ConstTickClos t) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    Sexp.List [Sexp.Atom "Later"; Sexp.List [var; go_to_sexp (size + 1) (var :: env) t]]
-  | Next (TickClos t) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    let new_env = var :: List.map (go_to_sexp size env) t.env |> List.rev in
-    Sexp.List
-      [Sexp.Atom "Next";
-       Sexp.List [var; Syntax.to_sexp new_env t.term]]
-  | Next (ConstTickClos t) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    Sexp.List [Sexp.Atom "Next"; Sexp.List [var; go_to_sexp (size + 1) (var :: env) t]]
+  | Later t ->
+    Sexp.List [Sexp.Atom "Later"; go_to_sexp_tick_clos size env t]
+  | Next t -> Sexp.List [Sexp.Atom "Next"; go_to_sexp_tick_clos size env t]
   | Bullet -> Sexp.Atom "<>"
   | Box t -> Sexp.List [Sexp.Atom "Box"; go_to_sexp size env t]
   | Shut t -> Sexp.List [Sexp.Atom "shut"; go_to_sexp size env t]
-  | DFix (tp, Clos body) ->
-    let var = Sexp.Atom ("x" ^ string_of_int size) in
-    let new_env = var :: List.map (go_to_sexp size env) body.env |> List.rev in
+  | DFix (tp, body) ->
     Sexp.List
       [Sexp.Atom "DFix";
        go_to_sexp size env tp;
-       Sexp.List [var; Syntax.to_sexp new_env body.term]]
+       go_to_sexp_clos size env body]
+  | Fold (uni, idx_tp, body, idx, t, tick) ->
+    Sexp.List
+      [Sexp.Atom "fold";
+       Sexp.Atom (string_of_int uni);
+       go_to_sexp size env idx_tp;
+       go_to_sexp_clos size env body;
+       go_to_sexp size env idx;
+       go_to_sexp size env t;
+       go_to_sexp size env (Tick tick)]
   | Tick i -> List.nth env (size - (i + 1))
   | Neutral {tp; term} -> Sexp.List [Sexp.Atom "up"; go_to_sexp size env tp; go_to_sexp_ne size env term]
+
+and go_to_sexp_clos size env = function
+  | ConstClos t -> Sexp.List [Sexp.Atom "_"; go_to_sexp size env t]
+  | Clos body ->
+    let var = Sexp.Atom ("x" ^ string_of_int size) in
+    let new_env = var :: List.map (go_to_sexp size env) body.env |> List.rev in
+    Sexp.List [var; Syntax.to_sexp new_env body.term]
+
+and go_to_sexp_tick_clos size env = function
+  | ConstTickClos t -> Sexp.List [Sexp.Atom "_"; go_to_sexp size env t]
+  | TickClos body ->
+    let var = Sexp.Atom ("x" ^ string_of_int size) in
+    let new_env = var :: List.map (go_to_sexp size env) body.env |> List.rev in
+    Sexp.List [var; Syntax.to_sexp new_env body.term]
 
 and go_to_sexp_ne size env = function
   | Var i -> List.nth env (size - (i + 1))
@@ -133,16 +137,23 @@ and go_to_sexp_ne size env = function
       [Sexp.Atom "prev";
        go_to_sexp size env (DFix (tp, clos));
        go_to_sexp size env (Tick i)]
+  | Unfold (uni, a, body, idx, t, i) ->
+    Sexp.List
+      [Sexp.Atom "unfold";
+       Sexp.Atom (string_of_int uni);
+       go_to_sexp size env a;
+       go_to_sexp_clos size env body;
+       go_to_sexp size env idx;
+       go_to_sexp size env t;
+       go_to_sexp size env (Tick i)]
   | Open t -> Sexp.List [Sexp.Atom "open"; go_to_sexp_ne size env t]
-  | NRec (Clos motive, zero, Clos2 suc, n) ->
-    let mvar = Sexp.Atom ("x" ^ string_of_int size) in
-    let menv = mvar :: List.map (go_to_sexp size env) motive.env |> List.rev in
+  | NRec (motive, zero, Clos2 suc, n) ->
     let suc_var1 = Sexp.Atom ("x" ^ string_of_int (size + 1)) in
     let suc_var2 = Sexp.Atom ("x" ^ string_of_int (size + 2)) in
     let senv = suc_var2 :: suc_var1 :: List.map (go_to_sexp size env) suc.env |> List.rev in
     Sexp.List
       [Sexp.Atom "nrec";
-       Sexp.List [mvar; Syntax.to_sexp menv motive.term];
+       go_to_sexp_clos size env motive;
        go_to_sexp_nf size env zero;
        Sexp.List [suc_var1; suc_var2; Syntax.to_sexp senv suc.term];
        go_to_sexp_ne size env n]

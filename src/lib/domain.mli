@@ -1,5 +1,7 @@
 type env = t list
-and clos = Clos of {term : Syntax.t; env : env}
+and clos =
+    Clos of {term : Syntax.t; env : env}
+  | ConstClos of t
 and clos2 = Clos2 of {term : Syntax.t; env : env}
 and tick_clos =
     TickClos of {term : Syntax.t; env : env}
@@ -16,6 +18,7 @@ and t =
   | Later of tick_clos
   | Next of tick_clos
   | DFix of t * clos
+  | Fold of Syntax.uni_level * t * clos * t * t * int
   | Tick of int (* DeBruijn level *)
   | Bullet
   | Box of t
@@ -28,6 +31,7 @@ and ne =
   | Snd of ne
   | Prev of ne * int option (* None = Bullet, Some i = Tick i *)
   | Fix of t * clos * int
+  | Unfold of Syntax.uni_level * t * clos * t * t * int (* i = Tick i *)
   | Open of ne
   | NRec of clos * nf * clos2 * ne
 and nf =

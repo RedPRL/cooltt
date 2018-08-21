@@ -29,7 +29,9 @@ and do_snd p =
     D.Neutral {tp = do_clos clo fst; term = D.Snd ne}
   | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
 
-and do_clos (Clos {term; env}) a = eval term (a :: env)
+and do_clos clo a = match clo with
+  | Clos {term; env} -> eval term (a :: env)
+  | ConstClos t -> t
 
 and do_tick_clos clo tick = match clo with
   | D.TickClos {term; env} -> eval term (tick :: env)
@@ -37,7 +39,7 @@ and do_tick_clos clo tick = match clo with
 
 and do_clos2 (Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
 
-and do_prev ~term ~tick = match term with
+and do_prev term tick = match term with
   | D.Next clos -> do_tick_clos clos tick
   | D.DFix (t, clos) ->
     begin
@@ -64,6 +66,20 @@ and do_open t = match t with
       | _ -> raise (Nbe_failed "Not a box in do_open")
     end
   | _ -> raise (Nbe_failed "Not a box or neutral in open")
+
+and do_unfold ~uni ~idx_tp ~tp ~idx ~fix ~tick = match tick with
+  | D.Bullet -> fix
+  | D.Tick i ->
+    let tp_of_fix = D.Pi (idx_tp, ConstClos (D.Uni uni)) in
+    D.Neutral
+      { term = D.Unfold (uni, idx_tp, tp, idx, fix, i);
+        tp =
+          D.Neutral
+            { tp = D.Uni 0;
+              term =
+                D.Ap (D.Fix (tp_of_fix, tp, i),
+                      D.Normal {term = idx; tp = idx_tp})}}
+  | _ -> raise (Nbe_failed "Not a tick in unfold")
 
 and do_ap f a =
   match f with
@@ -104,8 +120,26 @@ and eval t (env : D.env) =
   | Syn.Later t -> D.Later (TickClos {term = t; env = env})
   | Syn.Next t -> D.Next (TickClos {term = t; env = env})
   | Syn.Bullet -> D.Bullet
-  | Syn.Prev (term, tick) -> do_prev ~term:(eval term env) ~tick:(eval tick env)
+  | Syn.Prev (term, tick) -> do_prev (eval term env) (eval tick env)
   | Syn.DFix (tp, body) -> D.DFix (eval tp env, Clos {term = body; env = env})
+  | Syn.Fold (_, _, _, _, t, Syn.Bullet) -> eval t env
+  | Syn.Fold (uni, idx_tp, tp, idx, t, Syn.Var i) ->
+    begin
+      match List.nth env i with
+      | D.Tick i ->
+        D.Fold (uni, eval idx_tp env, D.Clos {term = tp; env}, eval idx env, eval t env, i)
+      | D.Bullet -> eval t env
+      | _ -> raise (Nbe_failed "Found a Fold with a tick")
+    end
+  | Syn.Fold _ -> raise (Nbe_failed "Found a Fold with a tick")
+  | Syn.Unfold (uni, a, tp, idx, t, tick) ->
+    do_unfold
+      ~uni
+      ~idx_tp:(eval a env)
+      ~tp:(Clos {term = tp; env})
+      ~idx:(eval idx env)
+      ~fix:(eval t env)
+      ~tick:(eval tick env)
   | Syn.Box t -> D.Box (eval t env)
   | Syn.Open t -> do_open (eval t env)
   | Syn.Shut t -> D.Shut (eval t env)
@@ -136,8 +170,21 @@ let rec read_back_nf size nf =
   | D.Normal {term = D.Tick _; _} ->
     raise (Nbe_failed "Found tick instead of a proper term in read_back_nf")
   | D.Normal {tp = D.Later tp; term = term} ->
-    let nf = D.Normal {tp = do_tick_clos tp (D.Tick size); term = do_prev ~term ~tick:(D.Tick size)} in
+    let nf = D.Normal {tp = do_tick_clos tp (D.Tick size); term = do_prev term (D.Tick size)} in
     Syn.Next (read_back_nf (size + 1) nf)
+  | D.Normal {tp = _; term = D.Fold (uni, idx_tp, tp, idx, t, tick)} ->
+    let tick = Syn.Var (size - (tick + 1)) in
+    let fix_idx = D.Pi (idx_tp, D.ConstClos (D.Uni uni)) in
+    let fix_tp = do_ap (do_clos tp (D.DFix (fix_idx, tp))) idx in
+    let fix_syn = read_back_nf size (D.Normal {term = t; tp = fix_tp}) in
+    let fix_var = D.mk_var fix_idx size in
+    Syn.Fold
+      (uni,
+       read_back_tp size idx_tp,
+       read_back_tp (size + 1) (do_clos tp fix_var),
+       failwith "idx",
+       fix_syn,
+       tick)
   (* Box *)
   | D.Normal {tp = D.Box tp; term} ->
     Syn.Shut (read_back_nf size (D.Normal {tp; term = do_open term}))
@@ -201,6 +248,20 @@ and read_back_ne size ne =
     let sem_body = do_clos clos (D.mk_var (D.Later (D.ConstTickClos tp)) size) in
     let body = read_back_nf (size + 1) (D.Normal {tp; term = sem_body}) in
     Syn.Prev (Syn.DFix (read_back_tp size tp, body), tick)
+  | D.Unfold (uni, idx_tp, tp, idx, fix, i) ->
+    let tick = Syn.Var (size - (i + 1)) in
+    let idx_nf = D.Normal {term = idx; tp = idx_tp} in
+    let fix_idx = D.Pi (idx_tp, D.ConstClos (D.Uni uni)) in
+    let fix_tp = D.Neutral {term = D.Ap (D.Fix (fix_idx, tp, i), idx_nf); tp = D.Uni uni} in
+    let fix_syn = read_back_nf size (D.Normal {term = fix; tp = fix_tp}) in
+    let fix_var = D.mk_var fix_idx size in
+    Syn.Unfold
+      (uni,
+       read_back_tp size idx_tp,
+       read_back_tp (size + 1) (do_clos tp fix_var),
+       read_back_nf size idx_nf,
+       fix_syn,
+       tick)
   | D.Prev (ne, i) ->
     let tick = match i with
       | None -> Syn.Bullet

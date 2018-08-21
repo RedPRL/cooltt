@@ -31,6 +31,13 @@ let free_vars =
       S.union (go min t1) (go (min + 1) t2)
     | Pair (t1, t2) | Check (t1, t2) | Ap (t1, t2) | Prev (t1, t2) -> S.union (go min t1) (go min t2)
     | Nat | Zero | Uni _ | Bullet -> S.empty
+    | Fold (_, idx_tp, tp, idx, t, tick)
+    | Unfold (_, idx_tp, tp, idx, t, tick) ->
+      go min idx_tp
+      |> S.union (go (min + 1) tp)
+      |> S.union (go min idx)
+      |> S.union (go min t)
+      |> S.union (go min tick)
     | Suc t | Box t | Open t | Shut t | Fst t | Snd t -> go min t
     | NRec (m, zero, suc, n) ->
       go (min + 1) m
@@ -65,6 +72,16 @@ let use_tick env i =
     | Tick {is_active; locks} :: env ->
       Tick {is_active = is_active && j > i; locks} :: go (j + 1) env in
   go 0 env
+
+let assert_tick env = function
+  | Syn.Bullet -> ()
+  | Syn.Var i ->
+    begin
+      match List.nth env i with
+      | Tick _ -> ()
+      | _ -> raise Cannot_use_var
+    end
+  | _ -> raise Cannot_use_var
 
 let apply_lock =
   List.map
@@ -232,6 +249,50 @@ and synth ~env ~size ~term =
     let var = D.mk_var later_tp'_sem size in
     check ~env:(add_term ~term:var ~tp:later_tp'_sem env) ~size:(size + 1) ~term:body ~tp:tp'_sem;
     later_tp'_sem
+  | Fold (uni, idx_tp, tp, idx, t, tick) ->
+    assert_tick env tick;
+    let sem_env = env_to_sem_env env in
+    let idx_tp_sem = Nbe.eval idx_tp sem_env in
+    let fix_idx_tp = D.Pi (idx_tp_sem, D.ConstClos (D.Uni uni)) in
+    let later_fix_idx_tp = D.Later (D.ConstTickClos fix_idx_tp) in
+    let fix_var = D.mk_var later_fix_idx_tp size in
+    check
+      ~env:(add_term ~term:fix_var ~tp:later_fix_idx_tp env)
+      ~size:(size + 1)
+      ~term:tp
+      ~tp:fix_idx_tp;
+    check ~env ~size ~term:idx ~tp:idx_tp_sem;
+    let tp_sem = D.Clos {term = tp; env = fix_var :: sem_env} in
+    let idx_sem = Nbe.eval idx sem_env in
+    let tick_sem = Nbe.eval tick sem_env in
+    let dfix_sem = D.DFix (idx_tp_sem, tp_sem) in
+    (* God in heaven *)
+    let unfolded_sem = Nbe.do_ap (Nbe.do_clos tp_sem tick_sem) idx_sem in
+    let folded_sem = Nbe.do_ap (Nbe.do_prev dfix_sem tick_sem) idx_sem in
+    check ~env ~size ~term:t ~tp:unfolded_sem;
+    folded_sem
+  | Unfold (uni, idx_tp, tp, idx, t, tick) ->
+    assert_tick env tick;
+    let sem_env = env_to_sem_env env in
+    let idx_tp_sem = Nbe.eval idx_tp sem_env in
+    let fix_idx_tp = D.Pi (idx_tp_sem, D.ConstClos (D.Uni uni)) in
+    let later_fix_idx_tp = D.Later (D.ConstTickClos fix_idx_tp) in
+    let fix_var = D.mk_var later_fix_idx_tp size in
+    check
+      ~env:(add_term ~term:fix_var ~tp:later_fix_idx_tp env)
+      ~size:(size + 1)
+      ~term:tp
+      ~tp:fix_idx_tp;
+    check ~env ~size ~term:idx ~tp:idx_tp_sem;
+    let tp_sem = D.Clos {term = tp; env = fix_var :: sem_env} in
+    let idx_sem = Nbe.eval idx sem_env in
+    let tick_sem = Nbe.eval tick sem_env in
+    let dfix_sem = D.DFix (idx_tp_sem, tp_sem) in
+    (* God in heaven *)
+    let unfolded_sem = Nbe.do_ap (Nbe.do_clos tp_sem tick_sem) idx_sem in
+    let folded_sem = Nbe.do_ap (Nbe.do_prev dfix_sem tick_sem) idx_sem in
+    check ~env ~size ~term:t ~tp:folded_sem;
+    unfolded_sem
   | _ -> raise (Cannot_synth term)
 
 and check_tp ~env ~size ~term =

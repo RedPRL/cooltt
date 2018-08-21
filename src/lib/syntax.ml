@@ -9,7 +9,7 @@ type t =
   | Sig of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
   | Later of (* BINDS *) t | Next of (* BINDS *) t | Prev of t * t | Bullet
   | Box of t | Open of t | Shut of t
-  | DFix of t * (* binds *) t
+  | DFix of t * (* binds *) t | Fold of uni_level * t * (* BINDS *) t * t * t * t | Unfold of uni_level * t * (* BINDS *) t * t * t * t
   | Uni of uni_level
 
 type env = t list
@@ -89,6 +89,20 @@ let of_sexp sexp =
       Shut (go env t)
     | Sexp.List [Sexp.Atom "dfix"; tp; Sexp.List [Sexp.Atom x; body]] ->
       DFix (go env tp, go (x :: env) body)
+    | Sexp.List [Sexp.Atom "fold"; Sexp.Atom i; idx_tp; Sexp.List [Sexp.Atom x; tp]; idx; t; tick] ->
+      begin
+        match int_of_string_opt i with
+        | Some i when i >= 0 ->
+          Fold (i, go env idx_tp, go (x :: env) tp, go env idx, go env t, go env tick)
+        | _ -> raise Illformed
+      end
+    | Sexp.List [Sexp.Atom "unfold"; Sexp.Atom i; a; Sexp.List [Sexp.Atom x; tp]; idx; t; tick] ->
+      begin
+        match int_of_string_opt i with
+        | Some i when i >= 0 ->
+          Unfold (i, go env a, go (x :: env) tp, go env idx, go env t, go env tick)
+        | _ -> raise Illformed
+      end
     | Sexp.List [Sexp.Atom "U"; Sexp.Atom i] ->
       begin
         match int_of_string_opt i with
@@ -176,7 +190,29 @@ let to_sexp env t =
     | DFix (tp, body) ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
-      Sexp.List [Sexp.Atom "dfix"; go env tp; Sexp.List [var; go (var :: env) body]] in
+      Sexp.List [Sexp.Atom "dfix"; go env tp; Sexp.List [var; go (var :: env) body]]
+    | Fold (uni, idx_tp, tp, idx, t, tick) ->
+      incr counter;
+      let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
+      Sexp.List
+        [Sexp.Atom "fold";
+         Sexp.Atom (string_of_int uni);
+         go env idx_tp;
+         Sexp.List [var; go (var :: env) tp];
+         go env idx;
+         go env t;
+         go env tick]
+    | Unfold (uni, a, tp, idx, t, tick) ->
+      incr counter;
+      let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
+      Sexp.List
+        [Sexp.Atom "fold";
+         Sexp.Atom (string_of_int uni);
+         go env a;
+         go env idx;
+         Sexp.List [var; go (var :: env) tp];
+         go env t;
+         go env tick] in
   go env t
 
 let pp t = to_sexp [] t |> Sexp.to_string_hum

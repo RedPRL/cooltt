@@ -8,6 +8,8 @@ type t =
   | Later of (* BINDS *) t | Next of (* BINDS *) t | Prev of t * t | Bullet
   | Box of t | Open of t | Shut of t
   | DFix of t * (* binds *) t
+  | Fold of uni_level * t * (* BINDS *) t * t * t * t
+  | Unfold of uni_level * t * (* BINDS *) t * t * t * t
   | Uni of uni_level
 
 type env = t list
