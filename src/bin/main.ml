@@ -4,28 +4,31 @@ open Sexplib
 
 exception Internal_failure of string
 
-let mk_fail s = Internal_failure s
+let mk_fail s = raise (Internal_failure s)
 
 let slurp_sexps_from_file ~file =
-  match Sexp.load_sexps file with
+  let sexps =
+    match file with
+    | None -> Sexp.input_sexps stdin
+    | Some file -> Sexp.load_sexps file in
+  let file =
+    match file with
+    | Some s -> s
+    | None -> "<<stdin>>" in
+  match sexps with
   | [s1; s2] -> (s1, s2)
   | _ ->
     Printf.sprintf "Failed while parsing %s: wrong number of sexps" file
     |> mk_fail
-    |> raise
   | exception Sexp.Parse_error {err_msg = msg; _} ->
     Printf.sprintf "Failed while parsing %s: %s\n" file msg
     |> mk_fail
-    |> raise
   | exception Failure _ ->
     Printf.sprintf "Failed while parsing %s: file ended before the sexp was closed\n" file
     |> mk_fail
-    |> raise
 
-let perform_norm file =
-  if String.equal file ""
-  then raise (Internal_failure "Failed to supply a file")
-  else ();
+let perform_norm input =
+  let file = if String.equal input "" then None else Some input in
   let (s1, s2) = slurp_sexps_from_file ~file in
   let term = Syntax.of_sexp s1 in
   let tp = Syntax.of_sexp s2 in
@@ -36,23 +39,23 @@ let perform_norm file =
   print_newline ();
   0
 
-let main file =
-  try perform_norm file with
+let main input =
+  try perform_norm input with
   | Internal_failure s -> prerr_endline s; 1
   | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
   | Failure s -> Printf.eprintf "Internal error (Failure): %s\n" s; 1
+  | Nbe.Nbe_failed s -> Printf.eprintf "Internal error (Failed to normalize): %s\n" s; 1
   | Check.Type_error e -> Printf.eprintf "Type error\n%s\n" (Check.pp_error e); 1
   | Syntax.Illformed -> Printf.eprintf "Syntax error.\n"; 1
-  | Nbe.Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
 
 let input_file =
   let doc = "File containing the term to reduce" in
   Arg.(value & pos 0 file "" & info [] ~docv:"input file" ~doc)
 
 let info =
-  let doc = "Normalize a term in Martin-Lof Type Theory" in
+  let doc = "Typecheck and Normalize a term in Guarded Martin-Lof Type Theory" in
   let err_exit = Term.exit_info ~doc:"on an ill-formed or terms." 1 in
-  Term.info "nbe" ~version:"0.0" ~doc ~exits:(err_exit :: Term.default_exits)
+  Term.info "blott" ~version:"0.0" ~doc ~exits:(err_exit :: Term.default_exits)
 
 let () =
   let t = Term.(const main $ input_file) in
