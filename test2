@@ -43,7 +43,15 @@
         (Later (_ (ap Stream 0)))
         (s
          (next (t (fold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
-       (Pi (Later (_ (ap Stream 0))) (_ (ap UnfoldedStream 0))))))
+       (Pi (Later (_ (ap Stream 0))) (_ (ap UnfoldedStream 0)))))
+     (out
+      (check
+       (lam
+        (ap UnfoldedStream 0)
+        (s
+         (next (t (unfold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
+       (Pi (ap UnfoldedStream 0) (_ (Later (_ (ap Stream 0))))))))
+
 
      ;; (into
      ;;  (check
