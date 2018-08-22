@@ -27,9 +27,6 @@ let perform_norm file =
   then raise (Internal_failure "Failed to supply a file")
   else ();
   let (s1, s2) = slurp_sexps_from_file ~file in
-  Printf.printf "Normalizing the following term....";
-  Sexp.output_hum stdout s1;
-  print_newline ();
   let term = Syntax.of_sexp s1 in
   let tp = Syntax.of_sexp s2 in
   let () = Check.check ~env:[] ~size:0 ~term ~tp:(Nbe.eval tp []) in
