@@ -12,8 +12,7 @@ exception Type_error
 exception Cannot_use_var
 exception Cannot_synth of Syn.t
 
-let env_to_sem_env env =
-  let size = List.length env in
+let env_to_sem_env size env =
   let rec go i = function
     | [] -> []
     | Term {term; _} :: env -> term :: go (i + 1) env
@@ -108,7 +107,7 @@ let rec check ~env ~size ~term ~tp =
   match term with
   | Syn.Let (def, body) ->
     let def_tp = synth ~env ~size ~term:def in
-    let def_val = Nbe.eval def (env_to_sem_env env) in
+    let def_val = Nbe.eval def (env_to_sem_env size env) in
     check ~env:(add_term ~term:def_val ~tp:def_tp env) ~size:(size + 1) ~term:body ~tp
   | Nat ->
     begin
@@ -118,12 +117,12 @@ let rec check ~env ~size ~term ~tp =
     end
   | Pi (l, r) | Sig (l, r) ->
     check ~env ~size ~term:l ~tp;
-    let l_sem = Nbe.eval l (env_to_sem_env env) in
+    let l_sem = Nbe.eval l (env_to_sem_env size env) in
     let var = D.mk_var l_sem size in
     check ~env:(add_term ~term:var ~tp:l_sem env) ~size ~term:r ~tp
   | Lam (arg_tp, body) ->
     check_tp ~env ~size ~term:arg_tp;
-    let arg_tp_sem = Nbe.eval arg_tp (env_to_sem_env env) in
+    let arg_tp_sem = Nbe.eval arg_tp (env_to_sem_env size env) in
     let var = D.mk_var arg_tp_sem size in
     begin
       match tp with
@@ -138,7 +137,7 @@ let rec check ~env ~size ~term ~tp =
       match tp with
       | D.Sig (left_tp, right_tp) ->
         check ~env ~size ~term:left ~tp:left_tp;
-        let left_sem = Nbe.eval left (env_to_sem_env env) in
+        let left_sem = Nbe.eval left (env_to_sem_env size env) in
         check ~env ~size ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
       | _ -> raise Type_error
     end
@@ -171,7 +170,7 @@ and synth ~env ~size ~term =
   match term with
   | Syn.Var i -> get_var env i
   | Check (term, tp') ->
-    let tp = Nbe.eval tp' (env_to_sem_env env) in
+    let tp = Nbe.eval tp' (env_to_sem_env size env) in
     check ~env ~size ~term ~tp;
     tp
   | Zero -> D.Nat
@@ -186,7 +185,7 @@ and synth ~env ~size ~term =
     begin
       match synth ~env ~size ~term:p with
       | Sig (_, right_tp) ->
-        let proj = Nbe.eval (Fst p) (env_to_sem_env env) in
+        let proj = Nbe.eval (Fst p) (env_to_sem_env size env) in
         Nbe.do_clos right_tp proj
       | _ -> raise Type_error
     end
@@ -195,7 +194,7 @@ and synth ~env ~size ~term =
       match synth ~env ~size ~term:f with
       | Pi (src, dest) ->
         check ~env ~size ~term:a ~tp:src;
-        let a_sem = Nbe.eval a (env_to_sem_env env) in
+        let a_sem = Nbe.eval a (env_to_sem_env size env) in
         Nbe.do_clos dest a_sem
       | _ -> raise Type_error
     end
@@ -222,7 +221,7 @@ and synth ~env ~size ~term =
     check ~env ~size ~term:n ~tp:Nat;
     let var = D.mk_var Nat size in
     check_tp ~env:(add_term ~term:var ~tp:Nat env) ~size:(size + 1) ~term:mot;
-    let sem_env = env_to_sem_env env in
+    let sem_env = env_to_sem_env size env in
     let zero_tp = Nbe.eval mot (Zero :: sem_env) in
     let zero_var = D.mk_var zero_tp size in
     let ih_tp = Nbe.eval mot (var :: sem_env) in
@@ -244,14 +243,14 @@ and synth ~env ~size ~term =
       | _ -> raise Type_error
     end
   | DFix (tp', body) ->
-    let tp'_sem = Nbe.eval tp' (env_to_sem_env env) in
+    let tp'_sem = Nbe.eval tp' (env_to_sem_env size env) in
     let later_tp'_sem = D.Later (ConstTickClos tp'_sem) in
     let var = D.mk_var later_tp'_sem size in
     check ~env:(add_term ~term:var ~tp:later_tp'_sem env) ~size:(size + 1) ~term:body ~tp:tp'_sem;
     later_tp'_sem
   | Fold (uni, idx_tp, tp, idx, t, tick) ->
     assert_tick env tick;
-    let sem_env = env_to_sem_env env in
+    let sem_env = env_to_sem_env size env in
     let idx_tp_sem = Nbe.eval idx_tp sem_env in
     let fix_idx_tp = D.Pi (idx_tp_sem, D.ConstClos (D.Uni uni)) in
     let later_fix_idx_tp = D.Later (D.ConstTickClos fix_idx_tp) in
@@ -262,18 +261,18 @@ and synth ~env ~size ~term =
       ~term:tp
       ~tp:fix_idx_tp;
     check ~env ~size ~term:idx ~tp:idx_tp_sem;
-    let tp_sem = D.Clos {term = tp; env = fix_var :: sem_env} in
+    let tp_sem = D.Clos {term = tp; env = sem_env} in
     let idx_sem = Nbe.eval idx sem_env in
     let tick_sem = Nbe.eval tick sem_env in
-    let dfix_sem = D.DFix (idx_tp_sem, tp_sem) in
+    let dfix_sem = D.DFix (fix_idx_tp, tp_sem) in
     (* God in heaven *)
-    let unfolded_sem = Nbe.do_ap (Nbe.do_clos tp_sem tick_sem) idx_sem in
+    let unfolded_sem = Nbe.do_ap (Nbe.do_clos tp_sem dfix_sem) idx_sem in
     let folded_sem = Nbe.do_ap (Nbe.do_prev dfix_sem tick_sem) idx_sem in
     check ~env ~size ~term:t ~tp:unfolded_sem;
     folded_sem
   | Unfold (uni, idx_tp, tp, idx, t, tick) ->
     assert_tick env tick;
-    let sem_env = env_to_sem_env env in
+    let sem_env = env_to_sem_env size env in
     let idx_tp_sem = Nbe.eval idx_tp sem_env in
     let fix_idx_tp = D.Pi (idx_tp_sem, D.ConstClos (D.Uni uni)) in
     let later_fix_idx_tp = D.Later (D.ConstTickClos fix_idx_tp) in
@@ -284,10 +283,10 @@ and synth ~env ~size ~term =
       ~term:tp
       ~tp:fix_idx_tp;
     check ~env ~size ~term:idx ~tp:idx_tp_sem;
-    let tp_sem = D.Clos {term = tp; env = fix_var :: sem_env} in
+    let tp_sem = D.Clos {term = tp; env = sem_env} in
     let idx_sem = Nbe.eval idx sem_env in
     let tick_sem = Nbe.eval tick sem_env in
-    let dfix_sem = D.DFix (idx_tp_sem, tp_sem) in
+    let dfix_sem = D.DFix (fix_idx_tp, tp_sem) in
     (* God in heaven *)
     let unfolded_sem = Nbe.do_ap (Nbe.do_clos tp_sem tick_sem) idx_sem in
     let folded_sem = Nbe.do_ap (Nbe.do_prev dfix_sem tick_sem) idx_sem in
@@ -303,12 +302,12 @@ and check_tp ~env ~size ~term =
   | Later term -> check_tp ~env:(add_tick env) ~size:(size + 1) ~term
   | Pi (l, r) | Sig (l, r) ->
     check_tp ~env ~size ~term:l;
-    let l_sem = Nbe.eval l (env_to_sem_env env) in
+    let l_sem = Nbe.eval l (env_to_sem_env size env) in
     let var = D.mk_var l_sem size in
     check_tp ~env:(add_term ~term:var ~tp:l_sem env) ~size:(size + 1) ~term:r
   | Let (def, body) ->
     let def_tp = synth ~env ~size ~term:def in
-    let def_val = Nbe.eval def (env_to_sem_env env) in
+    let def_val = Nbe.eval def (env_to_sem_env size env) in
     check_tp ~env:(add_term ~term:def_val ~tp:def_tp env) ~size:(size + 1) ~term:body
   | term ->
     begin

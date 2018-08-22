@@ -104,7 +104,10 @@ let rec go_to_sexp size env = function
        go_to_sexp size env idx;
        go_to_sexp size env t;
        go_to_sexp size env (Tick tick)]
-  | Tick i -> List.nth env (size - (i + 1))
+  | Tick i ->
+    if i >= size
+    then Sexp.Atom ("x" ^ string_of_int i)
+    else List.nth env i
   | Neutral {tp; term} -> Sexp.List [Sexp.Atom "up"; go_to_sexp size env tp; go_to_sexp_ne size env term]
 
 and go_to_sexp_clos size env = function
@@ -122,7 +125,10 @@ and go_to_sexp_tick_clos size env = function
     Sexp.List [var; Syntax.to_sexp new_env body.term]
 
 and go_to_sexp_ne size env = function
-  | Var i -> List.nth env (size - (i + 1))
+  | Var i ->
+    if i >= size
+    then Sexp.Atom ("x" ^ string_of_int i)
+    else List.nth env i
   | Ap (f, a) ->
     Sexp.List [Sexp.Atom "ap"; go_to_sexp_ne size env f; go_to_sexp_nf size env a]
   | Fst p -> Sexp.List [Sexp.Atom "fst"; go_to_sexp_ne size env p]

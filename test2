@@ -33,12 +33,9 @@
        (lam
         Nat
         (n
-         (Sig
-          Nat
-          (_
-           (Later
-            (t
-             (ap (prev (dfix (Pi Nat (_ (U 0))) (x (ap StreamF x))) t) n)))))))
+         (Later
+          (t
+           (ap (prev (dfix (Pi Nat (_ (U 0))) (x (ap StreamF x))) t) n)))))
        (Pi Nat (_ (U 0)))))
      (into
       (check
@@ -47,20 +44,13 @@
         (s
          (next (t (fold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
        (Pi (Later (_ (ap Stream 0))) (_ (ap UnfoldedStream 0))))))
+
      ;; (into
      ;;  (check
      ;;   (lam
-     ;;    (U 0)
-     ;;    (A
-     ;;     (lam
-     ;;      (Later (_ (ap Stream A)))
-     ;;      (x
-     ;;       (next
-     ;;        (t
-     ;;         (let ((str (prev x t)))
-     ;;           ?)))))))
-     ;;   (Pi
-     ;;    (U 0)
-     ;;    (A (Pi (Later (_ (ap Stream A))) (_ (ap StreamTick A))))))))
+     ;;    (Later (_ (ap Stream 0)))
+     ;;    (s
+     ;;     (next (t (fold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
+     ;;   (Pi (Later (_ (ap Stream 0))) (_ (ap UnfoldedStream 0))))))
   zero)
 Nat
