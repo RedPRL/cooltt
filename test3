@@ -1,0 +1,9 @@
+(lam (Box (U 0)) (A (lam (Box (Later (_ (open A)))) (x (prev (open x) <>)))))
+(Pi (Box (U 0)) (A (Pi  (Box (Later (_ (open A)))) (_ (open A)))))
+
+;; (let ((force
+;;        (check
+
+;;         )
+;;   (shut zero)); (ap force Nat (check (next (_ (shut 1))) (Later (_ (Box Nat))))))
+;; (Box Nat)
