@@ -1,0 +1,2 @@
+(lam (Box (U 0)) (A (lam (Box (Later (_ (open A)))) (x (prev (open x) <>)))))
+(Pi (Box (U 0)) (A (Pi  (Box (Later (_ (open A)))) (_ (open A)))))

@@ -63,16 +63,7 @@
       (ap fix (ap Stream 0) (lam (Later (_ (ap Stream 0))) (s (ap cons 0 s))))))
   allzeroes)
 (let
-    ((fix
-      (check
-       (lam
-        (U 0)
-        (A
-         (lam
-          (Pi (Later (_ A)) (_ A))
-          (f (ap f (dfix A (x (ap f x))))))))
-       (Pi (U 0) (A (Pi (Pi (Later (_ A)) (_ A)) (_ A))))))
-     (fix1
+    ((fix1
       (check
        (lam
         (U 1)
@@ -91,38 +82,5 @@
      (Stream
       (check
        (ap fix1 (Pi Nat (_ (U 0))) StreamF)
-       (Pi Nat (_ (U 0)))))
-     (UnfoldedStream
-      (check
-       (lam
-        Nat
-        (n
-         (Later
-          (t
-           (ap (prev (dfix (Pi Nat (_ (U 0))) (x (ap StreamF x))) t) n)))))
-       (Pi Nat (_ (U 0)))))
-     (into
-      (check
-       (lam
-        (Later (_ (ap Stream 0)))
-        (s
-         (next (t (fold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
-       (Pi (Later (_ (ap Stream 0))) (_ (ap UnfoldedStream 0)))))
-     (out
-      (check
-       (lam
-        (ap UnfoldedStream 0)
-        (s
-         (next (t (unfold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
-       (Pi (ap UnfoldedStream 0) (_ (Later (_ (ap Stream 0)))))))
-     (cons
-      (check
-       (lam Nat (n (lam (Later (_ (ap Stream 0))) (s (pair n (ap into s))))))
-       (Pi Nat (_ (Pi (Later (_ (ap Stream 0))) (_ (ap Stream 0)))))))
-     (head
-      (check
-       (lam (ap Stream 0) (s (fst s)))
-       (Pi (ap Stream 0) (_ Nat))))
-     (allzeroes
-      (ap fix (ap Stream 0) (lam (Later (_ (ap Stream 0))) (s (ap cons 0 s))))))
+       (Pi Nat (_ (U 0))))))
   (ap Stream 0))
