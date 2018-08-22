@@ -177,12 +177,12 @@ let rec read_back_nf size nf =
     let fix_idx = D.Pi (idx_tp, D.ConstClos (D.Uni uni)) in
     let fix_tp = do_ap (do_clos tp (D.DFix (fix_idx, tp))) idx in
     let fix_syn = read_back_nf size (D.Normal {term = t; tp = fix_tp}) in
-    let fix_var = D.mk_var fix_idx size in
+    let fix_var = D.mk_var (D.Later (D.ConstTickClos fix_idx)) size in
     Syn.Fold
       (uni,
        read_back_tp size idx_tp,
-       read_back_tp (size + 1) (do_clos tp fix_var),
-       failwith "idx",
+       read_back_nf (size + 1) (D.Normal {term = do_clos tp fix_var; tp = fix_idx}),
+       read_back_nf size (D.Normal {term = idx; tp = idx_tp}),
        fix_syn,
        tick)
   (* Box *)

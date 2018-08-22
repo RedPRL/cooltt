@@ -40,6 +40,7 @@ let main file =
   try perform_norm file with
   | Internal_failure s -> prerr_endline s; 1
   | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
+  | Failure s -> Printf.eprintf "Internal error (Failure): %s\n" s; 1
   | Check.Cannot_synth t ->
     Printf.eprintf "Found a term in synth position that cannot be synthesized: %s\n" (Syntax.pp t);
     1
