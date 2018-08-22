@@ -8,9 +8,33 @@ type env = env_entry list
 let add_term ~term ~tp env = Term {term; tp; locks = 0; is_active = true} :: env
 let add_tick env = Tick {locks = 0; is_active = true} :: env
 
-exception Type_error
-exception Cannot_use_var
-exception Cannot_synth of Syn.t
+type error =
+    Cannot_synth_term of Syn.t
+  | Using_killed_tick
+  | Using_killed_variable
+  | Using_locked_tick
+  | Using_locked_variable
+  | Using_non_tick
+  | Using_non_term
+  | Type_mismatch of Syn.t * Syn.t
+  | Expecting_universe of D.t
+  | Misc of string
+
+let pp_error = function
+  | Cannot_synth_term t -> "Cannot synthesize the type of:\n" ^ Syn.pp t
+  | Using_killed_tick -> "Cannot use a tick after using a tick before it"
+  | Using_killed_variable -> "Cannot use a variable after using a tick before it"
+  | Using_locked_tick -> "Cannot use a tick behind a lock"
+  | Using_locked_variable -> "Cannot use a variable behind a lock"
+  | Using_non_tick -> "Cannot use a normal term as a tick"
+  | Using_non_term -> "Cannot use a tick as a term"
+  | Type_mismatch (t1, t2) -> "Cannot equate\n" ^ Syn.pp t1 ^ " with\n" ^ Syn.pp t2
+  | Expecting_universe d -> "Expected some universe but found\n" ^ D.pp d
+  | Misc s -> s
+
+exception Type_error of error
+
+let tp_error e = raise (Type_error e)
 
 let env_to_sem_env size env =
   let rec go i = function
@@ -78,9 +102,9 @@ let assert_tick env = function
     begin
       match List.nth env i with
       | Tick _ -> ()
-      | _ -> raise Cannot_use_var
+      | _ -> tp_error Using_non_tick
     end
-  | _ -> raise Cannot_use_var
+  | _ -> tp_error Using_non_tick
 
 let apply_lock =
   List.map
@@ -90,18 +114,20 @@ let apply_lock =
 
 let get_var env n = match List.nth env n with
   | Term {term = _; tp; locks = 0; is_active = true} -> tp
-  | Term _ -> raise Cannot_use_var
-  | Tick _ -> raise Cannot_use_var
+  | Term {is_active = false; _} -> tp_error Using_killed_variable
+  | Term _ -> tp_error Using_locked_variable
+  | Tick _  -> tp_error Using_non_term
 
 let get_tick env n = match List.nth env n with
   | Tick {locks = 0; is_active = true} -> ()
-  | Term _ -> raise Cannot_use_var
-  | Tick _ -> raise Cannot_use_var
+  | Tick {is_active = false; _} -> tp_error Using_killed_tick
+  | Tick _ -> tp_error Using_locked_tick
+  | Term _ -> tp_error Using_non_tick
 
 let assert_eq_tp size t1 t2 =
   let q1 = Nbe.read_back_tp size t1 in
   let q2 = Nbe.read_back_tp size t2 in
-  if q1 = q2 then () else raise Type_error
+  if q1 = q2 then () else tp_error (Type_mismatch (q1, q2))
 
 let rec check ~env ~size ~term ~tp =
   match term with
@@ -113,7 +139,7 @@ let rec check ~env ~size ~term ~tp =
     begin
       match tp with
       | D.Uni _ -> ()
-      | _ -> raise Type_error
+      | t -> tp_error (Expecting_universe t)
     end
   | Pi (l, r) | Sig (l, r) ->
     check ~env ~size ~term:l ~tp;
@@ -130,7 +156,7 @@ let rec check ~env ~size ~term ~tp =
         let dest_tp = Nbe.do_clos clos var in
         check ~env:(add_term ~term:var ~tp:arg_tp_sem env) ~size:(size + 1) ~term:body ~tp:dest_tp;
         assert_eq_tp size given_arg_tp arg_tp_sem
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.pp t))
     end
   | Pair (left, right) ->
     begin
@@ -139,7 +165,7 @@ let rec check ~env ~size ~term ~tp =
         check ~env ~size ~term:left ~tp:left_tp;
         let left_sem = Nbe.eval left (env_to_sem_env size env) in
         check ~env ~size ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Sig but found\n" ^ D.pp t))
     end
   | Later t -> check ~env:(add_tick env) ~size:(size + 1) ~term:t ~tp
   | Next t ->
@@ -148,22 +174,25 @@ let rec check ~env ~size ~term ~tp =
       | Later clos ->
         let tp = Nbe.do_tick_clos clos (Tick size) in
         check ~env:(add_tick env) ~size:(size + 1) ~term:t ~tp
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Later but found\n" ^ D.pp t))
     end
   | Box term -> check ~env:(apply_lock env) ~size ~term ~tp
   | Shut term ->
     begin
       match tp with
       | Box tp -> check ~env:(apply_lock env) ~size ~term ~tp
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Box but found\n" ^ D.pp t))
     end
   | Uni i ->
     begin
       match tp with
       | Uni j when i < j -> ()
-      | _ -> raise Type_error
+      | t ->
+        let msg =
+          "Expecting universe over " ^ string_of_int i ^ " but found\n" ^ D.pp t in
+        tp_error (Misc msg)
     end
-  | Bullet -> raise Type_error
+  | Bullet -> tp_error Using_non_term
   | term -> assert_eq_tp size (synth ~env ~size ~term) tp
 
 and synth ~env ~size ~term =
@@ -179,7 +208,7 @@ and synth ~env ~size ~term =
     begin
       match synth ~env ~size ~term:p with
       | Sig (left_tp, _) -> left_tp
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Sig but found\n" ^ D.pp t))
     end
   | Snd p ->
     begin
@@ -187,7 +216,7 @@ and synth ~env ~size ~term =
       | Sig (_, right_tp) ->
         let proj = Nbe.eval (Fst p) (env_to_sem_env size env) in
         Nbe.do_clos right_tp proj
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Sig but found\n" ^ D.pp t))
     end
   | Ap (f, a) ->
     begin
@@ -196,7 +225,7 @@ and synth ~env ~size ~term =
         check ~env ~size ~term:a ~tp:src;
         let a_sem = Nbe.eval a (env_to_sem_env size env) in
         Nbe.do_clos dest a_sem
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.pp t))
     end
   | Prev (term, tick) ->
     begin
@@ -207,15 +236,15 @@ and synth ~env ~size ~term =
         begin
           match synth ~env:(use_tick env i) ~size ~term with
           | Later clos -> Nbe.do_tick_clos clos (Tick i')
-          | _ -> raise Type_error
+          | t -> tp_error (Misc ("Expecting Later but found\n" ^ D.pp t))
         end
       | Bullet ->
         begin
           match synth ~env:(apply_lock env) ~size ~term with
           | Later clos -> Nbe.do_tick_clos clos Bullet
-          | _ -> raise Type_error
+          | t -> tp_error (Misc ("Expecting Later but found\n" ^ D.pp t))
         end
-      | _ -> raise Type_error
+      | _ -> tp_error Using_non_tick
     end
   | NRec (mot, zero, suc, n) ->
     check ~env ~size ~term:n ~tp:Nat;
@@ -244,7 +273,7 @@ and synth ~env ~size ~term =
     begin
       match synth ~env ~size ~term with
       | Box tp -> tp
-      | _ -> raise Type_error
+      | t -> tp_error (Misc ("Expecting Box but found\n" ^ D.pp t))
     end
   | DFix (tp', body) ->
     let tp'_sem = Nbe.eval tp' (env_to_sem_env size env) in
@@ -256,7 +285,7 @@ and synth ~env ~size ~term =
     synth_fold_unfold env size ~is_fold:true uni idx_tp tp idx t tick
   | Unfold (uni, idx_tp, tp, idx, t, tick) ->
     synth_fold_unfold env size ~is_fold:false uni idx_tp tp idx t tick
-  | _ -> raise (Cannot_synth term)
+  | _ -> tp_error (Cannot_synth_term term)
 
 and synth_fold_unfold env size ~is_fold uni idx_tp tp idx t tick =
   assert_tick env tick;
@@ -301,5 +330,5 @@ and check_tp ~env ~size ~term =
     begin
       match synth ~env ~size ~term with
       | D.Uni _ -> ()
-      | _ -> raise Type_error
+      | t -> tp_error (Expecting_universe t)
     end

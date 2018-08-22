@@ -41,11 +41,7 @@ let main file =
   | Internal_failure s -> prerr_endline s; 1
   | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
   | Failure s -> Printf.eprintf "Internal error (Failure): %s\n" s; 1
-  | Check.Cannot_synth t ->
-    Printf.eprintf "Found a term in synth position that cannot be synthesized: %s\n" (Syntax.pp t);
-    1
-  | Check.Type_error -> Printf.eprintf "Type error\n"; 1
-  | Check.Cannot_use_var -> Printf.eprintf "Cannot use that variable\n"; 1
+  | Check.Type_error e -> Printf.eprintf "Type error\n%s\n" (Check.pp_error e); 1
   | Syntax.Illformed -> Printf.eprintf "Syntax error.\n"; 1
   | Nbe.Nbe_failed s -> Printf.eprintf "Failed to normalize: %s\n" s; 1
 
