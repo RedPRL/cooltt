@@ -1,14 +1,14 @@
-opam-version: "1.2.2"
+opam-version: "2.0"
 name: "blott"
 version: "0.0"
 maintainer: "danny.gratzer@gmail.com"
 authors: ["Daniel Gratzer"]
 homepage: "https://github.com/jozefg/nbe-for-guarded-mltt"
 bug-reports: "https://github.com/jozefg/nbe-for-guarded-mltt/issues"
-dev-repo: "https://github.com/jozefg/nbe-for-guarded-mltt.git"
+dev-repo: "git+https://github.com/jozefg/nbe-for-guarded-mltt.git"
 license: "MIT"
 depends: [
-  "jbuilder" {build & > "1.0+beta17"}
+  "dune" {build}
   "sexplib" {= "0.11.0"}
   "cmdliner" {>= "1.0" & < "1.1"}
   "topkg" {= "0.9.1"}

@@ -9,7 +9,8 @@ let mk_fail s = raise (Internal_failure s)
 let slurp_sexps_from_file ~file =
   let sexps =
     match file with
-    | None -> Sexp.input_sexps stdin
+    (* Want to be on a newline to avoid having output immediately after input *)
+    | None -> print_newline (); Sexp.input_sexps stdin
     | Some file -> Sexp.load_sexps file in
   let file =
     match file with
