@@ -169,7 +169,7 @@ let rec read_back_nf size nf =
     raise (Nbe_failed "Found bullet instead of a proper term in read_back_nf")
   | D.Normal {term = D.Tick _; _} ->
     raise (Nbe_failed "Found tick instead of a proper term in read_back_nf")
-  | D.Normal {tp = D.Later tp; term = term} ->
+  | D.Normal {tp = D.Later tp; term} ->
     let nf = D.Normal {tp = do_tick_clos tp (D.Tick size); term = do_prev term (D.Tick size)} in
     Syn.Next (read_back_nf (size + 1) nf)
   | D.Normal {tp = _; term = D.Fold (uni, idx_tp, tp, idx, t, tick)} ->
