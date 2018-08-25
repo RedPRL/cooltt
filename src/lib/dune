@@ -1,5 +1,11 @@
+(menhir
+ (flags --explain --interpret-show-cst --table)
+ (modules grammar))
+
+(ocamllex lex)
+
 (library
  (name Normalizer)
- (libraries sexplib)
- (flags (:standard -w -32-37))
+ (libraries sexplib menhirLib)
+ (flags (:standard -w -9-32-37))
  (public_name normalize_lib))
