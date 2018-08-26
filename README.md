@@ -6,4 +6,6 @@ cumulative hierarchy. This implementation correctly handles eta for later, box,
 pi, and sigma.
 
 Once built, the executable `blott` may be used to type check and normalize
-programs. Simply feed it a file containing two sexprs, a term and a type.
+programs. A program consists of a series of definitions: `let x : tp = term` and
+commands to normalize programs: `normalize def name` or `normalize term at
+tp`. For examples, see the `test/` directory.
