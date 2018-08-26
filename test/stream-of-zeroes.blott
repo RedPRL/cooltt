@@ -8,70 +8,29 @@ let fix1 : (A : U<1>) -> ((Later -> A) -> A) -> A =
   fun (f : (Later -> A) -> A) ->
   f (dfix (x : Later -> A) -> f x).
 
-;      (StreamF
-;       (check
-;        (lam
-;         (Later (_ (Pi Nat (_ (U 0)))))
-;         (S
-;          (lam Nat (_ (Sig Nat (_ (Later (t (ap (prev S t) 0)))))))))
-;        (Pi (Later (_ (Pi Nat (_ (U 0))))) (_ (Pi Nat (_ (U 0)))))))
-;      (Stream
-;       (check
-;        (ap fix1 (Pi Nat (_ (U 0))) StreamF)
-;        (Pi Nat (_ (U 0)))))
-;      (UnfoldedStream
-;       (check
-;        (lam
-;         Nat
-;         (n
-;          (Later
-;           (t
-;            (ap (prev (dfix (Pi Nat (_ (U 0))) (x (ap StreamF x))) t) n)))))
-;        (Pi Nat (_ (U 0)))))
-;      (into
-;       (check
-;        (lam
-;         (Later (_ (ap Stream 0)))
-;         (s
-;          (next (t (fold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
-;        (Pi (Later (_ (ap Stream 0))) (_ (ap UnfoldedStream 0)))))
-;      (out
-;       (check
-;        (lam
-;         (ap UnfoldedStream 0)
-;         (s
-;          (next (t (unfold 0 Nat (x (ap StreamF x)) 0 (prev s t) t)))))
-;        (Pi (ap UnfoldedStream 0) (_ (Later (_ (ap Stream 0)))))))
-;      (cons
-;       (check
-;        (lam Nat (n (lam (Later (_ (ap Stream 0))) (s (pair n (ap into s))))))
-;        (Pi Nat (_ (Pi (Later (_ (ap Stream 0))) (_ (ap Stream 0)))))))
-;      (head
-;       (check
-;        (lam (ap Stream 0) (s (fst s)))
-;        (Pi (ap Stream 0) (_ Nat))))
-;      (allzeroes
-;       (ap fix (ap Stream 0) (lam (Later (_ (ap Stream 0))) (s (ap cons 0 s))))))
-;   allzeroes)
-; (let
-;     ((fix1
-;       (check
-;        (lam
-;         (U 1)
-;         (A
-;          (lam
-;           (Pi (Later (_ A)) (_ A))
-;           (f (ap f (dfix A (x (ap f x))))))))
-;        (Pi (U 1) (A (Pi (Pi (Later (_ A)) (_ A)) (_ A))))))
-;      (StreamF
-;       (check
-;        (lam
-;         (Later (_ (Pi Nat (_ (U 0)))))
-;         (S
-;          (lam Nat (_ (Sig Nat (_ (Later (t (ap (prev S t) 0)))))))))
-;        (Pi (Later (_ (Pi Nat (_ (U 0))))) (_ (Pi Nat (_ (U 0)))))))
-;      (Stream
-;       (check
-;        (ap fix1 (Pi Nat (_ (U 0))) StreamF)
-;        (Pi Nat (_ (U 0))))))
-;   (ap Stream 0))
+let StreamF : (Later -> (Nat -> U<0>)) -> (Nat -> U<0>) =
+  fun (tail : Later -> (Nat -> U<0>)) ->
+  fun (_ : Nat) -> Nat * (Later t -> tail[t] 0).
+
+let Stream : Nat -> U<0> = fix1 (Nat -> U<0>) StreamF.
+
+let UnfoldedStream : Nat -> U<0> =
+  fun (n : Nat) ->
+  Later t ->
+  (dfix (x : Later -> Nat -> U<0>) -> StreamF x)[t] n.
+
+let into : (Later -> Stream 0) -> UnfoldedStream 0 =
+  fun (s : Later -> Stream 0) -> next t -> fold[0][0 : Nat][x -> StreamF x] (s[t]) t.
+
+let out : (UnfoldedStream 0) -> (Later -> Stream 0) =
+  fun (s : UnfoldedStream 0) -> next t -> unfold[0][0 : Nat][x -> StreamF x] (s[t]) t.
+
+let cons : Nat -> (Later -> Stream 0) -> Stream 0 =
+  fun (x : Nat) -> fun (s : Later -> Stream 0) -> <x, into s>.
+
+let head : (Stream 0) -> Nat =
+  fun (s : Stream 0) -> fst s.
+
+let all-zeroes : Stream 0 = fix (Stream 0) (cons 0).
+
+normalize (head all-zeroes) at Nat.

@@ -23,7 +23,7 @@ let output = function
 
 let find_idx key =
   let rec go i = function
-    | [] -> raise (Failure "Improper binding structure in driver.ml")
+    | [] -> raise (Check.Type_error (Check.Misc ("Unbound variable: " ^ key)))
     | x :: xs -> if String.equal x key then i else go (i + 1) xs in
   go 0
 

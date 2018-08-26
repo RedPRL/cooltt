@@ -38,6 +38,8 @@ let keywords =
     ("dfix", DFIX);
     ("U", UNIV);
     ("def", DEF);
+    ("fold", FOLD);
+    ("unfold", UNFOLD);
     ("at", AT);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
@@ -66,6 +68,8 @@ rule token = parse
     { RBR }
   | '|'
     { PIPE }
+  | ','
+    { COMMA }
   | '*'
     { TIMES }
   | "×"

@@ -11,6 +11,7 @@
 %token LAM LET IN END WITH DEF
 %token NEXT LATER DFIX
 %token BOX SHUT OPEN
+%token FOLD UNFOLD
 %token REC SUC NAT ZERO
 %token UNIV
 %token QUIT NORMALIZE
@@ -101,4 +102,17 @@ term:
   | OPEN; t = term
     { Open t }
   | DFIX; LPR; name = name; COLON; LATER; RIGHT_ARROW; tp = term; RPR; RIGHT_ARROW; body = term
-    { DFix (tp, Binder {name; body}) };
+    { DFix (tp, Binder {name; body}) }
+  | FOLD; LBR; uni = NUMERAL; RBR;
+    LBR; idx = atomic; COLON; idx_tp = atomic; RBR;
+    LBR; name = name; RIGHT_ARROW; body = term; RBR;
+    term = atomic;
+    tick = atomic
+    { Fold {uni; idx; idx_tp; term; tick; fix_body = Binder {name; body}} }
+  | UNFOLD; LBR; uni = NUMERAL; RBR;
+    LBR; idx = atomic; COLON; idx_tp = atomic; RBR;
+    LBR; name = name; RIGHT_ARROW; body = term; RBR;
+    term = atomic;
+    tick = atomic
+    { Unfold {uni; idx; idx_tp; term; tick; fix_body = Binder {name; body}} }
+;
