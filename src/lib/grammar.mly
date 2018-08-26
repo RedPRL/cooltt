@@ -69,7 +69,7 @@ term:
     { Check {term = t; tp} }
   | SUC; t = term { Suc t }
   | REC; n = term; AT; mot_name = name; RIGHT_ARROW; mot = term; WITH;
-    ZERO; RIGHT_ARROW; zero_case = term;
+    PIPE; ZERO; RIGHT_ARROW; zero_case = term;
     PIPE; SUC; suc_var = name; COMMA; ih_var = name; RIGHT_ARROW; suc_case = term
     { NRec {
         mot = Binder {name = mot_name; body = mot};

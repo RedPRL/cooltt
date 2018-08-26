@@ -1,0 +1,19 @@
+; Not really a particularly interesting program, but good for computing stuff.
+
+let plus : Nat -> Nat -> Nat =
+  fun (m : Nat) ->
+  fun (n : Nat) ->
+  rec n at x -> Nat with
+  | zero -> m
+  | suc _, p -> suc p.
+
+let fib : Nat -> Nat =
+  fun (n : Nat) ->
+  let worker : Nat * Nat =
+    rec n at _ -> Nat * Nat with
+    | zero -> <1, 0>
+    | suc _, p -> <plus (fst p) (snd p), fst p> in
+    snd worker
+  end.
+
+normalize fib 25 at Nat.
