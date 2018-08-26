@@ -13,7 +13,6 @@ let fib : Nat -> Nat =
     rec n at _ -> Nat * Nat with
     | zero -> <1, 0>
     | suc _, p -> <plus (fst p) (snd p), fst p> in
-    snd worker
-  end.
+  snd worker.
 
 normalize fib 25 at Nat.

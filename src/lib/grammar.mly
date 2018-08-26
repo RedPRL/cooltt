@@ -61,7 +61,7 @@ spine:
 term:
   | f = atomic; args = list(spine)
     { Ap (f, args) }
-  | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term; END
+  | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
     { Let (Check {term = def; tp}, Binder {name; body}) }
   | LET; name = name; EQUALS; def = term; IN; body = term; END
     { Let (def, Binder {name; body}) }
