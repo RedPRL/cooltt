@@ -260,15 +260,10 @@ and synth ~env ~size ~term =
     check_tp ~env:(add_term ~term:var ~tp:Nat env) ~size:(size + 1) ~term:mot;
     let sem_env = env_to_sem_env size env in
     let zero_tp = Nbe.eval mot (Zero :: sem_env) in
-    let zero_var = D.mk_var zero_tp size in
     let ih_tp = Nbe.eval mot (var :: sem_env) in
     let ih_var = D.mk_var ih_tp (size + 1) in
     let suc_tp = Nbe.eval mot (Suc var :: sem_env) in
-    check
-      ~env:(add_term ~term:zero_var ~tp:zero_tp env)
-      ~size:(size + 1)
-      ~term:zero
-      ~tp:zero_tp;
+    check ~env ~size ~term:zero ~tp:zero_tp;
     check
       ~env:(add_term ~term:var ~tp:Nat env |> add_term ~term:ih_var ~tp:ih_tp)
       ~size:(size + 2)

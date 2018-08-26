@@ -31,6 +31,23 @@ let cons : Nat -> (Later -> Stream 0) -> Stream 0 =
 let head : (Stream 0) -> Nat =
   fun (s : Stream 0) -> fst s.
 
-let all-zeroes : Stream 0 = fix (Stream 0) (cons 0).
+let tail : (Box (Stream 0)) -> Box (Stream 0) =
+  fun (x : Box (Stream 0)) -> shut ((snd (open x))[<>]).
 
-normalize (head all-zeroes) at Nat.
+let n-tail : Nat -> (Box (Stream 0)) -> (Box (Stream 0)) =
+  fun (n : Nat) ->
+  rec n at x -> (Box (Stream 0)) -> (Box (Stream 0)) with
+  | zero -> fun (s : Box (Stream 0)) -> s
+  | suc _, f -> fun (s : Box (Stream 0)) -> f (tail s).
+
+let nth : Nat -> (Box (Stream 0)) -> Nat =
+  fun (x : Nat) ->
+  fun (s : Box (Stream 0)) ->
+  head (open (n-tail x s)).
+
+let count-up-from : Nat -> Stream 0 =
+  fix (Nat -> Stream 0)
+  (fun (tail : Later -> Nat -> Stream 0) ->
+     fun (n : Nat) -> cons n (next t -> tail[t] (suc n))).
+
+normalize nth 10 (shut (count-up-from 0)) at Nat.
