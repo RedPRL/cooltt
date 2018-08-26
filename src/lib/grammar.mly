@@ -4,7 +4,7 @@
 
 %token <int> NUMERAL
 %token <string> ATOM
-%token COLON PIPE AT COMMA RIGHT_ARROW DOT
+%token COLON PIPE AT COMMA RIGHT_ARROW DOT UNDERSCORE
 %token LPR RPR LBR RBR LANGLE RANGLE
 %token EQUALS
 %token TIMES FST SND
@@ -87,5 +87,5 @@ term:
     { Shut t }
   | OPEN; t = term
     { Open t }
-  | DFIX; name = ATOM; COLON; tp = term; RIGHT_ARROW; body = term
+  | DFIX; name = ATOM; COLON; LATER; UNDERSCORE; DOT; tp = term; RIGHT_ARROW; body = term
     { DFix (tp, Binder {name; body}) };

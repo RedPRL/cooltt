@@ -3,6 +3,8 @@ type env_entry =
   | Tick of {locks : int; is_active : bool}
 type env = env_entry list
 
+val env_to_sem_env : int -> env -> Domain.env
+
 type error =
     Cannot_synth_term of Syntax.t
   | Using_killed_tick
@@ -21,3 +23,4 @@ exception Type_error of error
 
 val check : env:env -> size:int -> term:Syntax.t -> tp:Domain.t -> unit
 val synth : env:env -> size:int -> term:Syntax.t -> Domain.t
+val check_tp : env:env -> size:int -> term:Syntax.t -> unit
