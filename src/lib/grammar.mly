@@ -4,7 +4,7 @@
 
 %token <int> NUMERAL
 %token <string> ATOM
-%token COLON PIPE AT COMMA RIGHT_ARROW DOT UNDERSCORE
+%token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE
 %token LPR RPR LBR RBR LANGLE RANGLE
 %token EQUALS
 %token TIMES FST SND
@@ -27,12 +27,12 @@ name:
     { "_" }
 
 decl:
-  | LET; nm = name; COLON; tp = term; EQUALS; body = term; DOT
+  | LET; nm = name; COLON; tp = term; EQUALS; body = term
     { Def {name = nm; def = body; tp} }
-  | QUIT; DOT { Quit }
-  | NORMALIZE; DEF; a = name; DOT
+  | QUIT { Quit }
+  | NORMALIZE; DEF; a = name
     { NormalizeDef a  }
-  | NORMALIZE; tm = term; AT; tp = term; DOT { NormalizeTerm {term = tm; tp} };
+  | NORMALIZE; tm = term; AT; tp = term { NormalizeTerm {term = tm; tp} };
 
 sign:
   | EOF { [] }

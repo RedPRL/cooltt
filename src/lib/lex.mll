@@ -76,8 +76,6 @@ rule token = parse
     { TIMES }
   | ':'
     { COLON }
-  | '.'
-    { DOT }
   | "="
     { EQUALS }
   | "->"

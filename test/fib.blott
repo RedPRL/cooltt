@@ -5,7 +5,7 @@ let plus : Nat -> Nat -> Nat =
   fun (n : Nat) ->
   rec n at x -> Nat with
   | zero -> m
-  | suc _, p -> suc p.
+  | suc _, p -> suc p
 
 let fib : Nat -> Nat =
   fun (n : Nat) ->
@@ -13,6 +13,6 @@ let fib : Nat -> Nat =
     rec n at _ -> Nat * Nat with
     | zero -> <1, 0>
     | suc _, p -> <plus (fst p) (snd p), fst p> in
-  snd worker.
+  snd worker
 
-normalize fib 25 at Nat.
+normalize fib 25 at Nat

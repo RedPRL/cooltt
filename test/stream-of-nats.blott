@@ -1,53 +1,53 @@
 let fix : (A : U<0>) -> ((Later -> A) -> A) -> A =
   fun (A : U<0>) ->
   fun (f : (Later -> A) -> A) ->
-  f (dfix (x : Later -> A) -> f x).
+  f (dfix (x : Later -> A) -> f x)
 
 let fix1 : (A : U<1>) -> ((Later -> A) -> A) -> A =
   fun (A : U<1>) ->
   fun (f : (Later -> A) -> A) ->
-  f (dfix (x : Later -> A) -> f x).
+  f (dfix (x : Later -> A) -> f x)
 
 let StreamF : (Later -> (Nat -> U<0>)) -> (Nat -> U<0>) =
   fun (tail : Later -> (Nat -> U<0>)) ->
-  fun (_ : Nat) -> Nat * (Later t -> tail[t] 0).
+  fun (_ : Nat) -> Nat * (Later t -> tail[t] 0)
 
-let Stream : Nat -> U<0> = fix1 (Nat -> U<0>) StreamF.
+let Stream : Nat -> U<0> = fix1 (Nat -> U<0>) StreamF
 
 let UnfoldedStream : Nat -> U<0> =
   fun (n : Nat) ->
   Later t ->
-  (dfix (x : Later -> Nat -> U<0>) -> StreamF x)[t] n.
+  (dfix (x : Later -> Nat -> U<0>) -> StreamF x)[t] n
 
 let into : (Later -> Stream 0) -> UnfoldedStream 0 =
-  fun (s : Later -> Stream 0) -> next t -> fold[0][0 : Nat][x -> StreamF x] (s[t]) t.
+  fun (s : Later -> Stream 0) -> next t -> fold[0][0 : Nat][x -> StreamF x] (s[t]) t
 
 let out : (UnfoldedStream 0) -> (Later -> Stream 0) =
-  fun (s : UnfoldedStream 0) -> next t -> unfold[0][0 : Nat][x -> StreamF x] (s[t]) t.
+  fun (s : UnfoldedStream 0) -> next t -> unfold[0][0 : Nat][x -> StreamF x] (s[t]) t
 
 let cons : Nat -> (Later -> Stream 0) -> Stream 0 =
-  fun (x : Nat) -> fun (s : Later -> Stream 0) -> <x, into s>.
+  fun (x : Nat) -> fun (s : Later -> Stream 0) -> <x, into s>
 
 let head : (Stream 0) -> Nat =
-  fun (s : Stream 0) -> fst s.
+  fun (s : Stream 0) -> fst s
 
 let tail : (Box (Stream 0)) -> Box (Stream 0) =
-  fun (x : Box (Stream 0)) -> shut ((snd (open x))[<>]).
+  fun (x : Box (Stream 0)) -> shut ((snd (open x))[<>])
 
 let n-tail : Nat -> (Box (Stream 0)) -> (Box (Stream 0)) =
   fun (n : Nat) ->
   rec n at x -> (Box (Stream 0)) -> (Box (Stream 0)) with
   | zero -> fun (s : Box (Stream 0)) -> s
-  | suc _, f -> fun (s : Box (Stream 0)) -> f (tail s).
+  | suc _, f -> fun (s : Box (Stream 0)) -> f (tail s)
 
 let nth : Nat -> (Box (Stream 0)) -> Nat =
   fun (x : Nat) ->
   fun (s : Box (Stream 0)) ->
-  head (open (n-tail x s)).
+  head (open (n-tail x s))
 
 let count-up-from : Nat -> Stream 0 =
   fix (Nat -> Stream 0)
   (fun (tail : Later -> Nat -> Stream 0) ->
-     fun (n : Nat) -> cons n (next t -> tail[t] (suc n))).
+     fun (n : Nat) -> cons n (next t -> tail[t] (suc n)))
 
-normalize nth 10 (shut (count-up-from 0)) at Nat.
+normalize nth 10 (shut (count-up-from 0)) at Nat
