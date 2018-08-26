@@ -124,10 +124,10 @@ let get_tick env n = match List.nth env n with
   | Tick _ -> tp_error Using_locked_tick
   | Term _ -> tp_error Using_non_tick
 
-let assert_eq_tp size t1 t2 =
-  let q1 = Nbe.read_back_tp size t1 in
-  let q2 = Nbe.read_back_tp size t2 in
-  if q1 = q2 then () else tp_error (Type_mismatch (q1, q2))
+let assert_subtype size t1 t2 =
+  if Nbe.check_subtype size t1 t2
+  then ()
+  else tp_error (Type_mismatch (Nbe.read_back_tp size t1, Nbe.read_back_tp size t2))
 
 let rec check ~env ~size ~term ~tp =
   match term with
@@ -155,7 +155,7 @@ let rec check ~env ~size ~term ~tp =
       | D.Pi (given_arg_tp, clos) ->
         let dest_tp = Nbe.do_clos clos var in
         check ~env:(add_term ~term:var ~tp:arg_tp_sem env) ~size:(size + 1) ~term:body ~tp:dest_tp;
-        assert_eq_tp size given_arg_tp arg_tp_sem
+        assert_subtype size arg_tp_sem given_arg_tp
       | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.pp t))
     end
   | Pair (left, right) ->
@@ -193,7 +193,7 @@ let rec check ~env ~size ~term ~tp =
         tp_error (Misc msg)
     end
   | Bullet -> tp_error Using_non_term
-  | term -> assert_eq_tp size (synth ~env ~size ~term) tp
+  | term -> assert_subtype size (synth ~env ~size ~term) tp
 
 and synth ~env ~size ~term =
   match term with

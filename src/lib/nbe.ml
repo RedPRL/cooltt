@@ -269,6 +269,26 @@ and read_back_ne size ne =
     Syn.Prev (read_back_ne size ne, tick)
   | D.Open ne -> Syn.Open (read_back_ne size ne)
 
+let rec check_subtype size d1 d2 =
+  match d1, d2 with
+  | D.Neutral {term = term1; _}, D.Neutral {term = term2; _} ->
+    read_back_ne size term1 = read_back_ne size term2
+  | D.Nat, D.Nat -> true
+  | D.Pi (src, dest), D.Pi (src', dest') ->
+    let var = D.mk_var src' size in
+    check_subtype size src' src &&
+    check_subtype (size + 1) (do_clos dest var) (do_clos dest' var)
+  | D.Sig (fst, snd), D.Sig (fst', snd') ->
+    let var = D.mk_var fst size in
+    check_subtype size fst fst' &&
+    check_subtype (size + 1) (do_clos snd var) (do_clos snd' var)
+  | D.Later t, D.Later t' ->
+    check_subtype (size + 1) (do_tick_clos t (D.Tick size)) (do_tick_clos t' (D.Tick size))
+  | D.Box t, D.Box t' ->
+    check_subtype size t t'
+  | D.Uni k, D.Uni j -> k <= j
+  | _ -> raise (Nbe_failed "Not a type in check_subtype")
+
 let rec initial_env env =
   match env with
   | [] -> []
