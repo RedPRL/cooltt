@@ -8,7 +8,7 @@
 %token LPR RPR LBR RBR LANGLE RANGLE
 %token EQUALS
 %token TIMES FST SND
-%token LAM LET IN END WITH
+%token LAM LET IN END WITH DEF
 %token NEXT LATER DFIX
 %token BOX SHUT OPEN
 %token REC SUC NAT ZERO
@@ -23,7 +23,8 @@ decl:
   | LET; nm = ATOM; COLON; tp = term; EQUALS; body = term; DOT
     { Def {name = nm; def = body; tp} }
   | QUIT; DOT { Quit }
-  | NORMALIZE; nm = ATOM; DOT { NormalizeDef nm }
+  | NORMALIZE; DEF; a = ATOM; DOT
+    { NormalizeDef a  }
   | NORMALIZE; tm = term; AT; tp = term; DOT { NormalizeTerm {term = tm; tp} };
 
 sign:
@@ -51,13 +52,13 @@ spine:
   | LBR; t = term; RBR { Tick t };
 
 term:
-  | f = atomic; args = nonempty_list(spine)
+  | f = atomic; args = list(spine)
     { Ap (f, args) }
   | LET; name = ATOM; COLON; tp = term; EQUALS; def = term; IN; body = term; END
     { Let (Check {term = def; tp}, Binder {name; body}) }
   | LET; name = ATOM; EQUALS; def = term; IN; body = term; END
     { Let (def, Binder {name; body}) }
-  | LPR t = term; COLON; tp = term RPR
+  | LPR t = term; AT; tp = term RPR
     { Check {term = t; tp} }
   | SUC; t = term { Suc t }
   | REC; n = term; AT; mot_name = ATOM; RIGHT_ARROW; mot = term; WITH;

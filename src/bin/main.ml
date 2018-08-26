@@ -28,16 +28,16 @@ let slurp_sexps_from_file ~file =
     Printf.sprintf "Failed while parsing %s: file ended before the sexp was closed\n" file
     |> mk_fail
 
+let rec process_sign env = function
+  | [] -> ()
+  | d :: ds ->
+    let output = Driver.process_decl env d in
+    Driver.output output;
+    process_sign (Driver.update_env env output) ds
+
 let perform_norm input =
-  let file = if String.equal input "" then None else Some input in
-  let (s1, s2) = slurp_sexps_from_file ~file in
-  let term = Syntax.of_sexp s1 in
-  let tp = Syntax.of_sexp s2 in
-  let () = Check.check ~env:[] ~size:0 ~term ~tp:(Nbe.eval tp []) in
-  let norm = Nbe.normalize ~env:[] ~term ~tp in
-  let norm_sexp = Syntax.to_sexp [] norm in
-  Sexp.output_hum stdout norm_sexp;
-  print_newline ();
+  let sign = Load.load_file input in
+  process_sign Driver.initial_env sign;
   0
 
 let main input =
@@ -45,6 +45,7 @@ let main input =
   | Internal_failure s -> prerr_endline s; 1
   | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
   | Failure s -> Printf.eprintf "Internal error (Failure): %s\n" s; 1
+  | Load.Parse_error s -> Printf.eprintf "Frontend error: %s" s; 1
   | Nbe.Nbe_failed s -> Printf.eprintf "Internal error (Failed to normalize): %s\n" s; 1
   | Check.Type_error e -> Printf.eprintf "Type error\n%s\n" (Check.pp_error e); 1
   | Syntax.Illformed -> Printf.eprintf "Syntax error.\n"; 1

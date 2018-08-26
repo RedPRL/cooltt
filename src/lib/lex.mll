@@ -37,6 +37,8 @@ let keywords =
     ("next", NEXT);
     ("dfix", DFIX);
     ("U", UNIV);
+    ("def", DEF);
+    ("at", AT);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
   ]
@@ -72,7 +74,7 @@ rule token = parse
     { COLON }
   | '.'
     { DOT }
-  | '='
+  | "="
     { EQUALS }
   | "->"
     { RIGHT_ARROW }

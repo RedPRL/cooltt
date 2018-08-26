@@ -4,6 +4,8 @@ module D = Domain
 
 type env = Env of {size : int; check_env : Check.env; bindings : string list}
 
+let initial_env = Env {size = 0; check_env = []; bindings = []}
+
 type output =
     NoOutput of env
   | NF of D.t
@@ -16,7 +18,7 @@ let update_env env = function
 
 let output = function
   | NoOutput _ -> ()
-  | NF t -> Printf.printf "Computed normal form:\n%s" (D.pp t)
+  | NF t -> Printf.printf "Computed normal form:\n%s\n" (D.pp t)
   | Quit -> exit 0
 
 let find_idx key =
@@ -96,13 +98,27 @@ let process_decl (Env {size; check_env; bindings})  = function
   | CS.Def {name; def; tp} ->
     let def = bind bindings def in
     let tp = bind bindings tp in
-    Check.check_tp ~size ~env:check_env ~term:def;
+    Check.check_tp ~size ~env:check_env ~term:tp;
     let sem_env = Check.env_to_sem_env size check_env in
     let sem_tp = Nbe.eval tp sem_env in
     Check.check ~size ~env:check_env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
     let new_entry = Check.Term {term = sem_def; tp = sem_tp; locks = 0; is_active = true} in
     NoOutput (Env {size = size + 1; check_env = new_entry :: check_env; bindings = name :: bindings })
-  | CS.NormalizeDef _ -> failwith "todo"
-  | CS.NormalizeTerm _ -> failwith "todo"
+  | CS.NormalizeDef name ->
+    let err = Check.Type_error (Check.Misc ("Unbound variable: " ^ name)) in
+    begin
+      match List.nth check_env (find_idx name bindings) with
+      | Check.Term {term; _} -> NF term
+      | _ -> raise err
+      | exception Failure _ -> raise err
+    end
+  | CS.NormalizeTerm {term; tp} ->
+    let term = bind bindings term in
+    let tp = bind bindings tp in
+    Check.check_tp ~size ~env:check_env ~term:tp;
+    let sem_env = Check.env_to_sem_env size check_env in
+    let sem_tp = Nbe.eval tp sem_env in
+    Check.check ~size ~env:check_env ~term ~tp:sem_tp;
+    NF (Nbe.eval term sem_env)
   | CS.Quit -> Quit

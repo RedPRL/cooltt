@@ -1,4 +1,6 @@
 type env
+val initial_env : env
+
 type output =
     NoOutput of env
   | NF of Domain.t
