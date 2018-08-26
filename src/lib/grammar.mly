@@ -80,12 +80,18 @@ term:
     { Lam (tp, Binder {name; body}) }
   | LPR name = name; COLON; dom = term; RPR; RIGHT_ARROW; cod = term
     { Pi (dom, Binder {name; body = cod}) }
-  | LPR name = name; COLON; dom = term; RPR; TIMES; cod = term
-    { Sig (dom, Binder {name; body = cod}) }
-  | FST; t = term { Fst t }
+  | LPR name = name; COLON; left = term; RPR; TIMES; right = term
+    { Sig (left, Binder {name; body = right}) }
+  | dom = atomic RIGHT_ARROW; cod = term
+    { Pi (dom, Binder {name = ""; body = cod}) }
+  | left = atomic; TIMES; right = term
+    { Sig (left, Binder {name = ""; body = right}) }
+| FST; t = term { Fst t }
   | SND; t = term { Snd t }
   | LATER; name = name; RIGHT_ARROW; body = term
     { Later (Binder {name; body}) }
+  | LATER; RIGHT_ARROW; body = term
+    { Later (Binder {name = ""; body}) }
   | NEXT; name = name; RIGHT_ARROW; body = term
     { Next (Binder {name; body}) }
   | BOX; t = term
@@ -94,5 +100,5 @@ term:
     { Shut t }
   | OPEN; t = term
     { Open t }
-  | DFIX; name = name; COLON; LATER; UNDERSCORE; DOT; tp = term; RIGHT_ARROW; body = term
+  | DFIX; LPR; name = name; COLON; LATER; RIGHT_ARROW; tp = term; RPR; RIGHT_ARROW; body = term
     { DFix (tp, Binder {name; body}) };

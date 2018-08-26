@@ -1,2 +1,2 @@
 let force : (A : Box U<0>) -> (_ : Box (Later _ -> open A)) -> open A =
-  lam (A : Box U<0>) -> lam (x : Box (Later _ -> open A)) -> (open x)[<>].
+  fun (A : Box U<0>) -> fun (x : Box (Later _ -> open A)) -> (open x)[<>].

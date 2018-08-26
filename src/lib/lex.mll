@@ -33,7 +33,7 @@ let keywords =
     ("open", OPEN);
     ("fst", FST);
     ("snd", SND);
-    ("lam", LAM);
+    ("fun", LAM);
     ("next", NEXT);
     ("dfix", DFIX);
     ("U", UNIV);
@@ -48,7 +48,7 @@ let number = ['0'-'9']['0'-'9']*
 let whitespace = [' ' '\t']+
 let line_ending = '\r' | '\n' | "\r\n"
 let atom_first = ['a'-'z' 'A'-'Z' '_']
-let atom_next = ['a'-'z' 'A'-'Z' '_' '-' '*' '/']
+let atom_next = ['a'-'z' 'A'-'Z' '_' '-' '*' '/' '0'-'9']
 let atom = atom_first atom_next*
 
 rule token = parse
