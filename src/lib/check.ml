@@ -16,7 +16,7 @@ type error =
   | Using_locked_variable
   | Using_non_tick
   | Using_non_term
-  | Type_mismatch of Syn.t * Syn.t
+  | Type_mismatch of D.t * D.t
   | Expecting_universe of D.t
   | Misc of string
 
@@ -28,7 +28,7 @@ let pp_error = function
   | Using_locked_variable -> "Cannot use a variable behind a lock"
   | Using_non_tick -> "Cannot use a normal term as a tick"
   | Using_non_term -> "Cannot use a tick as a term"
-  | Type_mismatch (t1, t2) -> "Cannot equate\n" ^ Syn.pp t1 ^ " with\n" ^ Syn.pp t2
+  | Type_mismatch (t1, t2) -> "Cannot equate\n" ^ D.pp t1 ^ " with\n" ^ D.pp t2
   | Expecting_universe d -> "Expected some universe but found\n" ^ D.pp d
   | Misc s -> s
 
@@ -127,7 +127,7 @@ let get_tick env n = match List.nth env n with
 let assert_subtype size t1 t2 =
   if Nbe.check_subtype size t1 t2
   then ()
-  else tp_error (Type_mismatch (Nbe.read_back_tp size t1, Nbe.read_back_tp size t2))
+  else tp_error (Type_mismatch (t1, t2))
 
 let rec check ~env ~size ~term ~tp =
   match term with

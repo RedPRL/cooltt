@@ -1,2 +1,2 @@
-(lam (Box (U 0)) (A (lam (Box (Later (_ (open A)))) (x (prev (open x) <>)))))
-(Pi (Box (U 0)) (A (Pi  (Box (Later (_ (open A)))) (_ (open A)))))
+let force : (A : Box U<0>) -> (_ : Box (Later _ -> open A)) -> open A =
+  lam (A : Box U<0>) -> lam (x : Box (Later _ -> open A)) -> (open x)[<>].

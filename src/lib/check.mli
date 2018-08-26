@@ -13,7 +13,7 @@ type error =
   | Using_locked_variable
   | Using_non_tick
   | Using_non_term
-  | Type_mismatch of Syntax.t * Syntax.t
+  | Type_mismatch of Domain.t * Domain.t
   | Expecting_universe of Domain.t
   | Misc of string
 

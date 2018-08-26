@@ -287,7 +287,7 @@ let rec check_subtype size d1 d2 =
   | D.Box t, D.Box t' ->
     check_subtype size t t'
   | D.Uni k, D.Uni j -> k <= j
-  | _ -> raise (Nbe_failed "Not a type in check_subtype")
+  | _ -> false
 
 let rec initial_env env =
   match env with
