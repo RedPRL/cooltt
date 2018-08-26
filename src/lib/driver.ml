@@ -103,13 +103,13 @@ let process_decl (Env {size; check_env; bindings})  = function
     let sem_tp = Nbe.eval tp sem_env in
     Check.check ~size ~env:check_env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
-    let new_entry = Check.Term {term = sem_def; tp = sem_tp; locks = 0; is_active = true} in
+    let new_entry = Check.TopLevel {term = sem_def; tp = sem_tp} in
     NoOutput (Env {size = size + 1; check_env = new_entry :: check_env; bindings = name :: bindings })
   | CS.NormalizeDef name ->
     let err = Check.Type_error (Check.Misc ("Unbound variable: " ^ name)) in
     begin
       match List.nth check_env (find_idx name bindings) with
-      | Check.Term {term; _} -> NF term
+      | Check.TopLevel {term; _} -> NF term
       | _ -> raise err
       | exception Failure _ -> raise err
     end

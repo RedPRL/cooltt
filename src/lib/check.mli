@@ -1,5 +1,6 @@
 type env_entry =
     Term of {term : Domain.t; tp : Domain.t; locks : int; is_active : bool}
+  | TopLevel of {term : Domain.t; tp : Domain.t}
   | Tick of {locks : int; is_active : bool}
 type env = env_entry list
 

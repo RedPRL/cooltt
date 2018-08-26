@@ -2,6 +2,7 @@ module D = Domain
 module Syn = Syntax
 type env_entry =
     Term of {term : D.t; tp : D.t; locks : int; is_active : bool}
+  | TopLevel of {term : D.t; tp : D.t}
   | Tick of {locks : int; is_active : bool}
 type env = env_entry list
 
@@ -39,6 +40,7 @@ let tp_error e = raise (Type_error e)
 let env_to_sem_env size env =
   let rec go i = function
     | [] -> []
+    | TopLevel {term; _} :: env -> term :: go (i + 1) env
     | Term {term; _} :: env -> term :: go (i + 1) env
     | Tick _ :: env -> Tick (size - (i + 1)) :: go (i + 1) env in
   go 0 env
@@ -72,12 +74,14 @@ let free_vars =
 let strip_env support =
   let rec delete_n_locks n = function
     | [] -> []
+    | TopLevel r :: env -> TopLevel r :: delete_n_locks n env
     | Term {term; tp; is_active; locks} :: env ->
       Term {term; tp; is_active; locks = locks - n} :: delete_n_locks n env
     | Tick {locks; is_active} :: env ->
       Tick {locks = locks - n; is_active} :: delete_n_locks n env in
   let rec go i = function
     | [] -> []
+    | TopLevel r :: env -> TopLevel r :: go (i + 1) env
     | Term {term; tp; is_active; _} :: env ->
       Term {term; tp; is_active; locks = 0} :: go (i + 1) env
     | Tick {locks; is_active} :: env ->
@@ -90,6 +94,7 @@ let strip_env support =
 let use_tick env i =
   let rec go j = function
     | [] -> []
+    | TopLevel r :: env -> TopLevel r :: go (j + 1) env
     | Term {term; tp; is_active; locks} :: env ->
       Term {term; tp; is_active = is_active && j > i; locks} :: go (j + 1) env
     | Tick {is_active; locks} :: env ->
@@ -109,12 +114,14 @@ let assert_tick env = function
 let apply_lock =
   List.map
     (function
+      | TopLevel r -> TopLevel r
       | Tick t -> Tick {t with locks = t.locks + 1}
       | Term t -> Term {t with locks = t.locks + 1})
 
 let get_var env n = match List.nth env n with
   | Term {term = _; tp; locks = 0; is_active = true} -> tp
   | Term {is_active = false; _} -> tp_error Using_killed_variable
+  | TopLevel {tp; _} -> tp
   | Term _ -> tp_error Using_locked_variable
   | Tick _  -> tp_error Using_non_term
 
@@ -122,6 +129,7 @@ let get_tick env n = match List.nth env n with
   | Tick {locks = 0; is_active = true} -> ()
   | Tick {is_active = false; _} -> tp_error Using_killed_tick
   | Tick _ -> tp_error Using_locked_tick
+  | TopLevel _ -> tp_error Using_non_tick
   | Term _ -> tp_error Using_non_tick
 
 let assert_subtype size t1 t2 =
