@@ -32,7 +32,7 @@ let rec process_sign env = function
   | [] -> ()
   | d :: ds ->
     let output = Driver.process_decl env d in
-    Driver.output output;
+    Driver.output env output;
     process_sign (Driver.update_env env output) ds
 
 let perform_norm input =

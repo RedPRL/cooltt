@@ -124,7 +124,10 @@ let to_sexp env t =
       end
     | _ -> None in
   let rec go env = function
-    | Var i -> List.nth env i
+    | Var i ->
+      if i >= List.length env
+      then Sexp.Atom ("free" ^ string_of_int i)
+      else List.nth env i
     | Nat -> Sexp.Atom "Nat"
     | Let (def, body) ->
       incr counter;

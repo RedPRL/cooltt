@@ -8,17 +8,22 @@ let initial_env = Env {size = 0; check_env = []; bindings = []}
 
 type output =
     NoOutput of env
-  | NF of D.t
+  | NF_term of S.t * D.t
+  | NF_def of CS.ident * D.t
   | Quit
 
 let update_env env = function
   | NoOutput env -> env
-  | NF _ -> env
-  | Quit -> env
+  | NF_term _ | NF_def _ | Quit -> env
 
-let output = function
+let output (Env {bindings; _}) = function
   | NoOutput _ -> ()
-  | NF t -> Printf.printf "Computed normal form:\n%s\n" (D.pp t)
+  | NF_term (s, t) ->
+    let open Sexplib in
+    let s_rep = Syntax.to_sexp (List.map (fun x -> Sexp.Atom x) bindings) s
+                |> Sexp.to_string_hum in
+    Printf.printf "Computed normal form of\n%s\nas\n%s\n" s_rep (D.pp t)
+  | NF_def (name, t) -> Printf.printf "Computed normal form of [%s]:\n%s\n" name (D.pp t)
   | Quit -> exit 0
 
 let find_idx key =
@@ -109,7 +114,7 @@ let process_decl (Env {size; check_env; bindings})  = function
     let err = Check.Type_error (Check.Misc ("Unbound variable: " ^ name)) in
     begin
       match List.nth check_env (find_idx name bindings) with
-      | Check.TopLevel {term; _} -> NF term
+      | Check.TopLevel {term; _} -> NF_def (name, term)
       | _ -> raise err
       | exception Failure _ -> raise err
     end
@@ -120,5 +125,5 @@ let process_decl (Env {size; check_env; bindings})  = function
     let sem_env = Check.env_to_sem_env size check_env in
     let sem_tp = Nbe.eval tp sem_env in
     Check.check ~size ~env:check_env ~term ~tp:sem_tp;
-    NF (Nbe.eval term sem_env)
+    NF_term (term, Nbe.eval term sem_env)
   | CS.Quit -> Quit
