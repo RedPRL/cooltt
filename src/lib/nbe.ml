@@ -29,17 +29,20 @@ and do_snd p =
     D.Neutral {tp = do_clos clo fst; term = D.Snd ne}
   | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
 
-and do_clos clo a = match clo with
+and do_clos clo a =
+  match clo with
   | Clos {term; env} -> eval term (a :: env)
   | ConstClos t -> t
 
-and do_tick_clos clo tick = match clo with
+and do_tick_clos clo tick =
+  match clo with
   | D.TickClos {term; env} -> eval term (tick :: env)
   | ConstTickClos t -> t
 
 and do_clos2 (Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
 
-and do_prev term tick = match term with
+and do_prev term tick =
+  match term with
   | D.Next clos -> do_tick_clos clos tick
   | D.DFix (t, clos) ->
     begin
@@ -57,7 +60,8 @@ and do_prev term tick = match term with
     end
   | _ -> raise (Nbe_failed "Not a neutral, dfix, or next in do_prev")
 
-and do_open t = match t with
+and do_open t =
+  match t with
   | D.Shut t -> t
   | D.Neutral {tp; term} ->
     begin
@@ -67,7 +71,8 @@ and do_open t = match t with
     end
   | _ -> raise (Nbe_failed "Not a box or neutral in open")
 
-and do_unfold ~uni ~idx_tp ~tp ~idx ~fix ~tick = match tick with
+and do_unfold ~uni ~idx_tp ~tp ~idx ~fix ~tick =
+  match tick with
   | D.Bullet -> fix
   | D.Tick i ->
     let tp_of_fix = D.Pi (idx_tp, ConstClos (D.Uni uni)) in
@@ -75,7 +80,7 @@ and do_unfold ~uni ~idx_tp ~tp ~idx ~fix ~tick = match tick with
       { term = D.Unfold (uni, idx_tp, tp, idx, fix, i);
         tp =
           D.Neutral
-            { tp = D.Uni 0;
+            { tp = D.Uni uni;
               term =
                 D.Ap (D.Fix (tp_of_fix, tp, i),
                       D.Normal {term = idx; tp = idx_tp})}}
