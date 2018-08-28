@@ -2,47 +2,10 @@ open Normalizer
 open Cmdliner
 open Sexplib
 
-exception Internal_failure of string
-
-let mk_fail s = raise (Internal_failure s)
-
-let slurp_sexps_from_file ~file =
-  let sexps =
-    match file with
-    (* Want to be on a newline to avoid having output immediately after input *)
-    | None -> print_newline (); Sexp.input_sexps stdin
-    | Some file -> Sexp.load_sexps file in
-  let file =
-    match file with
-    | Some s -> s
-    | None -> "<<stdin>>" in
-  match sexps with
-  | [s1; s2] -> (s1, s2)
-  | _ ->
-    Printf.sprintf "Failed while parsing %s: wrong number of sexps" file
-    |> mk_fail
-  | exception Sexp.Parse_error {err_msg = msg; _} ->
-    Printf.sprintf "Failed while parsing %s: %s\n" file msg
-    |> mk_fail
-  | exception Failure _ ->
-    Printf.sprintf "Failed while parsing %s: file ended before the sexp was closed\n" file
-    |> mk_fail
-
-let rec process_sign env = function
-  | [] -> ()
-  | d :: ds ->
-    let output = Driver.process_decl env d in
-    Driver.output env output;
-    process_sign (Driver.update_env env output) ds
-
-let perform_norm input =
-  let sign = Load.load_file input in
-  process_sign Driver.initial_env sign;
-  0
+let perform_norm input = Load.load_file input |> Driver.process_sign
 
 let main input =
-  try perform_norm input with
-  | Internal_failure s -> prerr_endline s; 1
+  try perform_norm input; 0 with
   | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
   | Failure s -> Printf.eprintf "Internal error (Failure): %s\n" s; 1
   | Load.Parse_error s -> Printf.eprintf "Frontend error: %s" s; 1

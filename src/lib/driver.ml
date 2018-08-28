@@ -127,3 +127,13 @@ let process_decl (Env {size; check_env; bindings})  = function
     Check.check ~size ~env:check_env ~term ~tp:sem_tp;
     NF_term (term, Nbe.eval term sem_env)
   | CS.Quit -> Quit
+
+let rec process_sign ?env = function
+  | [] -> ()
+  | d :: ds ->
+    let env = match env with
+        None -> initial_env
+      | Some e -> e in
+    let o = process_decl env d in
+    output env o;
+    process_sign ?env:(Some (update_env env o)) ds

@@ -50,4 +50,4 @@ let count-up-from : Nat -> Stream 0 =
   (fun (tail : Later -> Nat -> Stream 0) ->
      fun (n : Nat) -> cons n (next t -> tail[t] (suc n)))
 
-normalize nth 10 (shut (count-up-from 0)) at Nat
+normalize nth 100 (shut (count-up-from 0)) at Nat

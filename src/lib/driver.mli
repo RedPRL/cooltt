@@ -1,5 +1,4 @@
 type env
-val initial_env : env
 
 type output =
     NoOutput of env
@@ -10,4 +9,4 @@ type output =
 val output : env -> output -> unit
 val update_env : env -> output -> env
 
-val process_decl : env -> Concrete_syntax.decl -> output
+val process_sign : ?env:env -> Concrete_syntax.signature -> unit
