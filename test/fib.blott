@@ -1,14 +1,14 @@
 ; Not really a particularly interesting program, but good for computing stuff.
 
 let plus : Nat -> Nat -> Nat =
-  fun (m : Nat) ->
-  fun (n : Nat) ->
+  fun m ->
+  fun n ->
   rec n at x -> Nat with
   | zero -> m
   | suc _, p -> suc p
 
 let fib : Nat -> Nat =
-  fun (n : Nat) ->
+  fun n ->
   let worker : Nat * Nat =
     rec n at _ -> Nat * Nat with
     | zero -> <1, 0>

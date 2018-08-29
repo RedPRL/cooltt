@@ -7,7 +7,7 @@ and tick_clos =
     TickClos of {term : Syntax.t; env : env}
   | ConstTickClos of t
 and t =
-  | Lam of t * clos
+  | Lam of clos
   | Neutral of {tp : t; term : ne}
   | Nat
   | Zero

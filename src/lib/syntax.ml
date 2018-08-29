@@ -5,7 +5,7 @@ type t =
   | Var of int (* DeBruijn indices for variables & ticks *)
   | Let of t * (* BINDS *) t | Check of t * t
   | Nat | Zero | Suc of t | NRec of (* BINDS *) t * t * (* BINDS 2 *) t * t
-  | Pi of t * (* BINDS *) t | Lam of t * (* BINDS *) t | Ap of t * t
+  | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
   | Sig of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
   | Later of (* BINDS *) t | Next of (* BINDS *) t | Prev of t * t | Bullet
   | Box of t | Open of t | Shut of t
@@ -63,8 +63,8 @@ let of_sexp sexp =
          go env n)
     | Sexp.List [Sexp.Atom "Pi"; src; Sexp.List [Sexp.Atom x; dest]] ->
       Pi (go env src, go (x :: env) dest)
-    | Sexp.List [Sexp.Atom "lam"; tp; Sexp.List [Sexp.Atom x; body]] ->
-      Lam (go env tp, go (x :: env) body)
+    | Sexp.List [Sexp.Atom "lam"; Sexp.List [Sexp.Atom x; body]] ->
+      Lam (go (x :: env) body)
     | Sexp.List (Sexp.Atom "ap" :: f :: args) ->
       List.fold_left (fun f a -> Ap (f, go env a)) (go env f) args
     | Sexp.List [Sexp.Atom "Sig"; src; Sexp.List [Sexp.Atom x; dest]] ->
@@ -161,10 +161,10 @@ let to_sexp env t =
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
       Sexp.List [Sexp.Atom "Pi"; go env src; Sexp.List [var; go (var :: env) dest]]
-    | Lam (tp, t) ->
+    | Lam t ->
       incr counter;
       let var = Sexp.Atom ("x" ^ string_of_int (! counter)) in
-      Sexp.List [Sexp.Atom "lam"; go env tp; Sexp.List [var; go (var :: env) t]]
+      Sexp.List [Sexp.Atom "lam"; Sexp.List [var; go (var :: env) t]]
     | Ap (t1, t2) ->
       Sexp.List [Sexp.Atom "ap"; go env t1; go env t2]
     | Sig (fst, snd) ->

@@ -9,7 +9,7 @@ and tick_clos =
     TickClos of {term : Syntax.t; env : env}
   | ConstTickClos of t
 and t =
-  | Lam of t * clos
+  | Lam of clos
   | Neutral of {tp : t; term : ne}
   | Nat
   | Zero
@@ -74,8 +74,8 @@ let rec go_to_sexp size env = function
       [Sexp.Atom "Pi";
        go_to_sexp size env src;
        go_to_sexp_clos size env dest]
-  | Lam (tp, t) ->
-    Sexp.List [Sexp.Atom "lam"; go_to_sexp size env tp; go_to_sexp_clos size env t]
+  | Lam t ->
+    Sexp.List [Sexp.Atom "lam"; go_to_sexp_clos size env t]
   | Sig (fst, snd) ->
     Sexp.List
       [Sexp.Atom "Sig";

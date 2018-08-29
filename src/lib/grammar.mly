@@ -77,8 +77,8 @@ term:
         suc = Binder2 {name1 = suc_var; name2 = ih_var; body = suc_case};
         nat = n
       } }
-  | LAM; LPR; name = name; COLON; tp = term; RPR; RIGHT_ARROW; body = term
-    { Lam (tp, Binder {name; body}) }
+  | LAM; name = name; RIGHT_ARROW; body = term
+    { Lam (Binder {name; body}) }
   | LPR name = name; COLON; dom = term; RPR; RIGHT_ARROW; cod = term
     { Pi (dom, Binder {name; body = cod}) }
   | LPR name = name; COLON; left = term; RPR; TIMES; right = term

@@ -13,7 +13,7 @@ and t =
   | Lit of int
   | NRec of {mot : binder; zero : t; suc : binder2; nat : t}
   | Pi of t * binder
-  | Lam of t * binder
+  | Lam of binder
   | Ap of t * spine list
   | Sig of t * binder
   | Pair of t * t

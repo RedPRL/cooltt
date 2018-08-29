@@ -1,4 +1,4 @@
 let fun_id : (A : U<0>) -> (B : A -> U<0>) -> ((x : A) -> B x) -> ((x : A) -> B x) =
-  fun (A : U<0>) -> fun (B : A -> U<0>) -> fun (f : (x : A) -> B x) -> f
+  fun A -> fun B -> fun f -> f
 
 normalize def fun_id

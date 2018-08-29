@@ -51,8 +51,8 @@ let free_vars =
   let open Syntax in
   let rec go min = function
     | Var i -> if min < i then S.singleton (i - min) else S.empty
-    | Next t | Later t -> go (min + 1) t
-    | Lam (t1, t2) | Let (t1, t2) | Pi (t1, t2) | Sig (t1, t2) | DFix (t1, t2) ->
+    | Lam t | Next t | Later t -> go (min + 1) t
+    | Let (t1, t2) | Pi (t1, t2) | Sig (t1, t2) | DFix (t1, t2) ->
       S.union (go min t1) (go (min + 1) t2)
     | Pair (t1, t2) | Check (t1, t2) | Ap (t1, t2) | Prev (t1, t2) -> S.union (go min t1) (go min t2)
     | Nat | Zero | Uni _ | Bullet -> S.empty
@@ -154,16 +154,13 @@ let rec check ~env ~size ~term ~tp =
     let l_sem = Nbe.eval l (env_to_sem_env size env) in
     let var = D.mk_var l_sem size in
     check ~env:(add_term ~term:var ~tp:l_sem env) ~size ~term:r ~tp
-  | Lam (arg_tp, body) ->
-    check_tp ~env ~size ~term:arg_tp;
-    let arg_tp_sem = Nbe.eval arg_tp (env_to_sem_env size env) in
-    let var = D.mk_var arg_tp_sem size in
+  | Lam body ->
     begin
       match tp with
-      | D.Pi (given_arg_tp, clos) ->
+      | D.Pi (arg_tp, clos) ->
+        let var = D.mk_var arg_tp size in
         let dest_tp = Nbe.do_clos clos var in
-        check ~env:(add_term ~term:var ~tp:arg_tp_sem env) ~size:(size + 1) ~term:body ~tp:dest_tp;
-        assert_subtype size arg_tp_sem given_arg_tp
+        check ~env:(add_term ~term:var ~tp:arg_tp env) ~size:(size + 1) ~term:body ~tp:dest_tp;
       | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.pp t))
     end
   | Pair (left, right) ->
