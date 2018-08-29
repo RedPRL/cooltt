@@ -33,7 +33,7 @@ and ne =
   | Fix of t * clos * int
   | Unfold of Syntax.uni_level * t * clos * t * t * int (* i = Tick i *)
   | Open of ne
-  | NRec of clos * nf * clos2 * ne
+  | NRec of clos * t * clos2 * ne
 and nf =
   | Normal of {tp : t; term : t}
 

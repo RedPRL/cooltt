@@ -10,8 +10,7 @@ let rec do_rec tp zero suc n =
   | D.Suc n -> do_clos2 suc n (do_rec tp zero suc n)
   | D.Neutral {term = e; _} ->
     let final_tp = do_clos tp n in
-    let zero' = D.Normal {tp = do_clos tp D.Zero; term = zero} in
-    D.Neutral {tp = final_tp; term = D.NRec (tp, zero', suc, e)}
+    D.Neutral {tp = final_tp; term = D.NRec (tp, zero, suc, e)}
   | _ -> raise (Nbe_failed "Not a number")
 
 and do_fst p =
@@ -239,13 +238,18 @@ and read_back_ne size ne =
   | D.NRec (tp, zero, suc, n) ->
     let tp_var = D.mk_var D.Nat size in
     let applied_tp = do_clos tp tp_var in
+    let zero_tp = do_clos tp D.Zero in
     let applied_suc_tp = do_clos tp (D.Suc tp_var) in
     let tp' = read_back_tp (size + 1) applied_tp in
     let suc_var = D.mk_var applied_tp (size + 1) in
     let applied_suc = do_clos2 suc tp_var suc_var in
     let suc' =
       read_back_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc}) in
-    Syn.NRec (tp', read_back_nf size zero, suc', read_back_ne size n)
+    Syn.NRec
+      (tp',
+       read_back_nf size (D.Normal {tp = zero_tp; term = zero}),
+       suc',
+       read_back_ne size n)
   | D.Fst ne -> Syn.Fst (read_back_ne size ne)
   | D.Snd ne -> Syn.Snd (read_back_ne size ne)
   | D.Fix (tp, clos, i) ->

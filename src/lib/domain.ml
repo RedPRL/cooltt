@@ -35,7 +35,7 @@ and ne =
   | Fix of t * clos * int
   | Unfold of Syntax.uni_level * t * clos * t * t * int
   | Open of ne
-  | NRec of clos * nf * clos2 * ne
+  | NRec of clos * t * clos2 * ne
 and nf =
   | Normal of {tp : t; term : t}
 
@@ -160,7 +160,7 @@ and go_to_sexp_ne size env = function
     Sexp.List
       [Sexp.Atom "nrec";
        go_to_sexp_clos size env motive;
-       go_to_sexp_nf size env zero;
+       go_to_sexp size env zero;
        Sexp.List [suc_var1; suc_var2; Syntax.to_sexp senv suc.term];
        go_to_sexp_ne size env n]
 
