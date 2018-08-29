@@ -1,6 +1,5 @@
 open Normalizer
 open Cmdliner
-open Sexplib
 
 let perform_norm input = Load.load_file input |> Driver.process_sign
 
