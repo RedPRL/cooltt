@@ -87,7 +87,7 @@ term:
     { Pi (dom, Binder {name = ""; body = cod}) }
   | left = atomic; TIMES; right = term
     { Sig (left, Binder {name = ""; body = right}) }
-| FST; t = term { Fst t }
+  | FST; t = term { Fst t }
   | SND; t = term { Snd t }
   | LATER; name = name; RIGHT_ARROW; body = term
     { Later (Binder {name; body}) }
