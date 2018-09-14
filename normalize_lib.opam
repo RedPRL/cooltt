@@ -13,6 +13,6 @@ build: [
 ]
 depends: [
   "dune"  {build}
-  "sexplib" {= "0.11.0"}
   "menhir" {>= "20180703"}
+  "sexplib" {>= "0.11.0"}
 ]

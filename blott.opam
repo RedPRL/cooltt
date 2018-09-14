@@ -8,11 +8,8 @@ bug-reports: "https://github.com/jozefg/nbe-for-guarded-mltt/issues"
 dev-repo: "git+https://github.com/jozefg/nbe-for-guarded-mltt.git"
 license: "MIT"
 depends: [
-  "dune" {build}
-  "sexplib" {= "0.11.0"}
-  "cmdliner" {>= "1.0" & < "1.1"}
-  "topkg" {= "0.9.1"}
-  "menhir" {>= "20180703"}
+  "dune"  {build}
+  "cmdliner" {= "1.0.2"}
   "normalize_lib"
 ]
 build: [

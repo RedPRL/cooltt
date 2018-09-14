@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries normalize_lib sexplib cmdliner))
+ (libraries normalize_lib cmdliner))
 
 (install
  (section bin)
