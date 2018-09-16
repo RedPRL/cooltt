@@ -22,8 +22,8 @@ let output (Env {bindings; _}) = function
     let open Sexplib in
     let s_rep = Syntax.to_sexp (List.map (fun x -> Sexp.Atom x) bindings) s
                 |> Sexp.to_string_hum in
-    Printf.printf "Computed normal form of\n%s\nas\n%s\n" s_rep (S.pp t)
-  | NF_def (name, t) -> Printf.printf "Computed normal form of [%s]:\n%s\n" name (S.pp t)
+    Printf.printf "Computed normal form of\n  %s\nas\n  %s\n" s_rep (S.pp t)
+  | NF_def (name, t) -> Printf.printf "Computed normal form of [%s]:\n  %s\n" name (S.pp t)
   | Quit -> exit 0
 
 let find_idx key =
