@@ -3,7 +3,8 @@
 An implementation of Normalization by Evaluation & semfor Martin-Löf Type Theory with
 dependent products, dependent sums, natural numbers, box, later, and a
 cumulative hierarchy. This implementation correctly handles eta for later, box,
-pi, and sigma. It also includes a typechecker.
+pi, and sigma. It also includes a typechecker based on Coquand's
+semantic typechecking algorithm.
 
 Once built, the executable `blott` may be used to type check and normalize
 programs. A program consists of a series of definitions: `let x : tp = term` and
