@@ -37,13 +37,12 @@ exception Type_error of error
 
 let tp_error e = raise (Type_error e)
 
-let env_to_sem_env size env =
-  let rec go i = function
-    | [] -> []
-    | TopLevel {term; _} :: env -> term :: go (i + 1) env
-    | Term {term; _} :: env -> term :: go (i + 1) env
-    | Tick _ :: env -> Tick (size - (i + 1)) :: go (i + 1) env in
-  go 0 env
+let env_to_sem_env size =
+  List.mapi
+    (fun i -> function
+       | TopLevel {term; _} -> term
+       | Term {term; _} -> term
+       | Tick _ -> Tick (size - (i + 1)))
 
 module S = Set.Make(struct type t = int;; let compare = compare end)
 
@@ -73,36 +72,31 @@ let free_vars =
 
 let strip_env support =
   let rec delete_n_locks n = function
-    | [] -> []
-    | TopLevel r :: env -> TopLevel r :: delete_n_locks n env
-    | Term {term; tp; is_active; locks} :: env ->
-      Term {term; tp; is_active; locks = locks - n} :: delete_n_locks n env
-    | Tick {locks; is_active} :: env ->
-      Tick {locks = locks - n; is_active} :: delete_n_locks n env in
+    | TopLevel r -> TopLevel r
+    | Term r -> Term {r with locks = r.locks - n}
+    | Tick r -> Tick {r with locks = r.locks - n} in
   let rec go i = function
     | [] -> []
     | TopLevel r :: env -> TopLevel r :: go (i + 1) env
     | Term {term; tp; is_active; locks} :: env ->
       if S.mem i support
       (* Cannot weaken this term! *)
-      then Term {is_active; tp; term; locks = 0} :: delete_n_locks locks env
+      then Term {is_active; tp; term; locks = 0} :: List.map (delete_n_locks locks) env
       else Term {term; tp; is_active = false; locks = 0} :: go (i + 1) env
     | Tick {locks; is_active} :: env ->
       if S.mem i support
       (* Cannot weaken this tick! *)
-      then Tick {locks = 0; is_active} :: delete_n_locks locks env
+      then Tick {locks = 0; is_active} :: List.map (delete_n_locks locks) env
       else Tick {locks = 0; is_active = false} :: go (i + 1) env in
   go 0
 
 let use_tick env i =
-  let rec go j = function
-    | [] -> []
-    | TopLevel r :: env -> TopLevel r :: go (j + 1) env
-    | Term {term; tp; is_active; locks} :: env ->
-      Term {term; tp; is_active = is_active && j > i; locks} :: go (j + 1) env
-    | Tick {is_active; locks} :: env ->
-      Tick {is_active = is_active && j > i; locks} :: go (j + 1) env in
-  go 0 env
+  List.mapi
+    (fun j -> function
+       | TopLevel r -> TopLevel r
+       | Term r -> Term {r with is_active = r.is_active && j > i}
+       | Tick r -> Tick {r with is_active = r.is_active && j > i})
+    env
 
 let assert_tick env = function
   | Syn.Bullet -> ()
