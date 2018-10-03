@@ -71,7 +71,7 @@ let free_vars =
   go 0
 
 let strip_env support =
-  let rec delete_n_locks n = function
+  let delete_n_locks n = function
     | TopLevel r -> TopLevel r
     | Term r -> Term {r with locks = r.locks - n}
     | Tick r -> Tick {r with locks = r.locks - n} in
