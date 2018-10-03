@@ -24,7 +24,7 @@ type error =
 let pp_error = function
   | Cannot_synth_term t -> "Cannot synthesize the type of:\n" ^ Syn.pp t
   | Using_killed_tick -> "Cannot use a tick after using a tick before it"
-  | Using_killed_variable -> "Cannot use a variable after using a tick before it"
+  | Using_killed_variable -> "Cannot use a variable after using a tick or stripping a lock before it"
   | Using_locked_tick -> "Cannot use a tick behind a lock"
   | Using_locked_variable -> "Cannot use a variable behind a lock"
   | Using_non_tick -> "Cannot use a normal term as a tick"
@@ -50,7 +50,7 @@ module S = Set.Make(struct type t = int;; let compare = compare end)
 let free_vars =
   let open Syntax in
   let rec go min = function
-    | Var i -> if min < i then S.singleton (i - min) else S.empty
+    | Var i -> if min <= i then S.singleton (i - min) else S.empty
     | Lam t | Next t | Later t -> go (min + 1) t
     | Let (t1, t2) | Pi (t1, t2) | Sig (t1, t2) | DFix (t1, t2) ->
       S.union (go min t1) (go (min + 1) t2)
@@ -82,8 +82,11 @@ let strip_env support =
   let rec go i = function
     | [] -> []
     | TopLevel r :: env -> TopLevel r :: go (i + 1) env
-    | Term {term; tp; is_active; _} :: env ->
-      Term {term; tp; is_active; locks = 0} :: go (i + 1) env
+    | Term {term; tp; is_active; locks} :: env ->
+      if S.mem i support
+      (* Cannot weaken this term! *)
+      then Term {is_active; tp; term; locks = 0} :: delete_n_locks locks env
+      else Term {term; tp; is_active = false; locks = 0} :: go (i + 1) env
     | Tick {locks; is_active} :: env ->
       if S.mem i support
       (* Cannot weaken this tick! *)

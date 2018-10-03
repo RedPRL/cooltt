@@ -1,2 +1,2 @@
-let force : (A : Box U<0>) -> (_ : Box (Later _ -> open A)) -> open A =
+let force : (A : Box U<0>) -> (Box (Later _ -> open A)) -> (open A) =
   fun A -> fun x -> (open x)[<>]
