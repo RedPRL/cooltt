@@ -14,12 +14,23 @@ type error =
   | Expecting_universe of D.t
   | Misc of string
 
-let pp_error = function
-  | Cannot_synth_term t -> "Cannot synthesize the type of:\n" ^ Syn.show t
-  | Using_locked_variable -> "Cannot use a variable behind a lock"
-  | Type_mismatch (t1, t2) -> "Cannot equate\n" ^ D.show t1 ^ " with\n" ^ D.show t2
-  | Expecting_universe d -> "Expected some universe but found\n" ^ D.show d
-  | Misc s -> s
+let pp_error fmt = function
+  | Cannot_synth_term t ->
+    Format.fprintf fmt "@[Cannot synthesize the type of: @[";
+    Syn.pp fmt t;
+    Format.fprintf fmt "@]@]";
+  | Using_locked_variable -> Format.fprintf fmt "Cannot use a variable behind a lock."
+  | Type_mismatch (t1, t2) ->
+    Format.fprintf fmt "@[Cannot equate@ @[";
+    D.pp fmt t1;
+    Format.fprintf fmt "@]@ with@ @[";
+    D.pp fmt t2;
+    Format.fprintf fmt "@]";
+  | Expecting_universe d ->
+    Format.fprintf fmt "@[Expected some universe but found@ @[";
+    D.pp fmt d;
+    Format.fprintf fmt "@]@]"
+  | Misc s -> Format.pp_print_string fmt s
 
 exception Type_error of error
 

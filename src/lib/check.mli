@@ -12,7 +12,7 @@ type error =
   | Expecting_universe of Domain.t
   | Misc of string
 
-val pp_error : error -> string
+val pp_error : Format.formatter -> error -> unit
 
 exception Type_error of error
 

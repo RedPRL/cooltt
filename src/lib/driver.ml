@@ -19,8 +19,15 @@ let update_env env = function
 let output = function
   | NoOutput _ -> ()
   | NF_term (s, t) ->
-    Printf.printf "Computed normal form of\n  %s\nas\n  %s\n" (Syntax.show s) (Syntax.show t)
-  | NF_def (name, t) -> Printf.printf "Computed normal form of [%s]:\n  %s\n" name (Syntax.show t)
+    Format.fprintf Format.std_formatter "Computed normal form of@ @[";
+    S.pp Format.std_formatter s;
+    Format.fprintf Format.std_formatter "@] as @ @[";
+    S.pp Format.std_formatter t;
+    Format.fprintf Format.std_formatter "@]"
+  | NF_def (name, t) ->
+    Format.fprintf Format.std_formatter "Computed normal form of [%s]:@ @[" name;
+    Syntax.pp Format.std_formatter t;
+    Format.fprintf Format.std_formatter "@]"
   | Quit -> exit 0
 
 let find_idx key =
