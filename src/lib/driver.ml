@@ -23,11 +23,11 @@ let output = function
     S.pp Format.std_formatter s;
     Format.fprintf Format.std_formatter "@] as @ @[";
     S.pp Format.std_formatter t;
-    Format.fprintf Format.std_formatter "@]"
+    Format.fprintf Format.std_formatter "@]@,"
   | NF_def (name, t) ->
     Format.fprintf Format.std_formatter "Computed normal form of [%s]:@ @[" name;
     Syntax.pp Format.std_formatter t;
-    Format.fprintf Format.std_formatter "@]"
+    Format.fprintf Format.std_formatter "@]@,"
   | Quit -> exit 0
 
 let find_idx key =

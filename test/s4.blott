@@ -6,3 +6,5 @@ let duplicate : (A : Box U<0>) -> (Box (open A)) -> (Box (Box (open A))) =
 
 let k : (A : Box U<0>) -> (B : Box U<0>) -> (Box ((open A) -> (open B))) -> (Box (open A)) -> (Box (open B)) =
  fun A -> fun B -> fun f -> fun a -> shut ((open f) (open a))
+
+normalize def k

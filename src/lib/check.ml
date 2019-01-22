@@ -18,18 +18,18 @@ let pp_error fmt = function
   | Cannot_synth_term t ->
     Format.fprintf fmt "@[Cannot synthesize the type of: @[";
     Syn.pp fmt t;
-    Format.fprintf fmt "@]@]";
-  | Using_locked_variable -> Format.fprintf fmt "Cannot use a variable behind a lock."
+    Format.fprintf fmt "@]@]@,";
+  | Using_locked_variable -> Format.fprintf fmt "Cannot use a variable behind a lock.@,"
   | Type_mismatch (t1, t2) ->
     Format.fprintf fmt "@[Cannot equate@ @[";
     D.pp fmt t1;
     Format.fprintf fmt "@]@ with@ @[";
     D.pp fmt t2;
-    Format.fprintf fmt "@]";
+    Format.fprintf fmt "@]@,";
   | Expecting_universe d ->
     Format.fprintf fmt "@[Expected some universe but found@ @[";
     D.pp fmt d;
-    Format.fprintf fmt "@]@]"
+    Format.fprintf fmt "@]@]@,"
   | Misc s -> Format.pp_print_string fmt s
 
 exception Type_error of error
