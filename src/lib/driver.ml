@@ -16,14 +16,11 @@ let update_env env = function
   | NoOutput env -> env
   | NF_term _ | NF_def _ | Quit -> env
 
-let output (Env {bindings; _}) = function
+let output = function
   | NoOutput _ -> ()
   | NF_term (s, t) ->
-    let open Sexplib in
-    let s_rep = Syntax.to_sexp (List.map (fun x -> Sexp.Atom x) bindings) s
-                |> Sexp.to_string_hum in
-    Printf.printf "Computed normal form of\n  %s\nas\n  %s\n" s_rep (S.pp t)
-  | NF_def (name, t) -> Printf.printf "Computed normal form of [%s]:\n  %s\n" name (S.pp t)
+    Printf.printf "Computed normal form of\n  %s\nas\n  %s\n" (Syntax.show s) (Syntax.show t)
+  | NF_def (name, t) -> Printf.printf "Computed normal form of [%s]:\n  %s\n" name (Syntax.show t)
   | Quit -> exit 0
 
 let find_idx key =
@@ -69,42 +66,20 @@ let rec bind env = function
   | CS.Pair (l, r) -> S.Pair (bind env l, bind env r)
   | CS.Fst p -> S.Fst (bind env p)
   | CS.Snd p -> S.Snd (bind env p)
-  | CS.Later (Binder {name; body}) -> S.Later (bind (name :: env) body)
-  | CS.Next (Binder {name; body}) -> S.Next (bind (name :: env) body)
-  | CS.Bullet -> S.Bullet
   | CS.Box t -> S.Box (bind env t)
   | CS.Shut t -> S.Shut (bind env t)
   | CS.Open t -> S.Open (bind env t)
-  | CS.DFix (tp, Binder {name; body}) ->
-    S.DFix (bind env tp, bind (name :: env) body)
-  | CS.Fold {uni; idx_tp; fix_body = Binder {name; body}; idx; term; tick} ->
-    S.Fold
-      (uni,
-       bind env idx_tp,
-       bind (name :: env) body,
-       bind env idx,
-       bind env term,
-       bind env tick)
-  | CS.Unfold {uni; idx_tp; fix_body = Binder {name; body}; idx; term; tick} ->
-    S.Unfold
-      (uni,
-       bind env idx_tp,
-       bind (name :: env) body,
-       bind env idx,
-       bind env term,
-       bind env tick)
   | CS.Uni i -> S.Uni i
 
 and bind_spine env = function
   | CS.Term t -> fun f -> S.Ap (f, bind env t)
-  | CS.Tick t -> fun f -> S.Prev (f, bind env t)
 
 let process_decl (Env {size; check_env; bindings})  = function
   | CS.Def {name; def; tp} ->
     let def = bind bindings def in
     let tp = bind bindings tp in
     Check.check_tp ~size ~env:check_env ~term:tp;
-    let sem_env = Check.env_to_sem_env size check_env in
+    let sem_env = Check.env_to_sem_env check_env in
     let sem_tp = Nbe.eval tp sem_env in
     Check.check ~size ~env:check_env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
@@ -122,7 +97,7 @@ let process_decl (Env {size; check_env; bindings})  = function
     let term = bind bindings term in
     let tp = bind bindings tp in
     Check.check_tp ~size ~env:check_env ~term:tp;
-    let sem_env = Check.env_to_sem_env size check_env in
+    let sem_env = Check.env_to_sem_env check_env in
     let sem_tp = Nbe.eval tp sem_env in
     Check.check ~size ~env:check_env ~term ~tp:sem_tp;
     let sem_term = Nbe.eval term sem_env in
@@ -137,5 +112,5 @@ let rec process_sign ?env = function
         None -> initial_env
       | Some e -> e in
     let o = process_decl env d in
-    output env o;
+    output o;
     process_sign ?env:(Some (update_env env o)) ds

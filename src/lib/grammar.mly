@@ -5,13 +5,11 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE
-%token LPR RPR LBR RBR LANGLE RANGLE
+%token LPR RPR LANGLE RANGLE
 %token EQUALS
 %token TIMES FST SND
 %token LAM LET IN END WITH DEF
-%token NEXT LATER DFIX
 %token BOX SHUT OPEN
-%token FOLD UNFOLD
 %token REC SUC NAT ZERO
 %token UNIV
 %token QUIT NORMALIZE
@@ -51,12 +49,10 @@ atomic:
     { Uni i }
   | NAT { Nat }
   | LANGLE left = term; COMMA; right = term; RANGLE
-    { Pair (left, right) }
-  | LANGLE RANGLE { Bullet };
+    { Pair (left, right) };
 
 spine:
-  | t = atomic { Term t }
-  | LBR; t = term; RBR { Tick t };
+  | t = atomic { Term t };
 
 term:
   | f = atomic; args = list(spine)
@@ -89,30 +85,10 @@ term:
     { Sig (left, Binder {name = ""; body = right}) }
   | FST; t = term { Fst t }
   | SND; t = term { Snd t }
-  | LATER; name = name; RIGHT_ARROW; body = term
-    { Later (Binder {name; body}) }
-  | LATER; RIGHT_ARROW; body = term
-    { Later (Binder {name = ""; body}) }
-  | NEXT; name = name; RIGHT_ARROW; body = term
-    { Next (Binder {name; body}) }
   | BOX; t = term
     { Box t }
   | SHUT; t = term
     { Shut t }
   | OPEN; t = term
     { Open t }
-  | DFIX; LPR; name = name; COLON; LATER; RIGHT_ARROW; tp = term; RPR; RIGHT_ARROW; body = term
-    { DFix (tp, Binder {name; body}) }
-  | FOLD; LBR; uni = NUMERAL; RBR;
-    LBR; idx = atomic; COLON; idx_tp = atomic; RBR;
-    LBR; name = name; RIGHT_ARROW; body = term; RBR;
-    term = atomic;
-    tick = atomic
-    { Fold {uni; idx; idx_tp; term; tick; fix_body = Binder {name; body}} }
-  | UNFOLD; LBR; uni = NUMERAL; RBR;
-    LBR; idx = atomic; COLON; idx_tp = atomic; RBR;
-    LBR; name = name; RIGHT_ARROW; body = term; RBR;
-    term = atomic;
-    tick = atomic
-    { Unfold {uni; idx; idx_tp; term; tick; fix_body = Binder {name; body}} }
 ;

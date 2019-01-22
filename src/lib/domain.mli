@@ -3,9 +3,6 @@ and clos =
     Clos of {term : Syntax.t; env : env}
   | ConstClos of t
 and clos2 = Clos2 of {term : Syntax.t; env : env}
-and tick_clos =
-    TickClos of {term : Syntax.t; env : env}
-  | ConstTickClos of t
 and t =
   | Lam of clos
   | Neutral of {tp : t; term : ne}
@@ -15,12 +12,6 @@ and t =
   | Pi of t * clos
   | Sig of t * clos
   | Pair of t * t
-  | Later of tick_clos
-  | Next of tick_clos
-  | DFix of t * clos
-  | Fold of Syntax.uni_level * t * clos * t * t * int
-  | Tick of int (* DeBruijn level *)
-  | Bullet
   | Box of t
   | Shut of t
   | Uni of Syntax.uni_level
@@ -29,23 +20,21 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | Prev of ne * int option (* None = Bullet, Some i = Tick i *)
-  | Fix of t * clos * int
-  | Unfold of Syntax.uni_level * t * clos * t * t * int (* i = Tick i *)
   | Open of ne
   | NRec of clos * t * clos2 * ne
 and nf =
   | Normal of {tp : t; term : t}
 
 val mk_var : t -> int -> t
-(* May raise Invalid_argument if the term isn't a tick *)
-val term_to_tick : t -> int option
-val tick_to_term : int option -> t
 
-val to_sexp : t -> Sexplib.Sexp.t
-val to_sexp_nf : nf -> Sexplib.Sexp.t
-val to_sexp_ne : ne -> Sexplib.Sexp.t
+val equal : t -> t -> bool
+val equal_ne : ne -> ne -> bool
+val equal_nf : nf -> nf -> bool
 
-val pp : t -> string
-val pp_nf : nf -> string
-val pp_ne : ne -> string
+val pp : Format.formatter -> t -> unit
+val pp_nf : Format.formatter -> nf -> unit
+val pp_ne : Format.formatter -> ne -> unit
+
+val show : t -> string
+val show_nf : nf -> string
+val show_ne : ne -> string

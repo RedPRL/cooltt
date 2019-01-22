@@ -6,7 +6,7 @@ type output =
   | NF_def of Concrete_syntax.ident * Syntax.t
   | Quit
 
-val output : env -> output -> unit
+val output : output -> unit
 val update_env : env -> output -> env
 
 val process_sign : ?env:env -> Concrete_syntax.signature -> unit

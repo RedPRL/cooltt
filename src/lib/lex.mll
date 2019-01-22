@@ -25,8 +25,6 @@ let keywords =
     ("in", IN);
     ("with", WITH);
     ("end", END);
-    ("Later", LATER);
-    ("next", NEXT);
     ("rec", REC);
     ("Box", BOX);
     ("shut", SHUT);
@@ -34,12 +32,8 @@ let keywords =
     ("fst", FST);
     ("snd", SND);
     ("fun", LAM);
-    ("next", NEXT);
-    ("dfix", DFIX);
     ("U", UNIV);
     ("def", DEF);
-    ("fold", FOLD);
-    ("unfold", UNFOLD);
     ("at", AT);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
@@ -62,10 +56,6 @@ rule token = parse
     { LPR }
   | ')'
     { RPR }
-  | '['
-    { LBR }
-  | ']'
-    { RBR }
   | '|'
     { PIPE }
   | ','

@@ -15,4 +15,5 @@ depends: [
   "dune"  {build}
   "menhir" {>= "20180703"}
   "sexplib" {>= "0.11.0"}
+  "ppx_deriving" {>= "4.2"}
 ]

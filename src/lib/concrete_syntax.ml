@@ -3,7 +3,7 @@ type uni_level = int
 
 type binder = Binder of {name : ident; body : t}
 and binder2 = Binder2 of {name1 : ident; name2 : ident; body : t}
-and spine = Term of t | Tick of t
+and spine = Term of t
 and t =
   | Var of ident
   | Let of t * binder
@@ -19,15 +19,9 @@ and t =
   | Pair of t * t
   | Fst of t
   | Snd of t
-  | Later of binder
-  | Next of binder
-  | Bullet
   | Box of t
   | Open of t
   | Shut of t
-  | DFix of t * binder
-  | Fold of {uni : uni_level; idx_tp : t; fix_body : binder; idx : t; term : t; tick : t}
-  | Unfold of {uni : uni_level; idx_tp : t; fix_body : binder; idx : t; term : t; tick : t}
   | Uni of uni_level
 
 type decl =

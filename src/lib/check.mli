@@ -1,19 +1,13 @@
 type env_entry =
-    Term of {term : Domain.t; tp : Domain.t; locks : int; is_active : bool}
+    Term of {term : Domain.t; tp : Domain.t; locks : int}
   | TopLevel of {term : Domain.t; tp : Domain.t}
-  | Tick of {locks : int; is_active : bool}
 type env = env_entry list
 
-val env_to_sem_env : int -> env -> Domain.env
+val env_to_sem_env : env -> Domain.env
 
 type error =
     Cannot_synth_term of Syntax.t
-  | Using_killed_tick
-  | Using_killed_variable
-  | Using_locked_tick
   | Using_locked_variable
-  | Using_non_tick
-  | Using_non_term
   | Type_mismatch of Domain.t * Domain.t
   | Expecting_universe of Domain.t
   | Misc of string
