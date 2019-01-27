@@ -74,9 +74,9 @@ term:
         suc = Binder2 {name1 = suc_var; name2 = ih_var; body = suc_case};
         nat = n
       } }
-  | ID; tp = term; left = term; right = term
+  | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
-  | REFL; t = term
+  | REFL; t = atomic
     { Refl t }
   | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
     PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
