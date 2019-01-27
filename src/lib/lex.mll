@@ -33,6 +33,9 @@ let keywords =
     ("snd", SND);
     ("fun", LAM);
     ("U", UNIV);
+    ("match", MATCH);
+    ("Id", ID);
+    ("refl", REFL);
     ("def", DEF);
     ("at", AT);
     ("normalize", NORMALIZE);

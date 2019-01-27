@@ -13,6 +13,7 @@
 %token REC SUC NAT ZERO
 %token UNIV
 %token QUIT NORMALIZE
+%token ID REFL MATCH
 %token EOF
 
 %start <Concrete_syntax.signature> sign
@@ -73,6 +74,13 @@ term:
         suc = Binder2 {name1 = suc_var; name2 = ih_var; body = suc_case};
         nat = n
       } }
+  | ID; tp = term; left = term; right = term
+    { Id (tp, left, right) }
+  | REFL; t = term
+    { Refl t }
+  | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
+    PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
+    { J {mot = Binder3 {name1; name2; name3; body = mot_term}; refl = Binder {name; body = refl}; eq} }
   | LAM; name = name; RIGHT_ARROW; body = term
     { Lam (Binder {name; body}) }
   | LPR name = name; COLON; dom = term; RPR; RIGHT_ARROW; cod = term
