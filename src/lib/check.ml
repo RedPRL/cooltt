@@ -194,6 +194,26 @@ and synth ~env ~size ~term =
       | Box tp -> tp
       | t -> tp_error (Misc ("Expecting Box but found\n" ^ D.show t))
     end
+  | J (mot, refl, eq) ->
+    let eq_tp = synth ~env ~size ~term:eq in
+    begin
+      let sem_env = env_to_sem_env env in
+      match eq_tp with
+      | D.Id (tp', left, right) ->
+        let mot_var1 = D.mk_var tp' size in
+        let mot_var2 = D.mk_var tp' (size + 1) in
+        let mot_var3 = D.mk_var (D.Id (tp', mot_var1, mot_var2)) (size + 1) in
+        let mot_env =
+          add_term ~term:mot_var1 ~tp:tp' env
+          |> add_term ~term:mot_var2 ~tp:tp'
+          |> add_term ~term:mot_var3 ~tp:(D.Id (tp', mot_var1, mot_var2)) in
+        check_tp ~env:mot_env ~size:(size + 3) ~term:mot;
+        let refl_var = D.mk_var tp' size in
+        let refl_tp = Nbe.eval mot (D.Refl refl_var :: refl_var :: refl_var :: sem_env) in
+        check ~env:(add_term ~term:refl_var ~tp:tp' env) ~size:(size + 1) ~term:refl ~tp:refl_tp;
+        Nbe.eval mot (Nbe.eval eq sem_env :: right :: left :: sem_env)
+      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
+    end
   | _ -> tp_error (Cannot_synth_term term)
 
 and check_tp ~env ~size ~term =
