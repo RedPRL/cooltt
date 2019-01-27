@@ -3,6 +3,7 @@ and clos =
     Clos of {term : Syntax.t; env : env}
   | ConstClos of t
 and clos2 = Clos2 of {term : Syntax.t; env : env}
+and clos3 = Clos3 of {term : Syntax.t; env : env}
 and t =
   | Lam of clos
   | Neutral of {tp : t; term : ne}
@@ -14,6 +15,8 @@ and t =
   | Pair of t * t
   | Box of t
   | Shut of t
+  | Refl of t
+  | Id of t * t * t
   | Uni of Syntax.uni_level
 and ne =
   | Var of int (* DeBruijn levels for variables *)
@@ -22,6 +25,7 @@ and ne =
   | Snd of ne
   | Open of ne
   | NRec of clos * t * clos2 * ne
+  | J of clos3 * clos * t * t * t * ne
 and nf =
   | Normal of {tp : t; term : t}
 

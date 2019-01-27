@@ -73,6 +73,17 @@ let rec bind env = function
   | CS.Pair (l, r) -> S.Pair (bind env l, bind env r)
   | CS.Fst p -> S.Fst (bind env p)
   | CS.Snd p -> S.Snd (bind env p)
+  | CS.J
+      {mot = Binder3 {name1 = left; name2 = right; name3 = prf; body = mot_body};
+       refl = Binder {name = refl_name; body = refl_body};
+       eq} ->
+    S.J
+      (bind (prf :: right :: left :: env) mot_body,
+       bind (refl_name :: env) refl_body,
+       bind env eq)
+  | CS.Id (tp, left, right) ->
+    S.Id (bind env tp, bind env left, bind env right)
+  | CS.Refl t -> S.Refl (bind env t)
   | CS.Box t -> S.Box (bind env t)
   | CS.Shut t -> S.Shut (bind env t)
   | CS.Open t -> S.Open (bind env t)

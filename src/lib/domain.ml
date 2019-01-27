@@ -6,6 +6,8 @@ and clos =
 [@@deriving show, eq]
 and clos2 = Clos2 of {term : Syntax.t; env : env}
 [@@deriving show, eq]
+and clos3 = Clos3 of {term : Syntax.t; env : env}
+[@@deriving show, eq]
 and t =
   | Lam of clos
   | Neutral of {tp : t; term : ne}
@@ -17,6 +19,8 @@ and t =
   | Pair of t * t
   | Box of t
   | Shut of t
+  | Refl of t
+  | Id of t * t * t
   | Uni of Syntax.uni_level
 [@@deriving show, eq]
 and ne =
@@ -26,6 +30,7 @@ and ne =
   | Snd of ne
   | Open of ne
   | NRec of clos * t * clos2 * ne
+  | J of clos3 * clos * t * t * t * ne
 [@@deriving show, eq]
 and nf =
   | Normal of {tp : t; term : t}

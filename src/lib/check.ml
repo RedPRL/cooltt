@@ -62,7 +62,12 @@ let get_var env n = match List.nth env n with
   | Term _ -> tp_error Using_locked_variable
 
 let assert_subtype size t1 t2 =
-  if Nbe.check_subtype size t1 t2
+  if Nbe.check_tp ~subtype:true size t1 t2
+  then ()
+  else tp_error (Type_mismatch (t1, t2))
+
+let assert_equal size t1 t2 tp =
+  if Nbe.check_nf size (D.Normal {tp; term = t1}) (D.Normal {tp; term = t2})
   then ()
   else tp_error (Type_mismatch (t1, t2))
 
@@ -77,6 +82,21 @@ let rec check ~env ~size ~term ~tp =
       match tp with
       | D.Uni _ -> ()
       | t -> tp_error (Expecting_universe t)
+    end
+  | Id (tp, l, r) ->
+    check_tp ~env ~size ~term:tp;
+    let tp = Nbe.eval tp (env_to_sem_env env) in
+    check ~env ~size ~term:l ~tp;
+    check ~env ~size ~term:r ~tp
+  | Refl term ->
+    begin
+      match tp with
+      | D.Id (tp, left, right) ->
+        check ~env ~size ~term ~tp;
+        let term = Nbe.eval term (env_to_sem_env env) in
+        assert_equal size term left tp;
+        assert_equal size term right tp
+      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
     end
   | Pi (l, r) | Sig (l, r) ->
     check ~env ~size ~term:l ~tp;
@@ -190,6 +210,11 @@ and check_tp ~env ~size ~term =
     let def_tp = synth ~env ~size ~term:def in
     let def_val = Nbe.eval def (env_to_sem_env env) in
     check_tp ~env:(add_term ~term:def_val ~tp:def_tp env) ~size:(size + 1) ~term:body
+  | Id (tp, l, r) ->
+    check_tp ~env ~size ~term:tp;
+    let tp = Nbe.eval tp (env_to_sem_env env) in
+    check ~env ~size ~term:l ~tp;
+    check ~env ~size ~term:r ~tp
   | term ->
     begin
       match synth ~env ~size ~term with

@@ -9,7 +9,9 @@ val read_back_nf : int -> Domain.nf -> Syntax.t
 val read_back_tp : int -> Domain.t -> Syntax.t
 val read_back_ne : int -> Domain.ne -> Syntax.t
 
-val check_subtype : int -> Domain.t -> Domain.t -> bool
+val check_nf : int -> Domain.nf -> Domain.nf -> bool
+val check_ne : int -> Domain.ne -> Domain.ne -> bool
+val check_tp : subtype:bool -> int -> Domain.t -> Domain.t -> bool
 
 (* Functions to manipulate elements of the semantic domain *)
 val do_clos : Domain.clos -> Domain.t -> Domain.t

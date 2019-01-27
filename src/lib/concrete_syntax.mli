@@ -3,6 +3,7 @@ type uni_level = int
 
 type binder = Binder of {name : ident; body : t}
 and binder2 = Binder2 of {name1 : ident; name2 : ident; body : t}
+and binder3 = Binder3 of {name1 : ident; name2 : ident; name3 : ident; body : t}
 and spine = Term of t
 and t =
   | Var of ident
@@ -19,6 +20,9 @@ and t =
   | Pair of t * t
   | Fst of t
   | Snd of t
+  | Id of t * t * t
+  | Refl of t
+  | J of {mot : binder3; refl : binder; eq : t}
   | Box of t
   | Open of t
   | Shut of t
