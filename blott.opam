@@ -9,7 +9,7 @@ dev-repo: "git+https://github.com/jozefg/blott.git"
 license: "MIT"
 depends: [
   "dune"  {build}
-  "cmdliner" {= "1.0.2"}
+  "cmdliner" {>= "1.0" & < "1.1"}
 ]
 build: [
   [make]
