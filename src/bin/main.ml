@@ -9,7 +9,11 @@ let main input =
   | Failure s -> Printf.eprintf "Internal error (Failure): %s\n" s; 1
   | Load.Parse_error s -> Printf.eprintf "Frontend error: %s" s; 1
   | Nbe.Nbe_failed s -> Printf.eprintf "Internal error (Failed to normalize): %s\n" s; 1
-  | Check.Type_error e -> Printf.eprintf "Type error:\n"; Check.pp_error Format.err_formatter e; 1
+  | Check.Type_error e ->
+    Printf.eprintf "Type error:\n";
+    Check.pp_error Format.err_formatter e;
+    Format.pp_print_flush Format.err_formatter ();
+    1
 
 let input_file =
   let doc = "File containing the program to type-check" in

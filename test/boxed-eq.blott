@@ -1,0 +1,5 @@
+let box_eq :
+  (A : Box U<0>) ->
+  (x : Box (open A)) ->
+  (Id (Box (open A)) x (shut (open x))) =
+  fun A -> fun x -> refl x
