@@ -1,12 +1,12 @@
 opam-version: "2.0"
 name: "normalize_lib"
 version: "0.0"
-maintainer: "Daniel Gratzer"
+maintainer: "Daniel Gratzer <gratzer@cs.au.dk>"
 authors: ["Daniel Gratzer"]
-homepage: "https://github.com/jozefg/nbe-for-guarded-mltt"
-bug-reports: "https://github.com/jozefg/nbe-for-guarded-mltt/issues"
+homepage: "https://github.com/jozefg/blott"
+bug-reports: "https://github.com/jozefg/blott/issues"
 license: "MIT"
-dev-repo: "git+https://github.com/jozefg/nbe-for-guarded-mltt"
+dev-repo: "git+https://github.com/jozefg/blott"
 build: [
   ["dune" "build" "--only-packages" name
    "--root" "." "-j" jobs "@install"]
@@ -14,6 +14,5 @@ build: [
 depends: [
   "dune"  {build}
   "menhir" {>= "20180703"}
-  "sexplib" {>= "0.11.0"}
   "ppx_deriving" {>= "4.2"}
 ]
