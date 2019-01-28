@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries normalize_lib cmdliner))
+ (libraries blott.core cmdliner))
 
 (install
  (section bin)
