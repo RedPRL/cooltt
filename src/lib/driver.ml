@@ -19,13 +19,13 @@ let update_env env = function
 let output = function
   | NoOutput _ -> ()
   | NF_term (s, t) ->
-    Format.fprintf Format.std_formatter "Computed normal form of@ @[";
+    Format.fprintf Format.std_formatter "Computed normal form of@ @[<hv>";
     S.pp Format.std_formatter s;
-    Format.fprintf Format.std_formatter "@] as @ @[";
+    Format.fprintf Format.std_formatter "@] as @ @[<hv>";
     S.pp Format.std_formatter t;
     Format.fprintf Format.std_formatter "@]@,"
   | NF_def (name, t) ->
-    Format.fprintf Format.std_formatter "Computed normal form of [%s]:@ @[" name;
+    Format.fprintf Format.std_formatter "Computed normal form of [%s]:@ @[<hv>" name;
     Syntax.pp Format.std_formatter t;
     Format.fprintf Format.std_formatter "@]@,"
   | Quit -> exit 0

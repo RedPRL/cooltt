@@ -14,3 +14,5 @@ let uhoh : (A : U<0>) -> Nat -> U<0> =
 let absurd : (A : U<0>) -> (Id Nat 0 1) -> A =
  fun A -> fun prf ->
  subst (uhoh A) 0 1 prf (refl 0)
+
+normalize def absurd
