@@ -12,8 +12,8 @@ let main input =
   | Check.Type_error e -> Printf.eprintf "Type error:\n"; Check.pp_error Format.err_formatter e; 1
 
 let input_file =
-  let doc = "File containing the term to reduce" in
-  Arg.(value & pos 0 file "" & info [] ~docv:"input file" ~doc)
+  let doc = "File containing the program to type-check" in
+  Arg.(required & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
 
 let info =
   let doc = "Typecheck and Normalize a term in Guarded Martin-Lof Type Theory" in
