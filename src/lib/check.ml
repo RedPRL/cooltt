@@ -16,18 +16,18 @@ type error =
 
 let pp_error fmt = function
   | Cannot_synth_term t ->
-    Format.fprintf fmt "@[<hv> Cannot synthesize the type of: @[";
+    Format.fprintf fmt "@[<v> Cannot synthesize the type of: @[<hov 2>  ";
     Syn.pp fmt t;
-    Format.fprintf fmt "@]@]@,";
+    Format.fprintf fmt "@]@]@,"
   | Using_locked_variable -> Format.fprintf fmt "Cannot use a variable behind a lock.@,"
   | Type_mismatch (t1, t2) ->
-    Format.fprintf fmt "@[<hv>Cannot equate@ @[<hv>";
+    Format.fprintf fmt "@[<v>Cannot equate@,@[<hov 2>  ";
     D.pp fmt t1;
-    Format.fprintf fmt "@]@ with@ @[<hv>";
+    Format.fprintf fmt "@]@ with@,@[<hov 2>  ";
     D.pp fmt t2;
-    Format.fprintf fmt "@]@,";
+    Format.fprintf fmt "@]@]@,"
   | Expecting_universe d ->
-    Format.fprintf fmt "@[<hv>Expected some universe but found@ @[<hv>";
+    Format.fprintf fmt "@[<v>Expected some universe but found@ @[<hov 2>";
     D.pp fmt d;
     Format.fprintf fmt "@]@]@,"
   | Misc s -> Format.pp_print_string fmt s
@@ -41,8 +41,6 @@ let env_to_sem_env =
     (function
       | TopLevel {term; _} -> term
       | Term {term; _} -> term)
-
-module S = Set.Make(struct type t = int;; let compare = compare end)
 
 let strip_env =
   let go = function

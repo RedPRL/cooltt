@@ -1,0 +1,4 @@
+let cantcontract : (Box Nat) -> Box (Box Nat) =
+  fun x -> shut (open x)
+
+normalize def cantcontract

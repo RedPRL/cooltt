@@ -10,7 +10,7 @@ let main input =
   | Load.Parse_error s -> Printf.eprintf "Frontend error: %s" s; 1
   | Nbe.Nbe_failed s -> Printf.eprintf "Internal error (Failed to normalize): %s\n" s; 1
   | Check.Type_error e ->
-    Printf.eprintf "Type error:\n";
+    Printf.eprintf "Type error: ";
     Check.pp_error Format.err_formatter e;
     Format.pp_print_flush Format.err_formatter ();
     1
@@ -21,7 +21,7 @@ let input_file =
 
 let info =
   let doc = "Typecheck and Normalize a term in Guarded Martin-Lof Type Theory" in
-  let err_exit = Term.exit_info ~doc:"on an ill-formed or terms." 1 in
+  let err_exit = Term.exit_info ~doc:"on an ill-formed types or terms." 1 in
   Term.info "blott" ~version:"0.0" ~doc ~exits:(err_exit :: Term.default_exits)
 
 let () =
