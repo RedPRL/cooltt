@@ -308,6 +308,6 @@ let rec initial_env env =
 
 let normalize ~env ~term ~tp =
   let env' = initial_env env in
-  let tp' = eval tp env' in
-  let term' = eval term env' in
-  read_back_nf (List.length env') (D.Normal {tp = tp'; term = term'})
+  let tp = eval tp env' in
+  let term = eval term env' in
+  read_back_nf (List.length env') (D.Normal {tp; term})
