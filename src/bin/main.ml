@@ -20,7 +20,7 @@ let input_file =
   Arg.(required & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
 
 let info =
-  let doc = "Typecheck and Normalize a term in Guarded Martin-Lof Type Theory" in
+  let doc = "Typecheck and Normalize terms in Martin-Lof Type Theory with Box" in
   let err_exit = Term.exit_info ~doc:"on an ill-formed types or terms." 1 in
   Term.info "blott" ~version:"0.0" ~doc ~exits:(err_exit :: Term.default_exits)
 
