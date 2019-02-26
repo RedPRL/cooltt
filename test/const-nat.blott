@@ -2,7 +2,7 @@ let con :
   Nat -> Box Nat =
   fun n ->
   rec n at _ -> Box Nat with
-  | zero -> shut zero
-  | suc _, p -> shut (suc (open p))
+  | zero -> [lock zero]
+  | suc _, p -> [lock suc [unlock p]]
 
 normalize con 50 at Box Nat

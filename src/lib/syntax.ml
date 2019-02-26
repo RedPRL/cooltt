@@ -119,13 +119,13 @@ let rec pp fmt =
     pp fmt t;
     fprintf fmt ")@]"
   | Shut t ->
-    fprintf fmt "shut(@[<hov>";
+    fprintf fmt "[lock @[<hov>";
     pp fmt t;
-    fprintf fmt ")@]"
+    fprintf fmt "]@]"
   | Open t ->
-    fprintf fmt "open(@[<hov>";
+    fprintf fmt "[unlock @[<hov>";
     pp fmt t;
-    fprintf fmt ")@]"
+    fprintf fmt "]@]"
   | Uni i -> fprintf fmt "U<%d>" i
 
 

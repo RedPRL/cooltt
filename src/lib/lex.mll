@@ -27,8 +27,8 @@ let keywords =
     ("end", END);
     ("rec", REC);
     ("Box", BOX);
-    ("shut", SHUT);
-    ("open", OPEN);
+    ("lock", LOCK);
+    ("unlock", UNLOCK);
     ("fst", FST);
     ("snd", SND);
     ("fun", LAM);
@@ -77,6 +77,10 @@ rule token = parse
     { LANGLE }
   | ">"
     { RANGLE }
+  | "["
+    { LBR }
+  | "]"
+    { RBR }
   | "λ"
     { LAM }
   | '_'

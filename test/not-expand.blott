@@ -1,7 +1,7 @@
 let cantcontract : (Box Nat) -> Box (Box Nat) =
-  fun x -> shut (shut (open x))
+  fun x -> [lock [lock [unlock x]]]
 
 normalize def cantcontract
 
 let cantcontract : (Box Nat) -> Box (Box Nat) =
-  fun x -> shut x
+  fun x -> [lock x]

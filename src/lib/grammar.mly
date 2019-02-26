@@ -5,11 +5,11 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE
-%token LPR RPR LANGLE RANGLE
+%token LPR RPR LANGLE RANGLE LBR RBR
 %token EQUALS
 %token TIMES FST SND
 %token LAM LET IN END WITH DEF
-%token BOX SHUT OPEN
+%token BOX LOCK UNLOCK
 %token REC SUC NAT ZERO
 %token UNIV
 %token QUIT NORMALIZE
@@ -49,6 +49,10 @@ atomic:
   | UNIV; LANGLE; i = NUMERAL; RANGLE
     { Uni i }
   | NAT { Nat }
+  | LBR; LOCK; t = term; RBR
+    { Shut t }
+  | LBR; UNLOCK; t = term; RBR
+    { Open t }
   | LANGLE left = term; COMMA; right = term; RANGLE
     { Pair (left, right) };
 
@@ -95,8 +99,4 @@ term:
   | SND; t = term { Snd t }
   | BOX; t = term
     { Box t }
-  | SHUT; t = term
-    { Shut t }
-  | OPEN; t = term
-    { Open t }
 ;

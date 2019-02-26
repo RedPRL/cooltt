@@ -1,7 +1,7 @@
 let box_eq :
   (A : Box U<0>) ->
-  (x : Box (open A)) ->
-  (Id (Box (open A)) x (shut (open x))) =
+  (x : Box [unlock A]) ->
+  (Id (Box [unlock A]) x [lock [unlock x]]) =
   fun A -> fun x -> refl x
 
 normalize def box_eq
