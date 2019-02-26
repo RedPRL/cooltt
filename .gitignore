@@ -1,5 +1,5 @@
-*.install
 # -*- mode: gitignore; -*-
+*.install
 *~
 \#*\#
 /.emacs.desktop
