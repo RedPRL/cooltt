@@ -1,5 +1,5 @@
 let box_eq :
-  (A : [box U<0>]) ->
+  (A : [box U<0>])
   (x : [box [unlock A]]) ->
   (Id [box [unlock A]] x [lock [unlock x]]) =
   fun A -> fun x -> refl x

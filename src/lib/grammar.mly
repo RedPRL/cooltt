@@ -89,14 +89,19 @@ term:
     { J {mot = Binder3 {name1; name2; name3; body = mot_term}; refl = Binder {name; body = refl}; eq} }
   | LAM; name = name; RIGHT_ARROW; body = term
     { Lam (Binder {name; body}) }
-  | LPR name = name; COLON; dom = term; RPR; RIGHT_ARROW; cod = term
-    { Pi (dom, Binder {name; body = cod}) }
-  | LPR name = name; COLON; left = term; RPR; TIMES; right = term
-    { Sg (left, Binder {name; body = right}) }
+  | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
+    { Pi (tele, cod) }
+  | tele = nonempty_list(tele_cell); TIMES; cod = term
+    { Sg (tele, cod) }
   | dom = atomic RIGHT_ARROW; cod = term
-    { Pi (dom, Binder {name = ""; body = cod}) }
-  | left = atomic; TIMES; right = term
-    { Sg (left, Binder {name = ""; body = right}) }
+    { Pi ([Cell {name = ""; ty = dom}], cod)}
+  | dom = atomic; TIMES; cod = term
+    { Sg ([Cell {name = ""; ty = dom}], cod)}
   | FST; t = term { Fst t }
   | SND; t = term { Snd t }
 ;
+
+tele_cell:
+  | LPR name = name; COLON ty = term; RPR
+    { Cell {name; ty} }
+; 

@@ -4,10 +4,10 @@ let out : (A : [box U<0>]) -> [box [unlock A]] -> [unlock A] =
 let duplicate : (A : [box U<0>]) -> [box [unlock A]] -> [box [box [unlock A]]] =
  fun A -> fun x -> [lock [lock [unlock x]]]
 
-let k : (A : [box U<0>]) -> (B : [box U<0>]) -> [box [unlock A] -> [unlock B]] -> [box [unlock A]] -> [box [unlock B]] =
+let k : (A : [box U<0>]) (B : [box U<0>]) -> [box [unlock A] -> [unlock B]] -> [box [unlock A]] -> [box [unlock B]] =
  fun A -> fun B -> fun f -> fun a -> [lock [unlock f] [unlock a]]
 
-let simple-rule : (A : [box U<0>]) -> (t : [box [unlock A]]) -> Id [box [unlock A]] (out [lock [box [unlock A]]] (duplicate A t)) t =
+let simple-rule : (A : [box U<0>]) (t : [box [unlock A]]) -> Id [box [unlock A]] (out [lock [box [unlock A]]] (duplicate A t)) t =
   fun A -> fun t -> refl t
 
 normalize def k
