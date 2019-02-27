@@ -16,7 +16,7 @@ and t =
   | Pi of t * binder
   | Lam of binder
   | Ap of t * spine list
-  | Sig of t * binder
+  | Sg of t * binder
   | Pair of t * t
   | Fst of t
   | Snd of t

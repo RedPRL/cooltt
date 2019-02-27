@@ -11,7 +11,7 @@ and t =
   | Zero
   | Suc of t
   | Pi of t * clos
-  | Sig of t * clos
+  | Sg of t * clos
   | Pair of t * t
   | Box of t
   | Shut of t

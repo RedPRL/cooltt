@@ -92,11 +92,11 @@ term:
   | LPR name = name; COLON; dom = term; RPR; RIGHT_ARROW; cod = term
     { Pi (dom, Binder {name; body = cod}) }
   | LPR name = name; COLON; left = term; RPR; TIMES; right = term
-    { Sig (left, Binder {name; body = right}) }
+    { Sg (left, Binder {name; body = right}) }
   | dom = atomic RIGHT_ARROW; cod = term
     { Pi (dom, Binder {name = ""; body = cod}) }
   | left = atomic; TIMES; right = term
-    { Sig (left, Binder {name = ""; body = right}) }
+    { Sg (left, Binder {name = ""; body = right}) }
   | FST; t = term { Fst t }
   | SND; t = term { Snd t }
 ;

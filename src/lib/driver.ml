@@ -68,8 +68,8 @@ let rec bind env = function
     S.Lam (bind (name :: env) body)
   | CS.Ap (f, args) ->
     List.map (bind_spine env) args |> unravel_spine (bind env f)
-  | CS.Sig (tp, Binder {name; body}) ->
-    S.Sig (bind env tp, bind (name :: env) body)
+  | CS.Sg (tp, Binder {name; body}) ->
+    S.Sg (bind env tp, bind (name :: env) body)
   | CS.Pair (l, r) -> S.Pair (bind env l, bind env r)
   | CS.Fst p -> S.Fst (bind env p)
   | CS.Snd p -> S.Snd (bind env p)
