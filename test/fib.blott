@@ -1,8 +1,7 @@
 ; Not really a particularly interesting program, but good for computing stuff.
 
 let plus : nat -> nat -> nat =
-  fun m ->
-  fun n ->
+  fun m n ->
   rec n at x -> nat with
   | zero -> m
   | suc _, p -> suc p

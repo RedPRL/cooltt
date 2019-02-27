@@ -2,6 +2,7 @@ type ident = string
 type uni_level = int
 
 type binder = Binder of {name : ident; body : t}
+and bindern = BinderN of {names : ident list; body : t}
 and binder2 = Binder2 of {name1 : ident; name2 : ident; body : t}
 and binder3 = Binder3 of {name1 : ident; name2 : ident; name3 : ident; body : t}
 and cell = Cell of {name : ident; ty : t}
@@ -15,7 +16,7 @@ and t =
   | Lit of int
   | NRec of {mot : binder; zero : t; suc : binder2; nat : t}
   | Pi of cell list * t
-  | Lam of binder
+  | Lam of bindern
   | Ap of t * spine list
   | Sg of cell list * t
   | Pair of t * t

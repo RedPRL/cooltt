@@ -87,8 +87,8 @@ term:
   | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
     PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
     { J {mot = Binder3 {name1; name2; name3; body = mot_term}; refl = Binder {name; body = refl}; eq} }
-  | LAM; name = name; RIGHT_ARROW; body = term
-    { Lam (Binder {name; body}) }
+  | LAM; names = nonempty_list(name); RIGHT_ARROW; body = term
+    { Lam (BinderN {names; body}) }
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
