@@ -1,8 +1,8 @@
 let con :
-  Nat -> Box Nat =
+  nat -> [box nat] =
   fun n ->
-  rec n at _ -> Box Nat with
+  rec n at _ -> [box nat] with
   | zero -> [lock zero]
   | suc _, p -> [lock suc [unlock p]]
 
-normalize con 50 at Box Nat
+normalize con 50 at [box nat]

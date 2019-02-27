@@ -96,7 +96,7 @@ let rec check ~env ~size ~term ~tp =
         assert_equal size term right tp
       | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
     end
-  | Pi (l, r) | Sig (l, r) ->
+  | Pi (l, r) | Sg (l, r) ->
     check ~env ~size ~term:l ~tp;
     let l_sem = Nbe.eval l (env_to_sem_env env) in
     let var = D.mk_var l_sem size in
@@ -113,11 +113,11 @@ let rec check ~env ~size ~term ~tp =
   | Pair (left, right) ->
     begin
       match tp with
-      | D.Sig (left_tp, right_tp) ->
+      | D.Sg (left_tp, right_tp) ->
         check ~env ~size ~term:left ~tp:left_tp;
         let left_sem = Nbe.eval left (env_to_sem_env env) in
         check ~env ~size ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
-      | t -> tp_error (Misc ("Expecting Sig but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
   | Box term -> check ~env:(apply_lock env) ~size ~term ~tp
   | Shut term ->
@@ -149,16 +149,16 @@ and synth ~env ~size ~term =
   | Fst p ->
     begin
       match synth ~env ~size ~term:p with
-      | Sig (left_tp, _) -> left_tp
-      | t -> tp_error (Misc ("Expecting Sig but found\n" ^ D.show t))
+      | Sg (left_tp, _) -> left_tp
+      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
   | Snd p ->
     begin
       match synth ~env ~size ~term:p with
-      | Sig (_, right_tp) ->
+      | Sg (_, right_tp) ->
         let proj = Nbe.eval (Fst p) (env_to_sem_env env) in
         Nbe.do_clos right_tp proj
-      | t -> tp_error (Misc ("Expecting Sig but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
   | Ap (f, a) ->
     begin
@@ -219,7 +219,7 @@ and check_tp ~env ~size ~term =
   | Syn.Nat -> ()
   | Uni _ -> ()
   | Box term -> check_tp ~env:(apply_lock env) ~size ~term
-  | Pi (l, r) | Sig (l, r) ->
+  | Pi (l, r) | Sg (l, r) ->
     check_tp ~env ~size ~term:l;
     let l_sem = Nbe.eval l (env_to_sem_env env) in
     let var = D.mk_var l_sem size in

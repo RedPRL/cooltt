@@ -62,14 +62,21 @@ let rec bind env = function
        bind env zero,
        bind (suc_name2 :: suc_name1 :: env) suc_body,
        bind env nat)
-  | CS.Pi (tp, Binder {name; body}) ->
-    S.Pi (bind env tp, bind (name :: env) body)
-  | CS.Lam (Binder {name; body}) ->
-    S.Lam (bind (name :: env) body)
+  | CS.Lam (BinderN {names = []; body}) ->
+    bind env body
+  | CS.Lam (BinderN {names = x :: names; body}) ->
+    let lam = CS.Lam (BinderN {names; body}) in
+    S.Lam (bind (x :: env) lam)
   | CS.Ap (f, args) ->
     List.map (bind_spine env) args |> unravel_spine (bind env f)
-  | CS.Sig (tp, Binder {name; body}) ->
-    S.Sig (bind env tp, bind (name :: env) body)
+  | CS.Sg ([], body) ->
+    bind env body
+  | CS.Sg (Cell cell :: tele, body) ->
+    S.Sg (bind env cell.ty, bind (cell.name :: env) (CS.Sg (tele, body)))
+  | CS.Pi ([], body) ->
+    bind env body
+  | CS.Pi (Cell cell :: tele, body) ->
+    S.Pi (bind env cell.ty, bind (cell.name :: env) (CS.Pi (tele, body)))
   | CS.Pair (l, r) -> S.Pair (bind env l, bind env r)
   | CS.Fst p -> S.Fst (bind env p)
   | CS.Snd p -> S.Snd (bind env p)

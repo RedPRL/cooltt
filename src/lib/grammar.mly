@@ -53,6 +53,8 @@ atomic:
     { Shut t }
   | LBR; UNLOCK; t = term; RBR
     { Open t }
+  | LBR; BOX; t = term; RBR
+    { Box t }
   | LANGLE left = term; COMMA; right = term; RANGLE
     { Pair (left, right) };
 
@@ -85,18 +87,21 @@ term:
   | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
     PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
     { J {mot = Binder3 {name1; name2; name3; body = mot_term}; refl = Binder {name; body = refl}; eq} }
-  | LAM; name = name; RIGHT_ARROW; body = term
-    { Lam (Binder {name; body}) }
-  | LPR name = name; COLON; dom = term; RPR; RIGHT_ARROW; cod = term
-    { Pi (dom, Binder {name; body = cod}) }
-  | LPR name = name; COLON; left = term; RPR; TIMES; right = term
-    { Sig (left, Binder {name; body = right}) }
+  | LAM; names = nonempty_list(name); RIGHT_ARROW; body = term
+    { Lam (BinderN {names; body}) }
+  | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
+    { Pi (tele, cod) }
+  | tele = nonempty_list(tele_cell); TIMES; cod = term
+    { Sg (tele, cod) }
   | dom = atomic RIGHT_ARROW; cod = term
-    { Pi (dom, Binder {name = ""; body = cod}) }
-  | left = atomic; TIMES; right = term
-    { Sig (left, Binder {name = ""; body = right}) }
+    { Pi ([Cell {name = ""; ty = dom}], cod)}
+  | dom = atomic; TIMES; cod = term
+    { Sg ([Cell {name = ""; ty = dom}], cod)}
   | FST; t = term { Fst t }
   | SND; t = term { Snd t }
-  | BOX; t = term
-    { Box t }
 ;
+
+tele_cell:
+  | LPR name = name; COLON ty = term; RPR
+    { Cell {name; ty} }
+; 

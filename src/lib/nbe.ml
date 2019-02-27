@@ -16,14 +16,14 @@ let rec do_rec tp zero suc n =
 and do_fst p =
   match p with
   | D.Pair (p1, _) -> p1
-  | D.Neutral {tp = D.Sig (t, _); term = ne} ->
+  | D.Neutral {tp = D.Sg (t, _); term = ne} ->
     D.Neutral {tp = t; term = D.Fst ne}
   | _ -> raise (Nbe_failed "Couldn't fst argument in do_fst")
 
 and do_snd p =
   match p with
   | D.Pair (_, p2) -> p2
-  | D.Neutral {tp = D.Sig (_, clo); term = ne} ->
+  | D.Neutral {tp = D.Sg (_, clo); term = ne} ->
     let fst = do_fst p in
     D.Neutral {tp = do_clos clo fst; term = D.Snd ne}
   | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
@@ -94,7 +94,7 @@ and eval t (env : D.env) =
   | Syn.Lam t -> D.Lam (Clos {term = t; env})
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
   | Syn.Uni i -> D.Uni i
-  | Syn.Sig (t1, t2) -> D.Sig (eval t1 env, (Clos {term = t2; env}))
+  | Syn.Sg (t1, t2) -> D.Sg (eval t1 env, (Clos {term = t2; env}))
   | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
   | Syn.Fst t -> do_fst (eval t env)
   | Syn.Snd t -> do_snd (eval t env)
@@ -114,7 +114,7 @@ let rec read_back_nf size nf =
     let nf = D.Normal {tp = do_clos dest arg; term = do_ap f arg} in
     Syn.Lam (read_back_nf (size + 1) nf)
   (* Pairs *)
-  | D.Normal {tp = D.Sig (fst, snd); term = p} ->
+  | D.Normal {tp = D.Sg (fst, snd); term = p} ->
     let fst' = do_fst p in
     let snd = do_clos snd fst' in
     let snd' = do_snd p in
@@ -146,9 +146,9 @@ and read_back_tp size d =
   | D.Pi (src, dest) ->
     let var = D.mk_var src size in
     Syn.Pi (read_back_tp size src, read_back_tp (size + 1) (do_clos dest var))
-  | D.Sig (fst, snd) ->
+  | D.Sg (fst, snd) ->
     let var = D.mk_var fst size in
-    Syn.Sig (read_back_tp size fst, read_back_tp (size + 1) (do_clos snd var))
+    Syn.Sg (read_back_tp size fst, read_back_tp (size + 1) (do_clos snd var))
   | D.Box t -> Syn.Box (read_back_tp size t)
   | D.Id (tp, left, right) ->
     Syn.Id
@@ -204,8 +204,8 @@ let rec check_nf size nf1 nf2 =
     let nf2 = D.Normal {tp = do_clos dest2 arg; term = do_ap f2 arg} in
     check_nf (size + 1) nf1 nf2
   (* Pairs *)
-  | D.Normal {tp = D.Sig (fst1, snd1); term = p1},
-    D.Normal {tp = D.Sig (fst2, snd2); term = p2} ->
+  | D.Normal {tp = D.Sg (fst1, snd1); term = p1},
+    D.Normal {tp = D.Sg (fst2, snd2); term = p2} ->
     let p11, p21 = do_fst p1, do_fst p2 in
     let snd1 = do_clos snd1 p11 in
     let snd2 = do_clos snd2 p21 in
@@ -290,7 +290,7 @@ and check_tp ~subtype size d1 d2 =
     let var = D.mk_var src' size in
     check_tp ~subtype size src' src &&
     check_tp ~subtype (size + 1) (do_clos dest var) (do_clos dest' var)
-  | D.Sig (fst, snd), D.Sig (fst', snd') ->
+  | D.Sg (fst, snd), D.Sg (fst', snd') ->
     let var = D.mk_var fst size in
     check_tp ~subtype size fst fst' &&
     check_tp ~subtype (size + 1) (do_clos snd var) (do_clos snd' var)

@@ -1,18 +1,17 @@
 ; Not really a particularly interesting program, but good for computing stuff.
 
-let plus : Nat -> Nat -> Nat =
-  fun m ->
-  fun n ->
-  rec n at x -> Nat with
+let plus : nat -> nat -> nat =
+  fun m n ->
+  rec n at x -> nat with
   | zero -> m
   | suc _, p -> suc p
 
-let fib : Nat -> Nat =
+let fib : nat -> nat =
   fun n ->
-  let worker : Nat * Nat =
-    rec n at _ -> Nat * Nat with
+  let worker : nat * nat =
+    rec n at _ -> nat * nat with
     | zero -> <1, 0>
     | suc _, p -> <plus (fst p) (snd p), fst p> in
   snd worker
 
-normalize fib 25 at Nat
+normalize fib 25 at nat

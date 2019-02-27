@@ -5,7 +5,7 @@ type t =
   | Let of t * (* BINDS *) t | Check of t * t
   | Nat | Zero | Suc of t | NRec of (* BINDS *) t * t * (* BINDS 2 *) t * t
   | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
-  | Sig of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
+  | Sg of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
   | Id of t * t * t | Refl of t | J of (* BINDS 3 *) t * (* BINDS *) t * t
   | Box of t | Open of t | Shut of t
   | Uni of uni_level
@@ -26,106 +26,48 @@ let rec pp fmt =
   function
   | Var i -> fprintf fmt "#%d" i
   | Let (def, body) ->
-    fprintf fmt "let@,@[<hov>";
-    pp fmt def;
-    fprintf fmt "]@,in@,@[<hov>";
-    pp fmt body;
-    fprintf fmt "@]"
+    fprintf fmt "let@,@[<hov>%a@]@,in@,@[<hov%a@]" pp def pp body
   | Check (term, tp) ->
-    fprintf fmt "(@[<hov>";
-    pp fmt term;
-    fprintf fmt "@]@ :@,[<hov>";
-    pp fmt tp;
-    fprintf fmt ")@]"
-  | Nat -> fprintf fmt "Nat"
+    fprintf fmt "(@[<hov>%a@]@ :@,@[<hov>%a@])" pp term pp tp
+  | Nat -> fprintf fmt "nat"
   | Zero -> fprintf fmt "0"
   | Suc t ->
     begin
       match condense t with
-      | Some n -> fprintf fmt "%d" (n + 1)
+      | Some n -> 
+        fprintf fmt "%d" (n + 1)
       | None ->
-        fprintf fmt "suc(@[<hov>";
-        pp fmt t;
-        fprintf fmt "@])"
+        fprintf fmt "suc(@[<hov>%a@])" pp t
     end
   | NRec (mot, zero, suc, n) ->
-    fprintf fmt "rec(@[<hov>@[<hov>";
-    pp fmt mot;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt zero;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt suc;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt n;
-    fprintf fmt "@]@])"
+    fprintf fmt "rec(@[<hov>@[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@]@])"
+      pp mot pp zero pp suc pp n;
   | Pi (l, r) ->
-    fprintf fmt "Pi(@[<hov>@[<hov>";
-    pp fmt l;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt r;
-    fprintf fmt ")@]@]"
+    fprintf fmt "Pi(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp l pp r;
   | Lam body ->
-    fprintf fmt "lam(@[<hov>";
-    pp fmt body;
-    fprintf fmt ")@]"
+    fprintf fmt "lam(@[<hov>%a@])" pp body
   | Ap (l, r) ->
-    fprintf fmt "app(@[<hov>@[<hov>";
-    pp fmt l;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt r;
-    fprintf fmt ")@]@]"
-  | Sig (l, r) ->
-    fprintf fmt "Sig(@[<hov>@[<hov>";
-    pp fmt l;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt r;
-    fprintf fmt ")@]@]"
+    fprintf fmt "app(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp l pp r
+  | Sg (l, r) ->
+    fprintf fmt "Sg(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp l pp r
   | Fst body ->
-    fprintf fmt "fst(@[<hov>";
-    pp fmt body;
-    fprintf fmt ")@]"
+    fprintf fmt "fst(@[<hov>%a@])" pp body
   | Snd body ->
-    fprintf fmt "snd(@[<hov>";
-    pp fmt body;
-    fprintf fmt ")@]"
+    fprintf fmt "snd(@[<hov>%a@])" pp body
   | Pair (l, r) ->
-    fprintf fmt "pair(@[<hov>@[<hov>";
-    pp fmt l;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt r;
-    fprintf fmt ")@]"
+    fprintf fmt "pair(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp l pp r
   | Id (tp, l, r) ->
-    fprintf fmt "pair(@[<hov>";
-    pp fmt tp;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt l;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt r;
-    fprintf fmt ")@]@]"
+    fprintf fmt "Id(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp tp pp l pp r;
   | Refl t ->
-    fprintf fmt "refl(@[<hov>";
-    pp fmt t;
-    fprintf fmt ")@]"
+    fprintf fmt "refl(@[<hov>%a@])" pp t
   | J (mot, refl, eq) ->
-    fprintf fmt "J(@[<hov>@[<hov>";
-    pp fmt mot;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt refl;
-    fprintf fmt "@],@ @[<hov>";
-    pp fmt eq;
-    fprintf fmt ")@]@]"
+    fprintf fmt "J(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp mot pp refl pp eq;
   | Box t ->
-    fprintf fmt "Box(@[<hov>";
-    pp fmt t;
-    fprintf fmt ")@]"
+    fprintf fmt "[box @[<hov>%a@]]" pp t;
   | Shut t ->
-    fprintf fmt "[lock @[<hov>";
-    pp fmt t;
-    fprintf fmt "]@]"
+    fprintf fmt "[lock @[<hov>%a@]]" pp t;
   | Open t ->
-    fprintf fmt "[unlock @[<hov>";
-    pp fmt t;
-    fprintf fmt "]@]"
+    fprintf fmt "[unlock @[<hov>%a@]]" pp t;
   | Uni i -> fprintf fmt "U<%d>" i
 
 
