@@ -1,18 +1,18 @@
 ## blott
 
-An implementation of Normalization by Evaluation & semantic type checking for Martin-Löf Type Theory
-with dependent products, dependent sums, natural numbers, id, box, and a cumulative hierarchy. This
-implementation correctly handles eta for box, pi, and sigma.
+An implementation of normalization by evaluation (nbe) & semantic type checking for Martin-Löf Type Theory
+with dependent products, dependent sums, natural numbers, id, box, and a cumulative hierarchy of universes. This
+implementation supports eta-rules for box, pi, and sigma.
 
 For examples, see the `test/` directory.
 
 ## building
 
-
 ```
 $ opam update
-$ opam pin add -y blott . # the first time you build
-$ opam upgrade            # after packages change
+$ opam install ppx_deriving # first time
+$ opam pin add -y blott .   # first time
+$ opam upgrade              # after packages change
 ```
 
 ## syntax
