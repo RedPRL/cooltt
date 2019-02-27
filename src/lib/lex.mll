@@ -85,6 +85,8 @@ rule token = parse
     { LAM }
   | '_'
     { UNDERSCORE }
+  | "--"
+    { comment lexbuf }
   | line_ending
     { new_line lexbuf; token lexbuf }
   | whitespace
