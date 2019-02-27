@@ -1,5 +1,5 @@
-let x : Nat = 2
+let x : nat = 2
 let id : (A : U<0>) -> A -> A = fun A -> fun x -> x
-let y : (A : Nat -> U<0>) -> (A x) -> A 2 = fun A -> id (A 2)
+let y : (A : nat -> U<0>) -> (A x) -> A 2 = fun A -> id (A 2)
 
 normalize def y

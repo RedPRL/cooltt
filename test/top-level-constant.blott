@@ -1,5 +1,5 @@
-let x : Nat = 0
+let x : nat = 0
 
-let y : Box Nat = shut x
+let y : [box nat] = [lock x]
 
 normalize def y

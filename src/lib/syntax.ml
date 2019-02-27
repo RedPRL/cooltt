@@ -37,7 +37,7 @@ let rec pp fmt =
     fprintf fmt "@]@ :@,[<hov>";
     pp fmt tp;
     fprintf fmt ")@]"
-  | Nat -> fprintf fmt "Nat"
+  | Nat -> fprintf fmt "nat"
   | Zero -> fprintf fmt "0"
   | Suc t ->
     begin
@@ -115,9 +115,9 @@ let rec pp fmt =
     pp fmt eq;
     fprintf fmt ")@]@]"
   | Box t ->
-    fprintf fmt "Box(@[<hov>";
+    fprintf fmt "[box @[<hov>";
     pp fmt t;
-    fprintf fmt ")@]"
+    fprintf fmt "]@]"
   | Shut t ->
     fprintf fmt "[lock @[<hov>";
     pp fmt t;

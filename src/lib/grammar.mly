@@ -53,6 +53,8 @@ atomic:
     { Shut t }
   | LBR; UNLOCK; t = term; RBR
     { Open t }
+  | LBR; BOX; t = term; RBR
+    { Box t }
   | LANGLE left = term; COMMA; right = term; RANGLE
     { Pair (left, right) };
 
@@ -97,6 +99,4 @@ term:
     { Sig (left, Binder {name = ""; body = right}) }
   | FST; t = term { Fst t }
   | SND; t = term { Snd t }
-  | BOX; t = term
-    { Box t }
 ;

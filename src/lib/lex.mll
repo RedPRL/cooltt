@@ -20,13 +20,13 @@ let keywords =
   make_table 0 [
     ("zero", ZERO);
     ("suc", SUC);
-    ("Nat", NAT);
+    ("nat", NAT);
     ("let", LET);
     ("in", IN);
     ("with", WITH);
     ("end", END);
     ("rec", REC);
-    ("Box", BOX);
+    ("box", BOX);
     ("lock", LOCK);
     ("unlock", UNLOCK);
     ("fst", FST);

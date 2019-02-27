@@ -31,7 +31,7 @@ the valid expressions in blott.
      let NAME = TERM in TERM
      let NAME : TYPE = TERM in TERM
      (* Natural numbers *)
-     Nat, 0, 1, 2...
+     nat, 0, 1, 2...
      (* Recursion on natural numbers *)
      rec NUMBER at x -> MOTIVE with
      | zero -> TERM
@@ -47,8 +47,8 @@ the valid expressions in blott.
      fst TERM
      snd TERM
 
-     (* The Box modality *)
-     Box TP
+     (* The box modality *)
+     [box TP]
      [lock TERM]
      [unlock TERM]
 

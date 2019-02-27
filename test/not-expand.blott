@@ -1,7 +1,9 @@
-let cantcontract : (Box Nat) -> Box (Box Nat) =
+let cantcontract : [box nat] -> [box [box nat]] =
   fun x -> [lock [lock [unlock x]]]
 
 normalize def cantcontract
 
-let cantcontract : (Box Nat) -> Box (Box Nat) =
-  fun x -> [lock x]
+-- The following is an example of something that should not type check:
+--
+-- let cantcontract : [box nat] -> [box [box nat]] =
+--   fun x -> [lock x]
