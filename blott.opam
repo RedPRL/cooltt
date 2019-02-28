@@ -10,6 +10,8 @@ synopsis: "Experimental implementation of Modal Dependent Type Theory"
 license: "MIT"
 depends: [
   "dune"  {build}
+  "ppx_deriving" {> "4.0"}
   "cmdliner" {>= "1.0" & < "1.1"}
+  "menhir" {>= "20180703"}
 ]
 build: [["dune" "build" "-p" name "-j" jobs]]

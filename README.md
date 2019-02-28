@@ -10,9 +10,9 @@ For examples, see the `test/` directory.
 
 ```
 $ opam update
-$ opam install ppx_deriving # first time
-$ opam pin add -y blott .   # first time
-$ opam upgrade              # after packages change
+$ opam install dune menhir ppx_deriving # first time
+$ opam pin add -y blott .               # first time
+$ opam upgrade                          # after packages change
 ```
 
 ## syntax
@@ -44,6 +44,7 @@ the valid expressions in blott.
 
      (* Pairs *)
      (NAME : TP) * TP
+     <TERM, TERM>
      fst TERM
      snd TERM
 

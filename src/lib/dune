@@ -6,7 +6,7 @@
 
 (library
  (name Normalizer)
- (libraries sexplib menhirLib)
+ (libraries menhirLib)
  (preprocess (pps ppx_deriving.std))
  (flags (:standard -w -9-32-37))
  (public_name blott.core))
