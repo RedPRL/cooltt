@@ -16,6 +16,9 @@ $ opam pin add -y blott .               # first time
 $ opam upgrade                          # after packages change
 ```
 
+After this, the executable `blott` should be available. The makefile can be used to rebuild the
+package for small tests.
+
 ## syntax
 
 This experimental proof assistant supports the following top-level declarations:
