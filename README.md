@@ -8,6 +8,8 @@ For examples, see the `test/` directory.
 
 ## building
 
+blott has been build with OCaml 4.06.1 and 4.07.1.
+
 ```
 $ opam update
 $ opam pin add -y blott .               # first time
