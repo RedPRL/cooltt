@@ -10,7 +10,6 @@ For examples, see the `test/` directory.
 
 ```
 $ opam update
-$ opam install dune menhir ppx_deriving # first time
 $ opam pin add -y blott .               # first time
 $ opam upgrade                          # after packages change
 ```
