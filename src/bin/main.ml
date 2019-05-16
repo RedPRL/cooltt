@@ -1,10 +1,10 @@
-open Normalizer
+open Core
 open Cmdliner
 
-let perform_norm input = Load.load_file input |> Driver.process_sign
+let execute input = Load.load_file input |> Driver.process_sign
 
 let main input =
-  try perform_norm input; 0 with
+  try execute input; 0 with
   | Invalid_argument s -> Printf.eprintf "Internal error (invalid argument): %s\n" s; 1
   | Failure s -> Printf.eprintf "Internal error (Failure): %s\n" s; 1
   | Load.Parse_error s -> Printf.eprintf "Frontend error: %s" s; 1

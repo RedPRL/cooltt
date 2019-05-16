@@ -5,7 +5,7 @@
 (ocamllex lex)
 
 (library
- (name Normalizer)
+ (name Core)
  (libraries menhirLib)
  (preprocess (pps ppx_deriving.std))
  (flags (:standard -w -9-32-37))
