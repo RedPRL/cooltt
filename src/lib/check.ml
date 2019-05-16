@@ -1,3 +1,4 @@
+(* This file implements the semantic type-checking algorithm described in the paper. *)
 module D = Domain
 module Syn = Syntax
 type env_entry =

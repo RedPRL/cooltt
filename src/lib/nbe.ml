@@ -1,3 +1,6 @@
+(* This file implements the normalization procedure. In addition the "unary" quotation
+ * algorithm described by the paper, we also implement a binary operation for increased
+ * efficiency. *)
 module Syn = Syntax
 
 module D = Domain

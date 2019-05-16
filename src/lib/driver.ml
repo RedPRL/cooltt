@@ -139,3 +139,5 @@ let rec process_sign ?env = function
     let o = process_decl env d in
     output o;
     process_sign ?env:(Some (update_env env o)) ds
+
+let process_sign : Concrete_syntax.signature -> unit = process_sign

@@ -5,7 +5,7 @@ val normalize : env:Syntax.env -> term:Syntax.t -> tp:Syntax.t -> Syntax.t
 
 (* Functions to pass between various semantic domains *)
 val eval : Syntax.t -> Domain.env -> Domain.t
-val read_back_nf : int -> Domain.nf -> Syntax.t
+val read_back_nf : int -> Domain.nf -> Syntax.t (* Note that read_back is referred to as quotation in the paper *)
 val read_back_tp : int -> Domain.t -> Syntax.t
 val read_back_ne : int -> Domain.ne -> Syntax.t
 
