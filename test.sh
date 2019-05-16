@@ -1,8 +1,8 @@
 #!/bin/bash
 
-for file in test/*; do
+for file in test/*.blott; do
   echo "Checking ${file}"
-  dune exec blott -- $file || exit 1
+  dune exec blott -- $file
   echo $'' # print newline ???
 done
 

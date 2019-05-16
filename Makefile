@@ -2,7 +2,7 @@ OPAM=opam
 EXEC=${OPAM} config exec
 DUNE=${EXEC} dune --
 
-.PHONY: all build clean test top
+.PHONY: all build clean test top test
 
 all: build
 
@@ -17,3 +17,6 @@ doc:
 
 install:
 	${OPAM} reinstall blott
+
+test:
+	@./test.sh
