@@ -82,11 +82,16 @@ let rec check ~env ~size ~term ~tp =
       | D.Uni _ -> ()
       | t -> tp_error (Expecting_universe t)
     end
-  | Id (tp, l, r) ->
-    check_tp ~env ~size ~term:tp;
-    let tp = Nbe.eval tp (env_to_sem_env env) in
-    check ~env ~size ~term:l ~tp;
-    check ~env ~size ~term:r ~tp
+  | Id (tp', l, r) ->
+    begin
+      match tp with
+      | D.Uni _ ->
+        check ~env ~size ~term:tp' ~tp;
+        let tp' = Nbe.eval tp' (env_to_sem_env env) in
+        check ~env ~size ~term:l ~tp:tp';
+        check ~env ~size ~term:r ~tp:tp'
+      | t -> tp_error (Expecting_universe t)
+    end
   | Refl term ->
     begin
       match tp with
@@ -98,10 +103,15 @@ let rec check ~env ~size ~term ~tp =
       | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
     end
   | Pi (l, r) | Sg (l, r) ->
-    check ~env ~size ~term:l ~tp;
-    let l_sem = Nbe.eval l (env_to_sem_env env) in
-    let var = D.mk_var l_sem size in
-    check ~env:(add_term ~term:var ~tp:l_sem env) ~size ~term:r ~tp
+    begin
+      match tp with
+      | D.Uni _ ->
+        check ~env ~size ~term:l ~tp;
+        let l_sem = Nbe.eval l (env_to_sem_env env) in
+        let var = D.mk_var l_sem size in
+        check ~env:(add_term ~term:var ~tp:l_sem env) ~size ~term:r ~tp
+      | t -> tp_error (Expecting_universe t)
+    end
   | Lam body ->
     begin
       match tp with
@@ -120,7 +130,12 @@ let rec check ~env ~size ~term ~tp =
         check ~env ~size ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
       | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
-  | Box term -> check ~env:(apply_lock env) ~size ~term ~tp
+  | Box term ->
+    begin
+      match tp with
+      | Uni _ -> check ~env:(apply_lock env) ~size ~term ~tp
+      | t -> tp_error (Expecting_universe t)
+    end
   | Shut term ->
     begin
       match tp with
