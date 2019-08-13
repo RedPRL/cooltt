@@ -6,6 +6,9 @@ of universes. This implementation supports eta-rules for box, pi, and sigma.
 
 For examples, see the `test/` directory.
 
+The type theory underlying `blott` as well as the implementation is described in
+[Implementing a Modal Dependent Type Theory](https://doi.acm.org/10.1145/3341711).
+
 ## building
 
 blott has been built with OCaml 4.06.1 and 4.07.1 with [opam 2.0](https://opam.ocaml.org/). Once
