@@ -1,6 +1,6 @@
 type uni_level = int
 type t =
-  | Var of int (* DeBruijn indices for variables & ticks *)
+  | Var of int (* DeBruijn indices for variables *)
   | Let of t * (* BINDS *) t | Check of t * t
   | Nat | Zero | Suc of t | NRec of (* BINDS *) t * t * (* BINDS 2 *) t * t
   | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
