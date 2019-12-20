@@ -2,9 +2,9 @@ module CS = Concrete_syntax
 module S = Syntax
 module D = Domain
 
-type env = Env of {size : int; check_env : Check.env; bindings : string list}
+type env = Env of {check_env : Check.env; bindings : string list}
 
-let initial_env = Env {size = 0; check_env = Check.Env.empty ; bindings = []}
+let initial_env = Env {check_env = Check.Env.empty ; bindings = []}
 
 type output =
     NoOutput of env
@@ -96,17 +96,18 @@ let rec bind env = function
 and bind_spine env = function
   | CS.Term t -> fun f -> S.Ap (f, bind env t)
 
-let process_decl (Env {size; check_env; bindings})  = function
+let process_decl (Env {check_env; bindings}) = 
+  function
   | CS.Def {name; def; tp} ->
     let def = bind bindings def in
     let tp = bind bindings tp in
-    Check.check_tp ~size ~env:check_env ~term:tp;
+    Check.check_tp ~env:check_env ~term:tp;
     let sem_env = Check.Env.to_sem_env check_env in
     let sem_tp = Nbe.eval tp sem_env in
-    Check.check ~size ~env:check_env ~term:def ~tp:sem_tp;
+    Check.check ~env:check_env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
     let new_entry = Check.Env.TopLevel {term = sem_def; tp = sem_tp} in
-    NoOutput (Env {size = size + 1; check_env = Check.Env.add_entry new_entry check_env; bindings = name :: bindings })
+    NoOutput (Env {check_env = Check.Env.add_entry new_entry check_env; bindings = name :: bindings })
   | CS.NormalizeDef name ->
     let err = Check.Type_error (Check.Misc ("Unbound variable: " ^ name)) in
     begin
@@ -118,10 +119,10 @@ let process_decl (Env {size; check_env; bindings})  = function
   | CS.NormalizeTerm {term; tp} ->
     let term = bind bindings term in
     let tp = bind bindings tp in
-    Check.check_tp ~size ~env:check_env ~term:tp;
+    Check.check_tp ~env:check_env ~term:tp;
     let sem_env = Check.Env.to_sem_env check_env in
     let sem_tp = Nbe.eval tp sem_env in
-    Check.check ~size ~env:check_env ~term ~tp:sem_tp;
+    Check.check ~env:check_env ~term ~tp:sem_tp;
     let sem_term = Nbe.eval term sem_env in
     let norm_term = Nbe.read_back_nf 0 (D.Normal {term = sem_term; tp = sem_tp}) in
     NF_term (term, norm_term)
