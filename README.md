@@ -6,8 +6,9 @@ of universes.
 
 For examples, see the `test/` directory.
 
-The type theory underlying `funtt` as well as the implementation is described in
-[Implementing a Modal Dependent Type Theory](https://doi.acm.org/10.1145/3341711).
+This implementation is forked from `blott`, the implementation artifact of
+[Implementing a Modal Dependent Type Theory](https://doi.acm.org/10.1145/3341711) by Gratzer,
+Sterling, and Birkedal.
 
 ## building
 
