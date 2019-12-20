@@ -16,7 +16,7 @@ doc:
 	@${DUNE} build @doc
 
 install:
-	${OPAM} reinstall blott
+	${OPAM} reinstall funtt
 
 test:
 	@./test.sh

@@ -1,8 +1,8 @@
 (executables
  (names main)
- (libraries blott.core cmdliner))
+ (libraries funtt.core cmdliner))
 
 (install
  (section bin)
- (package blott)
- (files (main.exe as blott)))
+ (package funtt)
+ (files (main.exe as funtt)))
