@@ -1,4 +1,4 @@
-## funtt
+## cooltt
 
 An implementation of normalization by evaluation (nbe) & semantic type checking for Martin-Löf Type
 Theory with dependent products, dependent sums, natural numbers, id, and a non-cumulative hierarchy
@@ -12,22 +12,22 @@ Sterling, and Birkedal.
 
 ## building
 
-funtt has been built with OCaml 4.06.1 and 4.07.1 with [opam 2.0](https://opam.ocaml.org/). Once
-these dependencies are installed funtt can be built with the following set of commands.
+cooltt has been built with OCaml 4.06.1 and 4.07.1 with [opam 2.0](https://opam.ocaml.org/). Once
+these dependencies are installed cooltt can be built with the following set of commands.
 
 ```
 $ opam update
-$ opam pin add -y funtt .               # first time
+$ opam pin add -y cooltt .               # first time
 $ opam upgrade                          # after packages change
 ```
 
-After this, the executable `funtt` should be available. The makefile can be used to rebuild the
-package for small tests. Locally, funtt is built with [dune](https://dune.build), running the above
+After this, the executable `cooltt` should be available. The makefile can be used to rebuild the
+package for small tests. Locally, cooltt is built with [dune](https://dune.build), running the above
 commands will also install dune. Once dune is available the executable can be locally changed and
 run with the following:
 
 ```
-$ dune exec ./src/bin/main.exe          # from the `funtt` top-level directory
+$ dune exec ./src/bin/main.exe          # from the `cooltt` top-level directory
 ```
 
 ## syntax
@@ -39,7 +39,7 @@ This experimental proof assistant supports the following top-level declarations:
  - A command to normalize an expression `normalize TERM at TYPE`
 
 Unlike in the paper, names instead of indices are used for the surface syntax. The following are
-the valid expressions in funtt.
+the valid expressions in cooltt.
 
 ``` ocaml
      (* Let bindings *)

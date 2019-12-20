@@ -1,8 +1,8 @@
 (executables
  (names main)
- (libraries funtt.core cmdliner))
+ (libraries cooltt.core cmdliner))
 
 (install
  (section bin)
- (package funtt)
- (files (main.exe as funtt)))
+ (package cooltt)
+ (files (main.exe as cooltt)))

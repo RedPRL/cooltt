@@ -16,7 +16,7 @@ doc:
 	@${DUNE} build @doc
 
 install:
-	${OPAM} reinstall funtt
+	${OPAM} reinstall cooltt
 
 test:
 	@./test.sh

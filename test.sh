@@ -1,8 +1,8 @@
 #!/bin/bash
 
-for file in test/*.funtt; do
+for file in test/*.cooltt; do
   echo "Checking ${file}"
-  dune exec funtt -- $file
+  dune exec cooltt -- $file
   echo $'' # print newline ???
 done
 

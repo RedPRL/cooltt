@@ -1,3 +1,3 @@
 ## tests
 
-There are a handful of examples showing how `funtt` may be used.
+There are a handful of examples showing how `cooltt` may be used.
