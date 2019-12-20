@@ -34,7 +34,6 @@ struct
 
   type t = {entries : entry list; size : int}
 
-  (* TODO: cache this *)
   let size env = env.size 
 
   let empty = {entries = []; size = 0}
