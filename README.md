@@ -1,7 +1,7 @@
 ## blott
 
 An implementation of normalization by evaluation (nbe) & semantic type checking for Martin-Löf Type
-Theory with dependent products, dependent sums, natural numbers, id, and a cumulative hierarchy
+Theory with dependent products, dependent sums, natural numbers, id, and a non-cumulative hierarchy
 of universes. This implementation supports eta-rules for pi, and sigma.
 
 For examples, see the `test/` directory.

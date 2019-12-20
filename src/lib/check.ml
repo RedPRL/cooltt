@@ -60,11 +60,6 @@ let get_var env n = match List.nth env n with
   | TopLevel {tp; _} -> tp
   | Term _ -> tp_error Using_locked_variable
 
-let assert_subtype size t1 t2 =
-  if Nbe.check_tp ~subtype:true size t1 t2
-  then ()
-  else tp_error (Type_mismatch (t1, t2))
-
 let assert_equal size t1 t2 tp =
   if Nbe.check_nf size (D.Normal {tp; term = t1}) (D.Normal {tp; term = t2})
   then ()
@@ -139,7 +134,11 @@ let rec check ~env ~size ~term ~tp =
           "Expecting universe over " ^ string_of_int i ^ " but found\n" ^ D.show t in
         tp_error (Misc msg)
     end
-  | term -> assert_subtype size (synth ~env ~size ~term) tp
+  | _ ->
+  let tp' = synth ~env ~size ~term in 
+  if Nbe.check_tp size tp' tp
+  then ()
+  else tp_error (Type_mismatch (tp', tp))
 
 and synth ~env ~size ~term =
   match term with
