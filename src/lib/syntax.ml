@@ -7,7 +7,6 @@ type t =
   | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
   | Sg of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
   | Id of t * t * t | Refl of t | J of (* BINDS 3 *) t * (* BINDS *) t * t
-  | Box of t | Open of t | Shut of t
   | Uni of uni_level
 [@@deriving eq]
 
@@ -62,12 +61,6 @@ let rec pp fmt =
     fprintf fmt "refl(@[<hov>%a@])" pp t
   | J (mot, refl, eq) ->
     fprintf fmt "J(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp mot pp refl pp eq;
-  | Box t ->
-    fprintf fmt "[box @[<hov>%a@]]" pp t;
-  | Shut t ->
-    fprintf fmt "[lock @[<hov>%a@]]" pp t;
-  | Open t ->
-    fprintf fmt "[unlock @[<hov>%a@]]" pp t;
   | Uni i -> fprintf fmt "U<%d>" i
 
 

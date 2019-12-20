@@ -9,7 +9,6 @@
 %token EQUALS
 %token TIMES FST SND
 %token LAM LET IN END WITH DEF
-%token BOX LOCK UNLOCK
 %token REC SUC NAT ZERO
 %token UNIV
 %token QUIT NORMALIZE
@@ -49,12 +48,6 @@ atomic:
   | UNIV; LANGLE; i = NUMERAL; RANGLE
     { Uni i }
   | NAT { Nat }
-  | LBR; LOCK; t = term; RBR
-    { Shut t }
-  | LBR; UNLOCK; t = term; RBR
-    { Open t }
-  | LBR; BOX; t = term; RBR
-    { Box t }
   | LANGLE left = term; COMMA; right = term; RANGLE
     { Pair (left, right) };
 

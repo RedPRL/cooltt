@@ -1,5 +1,0 @@
-let x : nat = 0
-
-let y : [box nat] = [lock x]
-
-normalize def y

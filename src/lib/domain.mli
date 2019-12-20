@@ -13,8 +13,6 @@ and t =
   | Pi of t * clos
   | Sg of t * clos
   | Pair of t * t
-  | Box of t
-  | Shut of t
   | Refl of t
   | Id of t * t * t
   | Uni of Syntax.uni_level
@@ -23,7 +21,6 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | Open of ne
   | NRec of clos * t * clos2 * ne
   | J of clos3 * clos * t * t * t * ne
 and nf =

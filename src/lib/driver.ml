@@ -91,9 +91,6 @@ let rec bind env = function
   | CS.Id (tp, left, right) ->
     S.Id (bind env tp, bind env left, bind env right)
   | CS.Refl t -> S.Refl (bind env t)
-  | CS.Box t -> S.Box (bind env t)
-  | CS.Shut t -> S.Shut (bind env t)
-  | CS.Open t -> S.Open (bind env t)
   | CS.Uni i -> S.Uni i
 
 and bind_spine env = function

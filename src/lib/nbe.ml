@@ -40,17 +40,6 @@ and do_clos2 (D.Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
 
 and do_clos3 (D.Clos3 {term; env}) a1 a2 a3 = eval term (a3 :: a2 :: a1 :: env)
 
-and do_open t =
-  match t with
-  | D.Shut t -> t
-  | D.Neutral {tp; term} ->
-    begin
-      match tp with
-      | D.Box tp -> D.Neutral {tp; term = D.Open term}
-      | _ -> raise (Nbe_failed "Not a box in do_open")
-    end
-  | _ -> raise (Nbe_failed "Not a box or neutral in open")
-
 and do_j mot refl eq =
   match eq with
   | D.Refl t -> do_clos refl t
@@ -101,9 +90,6 @@ and eval t (env : D.env) =
   | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
   | Syn.Fst t -> do_fst (eval t env)
   | Syn.Snd t -> do_snd (eval t env)
-  | Syn.Box t -> D.Box (eval t env)
-  | Syn.Open t -> do_open (eval t env)
-  | Syn.Shut t -> D.Shut (eval t env)
   | Syn.Refl t -> D.Refl (eval t env)
   | Syn.Id (tp, left, right) -> D.Id (eval tp env, eval left env, eval right env)
   | Syn.J (mot, refl, eq) ->
@@ -129,9 +115,6 @@ let rec read_back_nf size nf =
   | D.Normal {tp = D.Nat; term = D.Suc nf} ->
     Syn.Suc (read_back_nf size (D.Normal {tp = D.Nat; term = nf}))
   | D.Normal {tp = D.Nat; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
-  (* Box *)
-  | D.Normal {tp = D.Box tp; term} ->
-    Syn.Shut (read_back_nf size (D.Normal {tp; term = do_open term}))
   (* Id *)
   | D.Normal {tp = D.Id (tp, _, _); term = D.Refl term} ->
     Syn.Refl (read_back_nf size (D.Normal {tp; term}))
@@ -152,7 +135,6 @@ and read_back_tp size d =
   | D.Sg (fst, snd) ->
     let var = D.mk_var fst size in
     Syn.Sg (read_back_tp size fst, read_back_tp (size + 1) (do_clos snd var))
-  | D.Box t -> Syn.Box (read_back_tp size t)
   | D.Id (tp, left, right) ->
     Syn.Id
       (read_back_tp size tp,
@@ -183,7 +165,6 @@ and read_back_ne size ne =
        read_back_ne size n)
   | D.Fst ne -> Syn.Fst (read_back_ne size ne)
   | D.Snd ne -> Syn.Snd (read_back_ne size ne)
-  | D.Open ne -> Syn.Open (read_back_ne size ne)
   | D.J (mot, refl, tp, left, right, eq) ->
     let mot_var1 = D.mk_var tp size in
     let mot_var2 = D.mk_var tp (size + 1) in
@@ -230,10 +211,6 @@ let rec check_nf size nf1 nf2 =
   | D.Normal {tp = D.Id _; term = D.Neutral {term = term1; _}},
     D.Normal {tp = D.Id _; term = D.Neutral {term = term2; _}} ->
     check_ne size term1 term2
-  (* Box *)
-  | D.Normal {tp = D.Box tp; term = term1},
-    D.Normal {tp = D.Box _; term = term2}->
-    check_nf size (D.Normal {tp; term = do_open term1}) (D.Normal {tp; term = do_open term2})
   (* Types *)
   | D.Normal {tp = D.Uni _; term = t1}, D.Normal {tp = D.Uni _; term = t2} ->
     check_tp ~subtype:false size t1 t2
@@ -262,7 +239,6 @@ and check_ne size ne1 ne2 =
     && check_ne size n1 n2
   | D.Fst ne1, D.Fst ne2  -> check_ne size ne1 ne2
   | D.Snd ne1, D.Snd ne2 -> check_ne size ne1 ne2
-  | D.Open ne1, D.Open ne2 -> check_ne size ne1 ne2
   | D.J (mot1, refl1, tp1, left1, right1, eq1),
     D.J (mot2, refl2, tp2, left2, right2, eq2) ->
     check_tp ~subtype:false size tp1 tp2 &&
@@ -297,7 +273,6 @@ and check_tp ~subtype size d1 d2 =
     let var = D.mk_var fst size in
     check_tp ~subtype size fst fst' &&
     check_tp ~subtype (size + 1) (do_clos snd var) (do_clos snd' var)
-  | D.Box t, D.Box t' -> check_tp ~subtype size t t'
   | D.Uni k, D.Uni j -> if subtype then k <= j else k = j
   | _ -> false
 

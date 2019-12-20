@@ -26,9 +26,6 @@ let keywords =
     ("with", WITH);
     ("end", END);
     ("rec", REC);
-    ("box", BOX);
-    ("lock", LOCK);
-    ("unlock", UNLOCK);
     ("fst", FST);
     ("snd", SND);
     ("fun", LAM);

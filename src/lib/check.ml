@@ -130,18 +130,6 @@ let rec check ~env ~size ~term ~tp =
         check ~env ~size ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
       | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
-  | Box term ->
-    begin
-      match tp with
-      | Uni _ -> check ~env:(apply_lock env) ~size ~term ~tp
-      | t -> tp_error (Expecting_universe t)
-    end
-  | Shut term ->
-    begin
-      match tp with
-      | Box tp -> check ~env:(apply_lock env) ~size ~term ~tp
-      | t -> tp_error (Misc ("Expecting Box but found\n" ^ D.show t))
-    end
   | Uni i ->
     begin
       match tp with
@@ -201,13 +189,6 @@ and synth ~env ~size ~term =
       ~term:suc
       ~tp:suc_tp;
     Nbe.eval mot (Nbe.eval n sem_env :: sem_env)
-  | Open term ->
-    let env = strip_env env in
-    begin
-      match synth ~env ~size ~term with
-      | Box tp -> tp
-      | t -> tp_error (Misc ("Expecting Box but found\n" ^ D.show t))
-    end
   | J (mot, refl, eq) ->
     let eq_tp = synth ~env ~size ~term:eq in
     begin
@@ -234,7 +215,6 @@ and check_tp ~env ~size ~term =
   match term with
   | Syn.Nat -> ()
   | Uni _ -> ()
-  | Box term -> check_tp ~env:(apply_lock env) ~size ~term
   | Pi (l, r) | Sg (l, r) ->
     check_tp ~env ~size ~term:l;
     let l_sem = Nbe.eval l (env_to_sem_env env) in

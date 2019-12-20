@@ -1,8 +1,8 @@
 ## blott
 
 An implementation of normalization by evaluation (nbe) & semantic type checking for Martin-Löf Type
-Theory with dependent products, dependent sums, natural numbers, id, box, and a cumulative hierarchy
-of universes. This implementation supports eta-rules for box, pi, and sigma.
+Theory with dependent products, dependent sums, natural numbers, id, and a cumulative hierarchy
+of universes. This implementation supports eta-rules for pi, and sigma.
 
 For examples, see the `test/` directory.
 
@@ -61,11 +61,6 @@ the valid expressions in blott.
      <TERM, TERM>
      fst TERM
      snd TERM
-
-     (* The box modality *)
-     [box TP]
-     [lock TERM]
-     [unlock TERM]
 
      (* Universes *)
      U<0>,U<1>,...

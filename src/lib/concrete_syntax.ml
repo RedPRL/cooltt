@@ -25,9 +25,6 @@ and t =
   | Id of t * t * t
   | Refl of t
   | J of {mot : binder3; refl : binder; eq : t}
-  | Box of t
-  | Open of t
-  | Shut of t
   | Uni of uni_level
 
 type decl =
