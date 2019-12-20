@@ -178,7 +178,7 @@ and read_back_ne size ne =
     let eq_syn = read_back_ne size eq in
     Syn.J (mot_syn, refl_syn, eq_syn)
 
-let rec check_nf size nf1 nf2 =
+let rec equal_nf size nf1 nf2 =
   match nf1, nf2 with
   (* Functions *)
   | D.Normal {tp = D.Pi (src1, dest1); term = f1},
@@ -186,7 +186,7 @@ let rec check_nf size nf1 nf2 =
     let arg = D.mk_var src1 size in
     let nf1 = D.Normal {tp = do_clos dest1 arg; term = do_ap f1 arg} in
     let nf2 = D.Normal {tp = do_clos dest2 arg; term = do_ap f2 arg} in
-    check_nf (size + 1) nf1 nf2
+    equal_nf (size + 1) nf1 nf2
   (* Pairs *)
   | D.Normal {tp = D.Sg (fst1, snd1); term = p1},
     D.Normal {tp = D.Sg (fst2, snd2); term = p2} ->
@@ -194,35 +194,35 @@ let rec check_nf size nf1 nf2 =
     let snd1 = do_clos snd1 p11 in
     let snd2 = do_clos snd2 p21 in
     let p12, p22 = do_snd p1, do_snd p2 in
-    check_nf size (D.Normal {tp = fst1; term = p11}) (D.Normal {tp = fst2; term = p21})
-    && check_nf size (D.Normal {tp = snd1; term = p12}) (D.Normal {tp = snd2; term = p22})
+    equal_nf size (D.Normal {tp = fst1; term = p11}) (D.Normal {tp = fst2; term = p21})
+    && equal_nf size (D.Normal {tp = snd1; term = p12}) (D.Normal {tp = snd2; term = p22})
   (* Numbers *)
   | D.Normal {tp = D.Nat; term = D.Zero},
     D.Normal {tp = D.Nat; term = D.Zero} -> true
   | D.Normal {tp = D.Nat; term = D.Suc nf1},
     D.Normal {tp = D.Nat; term = D.Suc nf2} ->
-    check_nf size (D.Normal {tp = D.Nat; term = nf1}) (D.Normal {tp = D.Nat; term = nf2})
+    equal_nf size (D.Normal {tp = D.Nat; term = nf1}) (D.Normal {tp = D.Nat; term = nf2})
   | D.Normal {tp = D.Nat; term = D.Neutral {term = ne1; _}},
-    D.Normal {tp = D.Nat; term = D.Neutral {term = ne2; _}}-> check_ne size ne1 ne2
+    D.Normal {tp = D.Nat; term = D.Neutral {term = ne2; _}}-> equal_ne size ne1 ne2
   (* Id *)
   | D.Normal {tp = D.Id (tp, _, _); term = D.Refl term1},
     D.Normal {tp = D.Id (_, _, _); term = D.Refl term2} ->
-    check_nf size (D.Normal {tp; term = term1}) (D.Normal {tp; term = term2})
+    equal_nf size (D.Normal {tp; term = term1}) (D.Normal {tp; term = term2})
   | D.Normal {tp = D.Id _; term = D.Neutral {term = term1; _}},
     D.Normal {tp = D.Id _; term = D.Neutral {term = term2; _}} ->
-    check_ne size term1 term2
+    equal_ne size term1 term2
   (* Types *)
   | D.Normal {tp = D.Uni _; term = t1}, D.Normal {tp = D.Uni _; term = t2} ->
-    check_tp size t1 t2
+    equal_tp size t1 t2
   | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne1; _}},
-    D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne2; _}} -> check_ne size ne1 ne2
+    D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne2; _}} -> equal_ne size ne1 ne2
   | _ -> false
 
-and check_ne size ne1 ne2 =
+and equal_ne size ne1 ne2 =
   match ne1, ne2 with
   | D.Var x, D.Var y -> x = y
   | D.Ap (ne1, arg1), D.Ap (ne2, arg2) ->
-    check_ne size ne1 ne2 && check_nf size arg1 arg2
+    equal_ne size ne1 ne2 && equal_nf size arg1 arg2
   | D.NRec (tp1, zero1, suc1, n1), D.NRec (tp2, zero2, suc2, n2) ->
     let tp_var = D.mk_var D.Nat size in
     let applied_tp1, applied_tp2 = do_clos tp1 tp_var, do_clos tp2 tp_var in
@@ -232,47 +232,47 @@ and check_ne size ne1 ne2 =
     let suc_var2 = D.mk_var applied_tp2 (size + 1) in
     let applied_suc1 = do_clos2 suc1 tp_var suc_var1 in
     let applied_suc2 = do_clos2 suc2 tp_var suc_var2 in
-    check_tp (size + 1) applied_tp1 applied_tp2
-    && check_nf size (D.Normal {tp = zero_tp; term = zero1}) (D.Normal {tp = zero_tp; term = zero2})
-    && check_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc1})
+    equal_tp (size + 1) applied_tp1 applied_tp2
+    && equal_nf size (D.Normal {tp = zero_tp; term = zero1}) (D.Normal {tp = zero_tp; term = zero2})
+    && equal_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc1})
       (D.Normal {tp = applied_suc_tp; term = applied_suc2})
-    && check_ne size n1 n2
-  | D.Fst ne1, D.Fst ne2  -> check_ne size ne1 ne2
-  | D.Snd ne1, D.Snd ne2 -> check_ne size ne1 ne2
+    && equal_ne size n1 n2
+  | D.Fst ne1, D.Fst ne2  -> equal_ne size ne1 ne2
+  | D.Snd ne1, D.Snd ne2 -> equal_ne size ne1 ne2
   | D.J (mot1, refl1, tp1, left1, right1, eq1),
     D.J (mot2, refl2, tp2, left2, right2, eq2) ->
-    check_tp size tp1 tp2 &&
-    check_nf size (D.Normal {tp = tp1; term = left1}) (D.Normal {tp = tp2; term = left2}) &&
-    check_nf size (D.Normal {tp = tp1; term = right1}) (D.Normal {tp = tp2; term = right2}) &&
+    equal_tp size tp1 tp2 &&
+    equal_nf size (D.Normal {tp = tp1; term = left1}) (D.Normal {tp = tp2; term = left2}) &&
+    equal_nf size (D.Normal {tp = tp1; term = right1}) (D.Normal {tp = tp2; term = right2}) &&
     let mot_var1 = D.mk_var tp1 size in
     let mot_var2 = D.mk_var tp1 (size + 1) in
     let mot_var3 = D.mk_var (D.Id (tp1, left1, right1)) (size + 2) in
-    check_tp (size + 3) (do_clos3 mot1 mot_var1 mot_var2 mot_var3) (do_clos3 mot2 mot_var1 mot_var2 mot_var3) &&
+    equal_tp (size + 3) (do_clos3 mot1 mot_var1 mot_var2 mot_var3) (do_clos3 mot2 mot_var1 mot_var2 mot_var3) &&
     let refl_var = D.mk_var tp1 size in
-    check_nf
+    equal_nf
       (size + 1)
       (D.Normal {term = do_clos refl1 refl_var; tp = do_clos3 mot1 refl_var refl_var (D.Refl refl_var)})
       (D.Normal {term = do_clos refl2 refl_var; tp = do_clos3 mot2 refl_var refl_var (D.Refl refl_var)}) &&
-    check_ne size eq1 eq2
+    equal_ne size eq1 eq2
   | _ -> false
 
-and check_tp size d1 d2 =
+and equal_tp size d1 d2 =
   match d1, d2 with
   | D.Neutral {term = term1; _}, D.Neutral {term = term2; _} ->
-    check_ne size term1 term2
+    equal_ne size term1 term2
   | D.Nat, D.Nat -> true
   | D.Id (tp1, left1, right1), D.Id (tp2, left2, right2) ->
-    check_tp size tp1 tp2 &&
-    check_nf size (D.Normal {tp = tp1; term = left1}) (D.Normal {tp = tp1; term = left2}) &&
-    check_nf size (D.Normal {tp = tp1; term = right1}) (D.Normal {tp = tp1; term = right2})
+    equal_tp size tp1 tp2 &&
+    equal_nf size (D.Normal {tp = tp1; term = left1}) (D.Normal {tp = tp1; term = left2}) &&
+    equal_nf size (D.Normal {tp = tp1; term = right1}) (D.Normal {tp = tp1; term = right2})
   | D.Pi (src, dest), D.Pi (src', dest') ->
     let var = D.mk_var src' size in
-    check_tp size src' src &&
-    check_tp (size + 1) (do_clos dest var) (do_clos dest' var)
+    equal_tp size src' src &&
+    equal_tp (size + 1) (do_clos dest var) (do_clos dest' var)
   | D.Sg (fst, snd), D.Sg (fst', snd') ->
     let var = D.mk_var fst size in
-    check_tp size fst fst' &&
-    check_tp (size + 1) (do_clos snd var) (do_clos snd' var)
+    equal_tp size fst fst' &&
+    equal_tp (size + 1) (do_clos snd var) (do_clos snd' var)
   | D.Uni k, D.Uni j -> k = j 
   | _ -> false
 

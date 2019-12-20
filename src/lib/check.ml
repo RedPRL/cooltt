@@ -61,7 +61,7 @@ let get_var env n = match List.nth env n with
   | Term _ -> tp_error Using_locked_variable
 
 let assert_equal size t1 t2 tp =
-  if Nbe.check_nf size (D.Normal {tp; term = t1}) (D.Normal {tp; term = t2})
+  if Nbe.equal_nf size (D.Normal {tp; term = t1}) (D.Normal {tp; term = t2})
   then ()
   else tp_error (Type_mismatch (t1, t2))
 
@@ -136,7 +136,7 @@ let rec check ~env ~size ~term ~tp =
     end
   | _ ->
   let tp' = synth ~env ~size ~term in 
-  if Nbe.check_tp size tp' tp
+  if Nbe.equal_tp size tp' tp
   then ()
   else tp_error (Type_mismatch (tp', tp))
 
