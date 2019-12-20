@@ -12,11 +12,13 @@ type output =
   | NF_def of CS.ident * S.t
   | Quit
 
-let update_env env = function
+let update_env env = 
+  function
   | NoOutput env -> env
   | NF_term _ | NF_def _ | Quit -> env
 
-let output = function
+let output = 
+  function
   | NoOutput _ -> ()
   | NF_term (s, t) ->
     Format.fprintf Format.std_formatter "Computed normal form of@ @[<hv>";
@@ -31,20 +33,24 @@ let output = function
   | Quit -> exit 0
 
 let find_idx key =
-  let rec go i = function
+  let rec go i = 
+    function
     | [] -> raise (Check.Type_error (Check.Misc ("Unbound variable: " ^ key)))
     | x :: xs -> if String.equal x key then i else go (i + 1) xs in
   go 0
 
-let rec int_to_term = function
+let rec int_to_term = 
+  function
   | 0 -> S.Zero
   | n -> S.Suc (int_to_term (n - 1))
 
-let rec unravel_spine f = function
+let rec unravel_spine f = 
+  function
   | [] -> f
   | x :: xs -> unravel_spine (x f) xs
 
-let rec bind env = function
+let rec bind env = 
+  function
   | CS.Var i -> S.Var (find_idx i env)
   | CS.Let (tp, Binder {name; body}) ->
     S.Let (bind env tp, bind (name :: env) body)
@@ -93,7 +99,8 @@ let rec bind env = function
   | CS.Refl t -> S.Refl (bind env t)
   | CS.Uni i -> S.Uni i
 
-and bind_spine env = function
+and bind_spine env = 
+  function
   | CS.Term t -> fun f -> S.Ap (f, bind env t)
 
 let process_decl (Env {check_env; bindings}) = 
@@ -128,7 +135,8 @@ let process_decl (Env {check_env; bindings}) =
     NF_term (term, norm_term)
   | CS.Quit -> Quit
 
-let rec process_sign ?env = function
+let rec process_sign ?env = 
+  function
   | [] -> ()
   | d :: ds ->
     let env = match env with
