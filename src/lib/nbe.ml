@@ -85,7 +85,6 @@ and eval t (env : D.env) =
     D.Pi (eval src env, (Clos {term = dest; env}))
   | Syn.Lam t -> D.Lam (Clos {term = t; env})
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
-  | Syn.Uni i -> D.Uni i
   | Syn.Sg (t1, t2) -> D.Sg (eval t1 env, (Clos {term = t2; env}))
   | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
   | Syn.Fst t -> do_fst (eval t env)
@@ -121,7 +120,6 @@ let rec read_back_nf size nf =
   | D.Normal {tp = D.Id _; term = D.Neutral {term; _}} ->
     read_back_ne size term
   (* Types *)
-  | D.Normal {tp = D.Uni _; term = t} -> read_back_tp size t
   | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
 
@@ -140,7 +138,6 @@ and read_back_tp size d =
       (read_back_tp size tp,
        read_back_nf size (D.Normal {tp; term = left}),
        read_back_nf size (D.Normal {tp; term = right}))
-  | D.Uni k -> Syn.Uni k
   | _ -> raise (Nbe_failed "Not a type in read_back_tp")
 
 and read_back_ne size ne =
@@ -212,8 +209,6 @@ let rec equal_nf size nf1 nf2 =
     D.Normal {tp = D.Id _; term = D.Neutral {term = term2; _}} ->
     equal_ne size term1 term2
   (* Types *)
-  | D.Normal {tp = D.Uni _; term = t1}, D.Normal {tp = D.Uni _; term = t2} ->
-    equal_tp size t1 t2
   | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne1; _}},
     D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne2; _}} -> equal_ne size ne1 ne2
   | _ -> false
@@ -273,7 +268,6 @@ and equal_tp size d1 d2 =
     let var = D.mk_var fst size in
     equal_tp size fst fst' &&
     equal_tp (size + 1) (do_clos snd var) (do_clos snd' var)
-  | D.Uni k, D.Uni j -> k = j 
   | _ -> false
 
 let rec initial_env env =

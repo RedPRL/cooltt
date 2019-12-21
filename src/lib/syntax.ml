@@ -1,5 +1,3 @@
-type uni_level = int
-[@@deriving show{ with_path = false }, eq]
 type t =
   | Var of int (* DeBruijn indices for variables & ticks *)
   | Let of t * (* BINDS *) t | Check of t * t
@@ -7,7 +5,6 @@ type t =
   | Pi of t * (* BINDS *) t | Lam of (* BINDS *) t | Ap of t * t
   | Sg of t * (* BINDS *) t | Pair of t * t | Fst of t | Snd of t
   | Id of t * t * t | Refl of t | J of (* BINDS 3 *) t * (* BINDS *) t * t
-  | Uni of uni_level
 [@@deriving eq]
 
 let rec condense = function
@@ -61,16 +58,6 @@ let rec pp fmt =
     fprintf fmt "refl(@[<hov>%a@])" pp t
   | J (mot, refl, eq) ->
     fprintf fmt "J(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp mot pp refl pp eq;
-  | Uni i -> fprintf fmt "U<%d>" i
-
-
-
-let show t =
-  let b = Buffer.create 100 in
-  let fmt = Format.formatter_of_buffer b in
-  pp fmt t;
-  Format.pp_print_flush fmt ();
-  Buffer.contents b
 
 
 type env = t list

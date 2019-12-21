@@ -1,18 +1,1 @@
 let test : Id nat 0 0 = refl 0
-
-let subst : (A : nat -> U<0>) (n : nat) (m : nat) -> (Id nat n m) -> (A n) -> (A m) =
-  fun A n m prf ->
-  match prf at x y prf -> (A x) -> (A y) with
-  | refl _ -> fun x -> x
-
-let uhoh : (A : U<0>) -> nat -> U<0> =
-  fun A n ->
-  rec n at _ -> U<0> with
-  | zero -> Id nat 0 0
-  | suc _, _ -> A
-
-let absurd : (A : U<0>) -> (Id nat 0 1) -> A =
- fun A prf ->
- subst (uhoh A) 0 1 prf (refl 0)
-
-normalize def absurd

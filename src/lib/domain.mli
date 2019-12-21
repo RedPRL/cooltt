@@ -15,7 +15,6 @@ and t =
   | Pair of t * t
   | Refl of t
   | Id of t * t * t
-  | Uni of Syntax.uni_level
 and ne =
   | Var of int (* DeBruijn levels for variables *)
   | Ap of ne * nf

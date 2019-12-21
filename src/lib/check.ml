@@ -90,22 +90,6 @@ let rec check ~env ~term ~tp =
     let def_tp = synth ~env ~term:def in
     let def_val = Nbe.eval def (Env.to_sem_env env) in
     check ~env:(Env.add_term ~term:def_val ~tp:def_tp env) ~term:body ~tp
-  | Nat ->
-    begin
-      match tp with
-      | D.Uni _ -> ()
-      | t -> tp_error (Expecting_universe t)
-    end
-  | Id (tp', l, r) ->
-    begin
-      match tp with
-      | D.Uni _ ->
-        check ~env ~term:tp' ~tp;
-        let tp' = Nbe.eval tp' (Env.to_sem_env env) in
-        check ~env ~term:l ~tp:tp';
-        check ~env ~term:r ~tp:tp'
-      | t -> tp_error (Expecting_universe t)
-    end
   | Refl term ->
     begin
       match tp with
@@ -115,16 +99,6 @@ let rec check ~env ~term ~tp =
         assert_equal (Env.size env) term left tp;
         assert_equal (Env.size env) term right tp
       | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
-    end
-  | Pi (l, r) | Sg (l, r) ->
-    begin
-      match tp with
-      | D.Uni _ ->
-        check ~env ~term:l ~tp;
-        let l_sem = Nbe.eval l (Env.to_sem_env env) in
-        let var = D.mk_var l_sem (Env.size env) in
-        check ~env:(Env.add_term ~term:var ~tp:l_sem env) ~term:r ~tp
-      | t -> tp_error (Expecting_universe t)
     end
   | Lam body ->
     begin
@@ -143,15 +117,6 @@ let rec check ~env ~term ~tp =
         let left_sem = Nbe.eval left (Env.to_sem_env env) in
         check ~env ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
       | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
-    end
-  | Uni i ->
-    begin
-      match tp with
-      | Uni j when i < j -> ()
-      | t ->
-        let msg =
-          "Expecting universe over " ^ string_of_int i ^ " but found\n" ^ D.show t in
-        tp_error (Misc msg)
     end
   | _ ->
   let tp' = synth ~env ~term in 
@@ -231,7 +196,6 @@ and synth ~env ~term =
 and check_tp ~env ~term =
   match term with
   | Syn.Nat -> ()
-  | Uni _ -> ()
   | Pi (l, r) | Sg (l, r) ->
     check_tp ~env ~term:l;
     let l_sem = Nbe.eval l (Env.to_sem_env env) in
@@ -246,9 +210,5 @@ and check_tp ~env ~term =
     let tp = Nbe.eval tp (Env.to_sem_env env) in
     check ~env ~term:l ~tp;
     check ~env ~term:r ~tp
-  | term ->
-    begin
-      match synth ~env ~term with
-      | D.Uni _ -> ()
-      | t -> tp_error (Expecting_universe t)
-    end
+  | _ ->
+    tp_error (Misc "Not a type expression")

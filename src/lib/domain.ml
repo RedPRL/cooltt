@@ -19,7 +19,6 @@ and t =
   | Pair of t * t
   | Refl of t
   | Id of t * t * t
-  | Uni of Syntax.uni_level
 [@@deriving show, eq]
 and ne =
   | Var of int (* DeBruijn levels for variables *)

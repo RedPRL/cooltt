@@ -29,7 +29,6 @@ let keywords =
     ("fst", FST);
     ("snd", SND);
     ("fun", LAM);
-    ("U", UNIV);
     ("match", MATCH);
     ("Id", ID);
     ("refl", REFL);

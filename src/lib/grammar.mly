@@ -10,7 +10,6 @@
 %token TIMES FST SND
 %token LAM LET IN END WITH DEF
 %token REC SUC NAT ZERO
-%token UNIV
 %token QUIT NORMALIZE
 %token ID REFL MATCH
 %token EOF
@@ -45,8 +44,6 @@ atomic:
     { Lit 0 }
   | n = NUMERAL
     { Lit n }
-  | UNIV; LANGLE; i = NUMERAL; RANGLE
-    { Uni i }
   | NAT { Nat }
   | LANGLE left = term; COMMA; right = term; RANGLE
     { Pair (left, right) };

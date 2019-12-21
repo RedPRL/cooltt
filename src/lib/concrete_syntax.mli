@@ -1,5 +1,4 @@
 type ident = string
-type uni_level = int
 
 type binder = Binder of {name : ident; body : t}
 and bindern = BinderN of {names : ident list; body : t}
@@ -25,7 +24,6 @@ and t =
   | Id of t * t * t
   | Refl of t
   | J of {mot : binder3; refl : binder; eq : t}
-  | Uni of uni_level
 
 type decl =
     Def of {name : ident; def : t; tp : t}
