@@ -5,7 +5,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE
-%token LPR RPR LANGLE RANGLE 
+%token LPR RPR
 %token EQUALS
 %token TIMES FST SND
 %token LAM LET IN END WITH DEF
@@ -45,7 +45,7 @@ atomic:
   | n = NUMERAL
     { Lit n }
   | NAT { Nat }
-  | LANGLE left = term; COMMA; right = term; RANGLE
+  | LPR left = term; COMMA; right = term; RPR
     { Pair (left, right) };
 
 spine:
@@ -63,7 +63,7 @@ term:
   | SUC; t = term { Suc t }
   | REC; n = term; AT; mot_name = name; RIGHT_ARROW; mot = term; WITH;
     PIPE; ZERO; RIGHT_ARROW; zero_case = term;
-    PIPE; SUC; suc_var = name; COMMA; ih_var = name; RIGHT_ARROW; suc_case = term
+    PIPE; SUC; LPR; suc_var = name; RIGHT_ARROW; ih_var = name; RPR; RIGHT_ARROW; suc_case = term
     { NRec {
         mot = Binder {name = mot_name; body = mot};
         zero = zero_case;

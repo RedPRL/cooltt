@@ -69,10 +69,6 @@ rule token = parse
     { EQUALS }
   | "->"
     { RIGHT_ARROW }
-  | "<"
-    { LANGLE }
-  | ">"
-    { RANGLE }
   | "λ"
     { LAM }
   | '_'
