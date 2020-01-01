@@ -1,5 +1,5 @@
 %{
-  open Concrete_syntax
+  open ConcreteSyntax
 %}
 
 %token <int> NUMERAL
@@ -14,7 +14,7 @@
 %token ID REFL MATCH
 %token EOF
 
-%start <Concrete_syntax.signature> sign
+%start <ConcreteSyntax.signature> sign
 %%
 
 name:

@@ -1,4 +1,4 @@
-module CS = Concrete_syntax
+module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
 
@@ -176,5 +176,5 @@ let rec process_sign_loop env =
     output o;
     process_sign_loop (update_env env o) ds
 
-let process_sign : Concrete_syntax.signature -> unit = 
+let process_sign : ConcreteSyntax.signature -> unit = 
   process_sign_loop Env.init 
