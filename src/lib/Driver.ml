@@ -40,12 +40,13 @@ type output =
     NoOutput of Env.t
   | NF_term of S.t * S.t
   | NF_def of CS.ident * S.t
+  | Elaborated_type of S.tp
   | Quit
 
 let update_env env = 
   function
   | NoOutput env -> env
-  | NF_term _ | NF_def _ | Quit -> env
+  | _ -> env
 
 let output = 
   function
@@ -60,6 +61,11 @@ let output =
     Format.fprintf Format.std_formatter "Computed normal form of [%s]:@ @[<hv>" name;
     Syntax.pp Format.std_formatter t;
     Format.fprintf Format.std_formatter "@]@,"
+  | Elaborated_type tp ->
+    Format.fprintf Format.std_formatter "Elaborated@ @[<hv>";
+    S.pp_tp Format.std_formatter tp;
+    Format.fprintf Format.std_formatter "@]@,"
+
   | Quit -> exit 0
 
 let rec int_to_term = 
@@ -133,6 +139,8 @@ struct
       check_pi_tp cells body
     | CS.Sg (cells, body) ->
       check_sg_tp cells body
+    | CS.Nat ->
+      EM.ret S.Nat
     | _ -> 
       failwith "TODO"
 
@@ -147,8 +155,11 @@ struct
     | Cell cell :: cells ->
       let* base = check_tp cell.tp in
       let* vbase = eval_tp base in
-      EM.push_var cell.name vbase @@ 
-      check_sg_tp cells body 
+      let* fam =
+        EM.push_var cell.name vbase @@ 
+        check_sg_tp cells body 
+      in 
+      EM.ret @@ S.Sg (base, fam)
       
   and check_pi_tp cells body =
     match cells with
@@ -156,8 +167,11 @@ struct
     | Cell cell :: cells ->
       let* base = check_tp cell.tp in
       let* vbase = eval_tp base in
-      EM.push_var cell.name vbase @@ 
-      check_pi_tp cells body 
+      let* fam =
+        EM.push_var cell.name vbase @@ 
+        check_pi_tp cells body 
+      in 
+      EM.ret @@ S.Pi (base, fam)
       
 
   and check _cs _tp = failwith ""
@@ -256,6 +270,13 @@ let process_decl env =
     let norm_term = Nbe.read_back_nf 0 (D.Nf {term = sem_term; tp = sem_tp}) in
     NF_term (term, norm_term)
   | CS.Quit -> Quit
+  | CS.ElaborateType tp ->
+    begin
+      match EM.run (Elaborator.check_tp tp) env with
+      | `Ret tp ->
+        Elaborated_type tp
+      | `Throw exn -> raise exn
+    end
 
 let rec process_sign_loop env = 
   function

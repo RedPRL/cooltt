@@ -35,6 +35,8 @@ let keywords =
     ("def", DEF);
     ("at", AT);
     ("normalize", NORMALIZE);
+    ("elaborate", ELABORATE);
+    ("type", TYPE);
     ("quit", QUIT);
   ]
 }

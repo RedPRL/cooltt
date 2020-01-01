@@ -31,6 +31,7 @@ type decl =
     Def of {name : ident; def : t; tp : t}
   | NormalizeDef of ident
   | NormalizeTerm of {term : t; tp : t}
+  | ElaborateType of t
   | Quit
 
 type signature = decl list

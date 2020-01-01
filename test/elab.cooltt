@@ -1,0 +1,1 @@
+elaborate type (x : nat) -> nat
