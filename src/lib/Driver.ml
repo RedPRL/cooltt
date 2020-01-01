@@ -162,6 +162,13 @@ struct
     | t -> EM.ret t
     | exception exn -> EM.throw exn
 
+  let lookup_var id = 
+    let* env = EM.read in
+    let ix = Env.find_idx id env in
+    let chk_env = Env.check_env env in
+    let tp = Check.Env.get_var chk_env ix in
+    EM.ret (S.Var ix, tp)
+
 
   let rec check_tp : CS.t -> S.tp EM.m = 
     function
@@ -195,7 +202,11 @@ struct
       tm
 
   and synth_tm : CS.t -> (S.t * D.tp) EM.m = 
-    failwith "TODO"
+    function
+    | CS.Var id -> 
+      lookup_var id
+    | _ ->
+      failwith "TODO"
 
   and check_sg_tp cells body =
     match cells with

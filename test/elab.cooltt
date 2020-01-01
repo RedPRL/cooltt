@@ -1,1 +1,1 @@
-elaborate type (x : nat) -> Id nat 3 3
+elaborate type (x : nat) * Id nat 3 x
