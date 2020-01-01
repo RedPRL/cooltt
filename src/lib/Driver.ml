@@ -153,7 +153,7 @@ struct
       EM.throw exn
 
   let inst_tp_clo clo v =
-    match Nbe.do_tp_clos clo v with
+    match Nbe.do_tp_clo clo v with
     | v -> EM.ret v
     | exception exn ->
       EM.throw exn

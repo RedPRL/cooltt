@@ -3,19 +3,19 @@ module S = Syntax
 type env = t list
 [@@deriving show]
 
-and ('a, 'b) clos =
+and ('a, 'b) clo =
     Clos of {term : 'a; env : env}
   | ConstClos of 'b
 [@@deriving show]
 
-and 'a clos2 = Clos2 of {term : 'a; env : env}
+and 'a clo2 = Clos2 of {term : 'a; env : env}
 [@@deriving show]
 
-and 'a clos3 = Clos3 of {term : 'a; env : env}
+and 'a clo3 = Clos3 of {term : 'a; env : env}
 [@@deriving show]
 
 and t =
-  | Lam of (S.t, t) clos
+  | Lam of (S.t, t) clo
   | Neutral of {tp : tp; term : ne}
   | Zero
   | Suc of t
@@ -26,8 +26,8 @@ and t =
 and tp =
   | Nat
   | Id of tp * t * t
-  | Pi of tp * (S.tp, tp) clos
-  | Sg of tp * (S.tp, tp) clos
+  | Pi of tp * (S.tp, tp) clo
+  | Sg of tp * (S.tp, tp) clo
 [@@deriving show]
 
 
@@ -36,8 +36,8 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | NRec of (S.tp, tp) clos * t * S.t clos2 * ne
-  | J of S.tp clos3 * (S.t, t) clos * tp * t * t * ne
+  | NRec of (S.tp, tp) clo * t * S.t clo2 * ne
+  | J of S.tp clo3 * (S.t, t) clo * tp * t * t * ne
 [@@deriving show]
 
 and nf =

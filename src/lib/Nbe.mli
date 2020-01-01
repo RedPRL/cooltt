@@ -18,5 +18,5 @@ val equal_ne : int -> D.ne -> D.ne -> bool
 val equal_tp : int -> D.tp -> D.tp -> bool
 
 (* Functions to manipulate elements of the semantic domain *)
-val do_tp_clos : (S.tp, D.tp) D.clos -> D.t -> D.tp
-val do_tm_clos : (S.t, D.t) D.clos -> D.t -> D.t
+val do_tp_clo : (S.tp, D.tp) D.clo -> D.t -> D.tp
+val do_tm_clo : (S.t, D.t) D.clo -> D.t -> D.t
