@@ -8,9 +8,9 @@
 %token LPR RPR
 %token EQUALS
 %token TIMES FST SND
-%token LAM LET IN END WITH DEF
+%token LAM LET IN END WITH
 %token REC SUC NAT ZERO
-%token QUIT NORMALIZE ELABORATE TYPE
+%token QUIT NORMALIZE ELABORATE TYPE DEF
 %token ID REFL MATCH
 %token EOF
 
@@ -24,7 +24,7 @@ name:
     { "_" }
 
 decl:
-  | LET; nm = name; COLON; tp = term; EQUALS; body = term
+  | DEF; nm = name; COLON; tp = term; EQUALS; body = term
     { Def {name = nm; def = body; tp} }
   | QUIT
     { Quit }

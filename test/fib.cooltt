@@ -1,12 +1,12 @@
 ; Not really a particularly interesting program, but good for computing stuff.
 
-let plus : nat -> nat -> nat =
+def plus : nat -> nat -> nat =
   fun m n ->
   rec n at x -> nat with
   | zero -> m
   | suc (_ -> p) -> suc p
 
-let fib : nat -> nat =
+def fib : nat -> nat =
   fun n ->
   let worker : nat * nat =
     rec n at _ -> nat * nat with

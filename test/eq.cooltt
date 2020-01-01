@@ -1,1 +1,1 @@
-let test : Id nat 0 0 = @refl 0
+def test : Id nat 0 0 = @refl 0
