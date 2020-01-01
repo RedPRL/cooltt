@@ -27,4 +27,4 @@ exception Type_error of error
 
 val check : env:env -> term:Syntax.t -> tp:Domain.t -> unit
 val synth : env:env -> term:Syntax.t -> Domain.t
-val check_tp : env:env -> term:Syntax.t -> unit
+val check_tp : env:env -> term:Syntax.tp -> unit

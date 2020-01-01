@@ -73,10 +73,6 @@ rule token = parse
     { LANGLE }
   | ">"
     { RANGLE }
-  | "["
-    { LBR }
-  | "]"
-    { RBR }
   | "λ"
     { LAM }
   | '_'

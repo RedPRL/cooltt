@@ -105,7 +105,7 @@ let rec check ~env ~term ~tp =
       match tp with
       | D.Pi (arg_tp, clos) ->
         let var = D.mk_var arg_tp (Env.size env) in
-        let dest_tp = Nbe.do_clos clos var in
+        let dest_tp = Nbe.do_tp_clos clos var in
         check ~env:(Env.add_term ~term:var ~tp:arg_tp env) ~term:body ~tp:dest_tp;
       | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show t))
     end
@@ -115,7 +115,7 @@ let rec check ~env ~term ~tp =
       | D.Sg (left_tp, right_tp) ->
         check ~env ~term:left ~tp:left_tp;
         let left_sem = Nbe.eval left (Env.to_sem_env env) in
-        check ~env ~term:right ~tp:(Nbe.do_clos right_tp left_sem)
+        check ~env ~term:right ~tp:(Nbe.do_tp_clos right_tp left_sem)
       | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
   | _ ->
@@ -128,7 +128,7 @@ and synth ~env ~term =
   match term with
   | Syn.Var i -> Env.get_var env i
   | Check (term, tp') ->
-    let tp = Nbe.eval tp' (Env.to_sem_env env) in
+    let tp = Nbe.eval_tp tp' (Env.to_sem_env env) in
     check ~env ~term ~tp;
     tp
   | Zero -> D.Nat
@@ -144,7 +144,7 @@ and synth ~env ~term =
       match synth ~env ~term:p with
       | Sg (_, right_tp) ->
         let proj = Nbe.eval (Fst p) (Env.to_sem_env env) in
-        Nbe.do_clos right_tp proj
+        Nbe.do_tp_clos right_tp proj
       | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
   | Ap (f, a) ->
@@ -153,7 +153,7 @@ and synth ~env ~term =
       | Pi (src, dest) ->
         check ~env ~term:a ~tp:src;
         let a_sem = Nbe.eval a (Env.to_sem_env env) in
-        Nbe.do_clos dest a_sem
+        Nbe.do_tp_clos dest a_sem
       | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show t))
     end
   | NRec (mot, zero, suc, n) ->
@@ -161,16 +161,16 @@ and synth ~env ~term =
     let var = D.mk_var Nat (Env.size env) in
     check_tp ~env:(Env.add_term ~term:var ~tp:Nat env) ~term:mot;
     let sem_env = Env.to_sem_env env in
-    let zero_tp = Nbe.eval mot (Zero :: sem_env) in
-    let ih_tp = Nbe.eval mot (var :: sem_env) in
+    let zero_tp = Nbe.eval_tp mot (Zero :: sem_env) in
+    let ih_tp = Nbe.eval_tp mot (var :: sem_env) in
     let ih_var = D.mk_var ih_tp (Env.size env + 1) in
-    let suc_tp = Nbe.eval mot (Suc var :: sem_env) in
+    let suc_tp = Nbe.eval_tp mot (Suc var :: sem_env) in
     check ~env ~term:zero ~tp:zero_tp;
     check
       ~env:(Env.add_term ~term:var ~tp:Nat env |> Env.add_term ~term:ih_var ~tp:ih_tp)
       ~term:suc
       ~tp:suc_tp;
-    Nbe.eval mot (Nbe.eval n sem_env :: sem_env)
+    Nbe.eval_tp mot (Nbe.eval n sem_env :: sem_env)
   | J (mot, refl, eq) ->
     let eq_tp = synth ~env ~term:eq in
     begin
@@ -186,29 +186,23 @@ and synth ~env ~term =
           |> Env.add_term ~term:mot_var3 ~tp:(D.Id (tp', mot_var1, mot_var2)) in
         check_tp ~env:mot_env ~term:mot;
         let refl_var = D.mk_var tp' (Env.size env) in
-        let refl_tp = Nbe.eval mot (D.Refl refl_var :: refl_var :: refl_var :: sem_env) in
+        let refl_tp = Nbe.eval_tp mot (D.Refl refl_var :: refl_var :: refl_var :: sem_env) in
         check ~env:(Env.add_term ~term:refl_var ~tp:tp' env) ~term:refl ~tp:refl_tp;
-        Nbe.eval mot (Nbe.eval eq sem_env :: right :: left :: sem_env)
+        Nbe.eval_tp mot (Nbe.eval eq sem_env :: right :: left :: sem_env)
       | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
     end
   | _ -> tp_error (Cannot_synth_term term)
 
 and check_tp ~env ~term =
   match term with
-  | Syn.Nat -> ()
+  | Nat -> ()
   | Pi (l, r) | Sg (l, r) ->
     check_tp ~env ~term:l;
-    let l_sem = Nbe.eval l (Env.to_sem_env env) in
+    let l_sem = Nbe.eval_tp l (Env.to_sem_env env) in
     let var = D.mk_var l_sem (Env.size env) in
     check_tp ~env:(Env.add_term ~term:var ~tp:l_sem env) ~term:r
-  | Let (def, body) ->
-    let def_tp = synth ~env ~term:def in
-    let def_val = Nbe.eval def (Env.to_sem_env env) in
-    check_tp ~env:(Env.add_term ~term:def_val ~tp:def_tp env) ~term:body
   | Id (tp, l, r) ->
     check_tp ~env ~term:tp;
-    let tp = Nbe.eval tp (Env.to_sem_env env) in
+    let tp = Nbe.eval_tp tp (Env.to_sem_env env) in
     check ~env ~term:l ~tp;
     check ~env ~term:r ~tp
-  | _ ->
-    tp_error (Misc "Not a type expression")

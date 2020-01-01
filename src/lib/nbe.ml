@@ -10,9 +10,9 @@ exception Nbe_failed of string
 let rec do_rec tp zero suc n =
   match n with
   | D.Zero -> zero
-  | D.Suc n -> do_clos2 suc n (do_rec tp zero suc n)
+  | D.Suc n -> do_tm_clos2 suc n (do_rec tp zero suc n)
   | D.Neutral {term = e; _} ->
-    let final_tp = do_clos tp n in
+    let final_tp = do_tp_clos tp n in
     D.Neutral {tp = final_tp; term = D.NRec (tp, zero, suc, e)}
   | _ -> raise (Nbe_failed "Not a number")
 
@@ -28,27 +28,36 @@ and do_snd p =
   | D.Pair (_, p2) -> p2
   | D.Neutral {tp = D.Sg (_, clo); term = ne} ->
     let fst = do_fst p in
-    D.Neutral {tp = do_clos clo fst; term = D.Snd ne}
+    D.Neutral {tp = do_tp_clos clo fst; term = D.Snd ne}
   | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
 
-and do_clos clo a =
+and do_tp_clos clo a =
   match clo with
-  | Clos {term; env} -> eval term (a :: env)
+  | Clos {term; env} -> eval_tp term (a :: env)
   | ConstClos t -> t
 
-and do_clos2 (D.Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
+and do_tm_clos clo a =
+  match clo with
+  | Domain.Clos {term; env} -> eval term (a :: env)
+  | Domain.ConstClos t -> t
 
-and do_clos3 (D.Clos3 {term; env}) a1 a2 a3 = eval term (a3 :: a2 :: a1 :: env)
+and do_tm_clos2 (D.Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
+
+and do_tm_clos3 (D.Clos3 {term; env}) a1 a2 a3 = eval term (a3 :: a2 :: a1 :: env)
+
+and do_tp_clos2 (D.Clos2 {term; env}) a1 a2 = eval_tp term (a2 :: a1 :: env)
+
+and do_tp_clos3 (D.Clos3 {term; env}) a1 a2 a3 = eval_tp term (a3 :: a2 :: a1 :: env)
 
 and do_j mot refl eq =
   match eq with
-  | D.Refl t -> do_clos refl t
+  | D.Refl t -> do_tm_clos refl t
   | D.Neutral {tp; term} ->
     begin
       match tp with
       | D.Id (tp, left, right) ->
         D.Neutral
-          { tp = do_clos3 mot left right eq;
+          { tp = do_tp_clos3 mot left right eq;
             term = D.J (mot, refl, tp, left, right, term) }
       | _ -> raise (Nbe_failed "Not an Id in do_j")
     end
@@ -56,23 +65,30 @@ and do_j mot refl eq =
 
 and do_ap f a =
   match f with
-  | D.Lam clos -> do_clos clos a
+  | D.Lam clos -> do_tm_clos clos a
   | D.Neutral {tp; term = e} ->
     begin
       match tp with
       | D.Pi (src, dst) ->
-        let dst = do_clos dst a in
+        let dst = do_tp_clos dst a in
         D.Neutral {tp = dst; term = D.Ap (e, D.Normal {tp = src; term = a})}
       | _ -> raise (Nbe_failed "Not a Pi in do_ap")
     end
   | _ -> raise (Nbe_failed "Not a function in do_ap")
+
+and eval_tp t env = 
+  match t with
+  | Syn.Nat -> D.Nat
+  | Syn.Pi (src, dest) ->
+    D.Pi (eval_tp src env, Clos {term = dest; env})
+  | Syn.Sg (t1, t2) -> D.Sg (eval_tp t1 env, (Clos {term = t2; env}))
+  | Syn.Id (tp, left, right) -> D.Id (eval_tp tp env, eval left env, eval right env)
 
 and eval t (env : D.env) =
   match t with
   | Syn.Var i -> List.nth env i
   | Syn.Let (def, body) -> eval body (eval def env :: env)
   | Syn.Check (term, _) -> eval term env
-  | Syn.Nat -> D.Nat
   | Syn.Zero -> D.Zero
   | Syn.Suc t -> D.Suc (eval t env)
   | Syn.NRec (tp, zero, suc, n) ->
@@ -81,16 +97,12 @@ and eval t (env : D.env) =
       (eval zero env)
       (Clos2 {term = suc; env})
       (eval n env)
-  | Syn.Pi (src, dest) ->
-    D.Pi (eval src env, (Clos {term = dest; env}))
   | Syn.Lam t -> D.Lam (Clos {term = t; env})
   | Syn.Ap (t1, t2) -> do_ap (eval t1 env) (eval t2 env)
-  | Syn.Sg (t1, t2) -> D.Sg (eval t1 env, (Clos {term = t2; env}))
   | Syn.Pair (t1, t2) -> D.Pair (eval t1 env, eval t2 env)
   | Syn.Fst t -> do_fst (eval t env)
   | Syn.Snd t -> do_snd (eval t env)
   | Syn.Refl t -> D.Refl (eval t env)
-  | Syn.Id (tp, left, right) -> D.Id (eval tp env, eval left env, eval right env)
   | Syn.J (mot, refl, eq) ->
     do_j (D.Clos3 {term = mot; env}) (D.Clos {term = refl; env}) (eval eq env)
 
@@ -99,12 +111,12 @@ let rec read_back_nf size nf =
   (* Functions *)
   | D.Normal {tp = D.Pi (src, dest); term = f} ->
     let arg = D.mk_var src size in
-    let nf = D.Normal {tp = do_clos dest arg; term = do_ap f arg} in
+    let nf = D.Normal {tp = do_tp_clos dest arg; term = do_ap f arg} in
     Syn.Lam (read_back_nf (size + 1) nf)
   (* Pairs *)
   | D.Normal {tp = D.Sg (fst, snd); term = p} ->
     let fst' = do_fst p in
-    let snd = do_clos snd fst' in
+    let snd = do_tp_clos snd fst' in
     let snd' = do_snd p in
     Syn.Pair
       (read_back_nf size (D.Normal { tp = fst; term = fst'}),
@@ -123,16 +135,18 @@ let rec read_back_nf size nf =
   | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
 
-and read_back_tp size d =
+and read_back_tp size d : Syn.tp =
   match d with
-  | D.Neutral {term; _} -> read_back_ne size term
+  | D.Neutral _ -> 
+  failwith "Shouldn't have a neutral type without universes..."
+  (* read_back_ne size term *)
   | D.Nat -> Syn.Nat
   | D.Pi (src, dest) ->
     let var = D.mk_var src size in
-    Syn.Pi (read_back_tp size src, read_back_tp (size + 1) (do_clos dest var))
+    Syn.Pi (read_back_tp size src, read_back_tp (size + 1) (do_tp_clos dest var))
   | D.Sg (fst, snd) ->
     let var = D.mk_var fst size in
-    Syn.Sg (read_back_tp size fst, read_back_tp (size + 1) (do_clos snd var))
+    Syn.Sg (read_back_tp size fst, read_back_tp (size + 1) (do_tp_clos snd var))
   | D.Id (tp, left, right) ->
     Syn.Id
       (read_back_tp size tp,
@@ -147,12 +161,12 @@ and read_back_ne size ne =
     Syn.Ap (read_back_ne size ne, read_back_nf size arg)
   | D.NRec (tp, zero, suc, n) ->
     let tp_var = D.mk_var D.Nat size in
-    let applied_tp = do_clos tp tp_var in
-    let zero_tp = do_clos tp D.Zero in
-    let applied_suc_tp = do_clos tp (D.Suc tp_var) in
+    let applied_tp = do_tp_clos tp tp_var in
+    let zero_tp = do_tp_clos tp D.Zero in
+    let applied_suc_tp = do_tp_clos tp (D.Suc tp_var) in
     let tp' = read_back_tp (size + 1) applied_tp in
     let suc_var = D.mk_var applied_tp (size + 1) in
-    let applied_suc = do_clos2 suc tp_var suc_var in
+    let applied_suc = do_tm_clos2 suc tp_var suc_var in
     let suc' =
       read_back_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc}) in
     Syn.NRec
@@ -166,12 +180,12 @@ and read_back_ne size ne =
     let mot_var1 = D.mk_var tp size in
     let mot_var2 = D.mk_var tp (size + 1) in
     let mot_var3 = D.mk_var (D.Id (tp, left, right)) (size + 2) in
-    let mot_syn = read_back_tp (size + 3) (do_clos3 mot mot_var1 mot_var2 mot_var3) in
+    let mot_syn = read_back_tp (size + 3) (do_tp_clos3 mot mot_var1 mot_var2 mot_var3) in
     let refl_var = D.mk_var tp size in
     let refl_syn =
       read_back_nf
         (size + 1)
-        (D.Normal {term = do_clos refl refl_var; tp = do_clos3 mot refl_var refl_var (D.Refl refl_var)}) in
+        (D.Normal {term = do_tm_clos refl refl_var; tp = do_tp_clos3 mot refl_var refl_var (D.Refl refl_var)}) in
     let eq_syn = read_back_ne size eq in
     Syn.J (mot_syn, refl_syn, eq_syn)
 
@@ -181,15 +195,15 @@ let rec equal_nf size nf1 nf2 =
   | D.Normal {tp = D.Pi (src1, dest1); term = f1},
     D.Normal {tp = D.Pi (_, dest2); term = f2} ->
     let arg = D.mk_var src1 size in
-    let nf1 = D.Normal {tp = do_clos dest1 arg; term = do_ap f1 arg} in
-    let nf2 = D.Normal {tp = do_clos dest2 arg; term = do_ap f2 arg} in
+    let nf1 = D.Normal {tp = do_tp_clos dest1 arg; term = do_ap f1 arg} in
+    let nf2 = D.Normal {tp = do_tp_clos dest2 arg; term = do_ap f2 arg} in
     equal_nf (size + 1) nf1 nf2
   (* Pairs *)
   | D.Normal {tp = D.Sg (fst1, snd1); term = p1},
     D.Normal {tp = D.Sg (fst2, snd2); term = p2} ->
     let p11, p21 = do_fst p1, do_fst p2 in
-    let snd1 = do_clos snd1 p11 in
-    let snd2 = do_clos snd2 p21 in
+    let snd1 = do_tp_clos snd1 p11 in
+    let snd2 = do_tp_clos snd2 p21 in
     let p12, p22 = do_snd p1, do_snd p2 in
     equal_nf size (D.Normal {tp = fst1; term = p11}) (D.Normal {tp = fst2; term = p21})
     && equal_nf size (D.Normal {tp = snd1; term = p12}) (D.Normal {tp = snd2; term = p22})
@@ -220,13 +234,13 @@ and equal_ne size ne1 ne2 =
     equal_ne size ne1 ne2 && equal_nf size arg1 arg2
   | D.NRec (tp1, zero1, suc1, n1), D.NRec (tp2, zero2, suc2, n2) ->
     let tp_var = D.mk_var D.Nat size in
-    let applied_tp1, applied_tp2 = do_clos tp1 tp_var, do_clos tp2 tp_var in
-    let zero_tp = do_clos tp1 D.Zero in
-    let applied_suc_tp = do_clos tp1 (D.Suc tp_var) in
+    let applied_tp1, applied_tp2 = do_tp_clos tp1 tp_var, do_tp_clos tp2 tp_var in
+    let zero_tp = do_tp_clos tp1 D.Zero in
+    let applied_suc_tp = do_tp_clos tp1 (D.Suc tp_var) in
     let suc_var1 = D.mk_var applied_tp1 (size + 1) in
     let suc_var2 = D.mk_var applied_tp2 (size + 1) in
-    let applied_suc1 = do_clos2 suc1 tp_var suc_var1 in
-    let applied_suc2 = do_clos2 suc2 tp_var suc_var2 in
+    let applied_suc1 = do_tm_clos2 suc1 tp_var suc_var1 in
+    let applied_suc2 = do_tm_clos2 suc2 tp_var suc_var2 in
     equal_tp (size + 1) applied_tp1 applied_tp2
     && equal_nf size (D.Normal {tp = zero_tp; term = zero1}) (D.Normal {tp = zero_tp; term = zero2})
     && equal_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc1})
@@ -242,12 +256,12 @@ and equal_ne size ne1 ne2 =
     let mot_var1 = D.mk_var tp1 size in
     let mot_var2 = D.mk_var tp1 (size + 1) in
     let mot_var3 = D.mk_var (D.Id (tp1, left1, right1)) (size + 2) in
-    equal_tp (size + 3) (do_clos3 mot1 mot_var1 mot_var2 mot_var3) (do_clos3 mot2 mot_var1 mot_var2 mot_var3) &&
+    equal_tp (size + 3) (do_tp_clos3 mot1 mot_var1 mot_var2 mot_var3) (do_tp_clos3 mot2 mot_var1 mot_var2 mot_var3) &&
     let refl_var = D.mk_var tp1 size in
     equal_nf
       (size + 1)
-      (D.Normal {term = do_clos refl1 refl_var; tp = do_clos3 mot1 refl_var refl_var (D.Refl refl_var)})
-      (D.Normal {term = do_clos refl2 refl_var; tp = do_clos3 mot2 refl_var refl_var (D.Refl refl_var)}) &&
+      (D.Normal {term = do_tm_clos refl1 refl_var; tp = do_tp_clos3 mot1 refl_var refl_var (D.Refl refl_var)})
+      (D.Normal {term = do_tm_clos refl2 refl_var; tp = do_tp_clos3 mot2 refl_var refl_var (D.Refl refl_var)}) &&
     equal_ne size eq1 eq2
   | _ -> false
 
@@ -263,11 +277,11 @@ and equal_tp size d1 d2 =
   | D.Pi (src, dest), D.Pi (src', dest') ->
     let var = D.mk_var src' size in
     equal_tp size src' src &&
-    equal_tp (size + 1) (do_clos dest var) (do_clos dest' var)
+    equal_tp (size + 1) (do_tp_clos dest var) (do_tp_clos dest' var)
   | D.Sg (fst, snd), D.Sg (fst', snd') ->
     let var = D.mk_var fst size in
     equal_tp size fst fst' &&
-    equal_tp (size + 1) (do_clos snd var) (do_clos snd' var)
+    equal_tp (size + 1) (do_tp_clos snd var) (do_tp_clos snd' var)
   | _ -> false
 
 let rec initial_env env =

@@ -1,17 +1,17 @@
 type env = t list
-and clos =
-    Clos of {term : Syntax.t; env : env}
+and 'a clos =
+    Clos of {term : 'a; env : env}
   | ConstClos of t
-and clos2 = Clos2 of {term : Syntax.t; env : env}
-and clos3 = Clos3 of {term : Syntax.t; env : env}
+and 'a clos2 = Clos2 of {term : 'a; env : env}
+and 'a clos3 = Clos3 of {term : 'a; env : env}
 and t =
-  | Lam of clos
+  | Lam of Syntax.t clos
   | Neutral of {tp : t; term : ne}
   | Nat
   | Zero
   | Suc of t
-  | Pi of t * clos
-  | Sg of t * clos
+  | Pi of t * Syntax.tp clos
+  | Sg of t * Syntax.tp clos
   | Pair of t * t
   | Refl of t
   | Id of t * t * t
@@ -20,16 +20,16 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | NRec of clos * t * clos2 * ne
-  | J of clos3 * clos * t * t * t * ne
+  | NRec of Syntax.tp clos * t * Syntax.t clos2 * ne
+  | J of Syntax.tp clos3 * Syntax.t clos * t * t * t * ne
 and nf =
   | Normal of {tp : t; term : t}
 
 val mk_var : t -> int -> t
 
-val equal : t -> t -> bool
+(* val equal : t -> t -> bool
 val equal_ne : ne -> ne -> bool
-val equal_nf : nf -> nf -> bool
+val equal_nf : nf -> nf -> bool *)
 
 val pp : Format.formatter -> t -> unit
 val pp_nf : Format.formatter -> nf -> unit

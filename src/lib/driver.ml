@@ -54,8 +54,7 @@ let rec bind env =
   | CS.Var i -> S.Var (find_idx i env)
   | CS.Let (tp, Binder {name; body}) ->
     S.Let (bind env tp, bind (name :: env) body)
-  | CS.Check {term; tp} -> S.Check (bind env term, bind env tp)
-  | CS.Nat -> S.Nat
+  | CS.Check {term; tp} -> S.Check (bind env term, bind_ty env tp)
   | CS.Suc t -> S.Suc (bind env t)
   | CS.Lit i -> int_to_term i
   | CS.NRec
@@ -64,7 +63,7 @@ let rec bind env =
         suc = Binder2 {name1 = suc_name1; name2 = suc_name2; body = suc_body};
         nat} ->
     S.NRec
-      (bind (mot_name :: env) mot_body,
+      (bind_ty (mot_name :: env) mot_body,
        bind env zero,
        bind (suc_name2 :: suc_name1 :: env) suc_body,
        bind env nat)
@@ -75,14 +74,6 @@ let rec bind env =
     S.Lam (bind (x :: env) lam)
   | CS.Ap (f, args) ->
     List.map (bind_spine env) args |> unravel_spine (bind env f)
-  | CS.Sg ([], body) ->
-    bind env body
-  | CS.Sg (Cell cell :: tele, body) ->
-    S.Sg (bind env cell.ty, bind (cell.name :: env) (CS.Sg (tele, body)))
-  | CS.Pi ([], body) ->
-    bind env body
-  | CS.Pi (Cell cell :: tele, body) ->
-    S.Pi (bind env cell.ty, bind (cell.name :: env) (CS.Pi (tele, body)))
   | CS.Pair (l, r) -> S.Pair (bind env l, bind env r)
   | CS.Fst p -> S.Fst (bind env p)
   | CS.Snd p -> S.Snd (bind env p)
@@ -91,12 +82,26 @@ let rec bind env =
        refl = Binder {name = refl_name; body = refl_body};
        eq} ->
     S.J
-      (bind (prf :: right :: left :: env) mot_body,
+      (bind_ty (prf :: right :: left :: env) mot_body,
        bind (refl_name :: env) refl_body,
        bind env eq)
-  | CS.Id (tp, left, right) ->
-    S.Id (bind env tp, bind env left, bind env right)
   | CS.Refl t -> S.Refl (bind env t)
+  | _ -> failwith "driver expected term"
+
+and bind_ty env =
+  function
+  | CS.Sg ([], body) ->
+    bind_ty env body
+  | CS.Sg (Cell cell :: tele, body) ->
+    S.Sg (bind_ty env cell.tp, bind_ty (cell.name :: env) (CS.Sg (tele, body)))
+  | CS.Pi ([], body) ->
+    bind_ty env body
+  | CS.Pi (Cell cell :: tele, body) ->
+    S.Pi (bind_ty env cell.tp, bind_ty (cell.name :: env) (CS.Pi (tele, body)))
+  | CS.Nat -> S.Nat
+  | CS.Id (tp, left, right) ->
+    S.Id (bind_ty env tp, bind env left, bind env right)
+  | _ -> failwith "driver expected tp"
 
 and bind_spine env = 
   function
@@ -106,10 +111,10 @@ let process_decl (Env {check_env; bindings}) =
   function
   | CS.Def {name; def; tp} ->
     let def = bind bindings def in
-    let tp = bind bindings tp in
+    let tp = bind_ty bindings tp in
     Check.check_tp ~env:check_env ~term:tp;
     let sem_env = Check.Env.to_sem_env check_env in
-    let sem_tp = Nbe.eval tp sem_env in
+    let sem_tp = Nbe.eval_tp tp sem_env in
     Check.check ~env:check_env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
     let new_entry = Check.Env.TopLevel {term = sem_def; tp = sem_tp} in
@@ -124,10 +129,10 @@ let process_decl (Env {check_env; bindings}) =
     end
   | CS.NormalizeTerm {term; tp} ->
     let term = bind bindings term in
-    let tp = bind bindings tp in
+    let tp = bind_ty bindings tp in
     Check.check_tp ~env:check_env ~term:tp;
     let sem_env = Check.Env.to_sem_env check_env in
-    let sem_tp = Nbe.eval tp sem_env in
+    let sem_tp = Nbe.eval_tp tp sem_env in
     Check.check ~env:check_env ~term ~tp:sem_tp;
     let sem_term = Nbe.eval term sem_env in
     let norm_term = Nbe.read_back_nf 0 (D.Normal {term = sem_term; tp = sem_tp}) in

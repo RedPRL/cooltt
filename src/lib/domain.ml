@@ -1,35 +1,35 @@
 type env = t list
-[@@deriving show, eq]
-and clos =
-    Clos of {term : Syntax.t; env : env}
+[@@deriving show]
+and 'a clos =
+    Clos of {term : 'a; env : env}
   | ConstClos of t
-[@@deriving show, eq]
-and clos2 = Clos2 of {term : Syntax.t; env : env}
-[@@deriving show, eq]
-and clos3 = Clos3 of {term : Syntax.t; env : env}
-[@@deriving show, eq]
+[@@deriving show]
+and 'a clos2 = Clos2 of {term : 'a; env : env}
+[@@deriving show]
+and 'a clos3 = Clos3 of {term : 'a; env : env}
+[@@deriving show]
 and t =
-  | Lam of clos
+  | Lam of Syntax.t clos
   | Neutral of {tp : t; term : ne}
   | Nat
   | Zero
   | Suc of t
-  | Pi of t * clos
-  | Sg of t * clos
+  | Pi of t * Syntax.tp clos
+  | Sg of t * Syntax.tp clos
   | Pair of t * t
   | Refl of t
   | Id of t * t * t
-[@@deriving show, eq]
+[@@deriving show]
 and ne =
   | Var of int (* DeBruijn levels for variables *)
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | NRec of clos * t * clos2 * ne
-  | J of clos3 * clos * t * t * t * ne
-[@@deriving show, eq]
+  | NRec of Syntax.tp clos * t * Syntax.t clos2 * ne
+  | J of Syntax.tp clos3 * Syntax.t clos * t * t * t * ne
+[@@deriving show]
 and nf =
   | Normal of {tp : t; term : t}
-[@@deriving show, eq]
+[@@deriving show]
 
 let mk_var tp lev = Neutral {tp; term = Var lev}

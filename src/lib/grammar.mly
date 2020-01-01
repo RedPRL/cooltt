@@ -5,7 +5,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE
-%token LPR RPR LANGLE RANGLE LBR RBR
+%token LPR RPR LANGLE RANGLE 
 %token EQUALS
 %token TIMES FST SND
 %token LAM LET IN END WITH DEF
@@ -84,14 +84,14 @@ term:
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
   | dom = atomic RIGHT_ARROW; cod = term
-    { Pi ([Cell {name = ""; ty = dom}], cod)}
+    { Pi ([Cell {name = ""; tp = dom}], cod)}
   | dom = atomic; TIMES; cod = term
-    { Sg ([Cell {name = ""; ty = dom}], cod)}
+    { Sg ([Cell {name = ""; tp = dom}], cod)}
   | FST; t = term { Fst t }
   | SND; t = term { Snd t }
 ;
 
 tele_cell:
-  | LPR name = name; COLON ty = term; RPR
-    { Cell {name; ty} }
+  | LPR name = name; COLON tp = term; RPR
+    { Cell {name; tp} }
 ; 
