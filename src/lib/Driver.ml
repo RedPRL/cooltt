@@ -16,9 +16,9 @@ module Env = ElabEnv
 
 type output =
     NoOutput of Env.t
-  | NF_term of S.t * S.t
-  | NF_def of CS.ident * S.t
-  | Elaborated_type of S.tp
+  | NormalizedTerm of S.t * S.t
+  | NormalizedDef of CS.ident * S.t
+  | ElaboratedType of S.tp
   | Quit
 
 let update_env env = 
@@ -29,17 +29,17 @@ let update_env env =
 let output = 
   function
   | NoOutput _ -> ()
-  | NF_term (s, t) ->
+  | NormalizedTerm (s, t) ->
     Format.fprintf Format.std_formatter "Computed normal form of@ @[<hv>";
     S.pp Format.std_formatter s;
     Format.fprintf Format.std_formatter "@] as @ @[<hv>";
     S.pp Format.std_formatter t;
     Format.fprintf Format.std_formatter "@]@,"
-  | NF_def (name, t) ->
+  | NormalizedDef (name, t) ->
     Format.fprintf Format.std_formatter "Computed normal form of [%s]:@ @[<hv>" name;
     Syntax.pp Format.std_formatter t;
     Format.fprintf Format.std_formatter "@]@,"
-  | Elaborated_type tp ->
+  | ElaboratedType tp ->
     Format.fprintf Format.std_formatter "Elaborated@ @[<hv>";
     S.pp_tp Format.std_formatter tp;
     Format.fprintf Format.std_formatter "@]@,"
@@ -150,7 +150,7 @@ struct
 
   let lookup_var id = 
     let* env = EM.read in
-    match Env.find_idx id env with
+    match Env.find_ix id env with
     | Some ix -> 
       let chk_env = Env.check_env env in
       let tp = Check.Env.get_var chk_env ix in
@@ -246,7 +246,7 @@ let rec bind (env : Env.t) =
   function
   | CS.Var id -> 
     begin
-      match Env.find_idx id env with
+      match Env.find_ix id env with
       | Some ix -> S.Var ix
       | None -> raise @@ ElabError (Unbound_variable id)
     end
@@ -323,11 +323,11 @@ let process_decl env =
   | CS.NormalizeDef name ->
     let err = ElabError (Unbound_variable name) in 
     begin
-      match Env.find_idx name env with
+      match Env.find_ix name env with
       | None -> raise err
       | Some ix ->
         match Check.Env.get_entry (Env.check_env env) ix with
-        | Check.Env.TopLevel {term; tp} -> NF_def (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
+        | Check.Env.TopLevel {term; tp} -> NormalizedDef (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
         | _ -> raise err
     end
   | CS.NormalizeTerm {term; tp} ->
@@ -340,13 +340,13 @@ let process_decl env =
     Check.check ~env:check_env ~term ~tp:sem_tp;
     let sem_term = Nbe.eval term sem_env in
     let norm_term = Nbe.read_back_nf 0 (D.Nf {term = sem_term; tp = sem_tp}) in
-    NF_term (term, norm_term)
+    NormalizedTerm (term, norm_term)
   | CS.Quit -> Quit
   | CS.ElaborateType tp ->
     begin
       match EM.run (Elaborator.check_tp tp) env with
       | `Ret tp ->
-        Elaborated_type tp
+        ElaboratedType tp
       | `Throw exn -> raise exn
     end
 

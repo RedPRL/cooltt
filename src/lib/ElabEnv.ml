@@ -5,7 +5,7 @@ let check_env {check_env; _} = check_env
 let push_name i env = {env with bindings = i :: env.bindings }
 let push_names is env = {env with bindings = is @ env.bindings }
 
-let find_idx key env =
+let find_ix key env =
   let exception E in
   let rec go i = 
     function
