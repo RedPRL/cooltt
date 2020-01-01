@@ -125,7 +125,7 @@ module EM = ElabMonad
 module Elaborator : 
 sig 
   val check_tp : CS.t -> S.tp EM.m
-  val check : CS.t -> D.tp -> S.t EM.m
+  val check_tm : CS.t -> D.tp -> S.t EM.m
 end = 
 struct
   open Monad.Notation (EM)
@@ -265,8 +265,6 @@ struct
         check_pi_tp cells body 
       in 
       S.Pi (base, fam)
-      
-  and check _cs _tp = failwith ""
 end
 
 let rec bind (env : Env.t) = 
