@@ -23,7 +23,7 @@ and ne =
   | NRec of Syntax.tp clos * t * Syntax.t clos2 * ne
   | J of Syntax.tp clos3 * Syntax.t clos * t * t * t * ne
 and nf =
-  | Normal of {tp : t; term : t}
+  | Nf of {tp : t; term : t}
 
 val mk_var : t -> int -> t
 

@@ -126,7 +126,7 @@ let process_decl (Env {check_env; bindings}) =
     let err = Check.Type_error (Check.Misc ("Unbound variable: " ^ name)) in
     begin
       match Check.Env.get_entry check_env (find_idx name bindings) with
-      | Check.Env.TopLevel {term; tp} -> NF_def (name, Nbe.read_back_nf 0 (D.Normal {term; tp}))
+      | Check.Env.TopLevel {term; tp} -> NF_def (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
       | _ -> raise err
       | exception Failure _ -> raise err
     end
@@ -138,7 +138,7 @@ let process_decl (Env {check_env; bindings}) =
     let sem_tp = Nbe.eval_tp tp sem_env in
     Check.check ~env:check_env ~term ~tp:sem_tp;
     let sem_term = Nbe.eval term sem_env in
-    let norm_term = Nbe.read_back_nf 0 (D.Normal {term = sem_term; tp = sem_tp}) in
+    let norm_term = Nbe.read_back_nf 0 (D.Nf {term = sem_term; tp = sem_tp}) in
     NF_term (term, norm_term)
   | CS.Quit -> Quit
 

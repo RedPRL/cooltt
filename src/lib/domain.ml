@@ -29,7 +29,7 @@ and ne =
   | J of Syntax.tp clos3 * Syntax.t clos * t * t * t * ne
 [@@deriving show]
 and nf =
-  | Normal of {tp : t; term : t}
+  | Nf of {tp : t; term : t}
 [@@deriving show]
 
 let mk_var tp lev = Neutral {tp; term = Var lev}

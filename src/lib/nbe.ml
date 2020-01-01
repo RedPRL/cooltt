@@ -71,7 +71,7 @@ and do_ap f a =
       match tp with
       | D.Pi (src, dst) ->
         let dst = do_tp_clos dst a in
-        D.Neutral {tp = dst; term = D.Ap (e, D.Normal {tp = src; term = a})}
+        D.Neutral {tp = dst; term = D.Ap (e, D.Nf {tp = src; term = a})}
       | _ -> raise (Nbe_failed "Not a Pi in do_ap")
     end
   | _ -> raise (Nbe_failed "Not a function in do_ap")
@@ -109,30 +109,30 @@ and eval t (env : D.env) =
 let rec read_back_nf size nf =
   match nf with
   (* Functions *)
-  | D.Normal {tp = D.Pi (src, dest); term = f} ->
+  | D.Nf {tp = D.Pi (src, dest); term = f} ->
     let arg = D.mk_var src size in
-    let nf = D.Normal {tp = do_tp_clos dest arg; term = do_ap f arg} in
+    let nf = D.Nf {tp = do_tp_clos dest arg; term = do_ap f arg} in
     Syn.Lam (read_back_nf (size + 1) nf)
   (* Pairs *)
-  | D.Normal {tp = D.Sg (fst, snd); term = p} ->
+  | D.Nf {tp = D.Sg (fst, snd); term = p} ->
     let fst' = do_fst p in
     let snd = do_tp_clos snd fst' in
     let snd' = do_snd p in
     Syn.Pair
-      (read_back_nf size (D.Normal { tp = fst; term = fst'}),
-       read_back_nf size (D.Normal { tp = snd; term = snd'}))
+      (read_back_nf size (D.Nf { tp = fst; term = fst'}),
+       read_back_nf size (D.Nf { tp = snd; term = snd'}))
   (* Numbers *)
-  | D.Normal {tp = D.Nat; term = D.Zero} -> Syn.Zero
-  | D.Normal {tp = D.Nat; term = D.Suc nf} ->
-    Syn.Suc (read_back_nf size (D.Normal {tp = D.Nat; term = nf}))
-  | D.Normal {tp = D.Nat; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
+  | D.Nf {tp = D.Nat; term = D.Zero} -> Syn.Zero
+  | D.Nf {tp = D.Nat; term = D.Suc nf} ->
+    Syn.Suc (read_back_nf size (D.Nf {tp = D.Nat; term = nf}))
+  | D.Nf {tp = D.Nat; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   (* Id *)
-  | D.Normal {tp = D.Id (tp, _, _); term = D.Refl term} ->
-    Syn.Refl (read_back_nf size (D.Normal {tp; term}))
-  | D.Normal {tp = D.Id _; term = D.Neutral {term; _}} ->
+  | D.Nf {tp = D.Id (tp, _, _); term = D.Refl term} ->
+    Syn.Refl (read_back_nf size (D.Nf {tp; term}))
+  | D.Nf {tp = D.Id _; term = D.Neutral {term; _}} ->
     read_back_ne size term
   (* Types *)
-  | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
+  | D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
   | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
 
 and read_back_tp size d : Syn.tp =
@@ -150,8 +150,8 @@ and read_back_tp size d : Syn.tp =
   | D.Id (tp, left, right) ->
     Syn.Id
       (read_back_tp size tp,
-       read_back_nf size (D.Normal {tp; term = left}),
-       read_back_nf size (D.Normal {tp; term = right}))
+       read_back_nf size (D.Nf {tp; term = left}),
+       read_back_nf size (D.Nf {tp; term = right}))
   | _ -> raise (Nbe_failed "Not a type in read_back_tp")
 
 and read_back_ne size ne =
@@ -168,10 +168,10 @@ and read_back_ne size ne =
     let suc_var = D.mk_var applied_tp (size + 1) in
     let applied_suc = do_tm_clos2 suc tp_var suc_var in
     let suc' =
-      read_back_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc}) in
+      read_back_nf (size + 2) (D.Nf {tp = applied_suc_tp; term = applied_suc}) in
     Syn.NRec
       (tp',
-       read_back_nf size (D.Normal {tp = zero_tp; term = zero}),
+       read_back_nf size (D.Nf {tp = zero_tp; term = zero}),
        suc',
        read_back_ne size n)
   | D.Fst ne -> Syn.Fst (read_back_ne size ne)
@@ -185,46 +185,46 @@ and read_back_ne size ne =
     let refl_syn =
       read_back_nf
         (size + 1)
-        (D.Normal {term = do_tm_clos refl refl_var; tp = do_tp_clos3 mot refl_var refl_var (D.Refl refl_var)}) in
+        (D.Nf {term = do_tm_clos refl refl_var; tp = do_tp_clos3 mot refl_var refl_var (D.Refl refl_var)}) in
     let eq_syn = read_back_ne size eq in
     Syn.J (mot_syn, refl_syn, eq_syn)
 
 let rec equal_nf size nf1 nf2 =
   match nf1, nf2 with
   (* Functions *)
-  | D.Normal {tp = D.Pi (src1, dest1); term = f1},
-    D.Normal {tp = D.Pi (_, dest2); term = f2} ->
+  | D.Nf {tp = D.Pi (src1, dest1); term = f1},
+    D.Nf {tp = D.Pi (_, dest2); term = f2} ->
     let arg = D.mk_var src1 size in
-    let nf1 = D.Normal {tp = do_tp_clos dest1 arg; term = do_ap f1 arg} in
-    let nf2 = D.Normal {tp = do_tp_clos dest2 arg; term = do_ap f2 arg} in
+    let nf1 = D.Nf {tp = do_tp_clos dest1 arg; term = do_ap f1 arg} in
+    let nf2 = D.Nf {tp = do_tp_clos dest2 arg; term = do_ap f2 arg} in
     equal_nf (size + 1) nf1 nf2
   (* Pairs *)
-  | D.Normal {tp = D.Sg (fst1, snd1); term = p1},
-    D.Normal {tp = D.Sg (fst2, snd2); term = p2} ->
+  | D.Nf {tp = D.Sg (fst1, snd1); term = p1},
+    D.Nf {tp = D.Sg (fst2, snd2); term = p2} ->
     let p11, p21 = do_fst p1, do_fst p2 in
     let snd1 = do_tp_clos snd1 p11 in
     let snd2 = do_tp_clos snd2 p21 in
     let p12, p22 = do_snd p1, do_snd p2 in
-    equal_nf size (D.Normal {tp = fst1; term = p11}) (D.Normal {tp = fst2; term = p21})
-    && equal_nf size (D.Normal {tp = snd1; term = p12}) (D.Normal {tp = snd2; term = p22})
+    equal_nf size (D.Nf {tp = fst1; term = p11}) (D.Nf {tp = fst2; term = p21})
+    && equal_nf size (D.Nf {tp = snd1; term = p12}) (D.Nf {tp = snd2; term = p22})
   (* Numbers *)
-  | D.Normal {tp = D.Nat; term = D.Zero},
-    D.Normal {tp = D.Nat; term = D.Zero} -> true
-  | D.Normal {tp = D.Nat; term = D.Suc nf1},
-    D.Normal {tp = D.Nat; term = D.Suc nf2} ->
-    equal_nf size (D.Normal {tp = D.Nat; term = nf1}) (D.Normal {tp = D.Nat; term = nf2})
-  | D.Normal {tp = D.Nat; term = D.Neutral {term = ne1; _}},
-    D.Normal {tp = D.Nat; term = D.Neutral {term = ne2; _}}-> equal_ne size ne1 ne2
+  | D.Nf {tp = D.Nat; term = D.Zero},
+    D.Nf {tp = D.Nat; term = D.Zero} -> true
+  | D.Nf {tp = D.Nat; term = D.Suc nf1},
+    D.Nf {tp = D.Nat; term = D.Suc nf2} ->
+    equal_nf size (D.Nf {tp = D.Nat; term = nf1}) (D.Nf {tp = D.Nat; term = nf2})
+  | D.Nf {tp = D.Nat; term = D.Neutral {term = ne1; _}},
+    D.Nf {tp = D.Nat; term = D.Neutral {term = ne2; _}}-> equal_ne size ne1 ne2
   (* Id *)
-  | D.Normal {tp = D.Id (tp, _, _); term = D.Refl term1},
-    D.Normal {tp = D.Id (_, _, _); term = D.Refl term2} ->
-    equal_nf size (D.Normal {tp; term = term1}) (D.Normal {tp; term = term2})
-  | D.Normal {tp = D.Id _; term = D.Neutral {term = term1; _}},
-    D.Normal {tp = D.Id _; term = D.Neutral {term = term2; _}} ->
+  | D.Nf {tp = D.Id (tp, _, _); term = D.Refl term1},
+    D.Nf {tp = D.Id (_, _, _); term = D.Refl term2} ->
+    equal_nf size (D.Nf {tp; term = term1}) (D.Nf {tp; term = term2})
+  | D.Nf {tp = D.Id _; term = D.Neutral {term = term1; _}},
+    D.Nf {tp = D.Id _; term = D.Neutral {term = term2; _}} ->
     equal_ne size term1 term2
   (* Types *)
-  | D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne1; _}},
-    D.Normal {tp = D.Neutral _; term = D.Neutral {term = ne2; _}} -> equal_ne size ne1 ne2
+  | D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne1; _}},
+    D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne2; _}} -> equal_ne size ne1 ne2
   | _ -> false
 
 and equal_ne size ne1 ne2 =
@@ -242,17 +242,17 @@ and equal_ne size ne1 ne2 =
     let applied_suc1 = do_tm_clos2 suc1 tp_var suc_var1 in
     let applied_suc2 = do_tm_clos2 suc2 tp_var suc_var2 in
     equal_tp (size + 1) applied_tp1 applied_tp2
-    && equal_nf size (D.Normal {tp = zero_tp; term = zero1}) (D.Normal {tp = zero_tp; term = zero2})
-    && equal_nf (size + 2) (D.Normal {tp = applied_suc_tp; term = applied_suc1})
-      (D.Normal {tp = applied_suc_tp; term = applied_suc2})
+    && equal_nf size (D.Nf {tp = zero_tp; term = zero1}) (D.Nf {tp = zero_tp; term = zero2})
+    && equal_nf (size + 2) (D.Nf {tp = applied_suc_tp; term = applied_suc1})
+      (D.Nf {tp = applied_suc_tp; term = applied_suc2})
     && equal_ne size n1 n2
   | D.Fst ne1, D.Fst ne2  -> equal_ne size ne1 ne2
   | D.Snd ne1, D.Snd ne2 -> equal_ne size ne1 ne2
   | D.J (mot1, refl1, tp1, left1, right1, eq1),
     D.J (mot2, refl2, tp2, left2, right2, eq2) ->
     equal_tp size tp1 tp2 &&
-    equal_nf size (D.Normal {tp = tp1; term = left1}) (D.Normal {tp = tp2; term = left2}) &&
-    equal_nf size (D.Normal {tp = tp1; term = right1}) (D.Normal {tp = tp2; term = right2}) &&
+    equal_nf size (D.Nf {tp = tp1; term = left1}) (D.Nf {tp = tp2; term = left2}) &&
+    equal_nf size (D.Nf {tp = tp1; term = right1}) (D.Nf {tp = tp2; term = right2}) &&
     let mot_var1 = D.mk_var tp1 size in
     let mot_var2 = D.mk_var tp1 (size + 1) in
     let mot_var3 = D.mk_var (D.Id (tp1, left1, right1)) (size + 2) in
@@ -260,8 +260,8 @@ and equal_ne size ne1 ne2 =
     let refl_var = D.mk_var tp1 size in
     equal_nf
       (size + 1)
-      (D.Normal {term = do_tm_clos refl1 refl_var; tp = do_tp_clos3 mot1 refl_var refl_var (D.Refl refl_var)})
-      (D.Normal {term = do_tm_clos refl2 refl_var; tp = do_tp_clos3 mot2 refl_var refl_var (D.Refl refl_var)}) &&
+      (D.Nf {term = do_tm_clos refl1 refl_var; tp = do_tp_clos3 mot1 refl_var refl_var (D.Refl refl_var)})
+      (D.Nf {term = do_tm_clos refl2 refl_var; tp = do_tp_clos3 mot2 refl_var refl_var (D.Refl refl_var)}) &&
     equal_ne size eq1 eq2
   | _ -> false
 
@@ -272,8 +272,8 @@ and equal_tp size d1 d2 =
   | D.Nat, D.Nat -> true
   | D.Id (tp1, left1, right1), D.Id (tp2, left2, right2) ->
     equal_tp size tp1 tp2 &&
-    equal_nf size (D.Normal {tp = tp1; term = left1}) (D.Normal {tp = tp1; term = left2}) &&
-    equal_nf size (D.Normal {tp = tp1; term = right1}) (D.Normal {tp = tp1; term = right2})
+    equal_nf size (D.Nf {tp = tp1; term = left1}) (D.Nf {tp = tp1; term = left2}) &&
+    equal_nf size (D.Nf {tp = tp1; term = right1}) (D.Nf {tp = tp1; term = right2})
   | D.Pi (src, dest), D.Pi (src', dest') ->
     let var = D.mk_var src' size in
     equal_tp size src' src &&
@@ -296,4 +296,4 @@ let normalize ~env ~term ~tp =
   let env' = initial_env env in
   let tp = eval tp env' in
   let term = eval term env' in
-  read_back_nf (List.length env') (D.Normal {tp; term})
+  read_back_nf (List.length env') (D.Nf {tp; term})

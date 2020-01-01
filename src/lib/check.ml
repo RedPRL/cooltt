@@ -80,7 +80,7 @@ let pp_error fmt = function
 
 
 let assert_equal size t1 t2 tp =
-  if Nbe.equal_nf size (D.Normal {tp; term = t1}) (D.Normal {tp; term = t2})
+  if Nbe.equal_nf size (D.Nf {tp; term = t1}) (D.Nf {tp; term = t2})
   then ()
   else tp_error (Type_mismatch (t1, t2))
 
