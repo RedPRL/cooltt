@@ -5,6 +5,7 @@ module D = Domain
 type error = 
   | Unbound_variable of CS.ident
   | ExpectedEqual of D.tp * D.t * D.t
+  | ExpectedEqualTypes of D.tp * D.tp
   | InvalidTypeExpression of CS.t 
 
 exception ElabError of error
@@ -149,6 +150,12 @@ struct
     | true -> EM.ret ()
     | false -> EM.throw @@ ElabError (ExpectedEqual (tp, l, r))
 
+  let equate_tp tp tp' = 
+    let* env = read_check_env in 
+    match Nbe.equal_tp (Check.Env.size env) tp tp' with
+    | true -> EM.ret ()
+    | false -> EM.throw @@ ElabError (ExpectedEqualTypes (tp, tp'))
+
   let quote tp v =
     let* env = read_check_env in 
     match Nbe.read_back_nf (Check.Env.size env) @@ D.Nf {tp; term = v} with
@@ -177,14 +184,18 @@ struct
     fun cs tp ->
     match cs, tp with
     | CS.Refl _, D.Id (tp, l, r) ->
-      let+ _ = equate tp l r
+      let+ () = equate tp l r
       and+ t = quote tp l in
       S.Refl t
-
     | CS.Lit n, D.Nat ->
       EM.ret @@ int_to_term n
+    | _ ->
+      let* tm, tp' = synth_tm cs in 
+      let+ () = equate_tp tp tp' in
+      tm
 
-    | _ -> failwith "TODO"
+  and synth_tm : CS.t -> (S.t * D.tp) EM.m = 
+    failwith "TODO"
 
   and check_sg_tp cells body =
     match cells with
