@@ -82,7 +82,8 @@ let pp_error fmt = function
     Format.fprintf fmt "@[<v>Expected some universe but found@ @[<hov 2>";
     D.pp fmt d;
     Format.fprintf fmt "@]@]@,"
-  | Misc s -> Format.pp_print_string fmt s
+  | Misc s -> 
+    Format.pp_print_string fmt s
 
 
 let assert_equal size t1 t2 tp =
@@ -104,7 +105,7 @@ let rec check ~env ~term ~tp =
         let term = Nbe.eval term (Env.to_sem_env env) in
         assert_equal (Env.size env) term left tp;
         assert_equal (Env.size env) term right tp
-      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show_tp t))
+      | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t)
     end
   | Lam body ->
     begin
@@ -113,7 +114,7 @@ let rec check ~env ~term ~tp =
         let var = D.mk_var arg_tp (Env.size env) in
         let dest_tp = Nbe.do_tp_clos clos var in
         check ~env:(Env.add_term ~term:var ~tp:arg_tp env) ~term:body ~tp:dest_tp;
-      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show_tp t))
+      | t -> tp_error @@ Misc ("Expecting Pi but found\n" ^ D.show_tp t)
     end
   | Pair (left, right) ->
     begin
@@ -122,7 +123,7 @@ let rec check ~env ~term ~tp =
         check ~env ~term:left ~tp:left_tp;
         let left_sem = Nbe.eval left (Env.to_sem_env env) in
         check ~env ~term:right ~tp:(Nbe.do_tp_clos right_tp left_sem)
-      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show_tp t))
+      | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t)
     end
   | _ ->
     let tp' = synth ~env ~term in 
@@ -134,7 +135,7 @@ and synth ~env ~term =
   match term with
   | Syn.Var i -> Env.get_var env i
   | Check (term, tp') ->
-    let tp = Nbe.eval_tp tp' (Env.to_sem_env env) in
+    let tp = Nbe.eval_tp tp' @@ Env.to_sem_env env in
     check ~env ~term ~tp;
     tp
   | Zero -> D.Nat
@@ -143,7 +144,7 @@ and synth ~env ~term =
     begin
       match synth ~env ~term:p with
       | Sg (left_tp, _) -> left_tp
-      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show_tp t))
+      | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t)
     end
   | Snd p ->
     begin
@@ -151,7 +152,7 @@ and synth ~env ~term =
       | Sg (_, right_tp) ->
         let proj = Nbe.eval (Fst p) (Env.to_sem_env env) in
         Nbe.do_tp_clos right_tp proj
-      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show_tp t))
+      | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t)
     end
   | Ap (f, a) ->
     begin
@@ -160,7 +161,7 @@ and synth ~env ~term =
         check ~env ~term:a ~tp:src;
         let a_sem = Nbe.eval a (Env.to_sem_env env) in
         Nbe.do_tp_clos dest a_sem
-      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show_tp t))
+      | t -> tp_error @@ Misc ("Expecting Pi but found\n" ^ D.show_tp t)
     end
   | NRec (mot, zero, suc, n) ->
     check ~env ~term:n ~tp:Nat;
@@ -195,7 +196,7 @@ and synth ~env ~term =
         let refl_tp = Nbe.eval_tp mot (D.Refl refl_var :: refl_var :: refl_var :: sem_env) in
         check ~env:(Env.add_term ~term:refl_var ~tp:tp' env) ~term:refl ~tp:refl_tp;
         Nbe.eval_tp mot (Nbe.eval eq sem_env :: right :: left :: sem_env)
-      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show_tp t))
+      | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t)
     end
   | _ -> tp_error (Cannot_synth_term term)
 
