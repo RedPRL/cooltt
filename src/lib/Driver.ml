@@ -11,35 +11,7 @@ type error =
 
 exception ElabError of error
 
-module Env : sig
-  type t
-  val init : t
-  val bindings : t -> CS.ident list
-  val check_env : t -> Check.Env.t
-  val push_name : CS.ident -> t -> t
-  val push_names : CS.ident list -> t -> t
-  val find_idx : CS.ident -> t -> int
-  val add_entry : Check.Env.entry -> t -> t
-end = 
-struct
-  type t = {check_env : Check.env; bindings : string list}
-  let init = {check_env = Check.Env.empty; bindings = []}
-  let bindings {bindings; _} = bindings
-  let check_env {check_env; _} = check_env
-  let push_name i env = {env with bindings = i :: env.bindings }
-  let push_names is env = {env with bindings = is @ env.bindings }
-
-  let find_idx key env =
-    let rec go i = 
-      function
-      | [] -> raise @@ ElabError (Unbound_variable key)
-      | x :: xs -> if String.equal x key then i else go (i + 1) xs 
-    in
-    go 0 @@ bindings env
-
-  let add_entry e env = 
-    {env with check_env = Check.Env.add_entry e env.check_env}
-end
+module Env = ElabEnv
 
 
 type output =
@@ -178,10 +150,13 @@ struct
 
   let lookup_var id = 
     let* env = EM.read in
-    let ix = Env.find_idx id env in
-    let chk_env = Env.check_env env in
-    let tp = Check.Env.get_var chk_env ix in
-    EM.ret (S.Var ix, tp)
+    match Env.find_idx id env with
+    | Some ix -> 
+      let chk_env = Env.check_env env in
+      let tp = Check.Env.get_var chk_env ix in
+      EM.ret (S.Var ix, tp)
+    | None -> 
+      EM.throw @@ ElabError (Unbound_variable id)
 
 
   let dest_pi =
@@ -269,7 +244,12 @@ end
 
 let rec bind (env : Env.t) = 
   function
-  | CS.Var i -> S.Var (Env.find_idx i env)
+  | CS.Var id -> 
+    begin
+      match Env.find_idx id env with
+      | Some ix -> S.Var ix
+      | None -> raise @@ ElabError (Unbound_variable id)
+    end
   | CS.Let (tp, B {name; body}) ->
     S.Let (bind env tp, bind (Env.push_name name env) body)
   | CS.Check {term; tp} -> S.Check (bind env term, bind_ty env tp)
@@ -343,10 +323,12 @@ let process_decl env =
   | CS.NormalizeDef name ->
     let err = ElabError (Unbound_variable name) in 
     begin
-      match Check.Env.get_entry (Env.check_env env) (Env.find_idx name env) with
-      | Check.Env.TopLevel {term; tp} -> NF_def (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
-      | _ -> raise err
-      | exception Failure _ -> raise err
+      match Env.find_idx name env with
+      | None -> raise err
+      | Some ix ->
+        match Check.Env.get_entry (Env.check_env env) ix with
+        | Check.Env.TopLevel {term; tp} -> NF_def (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
+        | _ -> raise err
     end
   | CS.NormalizeTerm {term; tp} ->
     let term = bind env term in
