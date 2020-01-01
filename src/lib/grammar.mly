@@ -82,7 +82,7 @@ term:
     }
   | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
-  | REFL; t = atomic
+  | REFL; t = option(atomic)
     { Refl t }
   | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
     PIPE; REFL; name = name; RIGHT_ARROW; refl = term;

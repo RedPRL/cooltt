@@ -4,6 +4,7 @@ module D = Domain
 
 type error = 
   | Unbound_variable of CS.ident
+  | ExpectedEqual of D.tp * D.t * D.t
   | InvalidTypeExpression of CS.t 
 
 exception ElabError of error
@@ -127,14 +128,33 @@ end =
 struct
   open Monad.Notation (EM)
 
+  let read_check_env = 
+    let+ env = EM.read in 
+    Env.check_env env
+
+  let read_sem_env = 
+    let+ chk_env = read_check_env in
+    Check.Env.to_sem_env chk_env
+
   let eval_tp tp = 
-    let* env = EM.read in 
-    let chk_env = Env.check_env env in
-    let sem_env = Check.Env.to_sem_env chk_env in
+    let* sem_env = read_sem_env in 
     match Nbe.eval_tp tp sem_env with
     | v -> EM.ret v
     | exception exn -> 
       EM.throw exn
+
+  let equate tp l r = 
+    let* env = read_check_env in 
+    match Nbe.equal_nf (Check.Env.size env) (D.Nf {tp; term = l}) (D.Nf {tp; term = r}) with
+    | true -> EM.ret ()
+    | false -> EM.throw @@ ElabError (ExpectedEqual (tp, l, r))
+
+  let quote tp v =
+    let* env = read_check_env in 
+    match Nbe.read_back_nf (Check.Env.size env) @@ D.Nf {tp; term = v} with
+    | t -> EM.ret t
+    | exception exn -> EM.throw exn
+
 
   let rec check_tp : CS.t -> S.tp EM.m = 
     function
@@ -156,6 +176,14 @@ struct
   and check_tm : CS.t -> D.tp -> S.t EM.m =
     fun cs tp ->
     match cs, tp with
+    | CS.Refl _, D.Id (tp, l, r) ->
+      let+ _ = equate tp l r
+      and+ t = quote tp l in
+      S.Refl t
+
+    | CS.Lit n, D.Nat ->
+      EM.ret @@ int_to_term n
+
     | _ -> failwith "TODO"
 
   and check_sg_tp cells body =
@@ -221,7 +249,7 @@ let rec bind (env : Env.t) =
       (bind_ty (Env.push_names [prf; right; left] env) mot_body,
        bind (Env.push_name refl_name env) refl_body,
        bind env eq)
-  | CS.Refl t -> 
+  | CS.Refl (Some t) -> 
     S.Refl (bind env t)
   | _ -> failwith "driver expected term"
 

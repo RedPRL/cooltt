@@ -23,7 +23,7 @@ and t =
   | Fst of t
   | Snd of t
   | Id of t * t * t
-  | Refl of t
+  | Refl of t option
   | J of {mot : binder3; refl : binder; eq : t}
 [@@deriving show]
 
