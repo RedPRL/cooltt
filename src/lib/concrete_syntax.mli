@@ -32,3 +32,6 @@ type decl =
   | Quit
 
 type signature = decl list
+
+
+val show : t -> string

@@ -101,7 +101,10 @@ and bind_ty env =
   | CS.Nat -> S.Nat
   | CS.Id (tp, left, right) ->
     S.Id (bind_ty env tp, bind env left, bind env right)
-  | _ -> failwith "driver expected tp"
+  | CS.Ap (f, []) ->
+    bind_ty env f
+  | e -> 
+    failwith @@ "driver expected tp but found "  ^ CS.show e
 
 and bind_spine env = 
   function

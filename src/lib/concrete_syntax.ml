@@ -1,4 +1,5 @@
 type ident = string
+[@@deriving show]
 
 type binder = Binder of {name : ident; body : t}
 and bindern = BinderN of {names : ident list; body : t}
@@ -24,6 +25,7 @@ and t =
   | Id of t * t * t
   | Refl of t
   | J of {mot : binder3; refl : binder; eq : t}
+[@@deriving show]
 
 type decl =
     Def of {name : ident; def : t; tp : t}
