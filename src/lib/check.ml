@@ -159,7 +159,7 @@ and synth ~env ~term =
   | NRec (mot, zero, suc, n) ->
     check ~env ~term:n ~tp:Nat;
     let var = D.mk_var Nat (Env.size env) in
-    check_tp ~env:(Env.add_term ~term:var ~tp:Nat env) ~term:mot;
+    check_tp ~env:(Env.add_term ~term:var ~tp:Nat env) ~tp:mot;
     let sem_env = Env.to_sem_env env in
     let zero_tp = Nbe.eval_tp mot (Zero :: sem_env) in
     let ih_tp = Nbe.eval_tp mot (var :: sem_env) in
@@ -184,7 +184,7 @@ and synth ~env ~term =
           Env.add_term ~term:mot_var1 ~tp:tp' env
           |> Env.add_term ~term:mot_var2 ~tp:tp'
           |> Env.add_term ~term:mot_var3 ~tp:(D.Id (tp', mot_var1, mot_var2)) in
-        check_tp ~env:mot_env ~term:mot;
+        check_tp ~env:mot_env ~tp:mot;
         let refl_var = D.mk_var tp' (Env.size env) in
         let refl_tp = Nbe.eval_tp mot (D.Refl refl_var :: refl_var :: refl_var :: sem_env) in
         check ~env:(Env.add_term ~term:refl_var ~tp:tp' env) ~term:refl ~tp:refl_tp;
@@ -193,16 +193,16 @@ and synth ~env ~term =
     end
   | _ -> tp_error (Cannot_synth_term term)
 
-and check_tp ~env ~term =
-  match term with
+and check_tp ~env ~tp =
+  match tp with
   | Nat -> ()
   | Pi (l, r) | Sg (l, r) ->
-    check_tp ~env ~term:l;
+    check_tp ~env ~tp:l;
     let l_sem = Nbe.eval_tp l (Env.to_sem_env env) in
     let var = D.mk_var l_sem (Env.size env) in
-    check_tp ~env:(Env.add_term ~term:var ~tp:l_sem env) ~term:r
+    check_tp ~env:(Env.add_term ~term:var ~tp:l_sem env) ~tp:r
   | Id (tp, l, r) ->
-    check_tp ~env ~term:tp;
+    check_tp ~env ~tp;
     let tp = Nbe.eval_tp tp (Env.to_sem_env env) in
     check ~env ~term:l ~tp;
     check ~env ~term:r ~tp

@@ -115,7 +115,7 @@ let process_decl (Env {check_env; bindings}) =
   | CS.Def {name; def; tp} ->
     let def = bind bindings def in
     let tp = bind_ty bindings tp in
-    Check.check_tp ~env:check_env ~term:tp;
+    Check.check_tp ~env:check_env ~tp;
     let sem_env = Check.Env.to_sem_env check_env in
     let sem_tp = Nbe.eval_tp tp sem_env in
     Check.check ~env:check_env ~term:def ~tp:sem_tp;
@@ -133,7 +133,7 @@ let process_decl (Env {check_env; bindings}) =
   | CS.NormalizeTerm {term; tp} ->
     let term = bind bindings term in
     let tp = bind_ty bindings tp in
-    Check.check_tp ~env:check_env ~term:tp;
+    Check.check_tp ~env:check_env ~tp;
     let sem_env = Check.Env.to_sem_env check_env in
     let sem_tp = Nbe.eval_tp tp sem_env in
     Check.check ~env:check_env ~term ~tp:sem_tp;
