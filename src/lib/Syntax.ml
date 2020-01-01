@@ -66,7 +66,7 @@ and pp_tp fmt =
   | Pi (l, r) ->
     fprintf fmt "Pi(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp_tp l pp_tp r;
   | Sg (l, r) ->
-    fprintf fmt "Pi(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp_tp l pp_tp r;
+    fprintf fmt "Sg(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp_tp l pp_tp r;
   | Id (tp, l, r) ->
     fprintf fmt "Id(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp_tp tp pp l pp r;
 
