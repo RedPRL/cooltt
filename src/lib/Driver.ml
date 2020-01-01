@@ -72,6 +72,32 @@ let rec unravel_spine f =
   | [] -> f
   | x :: xs -> unravel_spine (x f) xs
 
+
+(* experimental *)
+module ElabMonad : 
+sig 
+  include Monad.S
+  val run : 'a m -> Env.t -> [`Ret of 'a | `Throw of exn]
+end =
+struct
+  type 'a m = Env.t -> [`Ret of 'a | `Throw of exn]
+
+  let ret a _env = `Ret a
+  let run m env = m env
+  let bind m k = 
+    fun env ->
+    match m env with 
+    | `Ret a ->
+      k a env
+    | `Throw exn ->
+      `Throw exn
+
+  module Notation =
+  struct
+    let (let*) = bind
+  end
+end
+
 let rec bind (env : Env.t) = 
   function
   | CS.Var i -> S.Var (Env.find_idx i env)

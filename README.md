@@ -2,7 +2,7 @@
 
 An implementation of normalization by evaluation (nbe) & semantic type checking for Martin-Löf Type
 Theory with dependent products, dependent sums, natural numbers, id, and a non-cumulative hierarchy
-of universes. 
+of universes.
 
 For examples, see the `test/` directory.
 
@@ -12,7 +12,7 @@ Sterling, and Birkedal.
 
 ## building
 
-cooltt has been built with OCaml 4.06.1 and 4.07.1 with [opam 2.0](https://opam.ocaml.org/). Once
+cooltt has been built with OCaml 4.08.1 with [opam 2.0](https://opam.ocaml.org/). Once
 these dependencies are installed cooltt can be built with the following set of commands.
 
 ```
