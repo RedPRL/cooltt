@@ -7,8 +7,9 @@ exception SyntaxError of string
 let next_line lexbuf =
   let pos = lexbuf.lex_curr_p in
   lexbuf.lex_curr_p <-
-    { pos with pos_bol = lexbuf.lex_curr_pos;
-               pos_lnum = pos.pos_lnum + 1
+    { pos with 
+      pos_bol = lexbuf.lex_curr_pos;
+      pos_lnum = pos.pos_lnum + 1
     }
 
 let make_table num elems =
@@ -88,12 +89,8 @@ rule token = parse
   | atom
     {
       let input = lexeme lexbuf in
-      begin try
-        let kwd = Hashtbl.find keywords input in
-        kwd
-      with Not_found ->
-        (Grammar.ATOM input)
-      end
+      try Hashtbl.find keywords input with 
+      | Not_found -> Grammar.ATOM input
     }
   | _
     { Printf.eprintf "Unexpected char: %s" (lexeme lexbuf); token lexbuf }
