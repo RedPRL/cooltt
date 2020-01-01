@@ -1,8 +1,9 @@
 (* This file implements the semantic type-checking algorithm described in the paper. *)
 module D = Domain
-module Syn = Syntax
+module S = Syntax
+
 type error =
-    Cannot_synth_term of Syn.t
+    Cannot_synth_term of S.t
   | Type_mismatch of D.tp * D.tp
   | Term_mismatch of D.t * D.t
   | Expecting_universe of D.t
@@ -14,17 +15,17 @@ let tp_error e = raise @@ Type_error e
 module Env : 
 sig
   type entry =
-      Term of {term : Domain.t; tp : Domain.tp}
-    | TopLevel of {term : Domain.t; tp : Domain.tp}
+      Term of {term : D.t; tp : D.tp}
+    | TopLevel of {term : D.t; tp : D.tp}
 
   type t
   val size : t -> int
 
   val empty : t
   val add_entry : entry -> t -> t
-  val add_term : term:Domain.t -> tp:Domain.tp -> t -> t
-  val to_sem_env : t -> Domain.env
-  val get_var : t -> int -> Domain.tp
+  val add_term : term:D.t -> tp:D.tp -> t -> t
+  val to_sem_env : t -> D.env
+  val get_var : t -> int -> D.tp
   val get_entry : t -> int -> entry
 end = 
 struct
@@ -64,7 +65,7 @@ type env = Env.t
 let pp_error fmt = function
   | Cannot_synth_term t ->
     Format.fprintf fmt "@[<v> Cannot synthesize the type of: @[<hov 2>  ";
-    Syn.pp fmt t;
+    S.pp fmt t;
     Format.fprintf fmt "@]@]@,"
   | Term_mismatch (t1, t2) ->
     Format.fprintf fmt "@[<v>Cannot equate@,@[<hov 2>  ";
@@ -93,11 +94,11 @@ let assert_equal size t1 t2 tp =
 
 let rec check ~env ~term ~tp =
   match term with
-  | Syn.Let (def, body) ->
+  | S.Let (def, body) ->
     let def_tp = synth ~env ~term:def in
     let def_val = Nbe.eval def (Env.to_sem_env env) in
     check ~env:(Env.add_term ~term:def_val ~tp:def_tp env) ~term:body ~tp
-  | Refl term ->
+  | S.Refl term ->
     begin
       match tp with
       | D.Id (tp, left, right) ->
@@ -107,7 +108,7 @@ let rec check ~env ~term ~tp =
         assert_equal (Env.size env) term right tp
       | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t)
     end
-  | Lam body ->
+  | S.Lam body ->
     begin
       match tp with
       | D.Pi (arg_tp, clos) ->
@@ -116,7 +117,7 @@ let rec check ~env ~term ~tp =
         check ~env:(Env.add_term ~term:var ~tp:arg_tp env) ~term:body ~tp:dest_tp;
       | t -> tp_error @@ Misc ("Expecting Pi but found\n" ^ D.show_tp t)
     end
-  | Pair (left, right) ->
+  | S.Pair (left, right) ->
     begin
       match tp with
       | D.Sg (left_tp, right_tp) ->
@@ -133,20 +134,20 @@ let rec check ~env ~term ~tp =
 
 and synth ~env ~term =
   match term with
-  | Syn.Var i -> Env.get_var env i
+  | S.Var i -> Env.get_var env i
   | Check (term, tp') ->
     let tp = Nbe.eval_tp tp' @@ Env.to_sem_env env in
     check ~env ~term ~tp;
     tp
-  | Zero -> D.Nat
-  | Suc term -> check ~env ~term ~tp:Nat; D.Nat
-  | Fst p ->
+  | S.Zero -> D.Nat
+  | S.Suc term -> check ~env ~term ~tp:Nat; D.Nat
+  | S.Fst p ->
     begin
       match synth ~env ~term:p with
       | Sg (left_tp, _) -> left_tp
       | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t)
     end
-  | Snd p ->
+  | S.Snd p ->
     begin
       match synth ~env ~term:p with
       | Sg (_, right_tp) ->
@@ -154,7 +155,7 @@ and synth ~env ~term =
         Nbe.do_tp_clos right_tp proj
       | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t)
     end
-  | Ap (f, a) ->
+  | S.Ap (f, a) ->
     begin
       match synth ~env ~term:f with
       | Pi (src, dest) ->
@@ -163,7 +164,7 @@ and synth ~env ~term =
         Nbe.do_tp_clos dest a_sem
       | t -> tp_error @@ Misc ("Expecting Pi but found\n" ^ D.show_tp t)
     end
-  | NRec (mot, zero, suc, n) ->
+  | S.NRec (mot, zero, suc, n) ->
     check ~env ~term:n ~tp:Nat;
     let var = D.mk_var Nat (Env.size env) in
     check_tp ~env:(Env.add_term ~term:var ~tp:Nat env) ~tp:mot;
@@ -178,7 +179,7 @@ and synth ~env ~term =
       ~term:suc
       ~tp:suc_tp;
     Nbe.eval_tp mot (Nbe.eval n sem_env :: sem_env)
-  | J (mot, refl, eq) ->
+  | S.J (mot, refl, eq) ->
     let eq_tp = synth ~env ~term:eq in
     begin
       let sem_env = Env.to_sem_env env in

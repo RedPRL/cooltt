@@ -1,3 +1,4 @@
+module S := Syntax
 type env = t list
 
 and ('a, 'b) clos =
@@ -9,7 +10,7 @@ and 'a clos2 = Clos2 of {term : 'a; env : env}
 and 'a clos3 = Clos3 of {term : 'a; env : env}
 
 and t =
-  | Lam of (Syntax.t, t) clos
+  | Lam of (S.t, t) clos
   | Neutral of {tp : tp; term : ne}
   | Zero
   | Suc of t
@@ -19,8 +20,8 @@ and t =
 and tp =
   | Nat
   | Id of tp * t * t
-  | Pi of tp * (Syntax.tp, tp) clos
-  | Sg of tp * (Syntax.tp, tp) clos
+  | Pi of tp * (S.tp, tp) clos
+  | Sg of tp * (S.tp, tp) clos
 
 
 and ne =
@@ -28,8 +29,8 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | NRec of (Syntax.tp, tp) clos * t * Syntax.t clos2 * ne
-  | J of Syntax.tp clos3 * (Syntax.t, t) clos * tp * t * t * ne
+  | NRec of (S.tp, tp) clos * t * S.t clos2 * ne
+  | J of S.tp clos3 * (S.t, t) clos * tp * t * t * ne
 
 and nf =
   | Nf of {tp : tp; term : t}
