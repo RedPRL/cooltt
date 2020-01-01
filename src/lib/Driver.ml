@@ -7,6 +7,7 @@ type error =
   | ExpectedEqual of D.tp * D.t * D.t
   | ExpectedEqualTypes of D.tp * D.tp
   | InvalidTypeExpression of CS.t 
+  | ExpectedPiType of D.tp
 
 exception ElabError of error
 
@@ -144,6 +145,19 @@ struct
     | exception exn -> 
       EM.throw exn
 
+  let eval_tm tp = 
+    let* sem_env = read_sem_env in 
+    match Nbe.eval tp sem_env with
+    | v -> EM.ret v
+    | exception exn -> 
+      EM.throw exn
+
+  let inst_tp_clo clo v =
+    match Nbe.do_tp_clos clo v with
+    | v -> EM.ret v
+    | exception exn ->
+      EM.throw exn
+
   let equate tp l r = 
     let* env = read_check_env in 
     match Nbe.equal_nf (Check.Env.size env) (D.Nf {tp; term = l}) (D.Nf {tp; term = r}) with
@@ -169,6 +183,13 @@ struct
     let tp = Check.Env.get_var chk_env ix in
     EM.ret (S.Var ix, tp)
 
+
+  let dest_pi =
+    function
+    | D.Pi (base, fam) ->
+      EM.ret (base, fam)
+    | tp ->
+      EM.throw @@ ElabError (ExpectedPiType tp)
 
   let rec check_tp : CS.t -> S.tp EM.m = 
     function
@@ -205,8 +226,21 @@ struct
     function
     | CS.Var id -> 
       lookup_var id
+    | CS.Ap (t, ts) ->
+      let* t, tp = synth_tm t in
+      synth_ap t tp ts
     | _ ->
       failwith "TODO"
+
+  and synth_ap head head_tp spine = 
+    match spine with
+    | [] -> EM.ret (head, head_tp)
+    | CS.Term arg :: spine ->
+      let* base, fam = dest_pi head_tp in 
+      let* arg = check_tm arg base in
+      let* varg = eval_tm arg in
+      let* fib = inst_tp_clo fam varg in
+      synth_ap (S.Ap (head, arg)) fib spine
 
   and check_sg_tp cells body =
     match cells with
