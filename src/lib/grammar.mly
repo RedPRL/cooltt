@@ -31,13 +31,13 @@ decl:
   | NORMALIZE; DEF; a = name
     { NormalizeDef a  }
   | NORMALIZE; tm = term; AT; tp = term
-    { NormalizeTerm {term = tm; tp} };
+    { NormalizeTerm {term = tm; tp} }
 
 sign:
   | EOF
     { [] }
   | d = decl; s = sign
-    { d :: s };
+    { d :: s }
 
 atomic:
   | LPR; t = term; RPR
@@ -51,10 +51,11 @@ atomic:
   | NAT
     { Nat }
   | LPR left = term; COMMA; right = term; RPR
-    { Pair (left, right) };
+    { Pair (left, right) }
 
 spine:
-  | t = atomic { Term t };
+  | t = atomic 
+    { Term t }
 
 term:
   | f = atomic; args = list(spine)
@@ -98,9 +99,7 @@ term:
     { Fst t }
   | SND; t = term 
     { Snd t }
-;
 
 tele_cell:
   | LPR name = name; COLON tp = term; RPR
     { Cell {name; tp} }
-;
