@@ -138,7 +138,7 @@ let rec read_back_nf size nf =
 and read_back_tp size d : Syn.tp =
   match d with
   | D.Neutral _ -> 
-  failwith "Shouldn't have a neutral type without universes..."
+    failwith "Shouldn't have a neutral type without universes..."
   (* read_back_ne size term *)
   | D.Nat -> Syn.Nat
   | D.Pi (src, dest) ->

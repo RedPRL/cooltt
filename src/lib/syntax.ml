@@ -59,7 +59,7 @@ let rec pp fmt =
     fprintf fmt "J(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp_tp mot pp refl pp eq;
 
 and pp_tp fmt = 
-let open Format in
+  let open Format in
   function
   | Nat ->
     fprintf fmt "Nat"

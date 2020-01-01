@@ -49,14 +49,14 @@ struct
         | TopLevel {term; _} -> term
         | Term {term; _} -> term)
       env.entries
-  
+
   let get_var env n = 
     match List.nth env.entries n with
     | Term {term = _; tp} -> tp
     | TopLevel {tp; _} -> tp
 
   let get_entry env n = List.nth env.entries n
-  
+
 end
 
 type env = Env.t
@@ -119,10 +119,10 @@ let rec check ~env ~term ~tp =
       | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
     end
   | _ ->
-  let tp' = synth ~env ~term in 
-  if Nbe.equal_tp (Env.size env) tp' tp
-  then ()
-  else tp_error (Type_mismatch (tp', tp))
+    let tp' = synth ~env ~term in 
+    if Nbe.equal_tp (Env.size env) tp' tp
+    then ()
+    else tp_error (Type_mismatch (tp', tp))
 
 and synth ~env ~term =
   match term with

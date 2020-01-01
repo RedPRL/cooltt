@@ -28,8 +28,8 @@ and nf =
 val mk_var : t -> int -> t
 
 (* val equal : t -> t -> bool
-val equal_ne : ne -> ne -> bool
-val equal_nf : nf -> nf -> bool *)
+   val equal_ne : ne -> ne -> bool
+   val equal_nf : nf -> nf -> bool *)
 
 val pp : Format.formatter -> t -> unit
 val pp_nf : Format.formatter -> nf -> unit
