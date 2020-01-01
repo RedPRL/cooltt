@@ -26,15 +26,18 @@ name:
 decl:
   | LET; nm = name; COLON; tp = term; EQUALS; body = term
     { Def {name = nm; def = body; tp} }
-  | QUIT { Quit }
+  | QUIT
+    { Quit }
   | NORMALIZE; DEF; a = name
     { NormalizeDef a  }
-  | NORMALIZE; tm = term; AT; tp = term 
+  | NORMALIZE; tm = term; AT; tp = term
     { NormalizeTerm {term = tm; tp} };
 
 sign:
-  | EOF { [] }
-  | d = decl; s = sign { d :: s };
+  | EOF
+    { [] }
+  | d = decl; s = sign
+    { d :: s };
 
 atomic:
   | LPR; t = term; RPR
@@ -45,7 +48,8 @@ atomic:
     { Lit 0 }
   | n = NUMERAL
     { Lit n }
-  | NAT { Nat }
+  | NAT
+    { Nat }
   | LPR left = term; COMMA; right = term; RPR
     { Pair (left, right) };
 
@@ -61,7 +65,8 @@ term:
     { Let (def, Binder {name; body}) }
   | LPR t = term; AT; tp = term RPR
     { Check {term = t; tp} }
-  | SUC; t = term { Suc t }
+  | SUC; t = term
+    { Suc t }
   | REC; n = term; AT; mot_name = name; RIGHT_ARROW; mot = term; WITH;
     PIPE; ZERO; RIGHT_ARROW; zero_case = term;
     PIPE; SUC; LPR; suc_var = name; RIGHT_ARROW; ih_var = name; RPR; RIGHT_ARROW; suc_case = term
@@ -89,11 +94,13 @@ term:
     { Pi ([Cell {name = ""; tp = dom}], cod) }
   | dom = atomic; TIMES; cod = term
     { Sg ([Cell {name = ""; tp = dom}], cod) }
-  | FST; t = term { Fst t }
-  | SND; t = term { Snd t }
+  | FST; t = term 
+    { Fst t }
+  | SND; t = term 
+    { Snd t }
 ;
 
 tele_cell:
   | LPR name = name; COLON tp = term; RPR
     { Cell {name; tp} }
-; 
+;
