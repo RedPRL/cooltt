@@ -1,9 +1,9 @@
 type ident = string
 
-type binder = Binder of {name : ident; body : t}
-and bindern = BinderN of {names : ident list; body : t}
-and binder2 = Binder2 of {name1 : ident; name2 : ident; body : t}
-and binder3 = Binder3 of {name1 : ident; name2 : ident; name3 : ident; body : t}
+type binder = B of {name : ident; body : t}
+and bindern = BN of {names : ident list; body : t}
+and binder2 = B2 of {name1 : ident; name2 : ident; body : t}
+and binder3 = B3 of {name1 : ident; name2 : ident; name3 : ident; body : t}
 and cell = Cell of {name : ident; tp : t}
 and spine = Term of t
 and t =

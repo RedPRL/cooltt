@@ -55,25 +55,25 @@ let rec unravel_spine f =
 let rec bind env = 
   function
   | CS.Var i -> S.Var (find_idx i env)
-  | CS.Let (tp, Binder {name; body}) ->
+  | CS.Let (tp, B {name; body}) ->
     S.Let (bind env tp, bind (name :: env) body)
   | CS.Check {term; tp} -> S.Check (bind env term, bind_ty env tp)
   | CS.Suc t -> S.Suc (bind env t)
   | CS.Lit i -> int_to_term i
   | CS.NRec
-      { mot = Binder {name = mot_name; body = mot_body};
+      { mot = B {name = mot_name; body = mot_body};
         zero;
-        suc = Binder2 {name1 = suc_name1; name2 = suc_name2; body = suc_body};
+        suc = B2 {name1 = suc_name1; name2 = suc_name2; body = suc_body};
         nat} ->
     S.NRec
       (bind_ty (mot_name :: env) mot_body,
        bind env zero,
        bind (suc_name2 :: suc_name1 :: env) suc_body,
        bind env nat)
-  | CS.Lam (BinderN {names = []; body}) ->
+  | CS.Lam (BN {names = []; body}) ->
     bind env body
-  | CS.Lam (BinderN {names = x :: names; body}) ->
-    let lam = CS.Lam (BinderN {names; body}) in
+  | CS.Lam (BN {names = x :: names; body}) ->
+    let lam = CS.Lam (BN {names; body}) in
     S.Lam (bind (x :: env) lam)
   | CS.Ap (f, args) ->
     List.map (bind_spine env) args |> unravel_spine (bind env f)
@@ -81,8 +81,8 @@ let rec bind env =
   | CS.Fst p -> S.Fst (bind env p)
   | CS.Snd p -> S.Snd (bind env p)
   | CS.J
-      {mot = Binder3 {name1 = left; name2 = right; name3 = prf; body = mot_body};
-       refl = Binder {name = refl_name; body = refl_body};
+      {mot = B3 {name1 = left; name2 = right; name3 = prf; body = mot_body};
+       refl = B {name = refl_name; body = refl_body};
        eq} ->
     S.J
       (bind_ty (prf :: right :: left :: env) mot_body,

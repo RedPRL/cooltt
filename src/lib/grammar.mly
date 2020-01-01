@@ -61,9 +61,9 @@ term:
   | f = atomic; args = list(spine)
     { Ap (f, args) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
-    { Let (Check {term = def; tp}, Binder {name; body}) }
+    { Let (Check {term = def; tp}, B {name; body}) }
   | LET; name = name; EQUALS; def = term; IN; body = term; END
-    { Let (def, Binder {name; body}) }
+    { Let (def, B {name; body}) }
   | LPR t = term; AT; tp = term RPR
     { Check {term = t; tp} }
   | SUC; t = term
@@ -72,9 +72,9 @@ term:
     PIPE; ZERO; RIGHT_ARROW; zero_case = term;
     PIPE; SUC; LPR; suc_var = name; RIGHT_ARROW; ih_var = name; RPR; RIGHT_ARROW; suc_case = term
     { NRec {
-        mot = Binder {name = mot_name; body = mot};
+        mot = B {name = mot_name; body = mot};
         zero = zero_case;
-        suc = Binder2 {name1 = suc_var; name2 = ih_var; body = suc_case};
+        suc = B2 {name1 = suc_var; name2 = ih_var; body = suc_case};
         nat = n
       }
     }
@@ -84,9 +84,9 @@ term:
     { Refl t }
   | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
     PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
-    { J {mot = Binder3 {name1; name2; name3; body = mot_term}; refl = Binder {name; body = refl}; eq} }
+    { J {mot = B3 {name1; name2; name3; body = mot_term}; refl = B {name; body = refl}; eq} }
   | LAM; names = nonempty_list(name); RIGHT_ARROW; body = term
-    { Lam (BinderN {names; body}) }
+    { Lam (BN {names; body}) }
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
