@@ -147,9 +147,9 @@ struct
     | CS.Id (tp, l, r) ->
       let* tp = check_tp tp in
       let* vtp = eval_tp tp in
-      let* l = check_tm l vtp in
-      let* r = check_tm r vtp in
-      EM.ret @@ S.Id (tp, l, r)
+      let+ l = check_tm l vtp
+      and+ r = check_tm r vtp in
+      S.Id (tp, l, r)
     | tp -> 
       EM.throw @@ ElabError (InvalidTypeExpression tp)
 
@@ -164,11 +164,11 @@ struct
     | Cell cell :: cells ->
       let* base = check_tp cell.tp in
       let* vbase = eval_tp base in
-      let* fam =
+      let+ fam =
         EM.push_var cell.name vbase @@ 
         check_sg_tp cells body 
       in 
-      EM.ret @@ S.Sg (base, fam)
+      S.Sg (base, fam)
       
   and check_pi_tp cells body =
     match cells with
@@ -176,11 +176,11 @@ struct
     | Cell cell :: cells ->
       let* base = check_tp cell.tp in
       let* vbase = eval_tp base in
-      let* fam =
+      let+ fam =
         EM.push_var cell.name vbase @@ 
         check_pi_tp cells body 
       in 
-      EM.ret @@ S.Pi (base, fam)
+      S.Pi (base, fam)
       
   and check _cs _tp = failwith ""
 end
