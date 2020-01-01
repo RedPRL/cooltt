@@ -69,7 +69,8 @@ term:
         zero = zero_case;
         suc = Binder2 {name1 = suc_var; name2 = ih_var; body = suc_case};
         nat = n
-      } }
+      }
+    }
   | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
   | REFL; t = atomic
@@ -84,9 +85,9 @@ term:
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
   | dom = atomic RIGHT_ARROW; cod = term
-    { Pi ([Cell {name = ""; tp = dom}], cod)}
+    { Pi ([Cell {name = ""; tp = dom}], cod) }
   | dom = atomic; TIMES; cod = term
-    { Sg ([Cell {name = ""; tp = dom}], cod)}
+    { Sg ([Cell {name = ""; tp = dom}], cod) }
   | FST; t = term { Fst t }
   | SND; t = term { Snd t }
 ;
