@@ -77,12 +77,14 @@ let rec unravel_spine f =
 module ElabMonad : 
 sig 
   include Monad.S
+  val throw : exn -> 'a m
   val run : 'a m -> Env.t -> [`Ret of 'a | `Throw of exn]
 end =
 struct
   type 'a m = Env.t -> [`Ret of 'a | `Throw of exn]
 
   let ret a _env = `Ret a
+  let throw exn _env = `Throw exn
   let run m env = m env
   let bind m k = 
     fun env ->
