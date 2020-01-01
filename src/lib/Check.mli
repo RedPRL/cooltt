@@ -6,6 +6,7 @@ sig
 
   type t
   val empty : t
+  val size : t -> int
   val add_entry : entry -> t -> t
   val add_term : term:Domain.t -> tp:Domain.tp -> t -> t
   val to_sem_env : t -> Domain.env

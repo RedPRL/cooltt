@@ -77,15 +77,20 @@ let rec unravel_spine f =
 module ElabMonad : 
 sig 
   include Monad.S
+  val read : Env.t m
   val throw : exn -> 'a m
   val run : 'a m -> Env.t -> [`Ret of 'a | `Throw of exn]
+
+  val push_var : CS.ident -> D.tp -> 'a m -> 'a m
 end =
 struct
   type 'a m = Env.t -> [`Ret of 'a | `Throw of exn]
 
-  let ret a _env = `Ret a
+  let read env = `Ret env
   let throw exn _env = `Throw exn
   let run m env = m env
+
+  let ret a _env = `Ret a
   let bind m k = 
     fun env ->
     match m env with 
@@ -94,10 +99,61 @@ struct
     | `Throw exn ->
       `Throw exn
 
-  module Notation =
-  struct
-    let (let*) = bind
-  end
+  let push_var id tp m = 
+    fun env ->
+    let var = D.Var (Check.Env.size @@ Env.check_env env) in
+    let term = D.Neutral {term = var; tp} in 
+    let entry = Check.Env.Term {term; tp} in
+    let env' = Env.add_entry entry @@ Env.push_name id env in 
+    m env'
+end
+
+module EM = ElabMonad
+
+module Elaborator : 
+sig 
+  val check_tp : CS.t -> S.tp EM.m
+  val check : CS.t -> D.tp -> S.t EM.m
+end = 
+struct
+  open Monad.Notation (EM)
+
+  let eval_tp tp = 
+    let* env = EM.read in 
+    let chk_env = Env.check_env env in
+    let sem_env = Check.Env.to_sem_env chk_env in
+    EM.ret @@ Nbe.eval_tp tp sem_env
+
+  let rec check_tp : CS.t -> S.tp EM.m = 
+    function
+    | CS.Pi (cells, body) ->
+      check_pi_tp cells body
+    | CS.Sg (cells, body) ->
+      check_sg_tp cells body
+
+    | _ -> 
+      failwith "TODO"
+
+  and check_sg_tp cells body =
+    match cells with
+    | [] -> check_tp body
+    | Cell cell :: cells ->
+      let* base = check_tp cell.tp in
+      let* vbase = eval_tp base in
+      EM.push_var cell.name vbase @@ 
+      check_sg_tp cells body 
+      
+  and check_pi_tp cells body =
+    match cells with
+    | [] -> check_tp body
+    | Cell cell :: cells ->
+      let* base = check_tp cell.tp in
+      let* vbase = eval_tp base in
+      EM.push_var cell.name vbase @@ 
+      check_pi_tp cells body 
+      
+
+  and check _cs _tp = failwith ""
 end
 
 let rec bind (env : Env.t) = 
