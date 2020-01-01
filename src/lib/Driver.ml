@@ -2,7 +2,10 @@ module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
 
-type error = Unbound_variable of CS.ident
+type error = 
+  | Unbound_variable of CS.ident
+  | InvalidTypeExpression of CS.t 
+
 exception ElabError of error
 
 module Env : sig
@@ -141,8 +144,14 @@ struct
       check_sg_tp cells body
     | CS.Nat ->
       EM.ret S.Nat
-    | _ -> 
-      failwith "TODO"
+    | CS.Id (tp, l, r) ->
+      let* tp = check_tp tp in
+      let* vtp = eval_tp tp in
+      let* l = check_tm l vtp in
+      let* r = check_tm r vtp in
+      EM.ret @@ S.Id (tp, l, r)
+    | tp -> 
+      EM.throw @@ ElabError (InvalidTypeExpression tp)
 
   and check_tm : CS.t -> D.tp -> S.t EM.m =
     fun cs tp ->
@@ -173,7 +182,6 @@ struct
       in 
       EM.ret @@ S.Pi (base, fam)
       
-
   and check _cs _tp = failwith ""
 end
 
