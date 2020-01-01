@@ -9,8 +9,7 @@ type error =
   | Misc of string
 
 exception Type_error of error
-
-let tp_error e = raise (Type_error e)
+let tp_error e = raise @@ Type_error e
 
 module Env : 
 sig
