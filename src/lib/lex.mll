@@ -75,6 +75,8 @@ rule token = parse
     { LAM }
   | '_'
     { UNDERSCORE }
+  | '@'
+    { ATSIGN }
   | "--"
     { comment lexbuf }
   | line_ending
