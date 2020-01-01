@@ -122,7 +122,10 @@ struct
     let* env = EM.read in 
     let chk_env = Env.check_env env in
     let sem_env = Check.Env.to_sem_env chk_env in
-    EM.ret @@ Nbe.eval_tp tp sem_env
+    match Nbe.eval_tp tp sem_env with
+    | v -> EM.ret v
+    | exception exn -> 
+      EM.throw exn
 
   let rec check_tp : CS.t -> S.tp EM.m = 
     function
@@ -130,9 +133,13 @@ struct
       check_pi_tp cells body
     | CS.Sg (cells, body) ->
       check_sg_tp cells body
-
     | _ -> 
       failwith "TODO"
+
+  and check_tm : CS.t -> D.tp -> S.t EM.m =
+    fun cs tp ->
+    match cs, tp with
+    | _ -> failwith "TODO"
 
   and check_sg_tp cells body =
     match cells with
