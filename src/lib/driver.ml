@@ -6,6 +6,9 @@ type env = Env of {check_env : Check.env; bindings : string list}
 
 let initial_env = Env {check_env = Check.Env.empty ; bindings = []}
 
+type error = Unbound_variable of CS.ident
+exception ElabError of error
+
 type output =
     NoOutput of env
   | NF_term of S.t * S.t
@@ -35,7 +38,7 @@ let output =
 let find_idx key =
   let rec go i = 
     function
-    | [] -> raise (Check.Type_error (Check.Misc ("Unbound variable: " ^ key)))
+    | [] -> raise @@ ElabError (Unbound_variable key)
     | x :: xs -> if String.equal x key then i else go (i + 1) xs in
   go 0
 
@@ -123,7 +126,7 @@ let process_decl (Env {check_env; bindings}) =
     let new_entry = Check.Env.TopLevel {term = sem_def; tp = sem_tp} in
     NoOutput (Env {check_env = Check.Env.add_entry new_entry check_env; bindings = name :: bindings })
   | CS.NormalizeDef name ->
-    let err = Check.Type_error (Check.Misc ("Unbound variable: " ^ name)) in
+    let err = ElabError (Unbound_variable name) in 
     begin
       match Check.Env.get_entry check_env (find_idx name bindings) with
       | Check.Env.TopLevel {term; tp} -> NF_def (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))

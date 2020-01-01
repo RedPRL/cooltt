@@ -42,11 +42,8 @@ and do_tm_clos clo a =
   | Domain.ConstClos t -> t
 
 and do_tm_clos2 (D.Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
-
 and do_tm_clos3 (D.Clos3 {term; env}) a1 a2 a3 = eval term (a3 :: a2 :: a1 :: env)
-
 and do_tp_clos2 (D.Clos2 {term; env}) a1 a2 = eval_tp term (a2 :: a1 :: env)
-
 and do_tp_clos3 (D.Clos3 {term; env}) a1 a2 a3 = eval_tp term (a3 :: a2 :: a1 :: env)
 
 and do_j mot refl eq =
@@ -132,14 +129,11 @@ let rec read_back_nf size nf =
   | D.Nf {tp = D.Id _; term = D.Neutral {term; _}} ->
     read_back_ne size term
   (* Types *)
-  | D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne
+  (* | D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne; _}} -> read_back_ne size ne *)
   | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
 
 and read_back_tp size d : Syn.tp =
   match d with
-  | D.Neutral _ -> 
-    failwith "Shouldn't have a neutral type without universes..."
-  (* read_back_ne size term *)
   | D.Nat -> Syn.Nat
   | D.Pi (src, dest) ->
     let var = D.mk_var src size in
@@ -152,7 +146,6 @@ and read_back_tp size d : Syn.tp =
       (read_back_tp size tp,
        read_back_nf size (D.Nf {tp; term = left}),
        read_back_nf size (D.Nf {tp; term = right}))
-  | _ -> raise (Nbe_failed "Not a type in read_back_tp")
 
 and read_back_ne size ne =
   match ne with
@@ -222,9 +215,6 @@ let rec equal_nf size nf1 nf2 =
   | D.Nf {tp = D.Id _; term = D.Neutral {term = term1; _}},
     D.Nf {tp = D.Id _; term = D.Neutral {term = term2; _}} ->
     equal_ne size term1 term2
-  (* Types *)
-  | D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne1; _}},
-    D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne2; _}} -> equal_ne size ne1 ne2
   | _ -> false
 
 and equal_ne size ne1 ne2 =
@@ -267,8 +257,6 @@ and equal_ne size ne1 ne2 =
 
 and equal_tp size d1 d2 =
   match d1, d2 with
-  | D.Neutral {term = term1; _}, D.Neutral {term = term2; _} ->
-    equal_ne size term1 term2
   | D.Nat, D.Nat -> true
   | D.Id (tp1, left1, right1), D.Id (tp2, left2, right2) ->
     equal_tp size tp1 tp2 &&
@@ -289,11 +277,11 @@ let rec initial_env env =
   | [] -> []
   | t :: env ->
     let env' = initial_env env in
-    let d = D.Neutral {tp = eval t env'; term = D.Var (List.length env)} in
+    let d = D.Neutral {tp = eval_tp t env'; term = D.Var (List.length env)} in
     d :: env'
 
 let normalize ~env ~term ~tp =
   let env' = initial_env env in
-  let tp = eval tp env' in
+  let tp = eval_tp tp env' in
   let term = eval term env' in
   read_back_nf (List.length env') (D.Nf {tp; term})

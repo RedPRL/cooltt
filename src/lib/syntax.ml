@@ -71,4 +71,4 @@ and pp_tp fmt =
     fprintf fmt "Id"
 
 
-type env = t list
+type env = tp list

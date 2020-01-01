@@ -3,7 +3,8 @@ module D = Domain
 module Syn = Syntax
 type error =
     Cannot_synth_term of Syn.t
-  | Type_mismatch of D.t * D.t
+  | Type_mismatch of D.tp * D.tp
+  | Term_mismatch of D.t * D.t
   | Expecting_universe of D.t
   | Misc of string
 
@@ -14,23 +15,23 @@ let tp_error e = raise (Type_error e)
 module Env : 
 sig
   type entry =
-      Term of {term : Domain.t; tp : Domain.t}
-    | TopLevel of {term : Domain.t; tp : Domain.t}
+      Term of {term : Domain.t; tp : Domain.tp}
+    | TopLevel of {term : Domain.t; tp : Domain.tp}
 
   type t
   val size : t -> int
 
   val empty : t
   val add_entry : entry -> t -> t
-  val add_term : term:Domain.t -> tp:Domain.t -> t -> t
+  val add_term : term:Domain.t -> tp:Domain.tp -> t -> t
   val to_sem_env : t -> Domain.env
-  val get_var : t -> int -> Domain.t
+  val get_var : t -> int -> Domain.tp
   val get_entry : t -> int -> entry
 end = 
 struct
   type entry =
-      Term of {term : D.t; tp : D.t}
-    | TopLevel of {term : D.t; tp : D.t}
+      Term of {term : D.t; tp : D.tp}
+    | TopLevel of {term : D.t; tp : D.tp}
 
   type t = {entries : entry list; size : int}
 
@@ -66,11 +67,17 @@ let pp_error fmt = function
     Format.fprintf fmt "@[<v> Cannot synthesize the type of: @[<hov 2>  ";
     Syn.pp fmt t;
     Format.fprintf fmt "@]@]@,"
-  | Type_mismatch (t1, t2) ->
+  | Term_mismatch (t1, t2) ->
     Format.fprintf fmt "@[<v>Cannot equate@,@[<hov 2>  ";
     D.pp fmt t1;
     Format.fprintf fmt "@]@ with@,@[<hov 2>  ";
     D.pp fmt t2;
+    Format.fprintf fmt "@]@]@,"
+  | Type_mismatch (t1, t2) ->
+    Format.fprintf fmt "@[<v>Cannot equate@,@[<hov 2>  ";
+    D.pp_tp fmt t1;
+    Format.fprintf fmt "@]@ with@,@[<hov 2>  ";
+    D.pp_tp fmt t2;
     Format.fprintf fmt "@]@]@,"
   | Expecting_universe d ->
     Format.fprintf fmt "@[<v>Expected some universe but found@ @[<hov 2>";
@@ -82,7 +89,7 @@ let pp_error fmt = function
 let assert_equal size t1 t2 tp =
   if Nbe.equal_nf size (D.Nf {tp; term = t1}) (D.Nf {tp; term = t2})
   then ()
-  else tp_error (Type_mismatch (t1, t2))
+  else tp_error (Term_mismatch (t1, t2))
 
 let rec check ~env ~term ~tp =
   match term with
@@ -98,7 +105,7 @@ let rec check ~env ~term ~tp =
         let term = Nbe.eval term (Env.to_sem_env env) in
         assert_equal (Env.size env) term left tp;
         assert_equal (Env.size env) term right tp
-      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show_tp t))
     end
   | Lam body ->
     begin
@@ -107,7 +114,7 @@ let rec check ~env ~term ~tp =
         let var = D.mk_var arg_tp (Env.size env) in
         let dest_tp = Nbe.do_tp_clos clos var in
         check ~env:(Env.add_term ~term:var ~tp:arg_tp env) ~term:body ~tp:dest_tp;
-      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show_tp t))
     end
   | Pair (left, right) ->
     begin
@@ -116,7 +123,7 @@ let rec check ~env ~term ~tp =
         check ~env ~term:left ~tp:left_tp;
         let left_sem = Nbe.eval left (Env.to_sem_env env) in
         check ~env ~term:right ~tp:(Nbe.do_tp_clos right_tp left_sem)
-      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show_tp t))
     end
   | _ ->
     let tp' = synth ~env ~term in 
@@ -137,7 +144,7 @@ and synth ~env ~term =
     begin
       match synth ~env ~term:p with
       | Sg (left_tp, _) -> left_tp
-      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show_tp t))
     end
   | Snd p ->
     begin
@@ -145,7 +152,7 @@ and synth ~env ~term =
       | Sg (_, right_tp) ->
         let proj = Nbe.eval (Fst p) (Env.to_sem_env env) in
         Nbe.do_tp_clos right_tp proj
-      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Sg but found\n" ^ D.show_tp t))
     end
   | Ap (f, a) ->
     begin
@@ -154,7 +161,7 @@ and synth ~env ~term =
         check ~env ~term:a ~tp:src;
         let a_sem = Nbe.eval a (Env.to_sem_env env) in
         Nbe.do_tp_clos dest a_sem
-      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Pi but found\n" ^ D.show_tp t))
     end
   | NRec (mot, zero, suc, n) ->
     check ~env ~term:n ~tp:Nat;
@@ -189,7 +196,7 @@ and synth ~env ~term =
         let refl_tp = Nbe.eval_tp mot (D.Refl refl_var :: refl_var :: refl_var :: sem_env) in
         check ~env:(Env.add_term ~term:refl_var ~tp:tp' env) ~term:refl ~tp:refl_tp;
         Nbe.eval_tp mot (Nbe.eval eq sem_env :: right :: left :: sem_env)
-      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show t))
+      | t -> tp_error (Misc ("Expecting Id but found\n" ^ D.show_tp t))
     end
   | _ -> tp_error (Cannot_synth_term term)
 

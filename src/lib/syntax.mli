@@ -12,7 +12,7 @@ and tp =
   | Sg of tp * (* BINDS *) tp
   | Id of tp * t * t 
 
-type env = t list
+type env = tp list
 
 val pp : Format.formatter -> t -> unit
 val pp_tp : Format.formatter -> tp -> unit
