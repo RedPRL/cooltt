@@ -65,7 +65,7 @@ let lookup_var id =
     let chk_env = Env.check_env env in
     let tp = Check.Env.get_var chk_env ix in
     EM.ret (S.Var ix, tp)
-  | None -> EM.throw @@ Err.ElabError (Err.Unbound_variable id)
+  | None -> EM.throw @@ Err.ElabError (Err.UnboundVariable id)
 
 let dest_pi = function
   | D.Pi (base, fam) -> EM.ret (base, fam)

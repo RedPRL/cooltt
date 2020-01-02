@@ -48,7 +48,7 @@ let rec bind (env : Env.t) = function
   | CS.Var id -> (
     match Env.find_ix id env with
     | Some ix -> S.Var ix
-    | None -> raise @@ Err.ElabError (Unbound_variable id) )
+    | None -> raise @@ Err.ElabError (UnboundVariable id) )
   | CS.Let (tp, B {name; body}) ->
     S.Let (bind env tp, bind (Env.push_name name env) body)
   | CS.Check {term; tp} -> S.Check (bind env term, bind_ty env tp)
@@ -120,7 +120,7 @@ let process_decl env = function
     let new_entry = Check.Env.TopLevel {term = sem_def; tp = sem_tp} in
     NoOutput (Env.add_entry new_entry @@ Env.push_name name env)
   | CS.NormalizeDef name -> (
-    let err = Err.ElabError (Unbound_variable name) in
+    let err = Err.ElabError (UnboundVariable name) in
     match Env.find_ix name env with
     | None -> raise err
     | Some ix -> (
