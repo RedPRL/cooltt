@@ -10,9 +10,9 @@ type error =
   | Expecting_universe of D.t
   | Misc of string
 
-exception Type_error of error
+exception TypeError of error
 
-let tp_error e = raise @@ Type_error e
+let tp_error e = raise @@ TypeError e
 
 module Env : sig
   type entry =
@@ -22,17 +22,11 @@ module Env : sig
   type t
 
   val size : t -> int
-
   val empty : t
-
   val add_entry : entry -> t -> t
-
   val add_term : term:D.t -> tp:D.tp -> t -> t
-
   val to_sem_env : t -> D.env
-
   val get_var : t -> int -> D.tp
-
   val get_entry : t -> int -> entry
 end = struct
   type entry =

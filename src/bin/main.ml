@@ -20,7 +20,7 @@ let main input =
   | Nbe.Nbe_failed s ->
     Printf.eprintf "Internal error (Failed to normalize): %s\n" s;
     1
-  | Check.Type_error e ->
+  | Check.TypeError e ->
     Printf.eprintf "Type error: ";
     Check.pp_error Format.err_formatter e;
     Format.pp_print_flush Format.err_formatter ();

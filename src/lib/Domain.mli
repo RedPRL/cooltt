@@ -38,17 +38,11 @@ val mk_var : tp -> int -> t
    nf -> nf -> bool *)
 
 val pp : Format.formatter -> t -> unit
-
 val pp_tp : Format.formatter -> tp -> unit
-
 val pp_nf : Format.formatter -> nf -> unit
-
 val pp_ne : Format.formatter -> ne -> unit
 
 val show : t -> string
-
 val show_tp : tp -> string
-
 val show_nf : nf -> string
-
 val show_ne : ne -> string
