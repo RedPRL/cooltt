@@ -15,22 +15,17 @@ exception TypeError of error
 let tp_error e = raise @@ TypeError e
 
 module Env : sig
-  type entry =
-    | Term of {term : D.t; tp : D.tp}
-    | TopLevel of {term : D.t; tp : D.tp}
-
   type t
 
   val size : t -> int
   val empty : t
-  val add_entry : entry -> t -> t
   val push_term : D.t -> D.tp -> t -> t
   val add_top_level : D.t -> D.tp -> t -> t
   val to_sem_env : t -> D.env
   val get_var : t -> int -> D.tp
   val get_top_level : t -> int -> D.nf
-  val get_entry : t -> int -> entry
-end = struct
+end = 
+struct
   type entry =
     | Term of {term : D.t; tp : D.tp}
     | TopLevel of {term : D.t; tp : D.tp}
@@ -63,9 +58,6 @@ end = struct
     match List.nth env.entries n with
     | Term _ -> failwith "not a top-level entry"
     | TopLevel {tp; term} -> D.Nf {tp; term}
-
-
-  let get_entry env n = List.nth env.entries n
 end
 
 type env = Env.t
