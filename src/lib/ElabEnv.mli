@@ -9,5 +9,5 @@ val check_env : t -> Check.Env.t
 val push_name : CS.ident -> t -> t
 val push_names : CS.ident list -> t -> t
 val find_ix : CS.ident -> t -> int option
-val add_term : D.t -> D.tp -> t -> t
+val push_term : D.t -> D.tp -> t -> t
 val add_top_level : D.t -> D.tp -> t -> t

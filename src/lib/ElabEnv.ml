@@ -23,5 +23,5 @@ let find_ix key env =
 let add_top_level term tp env =
   {env with check_env = Check.Env.add_top_level term tp env.check_env}
 
-let add_term term tp env =
-  {env with check_env = Check.Env.add_term term tp env.check_env}
+let push_term term tp env =
+  {env with check_env = Check.Env.push_term term tp env.check_env}
