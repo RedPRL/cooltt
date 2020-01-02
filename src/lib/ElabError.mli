@@ -8,4 +8,6 @@ type t =
   | InvalidTypeExpression of CS.t 
   | ExpectedPiType of D.tp
 
+val pp : Format.formatter -> t -> unit
+
 exception ElabError of t

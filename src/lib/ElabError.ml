@@ -7,5 +7,6 @@ type t =
   | ExpectedEqualTypes of D.tp * D.tp
   | InvalidTypeExpression of CS.t 
   | ExpectedPiType of D.tp
+[@@deriving show]
 
 exception ElabError of t

@@ -1,11 +1,17 @@
 type ident = string
 
 type binder = B of {name : ident; body : t}
+
 and bindern = BN of {names : ident list; body : t}
+
 and binder2 = B2 of {name1 : ident; name2 : ident; body : t}
+
 and binder3 = B3 of {name1 : ident; name2 : ident; name3 : ident; body : t}
+
 and cell = Cell of {name : ident; tp : t}
+
 and spine = Term of t
+
 and t =
   | Var of ident
   | Let of t * binder
@@ -36,4 +42,6 @@ type signature = decl list
 
 
 val show : t -> string
+
+val pp_ident : Format.formatter -> ident -> unit
 val pp : Format.formatter -> t -> unit
