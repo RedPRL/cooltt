@@ -1,5 +1,6 @@
 type t =
   | Var of int (* DeBruijn indices for variables *)
+  | Global of Symbol.t
   | Let of t * (* BINDS *) t
   | Check of t * tp
   | Zero
@@ -22,24 +23,25 @@ and tp =
 let rec condense = function
   | Zero -> Some 0
   | Suc t -> (
-    match condense t with
-    | Some n -> Some (n + 1)
-    | None -> None )
+      match condense t with
+      | Some n -> Some (n + 1)
+      | None -> None )
   | _ -> None
 
 let rec pp fmt =
   let open Format in
   function
   | Var i -> fprintf fmt "#%d" i
+  | Global sym -> fprintf fmt "%a" Symbol.pp sym
   | Let (def, body) ->
     fprintf fmt "let@,@[<hov>%a@]@,in@,@[<hov%a@]" pp def pp body
   | Check (term, tp) ->
     fprintf fmt "(@[<hov>%a@]@ :@,@[<hov>%a@])" pp term pp_tp tp
   | Zero -> fprintf fmt "0"
   | Suc t -> (
-    match condense t with
-    | Some n -> fprintf fmt "%d" (n + 1)
-    | None -> fprintf fmt "suc(@[<hov>%a@])" pp t )
+      match condense t with
+      | Some n -> fprintf fmt "%d" (n + 1)
+      | None -> fprintf fmt "suc(@[<hov>%a@])" pp t )
   | NRec (mot, zero, suc, n) ->
     fprintf fmt
       "rec(@[<hov>@[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@]@])"

@@ -32,47 +32,47 @@ and do_snd p =
 
 and do_tp_clo clo a =
   match clo with
-  | Clos {term; env} -> eval_tp term (a :: env)
+  | Clos {term; env} -> eval_tp term {env with locals = a :: env.locals}
   | ConstClos t -> t
 
 and do_tm_clo clo a =
   match clo with
-  | D.Clos {term; env} -> eval term (a :: env)
+  | D.Clos {term; env} -> eval term {env with locals = a :: env.locals}
   | D.ConstClos t -> t
 
-and do_tm_clo2 (D.Clos2 {term; env}) a1 a2 = eval term (a2 :: a1 :: env)
+and do_tm_clo2 (D.Clos2 {term; env}) a1 a2 = eval term {env with locals = a2 :: a1 :: env.locals}
 
 and do_tm_clo3 (D.Clos3 {term; env}) a1 a2 a3 =
-  eval term (a3 :: a2 :: a1 :: env)
+  eval term {env with locals = a3 :: a2 :: a1 :: env.locals}
 
-and do_tp_clo2 (D.Clos2 {term; env}) a1 a2 = eval_tp term (a2 :: a1 :: env)
+and do_tp_clo2 (D.Clos2 {term; env}) a1 a2 = eval_tp term {env with locals = a2 :: a1 :: env.locals}
 
 and do_tp_clo3 (D.Clos3 {term; env}) a1 a2 a3 =
-  eval_tp term (a3 :: a2 :: a1 :: env)
+  eval_tp term {env with locals = a3 :: a2 :: a1 :: env.locals}
 
 and do_j mot refl eq =
   match eq with
   | D.Refl t -> do_tm_clo refl t
   | D.Neutral {tp; term} -> (
-    match tp with
-    | D.Id (tp, left, right) ->
-      D.Neutral
-        {
-          tp = do_tp_clo3 mot left right eq;
-          term = D.J (mot, refl, tp, left, right, term);
-        }
-    | _ -> raise (Nbe_failed "Not an Id in do_j") )
+      match tp with
+      | D.Id (tp, left, right) ->
+        D.Neutral
+          {
+            tp = do_tp_clo3 mot left right eq;
+            term = D.J (mot, refl, tp, left, right, term);
+          }
+      | _ -> raise (Nbe_failed "Not an Id in do_j") )
   | _ -> raise (Nbe_failed "Not a refl or neutral in do_j")
 
 and do_ap f a =
   match f with
   | D.Lam clo -> do_tm_clo clo a
   | D.Neutral {tp; term = e} -> (
-    match tp with
-    | D.Pi (src, dst) ->
-      let dst = do_tp_clo dst a in
-      D.Neutral {tp = dst; term = D.Ap (e, D.Nf {tp = src; term = a})}
-    | _ -> raise (Nbe_failed "Not a Pi in do_ap") )
+      match tp with
+      | D.Pi (src, dst) ->
+        let dst = do_tp_clo dst a in
+        D.Neutral {tp = dst; term = D.Ap (e, D.Nf {tp = src; term = a})}
+      | _ -> raise (Nbe_failed "Not a Pi in do_ap") )
   | _ -> raise (Nbe_failed "Not a function in do_ap")
 
 and eval_tp t env =
@@ -85,8 +85,11 @@ and eval_tp t env =
 
 and eval t (env : D.env) =
   match t with
-  | S.Var i -> List.nth env i
-  | S.Let (def, body) -> eval body (eval def env :: env)
+  | S.Var i -> List.nth env.locals i
+  | S.Global sym -> 
+    let D.Nf {term; _} = SymbolMap.find sym env.globals in 
+    term
+  | S.Let (def, body) -> eval body {env with locals = eval def env :: env.locals}
   | S.Check (term, _) -> eval term env
   | S.Zero -> D.Zero
   | S.Suc t -> D.Suc (eval t env)
@@ -156,6 +159,7 @@ and read_back_tp size d : S.tp =
 and read_back_ne size ne =
   match ne with
   | D.Var x -> S.Var (size - (x + 1))
+  | D.Global sym -> S.Global sym
   | D.Ap (ne, arg) -> S.Ap (read_back_ne size ne, read_back_nf size arg)
   | D.NRec (tp, zero, suc, n) ->
     let tp_var = D.mk_var D.Nat size in
@@ -215,8 +219,8 @@ let rec equal_nf size nf1 nf2 =
       (D.Nf {tp = fst1; term = p11})
       (D.Nf {tp = fst2; term = p21})
     && equal_nf size
-         (D.Nf {tp = snd1; term = p12})
-         (D.Nf {tp = snd2; term = p22})
+      (D.Nf {tp = snd1; term = p12})
+      (D.Nf {tp = snd2; term = p22})
   (* Numbers *)
   | D.Nf {tp = D.Nat; term = D.Zero}, D.Nf {tp = D.Nat; term = D.Zero} ->
     true
@@ -240,6 +244,7 @@ let rec equal_nf size nf1 nf2 =
 and equal_ne size ne1 ne2 =
   match ne1, ne2 with
   | D.Var x, D.Var y -> x = y
+  | D.Global sym, D.Global sym' -> Symbol.equal sym sym'
   | D.Ap (ne1, arg1), D.Ap (ne2, arg2) ->
     equal_ne size ne1 ne2 && equal_nf size arg1 arg2
   | D.NRec (tp1, zero1, suc1, n1), D.NRec (tp2, zero2, suc2, n2) ->
@@ -255,11 +260,11 @@ and equal_ne size ne1 ne2 =
     let applied_suc2 = do_tm_clo2 suc2 tp_var suc_var2 in
     equal_tp (size + 1) applied_tp1 applied_tp2
     && equal_nf size
-         (D.Nf {tp = zero_tp; term = zero1})
-         (D.Nf {tp = zero_tp; term = zero2})
+      (D.Nf {tp = zero_tp; term = zero1})
+      (D.Nf {tp = zero_tp; term = zero2})
     && equal_nf (size + 2)
-         (D.Nf {tp = applied_suc_tp; term = applied_suc1})
-         (D.Nf {tp = applied_suc_tp; term = applied_suc2})
+      (D.Nf {tp = applied_suc_tp; term = applied_suc1})
+      (D.Nf {tp = applied_suc_tp; term = applied_suc2})
     && equal_ne size n1 n2
   | D.Fst ne1, D.Fst ne2 -> equal_ne size ne1 ne2
   | D.Snd ne1, D.Snd ne2 -> equal_ne size ne1 ne2
@@ -267,11 +272,11 @@ and equal_ne size ne1 ne2 =
       D.J (mot2, refl2, tp2, left2, right2, eq2) ) ->
     equal_tp size tp1 tp2
     && equal_nf size
-         (D.Nf {tp = tp1; term = left1})
-         (D.Nf {tp = tp2; term = left2})
+      (D.Nf {tp = tp1; term = left1})
+      (D.Nf {tp = tp2; term = left2})
     && equal_nf size
-         (D.Nf {tp = tp1; term = right1})
-         (D.Nf {tp = tp2; term = right2})
+      (D.Nf {tp = tp1; term = right1})
+      (D.Nf {tp = tp2; term = right2})
     &&
     let mot_var1 = D.mk_var tp1 size in
     let mot_var2 = D.mk_var tp1 (size + 1) in
@@ -301,11 +306,11 @@ and equal_tp size d1 d2 =
   | D.Id (tp1, left1, right1), D.Id (tp2, left2, right2) ->
     equal_tp size tp1 tp2
     && equal_nf size
-         (D.Nf {tp = tp1; term = left1})
-         (D.Nf {tp = tp1; term = left2})
+      (D.Nf {tp = tp1; term = left1})
+      (D.Nf {tp = tp1; term = left2})
     && equal_nf size
-         (D.Nf {tp = tp1; term = right1})
-         (D.Nf {tp = tp1; term = right2})
+      (D.Nf {tp = tp1; term = right1})
+      (D.Nf {tp = tp1; term = right2})
   | D.Pi (src, dest), D.Pi (src', dest') ->
     let var = D.mk_var src' size in
     equal_tp size src' src
@@ -315,19 +320,3 @@ and equal_tp size d1 d2 =
     equal_tp size fst fst'
     && equal_tp (size + 1) (do_tp_clo snd var) (do_tp_clo snd' var)
   | _ -> false
-
-let rec initial_env env =
-  match env with
-  | [] -> []
-  | t :: env ->
-    let env' = initial_env env in
-    let d =
-      D.Neutral {tp = eval_tp t env'; term = D.Var (List.length env)}
-    in
-    d :: env'
-
-let normalize ~env ~term ~tp =
-  let env' = initial_env env in
-  let tp = eval_tp tp env' in
-  let term = eval term env' in
-  read_back_nf (List.length env') (D.Nf {tp; term})

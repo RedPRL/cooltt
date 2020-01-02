@@ -1,6 +1,6 @@
 module S := Syntax
 
-type env = t list
+type env = {globals : nf SymbolMap.t; locals : t list}
 
 and ('a, 'b) clo = Clos of {term : 'a; env : env} | ConstClos of 'b
 
@@ -24,6 +24,7 @@ and tp =
 
 and ne =
   | Var of int (* DeBruijn levels for variables *)
+  | Global of Symbol.t
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne

@@ -3,9 +3,6 @@ module S := Syntax
 
 exception Nbe_failed of string
 
-(* Main functions for doing a full normalization *)
-val normalize : env:S.env -> term:S.t -> tp:S.tp -> S.t
-
 (* Functions to pass between various semantic domains *)
 val eval : S.t -> D.env -> D.t
 val eval_tp : S.tp -> D.env -> D.tp

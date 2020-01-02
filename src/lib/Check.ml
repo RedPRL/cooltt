@@ -2,6 +2,7 @@
    paper. *)
 module D = Domain
 module S = Syntax
+module Env = ElabEnv
 
 type error =
   | Cannot_synth_term of S.t
@@ -14,53 +15,7 @@ exception TypeError of error
 
 let tp_error e = raise @@ TypeError e
 
-module Env : sig
-  type t
-
-  val size : t -> int
-  val empty : t
-  val push_term : D.t -> D.tp -> t -> t
-  val add_top_level : D.t -> D.tp -> t -> t
-  val to_sem_env : t -> D.env
-  val get_var : t -> int -> D.tp
-  val get_top_level : t -> int -> D.nf
-end = 
-struct
-  type entry =
-    | Term of {term : D.t; tp : D.tp}
-    | TopLevel of {term : D.t; tp : D.tp}
-
-  type t = {entries : entry list; size : int}
-
-  let size env = env.size
-
-  let empty = {entries = []; size = 0}
-
-  let add_entry entry env =
-    {entries = entry :: env.entries; size = env.size + 1}
-
-  let push_term term tp = add_entry @@ Term {term; tp}
-  let add_top_level term tp = add_entry @@ TopLevel {term; tp}
-
-  let to_sem_env env =
-    List.map
-      (function
-        | TopLevel {term; _} -> term
-        | Term {term; _} -> term)
-      env.entries
-
-  let get_var env n =
-    match List.nth env.entries n with
-    | Term {term = _; tp} -> tp
-    | TopLevel {tp; _} -> tp
-
-  let get_top_level env n =
-    match List.nth env.entries n with
-    | Term _ -> failwith "not a top-level entry"
-    | TopLevel {tp; term} -> D.Nf {tp; term}
-end
-
-type env = Env.t
+type env = ElabEnv.t
 
 let pp_error fmt = function
   | Cannot_synth_term t ->
@@ -126,7 +81,10 @@ let rec check ~env ~term ~tp =
 
 and synth ~env ~term =
   match term with
-  | S.Var i -> Env.get_var env i
+  | S.Var i -> Env.get_local i env
+  | S.Global sym -> 
+    let D.Nf {tp; _} = Env.get_global sym env in
+    tp
   | Check (term, tp') ->
     let tp = Nbe.eval_tp tp' @@ Env.to_sem_env env in
     check ~env ~term ~tp;
@@ -157,17 +115,17 @@ and synth ~env ~term =
     let var = D.mk_var Nat (Env.size env) in
     check_tp ~env:(Env.push_term var Nat env) ~tp:mot;
     let sem_env = Env.to_sem_env env in
-    let zero_tp = Nbe.eval_tp mot (Zero :: sem_env) in
-    let ih_tp = Nbe.eval_tp mot (var :: sem_env) in
+    let zero_tp = Nbe.eval_tp mot {sem_env with locals = Zero :: sem_env.locals} in
+    let ih_tp = Nbe.eval_tp mot {sem_env with locals = var :: sem_env.locals} in
     let ih_var = D.mk_var ih_tp (Env.size env + 1) in
-    let suc_tp = Nbe.eval_tp mot (Suc var :: sem_env) in
+    let suc_tp = Nbe.eval_tp mot {sem_env with locals = Suc var :: sem_env.locals} in
     check ~env ~term:zero ~tp:zero_tp;
     check
       ~env:
         ( Env.push_term var Nat env
           |> Env.push_term ih_var ih_tp )
       ~term:suc ~tp:suc_tp;
-    Nbe.eval_tp mot (Nbe.eval n sem_env :: sem_env)
+    Nbe.eval_tp mot {sem_env with locals = Nbe.eval n sem_env :: sem_env.locals}
   | S.J (mot, refl, eq) -> (
       let eq_tp = synth ~env ~term:eq in
       let sem_env = Env.to_sem_env env in
@@ -186,12 +144,12 @@ and synth ~env ~term =
         check_tp ~env:mot_env ~tp:mot;
         let refl_var = D.mk_var tp' (Env.size env) in
         let refl_tp =
-          Nbe.eval_tp mot (D.Refl refl_var :: refl_var :: refl_var :: sem_env)
+          Nbe.eval_tp mot {sem_env with locals = D.Refl refl_var :: refl_var :: refl_var :: sem_env.locals}
         in
         check
           ~env:(Env.push_term refl_var tp' env)
           ~term:refl ~tp:refl_tp;
-        Nbe.eval_tp mot (Nbe.eval eq sem_env :: right :: left :: sem_env)
+        Nbe.eval_tp mot {sem_env with locals = Nbe.eval eq sem_env :: right :: left :: sem_env.locals}
       | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t) )
   | _ -> tp_error (Cannot_synth_term term)
 

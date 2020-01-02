@@ -52,9 +52,10 @@ let rec bind (env : Env.t) =
   function
   | CS.Var id ->
     begin
-      match Env.find_ix id env with
-      | Some ix -> S.Var ix
-      | None -> raise @@ Err.ElabError (UnboundVariable id)
+      match Env.resolve id env with
+      | `Local ix -> S.Var ix
+      | `Global sym -> S.Global sym
+      | `Unbound -> raise @@ Err.ElabError (UnboundVariable id)
     end
   | CS.Let (tp, B {name; body}) ->
     S.Let (bind env tp, bind (Env.push_name name env) body)
@@ -110,40 +111,40 @@ let process_decl env =
   | CS.Def {name; def; tp} ->
     let def = bind env def in
     let tp = bind_ty env tp in
-    let check_env = Env.check_env env in
-    Check.check_tp ~env:check_env ~tp;
-    let sem_env = Check.Env.to_sem_env check_env in
+    Check.check_tp ~env ~tp;
+    let sem_env = Env.to_sem_env env in
     let sem_tp = Nbe.eval_tp tp sem_env in
-    Check.check ~env:check_env ~term:def ~tp:sem_tp;
+    Check.check ~env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
-    NoOutput (Env.add_top_level sem_def sem_tp @@ Env.push_name name env)
+    NoOutput (Env.add_top_level name sem_def sem_tp env)
   | CS.NormalizeDef name -> 
     let err = Err.ElabError (UnboundVariable name) in
     begin
-      match Env.find_ix name env with
-      | None -> raise err
-      | Some ix ->
-        let nf = Check.Env.get_top_level (Env.check_env env) ix in 
+      match Env.resolve name env with
+      | `Local _ | `Unbound -> raise err
+      | `Global sym ->
+        let nf = Env.get_global sym env in 
         NormalizedDef (name, Nbe.read_back_nf 0 nf)
     end
   | CS.NormalizeTerm {term; tp} ->
     let term = bind env term in
     let tp = bind_ty env tp in
-    let check_env = Env.check_env env in
-    Check.check_tp ~env:check_env ~tp;
-    let sem_env = Check.Env.to_sem_env check_env in
+    Check.check_tp ~env ~tp;
+    let sem_env = Env.to_sem_env env in
     let sem_tp = Nbe.eval_tp tp sem_env in
-    Check.check ~env:check_env ~term ~tp:sem_tp;
+    Check.check ~env ~term ~tp:sem_tp;
     let sem_term = Nbe.eval term sem_env in
     let norm_term =
       Nbe.read_back_nf 0 (D.Nf {term = sem_term; tp = sem_tp})
     in
     NormalizedTerm (term, norm_term)
   | CS.Quit -> Quit
-  | CS.ElaborateType tp -> (
+  | CS.ElaborateType tp ->
+    begin
       match EM.run (Elaborator.check_tp tp) env with
       | `Ret tp -> ElaboratedType tp
-      | `Throw exn -> raise exn )
+      | `Throw exn -> raise exn
+    end
 
 let rec process_sign_loop env = 
   function

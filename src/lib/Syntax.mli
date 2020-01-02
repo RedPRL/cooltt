@@ -1,5 +1,6 @@
 type t =
   | Var of int (* DeBruijn indices for variables *)
+  | Global of Symbol.t
   | Let of t * (* BINDS *) t
   | Check of t * tp
   | Zero

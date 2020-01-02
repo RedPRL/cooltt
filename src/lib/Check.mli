@@ -1,19 +1,7 @@
 module D := Domain
 module S := Syntax
 
-module Env : sig
-  type t
-
-  val empty : t
-  val size : t -> int
-  val push_term : D.t -> D.tp -> t -> t
-  val add_top_level : D.t -> D.tp -> t -> t
-  val to_sem_env : t -> D.env
-  val get_var : t -> int -> D.tp
-  val get_top_level : t -> int -> D.nf
-end
-
-type env = Env.t
+type env = ElabEnv.t
 type error
 
 val pp_error : Format.formatter -> error -> unit
