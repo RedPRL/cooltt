@@ -45,10 +45,12 @@ let rec unravel_spine f = function
   | x :: xs -> unravel_spine (x f) xs
 
 let rec bind (env : Env.t) = function
-  | CS.Var id -> (
-    match Env.find_ix id env with
-    | Some ix -> S.Var ix
-    | None -> raise @@ Err.ElabError (UnboundVariable id) )
+  | CS.Var id ->
+    begin
+      match Env.find_ix id env with
+      | Some ix -> S.Var ix
+      | None -> raise @@ Err.ElabError (UnboundVariable id)
+    end
   | CS.Let (tp, B {name; body}) ->
     S.Let (bind env tp, bind (Env.push_name name env) body)
   | CS.Check {term; tp} -> S.Check (bind env term, bind_ty env tp)
@@ -119,15 +121,19 @@ let process_decl env = function
     let sem_def = Nbe.eval def sem_env in
     let new_entry = Check.Env.TopLevel {term = sem_def; tp = sem_tp} in
     NoOutput (Env.add_entry new_entry @@ Env.push_name name env)
-  | CS.NormalizeDef name -> (
+  | CS.NormalizeDef name -> 
     let err = Err.ElabError (UnboundVariable name) in
-    match Env.find_ix name env with
-    | None -> raise err
-    | Some ix -> (
-      match Check.Env.get_entry (Env.check_env env) ix with
-      | Check.Env.TopLevel {term; tp} ->
-        NormalizedDef (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
-      | _ -> raise err ) )
+    begin
+      match Env.find_ix name env with
+      | None -> raise err
+      | Some ix ->
+        begin
+          match Check.Env.get_entry (Env.check_env env) ix with
+          | Check.Env.TopLevel {term; tp} ->
+            NormalizedDef (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
+          | _ -> raise err
+        end
+    end
   | CS.NormalizeTerm {term; tp} ->
     let term = bind env term in
     let tp = bind_ty env tp in
@@ -143,9 +149,9 @@ let process_decl env = function
     NormalizedTerm (term, norm_term)
   | CS.Quit -> Quit
   | CS.ElaborateType tp -> (
-    match EM.run (Elaborator.check_tp tp) env with
-    | `Ret tp -> ElaboratedType tp
-    | `Throw exn -> raise exn )
+      match EM.run (Elaborator.check_tp tp) env with
+      | `Ret tp -> ElaboratedType tp
+      | `Throw exn -> raise exn )
 
 let rec process_sign_loop env = function
   | [] -> ()
