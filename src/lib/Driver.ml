@@ -38,20 +38,21 @@ let rec int_to_term =
 
 module EM = ElabMonad
 
+let elaborate_typed_term tp tm = 
+  let open Monad.Notation (EM) in
+  let* tp = Elaborator.check_tp tp in
+  let* vtp = Elaborator.eval_tp tp in
+  let* tm = Elaborator.check_tm tm vtp in
+  let* vtm = Elaborator.eval_tm tm in
+  EM.ret @@ (tp, vtp, tm, vtm)
+
 let process_decl env = 
   function
   | CS.Def {name; def; tp} ->
-    let script = 
-      let open Monad.Notation (EM) in 
-      let* tp = Elaborator.check_tp tp in
-      let* vtp = Elaborator.eval_tp tp in
-      let* tm = Elaborator.check_tm def vtp in
-      let* vtm = Elaborator.eval_tm tm in
-      EM.ret @@ (vtp, vtm)
-    in
+    let script = elaborate_typed_term tp def in
     begin
       match EM.run script env with
-      | `Ret (vtp, vtm) -> NoOutput (Env.add_top_level name vtm vtp env)
+      | `Ret (_, vtp, _, vtm) -> NoOutput (Env.add_top_level name vtm vtp env)
       | `Throw exn -> raise exn
     end
   | CS.NormalizeDef name -> 
@@ -64,17 +65,10 @@ let process_decl env =
         NormalizedDef (name, Nbe.read_back_nf 0 nf)
     end
   | CS.NormalizeTerm {term; tp} ->
-    let script = 
-      let open Monad.Notation (EM) in 
-      let* tp = Elaborator.check_tp tp in
-      let* vtp = Elaborator.eval_tp tp in
-      let* tm = Elaborator.check_tm term vtp in
-      let* vtm = Elaborator.eval_tm tm in
-      EM.ret @@ (tm, vtp, vtm)
-    in
+    let script = elaborate_typed_term tp term in
     begin
       match EM.run script env with
-      | `Ret (tm, vtp, vtm) -> 
+      | `Ret (_, vtp, tm, vtm) -> 
         let norm_term = Nbe.read_back_nf 0 (D.Nf {term = vtm; tp = vtp}) in
         NormalizedTerm (tm, norm_term)
       | `Throw exn -> raise exn
