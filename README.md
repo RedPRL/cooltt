@@ -1,8 +1,7 @@
 ## cooltt
 
-An implementation of normalization by evaluation (nbe) & semantic type checking for Martin-Löf Type
-Theory with dependent products, dependent sums, natural numbers, id, and a non-cumulative hierarchy
-of universes.
+An implementation of normalization by evaluation (nbe) & elaboration for Martin-Löf Type
+Theory with dependent products, dependent sums, natural numbers, and identity types.
 
 For examples, see the `test/` directory.
 
