@@ -1,5 +1,5 @@
-module CS = ConcreteSyntax
-module D = Domain
+module CS := ConcreteSyntax
+module D := Domain
 
 type t = 
   | Unbound_variable of CS.ident

@@ -3,8 +3,8 @@ module S = Syntax
 module D = Domain
 module EM = ElabMonad 
 module Env = ElabEnv
+module Err = ElabError
 
-open ElabError
 open Monad.Notation (EM)
 
 let rec int_to_term = 
@@ -44,13 +44,13 @@ let equate tp l r =
   let* env = read_check_env in 
   match Nbe.equal_nf (Check.Env.size env) (D.Nf {tp; term = l}) (D.Nf {tp; term = r}) with
   | true -> EM.ret ()
-  | false -> EM.throw @@ ElabError (ExpectedEqual (tp, l, r))
+  | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqual (tp, l, r))
 
 let equate_tp tp tp' = 
   let* env = read_check_env in 
   match Nbe.equal_tp (Check.Env.size env) tp tp' with
   | true -> EM.ret ()
-  | false -> EM.throw @@ ElabError (ExpectedEqualTypes (tp, tp'))
+  | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqualTypes (tp, tp'))
 
 let quote tp v =
   let* env = read_check_env in 
@@ -66,7 +66,7 @@ let lookup_var id =
     let tp = Check.Env.get_var chk_env ix in
     EM.ret (S.Var ix, tp)
   | None -> 
-    EM.throw @@ ElabError (Unbound_variable id)
+    EM.throw @@ Err.ElabError (Err.Unbound_variable id)
 
 
 let dest_pi =
@@ -74,7 +74,7 @@ let dest_pi =
   | D.Pi (base, fam) ->
     EM.ret (base, fam)
   | tp ->
-    EM.throw @@ ElabError (ExpectedPiType tp)
+    EM.throw @@ Err.ElabError (Err.ExpectedPiType tp)
 
 let rec check_tp : CS.t -> S.tp EM.m = 
   function
@@ -91,7 +91,7 @@ let rec check_tp : CS.t -> S.tp EM.m =
     and+ r = check_tm r vtp in
     S.Id (tp, l, r)
   | tp -> 
-    EM.throw @@ ElabError (InvalidTypeExpression tp)
+    EM.throw @@ Err.ElabError (Err.InvalidTypeExpression tp)
 
 and check_tm : CS.t -> D.tp -> S.t EM.m =
   fun cs tp ->

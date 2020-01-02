@@ -3,7 +3,7 @@ module S = Syntax
 module D = Domain
 module Env = ElabEnv
 
-open ElabError
+module Err = ElabError
 
 type output =
     NoOutput of Env.t
@@ -56,7 +56,7 @@ let rec bind (env : Env.t) =
     begin
       match Env.find_ix id env with
       | Some ix -> S.Var ix
-      | None -> raise @@ ElabError (Unbound_variable id)
+      | None -> raise @@ Err.ElabError (Unbound_variable id)
     end
   | CS.Let (tp, B {name; body}) ->
     S.Let (bind env tp, bind (Env.push_name name env) body)
@@ -129,7 +129,7 @@ let process_decl env =
     let new_entry = Check.Env.TopLevel {term = sem_def; tp = sem_tp} in
     NoOutput (Env.add_entry new_entry @@ Env.push_name name env)
   | CS.NormalizeDef name ->
-    let err = ElabError (Unbound_variable name) in 
+    let err = Err.ElabError (Unbound_variable name) in 
     begin
       match Env.find_ix name env with
       | None -> raise err
