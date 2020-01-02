@@ -51,48 +51,8 @@ let rec int_to_term =
   | 0 -> S.Zero
   | n -> S.Suc (int_to_term (n - 1))
 
-let rec unravel_spine f = 
-  function
-  | [] -> f
-  | x :: xs -> unravel_spine (x f) xs
-
-
-(* experimental *)
-module ElabMonad : 
-sig 
-  include Monad.S
-  val read : Env.t m
-  val throw : exn -> 'a m
-  val run : 'a m -> Env.t -> [`Ret of 'a | `Throw of exn]
-
-  val push_var : CS.ident -> D.tp -> 'a m -> 'a m
-end =
-struct
-  type 'a m = Env.t -> [`Ret of 'a | `Throw of exn]
-
-  let read env = `Ret env
-  let throw exn _env = `Throw exn
-  let run m env = m env
-
-  let ret a _env = `Ret a
-  let bind m k = 
-    fun env ->
-    match m env with 
-    | `Ret a ->
-      k a env
-    | `Throw exn ->
-      `Throw exn
-
-  let push_var id tp m = 
-    fun env ->
-    let var = D.Var (Check.Env.size @@ Env.check_env env) in
-    let term = D.Neutral {term = var; tp} in 
-    let entry = Check.Env.Term {term; tp} in
-    let env' = Env.add_entry entry @@ Env.push_name id env in 
-    m env'
-end
-
 module EM = ElabMonad
+
 
 module Elaborator : 
 sig 
@@ -241,6 +201,12 @@ struct
       in 
       S.Pi (base, fam)
 end
+
+
+let rec unravel_spine f = 
+  function
+  | [] -> f
+  | x :: xs -> unravel_spine (x f) xs
 
 let rec bind (env : Env.t) = 
   function
