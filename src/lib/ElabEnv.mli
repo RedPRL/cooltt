@@ -4,9 +4,7 @@ module D := Domain
 type t
 
 val init : t
-val push_name : CS.ident -> t -> t
-val push_names : CS.ident list -> t -> t
-val push_term : D.t -> D.tp -> t -> t
+val push_term : string option -> D.t -> D.tp -> t -> t
 val add_top_level : string -> D.t -> D.tp -> t -> t
 val to_sem_env : t -> D.env
 

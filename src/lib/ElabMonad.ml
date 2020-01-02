@@ -17,8 +17,9 @@ let bind m k env =
   | `Ret a -> k a env
   | `Throw exn -> `Throw exn
 
-let push_var id tp m env =
+let push_var id tp (m : 'a m) : 'a m = 
+  fun env ->
   let var = D.Var (Env.size env) in
   let term = D.Neutral {term = var; tp} in
-  let env' = Env.push_term term tp @@ Env.push_name id env in
+  let env' = Env.push_term (Some id) term tp env in
   m env'

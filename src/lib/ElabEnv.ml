@@ -4,7 +4,7 @@ module D = Domain
 type t = 
   {globals : D.nf SymbolMap.t;
    resolver : Symbol.t StringMap.t;
-   locals : (D.nf option * string option) list}
+   locals : (D.nf * string option) list}
 
 let init = 
   {globals = SymbolMap.empty;
@@ -18,8 +18,7 @@ let get_global sym env =
 
 let get_local ix env = 
   match List.nth env.locals ix with 
-  | Some (D.Nf {tp; _}), _ -> tp
-  | _ -> failwith "get_local"
+  | D.Nf {tp; _}, _ -> tp
 
 let resolve_local key env =
   let exception E in
@@ -47,24 +46,17 @@ let resolve key env =
 let add_top_level name term tp env =
   let sym = Symbol.named name in
   {env with 
+   resolver = StringMap.add name sym env.resolver;
    globals = SymbolMap.add sym (D.Nf {term; tp}) env.globals}
 
 
-let push_name i env = {env with locals = (None, Some i) :: env.locals}
-
-let push_names is env = {env with locals = List.map (fun i -> (None, Some i)) is @ env.locals}
-
-
-let push_term term tp env =
+let push_term name term tp env =
   {env with 
-   locals = (Some (D.Nf {tp; term}), None) :: env.locals}
+   locals = (D.Nf {tp; term}, name) :: env.locals}
 
 
 let to_sem_env env : D.env =
   {globals = env.globals;
-  locals = 
-    List.map
-      (function
-        | Some (D.Nf {term; _}), _-> term
-        | _ -> failwith "to_sem_env")
-      env.locals}
+   locals = 
+     List.map (function D.Nf {term; _}, _-> term)
+       env.locals}
