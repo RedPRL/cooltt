@@ -10,3 +10,11 @@ type t =
 [@@deriving show]
 
 exception ElabError of t
+
+let _ = 
+  PpExn.install_printer @@ fun fmt ->
+  function 
+  | ElabError err ->
+    pp fmt err 
+  | _ -> 
+    raise PpExn.Unrecognized
