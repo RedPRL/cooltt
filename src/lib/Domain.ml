@@ -1,18 +1,13 @@
 module S = Syntax
 
-type env = t list
+type env = t list [@@deriving show]
+
+and ('a, 'b) clo = Clos of {term : 'a; env : env} | ConstClos of 'b
 [@@deriving show]
 
-and ('a, 'b) clo =
-    Clos of {term : 'a; env : env}
-  | ConstClos of 'b
-[@@deriving show]
+and 'a clo2 = Clos2 of {term : 'a; env : env} [@@deriving show]
 
-and 'a clo2 = Clos2 of {term : 'a; env : env}
-[@@deriving show]
-
-and 'a clo3 = Clos3 of {term : 'a; env : env}
-[@@deriving show]
+and 'a clo3 = Clos3 of {term : 'a; env : env} [@@deriving show]
 
 and t =
   | Lam of (S.t, t) clo
@@ -30,7 +25,6 @@ and tp =
   | Sg of tp * (S.tp, tp) clo
 [@@deriving show]
 
-
 and ne =
   | Var of int (* DeBruijn levels for variables *)
   | Ap of ne * nf
@@ -40,8 +34,6 @@ and ne =
   | J of S.tp clo3 * (S.t, t) clo * tp * t * t * ne
 [@@deriving show]
 
-and nf =
-  | Nf of {tp : tp; term : t}
-[@@deriving show]
+and nf = Nf of {tp : tp; term : t} [@@deriving show]
 
 let mk_var tp lev = Neutral {tp; term = Var lev}

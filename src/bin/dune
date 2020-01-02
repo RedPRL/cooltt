@@ -5,4 +5,5 @@
 (install
  (section bin)
  (package cooltt)
- (files (main.exe as cooltt)))
+ (files
+  (main.exe as cooltt)))

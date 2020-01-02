@@ -32,7 +32,7 @@ and t =
   | J of {mot : binder3; refl : binder; eq : t}
 
 type decl =
-    Def of {name : ident; def : t; tp : t}
+  | Def of {name : ident; def : t; tp : t}
   | NormalizeDef of ident
   | NormalizeTerm of {term : t; tp : t}
   | ElaborateType of t
@@ -40,8 +40,8 @@ type decl =
 
 type signature = decl list
 
-
 val show : t -> string
 
 val pp_ident : Format.formatter -> ident -> unit
+
 val pp : Format.formatter -> t -> unit
