@@ -20,6 +20,5 @@ let bind m k env =
 let push_var id tp m env =
   let var = D.Var (Check.Env.size @@ Env.check_env env) in
   let term = D.Neutral {term = var; tp} in
-  let entry = Check.Env.Term {term; tp} in
-  let env' = Env.add_entry entry @@ Env.push_name id env in
+  let env' = Env.add_term ~term ~tp @@ Env.push_name id env in
   m env'

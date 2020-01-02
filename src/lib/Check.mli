@@ -2,19 +2,15 @@ module D := Domain
 module S := Syntax
 
 module Env : sig
-  type entry =
-    | Term of {term : D.t; tp : D.tp}
-    | TopLevel of {term : D.t; tp : D.tp}
-
   type t
 
   val empty : t
   val size : t -> int
-  val add_entry : entry -> t -> t
   val add_term : term:D.t -> tp:D.tp -> t -> t
+  val add_top_level : term:D.t -> tp:D.tp -> t -> t
   val to_sem_env : t -> D.env
   val get_var : t -> int -> D.tp
-  val get_entry : t -> int -> entry
+  val get_top_level : t -> int -> D.nf
 end
 
 type env = Env.t

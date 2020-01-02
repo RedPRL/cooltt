@@ -116,20 +116,15 @@ let process_decl env =
     let sem_tp = Nbe.eval_tp tp sem_env in
     Check.check ~env:check_env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
-    let new_entry = Check.Env.TopLevel {term = sem_def; tp = sem_tp} in
-    NoOutput (Env.add_entry new_entry @@ Env.push_name name env)
+    NoOutput (Env.add_top_level ~term:sem_def ~tp:sem_tp @@ Env.push_name name env)
   | CS.NormalizeDef name -> 
     let err = Err.ElabError (UnboundVariable name) in
     begin
       match Env.find_ix name env with
       | None -> raise err
       | Some ix ->
-        begin
-          match Check.Env.get_entry (Env.check_env env) ix with
-          | Check.Env.TopLevel {term; tp} ->
-            NormalizedDef (name, Nbe.read_back_nf 0 (D.Nf {term; tp}))
-          | _ -> raise err
-        end
+        let nf = Check.Env.get_top_level (Env.check_env env) ix in 
+        NormalizedDef (name, Nbe.read_back_nf 0 nf)
     end
   | CS.NormalizeTerm {term; tp} ->
     let term = bind env term in

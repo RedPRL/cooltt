@@ -20,5 +20,8 @@ let find_ix key env =
   | i -> Some i
   | exception E -> None
 
-let add_entry e env =
-  {env with check_env = Check.Env.add_entry e env.check_env}
+let add_top_level ~term ~tp env =
+  {env with check_env = Check.Env.add_top_level ~term ~tp env.check_env}
+
+let add_term ~term ~tp env =
+  {env with check_env = Check.Env.add_term ~term ~tp env.check_env}
