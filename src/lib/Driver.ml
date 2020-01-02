@@ -8,7 +8,6 @@ type output =
   | NoOutput of Env.t
   | NormalizedTerm of S.t * S.t
   | NormalizedDef of CS.ident * S.t
-  | ElaboratedType of S.tp
   | Quit
 
 let update_env env = 
@@ -29,10 +28,6 @@ let output =
     Format.fprintf Format.std_formatter
       "Computed normal form of [%s]:@ @[<hv>" name;
     Syntax.pp Format.std_formatter t;
-    Format.fprintf Format.std_formatter "@]@,"
-  | ElaboratedType tp ->
-    Format.fprintf Format.std_formatter "Elaborated@ @[<hv>";
-    S.pp_tp Format.std_formatter tp;
     Format.fprintf Format.std_formatter "@]@,"
   | Quit -> exit 0
 
@@ -91,12 +86,6 @@ let process_decl env =
       | `Throw exn -> raise exn
     end
   | CS.Quit -> Quit
-  | CS.ElaborateType tp ->
-    begin
-      match EM.run (Elaborator.check_tp tp) env with
-      | `Ret tp -> ElaboratedType tp
-      | `Throw exn -> raise exn
-    end
 
 let rec process_sign_loop env = 
   function

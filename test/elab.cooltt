@@ -1,1 +1,5 @@
-elaborate type (x : nat) * Id (Id nat x x) refl refl
+def foo : Id (Id nat 3 3) refl refl =
+  refl
+
+normalize def foo
+  

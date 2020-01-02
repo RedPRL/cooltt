@@ -10,7 +10,7 @@
 %token TIMES FST SND
 %token LAM LET IN END WITH
 %token REC SUC NAT ZERO
-%token QUIT NORMALIZE ELABORATE TYPE DEF
+%token QUIT NORMALIZE TYPE DEF
 %token ID REFL MATCH
 %token EOF
 
@@ -32,8 +32,6 @@ decl:
     { NormalizeDef a  }
   | NORMALIZE; tm = term; AT; tp = term
     { NormalizeTerm {term = tm; tp} }
-  | ELABORATE TYPE tp = term 
-    { ElaborateType tp }
 
 sign:
   | EOF
