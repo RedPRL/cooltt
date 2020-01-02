@@ -116,7 +116,7 @@ let process_decl env =
     let sem_tp = Nbe.eval_tp tp sem_env in
     Check.check ~env:check_env ~term:def ~tp:sem_tp;
     let sem_def = Nbe.eval def sem_env in
-    NoOutput (Env.add_top_level ~term:sem_def ~tp:sem_tp @@ Env.push_name name env)
+    NoOutput (Env.add_top_level sem_def sem_tp @@ Env.push_name name env)
   | CS.NormalizeDef name -> 
     let err = Err.ElabError (UnboundVariable name) in
     begin

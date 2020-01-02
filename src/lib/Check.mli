@@ -6,8 +6,8 @@ module Env : sig
 
   val empty : t
   val size : t -> int
-  val add_term : term:D.t -> tp:D.tp -> t -> t
-  val add_top_level : term:D.t -> tp:D.tp -> t -> t
+  val add_term : D.t -> D.tp -> t -> t
+  val add_top_level : D.t -> D.tp -> t -> t
   val to_sem_env : t -> D.env
   val get_var : t -> int -> D.tp
   val get_top_level : t -> int -> D.nf
