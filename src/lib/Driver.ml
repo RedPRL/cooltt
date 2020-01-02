@@ -43,8 +43,8 @@ let elaborate_typed_term tp tm =
   let* tp = Elaborator.check_tp tp in
   let* vtp = Elaborator.eval_tp tp in
   let* tm = Elaborator.check_tm tm vtp in
-  let* vtm = Elaborator.eval_tm tm in
-  EM.ret @@ (tp, vtp, tm, vtm)
+  let+ vtm = Elaborator.eval_tm tm in
+  tp, vtp, tm, vtm
 
 let process_decl env = 
   function
