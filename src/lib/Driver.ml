@@ -38,12 +38,6 @@ let rec int_to_term =
 
 module EM = ElabMonad
 
-let rec unravel_spine f = 
-  function
-  | [] -> f
-  | x :: xs -> unravel_spine (x f) xs
-
-
 let process_decl env = 
   function
   | CS.Def {name; def; tp} ->
