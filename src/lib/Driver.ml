@@ -27,7 +27,7 @@ let output =
   | NormalizedDef (name, t) ->
     Format.fprintf Format.std_formatter
       "Computed normal form of [%s]:@ @[<hv>" name;
-    Syntax.pp Format.std_formatter t;
+    S.pp Format.std_formatter t;
     Format.fprintf Format.std_formatter "@]@,"
   | Quit -> exit 0
 
