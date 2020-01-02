@@ -11,11 +11,13 @@ type output =
   | ElaboratedType of S.tp
   | Quit
 
-let update_env env = function
+let update_env env = 
+  function
   | NoOutput env -> env
   | _ -> env
 
-let output = function
+let output = 
+  function
   | NoOutput _ -> ()
   | NormalizedTerm (s, t) ->
     Format.fprintf Format.std_formatter "Computed normal form of@ @[<hv>";
@@ -34,17 +36,20 @@ let output = function
     Format.fprintf Format.std_formatter "@]@,"
   | Quit -> exit 0
 
-let rec int_to_term = function
+let rec int_to_term = 
+  function
   | 0 -> S.Zero
   | n -> S.Suc (int_to_term (n - 1))
 
 module EM = ElabMonad
 
-let rec unravel_spine f = function
+let rec unravel_spine f = 
+  function
   | [] -> f
   | x :: xs -> unravel_spine (x f) xs
 
-let rec bind (env : Env.t) = function
+let rec bind (env : Env.t) = 
+  function
   | CS.Var id ->
     begin
       match Env.find_ix id env with
@@ -56,18 +61,12 @@ let rec bind (env : Env.t) = function
   | CS.Check {term; tp} -> S.Check (bind env term, bind_ty env tp)
   | CS.Suc t -> S.Suc (bind env t)
   | CS.Lit i -> int_to_term i
-  | CS.NRec
-      {
-        mot = B {name = mot_name; body = mot_body};
-        zero;
-        suc = B2 {name1 = suc_name1; name2 = suc_name2; body = suc_body};
-        nat;
-      } ->
+  | CS.NRec {mot = B {name = mot_name; body = mot_body}; zero; suc = B2 {name1 = suc_name1; name2 = suc_name2; body = suc_body}; nat} ->
     S.NRec
-      ( bind_ty (Env.push_name mot_name env) mot_body,
-        bind env zero,
-        bind (Env.push_names [suc_name2; suc_name1] env) suc_body,
-        bind env nat )
+      (bind_ty (Env.push_name mot_name env) mot_body,
+       bind env zero,
+       bind (Env.push_names [suc_name2; suc_name1] env) suc_body,
+       bind env nat)
   | CS.Lam (BN {names = []; body}) -> bind env body
   | CS.Lam (BN {names = x :: names; body}) ->
     let lam = CS.Lam (BN {names; body}) in
@@ -77,39 +76,37 @@ let rec bind (env : Env.t) = function
   | CS.Pair (l, r) -> S.Pair (bind env l, bind env r)
   | CS.Fst p -> S.Fst (bind env p)
   | CS.Snd p -> S.Snd (bind env p)
-  | CS.J
-      {
-        mot = B3 {name1 = left; name2 = right; name3 = prf; body = mot_body};
-        refl = B {name = refl_name; body = refl_body};
-        eq;
-      } ->
+  | CS.J {mot = B3 {name1 = left; name2 = right; name3 = prf; body = mot_body}; refl = B {name = refl_name; body = refl_body}; eq} ->
     S.J
-      ( bind_ty (Env.push_names [prf; right; left] env) mot_body,
-        bind (Env.push_name refl_name env) refl_body,
-        bind env eq )
+      (bind_ty (Env.push_names [prf; right; left] env) mot_body,
+       bind (Env.push_name refl_name env) refl_body,
+       bind env eq )
   | CS.Refl (Some t) -> S.Refl (bind env t)
   | _ -> failwith "driver expected term"
 
-and bind_ty env = function
+and bind_ty env = 
+  function
   | CS.Sg ([], body) -> bind_ty env body
   | CS.Sg (Cell cell :: tele, body) ->
     S.Sg
-      ( bind_ty env cell.tp,
-        bind_ty (Env.push_name cell.name env) (CS.Sg (tele, body)) )
+      (bind_ty env cell.tp,
+       bind_ty (Env.push_name cell.name env) (CS.Sg (tele, body)))
   | CS.Pi ([], body) -> bind_ty env body
   | CS.Pi (Cell cell :: tele, body) ->
     S.Pi
-      ( bind_ty env cell.tp,
-        bind_ty (Env.push_name cell.name env) (CS.Pi (tele, body)) )
+      (bind_ty env cell.tp,
+       bind_ty (Env.push_name cell.name env) (CS.Pi (tele, body)))
   | CS.Nat -> S.Nat
   | CS.Id (tp, left, right) ->
     S.Id (bind_ty env tp, bind env left, bind env right)
   | e -> failwith @@ "driver expected tp but found " ^ CS.show e
 
-and bind_spine env = function
+and bind_spine env = 
+  function
   | CS.Term t -> fun f -> S.Ap (f, bind env t)
 
-let process_decl env = function
+let process_decl env = 
+  function
   | CS.Def {name; def; tp} ->
     let def = bind env def in
     let tp = bind_ty env tp in
@@ -153,7 +150,8 @@ let process_decl env = function
       | `Ret tp -> ElaboratedType tp
       | `Throw exn -> raise exn )
 
-let rec process_sign_loop env = function
+let rec process_sign_loop env = 
+  function
   | [] -> ()
   | d :: ds ->
     let o = process_decl env d in

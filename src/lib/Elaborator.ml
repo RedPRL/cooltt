@@ -7,7 +7,8 @@ module Err = ElabError
 
 open Monad.Notation (EM)
 
-let rec int_to_term = function
+let rec int_to_term = 
+  function
   | 0 -> S.Zero
   | n -> S.Suc (int_to_term (n - 1))
 
@@ -67,11 +68,13 @@ let lookup_var id =
     EM.ret (S.Var ix, tp)
   | None -> EM.throw @@ Err.ElabError (Err.UnboundVariable id)
 
-let dest_pi = function
+let dest_pi = 
+  function
   | D.Pi (base, fam) -> EM.ret (base, fam)
   | tp -> EM.throw @@ Err.ElabError (Err.ExpectedPiType tp)
 
-let rec check_tp : CS.t -> S.tp EM.m = function
+let rec check_tp : CS.t -> S.tp EM.m = 
+  function
   | CS.Pi (cells, body) -> check_pi_tp cells body
   | CS.Sg (cells, body) -> check_sg_tp cells body
   | CS.Nat -> EM.ret S.Nat
@@ -84,7 +87,7 @@ let rec check_tp : CS.t -> S.tp EM.m = function
   | tp -> EM.throw @@ Err.ElabError (Err.InvalidTypeExpression tp)
 
 and check_tm : CS.t -> D.tp -> S.t EM.m =
- fun cs tp ->
+  fun cs tp ->
   match cs, tp with
   | CS.Refl _, D.Id (tp, l, r) ->
     let+ () = equate tp l r
@@ -96,7 +99,8 @@ and check_tm : CS.t -> D.tp -> S.t EM.m =
     let+ () = equate_tp tp tp' in
     tm
 
-and synth_tm : CS.t -> (S.t * D.tp) EM.m = function
+and synth_tm : CS.t -> (S.t * D.tp) EM.m = 
+  function
   | CS.Var id -> lookup_var id
   | CS.Ap (t, ts) ->
     let* t, tp = synth_tm t in
