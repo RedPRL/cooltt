@@ -20,7 +20,8 @@ val globally : 'a m -> 'a m
 
 val resolve : CS.ident -> [`Local of int | `Global of Symbol.t | `Unbound] m
 val get_global : Symbol.t -> D.nf m
-val get_local : int -> D.tp m
+val get_local_tp : int -> D.tp m
+val get_local : int -> D.t m
 
 
 val quote : D.tp -> D.t -> Syntax.t m

@@ -16,9 +16,13 @@ let init =
 
 let size env = List.length env.locals
 
-let get_local ix env = 
+let get_local_tp ix env = 
   match List.nth env.locals ix with 
   | D.Nf {tp; _}, _ -> tp
+
+let get_local ix env = 
+  match List.nth env.locals ix with 
+  | D.Nf {term; _}, _ -> term
 
 let resolve_local key env =
   let exception E in

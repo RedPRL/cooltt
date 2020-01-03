@@ -65,6 +65,13 @@ let get_global sym : D.nf m =
   | nf -> ret nf
   | exception exn -> throw exn
 
+let get_local_tp ix =
+  let* env = read in
+  match Env.get_local_tp ix env with
+  | tp -> ret tp
+  | exception exn -> throw exn
+
+
 let get_local ix =
   let* env = read in
   match Env.get_local ix env with

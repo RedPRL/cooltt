@@ -1,5 +1,4 @@
-def foo : Id (Id nat 3 3) refl refl =
-  ?hole
+def foo : (x : nat) -> Id (Id nat 3 3) refl refl =
+  fun x -> ?hole
 
 normalize def foo
-  

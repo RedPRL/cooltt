@@ -13,4 +13,5 @@ val to_sem_env : t -> D.env
 val size : t -> int
 
 val resolve_local : CS.ident -> t -> int option
-val get_local : int -> t -> D.tp
+val get_local_tp : int -> t -> D.tp
+val get_local : int -> t -> D.t

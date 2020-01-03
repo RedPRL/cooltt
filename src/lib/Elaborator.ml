@@ -58,7 +58,7 @@ let lookup_var id =
   let* res = EM.resolve id in
   match res with
   | `Local ix ->
-    let* tp = EM.get_local ix in
+    let* tp = EM.get_local_tp ix in
     EM.ret (S.Var ix, tp)
   | `Global sym -> 
     let* D.Nf {tp; _} = EM.get_global sym in 
@@ -121,7 +121,20 @@ and check_tm : CS.t -> D.tp -> S.t EM.m =
     let+ () = equate tp l r
     and+ t = EM.quote tp l in
     S.Refl t
+
   | CS.Lit n, D.Nat -> EM.ret @@ int_to_term n
+
+
+  | CS.Lam (BN {names = []; body}), _ ->
+    check_tm body tp
+
+  | CS.Lam (BN {names = name :: names; body}), D.Pi (base, fam) ->
+    EM.push_var (Some name) base @@ 
+    let* var = EM.get_local 0 in
+    let* fib = inst_tp_clo fam var in
+    let+ t = check_tm (CS.Lam (BN {names; body})) fib in
+    S.Lam t
+
   | _ ->
     let* tm, tp' = synth_tm cs in
     let+ () = equate_tp tp tp' in
@@ -133,7 +146,8 @@ and synth_tm : CS.t -> (S.t * D.tp) EM.m =
   | CS.Ap (t, ts) ->
     let* t, tp = synth_tm t in
     synth_ap t tp ts
-  | _ -> failwith "TODO"
+  | cs -> 
+    failwith @@ "TODO : " ^ CS.show cs
 
 and synth_ap head head_tp spine =
   match spine with

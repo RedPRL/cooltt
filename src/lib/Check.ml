@@ -90,7 +90,7 @@ let rec check ~st ~env ~term ~tp =
 
 and synth ~st ~env ~term =
   match term with
-  | S.Var i -> Env.get_local i env
+  | S.Var i -> Env.get_local_tp i env
   | S.Global sym -> 
     let D.Nf {tp; _} = St.get_global sym st in
     tp
