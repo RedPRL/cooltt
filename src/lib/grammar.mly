@@ -4,13 +4,14 @@
 
 %token <int> NUMERAL
 %token <string> ATOM
+%token <string option> HOLE_NAME
 %token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE ATSIGN
 %token LPR RPR
 %token EQUALS
 %token TIMES FST SND
 %token LAM LET IN END WITH
 %token REC SUC NAT ZERO
-%token QUIT NORMALIZE TYPE DEF
+%token QUIT NORMALIZE DEF
 %token ID REFL MATCH
 %token EOF
 
@@ -54,6 +55,8 @@ atomic:
     { Refl None }
   | LPR left = term; COMMA; right = term; RPR
     { Pair (left, right) }
+  | name = HOLE_NAME
+    { Hole name }
 
 spine:
   | t = atomic 

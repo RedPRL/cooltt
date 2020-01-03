@@ -54,9 +54,6 @@ let equate_tp tp tp' =
   | true -> EM.ret ()
   | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqualTypes (tp, tp'))
 
-let quote tp v =
-  EM.quote @@ D.Nf {tp; term = v}
-
 let lookup_var id =
   let* res = EM.resolve id in
   match res with
@@ -74,6 +71,33 @@ let dest_pi =
   | D.Pi (base, fam) -> EM.ret (base, fam)
   | tp -> EM.throw @@ Err.ElabError (Err.ExpectedPiType tp)
 
+let unleash_hole name tp = 
+  let rec go_tp : Env.cell list -> S.tp m =
+    function
+    | [] ->
+      EM.quote_tp tp
+    | (D.Nf cell, name) :: cells -> 
+      let+ base = EM.quote_tp cell.tp
+      and+ fam = EM.push_var name cell.tp @@ go_tp cells in
+      S.Pi (base, fam)
+  in
+  let rec go_tm ne : Env.cell list -> D.ne =
+    function 
+    | [] -> ne
+    | (nf, _) :: cells ->
+      D.Ap (go_tm ne cells, nf)
+  in
+
+  let* env = EM.read in
+  EM.globally @@ 
+  let* sym = 
+    let* tp = go_tp @@ Env.locals env in
+    let* vtp = eval_tp tp in
+    EM.add_global name vtp None 
+  in
+  let ne = go_tm (D.Global sym) @@ Env.locals env in
+  EM.quote_ne ne
+
 let rec check_tp : CS.t -> S.tp EM.m = 
   function
   | CS.Pi (cells, body) -> check_pi_tp cells body
@@ -90,9 +114,12 @@ let rec check_tp : CS.t -> S.tp EM.m =
 and check_tm : CS.t -> D.tp -> S.t EM.m =
   fun cs tp ->
   match cs, tp with
+  | CS.Hole name, _ ->
+    unleash_hole name tp
+
   | CS.Refl _, D.Id (tp, l, r) ->
     let+ () = equate tp l r
-    and+ t = quote tp l in
+    and+ t = EM.quote tp l in
     S.Refl t
   | CS.Lit n, D.Nat -> EM.ret @@ int_to_term n
   | _ ->
@@ -124,7 +151,7 @@ and check_sg_tp cells body =
   | Cell cell :: cells ->
     let* base = check_tp cell.tp in
     let* vbase = eval_tp base in
-    let+ fam = EM.push_var cell.name vbase @@ check_sg_tp cells body in
+    let+ fam = EM.push_var (Some cell.name) vbase @@ check_sg_tp cells body in
     S.Sg (base, fam)
 
 and check_pi_tp cells body =
@@ -133,5 +160,5 @@ and check_pi_tp cells body =
   | Cell cell :: cells ->
     let* base = check_tp cell.tp in
     let* vbase = eval_tp base in
-    let+ fam = EM.push_var cell.name vbase @@ check_pi_tp cells body in
+    let+ fam = EM.push_var (Some cell.name) vbase @@ check_pi_tp cells body in
     S.Pi (base, fam)

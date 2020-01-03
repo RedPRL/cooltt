@@ -31,6 +31,9 @@ struct
 
   let local f m (st, env) = 
     m (st, f env)
+
+  let globally m =
+    local (fun _ -> Env.init) m
 end
 
 include Base
@@ -40,7 +43,7 @@ let push_var id tp : 'a m -> 'a m =
   local @@ fun env ->
   let var = D.Var (Env.size env) in
   let term = D.Neutral {term = var; tp} in
-  Env.push_term (Some id) term tp env
+  Env.push_term id term tp env
 
 let resolve id = 
   let* env = read in
@@ -53,8 +56,8 @@ let resolve id =
     | None -> ret `Unbound
 
 let add_global id tp el (st, _env) = 
-  let st' = St.add_global id tp el st in
-  Ret (), st'
+  let sym, st' = St.add_global id tp el st in
+  Ret sym, st'
 
 let get_global sym : D.nf m =
   let* st = get in
@@ -68,11 +71,26 @@ let get_local ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
-let quote nf = 
+let quote tp el = 
+  let nf = D.Nf {tp; term = el} in
   let* st = get in
   let* env = read in
   match Nbe.read_back_nf st (Env.size env) nf with
   | t -> ret t
+  | exception exn -> throw exn
+
+let quote_ne ne = 
+  let* st = get in
+  let* env = read in
+  match Nbe.read_back_ne st (Env.size env) ne with
+  | t -> ret t
+  | exception exn -> throw exn
+
+let quote_tp tp = 
+  let* st = get in
+  let* env = read in
+  match Nbe.read_back_tp st (Env.size env) tp with
+  | tp -> ret tp
   | exception exn -> throw exn
 
 let emit pp a : unit m = 

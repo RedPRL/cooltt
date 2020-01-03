@@ -1,9 +1,14 @@
 module StringMap = Map.Make (String)
 module D = Domain
+module S = Syntax
+
+type cell = D.nf * string option
 
 type t = 
   {resolver : Symbol.t StringMap.t;
-   locals : (D.nf * string option) list}
+   locals : cell list}
+
+let locals env = env.locals
 
 let init = 
   {resolver = StringMap.empty;

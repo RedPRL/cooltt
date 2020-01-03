@@ -30,6 +30,7 @@ and t =
   | Id of t * t * t
   | Refl of t option
   | J of {mot : binder3; refl : binder; eq : t}
+  | Hole of ident option
 
 type decl =
   | Def of {name : ident; def : t; tp : t}

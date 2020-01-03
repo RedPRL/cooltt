@@ -36,17 +36,26 @@ let keywords =
     ("def", DEF);
     ("at", AT);
     ("normalize", NORMALIZE);
-    ("type", TYPE);
     ("quit", QUIT);
   ]
 }
 
+let line_ending
+  = '\r'
+  | '\n'
+  | "\r\n"
+let number =
+  ['0'-'9']+
+let whitespace =
+  [' ' '\t']+
+let atom_initial =
+  [^ '0'-'9' '-' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']
+let atom_subsequent =
+  [^                     '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' ' ' '\t' '\n' '\r']
+
+
 let number = ['0'-'9']['0'-'9']*
-let whitespace = [' ' '\t']+
-let line_ending = '\r' | '\n' | "\r\n"
-let atom_first = ['a'-'z' 'A'-'Z' '_']
-let atom_next = ['a'-'z' 'A'-'Z' '_' '-' '*' '/' '0'-'9']
-let atom = atom_first atom_next*
+let atom = atom_initial atom_subsequent*
 
 rule token = parse
   | number
@@ -77,6 +86,17 @@ rule token = parse
     { UNDERSCORE }
   | '@'
     { ATSIGN }
+  | "?" atom
+    {
+      match String.split_on_char '?' @@ lexeme lexbuf with
+      | [] ->
+        HOLE_NAME None
+      | _ :: input ->
+        let name = String.concat "" input in
+        HOLE_NAME (Some name)
+    }
+  | "?"
+    { HOLE_NAME None }
   | "--"
     { comment lexbuf }
   | line_ending

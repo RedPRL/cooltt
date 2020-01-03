@@ -42,15 +42,15 @@ let execute_decl =
   function
   | CS.Def {name; def; tp} ->
     let* _tp, vtp, _tm, vtm = elaborate_typed_term tp def in
-    let* () = EM.add_global name vtp vtm in
+    let* _ = EM.add_global (Some name) vtp @@ Some vtm in
     EM.ret `Continue
   | CS.NormalizeDef name ->
     let* res = EM.resolve name in
     begin
       match res with
       | `Global sym ->
-        let* nf = EM.get_global sym in
-        let* tm = EM.quote nf in
+        let* D.Nf nf = EM.get_global sym in
+        let* tm = EM.quote nf.tp nf.term in
         let* () = EM.emit pp_message @@ NormalizedDef (name, tm) in
         EM.ret `Continue
       | _ -> 
@@ -58,7 +58,7 @@ let execute_decl =
     end
   | CS.NormalizeTerm {term; tp} ->
     let* _, vtp, tm, vtm = elaborate_typed_term tp term in
-    let* tm' = EM.quote (D.Nf {term = vtm; tp = vtp}) in
+    let* tm' = EM.quote vtp vtm in
     let* () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in 
     EM.ret `Continue
   | CS.Quit -> 

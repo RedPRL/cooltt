@@ -32,22 +32,22 @@ and do_snd st p =
 
 and do_tp_clo st clo a =
   match clo with
-  | Clos {term; env} -> eval_tp st {D.locals = a :: env.locals} term
-  | ConstClos t -> t
+  | Clo {term; env} -> eval_tp st {D.locals = a :: env.locals} term
+  | ConstClo t -> t
 
 and do_tm_clo st clo a =
   match clo with
-  | D.Clos {term; env} -> eval st {D.locals = a :: env.locals} term
-  | D.ConstClos t -> t
+  | D.Clo {term; env} -> eval st {D.locals = a :: env.locals} term
+  | D.ConstClo t -> t
 
-and do_tm_clo2 st (D.Clos2 {term; env}) a1 a2 = eval st {locals = a2 :: a1 :: env.locals} term
+and do_tm_clo2 st (D.Clo2 {term; env}) a1 a2 = eval st {locals = a2 :: a1 :: env.locals} term
 
-and do_tm_clo3 st (D.Clos3 {term; env}) a1 a2 a3 =
+and do_tm_clo3 st (D.Clo3 {term; env}) a1 a2 a3 =
   eval st {locals = a3 :: a2 :: a1 :: env.locals} term
 
-and do_tp_clo2 st (D.Clos2 {term; env}) a1 a2 = eval_tp st {locals = a2 :: a1 :: env.locals} term
+and do_tp_clo2 st (D.Clo2 {term; env}) a1 a2 = eval_tp st {locals = a2 :: a1 :: env.locals} term
 
-and do_tp_clo3 st (D.Clos3 {term; env}) a1 a2 a3 =
+and do_tp_clo3 st (D.Clo3 {term; env}) a1 a2 a3 =
   eval_tp st {locals = a3 :: a2 :: a1 :: env.locals} term
 
 and do_j st mot refl eq =
@@ -80,8 +80,8 @@ and do_ap st f a =
 and eval_tp st env t =
   match t with
   | S.Nat -> D.Nat
-  | S.Pi (src, dest) -> D.Pi (eval_tp st env src, Clos {term = dest; env})
-  | S.Sg (t1, t2) -> D.Sg (eval_tp st env t1, Clos {term = t2; env})
+  | S.Pi (src, dest) -> D.Pi (eval_tp st env src, Clo {term = dest; env})
+  | S.Sg (t1, t2) -> D.Sg (eval_tp st env t1, Clo {term = t2; env})
   | S.Id (tp, left, right) ->
     D.Id (eval_tp st env tp, eval st env left, eval st env right)
 
@@ -97,11 +97,11 @@ and eval st (env : D.env) t =
   | S.Suc t -> D.Suc (eval st env t)
   | S.NRec (tp, zero, suc, n) ->
     do_rec st
-      (Clos {term = tp; env})
+      (Clo {term = tp; env})
       (eval st env zero)
-      (Clos2 {term = suc; env})
+      (Clo2 {term = suc; env})
       (eval st env n)
-  | S.Lam t -> D.Lam (Clos {term = t; env})
+  | S.Lam t -> D.Lam (Clo {term = t; env})
   | S.Ap (t1, t2) -> do_ap st (eval st env t1) (eval st env t2)
   | S.Pair (t1, t2) -> D.Pair (eval st env t1, eval st env t2)
   | S.Fst t -> do_fst st (eval st env t)
@@ -109,8 +109,8 @@ and eval st (env : D.env) t =
   | S.Refl t -> D.Refl (eval st env t)
   | S.J (mot, refl, eq) ->
     do_j st
-      (D.Clos3 {term = mot; env})
-      (D.Clos {term = refl; env})
+      (D.Clo3 {term = mot; env})
+      (D.Clo {term = refl; env})
       (eval st env eq)
 
 let rec read_back_nf st size nf =

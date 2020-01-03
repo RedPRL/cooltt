@@ -9,14 +9,11 @@ let compare s1 s2 =
 let equal s1 s2 = 
   s1.gen = s2.gen
 
-let fresh () = 
+let named_opt ostr =
   let i = !global in
-  let s = {gen = i; name = None} in
+  let s = {gen = i; name = ostr} in
   global := i + 1;
   s
 
-let named str = 
-  let i = !global in
-  let s = {gen = i; name = Some str} in
-  global := i + 1;
-  s
+let named str = named_opt (Some str)
+let fresh () = named_opt None
