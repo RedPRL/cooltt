@@ -2,20 +2,25 @@ module Env = ElabEnv
 module CS = ConcreteSyntax
 module D = Domain
 
-type 'a m = Env.t -> [`Ret of 'a | `Throw of exn]
 
-let read env = `Ret env
+type 'a result = 
+  | Ret of 'a
+  | Throw of exn
 
-let throw exn _env = `Throw exn
+type 'a m = Env.t -> 'a result
+
+let read env = Ret env
+
+let throw exn _env = Throw exn
 
 let run m env = m env
 
-let ret a _env = `Ret a
+let ret a _env = Ret a
 
 let bind m k env =
   match m env with
-  | `Ret a -> k a env
-  | `Throw exn -> `Throw exn
+  | Ret a -> k a env
+  | Throw exn -> Throw exn
 
 let push_var id tp (m : 'a m) : 'a m = 
   fun env ->

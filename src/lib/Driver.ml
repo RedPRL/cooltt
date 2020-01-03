@@ -52,8 +52,8 @@ let process_decl env =
     let script = elaborate_typed_term tp def in
     begin
       match EM.run script env with
-      | `Ret (_, vtp, _, vtm) -> NoOutput (Env.add_top_level name vtm vtp env)
-      | `Throw exn -> raise exn
+      | EM.Ret (_, vtp, _, vtm) -> NoOutput (Env.add_top_level name vtm vtp env)
+      | EM.Throw exn -> raise exn
     end
   | CS.NormalizeDef name -> 
     let err = Err.ElabError (UnboundVariable name) in
@@ -68,10 +68,10 @@ let process_decl env =
     let script = elaborate_typed_term tp term in
     begin
       match EM.run script env with
-      | `Ret (_, vtp, tm, vtm) -> 
+      | EM.Ret (_, vtp, tm, vtm) -> 
         let norm_term = Nbe.read_back_nf 0 (D.Nf {term = vtm; tp = vtp}) in
         NormalizedTerm (tm, norm_term)
-      | `Throw exn -> raise exn
+      | EM.Throw exn -> raise exn
     end
   | CS.Quit -> Quit
 
