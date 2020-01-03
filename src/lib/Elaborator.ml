@@ -88,14 +88,16 @@ let unleash_hole name tp =
       D.Ap (go_tm ne cells, nf)
   in
 
-  let* env = EM.read in
-  EM.globally @@ 
-  let* sym = 
-    let* tp = go_tp @@ Env.locals env in
-    let* vtp = eval_tp tp in
-    EM.add_global name vtp None 
+  let* ne = 
+    let* env = EM.read in
+    EM.globally @@ 
+    let+ sym = 
+      let* tp = go_tp @@ Env.locals env in
+      let* vtp = eval_tp tp in
+      EM.add_global name vtp None 
+    in
+    go_tm (D.Global sym) @@ Env.locals env 
   in
-  let ne = go_tm (D.Global sym) @@ Env.locals env in
   EM.quote_ne ne
 
 let rec check_tp : CS.t -> S.tp EM.m = 
