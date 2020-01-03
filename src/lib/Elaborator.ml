@@ -55,11 +55,7 @@ let equate_tp tp tp' =
   | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqualTypes (tp, tp'))
 
 let quote tp v =
-  let* st = EM.get in
-  let* env = EM.read in
-  match Nbe.read_back_nf st (Env.size env) @@ D.Nf {tp; term = v} with
-  | t -> EM.ret t
-  | exception exn -> EM.throw exn
+  EM.quote @@ D.Nf {tp; term = v}
 
 let lookup_var id =
   let* res = EM.resolve id in
