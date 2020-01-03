@@ -2,19 +2,14 @@ module StringMap = Map.Make (String)
 module D = Domain
 
 type t = 
-  {globals : D.nf SymbolMap.t;
-   resolver : Symbol.t StringMap.t;
+  {resolver : Symbol.t StringMap.t;
    locals : (D.nf * string option) list}
 
 let init = 
-  {globals = SymbolMap.empty;
-   resolver = StringMap.empty;
+  {resolver = StringMap.empty;
    locals = []}
 
 let size env = List.length env.locals
-
-let get_global sym env = 
-  SymbolMap.find sym env.globals
 
 let get_local ix env = 
   match List.nth env.locals ix with 
@@ -31,24 +26,6 @@ let resolve_local key env =
   | i -> Some i
   | exception E -> None
 
-let resolve_global key env = 
-  StringMap.find_opt key env.resolver
-
-let resolve key env = 
-  match resolve_local key env with
-  | Some ix -> `Local ix
-  | None ->
-    match resolve_global key env with 
-    | Some sym -> `Global sym
-    | None -> `Unbound
-
-
-let add_top_level name term tp env =
-  let sym = Symbol.named name in
-  {env with 
-   resolver = StringMap.add name sym env.resolver;
-   globals = SymbolMap.add sym (D.Nf {term; tp}) env.globals}
-
 
 let push_term name term tp env =
   {env with 
@@ -56,7 +33,6 @@ let push_term name term tp env =
 
 
 let to_sem_env env : D.env =
-  {globals = env.globals;
-   locals = 
+  {locals = 
      List.map (function D.Nf {term; _}, _-> term)
        env.locals}

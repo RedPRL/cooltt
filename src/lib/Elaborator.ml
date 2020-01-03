@@ -17,26 +17,30 @@ let read_sem_env =
   Env.to_sem_env env
 
 let eval_tp tp =
+  let* st = EM.get in
   let* sem_env = read_sem_env in
-  match Nbe.eval_tp tp sem_env with
+  match Nbe.eval_tp st sem_env tp with
   | v -> EM.ret v
   | exception exn -> EM.throw exn
 
 let eval_tm tp =
+  let* st = EM.get in
   let* sem_env = read_sem_env in
-  match Nbe.eval tp sem_env with
+  match Nbe.eval st sem_env tp with
   | v -> EM.ret v
   | exception exn -> EM.throw exn
 
 let inst_tp_clo clo v =
-  match Nbe.do_tp_clo clo v with
+  let* st = EM.get in
+  match Nbe.do_tp_clo st clo v with
   | v -> EM.ret v
   | exception exn -> EM.throw exn
 
 let equate tp l r =
+  let* st = EM.get in
   let* env = EM.read in
   match
-    Nbe.equal_nf (Env.size env)
+    Nbe.equal_nf st (Env.size env)
       (D.Nf {tp; term = l})
       (D.Nf {tp; term = r})
   with
@@ -44,25 +48,27 @@ let equate tp l r =
   | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqual (tp, l, r))
 
 let equate_tp tp tp' =
+  let* st = EM.get in
   let* env = EM.read in
-  match Nbe.equal_tp (Env.size env) tp tp' with
+  match Nbe.equal_tp st (Env.size env) tp tp' with
   | true -> EM.ret ()
   | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqualTypes (tp, tp'))
 
 let quote tp v =
+  let* st = EM.get in
   let* env = EM.read in
-  match Nbe.read_back_nf (Env.size env) @@ D.Nf {tp; term = v} with
+  match Nbe.read_back_nf st (Env.size env) @@ D.Nf {tp; term = v} with
   | t -> EM.ret t
   | exception exn -> EM.throw exn
 
 let lookup_var id =
-  let* env = EM.read in
-  match Env.resolve id env with
+  let* res = EM.resolve id in
+  match res with
   | `Local ix ->
-    let tp = Env.get_local ix env in
+    let* tp = EM.get_local ix in
     EM.ret (S.Var ix, tp)
   | `Global sym -> 
-    let D.Nf {tp; _} = Env.get_global sym env in
+    let* D.Nf {tp; _} = EM.get_global sym in 
     EM.ret (S.Global sym, tp)
   | `Unbound -> 
     EM.throw @@ Err.ElabError (Err.UnboundVariable id)

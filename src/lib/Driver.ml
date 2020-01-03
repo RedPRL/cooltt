@@ -4,32 +4,23 @@ module D = Domain
 module Env = ElabEnv
 module Err = ElabError
 
-type output =
-  | NoOutput of Env.t
+type message =
   | NormalizedTerm of S.t * S.t
   | NormalizedDef of CS.ident * S.t
-  | Quit
 
-let update_env env = 
+let pp_message fmt = 
   function
-  | NoOutput env -> env
-  | _ -> env
-
-let output = 
-  function
-  | NoOutput _ -> ()
   | NormalizedTerm (s, t) ->
-    Format.fprintf Format.std_formatter "Computed normal form of@ @[<hv>";
-    S.pp Format.std_formatter s;
-    Format.fprintf Format.std_formatter "@] as @ @[<hv>";
-    S.pp Format.std_formatter t;
-    Format.fprintf Format.std_formatter "@]@,"
+    Format.fprintf fmt "Computed normal form of@ @[<hv>";
+    S.pp fmt s;
+    Format.fprintf fmt "@] as @ @[<hv>";
+    S.pp fmt t;
+    Format.fprintf fmt "@]@,"
   | NormalizedDef (name, t) ->
-    Format.fprintf Format.std_formatter
+    Format.fprintf fmt
       "Computed normal form of [%s]:@ @[<hv>" name;
-    S.pp Format.std_formatter t;
-    Format.fprintf Format.std_formatter "@]@,"
-  | Quit -> exit 0
+    S.pp fmt t;
+    Format.fprintf fmt "@]@,"
 
 let rec int_to_term = 
   function
@@ -46,42 +37,47 @@ let elaborate_typed_term tp tm =
   let+ vtm = Elaborator.eval_tm tm in
   tp, vtp, tm, vtm
 
-let process_decl env = 
+let execute_decl =
+  let open Monad.Notation (EM) in 
   function
   | CS.Def {name; def; tp} ->
-    let script = elaborate_typed_term tp def in
+    let* _tp, vtp, _tm, vtm = elaborate_typed_term tp def in
+    let* () = EM.add_global name vtp vtm in
+    EM.ret `Continue
+  | CS.NormalizeDef name ->
+    let* res = EM.resolve name in
     begin
-      match EM.run script env with
-      | EM.Ret (_, vtp, _, vtm) -> NoOutput (Env.add_top_level name vtm vtp env)
-      | EM.Throw exn -> raise exn
-    end
-  | CS.NormalizeDef name -> 
-    let err = Err.ElabError (UnboundVariable name) in
-    begin
-      match Env.resolve name env with
-      | `Local _ | `Unbound -> raise err
+      match res with
       | `Global sym ->
-        let nf = Env.get_global sym env in 
-        NormalizedDef (name, Nbe.read_back_nf 0 nf)
+        let* nf = EM.get_global sym in
+        let* tm = EM.quote nf in
+        let* () = EM.emit pp_message @@ NormalizedDef (name, tm) in
+        EM.ret `Continue
+      | _ -> 
+        EM.throw @@ Err.ElabError (UnboundVariable name)
     end
   | CS.NormalizeTerm {term; tp} ->
-    let script = elaborate_typed_term tp term in
-    begin
-      match EM.run script env with
-      | EM.Ret (_, vtp, tm, vtm) -> 
-        let norm_term = Nbe.read_back_nf 0 (D.Nf {term = vtm; tp = vtp}) in
-        NormalizedTerm (tm, norm_term)
-      | EM.Throw exn -> raise exn
-    end
-  | CS.Quit -> Quit
+    let* _, vtp, tm, vtm = elaborate_typed_term tp term in
+    let* tm' = EM.quote (D.Nf {term = vtm; tp = vtp}) in
+    let* () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in 
+    EM.ret `Continue
+  | CS.Quit -> 
+    EM.ret `Quit
 
-let rec process_sign_loop env = 
-  function
-  | [] -> ()
-  | d :: ds ->
-    let o = process_decl env d in
-    output o;
-    process_sign_loop (update_env env o) ds
+let rec execute_signature sign =
+  let open Monad.Notation (EM) in 
+  match sign with 
+  | [] -> EM.ret ()
+  | d :: sign ->
+    let* res = execute_decl d in 
+    match res with 
+    | `Continue -> 
+      execute_signature sign
+    | `Quit ->
+      EM.ret ()
 
-let process_sign : ConcreteSyntax.signature -> unit =
-  process_sign_loop Env.init
+let process_sign : CS.signature -> unit =
+  fun sign ->
+  match EM.run (execute_signature sign) Env.init with
+  | EM.Ret () -> ()
+  | EM.Throw exn -> raise exn

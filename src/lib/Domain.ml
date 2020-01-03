@@ -1,6 +1,6 @@
 module S = Syntax
 
-type env = {globals : nf SymbolMap.t; locals : t list}
+type env = {locals : t list}
 
 and ('a, 'b) clo = Clos of {term : 'a; env : env} | ConstClos of 'b
 [@@deriving show]
