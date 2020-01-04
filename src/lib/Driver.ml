@@ -27,14 +27,18 @@ let rec int_to_term =
   | 0 -> S.Zero
   | n -> S.Suc (int_to_term (n - 1))
 
-module EM = ElabMonad
+module EM = 
+struct 
+  include ElabMonad
+  include ElabBasics 
+end
 
 let elaborate_typed_term tp tm = 
   let open Monad.Notation (EM) in
   let* tp = Elaborator.check_tp tp in
-  let* vtp = Refiner.eval_tp tp in
+  let* vtp = EM.eval_tp tp in
   let* tm = Elaborator.check_tm tm vtp in
-  let+ vtm = Refiner.eval_tm tm in
+  let+ vtm = EM.eval_tm tm in
   tp, vtp, tm, vtm
 
 let execute_decl =
