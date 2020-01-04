@@ -69,7 +69,7 @@ let lookup_var id =
 let dest_pi = 
   function
   | D.Pi (base, fam) -> EM.ret (base, fam)
-  | tp -> EM.throw @@ Err.ElabError (Err.ExpectedPiType tp)
+  | tp -> EM.throw @@ Err.ElabError (Err.ExpectedConnective (`Pi, tp))
 
 let unleash_hole name tp = 
   let rec go_tp : Env.cell list -> S.tp m =
@@ -81,6 +81,7 @@ let unleash_hole name tp =
       and+ fam = EM.push_var name cell.tp @@ go_tp cells in
       S.Pi (base, fam)
   in
+
   let rec go_tm ne : Env.cell list -> D.ne =
     function 
     | [] -> ne
@@ -98,7 +99,56 @@ let unleash_hole name tp =
     in
     go_tm (D.Global sym) @@ Env.locals env 
   in
+
   EM.quote_ne ne
+
+module Refine =
+struct
+  let pi_intro name tac_body = 
+    function
+    | D.Pi (base, fam) ->
+      EM.push_var name base @@ 
+      let* var = EM.get_local 0 in
+      let* fib = inst_tp_clo fam var in
+      let+ t = tac_body fib in
+      S.Lam t
+    | tp ->
+      EM.throw @@ Err.ElabError (Err.ExpectedConnective (`Pi, tp))
+
+  let sg_intro tac_fst tac_snd = 
+    function
+    | D.Sg (base, fam) ->
+      let* tfst = tac_fst base in
+      let* vfst = eval_tm tfst in
+      let* fib = inst_tp_clo fam vfst in
+      let+ tsnd = tac_snd fib in
+      S.Pair (tfst, tsnd)
+    | tp ->
+      EM.throw @@ Err.ElabError (Err.ExpectedConnective (`Sg, tp))
+
+  let id_intro =
+    function
+    | D.Id (tp, l, r) ->
+      let+ () = equate tp l r
+      and+ t = EM.quote tp l in
+      S.Refl t
+    | tp ->
+      EM.throw @@ Err.ElabError (Err.ExpectedConnective (`Id, tp))
+
+  let literal n = 
+    function
+    | D.Nat ->
+      EM.ret @@ int_to_term n
+    | tp ->
+      EM.throw @@ Err.ElabError (Err.ExpectedConnective (`Nat, tp))
+
+  let rec tac_multilam names tac_body =
+    match names with
+    | [] -> tac_body
+    | name :: names -> 
+      pi_intro (Some name) @@ 
+      tac_multilam names tac_body
+end
 
 let rec check_tp : CS.t -> S.tp EM.m = 
   function
@@ -114,33 +164,20 @@ let rec check_tp : CS.t -> S.tp EM.m =
   | tp -> EM.throw @@ Err.ElabError (Err.InvalidTypeExpression tp)
 
 and check_tm : CS.t -> D.tp -> S.t EM.m =
-  fun cs tp ->
-  match cs, tp with
-  | CS.Hole name, _ ->
-    unleash_hole name tp
-
-  | CS.Refl _, D.Id (tp, l, r) ->
-    let+ () = equate tp l r
-    and+ t = EM.quote tp l in
-    S.Refl t
-
-  | CS.Lit n, D.Nat -> EM.ret @@ int_to_term n
-
-
-  | CS.Lam (BN {names = []; body}), _ ->
-    check_tm body tp
-
-  | CS.Lam (BN {names = name :: names; body}), D.Pi (base, fam) ->
-    EM.push_var (Some name) base @@ 
-    let* var = EM.get_local 0 in
-    let* fib = inst_tp_clo fam var in
-    let+ t = check_tm (CS.Lam (BN {names; body})) fib in
-    S.Lam t
-
-  | _ ->
-    let* tm, tp' = synth_tm cs in
-    let+ () = equate_tp tp tp' in
-    tm
+  function
+  | CS.Hole name ->
+    unleash_hole name
+  | CS.Refl _ ->
+    Refine.id_intro 
+  | CS.Lit n ->
+    Refine.literal n
+  | CS.Lam (BN bnd) ->
+    Refine.tac_multilam bnd.names @@ check_tm bnd.body
+  | cs ->
+    fun tp ->
+      let* tm, tp' = synth_tm cs in
+      let+ () = equate_tp tp tp' in
+      tm
 
 and synth_tm : CS.t -> (S.t * D.tp) EM.m = 
   function

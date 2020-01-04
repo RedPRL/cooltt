@@ -1,4 +1,5 @@
 def foo : (x : nat) -> nat =
-  fun x -> ?
+  fun x -> 
+  ?hole
 
 normalize def foo
