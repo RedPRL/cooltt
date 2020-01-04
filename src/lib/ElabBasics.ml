@@ -53,21 +53,21 @@ let quote tp el =
   let nf = D.Nf {tp; el} in
   let* st = EM.get in
   let* env = EM.read in
-  match Nbe.read_back_nf st (Env.size env) nf with
+  match Nbe.quote_nf st (Env.size env) nf with
   | t -> EM.ret t
   | exception exn -> EM.throw exn
 
 let quote_ne ne = 
   let* st = EM.get in
   let* env = EM.read in
-  match Nbe.read_back_ne st (Env.size env) ne with
+  match Nbe.quote_ne st (Env.size env) ne with
   | t -> EM.ret t
   | exception exn -> EM.throw exn
 
 let quote_tp tp = 
   let* st = EM.get in
   let* env = EM.read in
-  match Nbe.read_back_tp st (Env.size env) tp with
+  match Nbe.quote_tp st (Env.size env) tp with
   | tp -> EM.ret tp
   | exception exn -> EM.throw exn
 

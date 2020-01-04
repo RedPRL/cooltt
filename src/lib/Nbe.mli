@@ -10,9 +10,9 @@ exception Nbe_failed of string
 val eval : St.t -> D.env -> S.t -> D.t
 val eval_tp : St.t -> D.env -> S.tp -> D.tp
 
-val read_back_nf : St.t -> int -> D.nf -> S.t
-val read_back_tp : St.t -> int -> D.tp -> S.tp
-val read_back_ne : St.t -> int -> D.ne -> S.t
+val quote_nf : St.t -> int -> D.nf -> S.t
+val quote_tp : St.t -> int -> D.tp -> S.tp
+val quote_ne : St.t -> int -> D.ne -> S.t
 
 val equal_nf : St.t -> int -> D.nf -> D.nf -> bool
 val equal_ne : St.t -> int -> D.ne -> D.ne -> bool

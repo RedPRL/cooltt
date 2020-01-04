@@ -113,85 +113,85 @@ and eval st (env : D.env) t =
       (D.Clo {term = refl; env})
       (eval st env eq)
 
-let rec read_back_nf st size nf =
+let rec quote_nf st size nf =
   match nf with
   (* Functions *)
   | D.Nf {tp = D.Pi (src, dest); el = f} ->
     let arg = D.mk_var src size in
     let nf = D.Nf {tp = do_tp_clo st dest arg; el = do_ap st f arg} in
-    S.Lam (read_back_nf st (size + 1) nf)
+    S.Lam (quote_nf st (size + 1) nf)
   (* Pairs *)
   | D.Nf {tp = D.Sg (fst, snd); el = p} ->
     let fst' = do_fst st p in
     let snd = do_tp_clo st snd fst' in
     let snd' = do_snd st p in
     S.Pair
-      (read_back_nf st size (D.Nf {tp = fst; el = fst'}),
-       read_back_nf st size (D.Nf {tp = snd; el = snd'}))
+      (quote_nf st size (D.Nf {tp = fst; el = fst'}),
+       quote_nf st size (D.Nf {tp = snd; el = snd'}))
   (* Numbers *)
   | D.Nf {tp = D.Nat; el = D.Zero} -> S.Zero
   | D.Nf {tp = D.Nat; el = D.Suc nf} ->
-    S.Suc (read_back_nf st size (D.Nf {tp = D.Nat; el = nf}))
+    S.Suc (quote_nf st size (D.Nf {tp = D.Nat; el = nf}))
   | D.Nf {tp = D.Nat; el = D.Ne {ne; _}} ->
-    read_back_ne st size ne
+    quote_ne st size ne
   (* Id *)
   | D.Nf {tp = D.Id (tp, _, _); el = D.Refl el} ->
-    S.Refl (read_back_nf st size (D.Nf {tp; el}))
-  | D.Nf {tp = D.Id _; el = D.Ne {ne; _}} -> read_back_ne st size ne
-  | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
+    S.Refl (quote_nf st size (D.Nf {tp; el}))
+  | D.Nf {tp = D.Id _; el = D.Ne {ne; _}} -> quote_ne st size ne
+  | _ -> raise (Nbe_failed "Ill-typed quote_nf")
 
-and read_back_tp st size d : S.tp =
+and quote_tp st size d : S.tp =
   match d with
   | D.Nat -> S.Nat
   | D.Pi (src, dest) ->
     let var = D.mk_var src size in
-    S.Pi (read_back_tp st size src, read_back_tp st (size + 1) (do_tp_clo st dest var))
+    S.Pi (quote_tp st size src, quote_tp st (size + 1) (do_tp_clo st dest var))
   | D.Sg (fst, snd) ->
     let var = D.mk_var fst size in
-    S.Sg (read_back_tp st size fst, read_back_tp st (size + 1) (do_tp_clo st snd var))
+    S.Sg (quote_tp st size fst, quote_tp st (size + 1) (do_tp_clo st snd var))
   | D.Id (tp, left, right) ->
     S.Id
-      (read_back_tp st size tp,
-       read_back_nf st size (D.Nf {tp; el = left}),
-       read_back_nf st size (D.Nf {tp; el = right}))
+      (quote_tp st size tp,
+       quote_nf st size (D.Nf {tp; el = left}),
+       quote_nf st size (D.Nf {tp; el = right}))
 
-and read_back_ne st size ne =
+and quote_ne st size ne =
   match ne with
   | D.Var x -> S.Var (size - (x + 1))
   | D.Global sym -> S.Global sym
-  | D.Ap (ne, arg) -> S.Ap (read_back_ne st size ne, read_back_nf st size arg)
+  | D.Ap (ne, arg) -> S.Ap (quote_ne st size ne, quote_nf st size arg)
   | D.NRec (tp, zero, suc, n) ->
     let tp_var = D.mk_var D.Nat size in
     let applied_tp = do_tp_clo st tp tp_var in
     let zero_tp = do_tp_clo st tp D.Zero in
     let applied_suc_tp = do_tp_clo st tp (D.Suc tp_var) in
-    let tp' = read_back_tp st (size + 1) applied_tp in
+    let tp' = quote_tp st (size + 1) applied_tp in
     let suc_var = D.mk_var applied_tp (size + 1) in
     let applied_suc = do_tm_clo2 st suc tp_var suc_var in
     let suc' =
-      read_back_nf st (size + 2)
+      quote_nf st (size + 2)
         (D.Nf {tp = applied_suc_tp; el = applied_suc})
     in
     S.NRec
       (tp',
-       read_back_nf st size (D.Nf {tp = zero_tp; el = zero}),
+       quote_nf st size (D.Nf {tp = zero_tp; el = zero}),
        suc',
-       read_back_ne st size n)
-  | D.Fst ne -> S.Fst (read_back_ne st size ne)
-  | D.Snd ne -> S.Snd (read_back_ne st size ne)
+       quote_ne st size n)
+  | D.Fst ne -> S.Fst (quote_ne st size ne)
+  | D.Snd ne -> S.Snd (quote_ne st size ne)
   | D.J (mot, refl, tp, left, right, eq) ->
     let mot_var1 = D.mk_var tp size in
     let mot_var2 = D.mk_var tp (size + 1) in
     let mot_var3 = D.mk_var (D.Id (tp, left, right)) (size + 2) in
-    let mot_syn = read_back_tp st (size + 3) (do_tp_clo3 st mot mot_var1 mot_var2 mot_var3) in
+    let mot_syn = quote_tp st (size + 3) (do_tp_clo3 st mot mot_var1 mot_var2 mot_var3) in
     let refl_var = D.mk_var tp size in
     let refl_syn = 
-      read_back_nf st (size + 1) @@
+      quote_nf st (size + 1) @@
       D.Nf 
         {el = do_tm_clo st refl refl_var; 
          tp = do_tp_clo3 st mot refl_var refl_var (D.Refl refl_var)}
     in
-    let eq_syn = read_back_ne st size eq in
+    let eq_syn = quote_ne st size eq in
     S.J (mot_syn, refl_syn, eq_syn)
 
 let rec equal_nf st size nf1 nf2 =
