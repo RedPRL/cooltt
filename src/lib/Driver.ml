@@ -32,9 +32,9 @@ module EM = ElabMonad
 let elaborate_typed_term tp tm = 
   let open Monad.Notation (EM) in
   let* tp = Elaborator.check_tp tp in
-  let* vtp = Elaborator.eval_tp tp in
+  let* vtp = Refiner.eval_tp tp in
   let* tm = Elaborator.check_tm tm vtp in
-  let+ vtm = Elaborator.eval_tm tm in
+  let+ vtm = Refiner.eval_tm tm in
   tp, vtp, tm, vtm
 
 let execute_decl =
