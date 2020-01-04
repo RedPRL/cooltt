@@ -10,7 +10,7 @@ and 'a clo3 = Clo3 of {term : 'a; env : env}
 
 and t =
   | Lam of (S.t, t) clo
-  | Ne of {tp : tp; term : ne}
+  | Ne of {tp : tp; ne : ne}
   | Zero
   | Suc of t
   | Pair of t * t

@@ -11,7 +11,7 @@ open Monad.Notation (EM)
 let push_var id tp : 'a m -> 'a m = 
   EM.local @@ fun env ->
   let var = D.Var (Env.size env) in
-  let term = D.Ne {term = var; tp} in
+  let term = D.Ne {ne = var; tp} in
   Env.push_term id term tp env
 
 let resolve id = 
