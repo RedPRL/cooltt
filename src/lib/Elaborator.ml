@@ -181,7 +181,7 @@ let rec check_tp : CS.t -> S.tp EM.m =
 and check_tm : CS.t -> D.tp -> S.t EM.m =
   function
   | CS.Hole name ->
-    unleash_hole name
+    Refine.unleash_hole name
   | CS.Refl _ ->
     Refine.id_intro 
   | CS.Lit n ->
