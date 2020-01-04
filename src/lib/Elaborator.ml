@@ -71,39 +71,54 @@ let dest_pi =
   | D.Pi (base, fam) -> EM.ret (base, fam)
   | tp -> EM.throw @@ Err.ElabError (Err.ExpectedConnective (`Pi, tp))
 
-let unleash_hole name tp = 
-  let rec go_tp : Env.cell list -> S.tp m =
-    function
-    | [] ->
-      EM.quote_tp tp
-    | (D.Nf cell, name) :: cells -> 
-      let+ base = EM.quote_tp cell.tp
-      and+ fam = EM.push_var name cell.tp @@ go_tp cells in
-      S.Pi (base, fam)
-  in
 
-  let rec go_tm ne : Env.cell list -> D.ne =
-    function 
-    | [] -> ne
-    | (nf, _) :: cells ->
-      D.Ap (go_tm ne cells, nf)
-  in
+module Refine : sig 
+  type chk_tac = D.tp -> S.t EM.m
 
-  let* ne = 
-    let* env = EM.read in
-    EM.globally @@ 
-    let+ sym = 
-      let* tp = go_tp @@ Env.locals env in
-      let* vtp = eval_tp tp in
-      EM.add_global name vtp None 
-    in
-    go_tm (D.Global sym) @@ Env.locals env 
-  in
+  val unleash_hole : CS.ident option -> chk_tac
 
-  EM.quote_ne ne
+  val pi_intro : CS.ident option -> chk_tac -> chk_tac
+  val sg_intro : chk_tac -> chk_tac -> chk_tac
+  val id_intro : chk_tac
+  val literal : int -> chk_tac
 
-module Refine =
+  val tac_multilam : CS.ident list -> chk_tac -> chk_tac
+end =
 struct
+  type chk_tac = D.tp -> S.t EM.m
+
+  let unleash_hole name tp = 
+    let rec go_tp : Env.cell list -> S.tp m =
+      function
+      | [] ->
+        EM.quote_tp tp
+      | (D.Nf cell, name) :: cells -> 
+        let+ base = EM.quote_tp cell.tp
+        and+ fam = EM.push_var name cell.tp @@ go_tp cells in
+        S.Pi (base, fam)
+    in
+
+    let rec go_tm ne : Env.cell list -> D.ne =
+      function 
+      | [] -> ne
+      | (nf, _) :: cells ->
+        D.Ap (go_tm ne cells, nf)
+    in
+
+    let* ne = 
+      let* env = EM.read in
+      EM.globally @@ 
+      let+ sym = 
+        let* tp = go_tp @@ Env.locals env in
+        let* vtp = eval_tp tp in
+        EM.add_global name vtp None 
+      in
+      go_tm (D.Global sym) @@ Env.locals env 
+    in
+
+    EM.quote_ne ne
+
+
   let pi_intro name tac_body = 
     function
     | D.Pi (base, fam) ->
