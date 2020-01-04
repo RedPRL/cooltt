@@ -10,24 +10,24 @@ let rec do_rec st (tp : (S.tp, D.tp) D.clo) zero suc n =
   match n with
   | D.Zero -> zero
   | D.Suc n -> do_tm_clo2 st suc n (do_rec st tp zero suc n)
-  | D.Neutral {term = e; _} ->
+  | D.Ne {term = e; _} ->
     let final_tp = do_tp_clo st tp n in
-    D.Neutral {tp = final_tp; term = D.NRec (tp, zero, suc, e)}
+    D.Ne {tp = final_tp; term = D.NRec (tp, zero, suc, e)}
   | _ -> raise (Nbe_failed "Not a number")
 
 and do_fst _st p =
   match p with
   | D.Pair (p1, _) -> p1
-  | D.Neutral {tp = D.Sg (t, _); term = ne} ->
-    D.Neutral {tp = t; term = D.Fst ne}
+  | D.Ne {tp = D.Sg (t, _); term = ne} ->
+    D.Ne {tp = t; term = D.Fst ne}
   | _ -> raise (Nbe_failed "Couldn't fst argument in do_fst")
 
 and do_snd st p =
   match p with
   | D.Pair (_, p2) -> p2
-  | D.Neutral {tp = D.Sg (_, clo); term = ne} ->
+  | D.Ne {tp = D.Sg (_, clo); term = ne} ->
     let fst = do_fst st p in
-    D.Neutral {tp = do_tp_clo st clo fst; term = D.Snd ne}
+    D.Ne {tp = do_tp_clo st clo fst; term = D.Snd ne}
   | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
 
 and do_tp_clo st clo a =
@@ -53,11 +53,11 @@ and do_tp_clo3 st (D.Clo3 {term; env}) a1 a2 a3 =
 and do_j st mot refl eq =
   match eq with
   | D.Refl t -> do_tm_clo st refl t
-  | D.Neutral {tp; term} -> 
+  | D.Ne {tp; term} -> 
     begin
       match tp with
       | D.Id (tp, left, right) ->
-        D.Neutral
+        D.Ne
           {tp = do_tp_clo3 st mot left right eq; 
            term = D.J (mot, refl, tp, left, right, term)}
       | _ -> raise (Nbe_failed "Not an Id in do_j")
@@ -67,12 +67,12 @@ and do_j st mot refl eq =
 and do_ap st f a =
   match f with
   | D.Lam clo -> do_tm_clo st clo a
-  | D.Neutral {tp; term = e} ->
+  | D.Ne {tp; term = e} ->
     begin
       match tp with
       | D.Pi (src, dst) ->
         let dst = do_tp_clo st dst a in
-        D.Neutral {tp = dst; term = D.Ap (e, D.Nf {tp = src; term = a})}
+        D.Ne {tp = dst; term = D.Ap (e, D.Nf {tp = src; term = a})}
       | _ -> raise (Nbe_failed "Not a Pi in do_ap")
     end
   | _ -> raise (Nbe_failed "Not a function in do_ap")
@@ -132,14 +132,14 @@ let rec read_back_nf st size nf =
   | D.Nf {tp = D.Nat; term = D.Zero} -> S.Zero
   | D.Nf {tp = D.Nat; term = D.Suc nf} ->
     S.Suc (read_back_nf st size (D.Nf {tp = D.Nat; term = nf}))
-  | D.Nf {tp = D.Nat; term = D.Neutral {term = ne; _}} ->
+  | D.Nf {tp = D.Nat; term = D.Ne {term = ne; _}} ->
     read_back_ne st size ne
   (* Id *)
   | D.Nf {tp = D.Id (tp, _, _); term = D.Refl term} ->
     S.Refl (read_back_nf st size (D.Nf {tp; term}))
-  | D.Nf {tp = D.Id _; term = D.Neutral {term; _}} -> read_back_ne st size term
+  | D.Nf {tp = D.Id _; term = D.Ne {term; _}} -> read_back_ne st size term
   (* Types *)
-  (* | D.Nf {tp = D.Neutral _; term = D.Neutral {term = ne; _}} ->
+  (* | D.Nf {tp = D.Ne _; term = D.Ne {term = ne; _}} ->
      read_back_Ne st size ne *)
   | _ -> raise (Nbe_failed "Ill-typed read_back_nf")
 
@@ -223,15 +223,15 @@ let rec equal_nf st size nf1 nf2 =
     equal_nf st size
       (D.Nf {tp = D.Nat; term = nf1})
       (D.Nf {tp = D.Nat; term = nf2})
-  | ( D.Nf {tp = D.Nat; term = D.Neutral {term = ne1; _}},
-      D.Nf {tp = D.Nat; term = D.Neutral {term = ne2; _}} ) ->
+  | ( D.Nf {tp = D.Nat; term = D.Ne {term = ne1; _}},
+      D.Nf {tp = D.Nat; term = D.Ne {term = ne2; _}} ) ->
     equal_ne st size ne1 ne2
   (* Id *)
   | ( D.Nf {tp = D.Id (tp, _, _); term = D.Refl term1},
       D.Nf {tp = D.Id (_, _, _); term = D.Refl term2} ) ->
     equal_nf st size (D.Nf {tp; term = term1}) (D.Nf {tp; term = term2})
-  | ( D.Nf {tp = D.Id _; term = D.Neutral {term = term1; _}},
-      D.Nf {tp = D.Id _; term = D.Neutral {term = term2; _}} ) ->
+  | ( D.Nf {tp = D.Id _; term = D.Ne {term = term1; _}},
+      D.Nf {tp = D.Id _; term = D.Ne {term = term2; _}} ) ->
     equal_ne st size term1 term2
   | _ -> false
 

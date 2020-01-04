@@ -11,7 +11,7 @@ and 'a clo3 = Clo3 of {term : 'a; env : env} [@@deriving show]
 
 and t =
   | Lam of (S.t, t) clo
-  | Neutral of {tp : tp; term : ne}
+  | Ne of {tp : tp; term : ne}
   | Zero
   | Suc of t
   | Pair of t * t
@@ -37,4 +37,4 @@ and ne =
 
 and nf = Nf of {tp : tp; term : t} [@@deriving show]
 
-let mk_var tp lev = Neutral {tp; term = Var lev}
+let mk_var tp lev = Ne {tp; term = Var lev}
