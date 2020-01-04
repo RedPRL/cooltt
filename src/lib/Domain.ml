@@ -5,9 +5,11 @@ type env = {locals : t list}
 and ('a, 'b) clo = Clo of {term : 'a; env : env} | ConstClo of 'b
 [@@deriving show]
 
-and 'a clo2 = Clo2 of {term : 'a; env : env} [@@deriving show]
+and 'a clo2 = Clo2 of {term : 'a; env : env} 
+[@@deriving show]
 
-and 'a clo3 = Clo3 of {term : 'a; env : env} [@@deriving show]
+and 'a clo3 = Clo3 of {term : 'a; env : env} 
+[@@deriving show]
 
 and t =
   | Lam of (S.t, t) clo
