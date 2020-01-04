@@ -22,7 +22,7 @@ let get_local_tp ix env =
 
 let get_local ix env = 
   match List.nth env.locals ix with 
-  | D.Nf {term; _}, _ -> term
+  | D.Nf {el; _}, _ -> el
 
 let resolve_local key env =
   let exception E in
@@ -36,12 +36,12 @@ let resolve_local key env =
   | exception E -> None
 
 
-let push_term name term tp env =
+let push_term name el tp env =
   {env with 
-   locals = (D.Nf {tp; term}, name) :: env.locals}
+   locals = (D.Nf {tp; el}, name) :: env.locals}
 
 
 let to_sem_env env : D.env =
   {locals = 
-     List.map (function D.Nf {term; _}, _-> term)
+     List.map (function D.Nf {el; _}, _-> el)
        env.locals}

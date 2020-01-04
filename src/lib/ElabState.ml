@@ -24,7 +24,7 @@ let add_global ident tp oel st =
        | None -> st.resolver
      end;
    globals = 
-     SymbolMap.add sym (D.Nf {term = el; tp}) st.globals}
+     SymbolMap.add sym (D.Nf {el; tp}) st.globals}
 
 let resolve_global ident st =
   StringMap.find_opt ident st.resolver

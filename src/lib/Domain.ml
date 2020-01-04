@@ -35,6 +35,6 @@ and ne =
   | J of S.tp clo3 * (S.t, t) clo * tp * t * t * ne
 [@@deriving show]
 
-and nf = Nf of {tp : tp; term : t} [@@deriving show]
+and nf = Nf of {tp : tp; el : t} [@@deriving show]
 
 let mk_var tp lev = Ne {tp; ne = Var lev}

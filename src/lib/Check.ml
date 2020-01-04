@@ -7,10 +7,10 @@ module Env = ElabEnv
 
 
 type error =
-  | Cannot_synth_term of S.t
-  | Type_mismatch of D.tp * D.tp
-  | Term_mismatch of D.t * D.t
-  | Expecting_universe of D.t
+  | CannotSynthTerm of S.t
+  | TypeMismatch of D.tp * D.tp
+  | ElementMismatch of D.t * D.t
+  | ExpectingUniverse of D.t
   | Misc of string
 
 exception TypeError of error
@@ -21,31 +21,31 @@ type env = ElabEnv.t
 type state = ElabState.t
 
 let pp_error fmt = function
-  | Cannot_synth_term t ->
+  | CannotSynthTerm t ->
     Format.fprintf fmt "@[<v> Cannot synthesize the type of: @[<hov 2>  ";
     S.pp fmt t;
     Format.fprintf fmt "@]@]@,"
-  | Term_mismatch (t1, t2) ->
+  | ElementMismatch (t1, t2) ->
     Format.fprintf fmt "@[<v>Cannot equate@,@[<hov 2>  ";
     D.pp fmt t1;
     Format.fprintf fmt "@]@ with@,@[<hov 2>  ";
     D.pp fmt t2;
     Format.fprintf fmt "@]@]@,"
-  | Type_mismatch (t1, t2) ->
+  | TypeMismatch (t1, t2) ->
     Format.fprintf fmt "@[<v>Cannot equate@,@[<hov 2>  ";
     D.pp_tp fmt t1;
     Format.fprintf fmt "@]@ with@,@[<hov 2>  ";
     D.pp_tp fmt t2;
     Format.fprintf fmt "@]@]@,"
-  | Expecting_universe d ->
+  | ExpectingUniverse d ->
     Format.fprintf fmt "@[<v>Expected some universe but found@ @[<hov 2>";
     D.pp fmt d;
     Format.fprintf fmt "@]@]@,"
   | Misc s -> Format.pp_print_string fmt s
 
-let assert_equal st size t1 t2 tp =
-  if Nbe.equal_nf st size (D.Nf {tp; term = t1}) (D.Nf {tp; term = t2}) then ()
-  else tp_error (Term_mismatch (t1, t2))
+let assert_equal st size el1 el2 tp =
+  if Nbe.equal_nf st size (D.Nf {tp; el = el1}) (D.Nf {tp; el = el2}) then ()
+  else tp_error (ElementMismatch (el1, el2))
 
 let rec check ~st ~env ~term ~tp =
   match term with
@@ -86,7 +86,7 @@ let rec check ~st ~env ~term ~tp =
   | _ ->
     let tp' = synth ~st ~env ~term in
     if Nbe.equal_tp st (Env.size env) tp' tp then ()
-    else tp_error (Type_mismatch (tp', tp))
+    else tp_error (TypeMismatch (tp', tp))
 
 and synth ~st ~env ~term =
   match term with
@@ -168,7 +168,7 @@ and synth ~st ~env ~term =
         Nbe.eval_tp st {locals = Nbe.eval st sem_env eq :: right :: left :: sem_env.locals} mot
       | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t)
     end
-  | _ -> tp_error (Cannot_synth_term term)
+  | _ -> tp_error (CannotSynthTerm term)
 
 and check_tp ~st ~env ~tp =
   match tp with

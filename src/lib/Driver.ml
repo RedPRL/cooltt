@@ -54,7 +54,7 @@ let execute_decl =
       match res with
       | `Global sym ->
         let* D.Nf nf = EM.get_global sym in
-        let* tm = EM.quote nf.tp nf.term in
+        let* tm = EM.quote nf.tp nf.el in
         let* () = EM.emit pp_message @@ NormalizedDef (name, tm) in
         EM.ret `Continue
       | _ -> 

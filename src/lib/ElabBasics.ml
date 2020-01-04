@@ -50,7 +50,7 @@ let get_local ix =
   | exception exn -> EM.throw exn
 
 let quote tp el = 
-  let nf = D.Nf {tp; term = el} in
+  let nf = D.Nf {tp; el} in
   let* st = EM.get in
   let* env = EM.read in
   match Nbe.read_back_nf st (Env.size env) nf with
@@ -102,8 +102,8 @@ let equate tp l r =
   let* env = EM.read in
   match
     Nbe.equal_nf st (Env.size env)
-      (D.Nf {tp; term = l})
-      (D.Nf {tp; term = r})
+      (D.Nf {tp; el = l})
+      (D.Nf {tp; el = r})
   with
   | true -> EM.ret ()
   | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqual (tp, l, r))

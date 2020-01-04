@@ -31,7 +31,7 @@ and ne =
   | NRec of (S.tp, tp) clo * t * S.t clo2 * ne
   | J of S.tp clo3 * (S.t, t) clo * tp * t * t * ne
 
-and nf = Nf of {tp : tp; term : t}
+and nf = Nf of {tp : tp; el : t}
 
 val mk_var : tp -> int -> t
 
