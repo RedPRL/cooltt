@@ -53,7 +53,7 @@ let rec check ~st ~env ~term ~tp =
   | S.Let (def, body) ->
     let def_tp = synth ~st ~env ~term:def in
     let def_val = Nbe.eval st (Env.sem_env env) def in
-    check ~st ~env:(Env.push_term None def_val def_tp env) ~term:body ~tp
+    check ~st ~env:(Env.append_term None def_val def_tp env) ~term:body ~tp
   | S.Refl term ->
     begin
       match tp with
@@ -71,7 +71,7 @@ let rec check ~st ~env ~term ~tp =
         let var = D.mk_var arg_tp (Env.size env) in
         let dest_tp = Nbe.inst_tp_clo st clo [var] in
         check ~st
-          ~env:(Env.push_term None var arg_tp env)
+          ~env:(Env.append_term None var arg_tp env)
           ~term:body ~tp:dest_tp
       | t -> tp_error @@ Misc ("Expecting Pi but found\n" ^ D.show_tp t)
     end
@@ -129,7 +129,7 @@ and synth ~st ~env ~term =
   | S.NRec (mot, zero, suc, n) ->
     check ~st ~env ~term:n ~tp:Nat;
     let var = D.mk_var Nat (Env.size env) in
-    check_tp ~st ~env:(Env.push_term None var Nat env) ~tp:mot;
+    check_tp ~st ~env:(Env.append_term None var Nat env) ~tp:mot;
     let sem_env = Env.sem_env env in
     let zero_tp = Nbe.eval_tp st {locals = sem_env.locals <>< [Zero]} mot in
     let ih_tp = Nbe.eval_tp st {locals = sem_env.locals <>< [var]} mot in
@@ -138,8 +138,8 @@ and synth ~st ~env ~term =
     check ~st ~env ~term:zero ~tp:zero_tp;
     check ~st
       ~env:
-        (Env.push_term None var Nat env
-         |> Env.push_term None ih_var ih_tp)
+        (Env.append_term None var Nat env
+         |> Env.append_term None ih_var ih_tp)
       ~term:suc ~tp:suc_tp;
     Nbe.eval_tp st {locals = sem_env.locals <>< [Nbe.eval st sem_env n]} mot
   | S.J (mot, refl, eq) -> 
@@ -154,9 +154,9 @@ and synth ~st ~env ~term =
           D.mk_var (D.Id (tp', mot_var1, mot_var2)) (Env.size env + 1)
         in
         let mot_env =
-          Env.push_term None mot_var1 tp' env
-          |> Env.push_term None mot_var2 tp'
-          |> Env.push_term None mot_var3 (D.Id (tp', mot_var1, mot_var2))
+          Env.append_term None mot_var1 tp' env
+          |> Env.append_term None mot_var2 tp'
+          |> Env.append_term None mot_var3 (D.Id (tp', mot_var1, mot_var2))
         in
         check_tp ~st ~env:mot_env ~tp:mot;
         let refl_var = D.mk_var tp' (Env.size env) in
@@ -164,7 +164,7 @@ and synth ~st ~env ~term =
           Nbe.eval_tp st {locals = sem_env.locals <>< [refl_var; refl_var; D.Refl refl_var]} mot
         in
         check ~st
-          ~env:(Env.push_term None refl_var tp' env)
+          ~env:(Env.append_term None refl_var tp' env)
           ~term:refl ~tp:refl_tp;
         Nbe.eval_tp st {locals = sem_env.locals <>< [left; right; Nbe.eval st sem_env eq]} mot
       | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t)
@@ -179,7 +179,7 @@ and check_tp ~st ~env ~tp =
     check_tp ~st ~env ~tp:l;
     let l_sem = Nbe.eval_tp st (Env.sem_env env) l in
     let var = D.mk_var l_sem (Env.size env) in
-    check_tp ~st ~env:(Env.push_term None var l_sem env) ~tp:r
+    check_tp ~st ~env:(Env.append_term None var l_sem env) ~tp:r
   | Id (tp, l, r) ->
     check_tp ~st ~env ~tp;
     let tp = Nbe.eval_tp st (Env.sem_env env) tp in

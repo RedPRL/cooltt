@@ -8,7 +8,7 @@ type cell = D.nf * string option
 val locals : t -> cell bwd
 
 val init : t
-val push_term : string option -> D.t -> D.tp -> t -> t
+val append_term : string option -> D.t -> D.tp -> t -> t
 val sem_env : t -> D.env
 
 val size : t -> int

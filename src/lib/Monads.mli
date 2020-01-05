@@ -41,7 +41,7 @@ module QuM : sig
   val read_global : ElabState.t m
   val read_local : int m
 
-  val append : int -> 'a m -> 'a m
+  val binder : int -> 'a m -> 'a m
 end
 
 module ElabM : sig

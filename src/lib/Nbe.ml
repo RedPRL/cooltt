@@ -210,7 +210,7 @@ struct
   let rec quote tp el : S.t m =
     match tp, el with 
     | D.Pi (base, fam), f ->
-      append 1 @@ 
+      binder 1 @@ 
       let* arg = top_var base in
       let* fib = lift_cmp @@ Compute.inst_tp_clo fam [arg] in
       let* ap = lift_cmp @@ Compute.do_ap f arg in
@@ -242,7 +242,7 @@ struct
     | D.Pi (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
-        append 1 @@ 
+        binder 1 @@ 
         let* var = top_var base in
         let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
@@ -251,7 +251,7 @@ struct
     | D.Sg (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
-        append 1 @@ 
+        binder 1 @@ 
         let* var = top_var base in
         let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
@@ -272,7 +272,7 @@ struct
       ret @@ S.Global sym
     | D.NRec (mot, zero_case, suc_case, n) ->
       let* x, mot_x, tmot = 
-        append 1 @@ 
+        binder 1 @@ 
         let* x = top_var D.Nat in
         let* mot_x = lift_cmp @@ Compute.inst_tp_clo mot [x] in 
         let+ tmot = quote_tp mot_x in 
@@ -282,7 +282,7 @@ struct
         let* mot_zero = lift_cmp @@ Compute.inst_tp_clo mot [D.Zero] in
         quote mot_zero zero_case
       and+ tsuc_case =
-        append 2 @@
+        binder 2 @@
         let* ih = top_var mot_x in 
         let* mot_suc_x = lift_cmp @@ Compute.inst_tp_clo mot [D.Suc x] in 
         let* suc_case_x = lift_cmp @@ Compute.inst_tm_clo suc_case [x; ih] in
@@ -297,18 +297,18 @@ struct
       S.Snd tne
     | D.J (mot, refl_case, tp, left, right, eq) ->
       let* x, tmot =
-        append 1 @@ 
+        binder 1 @@ 
         let* x = top_var tp in 
-        append 1 @@ 
+        binder 1 @@ 
         let* y = top_var tp in 
-        append 1 @@ 
+        binder 1 @@ 
         let* z = top_var @@ D.Id (tp, left, right) in 
         let* mot_xyz = lift_cmp @@ Compute.inst_tp_clo mot [x; y; z] in 
         let+ tmot = quote_tp mot_xyz in 
         x, tmot
       in 
       let* trefl_case =
-        append 1 @@ 
+        binder 1 @@ 
         let* mot_refl_x = lift_cmp @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
         let* refl_case_x = lift_cmp @@ Compute.inst_tm_clo refl_case [x] in
         quote mot_refl_x refl_case_x

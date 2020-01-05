@@ -39,7 +39,7 @@ let resolve_local key env =
   | exception E -> None
 
 
-let push_term name el tp env =
+let append_term name el tp env =
   {env with 
    locals = env.locals <>< [D.Nf {tp; el}, name]}
 
