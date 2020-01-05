@@ -6,9 +6,10 @@ module Err = ElabError
 module EM = ElabBasics
 module Nbe = Nbe.Monadic
 
+open Monads
 open Monad.Notation (EM)
 
-type tp_tac = D.tp EM.m
+type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
@@ -106,6 +107,28 @@ let lookup_var id : syn_tac =
   | `Unbound -> 
     EM.elab_err @@ Err.UnboundVariable id
 
+let abstract nm tp k =
+  EM.push_var (Some nm) tp @@ 
+  let* x = EM.get_local 0 in 
+  k x
+
+let id_elim nm_x0 nm_x1 nm_p nm_x (tac_mot : tp_tac) (tac_refl_case : chk_tac) (tac_scrut : syn_tac) : syn_tac = 
+  let* tscrut, idtp = tac_scrut in
+  let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
+  let* tp, l, r = EM.dest_id idtp in
+  let* tmot =
+    abstract nm_x0 tp @@ fun x0 ->
+    abstract nm_x1 tp @@ fun x1 -> 
+    abstract nm_p (Id (tp, x0, x1)) @@ fun _ ->
+    tac_mot
+  in
+  let* t_refl_case =
+    abstract nm_x tp @@ fun x ->
+    let* fib_refl_x = EM.lift_ev @@ EvM.push [D.Refl x; x] @@ Nbe.eval_tp tmot in
+    tac_refl_case fib_refl_x
+  in
+  let+ fib = EM.lift_ev @@ EvM.push [vscrut; r; l] @@ Nbe.eval_tp tmot in (* either this is backwards, or the code for nat is backwards lol *)
+  S.J (tmot, t_refl_case, tscrut), fib
 
 let apply tac_fun tac_arg : syn_tac = 
   let* tfun, tp = tac_fun in

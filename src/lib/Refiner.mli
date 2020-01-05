@@ -3,7 +3,7 @@ module S := Syntax
 module EM := Monads.ElabM
 module CS := ConcreteSyntax
 
-type tp_tac = D.tp EM.m
+type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
