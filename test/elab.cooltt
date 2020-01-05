@@ -9,3 +9,16 @@ def sym : (x : nat) (y : nat) (p : Id nat x y) -> Id nat y x = {
   | refl u => refl
   ]
 }
+
+def trans : { 
+  (x : nat) (y : nat) (z : nat) 
+  (p : Id nat x y) (q : Id nat y z) 
+  -> Id nat x z
+} = {
+  \x y z p =>
+  match p at u v _ => (q : Id nat v z) -> Id nat u z with [
+  | refl _ => \q => q
+  ]
+}
+
+normalize trans

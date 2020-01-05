@@ -41,7 +41,8 @@ let unleash_hole name : chk_tac =
     let* env = EM.read in
     EM.globally @@ 
     let+ sym = 
-      let* tp = go_tp @@ Env.locals env in
+      (* List.rev, no!!! *)
+      let* tp = go_tp @@ List.rev @@ Env.locals env in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
       EM.add_global name vtp None 
     in
