@@ -68,7 +68,7 @@ let rec check ~st ~env ~term ~tp =
       match tp with
       | D.Pi (arg_tp, clo) ->
         let var = D.mk_var arg_tp (Env.size env) in
-        let dest_tp = Nbe.do_tp_clo st clo var in
+        let dest_tp = Nbe.inst_tp_clo st clo [var] in
         check ~st
           ~env:(Env.push_term None var arg_tp env)
           ~term:body ~tp:dest_tp
@@ -80,7 +80,7 @@ let rec check ~st ~env ~term ~tp =
       | D.Sg (left_tp, right_tp) ->
         check ~st ~env ~term:left ~tp:left_tp;
         let left_sem = Nbe.eval st (Env.to_sem_env env) left in
-        check ~st ~env ~term:right ~tp:(Nbe.do_tp_clo st right_tp left_sem)
+        check ~st ~env ~term:right ~tp:(Nbe.inst_tp_clo st right_tp [left_sem])
       | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t)
     end
   | _ ->
@@ -113,7 +113,7 @@ and synth ~st ~env ~term =
       match synth ~st ~env ~term:p with
       | Sg (_, right_tp) ->
         let proj = Nbe.eval st (Env.to_sem_env env) @@ Fst p in
-        Nbe.do_tp_clo st right_tp proj
+        Nbe.inst_tp_clo st right_tp [proj]
       | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t) 
     end
   | S.Ap (f, a) -> 
@@ -122,7 +122,7 @@ and synth ~st ~env ~term =
       | Pi (src, dest) ->
         check ~st ~env ~term:a ~tp:src;
         let a_sem = Nbe.eval st (Env.to_sem_env env) a in
-        Nbe.do_tp_clo st dest a_sem
+        Nbe.inst_tp_clo st dest [a_sem]
       | t -> tp_error @@ Misc ("Expecting Pi but found\n" ^ D.show_tp t) 
     end
   | S.NRec (mot, zero, suc, n) ->

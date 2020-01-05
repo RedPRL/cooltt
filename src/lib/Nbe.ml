@@ -5,35 +5,34 @@ module S = Syntax
 module D = Domain
 
 open NbeMonads
+open TLNat
 
 exception NbeFailed of string
 
 module rec Compute : 
 sig 
-  val do_tp_clo : (S.tp, D.tp) D.clo -> D.t -> D.tp CmpM.m
-  val do_tp_clo3 : S.tp D.clo3 -> D.t -> D.t -> D.t -> D.tp CmpM.m
-  val do_tm_clo : (S.t, D.t) D.clo -> D.t -> D.t CmpM.m
-  val do_tm_clo2 : S.t D.clo2 -> D.t -> D.t -> D.t CmpM.m
-  val do_rec : (S.tp, D.tp) D.clo -> D.t -> S.t D.clo2 -> D.t -> D.t CmpM.m
+  val inst_tp_clo : 'n D.tp_clo -> ('n, D.t) Vec.vec -> D.tp CmpM.m
+  val inst_tm_clo : 'n D.tm_clo -> ('n, D.t) Vec.vec -> D.t CmpM.m
+  val do_rec : ze su D.tp_clo -> D.t -> ze su su D.tm_clo -> D.t -> D.t CmpM.m
   val do_fst : D.t -> D.t CmpM.m
   val do_snd : D.t -> D.t CmpM.m
   val do_ap : D.t -> D.t -> D.t CmpM.m
-  val do_j : S.tp D.clo3 -> (S.t, D.t) D.clo -> D.t -> D.t CmpM.m
+  val do_j : ze su su su D.tp_clo -> ze su D.tm_clo -> D.t -> D.t CmpM.m
 end =
 struct
   open CmpM
   open Monad.Notation (CmpM)
 
-  let rec do_rec (tp : (S.tp, D.tp) D.clo) zero suc n : D.t CmpM.m =
+  let rec do_rec (mot : ze su D.tp_clo) zero suc n : D.t CmpM.m =
     match n with
     | D.Zero -> 
       ret zero
     | D.Suc n -> 
-      let* v = do_rec tp zero suc n in 
-      do_tm_clo2 suc n v
+      let* v = do_rec mot zero suc n in 
+      inst_tm_clo suc [n; v]
     | D.Ne {ne = e; _} ->
-      let+ final_tp = do_tp_clo tp n in
-      D.Ne {tp = final_tp; ne = D.NRec (tp, zero, suc, e)}
+      let+ final_tp = inst_tp_clo mot [n] in
+      D.Ne {tp = final_tp; ne = D.NRec (mot, zero, suc, e)}
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
@@ -50,46 +49,36 @@ struct
     | D.Pair (_, p2) -> ret p2
     | D.Ne {tp = D.Sg (_, clo); ne = ne} ->
       let* fst = do_fst p in
-      let+ fib = do_tp_clo clo fst in
+      let+ fib = inst_tp_clo clo Vec.[fst] in 
       D.Ne {tp = fib; ne = D.Snd ne}
     | _ -> throw @@ NbeFailed "Couldn't snd argument in do_snd"
 
-  and do_tp_clo clo a : D.tp CmpM.m =
+  and inst_tp_clo : type n. n D.tp_clo -> (n, D.t) Vec.vec -> D.tp CmpM.m =
+    fun clo xs ->
     match clo with
     | Clo {term; env} -> 
-      evaluate {D.locals = a :: env.locals} @@ 
+      evaluate {D.locals = Vec.to_list xs @ env.locals} @@ 
       Eval.eval_tp term
     | ConstClo t -> 
       CmpM.ret t
 
-  and do_tm_clo clo a =
+  and inst_tm_clo : type n. n D.tm_clo -> (n, D.t) Vec.vec -> D.t CmpM.m =
+    fun clo xs ->
     match clo with
     | D.Clo {term; env} -> 
-      evaluate {D.locals = a :: env.locals} @@ 
+      evaluate {D.locals = Vec.to_list xs @ env.locals} @@ 
       Eval.eval term
     | D.ConstClo t -> 
       CmpM.ret t
 
-  and do_tm_clo2 (D.Clo2 {term; env}) a1 a2 = 
-    evaluate {locals = a2 :: a1 :: env.locals} @@ 
-    Eval.eval term
-
-  and do_tp_clo2 (D.Clo2 {term; env}) a1 a2 = 
-    evaluate {locals = a2 :: a1 :: env.locals} @@ 
-    Eval.eval_tp term
-
-  and do_tp_clo3 (D.Clo3 {term; env}) a1 a2 a3 =
-    evaluate {locals = a3 :: a2 :: a1 :: env.locals} @@ 
-    Eval.eval_tp term
-
   and do_j mot refl eq =
     match eq with
-    | D.Refl t -> do_tm_clo refl t
+    | D.Refl t -> inst_tm_clo refl [t]
     | D.Ne {tp; ne} -> 
       begin
         match tp with
         | D.Id (tp, left, right) ->
-          let+ fib = do_tp_clo3 mot left right eq in
+          let+ fib = inst_tp_clo mot [left; right; eq] in
           D.Ne {tp = fib; ne = D.J (mot, refl, tp, left, right, ne)}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not an Id in do_j"
@@ -100,12 +89,12 @@ struct
   and do_ap f a =
     match f with
     | D.Lam clo -> 
-      do_tm_clo clo a
+      inst_tm_clo clo [a]
     | D.Ne {tp; ne = e} ->
       begin
         match tp with
         | D.Pi (src, dst) ->
-          let+ dst = do_tp_clo dst a in
+          let+ dst = inst_tp_clo dst [a] in
           D.Ne {tp = dst; ne = D.Ap (e, D.Nf {tp = src; el = a})}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
@@ -169,7 +158,7 @@ struct
       let* vzero = eval zero in
       let* vn = eval n in
       let* cltp = EvM.close_tp tp in
-      let* clsuc = close2_tm suc in
+      let* clsuc = close_tm suc in
       compute @@ Compute.do_rec cltp vzero clsuc vn
     | S.Lam t -> 
       let+ cl = close_tm t in
@@ -194,7 +183,7 @@ struct
 
     | S.J (mot, refl, eq) ->
       let* veq = eval eq in 
-      let* clmot = close3_tp mot in
+      let* clmot = close_tp mot in
       let* clrefl = close_tm refl in
       compute @@ Compute.do_j clmot clrefl veq
 end
@@ -220,14 +209,14 @@ struct
     | D.Pi (base, fam), f ->
       push 1 @@ 
       let* arg = top_var base in
-      let* fib = compute @@ Compute.do_tp_clo fam arg in
+      let* fib = compute @@ Compute.inst_tp_clo fam [arg] in
       let* ap = compute @@ Compute.do_ap f arg in
       let+ body = quote fib ap in
       S.Lam body
     | D.Sg (base, fam), p ->
       let* fst = compute @@ Compute.do_fst p in
       let* snd = compute @@ Compute.do_snd p in
-      let* fib = compute @@ Compute.do_tp_clo fam fst in 
+      let* fib = compute @@ Compute.inst_tp_clo fam [fst] in 
       let+ tfst = quote base fst
       and+ tsnd = quote fib snd in 
       S.Pair (tfst, tsnd)
@@ -252,7 +241,7 @@ struct
       let+ tfam = 
         push 1 @@ 
         let* var = top_var base in
-        let* fib = compute @@ Compute.do_tp_clo fam var in
+        let* fib = compute @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
       in
       S.Pi (tbase, tfam)
@@ -261,7 +250,7 @@ struct
       let+ tfam = 
         push 1 @@ 
         let* var = top_var base in
-        let* fib = compute @@ Compute.do_tp_clo fam var in
+        let* fib = compute @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
       in
       S.Sg (tbase, tfam)
@@ -282,18 +271,18 @@ struct
       let* x, mot_x, tmot = 
         push 1 @@ 
         let* x = top_var D.Nat in
-        let* mot_x = compute @@ Compute.do_tp_clo mot x in 
+        let* mot_x = compute @@ Compute.inst_tp_clo mot [x] in 
         let+ tmot = quote_tp mot_x in 
         x, mot_x, tmot
       in
       let+ tzero_case = 
-        let* mot_zero = compute @@ Compute.do_tp_clo mot D.Zero in
+        let* mot_zero = compute @@ Compute.inst_tp_clo mot [D.Zero] in
         quote mot_zero zero_case
       and+ tsuc_case =
         push 2 @@
         let* ih = top_var mot_x in 
-        let* mot_suc_x = compute @@ Compute.do_tp_clo mot @@ D.Suc x in 
-        let* suc_case_x = compute @@ Compute.do_tm_clo2 suc_case x ih in
+        let* mot_suc_x = compute @@ Compute.inst_tp_clo mot [D.Suc x] in 
+        let* suc_case_x = compute @@ Compute.inst_tm_clo suc_case [x; ih] in
         quote mot_suc_x suc_case_x
       and+ tn = quote_ne n in
       S.NRec (tmot, tzero_case, tsuc_case, tn)
@@ -311,14 +300,14 @@ struct
         let* y = top_var tp in 
         push 1 @@ 
         let* z = top_var @@ D.Id (tp, left, right) in 
-        let* mot_xyz = compute @@ Compute.do_tp_clo3 mot x y z in 
+        let* mot_xyz = compute @@ Compute.inst_tp_clo mot [x; y; z] in 
         let+ tmot = quote_tp mot_xyz in 
         x, tmot
       in 
       let* trefl_case =
         push 1 @@ 
-        let* mot_refl_x = compute @@ Compute.do_tp_clo3 mot x x (D.Refl x) in
-        let* refl_case_x = compute @@ Compute.do_tm_clo refl_case x in
+        let* mot_refl_x = compute @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
+        let* refl_case_x = compute @@ Compute.inst_tm_clo refl_case [x] in
         quote mot_refl_x refl_case_x
       in
       let+ teq = quote_ne eq in
@@ -351,11 +340,11 @@ let eval_tp st env tp =
 let eval st env t = 
   EvM.run (Eval.eval t) st env
 
-let do_tp_clo st clo el = 
-  CmpM.run (Compute.do_tp_clo clo el) st
+let inst_tp_clo st clo el = 
+  CmpM.run (Compute.inst_tp_clo clo el) st
 
-let do_tm_clo st clo el = 
-  CmpM.run (Compute.do_tm_clo clo el) st
+let inst_tm_clo st clo el = 
+  CmpM.run (Compute.inst_tm_clo clo el) st
 
 let quote_nf st size (D.Nf nf) =
   QuM.run (Quote.quote nf.tp nf.el) st size

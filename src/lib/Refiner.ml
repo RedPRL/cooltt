@@ -59,7 +59,7 @@ let pi_intro name tac_body : chk_tac =
   | D.Pi (base, fam) ->
     EM.push_var name base @@ 
     let* var = EM.get_local 0 in
-    let* fib = EM.lift_cmp @@ Nbe.Monadic.do_tp_clo fam var in
+    let* fib = EM.lift_cmp @@ Nbe.Monadic.inst_tp_clo fam [var] in
     let+ t = tac_body fib in
     S.Lam t
   | tp ->
@@ -70,7 +70,7 @@ let sg_intro tac_fst tac_snd : chk_tac =
   | D.Sg (base, fam) ->
     let* tfst = tac_fst base in
     let* vfst = EM.lift_ev @@ Nbe.Monadic.eval tfst in
-    let* fib = EM.lift_cmp @@ Nbe.Monadic.do_tp_clo fam vfst in
+    let* fib = EM.lift_cmp @@ Nbe.Monadic.inst_tp_clo fam [vfst] in
     let+ tsnd = tac_snd fib in
     S.Pair (tfst, tsnd)
   | tp ->
@@ -116,7 +116,7 @@ let apply tac_fun tac_arg : syn_tac =
   let* base, fam = EM.dest_pi tp in
   let* targ = tac_arg base in
   let* varg = EM.lift_ev @@ Nbe.Monadic.eval targ in
-  let+ fib = EM.lift_cmp @@ Nbe.Monadic.do_tp_clo fam varg in
+  let+ fib = EM.lift_cmp @@ Nbe.Monadic.inst_tp_clo fam [varg] in
   S.Ap (tfun, targ), fib
 
 module Tactic = 

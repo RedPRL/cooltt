@@ -24,11 +24,8 @@ module EvM : sig
   val read_local : D.env m
   val throw : exn -> 'a m
 
-  val close_tp : S.tp -> (S.tp, D.tp) D.clo m
-  val close2_tp : S.tp -> S.tp D.clo2 m
-  val close3_tp : S.tp -> S.tp D.clo3 m
-  val close_tm : S.t -> (S.t, D.t) D.clo m
-  val close2_tm : S.t -> S.t D.clo2 m
+  val close_tp : S.tp -> 'n D.tp_clo m
+  val close_tm : S.t -> 'n D.tm_clo m
   val push : D.t list -> 'a m -> 'a m
 end
 

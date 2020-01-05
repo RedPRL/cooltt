@@ -1,18 +1,17 @@
 module S = Syntax
 
+open TLNat 
+
 type env = {locals : t list}
 
-and ('a, 'b) clo = Clo of {term : 'a; env : env} | ConstClo of 'b
+and ('n, 't, 'o) clo = Clo of {term : 't; env : env} | ConstClo of 'o
 [@@deriving show]
 
-and 'a clo2 = Clo2 of {term : 'a; env : env} 
-[@@deriving show]
-
-and 'a clo3 = Clo3 of {term : 'a; env : env} 
-[@@deriving show]
+and 'n tm_clo = ('n, S.t, t) clo
+and 'n tp_clo = ('n, S.tp, tp) clo
 
 and t =
-  | Lam of (S.t, t) clo
+  | Lam of (ze su) tm_clo
   | Ne of {tp : tp; ne : ne}
   | Zero
   | Suc of t
@@ -23,8 +22,8 @@ and t =
 and tp =
   | Nat
   | Id of tp * t * t
-  | Pi of tp * (S.tp, tp) clo
-  | Sg of tp * (S.tp, tp) clo
+  | Pi of tp * (ze su) tp_clo
+  | Sg of tp * (ze su) tp_clo
 [@@deriving show]
 
 and ne =
@@ -33,8 +32,8 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | NRec of (S.tp, tp) clo * t * S.t clo2 * ne
-  | J of S.tp clo3 * (S.t, t) clo * tp * t * t * ne
+  | NRec of ze su tp_clo * t * (ze su su) tm_clo * ne
+  | J of ze su su su tp_clo * (ze su) tm_clo * tp * t * t * ne
 [@@deriving show]
 
 and nf = Nf of {tp : tp; el : t} [@@deriving show]

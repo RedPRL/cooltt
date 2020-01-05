@@ -15,4 +15,5 @@ val get_local : int -> D.t m
 val equate_tp : D.tp -> D.tp -> unit m
 val equate : D.tp -> D.t -> D.t -> unit m
 
-val dest_pi : D.tp -> (D.tp * (S.tp, D.tp) D.clo) m
+open TLNat
+val dest_pi : D.tp -> (D.tp * ze su D.tp_clo) m

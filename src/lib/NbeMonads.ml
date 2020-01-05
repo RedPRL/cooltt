@@ -38,18 +38,6 @@ struct
     fun (_, env) ->
     D.Clo {term = t; env}
 
-  let close2_tm t : _ m = 
-    fun (_, env) ->
-    D.Clo2 {term = t; env}
-
-  let close2_tp tp : _ m =
-    fun (_, env) ->
-    D.Clo2 {term = tp; env}
-
-  let close3_tp tp : _ m = 
-    fun (_, env) ->
-    D.Clo3 {term = tp; env}
-
   let compute m (st, _) = m st
 end
 

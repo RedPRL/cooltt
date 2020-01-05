@@ -15,8 +15,8 @@ module Monadic : sig
   val equal_tp : D.tp -> D.tp -> bool quote
   val equal_ne : D.ne -> D.ne -> bool quote
 
-  val do_tp_clo : (S.tp, D.tp) D.clo -> D.t -> D.tp compute
-  val do_tm_clo : (S.t, D.t) D.clo -> D.t -> D.t compute
+  val inst_tp_clo : 'n D.tp_clo -> ('n, D.t) Vec.vec -> D.tp compute
+  val inst_tm_clo : 'n D.tm_clo -> ('n, D.t) Vec.vec -> D.t compute
 end
 
 (* Functions to pass between various semantic domains *)
@@ -32,5 +32,5 @@ val equal_ne : St.t -> int -> D.ne -> D.ne -> bool
 val equal_tp : St.t -> int -> D.tp -> D.tp -> bool
 
 (* Functions to manipulate elements of the semantic domain *)
-val do_tp_clo : St.t -> (S.tp, D.tp) D.clo -> D.t -> D.tp
-val do_tm_clo : St.t -> (S.t, D.t) D.clo -> D.t -> D.t
+val inst_tp_clo : St.t -> 'n D.tp_clo -> ('n, D.t) Vec.vec -> D.tp
+val inst_tm_clo : St.t -> 'n D.tm_clo -> ('n, D.t) Vec.vec -> D.t
