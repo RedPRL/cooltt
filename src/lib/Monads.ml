@@ -60,7 +60,7 @@ struct
     let+ (_, size) = M.read in 
     size
 
-  let append i =
+  let binder i =
     M.scope @@ fun (st, size) ->
     st, i + size
 
