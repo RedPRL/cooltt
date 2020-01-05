@@ -12,16 +12,13 @@ open Monad.Notation (EM)
 let rec chk_tp : CS.t -> S.tp EM.m = 
   function
   | CS.Pi (cells, body) -> 
-    chk_pi_tp cells body
+    nary_quantifier Refiner.pi_formation cells body
   | CS.Sg (cells, body) -> 
-    chk_sg_tp cells body
-  | CS.Nat -> EM.ret S.Nat
+    nary_quantifier Refiner.sg_formation cells body
   | CS.Id (tp, l, r) ->
-    let* tp = chk_tp tp in
-    let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in 
-    let+ l = chk_tm l vtp
-    and+ r = chk_tm r vtp in
-    S.Id (tp, l, r)
+    Refiner.id_formation (chk_tp tp) (chk_tm l) (chk_tm r)
+  | CS.Nat -> 
+    EM.ret S.Nat
   | tp -> 
     EM.elab_err @@ Err.InvalidTypeExpression tp
 
@@ -73,20 +70,8 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs
 
-and chk_sg_tp cells body =
+and nary_quantifier tac cells body =
   match cells with
   | [] -> chk_tp body
   | Cell cell :: cells ->
-    let* base = chk_tp cell.tp in
-    let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
-    let+ fam = EM.push_var (Some cell.name) vbase @@ chk_sg_tp cells body in
-    S.Sg (base, fam)
-
-and chk_pi_tp cells body =
-  match cells with
-  | [] -> chk_tp body
-  | Cell cell :: cells ->
-    let* base = chk_tp cell.tp in
-    let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
-    let+ fam = EM.push_var (Some cell.name) vbase @@ chk_pi_tp cells body in
-    S.Pi (base, fam)
+    tac (chk_tp cell.tp) (Some cell.name, nary_quantifier tac cells body)

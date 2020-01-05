@@ -9,27 +9,16 @@ module Err = ElabError
 open CoolBasis
 open Monad.Notation (EM)
 
-(* TODO: factor into the refiner *)
 let rec chk_tp : S.tp -> R.tp_tac =
   function
   | S.Pi (base, fam) ->
-    let* base = chk_tp base in
-    let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
-    let+ fam = EM.push_var None vbase @@ chk_tp fam in
-    S.Pi (base, fam)
+    R.pi_formation (chk_tp base) (None, chk_tp fam)
   | S.Sg (base, fam) ->
-    let* base = chk_tp base in
-    let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
-    let+ fam = EM.push_var None vbase @@ chk_tp fam in
-    S.Sg (base, fam)
+    R.sg_formation (chk_tp base) (None, chk_tp fam)
+  | S.Id (tp, l, r) ->
+    R.id_formation (chk_tp tp)(chk_tm l) (chk_tm r)
   | S.Nat -> 
     EM.ret S.Nat
-  | S.Id (tp, l, r) ->
-    let* tp = chk_tp tp in
-    let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in 
-    let+ l = chk_tm l vtp
-    and+ r = chk_tm r vtp in
-    S.Id (tp, l, r)
 
 and chk_tm : S.t -> R.chk_tac =
   function

@@ -8,9 +8,15 @@ type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
 val unleash_hole : CS.ident option -> chk_tac
+
+val pi_formation : tp_tac -> CS.ident option * tp_tac -> tp_tac
+val sg_formation : tp_tac -> CS.ident option * tp_tac -> tp_tac
+val id_formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
+
 val pi_intro : CS.ident option -> chk_tac -> chk_tac
 val sg_intro : chk_tac -> chk_tac -> chk_tac
 val id_intro : chk_tac
+
 val literal : int -> chk_tac
 val suc : chk_tac -> chk_tac
 val syn_to_chk : syn_tac -> chk_tac

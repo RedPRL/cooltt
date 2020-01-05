@@ -56,6 +56,25 @@ let unleash_hole name : chk_tac =
 
   EM.lift_qu @@ Nbe.quote_ne ne 
 
+let pi_formation tac_base (nm, tac_fam) = 
+  let* base = tac_base in
+  let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
+  let+ fam = EM.push_var nm vbase tac_fam in
+  S.Pi (base, fam)
+
+let sg_formation tac_base (nm, tac_fam) = 
+  let* base = tac_base in
+  let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
+  let+ fam = EM.push_var nm vbase tac_fam in
+  S.Sg (base, fam)
+
+let id_formation tac_tp tac_l tac_r = 
+  let* tp = tac_tp in
+  let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
+  let+ l = tac_l vtp 
+  and+ r = tac_r vtp in
+  S.Id (tp, l, r)
+
 
 let pi_intro name tac_body : chk_tac = 
   function
