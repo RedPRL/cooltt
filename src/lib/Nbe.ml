@@ -291,6 +291,9 @@ struct
 end
 
 module Quote : sig 
+  val quote : D.tp -> D.t -> S.t QuM.m
+  val quote_tp : D.tp -> S.tp QuM.m
+  val quote_ne : D.ne -> S.t QuM.m
 end = 
 struct
   open QuM
@@ -426,194 +429,27 @@ let eval_tp env tp st =
 let eval env t st = 
   EvM.run (Eval.eval t) st env
 
-let rec quote_nf st size nf =
-  match nf with
-  (* Functions *)
-  | D.Nf {tp = D.Pi (src, dest); el = f} ->
-    let arg = D.mk_var src size in
-    let nf = D.Nf {tp = st |> do_tp_clo dest arg; el = st |> do_ap f arg} in
-    S.Lam (quote_nf st (size + 1) nf)
-  (* Pairs *)
-  | D.Nf {tp = D.Sg (fst, snd); el = p} ->
-    let fst' = do_fst p st in
-    let snd = do_tp_clo snd fst' st in
-    let snd' = do_snd p st in
-    S.Pair
-      (quote_nf st size (D.Nf {tp = fst; el = fst'}),
-       quote_nf st size (D.Nf {tp = snd; el = snd'}))
-  (* Numbers *)
-  | D.Nf {tp = D.Nat; el = D.Zero} -> S.Zero
-  | D.Nf {tp = D.Nat; el = D.Suc nf} ->
-    S.Suc (quote_nf st size (D.Nf {tp = D.Nat; el = nf}))
-  | D.Nf {tp = D.Nat; el = D.Ne {ne; _}} ->
-    quote_ne st size ne
-  (* Id *)
-  | D.Nf {tp = D.Id (tp, _, _); el = D.Refl el} ->
-    S.Refl (quote_nf st size (D.Nf {tp; el}))
-  | D.Nf {tp = D.Id _; el = D.Ne {ne; _}} -> quote_ne st size ne
-  | _ -> raise (Nbe_failed "Ill-typed quote_nf")
+let quote_nf st size (D.Nf nf) =
+  QuM.run (Quote.quote nf.tp nf.el) st size
 
-and quote_tp st size d : S.tp =
-  match d with
-  | D.Nat -> S.Nat
-  | D.Pi (src, dest) ->
-    let var = D.mk_var src size in
-    S.Pi (quote_tp st size src, quote_tp st (size + 1) (do_tp_clo dest var st))
-  | D.Sg (fst, snd) ->
-    let var = D.mk_var fst size in
-    S.Sg (quote_tp st size fst, quote_tp st (size + 1) (do_tp_clo snd var st))
-  | D.Id (tp, left, right) ->
-    S.Id
-      (quote_tp st size tp,
-       quote_nf st size (D.Nf {tp; el = left}),
-       quote_nf st size (D.Nf {tp; el = right}))
+let quote_tp st size tp =
+  QuM.run (Quote.quote_tp tp) st size
 
-and quote_ne st size ne =
-  match ne with
-  | D.Var x -> S.Var (size - (x + 1))
-  | D.Global sym -> S.Global sym
-  | D.Ap (ne, arg) -> S.Ap (quote_ne st size ne, quote_nf st size arg)
-  | D.NRec (tp, zero, suc, n) ->
-    let tp_var = D.mk_var D.Nat size in
-    let applied_tp = st |> do_tp_clo tp tp_var in
-    let zero_tp = st |> do_tp_clo tp D.Zero in
-    let applied_suc_tp = st |> do_tp_clo tp (D.Suc tp_var) in
-    let tp' = quote_tp st (size + 1) applied_tp in
-    let suc_var = D.mk_var applied_tp (size + 1) in
-    let applied_suc = st |> do_tm_clo2 suc tp_var suc_var in
-    let suc' =
-      quote_nf st (size + 2)
-        (D.Nf {tp = applied_suc_tp; el = applied_suc})
-    in
-    S.NRec
-      (tp',
-       quote_nf st size (D.Nf {tp = zero_tp; el = zero}),
-       suc',
-       quote_ne st size n)
-  | D.Fst ne -> S.Fst (quote_ne st size ne)
-  | D.Snd ne -> S.Snd (quote_ne st size ne)
-  | D.J (mot, refl, tp, left, right, eq) ->
-    let mot_var1 = D.mk_var tp size in
-    let mot_var2 = D.mk_var tp (size + 1) in
-    let mot_var3 = D.mk_var (D.Id (tp, left, right)) (size + 2) in
-    let mot_syn = quote_tp st (size + 3) (st |> do_tp_clo3 mot mot_var1 mot_var2 mot_var3) in
-    let refl_var = D.mk_var tp size in
-    let refl_syn = 
-      quote_nf st (size + 1) @@
-      D.Nf 
-        {el = st |> do_tm_clo refl refl_var; 
-         tp = st |> do_tp_clo3 mot refl_var refl_var (D.Refl refl_var)}
-    in
-    let eq_syn = quote_ne st size eq in
-    S.J (mot_syn, refl_syn, eq_syn)
+let quote_ne st size ne = 
+  QuM.run (Quote.quote_ne ne) st size
 
-let rec equal_nf st size nf1 nf2 =
-  match nf1, nf2 with
-  (* Functions *)
-  | D.Nf {tp = D.Pi (src1, dest1); el = f1}, D.Nf {tp = D.Pi (_, dest2); el = f2} ->
-    let arg = D.mk_var src1 size in
-    let nf1 = D.Nf {tp = st |> do_tp_clo dest1 arg; el = st |> do_ap f1 arg} in
-    let nf2 = D.Nf {tp = st |> do_tp_clo dest2 arg; el = st |> do_ap f2 arg} in
-    equal_nf st (size + 1) nf1 nf2
-  (* Pairs *)
-  | D.Nf {tp = D.Sg (fst1, snd1); el = p1}, D.Nf {tp = D.Sg (fst2, snd2); el = p2} ->
-    let p11, p21 = do_fst p1 st, do_fst p2 st in
-    let snd1 = st |> do_tp_clo snd1 p11 in
-    let snd2 = st |> do_tp_clo snd2 p21 in
-    let p12, p22 = do_snd p1 st, do_snd p2 st in
-    equal_nf st size
-      (D.Nf {tp = fst1; el = p11})
-      (D.Nf {tp = fst2; el = p21})
-    && equal_nf st size
-      (D.Nf {tp = snd1; el = p12})
-      (D.Nf {tp = snd2; el = p22})
-  (* Numbers *)
-  | D.Nf {tp = D.Nat; el = D.Zero}, D.Nf {tp = D.Nat; el = D.Zero} ->
-    true
-  | D.Nf {tp = D.Nat; el = D.Suc nf1}, D.Nf {tp = D.Nat; el = D.Suc nf2} ->
-    equal_nf st size
-      (D.Nf {tp = D.Nat; el = nf1})
-      (D.Nf {tp = D.Nat; el = nf2})
-  | D.Nf {tp = D.Nat; el = D.Ne {ne = ne1; _}}, D.Nf {tp = D.Nat; el = D.Ne {ne = ne2; _}} ->
-    equal_ne st size ne1 ne2
-  (* Id *)
-  | D.Nf {tp = D.Id (tp, _, _); el = D.Refl el1}, D.Nf {tp = D.Id (_, _, _); el = D.Refl el2} ->
-    equal_nf st size (D.Nf {tp; el = el1}) (D.Nf {tp; el = el2})
-  | D.Nf {tp = D.Id _; el = D.Ne {ne = ne1; _}}, D.Nf {tp = D.Id _; el = D.Ne {ne = ne2; _}} ->
-    equal_ne st size ne1 ne2
-  | _ -> false
+(* TODO: replace with efficient binary version *)
+let equal_nf st size nf1 nf2 =
+  let t1 = quote_nf st size nf1 in
+  let t2 = quote_nf st size nf2 in 
+  t1 = t2
 
-and equal_ne st size ne1 ne2 =
-  match ne1, ne2 with
-  | D.Var x, D.Var y -> x = y
-  | D.Global sym, D.Global sym' -> Symbol.equal sym sym'
-  | D.Ap (ne1, arg1), D.Ap (ne2, arg2) ->
-    equal_ne st size ne1 ne2 && equal_nf st size arg1 arg2
-  | D.NRec (tp1, zero1, suc1, n1), D.NRec (tp2, zero2, suc2, n2) ->
-    let tp_var = D.mk_var D.Nat size in
-    let applied_tp1, applied_tp2 =
-      st |> do_tp_clo tp1 tp_var, st |> do_tp_clo tp2 tp_var
-    in
-    let zero_tp = st |> do_tp_clo tp1 D.Zero in
-    let applied_suc_tp = st |> do_tp_clo tp1 (D.Suc tp_var) in
-    let suc_var1 = D.mk_var applied_tp1 (size + 1) in
-    let suc_var2 = D.mk_var applied_tp2 (size + 1) in
-    let applied_suc1 = st |> do_tm_clo2 suc1 tp_var suc_var1 in
-    let applied_suc2 = st |> do_tm_clo2 suc2 tp_var suc_var2 in
-    equal_tp st (size + 1) applied_tp1 applied_tp2
-    && equal_nf st size
-      (D.Nf {tp = zero_tp; el = zero1})
-      (D.Nf {tp = zero_tp; el = zero2})
-    && equal_nf st (size + 2)
-      (D.Nf {tp = applied_suc_tp; el = applied_suc1})
-      (D.Nf {tp = applied_suc_tp; el = applied_suc2})
-    && equal_ne st size n1 n2
-  | D.Fst ne1, D.Fst ne2 -> equal_ne st size ne1 ne2
-  | D.Snd ne1, D.Snd ne2 -> equal_ne st size ne1 ne2
-  | D.J (mot1, refl1, tp1, left1, right1, eq1), D.J (mot2, refl2, tp2, left2, right2, eq2) ->
-    equal_tp st size tp1 tp2
-    && equal_nf st size
-      (D.Nf {tp = tp1; el = left1})
-      (D.Nf {tp = tp2; el = left2})
-    && equal_nf st size
-      (D.Nf {tp = tp1; el = right1})
-      (D.Nf {tp = tp2; el = right2})
-    &&
-    let mot_var1 = D.mk_var tp1 size in
-    let mot_var2 = D.mk_var tp1 (size + 1) in
-    let mot_var3 = D.mk_var (D.Id (tp1, left1, right1)) (size + 2) in
-    equal_tp st (size + 3)
-      (st |> do_tp_clo3 mot1 mot_var1 mot_var2 mot_var3)
-      (st |> do_tp_clo3 mot2 mot_var1 mot_var2 mot_var3)
-    &&
-    let refl_var = D.mk_var tp1 size in
-    equal_nf st (size + 1)
-      (D.Nf
-         {el = st |> do_tm_clo refl1 refl_var;
-          tp = st |> do_tp_clo3 mot1 refl_var refl_var (D.Refl refl_var)})
-      (D.Nf
-         {el = st |> do_tm_clo refl2 refl_var;
-          tp = st |> do_tp_clo3 mot2 refl_var refl_var (D.Refl refl_var)})
-    && equal_ne st size eq1 eq2
-  | _ -> false
+let equal_ne st size ne1 ne2 =
+  let t1 = quote_ne st size ne1 in
+  let t2 = quote_ne st size ne2 in 
+  t1 = t2
 
-and equal_tp st size d1 d2 =
-  match d1, d2 with
-  | D.Nat, D.Nat -> true
-  | D.Id (tp1, left1, right1), D.Id (tp2, left2, right2) ->
-    equal_tp st size tp1 tp2
-    && equal_nf st size
-      (D.Nf {tp = tp1; el = left1})
-      (D.Nf {tp = tp1; el = left2})
-    && equal_nf st size
-      (D.Nf {tp = tp1; el = right1})
-      (D.Nf {tp = tp1; el = right2})
-  | D.Pi (src, dest), D.Pi (src', dest') ->
-    let var = D.mk_var src' size in
-    equal_tp st size src' src
-    && equal_tp st (size + 1) (st |> do_tp_clo dest var) (st |> do_tp_clo dest' var)
-  | D.Sg (fst, snd), D.Sg (fst', snd') ->
-    let var = D.mk_var fst size in
-    equal_tp st size fst fst'
-    && equal_tp st (size + 1) (st |> do_tp_clo snd var) (st |> do_tp_clo snd' var)
-  | _ -> false
+let equal_tp st size tp1 tp2 =
+  let tp1 = quote_tp st size tp1 in
+  let tp2 = quote_tp st size tp2 in
+  tp1 = tp2
