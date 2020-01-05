@@ -16,6 +16,8 @@ val syn_to_chk : syn_tac -> chk_tac
 
 val lookup_var : CS.ident -> syn_tac 
 val apply : syn_tac -> chk_tac -> syn_tac
+val pi1 : syn_tac -> syn_tac
+val pi2 : syn_tac -> syn_tac
 
 val tac_multilam : CS.ident list -> chk_tac -> chk_tac
 val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac

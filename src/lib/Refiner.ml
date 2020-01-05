@@ -12,8 +12,6 @@ type tp_tac = D.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
-let elab_err err = raise @@ Err.ElabError err
-
 let rec int_to_term = 
   function
   | 0 -> S.Zero
@@ -61,7 +59,7 @@ let pi_intro name tac_body : chk_tac =
     let+ t = tac_body fib in
     S.Lam t
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Pi, tp)
+    EM.elab_err @@ Err.ExpectedConnective (`Pi, tp)
 
 let sg_intro tac_fst tac_snd : chk_tac = 
   function
@@ -72,7 +70,7 @@ let sg_intro tac_fst tac_snd : chk_tac =
     let+ tsnd = tac_snd fib in
     S.Pair (tfst, tsnd)
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Sg, tp)
+    EM.elab_err @@ Err.ExpectedConnective (`Sg, tp)
 
 let id_intro : chk_tac =
   function
@@ -81,14 +79,14 @@ let id_intro : chk_tac =
     and+ t = EM.lift_qu @@ Nbe.quote tp l in
     S.Refl t
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Id, tp)
+    EM.elab_err @@ Err.ExpectedConnective (`Id, tp)
 
 let literal n : chk_tac = 
   function
   | D.Nat ->
     EM.ret @@ int_to_term n
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Nat, tp)
+    EM.elab_err @@ Err.ExpectedConnective (`Nat, tp)
 
 let syn_to_chk (tac : syn_tac) : chk_tac =
   fun tp ->
@@ -106,7 +104,7 @@ let lookup_var id : syn_tac =
     let+ D.Nf {tp; _} = EM.get_global sym in 
     S.Global sym, tp
   | `Unbound -> 
-    elab_err @@ Err.UnboundVariable id
+    EM.elab_err @@ Err.UnboundVariable id
 
 
 let apply tac_fun tac_arg : syn_tac = 
@@ -116,6 +114,18 @@ let apply tac_fun tac_arg : syn_tac =
   let* varg = EM.lift_ev @@ Nbe.eval targ in
   let+ fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [varg] in
   S.Ap (tfun, targ), fib
+
+let pi1 tac : syn_tac = 
+  let* tpair, tp = tac in
+  let+ base, _ = EM.dest_sg tp in 
+  S.Fst tpair, base
+
+let pi2 tac : syn_tac = 
+  let* tpair, tp = tac in 
+  let* vfst = EM.lift_ev @@ Nbe.eval @@ S.Fst tpair in
+  let* _, fam = EM.dest_sg tp in
+  let+ fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
+  S.Snd tpair, fib
 
 module Tactic = 
 struct

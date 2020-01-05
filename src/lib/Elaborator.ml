@@ -9,8 +9,10 @@ open Monad.Notation (EM)
 
 let rec check_tp : CS.t -> S.tp EM.m = 
   function
-  | CS.Pi (cells, body) -> check_pi_tp cells body
-  | CS.Sg (cells, body) -> check_sg_tp cells body
+  | CS.Pi (cells, body) -> 
+    check_pi_tp cells body
+  | CS.Sg (cells, body) -> 
+    check_sg_tp cells body
   | CS.Nat -> EM.ret S.Nat
   | CS.Id (tp, l, r) ->
     let* tp = check_tp tp in
@@ -18,7 +20,8 @@ let rec check_tp : CS.t -> S.tp EM.m =
     let+ l = check_tm l vtp
     and+ r = check_tm r vtp in
     S.Id (tp, l, r)
-  | tp -> EM.throw @@ Err.ElabError (Err.InvalidTypeExpression tp)
+  | tp -> 
+    EM.elab_err @@ Err.InvalidTypeExpression tp
 
 and check_tm : CS.t -> D.tp -> S.t EM.m =
   function
@@ -37,12 +40,17 @@ and check_tm : CS.t -> D.tp -> S.t EM.m =
 
 and synth_tm : CS.t -> (S.t * D.tp) EM.m = 
   function
-  | CS.Var id -> Refiner.lookup_var id
+  | CS.Var id -> 
+    Refiner.lookup_var id
   | CS.Ap (t, ts) ->
     Refiner.tac_multi_apply (synth_tm t) begin
       ts |> List.map @@ fun (CS.Term cs) ->
       check_tm cs
     end
+  | CS.Fst t ->
+    Refiner.pi1 @@ synth_tm t
+  | CS.Snd t ->
+    Refiner.pi2 @@ synth_tm t
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs
 

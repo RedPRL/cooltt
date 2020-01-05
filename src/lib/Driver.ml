@@ -55,7 +55,7 @@ let execute_decl =
         let+ () = EM.emit pp_message @@ NormalizedDef (name, tm) in
         `Continue
       | _ -> 
-        EM.throw @@ Err.ElabError (UnboundVariable name)
+        EM.elab_err @@ UnboundVariable name
     end
   | CS.NormalizeTerm {term; tp} ->
     let* _, vtp, tm, vtm = elaborate_typed_term tp term in

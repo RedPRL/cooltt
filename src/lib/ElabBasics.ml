@@ -10,6 +10,9 @@ include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)
 
+let elab_err err = raise @@ Err.ElabError err
+
+
 let push_var id tp : 'a m -> 'a m = 
   scope @@ fun env ->
   let var = D.Var (Env.size env) in
@@ -54,14 +57,23 @@ let get_local ix =
 let equate tp l r =
   let* res = lift_qu @@ Nbe.Monadic.equal tp l r in
   if res then ret () else 
-    throw @@ Err.ElabError (Err.ExpectedEqual (tp, l, r))
+    elab_err @@ Err.ExpectedEqual (tp, l, r)
 
 let equate_tp tp tp' =
   let* res = lift_qu @@ Nbe.Monadic.equal_tp tp tp' in 
   if res then ret () else 
-    throw @@ Err.ElabError (Err.ExpectedEqualTypes (tp, tp'))
+    elab_err @@ Err.ExpectedEqualTypes (tp, tp')
 
 let dest_pi = 
   function
-  | D.Pi (base, fam) -> ret (base, fam)
-  | tp -> throw @@ Err.ElabError (Err.ExpectedConnective (`Pi, tp))
+  | D.Pi (base, fam) -> 
+    ret (base, fam)
+  | tp -> 
+    elab_err @@ Err.ExpectedConnective (`Pi, tp)
+
+let dest_sg = 
+  function
+  | D.Sg (base, fam) -> 
+    ret (base, fam)
+  | tp -> 
+    elab_err @@ Err.ExpectedConnective (`Sg, tp)

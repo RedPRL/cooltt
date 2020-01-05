@@ -4,6 +4,8 @@ module S := Syntax
 
 include module type of Monads.ElabM
 
+val elab_err : ElabError.t -> 'a m
+
 val push_var : CS.ident option -> D.tp -> 'a m -> 'a m
 val add_global : CS.ident option -> D.tp -> D.t option -> Symbol.t m
 
@@ -17,3 +19,4 @@ val equate : D.tp -> D.t -> D.t -> unit m
 
 open TLNat
 val dest_pi : D.tp -> (D.tp * ze su D.tp_clo) m
+val dest_sg : D.tp -> (D.tp * ze su D.tp_clo) m
