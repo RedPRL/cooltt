@@ -39,35 +39,35 @@ This experimental proof assistant supports the following top-level declarations:
 Unlike in the paper, names instead of indices are used for the surface syntax. The following are
 the valid expressions in cooltt.
 
-``` ocaml
-     (* Let bindings *)
+     -- Let bindings
      let NAME = TERM in TERM
      let NAME : TYPE = TERM in TERM
-     (* Natural numbers *)
+
+     -- Natural numbers 
      nat, 0, 1, 2...
-     (* Recursion on natural numbers *)
+
+     -- Recursion on natural numbers
      rec NUMBER at x => MOTIVE with [
      | zero => TERM
      | suc (n => ih) => TERM
      ]
 
-     (* Functions *)
+     -- Functions
      (NAME : TP) -> TP
      \NAME => TERM
      TERM TERM
 
-     (* Pairs *)
+     -- Pairs
      (NAME : TP) * TP
      [TERM, TERM]
      fst TERM
      snd TERM
 
-     (* Identity types *)
+     -- Identity
      Id TYPE TERM TERM
      refl TERM
      match PRF at x y prf -> MOTIVE with
      | refl x -> TERM
-```
 
 A small collection of example programs is contained in the `test/` directory. See `test/README.md`
 for a brief description of each program's purpose.
