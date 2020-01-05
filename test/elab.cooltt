@@ -12,10 +12,9 @@ def boo : nat = {
   zero
 }
 
-normalize def boo
-
-normalize def foo
-normalize def bar
+normalize boo
+normalize foo
+normalize bar
 
 
 def sigma_eta : {
@@ -26,4 +25,4 @@ def sigma_eta : {
   refl
 }
 
-normalize def sigma_eta
+normalize sigma_eta

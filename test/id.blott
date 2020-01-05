@@ -1,4 +1,4 @@
 let fun_id : (A : U<0>) (B : A -> U<0>) -> ((x : A) -> B x) -> ((x : A) -> B x) =
   fun A B f -> f
 
-normalize def fun_id
+normalize fun_id

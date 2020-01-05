@@ -34,8 +34,7 @@ $ dune exec ./src/bin/main.exe          # from the `cooltt` top-level directory
 This experimental proof assistant supports the following top-level declarations:
 
  - A definition, written `let NAME : TYPE = TERM`
- - A command to normalize a definition `normalize def NAME`
- - A command to normalize an expression `normalize TERM at TYPE`
+ - A command to normalize an expression `normalize TERM`; in this command, `TERM` must be synthesizable. 
 
 Unlike in the paper, names instead of indices are used for the surface syntax. The following are
 the valid expressions in cooltt.
@@ -47,23 +46,21 @@ the valid expressions in cooltt.
      (* Natural numbers *)
      nat, 0, 1, 2...
      (* Recursion on natural numbers *)
-     rec NUMBER at x -> MOTIVE with
-     | zero -> TERM
-     | suc n, ih -> TERM
+     rec NUMBER at x => MOTIVE with [
+     | zero => TERM
+     | suc (n => ih) => TERM
+     ]
 
      (* Functions *)
      (NAME : TP) -> TP
-     fun NAME -> TERM
+     \NAME => TERM
      TERM TERM
 
      (* Pairs *)
      (NAME : TP) * TP
-     <TERM, TERM>
+     [TERM, TERM]
      fst TERM
      snd TERM
-
-     (* Universes *)
-     U<0>,U<1>,...
 
      (* Identity types *)
      Id TYPE TERM TERM

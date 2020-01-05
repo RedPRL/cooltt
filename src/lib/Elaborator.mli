@@ -5,3 +5,4 @@ module D := Domain
 
 val check_tp : CS.t -> S.tp EM.m
 val check_tm : CS.t -> D.tp -> S.t EM.m
+val synth_tm : CS.t -> (S.t * D.tp) EM.m

@@ -7,7 +7,6 @@ module Nbe = Nbe.Monadic
 
 type message =
   | NormalizedTerm of S.t * S.t
-  | NormalizedDef of CS.ident * S.t
 
 let pp_message fmt = 
   function
@@ -15,11 +14,6 @@ let pp_message fmt =
     Format.fprintf fmt "Computed normal form of@ @[<hv>";
     S.pp fmt s;
     Format.fprintf fmt "@] as @ @[<hv>";
-    S.pp fmt t;
-    Format.fprintf fmt "@]@,"
-  | NormalizedDef (name, t) ->
-    Format.fprintf fmt
-      "Computed normal form of [%s]:@ @[<hv>" name;
     S.pp fmt t;
     Format.fprintf fmt "@]@,"
 
@@ -45,20 +39,9 @@ let execute_decl =
     let* _tp, vtp, _tm, vtm = elaborate_typed_term tp def in
     let+ _sym = EM.add_global (Some name) vtp @@ Some vtm in
     `Continue
-  | CS.NormalizeDef name ->
-    let* res = EM.resolve name in
-    begin
-      match res with
-      | `Global sym ->
-        let* D.Nf nf = EM.get_global sym in
-        let* tm = EM.lift_qu @@ Nbe.quote nf.tp nf.el in
-        let+ () = EM.emit pp_message @@ NormalizedDef (name, tm) in
-        `Continue
-      | _ -> 
-        EM.elab_err @@ UnboundVariable name
-    end
-  | CS.NormalizeTerm {term; tp} ->
-    let* _, vtp, tm, vtm = elaborate_typed_term tp term in
+  | CS.NormalizeTerm term ->
+    let* tm, vtp = Elaborator.synth_tm term in
+    let* vtm = EM.lift_ev @@ Nbe.eval tm in
     let* tm' = EM.lift_qu @@ Nbe.quote vtp vtm in
     let+ () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in 
     `Continue

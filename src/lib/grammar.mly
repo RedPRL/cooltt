@@ -29,10 +29,8 @@ decl:
     { Def {name = nm; def = body; tp} }
   | QUIT
     { Quit }
-  | NORMALIZE; DEF; a = name
-    { NormalizeDef a  }
-  | NORMALIZE; tm = term; AT; tp = term
-    { NormalizeTerm {term = tm; tp} }
+  | NORMALIZE; tm = term
+    { NormalizeTerm tm }
 
 sign:
   | EOF
