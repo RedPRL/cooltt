@@ -140,7 +140,7 @@ and synth ~st ~env ~term =
         (Env.push_term None var Nat env
          |> Env.push_term None ih_var ih_tp)
       ~term:suc ~tp:suc_tp;
-    Nbe.eval_tp st {locals = Nbe.eval st sem_env n :: sem_env.locals} mot
+    Nbe.eval_tp st {locals = (Nbe.eval st sem_env n) :: sem_env.locals} mot
   | S.J (mot, refl, eq) -> 
     let eq_tp = synth ~st ~env ~term:eq in
     let sem_env = Env.to_sem_env env in
@@ -165,7 +165,7 @@ and synth ~st ~env ~term =
         check ~st
           ~env:(Env.push_term None refl_var tp' env)
           ~term:refl ~tp:refl_tp;
-        Nbe.eval_tp st {locals = Nbe.eval st sem_env eq :: right :: left :: sem_env.locals} mot
+        Nbe.eval_tp st {locals = (Nbe.eval st sem_env eq) :: right :: left :: sem_env.locals} mot
       | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t)
     end
   | _ -> tp_error (CannotSynthTerm term)

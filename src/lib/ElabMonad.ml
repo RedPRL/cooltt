@@ -38,3 +38,22 @@ let emit pp a : unit m =
   fun (st, _env) -> 
   let () = pp Format.std_formatter a in 
   Ret (), st
+
+
+let lift_qu (m : 'a NbeMonads.quote) : 'a m = 
+  fun (st, env) ->
+  match NbeMonads.QuM.run m st @@ Env.size env with 
+  | v -> Ret v, st
+  | exception exn -> Throw exn, st
+
+let lift_ev (m : 'a NbeMonads.evaluate) : 'a m = 
+  fun (st, env) ->
+  match NbeMonads.EvM.run m st @@ Env.to_sem_env env with 
+  | v -> Ret v, st 
+  | exception exn -> Throw exn, st
+
+let lift_cmp (m : 'a NbeMonads.compute) : 'a m = 
+  fun (st, _env) ->
+  match NbeMonads.CmpM.run m st with
+  | v -> Ret v, st 
+  | exception exn -> Throw exn, st

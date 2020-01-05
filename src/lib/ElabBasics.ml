@@ -49,71 +49,15 @@ let get_local ix =
   | tp -> EM.ret tp
   | exception exn -> EM.throw exn
 
-let quote tp el = 
-  let nf = D.Nf {tp; el} in
-  let* st = EM.get in
-  let* env = EM.read in
-  match Nbe.quote_nf st (Env.size env) nf with
-  | t -> EM.ret t
-  | exception exn -> EM.throw exn
-
-let quote_ne ne = 
-  let* st = EM.get in
-  let* env = EM.read in
-  match Nbe.quote_ne st (Env.size env) ne with
-  | t -> EM.ret t
-  | exception exn -> EM.throw exn
-
-let quote_tp tp = 
-  let* st = EM.get in
-  let* env = EM.read in
-  match Nbe.quote_tp st (Env.size env) tp with
-  | tp -> EM.ret tp
-  | exception exn -> EM.throw exn
-
-
-
-let read_sem_env =
-  let+ env = EM.read in
-  Env.to_sem_env env
-
-let eval_tp tp =
-  let* st = EM.get in
-  let* sem_env = read_sem_env in
-  match Nbe.eval_tp st sem_env tp with
-  | v -> EM.ret v
-  | exception exn -> EM.throw exn
-
-let eval_tm tp =
-  let* st = EM.get in
-  let* sem_env = read_sem_env in
-  match Nbe.eval st sem_env tp with
-  | v -> EM.ret v
-  | exception exn -> EM.throw exn
-
-let inst_tp_clo clo v =
-  let* st = EM.get in
-  match Nbe.do_tp_clo st clo v with
-  | v -> EM.ret v
-  | exception exn -> EM.throw exn
-
 let equate tp l r =
-  let* st = EM.get in
-  let* env = EM.read in
-  match
-    Nbe.equal_nf st (Env.size env)
-      (D.Nf {tp; el = l})
-      (D.Nf {tp; el = r})
-  with
-  | true -> EM.ret ()
-  | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqual (tp, l, r))
+  let* res = EM.lift_qu @@ Nbe.Monadic.equal tp l r in
+  if res then EM.ret () else 
+    EM.throw @@ Err.ElabError (Err.ExpectedEqual (tp, l, r))
 
 let equate_tp tp tp' =
-  let* st = EM.get in
-  let* env = EM.read in
-  match Nbe.equal_tp st (Env.size env) tp tp' with
-  | true -> EM.ret ()
-  | false -> EM.throw @@ Err.ElabError (Err.ExpectedEqualTypes (tp, tp'))
+  let* res = EM.lift_qu @@ Nbe.Monadic.equal_tp tp tp' in 
+  if res then EM.ret () else 
+    EM.throw @@ Err.ElabError (Err.ExpectedEqualTypes (tp, tp'))
 
 let dest_pi = 
   function
