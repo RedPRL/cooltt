@@ -18,7 +18,10 @@ normalize def foo
 normalize def bar
 
 
-def sigma_eta : (p : (x : nat) * nat) -> Id {(x : nat) * nat} p [fst p, snd p] = {
+def sigma_eta : {
+  (p : (x : nat) * nat) 
+  -> Id {(x : nat) * nat} p [fst p, snd p] 
+} = {
   \p=>
   refl
 }
