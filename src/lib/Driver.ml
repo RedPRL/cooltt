@@ -3,6 +3,7 @@ module S = Syntax
 module D = Domain
 module Env = ElabEnv
 module Err = ElabError
+module Nbe = Nbe.Monadic
 
 type message =
   | NormalizedTerm of S.t * S.t
@@ -32,9 +33,9 @@ module EM = ElabBasics
 let elaborate_typed_term tp tm = 
   let open Monad.Notation (EM) in
   let* tp = Elaborator.check_tp tp in
-  let* vtp = EM.lift_ev @@ Nbe.Monadic.eval_tp tp in 
+  let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in 
   let* tm = Elaborator.check_tm tm vtp in
-  let+ vtm = EM.lift_ev @@ Nbe.Monadic.eval tm in
+  let+ vtm = EM.lift_ev @@ Nbe.eval tm in
   tp, vtp, tm, vtm
 
 let execute_decl =
@@ -42,25 +43,25 @@ let execute_decl =
   function
   | CS.Def {name; def; tp} ->
     let* _tp, vtp, _tm, vtm = elaborate_typed_term tp def in
-    let* _ = EM.add_global (Some name) vtp @@ Some vtm in
-    EM.ret `Continue
+    let+ _sym = EM.add_global (Some name) vtp @@ Some vtm in
+    `Continue
   | CS.NormalizeDef name ->
     let* res = EM.resolve name in
     begin
       match res with
       | `Global sym ->
         let* D.Nf nf = EM.get_global sym in
-        let* tm = EM.lift_qu @@ Nbe.Monadic.quote nf.tp nf.el in
-        let* () = EM.emit pp_message @@ NormalizedDef (name, tm) in
-        EM.ret `Continue
+        let* tm = EM.lift_qu @@ Nbe.quote nf.tp nf.el in
+        let+ () = EM.emit pp_message @@ NormalizedDef (name, tm) in
+        `Continue
       | _ -> 
         EM.throw @@ Err.ElabError (UnboundVariable name)
     end
   | CS.NormalizeTerm {term; tp} ->
     let* _, vtp, tm, vtm = elaborate_typed_term tp term in
-    let* tm' = EM.lift_qu @@ Nbe.Monadic.quote vtp vtm in
-    let* () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in 
-    EM.ret `Continue
+    let* tm' = EM.lift_qu @@ Nbe.quote vtp vtm in
+    let+ () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in 
+    `Continue
   | CS.Quit -> 
     EM.ret `Quit
 

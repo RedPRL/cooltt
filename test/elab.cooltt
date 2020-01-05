@@ -1,5 +1,5 @@
-def foo : (x : nat) -> nat =
+def foo : (x : nat) -> (y : nat) * Id nat x y =
   fun x -> 
-  ?hole
+  (x, ?hole1)
 
 normalize def foo
