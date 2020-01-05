@@ -70,9 +70,7 @@ and syn_tm : S.t -> R.syn_tac =
       (chk_tm case_zero)
       (None, None, chk_tm case_suc)
       (syn_tm scrut)
-
   | S.Check (t, tp) -> 
     Refiner.chk_to_syn (chk_tm t) (chk_tp tp)
-
   | t -> 
     EM.elab_err @@ Err.ExpectedSynthesizableTerm t 
