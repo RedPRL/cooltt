@@ -19,7 +19,7 @@ and t =
   | Nat
   | Suc of t
   | Lit of int
-  | NRec of {mot : binder; case_zero : t; case_suc : binder2; scrut : t}
+  | NatElim of {mot : binder; case_zero : t; case_suc : binder2; scrut : t}
   | Pi of cell list * t
   | Lam of bindern
   | Ap of t * spine list
@@ -29,7 +29,7 @@ and t =
   | Snd of t
   | Id of t * t * t
   | Refl
-  | J of {mot : binder3; case_refl : binder; scrut : t}
+  | IdElim of {mot : binder3; case_refl : binder; scrut : t}
   | Hole of ident option
 [@@deriving show]
 

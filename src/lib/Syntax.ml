@@ -5,14 +5,14 @@ type t =
   | Check of t * tp
   | Zero
   | Suc of t
-  | NRec of (* BINDS *) tp * t * (* BINDS 2 *) t * t
+  | NatElim of (* BINDS *) tp * t * (* BINDS 2 *) t * t
   | Lam of (* BINDS *) t
   | Ap of t * t
   | Pair of t * t
   | Fst of t
   | Snd of t
   | Refl of t
-  | J of (* BINDS 3 *) tp * (* BINDS *) t * t
+  | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
 
 and tp =
   | Nat
@@ -42,7 +42,7 @@ let rec pp fmt =
       match condense t with
       | Some n -> fprintf fmt "%d" (n + 1)
       | None -> fprintf fmt "suc(@[<hov>%a@])" pp t )
-  | NRec (mot, zero, suc, n) ->
+  | NatElim (mot, zero, suc, n) ->
     fprintf fmt
       "rec(@[<hov>@[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@]@])"
       pp_tp mot pp zero pp suc pp n
@@ -54,8 +54,8 @@ let rec pp fmt =
   | Pair (l, r) ->
     fprintf fmt "pair(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp l pp r
   | Refl t -> fprintf fmt "refl(@[<hov>%a@])" pp t
-  | J (mot, refl, eq) ->
-    fprintf fmt "J(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp_tp
+  | IdElim (mot, refl, eq) ->
+    fprintf fmt "IdElim(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp_tp
       mot pp refl pp eq
 
 and pp_tp fmt =

@@ -12,7 +12,11 @@ val pi_intro : CS.ident option -> chk_tac -> chk_tac
 val sg_intro : chk_tac -> chk_tac -> chk_tac
 val id_intro : chk_tac
 val literal : int -> chk_tac
+val suc : chk_tac -> chk_tac
 val syn_to_chk : syn_tac -> chk_tac
+val chk_to_syn : chk_tac -> tp_tac -> syn_tac
+
+val tac_let : syn_tac -> CS.ident * chk_tac -> chk_tac 
 
 val lookup_var : CS.ident -> syn_tac 
 val apply : syn_tac -> chk_tac -> syn_tac
@@ -23,6 +27,13 @@ val id_elim
   : (CS.ident * CS.ident * CS.ident * tp_tac) 
   -> (CS.ident * chk_tac) 
   -> syn_tac 
+  -> syn_tac
+
+val nat_elim 
+  : (CS.ident * tp_tac)
+  -> chk_tac
+  -> (CS.ident * CS.ident * chk_tac)
+  -> syn_tac
   -> syn_tac
 
 val tac_multilam : CS.ident list -> chk_tac -> chk_tac

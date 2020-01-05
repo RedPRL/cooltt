@@ -16,26 +16,26 @@ module rec Compute :
 sig 
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.t) Vec.vec -> D.tp CmpM.m
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.t) Vec.vec -> D.t CmpM.m
-  val do_rec : ze su D.tp_clo -> D.t -> ze su su D.tm_clo -> D.t -> D.t CmpM.m
+  val do_nat_elim : ze su D.tp_clo -> D.t -> ze su su D.tm_clo -> D.t -> D.t CmpM.m
   val do_fst : D.t -> D.t CmpM.m
   val do_snd : D.t -> D.t CmpM.m
   val do_ap : D.t -> D.t -> D.t CmpM.m
-  val do_j : ze su su su D.tp_clo -> ze su D.tm_clo -> D.t -> D.t CmpM.m
+  val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.t -> D.t CmpM.m
 end =
 struct
   open CmpM
   open Monad.Notation (CmpM)
 
-  let rec do_rec (mot : ze su D.tp_clo) zero suc n : D.t CmpM.m =
+  let rec do_nat_elim (mot : ze su D.tp_clo) zero suc n : D.t CmpM.m =
     match n with
     | D.Zero -> 
       ret zero
     | D.Suc n -> 
-      let* v = do_rec mot zero suc n in 
+      let* v = do_nat_elim mot zero suc n in 
       inst_tm_clo suc [n; v]
     | D.Ne {ne = e; _} ->
       let+ final_tp = inst_tp_clo mot [n] in
-      D.Ne {tp = final_tp; ne = D.NRec (mot, zero, suc, e)}
+      D.Ne {tp = final_tp; ne = D.NatElim (mot, zero, suc, e)}
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
@@ -54,7 +54,7 @@ struct
       let* fst = do_fst p in
       let+ fib = inst_tp_clo clo Vec.[fst] in 
       D.Ne {tp = fib; ne = D.Snd ne}
-    | _ -> throw @@ NbeFailed "Couldn't snd argument in do_snd"
+    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd: " ^ D.show p)
 
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.t) Vec.vec -> D.tp CmpM.m =
     fun clo xs ->
@@ -74,7 +74,7 @@ struct
     | D.ConstClo t -> 
       CmpM.ret t
 
-  and do_j mot refl eq =
+  and do_id_elim mot refl eq =
     match eq with
     | D.Refl t -> inst_tm_clo refl [t]
     | D.Ne {tp; ne} -> 
@@ -82,12 +82,12 @@ struct
         match tp with
         | D.Id (tp, left, right) ->
           let+ fib = inst_tp_clo mot [left; right; eq] in
-          D.Ne {tp = fib; ne = D.J (mot, refl, tp, left, right, ne)}
+          D.Ne {tp = fib; ne = D.IdElim (mot, refl, tp, left, right, ne)}
         | _ -> 
-          CmpM.throw @@ NbeFailed "Not an Id in do_j"
+          CmpM.throw @@ NbeFailed "Not an Id in do_id_elim"
       end
     | _ -> 
-      CmpM.throw @@ NbeFailed "Not a refl or neutral in do_j"
+      CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
   and do_ap f a =
     match f with
@@ -157,12 +157,12 @@ struct
     | S.Suc t -> 
       let+ el = eval t in 
       D.Suc el
-    | S.NRec (tp, zero, suc, n) ->
+    | S.NatElim (tp, zero, suc, n) ->
       let* vzero = eval zero in
       let* vn = eval n in
       let* cltp = EvM.close_tp tp in
       let* clsuc = close_tm suc in
-      lift_cmp @@ Compute.do_rec cltp vzero clsuc vn
+      lift_cmp @@ Compute.do_nat_elim cltp vzero clsuc vn
     | S.Lam t -> 
       let+ cl = close_tm t in
       D.Lam cl
@@ -184,11 +184,11 @@ struct
       let+ el = eval t in
       D.Refl el
 
-    | S.J (mot, refl, eq) ->
+    | S.IdElim (mot, refl, eq) ->
       let* veq = eval eq in 
       let* clmot = close_tp mot in
       let* clrefl = close_tm refl in
-      lift_cmp @@ Compute.do_j clmot clrefl veq
+      lift_cmp @@ Compute.do_id_elim clmot clrefl veq
 end
 
 module Quote : sig 
@@ -270,7 +270,7 @@ struct
       S.Var (n - (x + 1))
     | D.Global sym ->
       ret @@ S.Global sym
-    | D.NRec (mot, zero_case, suc_case, n) ->
+    | D.NatElim (mot, zero_case, suc_case, n) ->
       let* x, mot_x, tmot = 
         binder 1 @@ 
         let* x = top_var D.Nat in
@@ -288,14 +288,14 @@ struct
         let* suc_case_x = lift_cmp @@ Compute.inst_tm_clo suc_case [x; ih] in
         quote mot_suc_x suc_case_x
       and+ tn = quote_ne n in
-      S.NRec (tmot, tzero_case, tsuc_case, tn)
+      S.NatElim (tmot, tzero_case, tsuc_case, tn)
     | D.Fst ne ->
       let+ tne = quote_ne ne in
       S.Fst tne
     | D.Snd ne ->
       let+ tne = quote_ne ne in
       S.Snd tne
-    | D.J (mot, refl_case, tp, left, right, eq) ->
+    | D.IdElim (mot, refl_case, tp, left, right, eq) ->
       let* x, tmot =
         binder 1 @@ 
         let* x = top_var tp in 
@@ -314,7 +314,7 @@ struct
         quote mot_refl_x refl_case_x
       in
       let+ teq = quote_ne eq in
-      S.J (tmot, trefl_case, teq)
+      S.IdElim (tmot, trefl_case, teq)
     | D.Ap (ne, D.Nf nf) ->
       let+ tne = quote_ne ne
       and+ targ = quote nf.tp nf.el in

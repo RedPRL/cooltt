@@ -7,6 +7,8 @@ include module type of Monads.ElabM
 val elab_err : ElabError.t -> 'a m
 
 val push_var : CS.ident option -> D.tp -> 'a m -> 'a m
+val push_def : CS.ident option -> D.tp -> D.t -> 'a m -> 'a m
+
 val add_global : CS.ident option -> D.tp -> D.t option -> Symbol.t m
 
 val resolve : CS.ident -> [`Local of int | `Global of Symbol.t | `Unbound] m

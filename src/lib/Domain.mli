@@ -29,8 +29,8 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | NRec of ze su tp_clo * t * ze su su tm_clo * ne
-  | J of ze su su su tp_clo * ze su tm_clo * tp * t * t * ne
+  | NatElim of ze su tp_clo * t * ze su su tm_clo * ne
+  | IdElim of ze su su su tp_clo * ze su tm_clo * tp * t * t * ne
 
 and nf = Nf of {tp : tp; el : t}
 

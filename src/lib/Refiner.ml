@@ -88,18 +88,36 @@ let id_intro : chk_tac =
   | tp ->
     EM.elab_err @@ Err.ExpectedConnective (`Id, tp)
 
-let literal n : chk_tac = 
+
+let assert_nat =
   function
-  | D.Nat ->
-    EM.ret @@ int_to_term n
-  | tp ->
-    EM.elab_err @@ Err.ExpectedConnective (`Nat, tp)
+  | D.Nat -> EM.ret () 
+  | tp -> EM.elab_err @@ Err.ExpectedConnective (`Nat, tp)
+
+
+let literal n : chk_tac = 
+  fun tp -> 
+  let* () = assert_nat tp in
+  EM.ret @@ int_to_term n
+
+let suc tac : chk_tac =
+  fun tp ->
+  let* () = assert_nat tp in
+  let+ t = tac tp in 
+  S.Suc t
+
 
 let syn_to_chk (tac : syn_tac) : chk_tac =
   fun tp ->
   let* tm, tp' = tac in
   let+ () = EM.equate_tp tp tp' in 
   tm
+
+let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac = 
+  let* tp = tac_tp in
+  let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
+  let+ tm = tac_tm vtp in
+  tm, vtp
 
 let lookup_var id : syn_tac =
   let* res = EM.resolve id in
@@ -118,7 +136,12 @@ let abstract nm tp k =
   let* x = EM.get_local 0 in 
   k x
 
-let id_elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_refl_case) tac_scrut : syn_tac = 
+let define nm tp el k = 
+  EM.push_def (Some nm) tp el @@
+  let* x = EM.get_local 0 in 
+  k x
+
+let id_elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_case_refl) tac_scrut : syn_tac = 
   let* tscrut, idtp = tac_scrut in
   let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
   let* tp, l, r = EM.dest_id idtp in
@@ -131,10 +154,45 @@ let id_elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_refl_case) tac_scrut : syn_
   let* t_refl_case =
     abstract nm_x tp @@ fun x ->
     let* fib_refl_x = EM.lift_ev @@ EvM.append [x; D.Refl x] @@ Nbe.eval_tp tmot in
-    tac_refl_case fib_refl_x
+    tac_case_refl fib_refl_x
   in
   let+ fib = EM.lift_ev @@ EvM.append [l; r; vscrut] @@ Nbe.eval_tp tmot in
-  S.J (tmot, t_refl_case, tscrut), fib
+  S.IdElim (tmot, t_refl_case, tscrut), fib
+
+let nat_elim (nm_mot, tac_mot) tac_case_zero (nm_x, nm_ih, tac_case_suc) tac_scrut : syn_tac = 
+  let* tscrut, nattp = tac_scrut in
+  let* () = assert_nat nattp in
+  let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
+
+  let* tmot = 
+    abstract nm_mot nattp @@ fun _ ->
+    tac_mot
+  in
+
+  let* tcase_zero = 
+    let* fib_zero = EM.lift_ev @@ EvM.append [D.Zero] @@ Nbe.eval_tp tmot in
+    tac_case_zero fib_zero 
+  in
+
+  let* tcase_suc = 
+    abstract nm_x nattp @@ fun x ->
+    let* fib_x = EM.lift_ev @@ EvM.append [x] @@ Nbe.eval_tp tmot in
+    let* fib_suc_x = EM.lift_ev @@ EvM.append [D.Suc x] @@ Nbe.eval_tp tmot in
+    abstract nm_ih fib_x @@ fun _ ->
+    tac_case_suc fib_suc_x
+  in
+
+  let+ fib_scrut = EM.lift_ev @@ EvM.append [vscrut] @@ Nbe.eval_tp tmot in
+  S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
+
+
+let tac_let tac_def (nm_x, tac_bdy) : chk_tac = 
+  fun tp ->
+  let* tdef, tp_def = tac_def in
+  let* vdef = EM.lift_ev @@ Nbe.eval tdef in
+  define nm_x tp_def vdef @@ fun _ ->
+  let+ tbdy = tac_bdy tp in 
+  S.Let (tdef, tbdy)
 
 let apply tac_fun tac_arg : syn_tac = 
   let* tfun, tp = tac_fun in

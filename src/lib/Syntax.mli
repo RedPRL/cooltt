@@ -5,14 +5,14 @@ type t =
   | Check of t * tp
   | Zero
   | Suc of t
-  | NRec of (* BINDS *) tp * t * (* BINDS 2 *) t * t
+  | NatElim of (* BINDS *) tp * t * (* BINDS 2 *) t * t
   | Lam of (* BINDS *) t
   | Ap of t * t
   | Pair of t * t
   | Fst of t
   | Snd of t
   | Refl of t
-  | J of (* BINDS 3 *) tp * (* BINDS *) t * t
+  | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
 
 and tp =
   | Nat

@@ -74,7 +74,7 @@ term:
   | REC; n = term; AT; mot_name = name; RRIGHT_ARROW; mot = term; WITH; LSQ;
     option(PIPE); ZERO; RRIGHT_ARROW; case_zero = term;
     PIPE; SUC; LPR; suc_var = name; RRIGHT_ARROW; ih_var = name; RPR; RRIGHT_ARROW; case_suc = term; RSQ
-    { NRec 
+    { NatElim 
        {mot = B {name = mot_name; body = mot};
         case_zero;
         case_suc = B2 {name1 = suc_var; name2 = ih_var; body = case_suc};
@@ -84,7 +84,7 @@ term:
     { Id (tp, left, right) }
   | MATCH; scrut = term; AT; name1 = name; name2 = name; name3 = name; RRIGHT_ARROW; mot_term = term; WITH; LSQ;
     option(PIPE); REFL; name = name; RRIGHT_ARROW; case_refl = term; RSQ
-    { J {mot = B3 {name1; name2; name3; body = mot_term}; case_refl = B {name; body = case_refl}; scrut} }
+    { IdElim {mot = B3 {name1; name2; name3; body = mot_term}; case_refl = B {name; body = case_refl}; scrut} }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term

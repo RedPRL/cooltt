@@ -17,7 +17,12 @@ let push_var id tp : 'a m -> 'a m =
   scope @@ fun env ->
   let var = D.Var (Env.size env) in
   let term = D.Ne {ne = var; tp} in
-  Env.append_term id term tp env
+  Env.append_el id term tp env
+
+let push_def id tp el : 'a m -> 'a m = 
+  scope @@ fun env ->
+  Env.append_el id el tp env
+
 
 let resolve id = 
   let* env = read in
