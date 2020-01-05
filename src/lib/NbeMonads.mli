@@ -2,27 +2,28 @@ module D := Domain
 module S := Syntax
 module St := ElabState
 
-type 'a compute = St.t -> 'a
-type 'a evaluate = St.t * D.env -> 'a
-type 'a quote = St.t * int -> 'a
+type 'a compute 
+type 'a evaluate
+type 'a quote
 
 module CmpM : sig 
-  include Monad.S with type 'a m = 'a compute
+  include Monad.MonadReaderResult 
+    with type 'a m = 'a compute
+    with type local := St.t
+
   val evaluate : D.env -> 'a evaluate -> 'a m
-  val run : 'a m -> ElabState.t -> 'a
   val read : ElabState.t m
-  val throw : exn -> 'a m
 end
 
 module EvM : sig 
-  include Monad.S with type 'a m = 'a evaluate
+  include Monad.MonadReaderResult 
+    with type 'a m = 'a evaluate
+    with type local := St.t * D.env
 
   val compute : 'a compute -> 'a m
 
-  val run : 'a m -> ElabState.t -> D.env -> 'a
   val read_global : ElabState.t m
   val read_local : D.env m
-  val throw : exn -> 'a m
 
   val close_tp : S.tp -> 'n D.tp_clo m
   val close_tm : S.t -> 'n D.tm_clo m
@@ -30,14 +31,14 @@ module EvM : sig
 end
 
 module QuM : sig 
-  include Monad.S with type 'a m = 'a quote
+  include Monad.MonadReaderResult 
+    with type 'a m = 'a quote
+    with type local := St.t * int
 
   val compute : 'a compute -> 'a m
 
-  val run : 'a m -> ElabState.t -> int -> 'a
   val read_global : ElabState.t m
   val read_local : int m
-  val throw : exn -> 'a m
 
   val push : int -> 'a m -> 'a m
 end

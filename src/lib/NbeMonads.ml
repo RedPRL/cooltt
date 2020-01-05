@@ -2,57 +2,68 @@ module D = Domain
 module S = Syntax
 module St = ElabState
 
-type 'a compute = St.t -> 'a
-type 'a evaluate = St.t * D.env -> 'a
-type 'a quote = St.t * int -> 'a
-
 module CmpM =
 struct
-  type 'a m = 'a compute 
-  let ret a _ = a
-  let bind m k st = k (m st) st
-  let run m st = m st
-  let read st = st
-  let throw exn _ = raise exn
+  include Monad.MonadReaderResult (struct type local = St.t end)
   let evaluate env m st = m (st, env)
 end
 
+type 'a compute = 'a CmpM.m
+
 module EvM =
 struct
-  type 'a m = 'a evaluate 
-  let ret a _ = a
-  let bind m k p = k (m p) p
-  let run m st env = m (st, env)
-  let read_global (st, _) = st
-  let read_local (_, env) = env
-  let throw exn _ = raise exn
+  module M = Monad.MonadReaderResult (struct type local = St.t * D.env end)
+  open Monad.Notation (M)
 
-  let push cells m (st, (env : D.env)) = 
-    m (st, D.{locals = cells @ env.locals})
+  let read_global =
+    let+ (st, _) = M.read in 
+    st
+
+  let read_local =
+    let+ (_, env) = M.read in 
+    env
+
+  let push cells = 
+    M.scope @@ fun (st, env) ->
+    st, D.{locals = cells @ env.locals}
 
   let close_tp tp : _ m =
-    fun (_, env) ->
+    let+ env = read_local in 
     D.Clo {bdy = tp; env}
 
   let close_tm t : _ m = 
-    fun (_, env) ->
+    let+ env = read_local in 
     D.Clo {bdy = t; env}
 
-  let compute m (st, _) = m st
+  let compute (m : 'a compute) : 'a M.m =
+    fun (st, _) ->
+    m st
+
+  include M
 end
+
+type 'a evaluate = 'a EvM.m
 
 module QuM =
 struct
-  type 'a m = 'a quote
-  let ret a _ = a
-  let bind m k p = k (m p) p
-  let run m st i = m (st, i)
-  let read_global (st, _) = st
-  let read_local (_, i) = i
-  let throw exn _ = raise exn
+  module M = Monad.MonadReaderResult (struct type local = St.t * int end)
+  open Monad.Notation (M)
 
-  let push i m (st, n) = 
-    m (st, i + n) 
+  let read_global =
+    let+ (st, _) = M.read in 
+    st
+
+  let read_local =
+    let+ (_, size) = M.read in 
+    size
+
+  let push i =
+    M.scope @@ fun (st, size) ->
+    st, i + size
 
   let compute m (st, _) = m st
+
+  include M
 end
+
+type 'a quote = 'a QuM.m

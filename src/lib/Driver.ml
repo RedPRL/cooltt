@@ -82,6 +82,6 @@ let rec execute_signature sign =
 
 let process_sign : CS.signature -> unit =
   fun sign ->
-  match EM.run (execute_signature sign) Env.init with
-  | EM.Ret () -> ()
-  | EM.Throw exn -> raise exn
+  match Env.init |> EM.run @@ execute_signature sign with
+  | Ok () -> ()
+  | Error exn -> raise exn
