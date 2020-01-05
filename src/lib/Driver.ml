@@ -82,6 +82,4 @@ let rec execute_signature sign =
 
 let process_sign : CS.signature -> unit =
   fun sign ->
-  match Env.init |> EM.run @@ execute_signature sign with
-  | Ok () -> ()
-  | Error exn -> raise exn
+  EM.run_exn ElabState.init Env.init @@ execute_signature sign 
