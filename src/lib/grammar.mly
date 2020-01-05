@@ -5,7 +5,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE ATSIGN
+%token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE
 %token LPR RPR
 %token EQUALS
 %token TIMES FST SND
@@ -52,7 +52,7 @@ atomic:
   | NAT
     { Nat }
   | REFL
-    { Refl None }
+    { Refl }
   | LPR left = term; COMMA; right = term; RPR
     { Pair (left, right) }
   | name = HOLE_NAME
@@ -85,8 +85,6 @@ term:
     }
   | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
-  | ATSIGN; REFL; t = atomic
-    { Refl (Some t) }
   | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
     PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
     { J {mot = B3 {name1; name2; name3; body = mot_term}; refl = B {name; body = refl}; eq} }

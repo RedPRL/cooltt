@@ -29,7 +29,7 @@ and check_tm : CS.t -> D.tp -> S.t EM.m =
   function
   | CS.Hole name ->
     Refiner.unleash_hole name
-  | CS.Refl _ ->
+  | CS.Refl ->
     Refiner.id_intro 
   | CS.Lit n ->
     Refiner.literal n

@@ -84,8 +84,6 @@ rule token = parse
     { LAM }
   | '_'
     { UNDERSCORE }
-  | '@'
-    { ATSIGN }
   | "?" atom
     {
       match String.split_on_char '?' @@ lexeme lexbuf with
