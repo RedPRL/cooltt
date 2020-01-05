@@ -1,3 +1,0 @@
-def x : nat = 2
-
-normalize x
