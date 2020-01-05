@@ -19,7 +19,7 @@ let rec check_tp : CS.t -> S.tp EM.m =
   | CS.Nat -> EM.ret S.Nat
   | CS.Id (tp, l, r) ->
     let* tp = check_tp tp in
-    let* vtp = EM.eval_tp tp in
+    let* vtp = EM.lift_ev @@ Nbe.Monadic.eval_tp tp in 
     let+ l = check_tm l vtp
     and+ r = check_tm r vtp in
     S.Id (tp, l, r)
@@ -54,7 +54,7 @@ and check_sg_tp cells body =
   | [] -> check_tp body
   | Cell cell :: cells ->
     let* base = check_tp cell.tp in
-    let* vbase = EM.eval_tp base in
+    let* vbase = EM.lift_ev @@ Nbe.Monadic.eval_tp base in
     let+ fam = EM.push_var (Some cell.name) vbase @@ check_sg_tp cells body in
     S.Sg (base, fam)
 
@@ -63,6 +63,6 @@ and check_pi_tp cells body =
   | [] -> check_tp body
   | Cell cell :: cells ->
     let* base = check_tp cell.tp in
-    let* vbase = EM.eval_tp base in
+    let* vbase = EM.lift_ev @@ Nbe.Monadic.eval_tp base in
     let+ fam = EM.push_var (Some cell.name) vbase @@ check_pi_tp cells body in
     S.Pi (base, fam)

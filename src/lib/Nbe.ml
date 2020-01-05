@@ -203,6 +203,9 @@ module Quote : sig
   val quote : D.tp -> D.t -> S.t QuM.m
   val quote_tp : D.tp -> S.tp QuM.m
   val quote_ne : D.ne -> S.t QuM.m
+  val equal : D.tp -> D.t -> D.t -> bool QuM.m
+  val equal_tp : D.tp -> D.tp -> bool QuM.m
+  val equal_ne : D.ne -> D.ne -> bool QuM.m
 end = 
 struct
   open QuM
@@ -324,6 +327,22 @@ struct
       let+ tne = quote_ne ne
       and+ targ = quote nf.tp nf.el in
       S.Ap (tne, targ)
+
+
+  let equal tp el1 el2 = 
+    let+ t1 = quote tp el1
+    and+ t2 = quote tp el2 in 
+    t1 = t2
+
+  let equal_tp tp1 tp2 = 
+    let+ ttp1 = quote_tp tp1 
+    and+ ttp2 = quote_tp tp2 in
+    ttp1 = ttp2
+
+  let equal_ne ne1 ne2 = 
+    let+ tne1 = quote_ne ne1 
+    and+ tne2 = quote_ne ne2 in
+    tne1 = tne2
 end
 
 let eval_tp st env tp = 
@@ -349,17 +368,19 @@ let quote_ne st size ne =
 
 
 (* TODO: replace with efficient binary version *)
-let equal_nf st size nf1 nf2 =
-  let t1 = quote_nf st size nf1 in
-  let t2 = quote_nf st size nf2 in 
-  t1 = t2
+let equal_nf st size (D.Nf nf1) (D.Nf nf2) =
+  QuM.run (Quote.equal nf1.tp nf1.el nf2.el) st size
 
 let equal_ne st size ne1 ne2 =
-  let t1 = quote_ne st size ne1 in
-  let t2 = quote_ne st size ne2 in 
-  t1 = t2
+  QuM.run (Quote.equal_ne ne1 ne2) st size
 
 let equal_tp st size tp1 tp2 =
-  let tp1 = quote_tp st size tp1 in
-  let tp2 = quote_tp st size tp2 in
-  tp1 = tp2
+  QuM.run (Quote.equal_tp tp1 tp2) st size
+
+
+module Monadic = 
+struct
+  include Eval
+  include Quote
+  include Compute
+end

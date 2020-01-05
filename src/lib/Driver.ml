@@ -36,9 +36,9 @@ end
 let elaborate_typed_term tp tm = 
   let open Monad.Notation (EM) in
   let* tp = Elaborator.check_tp tp in
-  let* vtp = EM.eval_tp tp in
+  let* vtp = EM.lift_ev @@ Nbe.Monadic.eval_tp tp in 
   let* tm = Elaborator.check_tm tm vtp in
-  let+ vtm = EM.eval_tm tm in
+  let+ vtm = EM.lift_ev @@ Nbe.Monadic.eval tm in
   tp, vtp, tm, vtm
 
 let execute_decl =
@@ -54,7 +54,7 @@ let execute_decl =
       match res with
       | `Global sym ->
         let* D.Nf nf = EM.get_global sym in
-        let* tm = EM.quote nf.tp nf.el in
+        let* tm = EM.lift_qu @@ Nbe.Monadic.quote nf.tp nf.el in
         let* () = EM.emit pp_message @@ NormalizedDef (name, tm) in
         EM.ret `Continue
       | _ -> 
@@ -62,7 +62,7 @@ let execute_decl =
     end
   | CS.NormalizeTerm {term; tp} ->
     let* _, vtp, tm, vtm = elaborate_typed_term tp term in
-    let* tm' = EM.quote vtp vtm in
+    let* tm' = EM.lift_qu @@ Nbe.Monadic.quote vtp vtm in
     let* () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in 
     EM.ret `Continue
   | CS.Quit -> 

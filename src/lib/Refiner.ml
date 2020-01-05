@@ -26,9 +26,9 @@ let unleash_hole name : chk_tac =
   let rec go_tp : Env.cell list -> S.tp m =
     function
     | [] ->
-      EM.quote_tp tp
+      EM.lift_qu @@ Nbe.Monadic.quote_tp tp
     | (D.Nf cell, name) :: cells -> 
-      let+ base = EM.quote_tp cell.tp
+      let+ base = EM.lift_qu @@ Nbe.Monadic.quote_tp cell.tp
       and+ fam = EM.push_var name cell.tp @@ go_tp cells in
       S.Pi (base, fam)
   in
@@ -45,13 +45,13 @@ let unleash_hole name : chk_tac =
     EM.globally @@ 
     let+ sym = 
       let* tp = go_tp @@ Env.locals env in
-      let* vtp = EM.eval_tp tp in
+      let* vtp = EM.lift_ev @@ Nbe.Monadic.eval_tp tp in
       EM.add_global name vtp None 
     in
     go_tm (D.Global sym) @@ Env.locals env 
   in
 
-  EM.quote_ne ne
+  EM.lift_qu @@ Nbe.Monadic.quote_ne ne 
 
 
 let pi_intro name tac_body : chk_tac = 
@@ -59,7 +59,7 @@ let pi_intro name tac_body : chk_tac =
   | D.Pi (base, fam) ->
     EM.push_var name base @@ 
     let* var = EM.get_local 0 in
-    let* fib = EM.inst_tp_clo fam var in
+    let* fib = EM.lift_cmp @@ Nbe.Monadic.do_tp_clo fam var in
     let+ t = tac_body fib in
     S.Lam t
   | tp ->
@@ -69,8 +69,8 @@ let sg_intro tac_fst tac_snd : chk_tac =
   function
   | D.Sg (base, fam) ->
     let* tfst = tac_fst base in
-    let* vfst = EM.eval_tm tfst in
-    let* fib = EM.inst_tp_clo fam vfst in
+    let* vfst = EM.lift_ev @@ Nbe.Monadic.eval tfst in
+    let* fib = EM.lift_cmp @@ Nbe.Monadic.do_tp_clo fam vfst in
     let+ tsnd = tac_snd fib in
     S.Pair (tfst, tsnd)
   | tp ->
@@ -80,7 +80,7 @@ let id_intro : chk_tac =
   function
   | D.Id (tp, l, r) ->
     let+ () = EM.equate tp l r
-    and+ t = EM.quote tp l in
+    and+ t = EM.lift_qu @@ Nbe.Monadic.quote tp l in
     S.Refl t
   | tp ->
     EM.throw @@ Err.ElabError (Err.ExpectedConnective (`Id, tp))
@@ -115,8 +115,8 @@ let apply tac_fun tac_arg : syn_tac =
   let* tfun, tp = tac_fun in
   let* base, fam = EM.dest_pi tp in
   let* targ = tac_arg base in
-  let* varg = EM.eval_tm targ in
-  let+ fib = EM.inst_tp_clo fam varg in
+  let* varg = EM.lift_ev @@ Nbe.Monadic.eval targ in
+  let+ fib = EM.lift_cmp @@ Nbe.Monadic.do_tp_clo fam varg in
   S.Ap (tfun, targ), fib
 
 module Tactic = 

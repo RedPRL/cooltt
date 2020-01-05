@@ -4,6 +4,21 @@ module St := ElabState
 
 exception NbeFailed of string
 
+module Monadic : sig
+  open NbeMonads
+  val eval : S.t -> D.t evaluate
+  val eval_tp : S.tp -> D.tp evaluate
+  val quote : D.tp -> D.t -> S.t quote
+  val quote_tp : D.tp -> S.tp quote
+  val quote_ne : D.ne -> S.t quote
+  val equal : D.tp -> D.t -> D.t -> bool quote
+  val equal_tp : D.tp -> D.tp -> bool quote
+  val equal_ne : D.ne -> D.ne -> bool quote
+
+  val do_tp_clo : (S.tp, D.tp) D.clo -> D.t -> D.tp compute
+  val do_tm_clo : (S.t, D.t) D.clo -> D.t -> D.t compute
+end
+
 (* Functions to pass between various semantic domains *)
 val eval : St.t -> D.env -> S.t -> D.t
 val eval_tp : St.t -> D.env -> S.tp -> D.tp
