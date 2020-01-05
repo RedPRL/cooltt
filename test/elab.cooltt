@@ -2,4 +2,9 @@ def foo : (x : nat) -> (y : nat) * Id nat x y =
   fun x -> 
   (x, ?hole1)
 
+def bar : (x : nat) -> nat = 
+  fun x ->
+    fst (foo x)
+
 normalize def foo
+normalize def bar
