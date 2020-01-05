@@ -1,18 +1,22 @@
 ; Not really a particularly interesting program, but good for computing stuff.
 
-def plus : nat -> nat -> nat =
-  fun m n ->
-  rec n at x -> nat with
-  | zero -> m
-  | suc (_ -> p) -> suc p
+def plus : nat -> nat -> nat = {
+  \m n =>
+  rec n at x => nat with [
+  | zero => m
+  | suc (_ => p) => suc p
+  ]
+}
 
-def fib : nat -> nat =
-  fun n ->
+def fib : nat -> nat = {
+  \n=>
   let worker : nat * nat =
-    rec n at _ -> nat * nat with
-    | zero -> (1, 0)
-    | suc (_ -> p) -> (plus (fst p) (snd p), fst p)
+    rec n at _ => nat * nat with [
+    | zero => [1, 0]
+    | suc (_ => p) => [plus {fst p} {snd p}, fst p]
+    ]
   in
   snd worker
+}
 
 normalize fib 25 at nat

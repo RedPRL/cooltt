@@ -5,8 +5,8 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW UNDERSCORE
-%token LPR RPR
+%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE
+%token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS
 %token TIMES FST SND
 %token LAM LET IN END WITH
@@ -41,8 +41,8 @@ sign:
     { d :: s }
 
 atomic:
-  | LPR; t = term; RPR
-    { t }
+  | LBR; term = term; RBR
+    { term }
   | a = name
     { Var a }
   | ZERO
@@ -53,7 +53,7 @@ atomic:
     { Nat }
   | REFL
     { Refl }
-  | LPR left = term; COMMA; right = term; RPR
+  | LSQ; left = term; COMMA; right = term; RSQ
     { Pair (left, right) }
   | name = HOLE_NAME
     { Hole name }
@@ -73,9 +73,9 @@ term:
     { Check {term = t; tp} }
   | SUC; t = term
     { Suc t }
-  | REC; n = term; AT; mot_name = name; RIGHT_ARROW; mot = term; WITH;
-    PIPE; ZERO; RIGHT_ARROW; zero_case = term;
-    PIPE; SUC; LPR; suc_var = name; RIGHT_ARROW; ih_var = name; RPR; RIGHT_ARROW; suc_case = term
+  | REC; n = term; AT; mot_name = name; RRIGHT_ARROW; mot = term; WITH; LSQ;
+    PIPE; ZERO; RRIGHT_ARROW; zero_case = term;
+    PIPE; SUC; LPR; suc_var = name; RRIGHT_ARROW; ih_var = name; RPR; RRIGHT_ARROW; suc_case = term; RSQ
     { NRec {
         mot = B {name = mot_name; body = mot};
         zero = zero_case;
@@ -88,7 +88,7 @@ term:
   | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
     PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
     { J {mot = B3 {name1; name2; name3; body = mot_term}; refl = B {name; body = refl}; eq} }
-  | LAM; names = nonempty_list(name); RIGHT_ARROW; body = term
+  | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }

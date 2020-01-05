@@ -66,6 +66,14 @@ rule token = parse
     { LPR }
   | ')'
     { RPR }
+  | '{'
+    { LBR }
+  | '}'
+    { RBR }
+  | '['
+    { LSQ }
+  | ']'
+    { RSQ }
   | '|'
     { PIPE }
   | ','
@@ -80,8 +88,12 @@ rule token = parse
     { EQUALS }
   | "->"
     { RIGHT_ARROW }
+  | "=>"
+    { RRIGHT_ARROW }
   | "λ"
     { LAM }
+  | "\\"
+    { LAM } 
   | '_'
     { UNDERSCORE }
   | "?" atom

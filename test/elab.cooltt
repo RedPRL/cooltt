@@ -1,17 +1,26 @@
-def foo : (x : nat) -> (y : nat) * Id nat x y =
-  fun x -> 
-  (x, ?hole1)
+def foo : (x : nat) -> (y : nat) * Id nat x y = {
+  \x=>
+  [x, ?hole1]
+}
 
-def bar : (x : nat) -> nat = 
-  fun x ->
-    fst (foo x)
+def bar : (x : nat) -> nat = {
+  \x=>
+  fst {foo x}
+}
+
+def boo : nat = {
+  zero
+}
+
+normalize def boo
 
 normalize def foo
 normalize def bar
 
 
-def sigma_eta : (p : ((x : nat) * nat)) -> Id ((x : nat) * nat) p (fst p, snd p) = 
-  fun p ->
-    refl
+def sigma_eta : (p : (x : nat) * nat) -> Id {(x : nat) * nat} p [fst p, snd p] = {
+  \p=>
+  refl
+}
 
 normalize def sigma_eta

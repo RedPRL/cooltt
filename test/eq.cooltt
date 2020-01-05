@@ -1,1 +1,2 @@
-def test : Id nat 0 0 = refl 
+def test : Id nat 0 0 = 
+  refl 
