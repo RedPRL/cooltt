@@ -118,7 +118,7 @@ let abstract nm tp k =
   let* x = EM.get_local 0 in 
   k x
 
-let id_elim nm_x0 nm_x1 nm_p nm_x (tac_mot : tp_tac) (tac_refl_case : chk_tac) (tac_scrut : syn_tac) : syn_tac = 
+let id_elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_refl_case) tac_scrut : syn_tac = 
   let* tscrut, idtp = tac_scrut in
   let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
   let* tp, l, r = EM.dest_id idtp in

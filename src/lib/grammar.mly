@@ -83,9 +83,9 @@ term:
     }
   | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
-  | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RRIGHT_ARROW; mot_term = term; WITH; LSQ;
-    option(PIPE); REFL; name = name; RRIGHT_ARROW; refl = term; RSQ
-    { J {mot = B3 {name1; name2; name3; body = mot_term}; refl = B {name; body = refl}; eq} }
+  | MATCH; scrut = term; AT; name1 = name; name2 = name; name3 = name; RRIGHT_ARROW; mot_term = term; WITH; LSQ;
+    option(PIPE); REFL; name = name; RRIGHT_ARROW; case_refl = term; RSQ
+    { J {mot = B3 {name1; name2; name3; body = mot_term}; case_refl = B {name; body = case_refl}; scrut} }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term

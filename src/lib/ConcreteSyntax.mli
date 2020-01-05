@@ -29,7 +29,7 @@ and t =
   | Snd of t
   | Id of t * t * t
   | Refl
-  | J of {mot : binder3; refl : binder; eq : t}
+  | J of {mot : binder3; case_refl : binder; scrut : t}
   | Hole of ident option
 
 type decl =

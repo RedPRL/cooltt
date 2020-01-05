@@ -18,7 +18,12 @@ val lookup_var : CS.ident -> syn_tac
 val apply : syn_tac -> chk_tac -> syn_tac
 val pi1 : syn_tac -> syn_tac
 val pi2 : syn_tac -> syn_tac
-val id_elim : CS.ident -> CS.ident -> CS.ident -> CS.ident -> tp_tac -> chk_tac -> syn_tac -> syn_tac
+
+val id_elim 
+  : (CS.ident * CS.ident * CS.ident * tp_tac) 
+  -> (CS.ident * chk_tac) 
+  -> syn_tac 
+  -> syn_tac
 
 val tac_multilam : CS.ident list -> chk_tac -> chk_tac
 val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
