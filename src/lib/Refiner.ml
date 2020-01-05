@@ -132,12 +132,12 @@ let lookup_var id : syn_tac =
     EM.elab_err @@ Err.UnboundVariable id
 
 let abstract nm tp k =
-  EM.push_var (Some nm) tp @@ 
+  EM.push_var nm tp @@ 
   let* x = EM.get_local 0 in 
   k x
 
 let define nm tp el k = 
-  EM.push_def (Some nm) tp el @@
+  EM.push_def nm tp el @@
   let* x = EM.get_local 0 in 
   k x
 

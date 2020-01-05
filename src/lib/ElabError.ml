@@ -1,5 +1,6 @@
 module CS = ConcreteSyntax
 module D = Domain
+module S = Syntax
 open CoolBasis
 
 type t =
@@ -8,6 +9,7 @@ type t =
   | ExpectedEqualTypes of D.tp * D.tp
   | InvalidTypeExpression of CS.t
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat] * D.tp
+  | ExpectedSynthesizableTerm of S.t
 [@@deriving show]
 
 exception ElabError of t

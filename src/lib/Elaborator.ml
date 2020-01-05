@@ -40,7 +40,7 @@ and check_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.Suc c ->
     Refiner.suc (check_tm c)
   | CS.Let (c, B bdy) -> 
-    Refiner.tac_let (synth_tm c) (bdy.name, check_tm bdy.body)
+    Refiner.tac_let (synth_tm c) (Some bdy.name, check_tm bdy.body)
   | cs ->
     Refiner.syn_to_chk @@ synth_tm cs
 
@@ -59,14 +59,14 @@ and synth_tm : CS.t -> (S.t * D.tp) EM.m =
     Refiner.pi2 @@ synth_tm t
   | CS.IdElim {mot = B3 mot; case_refl = B case_refl; scrut} ->
     Refiner.id_elim 
-      (mot.name1, mot.name2, mot.name3, check_tp mot.body) 
-      (case_refl.name, check_tm case_refl.body) 
+      (Some mot.name1, Some mot.name2, Some mot.name3, check_tp mot.body) 
+      (Some case_refl.name, check_tm case_refl.body) 
       (synth_tm scrut)
   | CS.NatElim {mot = B mot; case_zero; case_suc = B2 case_suc; scrut} ->
     Refiner.nat_elim 
-      (mot.name, check_tp mot.body)
+      (Some mot.name, check_tp mot.body)
       (check_tm case_zero)
-      (case_suc.name1, case_suc.name2, check_tm case_suc.body)
+      (Some case_suc.name1, Some case_suc.name2, check_tm case_suc.body)
       (synth_tm scrut)
   | CS.Check {term; tp} ->
     Refiner.chk_to_syn (check_tm term) (check_tp tp)
