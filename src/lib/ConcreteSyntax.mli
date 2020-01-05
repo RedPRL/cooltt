@@ -19,7 +19,7 @@ and t =
   | Nat
   | Suc of t
   | Lit of int
-  | NRec of {mot : binder; zero : t; suc : binder2; nat : t}
+  | NRec of {mot : binder; case_zero : t; case_suc : binder2; scrut : t}
   | Pi of cell list * t
   | Lam of bindern
   | Ap of t * spine list

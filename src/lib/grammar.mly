@@ -72,14 +72,13 @@ term:
   | SUC; t = term
     { Suc t }
   | REC; n = term; AT; mot_name = name; RRIGHT_ARROW; mot = term; WITH; LSQ;
-    option(PIPE); ZERO; RRIGHT_ARROW; zero_case = term;
-    PIPE; SUC; LPR; suc_var = name; RRIGHT_ARROW; ih_var = name; RPR; RRIGHT_ARROW; suc_case = term; RSQ
-    { NRec {
-        mot = B {name = mot_name; body = mot};
-        zero = zero_case;
-        suc = B2 {name1 = suc_var; name2 = ih_var; body = suc_case};
-        nat = n
-      }
+    option(PIPE); ZERO; RRIGHT_ARROW; case_zero = term;
+    PIPE; SUC; LPR; suc_var = name; RRIGHT_ARROW; ih_var = name; RPR; RRIGHT_ARROW; case_suc = term; RSQ
+    { NRec 
+       {mot = B {name = mot_name; body = mot};
+        case_zero;
+        case_suc = B2 {name1 = suc_var; name2 = ih_var; body = case_suc};
+        scrut = n}
     }
   | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
