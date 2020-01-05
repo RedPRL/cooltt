@@ -4,8 +4,6 @@ module St := ElabState
 
 exception Nbe_failed of string
 
-(* TODO: eval functions take state?? Potential problem is reifying _old_ states in whnfs. Led to bugs in redtt. *)
-
 (* Functions to pass between various semantic domains *)
 val eval : St.t -> D.env -> S.t -> D.t
 val eval_tp : St.t -> D.env -> S.tp -> D.tp

@@ -4,91 +4,9 @@
 module S = Syntax
 module D = Domain
 
+open NbeMonads
+
 exception Nbe_failed of string
-
-module CmpM : sig 
-  include Monad.S with type 'a m = ElabState.t -> 'a
-  val run : 'a m -> ElabState.t -> 'a
-  val read : ElabState.t m
-  val throw : exn -> 'a m
-end = 
-struct
-  type 'a m = ElabState.t -> 'a
-  let ret a _ = a
-  let bind m k st = k (m st) st
-  let run m st = m st
-  let read st = st
-  let throw exn _ = raise exn
-end
-
-module EvM : sig 
-  include Monad.S with type 'a m = ElabState.t * D.env -> 'a
-  val run : 'a m -> ElabState.t -> D.env -> 'a
-  val read_global : ElabState.t m
-  val read_local : D.env m
-  val throw : exn -> 'a m
-
-  val close_tp : S.tp -> (S.tp, D.tp) D.clo m
-  val close2_tp : S.tp -> S.tp D.clo2 m
-  val close3_tp : S.tp -> S.tp D.clo3 m
-  val close_tm : S.t -> (S.t, D.t) D.clo m
-  val close2_tm : S.t -> S.t D.clo2 m
-  val push : D.t list -> 'a m -> 'a m
-end = 
-struct
-  type 'a m = ElabState.t * D.env -> 'a
-  let ret a _ = a
-  let bind m k p = k (m p) p
-  let run m st env = m (st, env)
-  let read_global (st, _) = st
-  let read_local (_, env) = env
-  let throw exn _ = raise exn
-
-  let push cells m (st, (env : D.env)) = 
-    m (st, D.{locals = cells @ env.locals})
-
-  let close_tp tp : _ m =
-    fun (_, env) ->
-    D.Clo {term = tp; env}
-
-  let close_tm t : _ m = 
-    fun (_, env) ->
-    D.Clo {term = t; env}
-
-  let close2_tm t : _ m = 
-    fun (_, env) ->
-    D.Clo2 {term = t; env}
-
-  let close2_tp tp : _ m =
-    fun (_, env) ->
-    D.Clo2 {term = tp; env}
-
-  let close3_tp tp : _ m = 
-    fun (_, env) ->
-    D.Clo3 {term = tp; env}
-end
-
-module QuM : sig 
-  include Monad.S with type 'a m = ElabState.t * int -> 'a
-  val run : 'a m -> ElabState.t -> int -> 'a
-  val read_global : ElabState.t m
-  val read_local : int m
-  val throw : exn -> 'a m
-
-  val push : int -> 'a m -> 'a m
-end = 
-struct
-  type 'a m = ElabState.t * int -> 'a
-  let ret a _ = a
-  let bind m k p = k (m p) p
-  let run m st i = m (st, i)
-  let read_global (st, _) = st
-  let read_local (_, i) = i
-  let throw exn _ = raise exn
-
-  let push i m (st, n) = 
-    m (st, i + n) 
-end
 
 module rec Compute : 
 sig 
@@ -210,11 +128,6 @@ struct
   open EvM
   open Monad.Notation (EvM)
 
-  let compute : 'a CmpM.m -> 'a EvM.m =
-    fun m (st, _) ->
-    m st
-
-
   let get_local i =
     let* env = EvM.read_local in
     match List.nth env.locals i with 
@@ -298,10 +211,6 @@ end =
 struct
   open QuM
   open Monad.Notation (QuM)
-
-  let compute : 'a CmpM.m -> 'a m =
-    fun m (st, _) ->
-    m st
 
   let top_var tp =
     let+ n = read_local in 
