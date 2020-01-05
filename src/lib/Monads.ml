@@ -80,7 +80,7 @@ struct
 
   let emit pp a : unit m = 
     fun (st, _env) -> 
-    let () = pp Format.std_formatter a in 
+    let () = Format.fprintf Format.std_formatter "%a@." pp a in 
     Ok (), st
 
 
