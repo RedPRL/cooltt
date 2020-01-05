@@ -1,10 +1,11 @@
 module CS := ConcreteSyntax
 module D := Domain
+open Bwd
 
 type t
 type cell = D.nf * string option
 
-val locals : t -> cell list
+val locals : t -> cell bwd
 
 val init : t
 val push_term : string option -> D.t -> D.tp -> t -> t
