@@ -14,6 +14,7 @@ struct
   let run m st = m st
   let read st = st
   let throw exn _ = raise exn
+  let evaluate env m st = m (st, env)
 end
 
 module EvM =

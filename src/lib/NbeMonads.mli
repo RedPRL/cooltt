@@ -8,6 +8,7 @@ type 'a quote = St.t * int -> 'a
 
 module CmpM : sig 
   include Monad.S with type 'a m = 'a compute
+  val evaluate : D.env -> 'a evaluate -> 'a m
   val run : 'a m -> ElabState.t -> 'a
   val read : ElabState.t m
   val throw : exn -> 'a m

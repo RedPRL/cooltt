@@ -17,7 +17,7 @@ let main input =
   | Load.Parse_error s ->
     Printf.eprintf "Frontend error: %s" s;
     1
-  | Nbe.Nbe_failed s ->
+  | Nbe.NbeFailed s ->
     Printf.eprintf "Internal error (Failed to normalize): %s\n" s;
     1
   | Check.TypeError e ->

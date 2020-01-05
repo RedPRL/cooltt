@@ -2,7 +2,7 @@ module D := Domain
 module S := Syntax
 module St := ElabState
 
-exception Nbe_failed of string
+exception NbeFailed of string
 
 (* Functions to pass between various semantic domains *)
 val eval : St.t -> D.env -> S.t -> D.t

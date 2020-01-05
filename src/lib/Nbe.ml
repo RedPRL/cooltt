@@ -6,7 +6,7 @@ module D = Domain
 
 open NbeMonads
 
-exception Nbe_failed of string
+exception NbeFailed of string
 
 module rec Compute : 
 sig 
@@ -24,10 +24,6 @@ struct
   open CmpM
   open Monad.Notation (CmpM)
 
-  let evaluate : D.env -> 'a EvM.m -> 'a CmpM.m = 
-    fun env m st -> 
-    m (st, env)
-
   let rec do_rec (tp : (S.tp, D.tp) D.clo) zero suc n : D.t CmpM.m =
     match n with
     | D.Zero -> 
@@ -39,24 +35,24 @@ struct
       let+ final_tp = do_tp_clo tp n in
       D.Ne {tp = final_tp; ne = D.NRec (tp, zero, suc, e)}
     | _ ->
-      CmpM.throw @@ Nbe_failed "Not a number"
+      CmpM.throw @@ NbeFailed "Not a number"
 
   and do_fst p : D.t CmpM.m =
     match p with
-    | D.Pair (p1, _) -> CmpM.ret p1
+    | D.Pair (p1, _) -> ret p1
     | D.Ne {tp = D.Sg (t, _); ne = ne} ->
-      CmpM.ret @@ D.Ne {tp = t; ne = D.Fst ne}
+      ret @@ D.Ne {tp = t; ne = D.Fst ne}
     | _ -> 
-      CmpM.throw @@ Nbe_failed "Couldn't fst argument in do_fst"
+      throw @@ NbeFailed "Couldn't fst argument in do_fst"
 
   and do_snd p : D.t CmpM.m =
     match p with
-    | D.Pair (_, p2) -> CmpM.ret p2
+    | D.Pair (_, p2) -> ret p2
     | D.Ne {tp = D.Sg (_, clo); ne = ne} ->
       let* fst = do_fst p in
       let+ fib = do_tp_clo clo fst in
       D.Ne {tp = fib; ne = D.Snd ne}
-    | _ -> raise (Nbe_failed "Couldn't snd argument in do_snd")
+    | _ -> throw @@ NbeFailed "Couldn't snd argument in do_snd"
 
   and do_tp_clo clo a : D.tp CmpM.m =
     match clo with
@@ -96,10 +92,10 @@ struct
           let+ fib = do_tp_clo3 mot left right eq in
           D.Ne {tp = fib; ne = D.J (mot, refl, tp, left, right, ne)}
         | _ -> 
-          CmpM.throw @@ Nbe_failed "Not an Id in do_j"
+          CmpM.throw @@ NbeFailed "Not an Id in do_j"
       end
     | _ -> 
-      CmpM.throw @@ Nbe_failed "Not a refl or neutral in do_j"
+      CmpM.throw @@ NbeFailed "Not a refl or neutral in do_j"
 
   and do_ap f a =
     match f with
@@ -112,10 +108,10 @@ struct
           let+ dst = do_tp_clo dst a in
           D.Ne {tp = dst; ne = D.Ap (e, D.Nf {tp = src; el = a})}
         | _ -> 
-          CmpM.throw @@ Nbe_failed "Not a Pi in do_ap"
+          CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
       end
     | _ -> 
-      CmpM.throw @@ Nbe_failed "Not a function in do_ap"
+      CmpM.throw @@ NbeFailed "Not a function in do_ap"
 
 end
 
@@ -132,7 +128,7 @@ struct
     let* env = EvM.read_local in
     match List.nth env.locals i with 
     | v -> EvM.ret v 
-    | exception _ -> EvM.throw @@ Nbe_failed "Variable out of bounds"
+    | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
   let rec eval_tp t =
     match t with
@@ -243,7 +239,7 @@ struct
     | (D.Nat | D.Id _), D.Ne {ne; _} -> 
       quote_ne ne
     | _ -> 
-      throw @@ Nbe_failed "ill-typed quotation problem"
+      throw @@ NbeFailed "ill-typed quotation problem"
 
   and quote_tp =
     function
