@@ -421,13 +421,17 @@ struct
       S.Ap (tne, targ)
 end
 
-include Compute
-
-let eval_tp env tp st = 
+let eval_tp st env tp = 
   EvM.run (Eval.eval_tp tp) st env
 
-let eval env t st = 
+let eval st env t = 
   EvM.run (Eval.eval t) st env
+
+let do_tp_clo st clo el = 
+  CmpM.run (Compute.do_tp_clo clo el) st
+
+let do_tm_clo st clo el = 
+  CmpM.run (Compute.do_tm_clo clo el) st
 
 let quote_nf st size (D.Nf nf) =
   QuM.run (Quote.quote nf.tp nf.el) st size
@@ -437,6 +441,7 @@ let quote_tp st size tp =
 
 let quote_ne st size ne = 
   QuM.run (Quote.quote_ne ne) st size
+
 
 (* TODO: replace with efficient binary version *)
 let equal_nf st size nf1 nf2 =

@@ -80,20 +80,20 @@ let read_sem_env =
 let eval_tp tp =
   let* st = EM.get in
   let* sem_env = read_sem_env in
-  match st |> Nbe.eval_tp sem_env tp with
+  match Nbe.eval_tp st sem_env tp with
   | v -> EM.ret v
   | exception exn -> EM.throw exn
 
 let eval_tm tp =
   let* st = EM.get in
   let* sem_env = read_sem_env in
-  match st |> Nbe.eval sem_env tp with
+  match Nbe.eval st sem_env tp with
   | v -> EM.ret v
   | exception exn -> EM.throw exn
 
 let inst_tp_clo clo v =
   let* st = EM.get in
-  match Nbe.do_tp_clo clo v st with
+  match Nbe.do_tp_clo st clo v with
   | v -> EM.ret v
   | exception exn -> EM.throw exn
 
