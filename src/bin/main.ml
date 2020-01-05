@@ -32,7 +32,7 @@ let input_file =
     required & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
 
 let info =
-  let doc = "Elaborate and Normalize terms in Martin-Lof Type Theory" in
+  let doc = "Elaborate and normalize terms in Martin-Lof Type Theory" in
   let err_exit = Term.exit_info ~doc:"on an ill-formed types or terms." 1 in
   Term.info "cooltt" ~version:"0.0" ~doc
     ~exits:(err_exit :: Term.default_exits)
