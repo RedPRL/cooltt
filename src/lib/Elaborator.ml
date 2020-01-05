@@ -4,12 +4,7 @@ module D = Domain
 module Env = ElabEnv
 module Err = ElabError
 
-module EM = 
-struct
-  include ElabMonad 
-  include ElabBasics
-end
-
+module EM = ElabBasics
 open Monad.Notation (EM)
 
 let rec check_tp : CS.t -> S.tp EM.m = 

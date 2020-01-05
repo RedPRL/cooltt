@@ -67,3 +67,38 @@ struct
 end
 
 type 'a quote = 'a QuM.m
+
+
+module ElabM = 
+struct
+  module Env = ElabEnv
+  module M = Monad.MonadReaderStateResult (struct type global = St.t type local = Env.t end)
+  include M
+
+  let globally m =
+    m |> scope @@ fun _ -> Env.init
+
+  let emit pp a : unit m = 
+    fun (st, _env) -> 
+    let () = pp Format.std_formatter a in 
+    Ok (), st
+
+
+  let lift_qu (m : 'a quote) : 'a m = 
+    fun (st, env) ->
+    match QuM.run (st, Env.size env) m with 
+    | Ok v -> Ok v, st
+    | Error exn -> Error exn, st
+
+  let lift_ev (m : 'a evaluate) : 'a m = 
+    fun (st, env) ->
+    match EvM.run (st, Env.to_sem_env env) m with 
+    | Ok v -> Ok v, st 
+    | Error exn -> Error exn, st
+
+  let lift_cmp (m : 'a compute) : 'a m = 
+    fun (st, _env) ->
+    match CmpM.run st m with
+    | Ok v -> Ok v, st 
+    | Error exn -> Error exn, st
+end

@@ -42,3 +42,16 @@ module QuM : sig
 
   val push : int -> 'a m -> 'a m
 end
+
+module ElabM : sig
+  include Monad.MonadReaderStateResult 
+    with type global := St.t
+    with type local := ElabEnv.t
+
+  val lift_qu : 'a quote -> 'a m
+  val lift_ev : 'a evaluate -> 'a m
+  val lift_cmp : 'a compute -> 'a m
+
+  val globally : 'a m -> 'a m
+  val emit : (Format.formatter -> 'a -> unit) -> 'a -> unit m
+end

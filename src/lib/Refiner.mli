@@ -1,6 +1,6 @@
 module D := Domain
 module S := Syntax
-module EM := ElabMonad
+module EM := Monads.ElabM
 module CS := ConcreteSyntax
 
 type tp_tac = D.tp EM.m

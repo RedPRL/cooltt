@@ -4,7 +4,7 @@
 module S = Syntax
 module D = Domain
 
-open NbeMonads
+open Monads
 open TLNat
 
 exception NbeFailed of string

@@ -5,7 +5,7 @@ module St := ElabState
 exception NbeFailed of string
 
 module Monadic : sig
-  open NbeMonads
+  open Monads
   val eval : S.t -> D.t evaluate
   val eval_tp : S.tp -> D.tp evaluate
   val quote : D.tp -> D.t -> S.t quote

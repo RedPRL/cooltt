@@ -2,7 +2,7 @@ module CS := ConcreteSyntax
 module D := Domain
 module S := Syntax
 
-type 'a m := 'a ElabMonad.m
+include module type of Monads.ElabM
 
 val push_var : CS.ident option -> D.tp -> 'a m -> 'a m
 val add_global : CS.ident option -> D.tp -> D.t option -> Symbol.t m

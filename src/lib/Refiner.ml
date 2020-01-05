@@ -4,11 +4,7 @@ module CS = ConcreteSyntax
 module Env = ElabEnv
 module Err = ElabError
 
-module EM = 
-struct
-  include ElabMonad 
-  include ElabBasics
-end
+module EM = ElabBasics
 
 open Monad.Notation (EM)
 
