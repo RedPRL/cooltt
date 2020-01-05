@@ -133,7 +133,7 @@ let id_elim nm_x0 nm_x1 nm_p nm_x (tac_mot : tp_tac) (tac_refl_case : chk_tac) (
     let* fib_refl_x = EM.lift_ev @@ EvM.append [x; D.Refl x] @@ Nbe.eval_tp tmot in
     tac_refl_case fib_refl_x
   in
-  let+ fib = EM.lift_ev @@ EvM.append [l; r; vscrut] @@ Nbe.eval_tp tmot in (* either this is backwards, or the code for nat is backwards lol *)
+  let+ fib = EM.lift_ev @@ EvM.append [l; r; vscrut] @@ Nbe.eval_tp tmot in
   S.J (tmot, t_refl_case, tscrut), fib
 
 let apply tac_fun tac_arg : syn_tac = 
