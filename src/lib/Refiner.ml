@@ -4,7 +4,6 @@ module CS = ConcreteSyntax
 module Env = ElabEnv
 module Err = ElabError
 module EM = ElabBasics
-module Nbe = Nbe.Monadic
 
 open CoolBasis
 open Monads

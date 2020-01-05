@@ -3,7 +3,6 @@ module S = Syntax
 module D = Domain
 module Env = ElabEnv
 module Err = ElabError
-module Nbe = Nbe.Monadic
 module EM = ElabBasics
 
 open CoolBasis

@@ -337,42 +337,6 @@ struct
     tne1 = tne2
 end
 
-let eval_tp st env tp = 
-  EvM.run_exn (st, env) @@ Eval.eval_tp tp
-
-let eval st env t = 
-  EvM.run_exn (st, env) @@ Eval.eval t
-
-let inst_tp_clo st clo el = 
-  CmpM.run_exn st @@ Compute.inst_tp_clo clo el
-
-let inst_tm_clo st clo el = 
-  CmpM.run_exn st @@ Compute.inst_tm_clo clo el
-
-let quote_nf st size (D.Nf nf) =
-  QuM.run_exn (st, size) @@ Quote.quote nf.tp nf.el
-
-let quote_tp st size tp =
-  QuM.run_exn (st, size) @@ Quote.quote_tp tp
-
-let quote_ne st size ne = 
-  QuM.run_exn (st, size) @@ Quote.quote_ne ne
-
-
-(* TODO: replace with efficient binary version *)
-let equal_nf st size (D.Nf nf1) (D.Nf nf2) =
-  QuM.run_exn (st, size) @@ Quote.equal nf1.tp nf1.el nf2.el
-
-let equal_ne st size ne1 ne2 =
-  QuM.run_exn (st, size) @@ Quote.equal_ne ne1 ne2
-
-let equal_tp st size tp1 tp2 =
-  QuM.run_exn (st, size) @@ Quote.equal_tp tp1 tp2
-
-
-module Monadic = 
-struct
-  include Eval
-  include Quote
-  include Compute
-end
+include Eval
+include Quote
+include Compute

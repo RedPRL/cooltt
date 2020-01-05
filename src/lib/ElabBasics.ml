@@ -60,12 +60,12 @@ let get_local ix =
   | exception exn -> throw exn
 
 let equate tp l r =
-  let* res = lift_qu @@ Nbe.Monadic.equal tp l r in
+  let* res = lift_qu @@ Nbe.equal tp l r in
   if res then ret () else 
     elab_err @@ Err.ExpectedEqual (tp, l, r)
 
 let equate_tp tp tp' =
-  let* res = lift_qu @@ Nbe.Monadic.equal_tp tp tp' in 
+  let* res = lift_qu @@ Nbe.equal_tp tp tp' in 
   if res then ret () else 
     elab_err @@ Err.ExpectedEqualTypes (tp, tp')
 

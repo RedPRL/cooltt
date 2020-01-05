@@ -2,7 +2,6 @@ module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
 module R = Refiner
-module Nbe = Nbe.Monadic
 module EM = ElabBasics
 module Err = ElabError
 
