@@ -19,4 +19,4 @@ def fib : nat -> nat = {
   snd worker
 }
 
-normalize fib 25 at nat
+normalize fib 25
