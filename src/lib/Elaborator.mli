@@ -5,6 +5,6 @@ module D := Domain
 
 open Refiner
 
-val check_tp : CS.t -> tp_tac
-val check_tm : CS.t -> chk_tac 
-val synth_tm : CS.t -> syn_tac
+val chk_tp : CS.t -> tp_tac
+val chk_tm : CS.t -> chk_tac 
+val syn_tm : CS.t -> syn_tac
