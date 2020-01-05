@@ -72,7 +72,7 @@ term:
   | SUC; t = term
     { Suc t }
   | REC; n = term; AT; mot_name = name; RRIGHT_ARROW; mot = term; WITH; LSQ;
-    PIPE; ZERO; RRIGHT_ARROW; zero_case = term;
+    option(PIPE); ZERO; RRIGHT_ARROW; zero_case = term;
     PIPE; SUC; LPR; suc_var = name; RRIGHT_ARROW; ih_var = name; RPR; RRIGHT_ARROW; suc_case = term; RSQ
     { NRec {
         mot = B {name = mot_name; body = mot};
@@ -83,8 +83,8 @@ term:
     }
   | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
-  | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RIGHT_ARROW; mot_term = term; WITH
-    PIPE; REFL; name = name; RIGHT_ARROW; refl = term;
+  | MATCH; eq = term; AT; name1 = name; name2 = name; name3 = name; RRIGHT_ARROW; mot_term = term; WITH; LSQ;
+    option(PIPE); REFL; name = name; RRIGHT_ARROW; refl = term; RSQ
     { J {mot = B3 {name1; name2; name3; body = mot_term}; refl = B {name; body = refl}; eq} }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }

@@ -66,8 +66,9 @@ the valid expressions in cooltt.
      -- Identity
      Id TYPE TERM TERM
      refl TERM
-     match PRF at x y prf -> MOTIVE with
+     match PRF at x y prf => MOTIVE with [
      | refl x -> TERM
+     ]
 
 A small collection of example programs is contained in the `test/` directory. See `test/README.md`
 for a brief description of each program's purpose.
