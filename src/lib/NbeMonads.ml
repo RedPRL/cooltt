@@ -5,7 +5,7 @@ module St = ElabState
 module CmpM =
 struct
   include Monad.MonadReaderResult (struct type local = St.t end)
-  let evaluate env m st = m (st, env)
+  let lift_ev env m st = m (st, env)
 end
 
 type 'a compute = 'a CmpM.m
@@ -35,7 +35,7 @@ struct
     let+ env = read_local in 
     D.Clo {bdy = t; env}
 
-  let compute (m : 'a compute) : 'a M.m =
+  let lift_cmp (m : 'a compute) : 'a M.m =
     fun (st, _) ->
     m st
 
@@ -61,7 +61,7 @@ struct
     M.scope @@ fun (st, size) ->
     st, i + size
 
-  let compute m (st, _) = m st
+  let lift_cmp m (st, _) = m st
 
   include M
 end

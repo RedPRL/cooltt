@@ -11,7 +11,7 @@ module CmpM : sig
     with type 'a m = 'a compute
     with type local := St.t
 
-  val evaluate : D.env -> 'a evaluate -> 'a m
+  val lift_ev : D.env -> 'a evaluate -> 'a m
   val read : ElabState.t m
 end
 
@@ -20,7 +20,7 @@ module EvM : sig
     with type 'a m = 'a evaluate
     with type local := St.t * D.env
 
-  val compute : 'a compute -> 'a m
+  val lift_cmp : 'a compute -> 'a m
 
   val read_global : ElabState.t m
   val read_local : D.env m
@@ -35,7 +35,7 @@ module QuM : sig
     with type 'a m = 'a quote
     with type local := St.t * int
 
-  val compute : 'a compute -> 'a m
+  val lift_cmp : 'a compute -> 'a m
 
   val read_global : ElabState.t m
   val read_local : int m

@@ -57,7 +57,7 @@ struct
     fun clo xs ->
     match clo with
     | Clo {bdy; env} -> 
-      evaluate {D.locals = Vec.to_list xs @ env.locals} @@ 
+      lift_ev {D.locals = Vec.to_list xs @ env.locals} @@ 
       Eval.eval_tp bdy
     | ConstClo t -> 
       CmpM.ret t
@@ -66,7 +66,7 @@ struct
     fun clo xs ->
     match clo with
     | D.Clo {bdy; env} -> 
-      evaluate {D.locals = Vec.to_list xs @ env.locals} @@ 
+      lift_ev {D.locals = Vec.to_list xs @ env.locals} @@ 
       Eval.eval bdy
     | D.ConstClo t -> 
       CmpM.ret t
@@ -159,24 +159,24 @@ struct
       let* vn = eval n in
       let* cltp = EvM.close_tp tp in
       let* clsuc = close_tm suc in
-      compute @@ Compute.do_rec cltp vzero clsuc vn
+      lift_cmp @@ Compute.do_rec cltp vzero clsuc vn
     | S.Lam t -> 
       let+ cl = close_tm t in
       D.Lam cl
     | S.Ap (t1, t2) -> 
       let* el1 = eval t1 in 
       let* el2 = eval t2 in
-      compute @@ Compute.do_ap el1 el2
+      lift_cmp @@ Compute.do_ap el1 el2
     | S.Pair (t1, t2) -> 
       let+ el1 = eval t1
       and+ el2 = eval t2 in
       D.Pair (el1, el2)
     | S.Fst t -> 
       let* el = eval t in 
-      compute @@ Compute.do_fst el
+      lift_cmp @@ Compute.do_fst el
     | S.Snd t -> 
       let* el = eval t in 
-      compute @@ Compute.do_snd el
+      lift_cmp @@ Compute.do_snd el
     | S.Refl t -> 
       let+ el = eval t in
       D.Refl el
@@ -185,7 +185,7 @@ struct
       let* veq = eval eq in 
       let* clmot = close_tp mot in
       let* clrefl = close_tm refl in
-      compute @@ Compute.do_j clmot clrefl veq
+      lift_cmp @@ Compute.do_j clmot clrefl veq
 end
 
 module Quote : sig 
@@ -209,14 +209,14 @@ struct
     | D.Pi (base, fam), f ->
       push 1 @@ 
       let* arg = top_var base in
-      let* fib = compute @@ Compute.inst_tp_clo fam [arg] in
-      let* ap = compute @@ Compute.do_ap f arg in
+      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [arg] in
+      let* ap = lift_cmp @@ Compute.do_ap f arg in
       let+ body = quote fib ap in
       S.Lam body
     | D.Sg (base, fam), p ->
-      let* fst = compute @@ Compute.do_fst p in
-      let* snd = compute @@ Compute.do_snd p in
-      let* fib = compute @@ Compute.inst_tp_clo fam [fst] in 
+      let* fst = lift_cmp @@ Compute.do_fst p in
+      let* snd = lift_cmp @@ Compute.do_snd p in
+      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [fst] in 
       let+ tfst = quote base fst
       and+ tsnd = quote fib snd in 
       S.Pair (tfst, tsnd)
@@ -241,7 +241,7 @@ struct
       let+ tfam = 
         push 1 @@ 
         let* var = top_var base in
-        let* fib = compute @@ Compute.inst_tp_clo fam [var] in
+        let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
       in
       S.Pi (tbase, tfam)
@@ -250,7 +250,7 @@ struct
       let+ tfam = 
         push 1 @@ 
         let* var = top_var base in
-        let* fib = compute @@ Compute.inst_tp_clo fam [var] in
+        let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
       in
       S.Sg (tbase, tfam)
@@ -271,18 +271,18 @@ struct
       let* x, mot_x, tmot = 
         push 1 @@ 
         let* x = top_var D.Nat in
-        let* mot_x = compute @@ Compute.inst_tp_clo mot [x] in 
+        let* mot_x = lift_cmp @@ Compute.inst_tp_clo mot [x] in 
         let+ tmot = quote_tp mot_x in 
         x, mot_x, tmot
       in
       let+ tzero_case = 
-        let* mot_zero = compute @@ Compute.inst_tp_clo mot [D.Zero] in
+        let* mot_zero = lift_cmp @@ Compute.inst_tp_clo mot [D.Zero] in
         quote mot_zero zero_case
       and+ tsuc_case =
         push 2 @@
         let* ih = top_var mot_x in 
-        let* mot_suc_x = compute @@ Compute.inst_tp_clo mot [D.Suc x] in 
-        let* suc_case_x = compute @@ Compute.inst_tm_clo suc_case [x; ih] in
+        let* mot_suc_x = lift_cmp @@ Compute.inst_tp_clo mot [D.Suc x] in 
+        let* suc_case_x = lift_cmp @@ Compute.inst_tm_clo suc_case [x; ih] in
         quote mot_suc_x suc_case_x
       and+ tn = quote_ne n in
       S.NRec (tmot, tzero_case, tsuc_case, tn)
@@ -300,14 +300,14 @@ struct
         let* y = top_var tp in 
         push 1 @@ 
         let* z = top_var @@ D.Id (tp, left, right) in 
-        let* mot_xyz = compute @@ Compute.inst_tp_clo mot [x; y; z] in 
+        let* mot_xyz = lift_cmp @@ Compute.inst_tp_clo mot [x; y; z] in 
         let+ tmot = quote_tp mot_xyz in 
         x, tmot
       in 
       let* trefl_case =
         push 1 @@ 
-        let* mot_refl_x = compute @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
-        let* refl_case_x = compute @@ Compute.inst_tm_clo refl_case [x] in
+        let* mot_refl_x = lift_cmp @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
+        let* refl_case_x = lift_cmp @@ Compute.inst_tm_clo refl_case [x] in
         quote mot_refl_x refl_case_x
       in
       let+ teq = quote_ne eq in
