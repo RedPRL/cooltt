@@ -1,7 +1,8 @@
 module S := Syntax
 open TLNat
+open Bwd
 
-type env = {locals : t list}
+type env = {locals : t bwd}
 
 and ('n, 't, 'o) clo = Clo of {bdy : 't; env : env} | ConstClo of 'o
 and 'n tm_clo = ('n, S.t, t) clo

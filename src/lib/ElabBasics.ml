@@ -77,3 +77,10 @@ let dest_sg =
     ret (base, fam)
   | tp -> 
     elab_err @@ Err.ExpectedConnective (`Sg, tp)
+
+let dest_id =
+  function
+  | D.Id (tp, l, r) ->
+    ret (tp, l, r)
+  | tp ->
+    elab_err @@ Err.ExpectedConnective (`Id, tp)

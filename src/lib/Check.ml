@@ -4,6 +4,7 @@ module D = Domain
 module S = Syntax
 module St = ElabState
 module Env = ElabEnv
+open Bwd open BwdNotation
 
 
 type error =
@@ -130,17 +131,17 @@ and synth ~st ~env ~term =
     let var = D.mk_var Nat (Env.size env) in
     check_tp ~st ~env:(Env.push_term None var Nat env) ~tp:mot;
     let sem_env = Env.to_sem_env env in
-    let zero_tp = Nbe.eval_tp st {locals = Zero :: sem_env.locals} mot in
-    let ih_tp = Nbe.eval_tp st {locals = var :: sem_env.locals} mot in
+    let zero_tp = Nbe.eval_tp st {locals = sem_env.locals <>< [Zero]} mot in
+    let ih_tp = Nbe.eval_tp st {locals = sem_env.locals <>< [var]} mot in
     let ih_var = D.mk_var ih_tp (Env.size env + 1) in
-    let suc_tp = Nbe.eval_tp st {locals = Suc var :: sem_env.locals} mot in
+    let suc_tp = Nbe.eval_tp st {locals = sem_env.locals <>< [Suc var]} mot in
     check ~st ~env ~term:zero ~tp:zero_tp;
     check ~st
       ~env:
         (Env.push_term None var Nat env
          |> Env.push_term None ih_var ih_tp)
       ~term:suc ~tp:suc_tp;
-    Nbe.eval_tp st {locals = (Nbe.eval st sem_env n) :: sem_env.locals} mot
+    Nbe.eval_tp st {locals = sem_env.locals <>< [Nbe.eval st sem_env n]} mot
   | S.J (mot, refl, eq) -> 
     let eq_tp = synth ~st ~env ~term:eq in
     let sem_env = Env.to_sem_env env in
@@ -160,12 +161,12 @@ and synth ~st ~env ~term =
         check_tp ~st ~env:mot_env ~tp:mot;
         let refl_var = D.mk_var tp' (Env.size env) in
         let refl_tp =
-          Nbe.eval_tp st {locals = D.Refl refl_var :: refl_var :: refl_var :: sem_env.locals} mot
+          Nbe.eval_tp st {locals = sem_env.locals <>< [refl_var; refl_var; D.Refl refl_var]} mot
         in
         check ~st
           ~env:(Env.push_term None refl_var tp' env)
           ~term:refl ~tp:refl_tp;
-        Nbe.eval_tp st {locals = (Nbe.eval st sem_env eq) :: right :: left :: sem_env.locals} mot
+        Nbe.eval_tp st {locals = sem_env.locals <>< [left; right; Nbe.eval st sem_env eq]} mot
       | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t)
     end
   | _ -> tp_error (CannotSynthTerm term)

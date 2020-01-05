@@ -1,6 +1,7 @@
 module D = Domain
 module S = Syntax
 module St = ElabState
+open Bwd open BwdNotation
 
 module CmpM =
 struct
@@ -23,9 +24,9 @@ struct
     let+ (_, env) = M.read in 
     env
 
-  let push cells = 
+  let append cells = 
     M.scope @@ fun (st, env) ->
-    st, D.{locals = cells @ env.locals}
+    st, D.{locals = env.locals <>< cells}
 
   let close_tp tp : _ m =
     let+ env = read_local in 
@@ -57,7 +58,7 @@ struct
     let+ (_, size) = M.read in 
     size
 
-  let push i =
+  let append i =
     M.scope @@ fun (st, size) ->
     st, i + size
 

@@ -51,6 +51,8 @@ and synth_tm : CS.t -> (S.t * D.tp) EM.m =
     Refiner.pi1 @@ synth_tm t
   | CS.Snd t ->
     Refiner.pi2 @@ synth_tm t
+  | CS.J {mot = B3 mot; refl = B refl; eq} ->
+    Refiner.id_elim mot.name1 mot.name2 mot.name3 refl.name (check_tp mot.body) (check_tm refl.body) (synth_tm eq)
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs
 

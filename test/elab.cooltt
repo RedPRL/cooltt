@@ -3,26 +3,23 @@ def foo : (x : nat) -> (y : nat) * Id nat x y = {
   [x, ?hole1]
 }
 
-def bar : (x : nat) -> nat = {
-  \x=>
-  fst {foo x}
+def sym : (x : nat) (y : nat) (p : Id nat x y) -> Id nat y x = {
+  \x y p => 
+  match p at u v q => Id nat v u with [
+  | refl u => refl
+  ]
 }
 
-def boo : nat = {
-  zero
-}
-
-normalize boo
-normalize foo
-normalize bar
-
-
-def sigma_eta : {
-  (p : (x : nat) * nat) 
-  -> Id {(x : nat) * nat} p [fst p, snd p] 
+def trans : { 
+  (x : nat) (y : nat) (z : nat) 
+  (p : Id nat x y) (q : Id nat y z) 
+  -> Id nat x z
 } = {
-  \p=>
-  refl
+  \x y z p =>
+  match p at u v _ => (q : Id nat v z) -> Id nat u z with [
+  | refl _ => \q => q
+  ]
 }
 
-normalize sigma_eta
+normalize sym
+normalize trans

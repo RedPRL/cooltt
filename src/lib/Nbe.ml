@@ -4,6 +4,8 @@
 module S = Syntax
 module D = Domain
 
+open Bwd open BwdNotation
+
 open Monads
 open TLNat
 
@@ -57,7 +59,7 @@ struct
     fun clo xs ->
     match clo with
     | Clo {bdy; env} -> 
-      lift_ev {D.locals = Vec.to_list xs @ env.locals} @@ 
+      lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
       Eval.eval_tp bdy
     | ConstClo t -> 
       CmpM.ret t
@@ -66,7 +68,7 @@ struct
     fun clo xs ->
     match clo with
     | D.Clo {bdy; env} -> 
-      lift_ev {D.locals = Vec.to_list xs @ env.locals} @@ 
+      lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
       Eval.eval bdy
     | D.ConstClo t -> 
       CmpM.ret t
@@ -115,7 +117,7 @@ struct
 
   let get_local i =
     let* env = EvM.read_local in
-    match List.nth env.locals i with 
+    match Bwd.nth env.locals i with 
     | v -> EvM.ret v 
     | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
@@ -146,7 +148,7 @@ struct
       nf.el
     | S.Let (def, body) -> 
       let* vdef = eval def in 
-      push [vdef] @@ eval body
+      append [vdef] @@ eval body
     | S.Check (term, _) -> 
       eval term
     | S.Zero -> 
@@ -207,7 +209,7 @@ struct
   let rec quote tp el : S.t m =
     match tp, el with 
     | D.Pi (base, fam), f ->
-      push 1 @@ 
+      append 1 @@ 
       let* arg = top_var base in
       let* fib = lift_cmp @@ Compute.inst_tp_clo fam [arg] in
       let* ap = lift_cmp @@ Compute.do_ap f arg in
@@ -239,7 +241,7 @@ struct
     | D.Pi (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
-        push 1 @@ 
+        append 1 @@ 
         let* var = top_var base in
         let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
@@ -248,7 +250,7 @@ struct
     | D.Sg (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
-        push 1 @@ 
+        append 1 @@ 
         let* var = top_var base in
         let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
         quote_tp fib
@@ -269,7 +271,7 @@ struct
       ret @@ S.Global sym
     | D.NRec (mot, zero_case, suc_case, n) ->
       let* x, mot_x, tmot = 
-        push 1 @@ 
+        append 1 @@ 
         let* x = top_var D.Nat in
         let* mot_x = lift_cmp @@ Compute.inst_tp_clo mot [x] in 
         let+ tmot = quote_tp mot_x in 
@@ -279,7 +281,7 @@ struct
         let* mot_zero = lift_cmp @@ Compute.inst_tp_clo mot [D.Zero] in
         quote mot_zero zero_case
       and+ tsuc_case =
-        push 2 @@
+        append 2 @@
         let* ih = top_var mot_x in 
         let* mot_suc_x = lift_cmp @@ Compute.inst_tp_clo mot [D.Suc x] in 
         let* suc_case_x = lift_cmp @@ Compute.inst_tm_clo suc_case [x; ih] in
@@ -294,18 +296,18 @@ struct
       S.Snd tne
     | D.J (mot, refl_case, tp, left, right, eq) ->
       let* x, tmot =
-        push 1 @@ 
+        append 1 @@ 
         let* x = top_var tp in 
-        push 1 @@ 
+        append 1 @@ 
         let* y = top_var tp in 
-        push 1 @@ 
+        append 1 @@ 
         let* z = top_var @@ D.Id (tp, left, right) in 
         let* mot_xyz = lift_cmp @@ Compute.inst_tp_clo mot [x; y; z] in 
         let+ tmot = quote_tp mot_xyz in 
         x, tmot
       in 
       let* trefl_case =
-        push 1 @@ 
+        append 1 @@ 
         let* mot_refl_x = lift_cmp @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
         let* refl_case_x = lift_cmp @@ Compute.inst_tm_clo refl_case [x] in
         quote mot_refl_x refl_case_x

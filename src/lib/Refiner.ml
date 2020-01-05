@@ -6,9 +6,11 @@ module Err = ElabError
 module EM = ElabBasics
 module Nbe = Nbe.Monadic
 
+open Monads
 open Monad.Notation (EM)
+open Bwd 
 
-type tp_tac = D.tp EM.m
+type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
@@ -29,10 +31,10 @@ let unleash_hole name : chk_tac =
       S.Pi (base, fam)
   in
 
-  let rec go_tm ne : Env.cell list -> D.ne =
+  let rec go_tm ne : Env.cell bwd -> D.ne =
     function 
-    | [] -> ne
-    | (nf, _) :: cells ->
+    | Emp -> ne
+    | Snoc (cells, (nf, _)) ->
       D.Ap (go_tm ne cells, nf)
   in
 
@@ -40,7 +42,11 @@ let unleash_hole name : chk_tac =
     let* env = EM.read in
     EM.globally @@ 
     let+ sym = 
-      let* tp = go_tp @@ Env.locals env in
+      let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
+      let* () = 
+        () |> EM.emit @@ fun fmt () ->
+        Format.fprintf fmt "Emitted hole: %a@." S.pp_tp tp
+      in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
       EM.add_global name vtp None 
     in
@@ -106,6 +112,28 @@ let lookup_var id : syn_tac =
   | `Unbound -> 
     EM.elab_err @@ Err.UnboundVariable id
 
+let abstract nm tp k =
+  EM.push_var (Some nm) tp @@ 
+  let* x = EM.get_local 0 in 
+  k x
+
+let id_elim nm_x0 nm_x1 nm_p nm_x (tac_mot : tp_tac) (tac_refl_case : chk_tac) (tac_scrut : syn_tac) : syn_tac = 
+  let* tscrut, idtp = tac_scrut in
+  let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
+  let* tp, l, r = EM.dest_id idtp in
+  let* tmot =
+    abstract nm_x0 tp @@ fun x0 ->
+    abstract nm_x1 tp @@ fun x1 -> 
+    abstract nm_p (Id (tp, x0, x1)) @@ fun _ ->
+    tac_mot
+  in
+  let* t_refl_case =
+    abstract nm_x tp @@ fun x ->
+    let* fib_refl_x = EM.lift_ev @@ EvM.append [x; D.Refl x] @@ Nbe.eval_tp tmot in
+    tac_refl_case fib_refl_x
+  in
+  let+ fib = EM.lift_ev @@ EvM.append [l; r; vscrut] @@ Nbe.eval_tp tmot in (* either this is backwards, or the code for nat is backwards lol *)
+  S.J (tmot, t_refl_case, tscrut), fib
 
 let apply tac_fun tac_arg : syn_tac = 
   let* tfun, tp = tac_fun in

@@ -3,7 +3,7 @@ module S := Syntax
 module EM := Monads.ElabM
 module CS := ConcreteSyntax
 
-type tp_tac = D.tp EM.m
+type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
@@ -18,6 +18,7 @@ val lookup_var : CS.ident -> syn_tac
 val apply : syn_tac -> chk_tac -> syn_tac
 val pi1 : syn_tac -> syn_tac
 val pi2 : syn_tac -> syn_tac
+val id_elim : CS.ident -> CS.ident -> CS.ident -> CS.ident -> tp_tac -> chk_tac -> syn_tac -> syn_tac
 
 val tac_multilam : CS.ident list -> chk_tac -> chk_tac
 val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
