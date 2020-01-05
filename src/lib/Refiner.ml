@@ -100,11 +100,11 @@ let lookup_var id : syn_tac =
   let* res = EM.resolve id in
   match res with
   | `Local ix ->
-    let* tp = EM.get_local_tp ix in
-    EM.ret (S.Var ix, tp)
+    let+ tp = EM.get_local_tp ix in
+    S.Var ix, tp
   | `Global sym -> 
-    let* D.Nf {tp; _} = EM.get_global sym in 
-    EM.ret (S.Global sym, tp)
+    let+ D.Nf {tp; _} = EM.get_global sym in 
+    S.Global sym, tp
   | `Unbound -> 
     elab_err @@ Err.UnboundVariable id
 
