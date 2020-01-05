@@ -4,7 +4,7 @@ open TLNat
 
 type env = {locals : t list}
 
-and ('n, 't, 'o) clo = Clo of {term : 't; env : env} | ConstClo of 'o
+and ('n, 't, 'o) clo = Clo of {bdy : 't; env : env} | ConstClo of 'o
 [@@deriving show]
 
 and 'n tm_clo = ('n, S.t, t) clo

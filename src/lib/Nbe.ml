@@ -56,18 +56,18 @@ struct
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.t) Vec.vec -> D.tp CmpM.m =
     fun clo xs ->
     match clo with
-    | Clo {term; env} -> 
+    | Clo {bdy; env} -> 
       evaluate {D.locals = Vec.to_list xs @ env.locals} @@ 
-      Eval.eval_tp term
+      Eval.eval_tp bdy
     | ConstClo t -> 
       CmpM.ret t
 
   and inst_tm_clo : type n. n D.tm_clo -> (n, D.t) Vec.vec -> D.t CmpM.m =
     fun clo xs ->
     match clo with
-    | D.Clo {term; env} -> 
+    | D.Clo {bdy; env} -> 
       evaluate {D.locals = Vec.to_list xs @ env.locals} @@ 
-      Eval.eval term
+      Eval.eval bdy
     | D.ConstClo t -> 
       CmpM.ret t
 

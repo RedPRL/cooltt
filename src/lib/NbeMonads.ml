@@ -32,11 +32,11 @@ struct
 
   let close_tp tp : _ m =
     fun (_, env) ->
-    D.Clo {term = tp; env}
+    D.Clo {bdy = tp; env}
 
   let close_tm t : _ m = 
     fun (_, env) ->
-    D.Clo {term = t; env}
+    D.Clo {bdy = t; env}
 
   let compute m (st, _) = m st
 end
