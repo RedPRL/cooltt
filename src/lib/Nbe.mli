@@ -2,6 +2,8 @@ module D := Domain
 module S := Syntax
 module St := ElabState
 
+open CoolBasis
+
 exception NbeFailed of string
 
 module Monadic : sig

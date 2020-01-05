@@ -5,6 +5,8 @@ module Env = ElabEnv
 module Err = ElabError
 module Nbe = Nbe.Monadic
 module EM = ElabBasics
+
+open CoolBasis
 open Monad.Notation (EM)
 
 let rec check_tp : CS.t -> S.tp EM.m = 

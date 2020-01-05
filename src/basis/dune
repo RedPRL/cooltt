@@ -1,0 +1,7 @@
+(library
+ (name CoolBasis)
+ (flags
+  (:standard -w -9-32-37))
+ (preprocess
+  (pps ppx_deriving.std))
+ (public_name cooltt.basis))

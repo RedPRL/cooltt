@@ -1,7 +1,9 @@
 module D = Domain
 module S = Syntax
 module St = ElabState
-open Bwd open BwdNotation
+open CoolBasis
+open Bwd 
+open BwdNotation
 
 module CmpM =
 struct

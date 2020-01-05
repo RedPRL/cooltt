@@ -2,7 +2,7 @@ module StringMap = Map.Make (String)
 module D = Domain
 module S = Syntax
 
-open Bwd
+open CoolBasis.Bwd
 open BwdNotation
 
 type cell = D.nf * string option

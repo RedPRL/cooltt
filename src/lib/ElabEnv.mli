@@ -1,6 +1,6 @@
 module CS := ConcreteSyntax
 module D := Domain
-open Bwd
+open CoolBasis.Bwd
 
 type t
 type cell = D.nf * string option

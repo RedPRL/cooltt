@@ -1,4 +1,5 @@
 module S := Syntax
+open CoolBasis
 open TLNat
 open Bwd
 

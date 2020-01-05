@@ -4,6 +4,7 @@ module D = Domain
 module Env = ElabEnv
 module Err = ElabError
 module Nbe = Nbe.Monadic
+open CoolBasis
 
 type message =
   | NormalizedTerm of S.t * S.t

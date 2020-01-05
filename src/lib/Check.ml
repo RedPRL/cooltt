@@ -4,7 +4,7 @@ module D = Domain
 module S = Syntax
 module St = ElabState
 module Env = ElabEnv
-open Bwd open BwdNotation
+open CoolBasis.Bwd open BwdNotation
 
 
 type error =

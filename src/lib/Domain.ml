@@ -1,7 +1,8 @@
 module S = Syntax
 
-open TLNat 
-open Bwd
+open CoolBasis
+open Bwd 
+open TLNat
 
 type env = {locals : t bwd}
 

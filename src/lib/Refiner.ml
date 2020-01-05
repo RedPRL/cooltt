@@ -6,6 +6,7 @@ module Err = ElabError
 module EM = ElabBasics
 module Nbe = Nbe.Monadic
 
+open CoolBasis
 open Monads
 open Monad.Notation (EM)
 open Bwd 

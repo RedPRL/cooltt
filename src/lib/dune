@@ -6,7 +6,7 @@
 
 (library
  (name Core)
- (libraries menhirLib)
+ (libraries cooltt.basis menhirLib)
  (preprocess
   (pps ppx_deriving.std))
  (flags

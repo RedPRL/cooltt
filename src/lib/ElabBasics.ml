@@ -5,7 +5,7 @@ module St = ElabState
 module Env = ElabEnv
 module Err = ElabError
 
-
+open CoolBasis
 include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)

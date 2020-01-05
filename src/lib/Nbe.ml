@@ -4,8 +4,9 @@
 module S = Syntax
 module D = Domain
 
-open Bwd open BwdNotation
-
+open CoolBasis
+open Bwd 
+open BwdNotation
 open Monads
 open TLNat
 

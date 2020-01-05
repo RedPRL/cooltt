@@ -17,7 +17,7 @@ val get_local : int -> D.t m
 val equate_tp : D.tp -> D.tp -> unit m
 val equate : D.tp -> D.t -> D.t -> unit m
 
-open TLNat
+open CoolBasis.TLNat
 val dest_pi : D.tp -> (D.tp * ze su D.tp_clo) m
 val dest_sg : D.tp -> (D.tp * ze su D.tp_clo) m
 val dest_id : D.tp -> (D.tp * D.t * D.t) m

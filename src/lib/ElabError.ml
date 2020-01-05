@@ -1,5 +1,6 @@
 module CS = ConcreteSyntax
 module D = Domain
+open CoolBasis
 
 type t =
   | UnboundVariable of CS.ident
