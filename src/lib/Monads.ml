@@ -93,7 +93,7 @@ struct
 
   let lift_ev (m : 'a evaluate) : 'a m = 
     fun (st, env) ->
-    match EvM.run (st, Env.to_sem_env env) m with 
+    match EvM.run (st, Env.sem_env env) m with 
     | Ok v -> Ok v, st 
     | Error exn -> Error exn, st
 

@@ -44,7 +44,7 @@ let push_term name el tp env =
    locals = env.locals <>< [D.Nf {tp; el}, name]}
 
 
-let to_sem_env env : D.env =
+let sem_env env : D.env =
   {locals = 
      Bwd.map (function D.Nf {el; _}, _-> el)
        env.locals}

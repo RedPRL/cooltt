@@ -9,7 +9,7 @@ val locals : t -> cell bwd
 
 val init : t
 val push_term : string option -> D.t -> D.tp -> t -> t
-val to_sem_env : t -> D.env
+val sem_env : t -> D.env
 
 val size : t -> int
 

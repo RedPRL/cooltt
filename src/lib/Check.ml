@@ -52,14 +52,14 @@ let rec check ~st ~env ~term ~tp =
   match term with
   | S.Let (def, body) ->
     let def_tp = synth ~st ~env ~term:def in
-    let def_val = Nbe.eval st (Env.to_sem_env env) def in
+    let def_val = Nbe.eval st (Env.sem_env env) def in
     check ~st ~env:(Env.push_term None def_val def_tp env) ~term:body ~tp
   | S.Refl term ->
     begin
       match tp with
       | D.Id (tp, left, right) ->
         check ~st ~env ~term ~tp;
-        let term = Nbe.eval st (Env.to_sem_env env) term in
+        let term = Nbe.eval st (Env.sem_env env) term in
         assert_equal st (Env.size env) term left tp;
         assert_equal st (Env.size env) term right tp
       | t -> tp_error @@ Misc ("Expecting Id but found\n" ^ D.show_tp t) 
@@ -80,7 +80,7 @@ let rec check ~st ~env ~term ~tp =
       match tp with
       | D.Sg (left_tp, right_tp) ->
         check ~st ~env ~term:left ~tp:left_tp;
-        let left_sem = Nbe.eval st (Env.to_sem_env env) left in
+        let left_sem = Nbe.eval st (Env.sem_env env) left in
         check ~st ~env ~term:right ~tp:(Nbe.inst_tp_clo st right_tp [left_sem])
       | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t)
     end
@@ -96,7 +96,7 @@ and synth ~st ~env ~term =
     let D.Nf {tp; _} = St.get_global sym st in
     tp
   | Check (term, tp') ->
-    let tp = Nbe.eval_tp st (Env.to_sem_env env) tp' in
+    let tp = Nbe.eval_tp st (Env.sem_env env) tp' in
     check ~st ~env ~term ~tp;
     tp
   | S.Zero -> D.Nat
@@ -113,7 +113,7 @@ and synth ~st ~env ~term =
     begin
       match synth ~st ~env ~term:p with
       | Sg (_, right_tp) ->
-        let proj = Nbe.eval st (Env.to_sem_env env) @@ Fst p in
+        let proj = Nbe.eval st (Env.sem_env env) @@ Fst p in
         Nbe.inst_tp_clo st right_tp [proj]
       | t -> tp_error @@ Misc ("Expecting Sg but found\n" ^ D.show_tp t) 
     end
@@ -122,7 +122,7 @@ and synth ~st ~env ~term =
       match synth ~st ~env ~term:f with
       | Pi (src, dest) ->
         check ~st ~env ~term:a ~tp:src;
-        let a_sem = Nbe.eval st (Env.to_sem_env env) a in
+        let a_sem = Nbe.eval st (Env.sem_env env) a in
         Nbe.inst_tp_clo st dest [a_sem]
       | t -> tp_error @@ Misc ("Expecting Pi but found\n" ^ D.show_tp t) 
     end
@@ -130,7 +130,7 @@ and synth ~st ~env ~term =
     check ~st ~env ~term:n ~tp:Nat;
     let var = D.mk_var Nat (Env.size env) in
     check_tp ~st ~env:(Env.push_term None var Nat env) ~tp:mot;
-    let sem_env = Env.to_sem_env env in
+    let sem_env = Env.sem_env env in
     let zero_tp = Nbe.eval_tp st {locals = sem_env.locals <>< [Zero]} mot in
     let ih_tp = Nbe.eval_tp st {locals = sem_env.locals <>< [var]} mot in
     let ih_var = D.mk_var ih_tp (Env.size env + 1) in
@@ -144,7 +144,7 @@ and synth ~st ~env ~term =
     Nbe.eval_tp st {locals = sem_env.locals <>< [Nbe.eval st sem_env n]} mot
   | S.J (mot, refl, eq) -> 
     let eq_tp = synth ~st ~env ~term:eq in
-    let sem_env = Env.to_sem_env env in
+    let sem_env = Env.sem_env env in
     begin
       match eq_tp with
       | D.Id (tp', left, right) ->
@@ -177,11 +177,11 @@ and check_tp ~st ~env ~tp =
   | Pi (l, r)
   | Sg (l, r) ->
     check_tp ~st ~env ~tp:l;
-    let l_sem = Nbe.eval_tp st (Env.to_sem_env env) l in
+    let l_sem = Nbe.eval_tp st (Env.sem_env env) l in
     let var = D.mk_var l_sem (Env.size env) in
     check_tp ~st ~env:(Env.push_term None var l_sem env) ~tp:r
   | Id (tp, l, r) ->
     check_tp ~st ~env ~tp;
-    let tp = Nbe.eval_tp st (Env.to_sem_env env) tp in
+    let tp = Nbe.eval_tp st (Env.sem_env env) tp in
     check ~st ~env ~term:l ~tp;
     check ~st ~env ~term:r ~tp
