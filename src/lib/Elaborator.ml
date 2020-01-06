@@ -12,9 +12,11 @@ open Monad.Notation (EM)
 let rec chk_tp : CS.t -> S.tp EM.m = 
   function
   | CS.Pi (cells, body) -> 
-    nary_quantifier R.Pi.formation cells body
+    let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
+    R.Tactic.tac_nary_quantifier R.Pi.formation tacs @@ chk_tp body
   | CS.Sg (cells, body) -> 
-    nary_quantifier R.Sg.formation cells body
+    let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
+    R.Tactic.tac_nary_quantifier R.Sg.formation tacs @@ chk_tp body
   | CS.Id (tp, l, r) ->
     R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
   | CS.Nat -> 
@@ -31,7 +33,7 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.Lit n ->
     R.Nat.literal n
   | CS.Lam (BN bnd) ->
-    R.tac_multi_lam bnd.names @@ chk_tm bnd.body
+    R.Tactic.tac_multi_lam bnd.names @@ chk_tm bnd.body
   | CS.Pair (c0, c1) ->
     R.Sg.intro (chk_tm c0) (chk_tm c1)
   | CS.Suc c ->
@@ -46,7 +48,7 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
   | CS.Var id -> 
     R.lookup_var id
   | CS.Ap (t, ts) ->
-    R.tac_multi_apply (syn_tm t) begin
+    R.Tactic.tac_multi_apply (syn_tm t) begin
       ts |> List.map @@ fun (CS.Term cs) ->
       chk_tm cs
     end
@@ -69,9 +71,3 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
     R.chk_to_syn (chk_tm term) (chk_tp tp)
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs
-
-and nary_quantifier tac cells body =
-  match cells with
-  | [] -> chk_tp body
-  | Cell cell :: cells ->
-    tac (chk_tp cell.tp) (Some cell.name, nary_quantifier tac cells body)

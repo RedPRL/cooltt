@@ -7,17 +7,19 @@ type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
+type quantifier_tac = tp_tac -> CS.ident option * tp_tac -> tp_tac
+
 val unleash_hole : CS.ident option -> chk_tac
 
 
 module Pi : sig 
-  val formation : tp_tac -> CS.ident option * tp_tac -> tp_tac
+  val formation : quantifier_tac
   val intro : CS.ident option -> chk_tac -> chk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
 end
 
 module Sg : sig
-  val formation : tp_tac -> CS.ident option * tp_tac -> tp_tac
+  val formation : quantifier_tac
   val intro : chk_tac -> chk_tac -> chk_tac
   val pi1 : syn_tac -> syn_tac
   val pi2 : syn_tac -> syn_tac
@@ -45,13 +47,13 @@ module Nat : sig
     -> syn_tac
 end
 
-
 val syn_to_chk : syn_tac -> chk_tac
 val chk_to_syn : chk_tac -> tp_tac -> syn_tac
-
 val tac_let : syn_tac -> CS.ident option * chk_tac -> chk_tac 
-
 val lookup_var : CS.ident -> syn_tac 
 
-val tac_multi_lam : CS.ident list -> chk_tac -> chk_tac
-val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
+module Tactic : sig
+  val tac_multi_lam : CS.ident list -> chk_tac -> chk_tac
+  val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
+  val tac_nary_quantifier : quantifier_tac -> (CS.ident option * tp_tac) list -> tp_tac -> tp_tac
+end

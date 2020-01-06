@@ -13,6 +13,7 @@ open Bwd
 type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
+type quantifier_tac = tp_tac -> CS.ident option * tp_tac -> tp_tac
 
 let rec int_to_term =
   function
@@ -259,6 +260,10 @@ struct
     | [] -> tac_fun
     | tac :: tacs ->
       tac_multi_apply (Pi.apply tac_fun tac) tacs
-end
 
-include Tactic
+  let rec tac_nary_quantifier (quant : quantifier_tac) cells body = 
+    match cells with
+    | [] -> body
+    | (nm, tac) :: cells -> 
+      quant tac (nm, tac_nary_quantifier quant cells body)
+end
