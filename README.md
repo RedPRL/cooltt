@@ -7,7 +7,7 @@ For examples, see the `test/` directory.
 
 This implementation is forked from `blott`, the implementation artifact of
 [Implementing a Modal Dependent Type Theory](https://doi.acm.org/10.1145/3341711) by Gratzer,
-Sterling, and Birkedal.
+Sterling, and Birkedal. Code has been incorporated from redtt, implemented by Sterling and Favonia.
 
 ## building
 
