@@ -11,12 +11,12 @@ Sterling, and Birkedal. Code has been incorporated from redtt, implemented by St
 
 ## building
 
-cooltt has been built with OCaml 4.08.1 with [opam 2.0](https://opam.ocaml.org/). Once
+cooltt has been built with OCaml 4.08.1 with [opam 2.0.1](https://opam.ocaml.org/). Once
 these dependencies are installed cooltt can be built with the following set of commands.
 
 ```
 $ opam update
-$ opam pin add -y cooltt .               # first time
+$ opam pin add -y cooltt .              # first time
 $ opam upgrade                          # after packages change
 ```
 
