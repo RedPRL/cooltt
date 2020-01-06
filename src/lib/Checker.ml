@@ -28,13 +28,13 @@ and chk_tm : S.t -> R.chk_tac =
   | S.Suc t ->
     R.Nat.suc (chk_tm t)
   | S.Let (def, bdy) ->
-    R.tac_let (syn_tm def) (None, chk_tm bdy)
+    R.Structural.let_ (syn_tm def) (None, chk_tm bdy)
   | S.Lam bdy ->
     R.Pi.intro None @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     R.Sg.intro (chk_tm t0) (chk_tm t1)
   | t -> 
-    R.syn_to_chk @@ syn_tm t
+    R.Structural.syn_to_chk @@ syn_tm t
 
 and syn_tm : S.t -> R.syn_tac = 
   function
@@ -59,6 +59,6 @@ and syn_tm : S.t -> R.syn_tac =
       (None, None, chk_tm case_suc)
       (syn_tm scrut)
   | S.Check (t, tp) -> 
-    R.chk_to_syn (chk_tm t) (chk_tp tp)
+    R.Structural.chk_to_syn (chk_tm t) (chk_tp tp)
   | t -> 
     EM.elab_err @@ Err.ExpectedSynthesizableTerm t 

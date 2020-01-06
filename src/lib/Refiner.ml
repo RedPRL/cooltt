@@ -61,6 +61,11 @@ let abstract nm tp k =
   let* x = EM.get_local 0 in
   k x
 
+let define nm tp el k =
+  EM.push_def nm tp el @@
+  let* x = EM.get_local 0 in
+  k x
+
 module Id = 
 struct
   let formation tac_tp tac_l tac_r =
@@ -207,44 +212,42 @@ struct
     S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
 end
 
-let syn_to_chk (tac : syn_tac) : chk_tac =
-  fun tp ->
-  let* tm, tp' = tac in
-  let+ () = EM.equate_tp tp tp' in
-  tm
+module Structural = 
+struct
+  let syn_to_chk (tac : syn_tac) : chk_tac =
+    fun tp ->
+      let* tm, tp' = tac in
+      let+ () = EM.equate_tp tp tp' in
+      tm
 
-let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
-  let* tp = tac_tp in
-  let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
-  let+ tm = tac_tm vtp in
-  tm, vtp
+  let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
+    let* tp = tac_tp in
+    let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
+    let+ tm = tac_tm vtp in
+    tm, vtp
 
-let lookup_var id : syn_tac =
-  let* res = EM.resolve id in
-  match res with
-  | `Local ix ->
-    let+ tp = EM.get_local_tp ix in
-    S.Var ix, tp
-  | `Global sym ->
-    let+ D.Nf {tp; _} = EM.get_global sym in
-    S.Global sym, tp
-  | `Unbound ->
-    EM.elab_err @@ Err.UnboundVariable id
-
-let define nm tp el k =
-  EM.push_def nm tp el @@
-  let* x = EM.get_local 0 in
-  k x
+  let lookup_var id : syn_tac =
+    let* res = EM.resolve id in
+    match res with
+    | `Local ix ->
+      let+ tp = EM.get_local_tp ix in
+      S.Var ix, tp
+    | `Global sym ->
+      let+ D.Nf {tp; _} = EM.get_global sym in
+      S.Global sym, tp
+    | `Unbound ->
+      EM.elab_err @@ Err.UnboundVariable id
 
 
-let tac_let tac_def (nm_x, tac_bdy) : chk_tac =
-  fun tp ->
-  let* tdef, tp_def = tac_def in
-  let* vdef = EM.lift_ev @@ Nbe.eval tdef in
-  define nm_x tp_def vdef @@ fun _ ->
-  let+ tbdy = tac_bdy tp in
-  S.Let (tdef, tbdy)
 
+  let let_ tac_def (nm_x, tac_bdy) : chk_tac =
+    fun tp ->
+    let* tdef, tp_def = tac_def in
+    let* vdef = EM.lift_ev @@ Nbe.eval tdef in
+    define nm_x tp_def vdef @@ fun _ ->
+    let+ tbdy = tac_bdy tp in
+    S.Let (tdef, tbdy)
+end
 
 module Tactic =
 struct

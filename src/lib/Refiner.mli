@@ -47,10 +47,12 @@ module Nat : sig
     -> syn_tac
 end
 
-val syn_to_chk : syn_tac -> chk_tac
-val chk_to_syn : chk_tac -> tp_tac -> syn_tac
-val tac_let : syn_tac -> CS.ident option * chk_tac -> chk_tac 
-val lookup_var : CS.ident -> syn_tac 
+module Structural : sig
+  val syn_to_chk : syn_tac -> chk_tac
+  val chk_to_syn : chk_tac -> tp_tac -> syn_tac
+  val let_ : syn_tac -> CS.ident option * chk_tac -> chk_tac 
+  val lookup_var : CS.ident -> syn_tac 
+end
 
 module Tactic : sig
   val tac_multi_lam : CS.ident list -> chk_tac -> chk_tac

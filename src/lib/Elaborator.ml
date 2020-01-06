@@ -39,14 +39,14 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.Suc c ->
     R.Nat.suc (chk_tm c)
   | CS.Let (c, B bdy) -> 
-    R.tac_let (syn_tm c) (Some bdy.name, chk_tm bdy.body)
+    R.Structural.let_ (syn_tm c) (Some bdy.name, chk_tm bdy.body)
   | cs ->
-    R.syn_to_chk @@ syn_tm cs
+    R.Structural.syn_to_chk @@ syn_tm cs
 
 and syn_tm : CS.t -> (S.t * D.tp) EM.m = 
   function
   | CS.Var id -> 
-    R.lookup_var id
+    R.Structural.lookup_var id
   | CS.Ap (t, ts) ->
     R.Tactic.tac_multi_apply (syn_tm t) begin
       ts |> List.map @@ fun (CS.Term cs) ->
@@ -68,6 +68,6 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
       (Some case_suc.name1, Some case_suc.name2, chk_tm case_suc.body)
       (syn_tm scrut)
   | CS.Check {term; tp} ->
-    R.chk_to_syn (chk_tm term) (chk_tp tp)
+    R.Structural.chk_to_syn (chk_tm term) (chk_tp tp)
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs
