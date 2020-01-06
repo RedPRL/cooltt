@@ -247,12 +247,12 @@ let tac_let tac_def (nm_x, tac_bdy) : chk_tac =
 
 module Tactic =
 struct
-  let rec tac_multilam names tac_body =
+  let rec tac_multi_lam names tac_body =
     match names with
     | [] -> tac_body
     | name :: names ->
       Pi.intro (Some name) @@
-      tac_multilam names tac_body
+      tac_multi_lam names tac_body
 
   let rec tac_multi_apply tac_fun =
     function

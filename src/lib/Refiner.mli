@@ -53,5 +53,5 @@ val tac_let : syn_tac -> CS.ident option * chk_tac -> chk_tac
 
 val lookup_var : CS.ident -> syn_tac 
 
-val tac_multilam : CS.ident list -> chk_tac -> chk_tac
+val tac_multi_lam : CS.ident list -> chk_tac -> chk_tac
 val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac

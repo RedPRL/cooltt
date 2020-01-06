@@ -31,7 +31,7 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.Lit n ->
     R.Nat.literal n
   | CS.Lam (BN bnd) ->
-    R.tac_multilam bnd.names @@ chk_tm bnd.body
+    R.tac_multi_lam bnd.names @@ chk_tm bnd.body
   | CS.Pair (c0, c1) ->
     R.Sg.intro (chk_tm c0) (chk_tm c1)
   | CS.Suc c ->
