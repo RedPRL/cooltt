@@ -22,7 +22,7 @@ and con =
   | Refl of con
 [@@deriving show]
 
-and cut = hd * frame list 
+and cut = hd * frm list 
 [@@deriving show]
 
 and tp =
@@ -37,7 +37,7 @@ and hd =
   | Var of int (* De Bruijn level *)
 [@@deriving show]
 
-and frame = 
+and frm = 
   | KAp of nf
   | KFst 
   | KSnd

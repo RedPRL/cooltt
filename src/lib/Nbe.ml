@@ -279,10 +279,10 @@ struct
     function
     | [] -> ret tm
     | k :: spine -> 
-      let* tm' = quote_frame tm k in
+      let* tm' = quote_frm tm k in
       quote_spine tm' spine
 
-  and quote_frame tm = 
+  and quote_frm tm = 
     function
     | D.KNatElim (mot, zero_case, suc_case) ->
       let* x, mot_x, tmot = 

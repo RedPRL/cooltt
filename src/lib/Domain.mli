@@ -28,9 +28,9 @@ and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
 
-and cut = hd * frame list
+and cut = hd * frm list
 
-and frame = 
+and frm = 
   | KAp of nf
   | KFst 
   | KSnd
@@ -40,7 +40,7 @@ and frame =
 and nf = Nf of {tp : tp; el : con}
 
 val mk_var : tp -> int -> con
-val push : frame -> cut -> cut
+val push : frm -> cut -> cut
 
 val pp_con : con Pp.printer
 val pp_tp : tp Pp.printer
