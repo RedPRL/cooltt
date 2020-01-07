@@ -32,11 +32,11 @@ let unleash_hole name : chk_tac =
       S.Pi (base, fam)
   in
 
-  let rec go_tm ne : Env.cell bwd -> D.ne =
+  let rec go_tm cut : Env.cell bwd -> D.cut =
     function
-    | Emp -> ne
+    | Emp -> cut
     | Snoc (cells, (nf, _)) ->
-      D.Ap (go_tm ne cells, nf)
+      go_tm cut cells |> D.push @@ D.KAp nf
   in
 
   let* ne =
@@ -51,10 +51,10 @@ let unleash_hole name : chk_tac =
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
       EM.add_global name vtp None
     in
-    go_tm (Hd (D.Global sym)) @@ Env.locals env
+    go_tm (D.Global sym, []) @@ Env.locals env
   in
 
-  EM.lift_qu @@ Nbe.quote_ne ne
+  EM.lift_qu @@ Nbe.quote_cut ne
 
 let abstract nm tp k =
   EM.push_var nm tp @@

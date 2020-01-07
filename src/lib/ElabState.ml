@@ -14,7 +14,7 @@ let add_global ident tp oel st =
   let el = 
     match oel with
     | Some el -> el
-    | None -> D.Ne {tp; ne = D.Hd (D.Global sym)}
+    | None -> D.Ne {tp; cut = D.Global sym, []}
   in
   sym, 
   {resolver = 

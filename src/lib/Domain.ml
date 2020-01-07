@@ -14,11 +14,15 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 
 and con =
   | Lam of (ze su) tm_clo
-  | Ne of {tp : tp; ne : ne}
+  | Ne of {tp : tp; cut : cut}
+  | Glued of {tp : tp; local : cut; global : [`Cut of cut | `Con of con] Lazy.t}
   | Zero
   | Suc of con
   | Pair of con * con
   | Refl of con
+[@@deriving show]
+
+and cut = hd * frame list 
 [@@deriving show]
 
 and tp =
@@ -32,16 +36,17 @@ and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
 [@@deriving show]
-
-and ne =
-  | Hd of hd 
-  | Ap of ne * nf
-  | Fst of ne
-  | Snd of ne
-  | NatElim of ze su tp_clo * con * ze su su tm_clo * ne
-  | IdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con * ne
+and frame = 
+  | KAp of nf
+  | KFst 
+  | KSnd
+  | KNatElim of ze su tp_clo * con * ze su su tm_clo
+  | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
 [@@deriving show]
 
 and nf = Nf of {tp : tp; el : con} [@@deriving show]
 
-let mk_var tp lev = Ne {tp; ne = Hd (Var lev)}
+let push frm (hd, sp) = 
+  hd, sp @ [frm]
+
+let mk_var tp lev = Ne {tp; cut = Var lev, []}

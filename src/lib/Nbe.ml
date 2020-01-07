@@ -33,27 +33,27 @@ struct
     | D.Suc n -> 
       let* v = do_nat_elim mot zero suc n in 
       inst_tm_clo suc [n; v]
-    | D.Ne {ne = e; _} ->
+    | D.Ne {cut; _} ->
       let+ final_tp = inst_tp_clo mot [n] in
-      D.Ne {tp = final_tp; ne = D.NatElim (mot, zero, suc, e)}
+      D.Ne {tp = final_tp; cut = cut |> D.push @@ D.KNatElim (mot, zero, suc)}
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
   and do_fst p : D.con CmpM.m =
     match p with
     | D.Pair (p1, _) -> ret p1
-    | D.Ne {tp = D.Sg (t, _); ne = ne} ->
-      ret @@ D.Ne {tp = t; ne = D.Fst ne}
+    | D.Ne {tp = D.Sg (t, _); cut} ->
+      ret @@ D.Ne {tp = t; cut = cut |> D.push D.KFst}
     | _ -> 
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
 
   and do_snd p : D.con CmpM.m =
     match p with
     | D.Pair (_, p2) -> ret p2
-    | D.Ne {tp = D.Sg (_, clo); ne = ne} ->
+    | D.Ne {tp = D.Sg (_, clo); cut} ->
       let* fst = do_fst p in
-      let+ fib = inst_tp_clo clo Vec.[fst] in 
-      D.Ne {tp = fib; ne = D.Snd ne}
+      let+ fib = inst_tp_clo clo [fst] in 
+      D.Ne {tp = fib; cut = cut |> D.push D.KSnd}
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd: " ^ D.show_con p)
 
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp CmpM.m =
@@ -77,12 +77,12 @@ struct
   and do_id_elim mot refl eq =
     match eq with
     | D.Refl t -> inst_tm_clo refl [t]
-    | D.Ne {tp; ne} -> 
+    | D.Ne {tp; cut} -> 
       begin
         match tp with
         | D.Id (tp, left, right) ->
           let+ fib = inst_tp_clo mot [left; right; eq] in
-          D.Ne {tp = fib; ne = D.IdElim (mot, refl, tp, left, right, ne)}
+          D.Ne {tp = fib; cut = cut |> D.push @@ D.KIdElim (mot, refl, tp, left, right)}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not an Id in do_id_elim"
       end
@@ -93,12 +93,12 @@ struct
     match f with
     | D.Lam clo -> 
       inst_tm_clo clo [a]
-    | D.Ne {tp; ne = e} ->
+    | D.Ne {tp; cut} ->
       begin
         match tp with
         | D.Pi (src, dst) ->
           let+ dst = inst_tp_clo dst [a] in
-          D.Ne {tp = dst; ne = D.Ap (e, D.Nf {tp = src; el = a})}
+          D.Ne {tp = dst; cut = cut |> D.push @@ D.KAp (D.Nf {tp = src; el = a})}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
       end
@@ -194,10 +194,10 @@ end
 module Quote : sig 
   val quote : D.tp -> D.con -> S.t QuM.m
   val quote_tp : D.tp -> S.tp QuM.m
-  val quote_ne : D.ne -> S.t QuM.m
+  val quote_cut : D.cut -> S.t QuM.m
   val equal : D.tp -> D.con -> D.con -> bool QuM.m
   val equal_tp : D.tp -> D.tp -> bool QuM.m
-  val equal_ne : D.ne -> D.ne -> bool QuM.m
+  val equal_cut : D.cut -> D.cut -> bool QuM.m
 end = 
 struct
   open QuM
@@ -231,8 +231,8 @@ struct
     | D.Id (tp, _, _), D.Refl el ->
       let+ t = quote tp el in 
       S.Refl t
-    | (D.Nat | D.Id _), D.Ne {ne; _} -> 
-      quote_ne ne
+    | (D.Nat | D.Id _), D.Ne {cut; _} -> 
+      quote_cut cut
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
 
@@ -263,14 +263,28 @@ struct
       and+ tright = quote tp right in 
       S.Id (ttp, tleft, tright)
 
-  and quote_ne =
+  and quote_hd =
     function
-    | Hd (D.Var x) -> 
+    | D.Var lvl -> 
       let+ n = read_local in 
-      S.Var (n - (x + 1))
-    | Hd (D.Global sym) ->
+      S.Var (n - (lvl + 1))
+    | D.Global sym ->
       ret @@ S.Global sym
-    | D.NatElim (mot, zero_case, suc_case, n) ->
+
+  and quote_cut (hd, spine) = 
+    let* tm = quote_hd hd in 
+    quote_spine tm spine
+
+  and quote_spine tm =
+    function
+    | [] -> ret tm
+    | k :: spine -> 
+      let* tm' = quote_frame tm k in
+      quote_spine tm' spine
+
+  and quote_frame tm = 
+    function
+    | D.KNatElim (mot, zero_case, suc_case) ->
       let* x, mot_x, tmot = 
         binder 1 @@ 
         let* x = top_var D.Nat in
@@ -287,15 +301,9 @@ struct
         let* mot_suc_x = lift_cmp @@ Compute.inst_tp_clo mot [D.Suc x] in 
         let* suc_case_x = lift_cmp @@ Compute.inst_tm_clo suc_case [x; ih] in
         quote mot_suc_x suc_case_x
-      and+ tn = quote_ne n in
-      S.NatElim (tmot, tzero_case, tsuc_case, tn)
-    | D.Fst ne ->
-      let+ tne = quote_ne ne in
-      S.Fst tne
-    | D.Snd ne ->
-      let+ tne = quote_ne ne in
-      S.Snd tne
-    | D.IdElim (mot, refl_case, tp, left, right, eq) ->
+      in
+      S.NatElim (tmot, tzero_case, tsuc_case, tm)
+    | D.KIdElim (mot, refl_case, tp, left, right) ->
       let* x, tmot =
         binder 1 @@ 
         let* x = top_var tp in 
@@ -307,34 +315,39 @@ struct
         let+ tmot = quote_tp mot_xyz in 
         x, tmot
       in 
-      let* trefl_case =
+      let+ trefl_case =
         binder 1 @@ 
         let* mot_refl_x = lift_cmp @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
         let* refl_case_x = lift_cmp @@ Compute.inst_tm_clo refl_case [x] in
         quote mot_refl_x refl_case_x
       in
-      let+ teq = quote_ne eq in
-      S.IdElim (tmot, trefl_case, teq)
-    | D.Ap (ne, D.Nf nf) ->
-      let+ tne = quote_ne ne
-      and+ targ = quote nf.tp nf.el in
-      S.Ap (tne, targ)
-
+      S.IdElim (tmot, trefl_case, tm)
+    | D.KFst -> 
+      ret @@ S.Fst tm
+    | D.KSnd -> 
+      ret @@ S.Snd tm
+    | D.KAp (D.Nf nf) ->
+      let+ targ = quote nf.tp nf.el in
+      S.Ap (tm, targ)
 
   let equal tp el1 el2 = 
     let+ t1 = quote tp el1
     and+ t2 = quote tp el2 in 
     t1 = t2
 
-  let equal_tp tp1 tp2 = 
-    let+ ttp1 = quote_tp tp1 
-    and+ ttp2 = quote_tp tp2 in
+  let equal_tp tp0 tp1 = 
+    (* match tp0, tp1 with 
+       | D.Pi (base0, fam0), D.Pi (base1, fam1) -> 
+       failwith ""
+       | _ -> failwith "" *)
+    let+ ttp1 = quote_tp tp0
+    and+ ttp2 = quote_tp tp1 in
     ttp1 = ttp2
 
-  let equal_ne ne1 ne2 = 
-    let+ tne1 = quote_ne ne1 
-    and+ tne2 = quote_ne ne2 in
-    tne1 = tne2
+  let equal_cut cut0 cut1 = 
+    let+ t0 = quote_cut cut0
+    and+ t1 = quote_cut cut1 in 
+    t0 = t1
 end
 
 include Eval
