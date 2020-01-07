@@ -17,3 +17,10 @@ let named_opt ostr =
 
 let named str = named_opt (Some str)
 let fresh () = named_opt None
+
+let pp fmt sym =
+  match sym.name with
+  | Some nm -> 
+    Format.fprintf fmt "%s" nm 
+  | None -> 
+    Format.fprintf fmt "#%i" sym.gen

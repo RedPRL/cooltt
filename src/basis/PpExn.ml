@@ -1,7 +1,5 @@
 exception Unrecognized
 
-type printer = Format.formatter -> exn -> unit
-
 let printers = Stack.create ()
 
 let install_printer printer =

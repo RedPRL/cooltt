@@ -1,0 +1,1 @@
+type 'a printer = Format.formatter -> 'a -> unit
