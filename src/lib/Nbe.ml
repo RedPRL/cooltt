@@ -209,6 +209,8 @@ struct
 
   let rec quote tp el : S.t m =
     match tp, el with 
+    | _, D.Glued {local; _} ->
+      quote_cut local
     | D.Pi (base, fam), f ->
       binder 1 @@ 
       let* arg = top_var base in
@@ -335,14 +337,73 @@ struct
     and+ t2 = quote tp el2 in 
     t1 = t2
 
-  let equal_tp tp0 tp1 = 
+
+  let rec equate_tp tp0 tp1 = 
+    match tp0, tp1 with 
+    | D.Pi (base0, fam0), D.Pi (base1, fam1) ->
+      let* () = equate_tp base0 base1 in
+      binder 1 @@ 
+      let* x = top_var base0 in
+      let* fib0 = lift_cmp @@ Compute.inst_tp_clo fam0 [x] in
+      let* fib1 = lift_cmp @@ Compute.inst_tp_clo fam1 [x] in
+      equate_tp fib0 fib1
+    | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
+      let* () = equate_tp base0 base1 in
+      binder 1 @@ 
+      let* x = top_var base0 in
+      let* fib0 = lift_cmp @@ Compute.inst_tp_clo fam0 [x] in
+      let* fib1 = lift_cmp @@ Compute.inst_tp_clo fam1 [x] in
+      equate_tp fib0 fib1
+    | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
+      let* () = equate_tp tp0 tp1 in
+      let* () = equate_con tp0 l0 l1 in
+      equate_con tp0 r0 r1
+    | D.Nat, D.Nat -> 
+      ret ()
+    | tp0, tp1 -> 
+      throw @@ NbeFailed ("Unequal types " ^ D.show_tp tp0 ^ " and " ^ D.show_tp tp1)
+
+  and equate_con tp con0 con1 =
+    match tp, con0, con1 with
+    | D.Pi (base, fam), _, _ ->
+      binder 1 @@ 
+      let* x = top_var base in 
+      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [x] in 
+      let* ap0 = lift_cmp @@ Compute.do_ap con0 x in
+      let* ap1 = lift_cmp @@ Compute.do_ap con1 x in
+      equate_con fib ap0 ap1
+    | D.Sg (base, fam), _, _ ->
+      let* fst0 = lift_cmp @@ Compute.do_fst con0 in
+      let* fst1 = lift_cmp @@ Compute.do_fst con1 in
+      let* () = equate_con base fst0 fst1 in
+      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [fst0] in
+      let* snd0 = lift_cmp @@ Compute.do_snd con0 in
+      let* snd1 = lift_cmp @@ Compute.do_snd con1 in
+      equate_con fib snd0 snd1
+    | _, D.Zero, D.Zero ->
+      ret ()
+    | _, D.Suc con0, D.Suc con1 ->
+      equate_con tp con0 con1
+    | _, D.Ne ne0, D.Ne ne1 ->
+      equate_cut ne0.cut ne1.cut
+    | _, D.Glued glued0, D.Glued glued1 ->
+      let global0 = Lazy.force glued0.global in
+      let global1 = Lazy.force glued1.global in
+      failwith ""
+    | _ -> 
+      throw @@ NbeFailed ("Unequal values " ^ D.show_con con0 ^ " and " ^ D.show_con con1)
+
+  and equate_cut _cut0 _cut1 = 
+    failwith ""
+
+
+  let equal_tp _tp0 _tp1 = 
     (* match tp0, tp1 with 
        | D.Pi (base0, fam0), D.Pi (base1, fam1) -> 
+       (* let* () = equal_tp base0 base1 in *)
        failwith ""
-       | _ -> failwith "" *)
-    let+ ttp1 = quote_tp tp0
-    and+ ttp2 = quote_tp tp1 in
-    ttp1 = ttp2
+       | _ ->  *)
+    failwith ""
 
   let equal_cut cut0 cut1 = 
     let+ t0 = quote_cut cut0
