@@ -36,6 +36,7 @@ and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
 [@@deriving show]
+
 and frame = 
   | KAp of nf
   | KFst 

@@ -39,7 +39,7 @@ let unleash_hole name : chk_tac =
       go_tm cut cells |> D.push @@ D.KAp nf
   in
 
-  let* ne =
+  let* cut =
     let* env = EM.read in
     EM.globally @@
     let+ sym =
@@ -54,7 +54,7 @@ let unleash_hole name : chk_tac =
     go_tm (D.Global sym, []) @@ Env.locals env
   in
 
-  EM.lift_qu @@ Nbe.quote_cut ne
+  EM.lift_qu @@ Nbe.quote_cut cut
 
 let abstract nm tp k =
   EM.push_var nm tp @@
