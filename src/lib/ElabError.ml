@@ -5,7 +5,7 @@ open CoolBasis
 
 type t =
   | UnboundVariable of CS.ident
-  | ExpectedEqual of D.tp * D.t * D.t
+  | ExpectedEqual of D.tp * D.con * D.con
   | ExpectedEqualTypes of D.tp * D.tp
   | InvalidTypeExpression of CS.t
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat] * D.tp

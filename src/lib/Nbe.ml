@@ -14,19 +14,19 @@ exception NbeFailed of string
 
 module rec Compute : 
 sig 
-  val inst_tp_clo : 'n D.tp_clo -> ('n, D.t) Vec.vec -> D.tp CmpM.m
-  val inst_tm_clo : 'n D.tm_clo -> ('n, D.t) Vec.vec -> D.t CmpM.m
-  val do_nat_elim : ze su D.tp_clo -> D.t -> ze su su D.tm_clo -> D.t -> D.t CmpM.m
-  val do_fst : D.t -> D.t CmpM.m
-  val do_snd : D.t -> D.t CmpM.m
-  val do_ap : D.t -> D.t -> D.t CmpM.m
-  val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.t -> D.t CmpM.m
+  val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp CmpM.m
+  val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con CmpM.m
+  val do_nat_elim : ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con CmpM.m
+  val do_fst : D.con -> D.con CmpM.m
+  val do_snd : D.con -> D.con CmpM.m
+  val do_ap : D.con -> D.con -> D.con CmpM.m
+  val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con CmpM.m
 end =
 struct
   open CmpM
   open Monad.Notation (CmpM)
 
-  let rec do_nat_elim (mot : ze su D.tp_clo) zero suc n : D.t CmpM.m =
+  let rec do_nat_elim (mot : ze su D.tp_clo) zero suc n : D.con CmpM.m =
     match n with
     | D.Zero -> 
       ret zero
@@ -39,7 +39,7 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
-  and do_fst p : D.t CmpM.m =
+  and do_fst p : D.con CmpM.m =
     match p with
     | D.Pair (p1, _) -> ret p1
     | D.Ne {tp = D.Sg (t, _); ne = ne} ->
@@ -47,16 +47,16 @@ struct
     | _ -> 
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
 
-  and do_snd p : D.t CmpM.m =
+  and do_snd p : D.con CmpM.m =
     match p with
     | D.Pair (_, p2) -> ret p2
     | D.Ne {tp = D.Sg (_, clo); ne = ne} ->
       let* fst = do_fst p in
       let+ fib = inst_tp_clo clo Vec.[fst] in 
       D.Ne {tp = fib; ne = D.Snd ne}
-    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd: " ^ D.show p)
+    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd: " ^ D.show_con p)
 
-  and inst_tp_clo : type n. n D.tp_clo -> (n, D.t) Vec.vec -> D.tp CmpM.m =
+  and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp CmpM.m =
     fun clo xs ->
     match clo with
     | Clo {bdy; env} -> 
@@ -65,7 +65,7 @@ struct
     | ConstClo t -> 
       CmpM.ret t
 
-  and inst_tm_clo : type n. n D.tm_clo -> (n, D.t) Vec.vec -> D.t CmpM.m =
+  and inst_tm_clo : type n. n D.tm_clo -> (n, D.con) Vec.vec -> D.con CmpM.m =
     fun clo xs ->
     match clo with
     | D.Clo {bdy; env} -> 
@@ -110,7 +110,7 @@ end
 and Eval :
 sig
   val eval_tp : S.tp -> D.tp EvM.m
-  val eval : S.t -> D.t EvM.m
+  val eval : S.t -> D.con EvM.m
 end = 
 struct 
   open EvM
@@ -192,10 +192,10 @@ struct
 end
 
 module Quote : sig 
-  val quote : D.tp -> D.t -> S.t QuM.m
+  val quote : D.tp -> D.con -> S.t QuM.m
   val quote_tp : D.tp -> S.tp QuM.m
   val quote_ne : D.ne -> S.t QuM.m
-  val equal : D.tp -> D.t -> D.t -> bool QuM.m
+  val equal : D.tp -> D.con -> D.con -> bool QuM.m
   val equal_tp : D.tp -> D.tp -> bool QuM.m
   val equal_ne : D.ne -> D.ne -> bool QuM.m
 end = 

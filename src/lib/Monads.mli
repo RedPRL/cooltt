@@ -28,7 +28,7 @@ module EvM : sig
 
   val close_tp : S.tp -> 'n D.tp_clo m
   val close_tm : S.t -> 'n D.tm_clo m
-  val append : D.t list -> 'a m -> 'a m
+  val append : D.con list -> 'a m -> 'a m
 end
 
 module QuM : sig 
