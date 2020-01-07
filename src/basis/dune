@@ -4,4 +4,5 @@
   (:standard -w -9-32-37))
  (preprocess
   (pps ppx_deriving.std))
+ (libraries uuseg uuseg.string uutf)
  (public_name cooltt.basis))

@@ -21,6 +21,6 @@ let fresh () = named_opt None
 let pp fmt sym =
   match sym.name with
   | Some nm -> 
-    Format.fprintf fmt "%s" nm 
+    Format.fprintf fmt "%a" Uuseg_string.pp_utf_8 nm 
   | None -> 
     Format.fprintf fmt "#%i" sym.gen
