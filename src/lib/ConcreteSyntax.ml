@@ -15,7 +15,7 @@ and spine = Term of t
 and t =
   | Var of ident
   | Let of t * binder
-  | Check of {term : t; tp : t}
+  | Ann of {term : t; tp : t}
   | Nat
   | Suc of t
   | Lit of int

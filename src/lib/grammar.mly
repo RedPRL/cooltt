@@ -64,11 +64,11 @@ term:
   | f = atomic; args = list(spine)
     { match args with [] -> f | _ -> Ap (f, args) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
-    { Let (Check {term = def; tp}, B {name; body}) }
+    { Let (Ann {term = def; tp}, B {name; body}) }
   | LET; name = name; EQUALS; def = term; IN; body = term; END
     { Let (def, B {name; body}) }
   | LPR t = term; AT; tp = term RPR
-    { Check {term = t; tp} }
+    { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
   | REC; n = term; AT; mot_name = name; RRIGHT_ARROW; mot = term; WITH; LSQ;

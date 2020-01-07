@@ -23,9 +23,12 @@ and tp =
   | Pi of tp * ze su tp_clo
   | Sg of tp * ze su tp_clo
 
+and hd =
+  | Global of Symbol.t 
+  | Var of int (* De Bruijn level *)
+
 and ne =
-  | Var of int (* DeBruijn levels for variables *)
-  | Global of Symbol.t
+  | Hd of hd 
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne

@@ -67,7 +67,7 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
       (chk_tm case_zero)
       (Some case_suc.name1, Some case_suc.name2, chk_tm case_suc.body)
       (syn_tm scrut)
-  | CS.Check {term; tp} ->
+  | CS.Ann {term; tp} ->
     R.Structural.chk_to_syn (chk_tm term) (chk_tp tp)
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs

@@ -2,7 +2,7 @@ type t =
   | Var of int (* DeBruijn indices for variables *)
   | Global of Symbol.t
   | Let of t * (* BINDS *) t
-  | Check of t * tp
+  | Ann of t * tp
   | Zero
   | Suc of t
   | NatElim of (* BINDS *) tp * t * (* BINDS 2 *) t * t
@@ -35,7 +35,7 @@ let rec pp fmt =
   | Global sym -> fprintf fmt "%a" Symbol.pp sym
   | Let (def, body) ->
     fprintf fmt "let@,@[<hov>%a@]@,in@,@[<hov%a@]" pp def pp body
-  | Check (term, tp) ->
+  | Ann (term, tp) ->
     fprintf fmt "(@[<hov>%a@]@ :@,@[<hov>%a@])" pp term pp_tp tp
   | Zero -> fprintf fmt "0"
   | Suc t -> (

@@ -28,9 +28,13 @@ and tp =
   | Sg of tp * (ze su) tp_clo
 [@@deriving show]
 
+and hd =
+  | Global of Symbol.t 
+  | Var of int (* De Bruijn level *)
+[@@deriving show]
+
 and ne =
-  | Var of int (* DeBruijn levels for variables *)
-  | Global of Symbol.t
+  | Hd of hd 
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
@@ -40,4 +44,4 @@ and ne =
 
 and nf = Nf of {tp : tp; el : t} [@@deriving show]
 
-let mk_var tp lev = Ne {tp; ne = Var lev}
+let mk_var tp lev = Ne {tp; ne = Hd (Var lev)}

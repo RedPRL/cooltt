@@ -51,7 +51,7 @@ let unleash_hole name : chk_tac =
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
       EM.add_global name vtp None
     in
-    go_tm (D.Global sym) @@ Env.locals env
+    go_tm (Hd (D.Global sym)) @@ Env.locals env
   in
 
   EM.lift_qu @@ Nbe.quote_ne ne

@@ -150,7 +150,7 @@ struct
     | S.Let (def, body) -> 
       let* vdef = eval def in 
       append [vdef] @@ eval body
-    | S.Check (term, _) -> 
+    | S.Ann (term, _) -> 
       eval term
     | S.Zero -> 
       ret D.Zero
@@ -265,10 +265,10 @@ struct
 
   and quote_ne =
     function
-    | D.Var x -> 
+    | Hd (D.Var x) -> 
       let+ n = read_local in 
       S.Var (n - (x + 1))
-    | D.Global sym ->
+    | Hd (D.Global sym) ->
       ret @@ S.Global sym
     | D.NatElim (mot, zero_case, suc_case, n) ->
       let* x, mot_x, tmot = 

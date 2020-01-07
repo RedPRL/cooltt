@@ -27,7 +27,7 @@ let main input =
     1
 
 let input_file =
-  let doc = "File containing the program to type-check" in
+  let doc = "File containing the program to type-Ann" in
   Arg.(
     required & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
 

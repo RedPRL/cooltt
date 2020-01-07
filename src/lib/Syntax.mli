@@ -2,7 +2,7 @@ type t =
   | Var of int (* DeBruijn indices for variables *)
   | Global of Symbol.t
   | Let of t * (* BINDS *) t
-  | Check of t * tp
+  | Ann of t * tp
   | Zero
   | Suc of t
   | NatElim of (* BINDS *) tp * t * (* BINDS 2 *) t * t
@@ -23,5 +23,4 @@ and tp =
 type env = tp list
 
 val pp : Format.formatter -> t -> unit
-
 val pp_tp : Format.formatter -> tp -> unit
