@@ -10,6 +10,8 @@ val locals : t -> cell bwd
 val init : t
 val append_el : string option -> D.con -> D.tp -> t -> t
 val sem_env : t -> D.env
+val get_veil : t -> Veil.t
+val veil : Veil.t -> t -> t
 
 val size : t -> int
 

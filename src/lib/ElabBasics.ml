@@ -15,13 +15,12 @@ let elab_err err = raise @@ Err.ElabError err
 
 let push_var id tp : 'a m -> 'a m = 
   scope @@ fun env ->
-  let var = D.Var (Env.size env) in
-  let term = D.Ne {cut = var, []; tp} in
-  Env.append_el id term tp env
+  let con = D.mk_var tp @@ Env.size env in 
+  Env.append_el id con tp env
 
-let push_def id tp el : 'a m -> 'a m = 
+let push_def id tp con : 'a m -> 'a m = 
   scope @@ fun env ->
-  Env.append_el id el tp env
+  Env.append_el id con tp env
 
 
 let resolve id = 
@@ -34,9 +33,9 @@ let resolve id =
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
-let add_global id tp el = 
+let add_global id tp con = 
   let* st = get in
-  let sym, st' = St.add_global id tp el st in
+  let sym, st' = St.add_global id tp con st in
   let* () = set st' in 
   ret sym
 

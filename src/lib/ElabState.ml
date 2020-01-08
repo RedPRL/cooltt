@@ -11,10 +11,10 @@ let init =
 
 let add_global ident tp oel st = 
   let sym = Symbol.named_opt ident in
-  let el = 
+  let con = 
     match oel with
-    | Some el -> el
-    | None -> D.Ne {tp; cut = D.Global sym, []}
+    | Some con -> con
+    | None -> D.Cut {tp; cut = (D.Global sym, []), None}
   in
   sym, 
   {resolver = 
@@ -24,7 +24,7 @@ let add_global ident tp oel st =
        | None -> st.resolver
      end;
    globals = 
-     SymbolMap.add sym (D.Nf {el; tp}) st.globals}
+     SymbolMap.add sym (D.Nf {con; tp}) st.globals}
 
 let resolve_global ident st =
   StringMap.find_opt ident st.resolver

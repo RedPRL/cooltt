@@ -11,8 +11,7 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 
 and con =
   | Lam of ze su tm_clo
-  | Ne of {tp : tp; cut : cut}
-  | Glued of {tp : tp; local : cut; global : [`Cut of cut | `Con of con] Lazy.t}
+  | Cut of {tp : tp; cut : cut * lazy_con ref option}
   | Zero
   | Suc of con
   | Pair of con * con
@@ -30,6 +29,8 @@ and hd =
 
 and cut = hd * frm list
 
+and lazy_con = [`Do of con * frm list | `Done of con]
+
 and frm = 
   | KAp of nf
   | KFst 
@@ -37,7 +38,7 @@ and frm =
   | KNatElim of ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
 
-and nf = Nf of {tp : tp; el : con}
+and nf = Nf of {tp : tp; con : con}
 
 val mk_var : tp -> int -> con
 val push : frm -> cut -> cut

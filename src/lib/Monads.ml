@@ -49,22 +49,26 @@ type 'a evaluate = 'a EvM.m
 
 module QuM =
 struct
-  module M = Monad.MonadReaderResult (struct type local = St.t * int end)
+  module M = Monad.MonadReaderResult (struct type local = St.t * Veil.t * int end)
   open Monad.Notation (M)
 
   let read_global =
-    let+ (st, _) = M.read in 
+    let+ (st, _, _) = M.read in 
     st
 
   let read_local =
-    let+ (_, size) = M.read in 
+    let+ (_, _, size) = M.read in 
     size
 
-  let binder i =
-    M.scope @@ fun (st, size) ->
-    st, i + size
+  let read_veil = 
+    let+ (_, veil, _) = M.read in
+    veil
 
-  let lift_cmp m (st, _) = m st
+  let binder i =
+    M.scope @@ fun (st, veil, size) ->
+    st, veil, i + size
+
+  let lift_cmp m (st, _, _) = m st
 
   include M
 end
@@ -79,17 +83,21 @@ struct
   include M
 
   let globally m =
-    m |> scope @@ fun _ -> Env.init
+    m |> scope @@ fun env -> 
+    Env.veil (Env.get_veil env) Env.init
 
   let emit pp a : unit m = 
     fun (st, _env) -> 
     let () = Format.fprintf Format.std_formatter "%a@." pp a in 
     Ok (), st
 
+  let veil v = 
+    M.scope @@ fun env ->
+    Env.veil v env
 
   let lift_qu (m : 'a quote) : 'a m = 
     fun (st, env) ->
-    match QuM.run (st, Env.size env) m with 
+    match QuM.run (st, Env.get_veil env, Env.size env) m with 
     | Ok v -> Ok v, st
     | Error exn -> Error exn, st
 

@@ -19,4 +19,9 @@ def fib : nat -> nat = {
   snd worker
 }
 
+def foo : (p : Id nat {fib 2} 1) -> nat =
+  \x =>
+  unfold fib in ?
+
+
 normalize fib 25
