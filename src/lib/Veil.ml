@@ -4,6 +4,6 @@ type t = Symbol.t -> policy
 let policy : Symbol.t -> t -> policy =
   fun sym veil -> veil sym
 
-let default : t = 
-  fun _ ->
-  `Translucent
+let const : policy -> t = 
+  fun pol _ ->
+  pol

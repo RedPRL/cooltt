@@ -68,6 +68,11 @@ struct
     M.scope @@ fun (st, veil, size) ->
     st, veil, i + size
 
+  let veil v = 
+    M.scope @@ fun (st, _, size) ->
+    st, v, size
+
+
   let lift_cmp m (st, _, _) = m st
 
   include M

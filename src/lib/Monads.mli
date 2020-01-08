@@ -42,6 +42,8 @@ module QuM : sig
   val read_local : int m
   val read_veil : Veil.t m
 
+  val veil : Veil.t -> 'a m -> 'a m
+
   val binder : int -> 'a m -> 'a m
 end
 

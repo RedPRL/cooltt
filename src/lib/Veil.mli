@@ -4,5 +4,6 @@
 type policy = [`Translucent | `Transparent]
 
 type t 
-val default : t
+
+val const : policy -> t
 val policy : Symbol.t -> t -> policy

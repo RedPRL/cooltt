@@ -16,7 +16,7 @@ let locals env = env.locals
 
 let init = 
   {resolver = StringMap.empty;
-   veil = Veil.default;
+   veil = Veil.const `Translucent;
    locals = Emp}
 
 let size env = Bwd.length env.locals
