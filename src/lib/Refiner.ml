@@ -61,8 +61,8 @@ let abstract nm tp k =
   let* x = EM.get_local 0 in
   k x
 
-let define nm tp el k =
-  EM.push_def nm tp el @@
+let define nm tp con k =
+  EM.push_def nm tp con @@
   let* x = EM.get_local 0 in
   k x
 

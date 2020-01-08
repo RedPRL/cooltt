@@ -38,7 +38,7 @@ and frm =
   | KNatElim of ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
 
-and nf = Nf of {tp : tp; el : con}
+and nf = Nf of {tp : tp; con : con}
 
 val mk_var : tp -> int -> con
 val push : frm -> cut -> cut

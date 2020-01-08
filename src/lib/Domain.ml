@@ -47,7 +47,7 @@ and frm =
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
 [@@deriving show]
 
-and nf = Nf of {tp : tp; el : con} [@@deriving show]
+and nf = Nf of {tp : tp; con : con} [@@deriving show]
 
 let push frm (hd, sp) = 
   hd, sp @ [frm]

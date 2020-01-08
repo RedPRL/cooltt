@@ -116,7 +116,7 @@ struct
         match tp with
         | D.Pi (src, dst) ->
           let+ dst = inst_tp_clo dst [a] in
-          let k = D.KAp (D.Nf {tp = src; el = a}) in
+          let k = D.KAp (D.Nf {tp = src; con = a}) in
           D.Cut {tp = dst; cut = push_frm k cut}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
@@ -126,7 +126,7 @@ struct
 
   let do_frm v =
     function
-    | D.KAp (D.Nf nf) -> do_ap v nf.el
+    | D.KAp (D.Nf nf) -> do_ap v nf.con
     | D.KFst -> do_fst v
     | D.KSnd -> do_snd v
     | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc v
@@ -180,7 +180,7 @@ struct
     | S.Global sym -> 
       let* st = EvM.read_global in
       let D.Nf nf = ElabState.get_global sym st in
-      let lcon = ref @@ `Done nf.el in
+      let lcon = ref @@ `Done nf.con in
       ret @@ D.Cut {tp = nf.tp; cut = (D.Global sym, []), Some lcon}
     | S.Let (def, body) -> 
       let* vdef = eval def in 
@@ -190,8 +190,8 @@ struct
     | S.Zero -> 
       ret D.Zero
     | S.Suc t -> 
-      let+ el = eval t in 
-      D.Suc el
+      let+ con = eval t in 
+      D.Suc con
     | S.NatElim (tp, zero, suc, n) ->
       let* vzero = eval zero in
       let* vn = eval n in
@@ -210,14 +210,14 @@ struct
       and+ el2 = eval t2 in
       D.Pair (el1, el2)
     | S.Fst t -> 
-      let* el = eval t in 
-      lift_cmp @@ Compute.do_fst el
+      let* con = eval t in 
+      lift_cmp @@ Compute.do_fst con
     | S.Snd t -> 
-      let* el = eval t in 
-      lift_cmp @@ Compute.do_snd el
+      let* con = eval t in 
+      lift_cmp @@ Compute.do_snd con
     | S.Refl t -> 
-      let+ el = eval t in
-      D.Refl el
+      let+ con = eval t in
+      D.Refl con
 
     | S.IdElim (mot, refl, eq) ->
       let* veq = eval eq in 
@@ -242,8 +242,8 @@ struct
     let+ n = read_local in 
     D.mk_var tp @@ n - 1
 
-  let rec quote tp el : S.t m =
-    match tp, el with 
+  let rec quote tp con : S.t m =
+    match tp, con with 
     | _, D.Cut {cut = (hd, sp), olcon; tp} ->
       begin
         match hd, olcon with
@@ -279,8 +279,8 @@ struct
     | D.Nat, D.Suc n ->
       let+ tn = quote D.Nat n in 
       S.Suc tn
-    | D.Id (tp, _, _), D.Refl el ->
-      let+ t = quote tp el in 
+    | D.Id (tp, _, _), D.Refl con ->
+      let+ t = quote tp con in 
       S.Refl t
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
@@ -376,7 +376,7 @@ struct
     | D.KSnd -> 
       ret @@ S.Snd tm
     | D.KAp (D.Nf nf) ->
-      let+ targ = quote nf.tp nf.el in
+      let+ targ = quote nf.tp nf.con in
       S.Ap (tm, targ)
 
   and do_lazy_con r = 
@@ -474,7 +474,7 @@ struct
     | D.KSnd, D.KSnd -> ret ()
     | D.KAp (D.Nf nf0), D.KAp (D.Nf nf1) ->
       let* () = equate_tp nf0.tp nf1.tp in
-      equate_con nf0.tp nf0.el nf1.el 
+      equate_con nf0.tp nf0.con nf1.con 
     | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
       let* fibx =
         binder 1 @@
