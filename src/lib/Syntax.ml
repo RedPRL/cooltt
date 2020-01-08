@@ -94,17 +94,49 @@ let rec pp_ (env : Pp.env) fmt =
     Fmt.fprintf fmt "@[<hv1>(refl %a)@]" (pp_ env) tm
 
 
-and pp_tp_ env fmt = 
-  function
-  | Pi (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" Uuseg_string.pp_utf_8 "->" Uuseg_string.pp_utf_8 x (pp_tp_ env) base (pp_tp_ envx) fam
-  | Sg (base, fam) -> 
-    let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" Uuseg_string.pp_utf_8 "*" Uuseg_string.pp_utf_8 x (pp_tp_ env) base (pp_tp_ envx) fam
-  | Id (tp, l, r) ->
-    Format.fprintf fmt "@[<hv1>(Id@ %a@ %a@ %a)@]" (pp_tp_ env) tp (pp_ env) l (pp_ env) r
-  | Nat ->
-    Fmt.fprintf fmt "nat"
+and pp_tp_ env = 
+  let rec go env mode fmt = 
+    fun tp ->
+      match mode, tp with
+      | `Pi, Pi (base, fam) ->
+        let x, env' = Pp.Env.bind env None in
+        Format.fprintf fmt 
+          "[%a : %a]@ %a" 
+          Uuseg_string.pp_utf_8 x 
+          (go env `Start) base 
+          (go env' `Pi) fam
+      | _, Pi (base, fam) ->
+        let x, envx = Pp.Env.bind env None in
+        Format.fprintf fmt 
+          "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
+          Uuseg_string.pp_utf_8 "->" 
+          Uuseg_string.pp_utf_8 x 
+          (go env `Start) base 
+          (go envx `Pi) fam
+      | `Sg, Sg (base, fam) ->
+        let x, env' = Pp.Env.bind env None in
+        Format.fprintf fmt 
+          "[%a : %a]@ %a" 
+          Uuseg_string.pp_utf_8 x 
+          (go env `Start) base 
+          (go env' `Sg) fam
+      | _, Sg (base, fam) ->
+        let x, envx = Pp.Env.bind env None in
+        Format.fprintf fmt 
+          "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
+          Uuseg_string.pp_utf_8 "*" 
+          Uuseg_string.pp_utf_8 x 
+          (go env `Start) base 
+          (go envx `Pi) fam
+      | _, Id (tp, l, r) ->
+        Format.fprintf fmt 
+          "@[<hv1>(Id@ %a@ %a@ %a)@]" 
+          (go env `Start) tp 
+          (pp_ env) l 
+          (pp_ env) r
+      | _, Nat ->
+        Format.fprintf fmt "Nat"
+  in
+  go env `Start
 
 type env = tp list
