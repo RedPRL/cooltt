@@ -14,7 +14,7 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 
 and con =
   | Lam of (ze su) tm_clo
-  | Glued of {tp : tp; cut : cut * lazy_con ref option}
+  | Cut of {tp : tp; cut : cut * lazy_con ref option}
   | Zero
   | Suc of con
   | Pair of con * con
@@ -52,4 +52,4 @@ and nf = Nf of {tp : tp; el : con} [@@deriving show]
 let push frm (hd, sp) = 
   hd, sp @ [frm]
 
-let mk_var tp lev = Glued {tp; cut = (Var lev, []), None}
+let mk_var tp lev = Cut {tp; cut = (Var lev, []), None}

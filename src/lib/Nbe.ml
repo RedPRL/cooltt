@@ -35,18 +35,18 @@ struct
     | D.Suc n -> 
       let* v = do_nat_elim mot zero suc n in 
       inst_tm_clo suc [n; v]
-    | D.Glued {cut; _} ->
+    | D.Cut {cut; _} ->
       let+ final_tp = inst_tp_clo mot [n] in
       let k = D.KNatElim (mot, zero, suc) in
-      D.Glued {tp = final_tp; cut = push_frm k cut}
+      D.Cut {tp = final_tp; cut = push_frm k cut}
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
   and do_fst p : D.con CmpM.m =
     match p with
     | D.Pair (p1, _) -> ret p1
-    | D.Glued ({tp = D.Sg (base, _)} as gl) ->
-      ret @@ D.Glued {tp = base; cut = push_frm D.KFst gl.cut} 
+    | D.Cut ({tp = D.Sg (base, _)} as gl) ->
+      ret @@ D.Cut {tp = base; cut = push_frm D.KFst gl.cut} 
     | _ -> 
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
 
@@ -67,10 +67,10 @@ struct
   and do_snd p : D.con CmpM.m =
     match p with
     | D.Pair (_, p2) -> ret p2
-    | D.Glued {tp = D.Sg (_, clo); cut} ->
+    | D.Cut {tp = D.Sg (_, clo); cut} ->
       let* fst = do_fst p in
       let+ fib = inst_tp_clo clo [fst] in 
-      D.Glued {tp = fib; cut = push_frm D.KSnd cut} 
+      D.Cut {tp = fib; cut = push_frm D.KSnd cut} 
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd: " ^ D.show_con p)
 
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp CmpM.m =
@@ -94,13 +94,13 @@ struct
   and do_id_elim mot refl eq =
     match eq with
     | D.Refl t -> inst_tm_clo refl [t]
-    | D.Glued {tp; cut} -> 
+    | D.Cut {tp; cut} -> 
       begin
         match tp with
         | D.Id (tp, left, right) ->
           let+ fib = inst_tp_clo mot [left; right; eq] in
           let k = D.KIdElim (mot, refl, tp, left, right) in
-          D.Glued {tp = fib; cut = push_frm k cut}
+          D.Cut {tp = fib; cut = push_frm k cut}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not an Id in do_id_elim"
       end
@@ -111,13 +111,13 @@ struct
     match f with
     | D.Lam clo -> 
       inst_tm_clo clo [a]
-    | D.Glued {tp; cut} ->
+    | D.Cut {tp; cut} ->
       begin
         match tp with
         | D.Pi (src, dst) ->
           let+ dst = inst_tp_clo dst [a] in
           let k = D.KAp (D.Nf {tp = src; el = a}) in
-          D.Glued {tp = dst; cut = push_frm k cut}
+          D.Cut {tp = dst; cut = push_frm k cut}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
       end
@@ -181,7 +181,7 @@ struct
       let* st = EvM.read_global in
       let D.Nf nf = ElabState.get_global sym st in
       let lcon = ref @@ `Done nf.el in
-      ret @@ D.Glued {tp = nf.tp; cut = (D.Global sym, []), Some lcon}
+      ret @@ D.Cut {tp = nf.tp; cut = (D.Global sym, []), Some lcon}
     | S.Let (def, body) -> 
       let* vdef = eval def in 
       append [vdef] @@ eval body
@@ -244,7 +244,7 @@ struct
 
   let rec quote tp el : S.t m =
     match tp, el with 
-    | _, D.Glued {cut = cut, _; _} ->
+    | _, D.Cut {cut = cut, _; _} ->
       quote_cut cut
     | D.Pi (base, fam), f ->
       binder 1 @@ 
@@ -417,7 +417,7 @@ struct
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
       equate_con tp con0 con1
-    | _, D.Glued glued0, D.Glued glued1 ->
+    | _, D.Cut glued0, D.Cut glued1 ->
       begin 
         match glued0.cut, glued1.cut with 
         | (_, Some lcon0), (_, Some lcon1) ->

@@ -11,7 +11,7 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 
 and con =
   | Lam of ze su tm_clo
-  | Glued of {tp : tp; cut : cut * lazy_con ref option}
+  | Cut of {tp : tp; cut : cut * lazy_con ref option}
   | Zero
   | Suc of con
   | Pair of con * con
