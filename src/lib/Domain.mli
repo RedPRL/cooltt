@@ -11,8 +11,7 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 
 and con =
   | Lam of ze su tm_clo
-  | Ne of {tp : tp; cut : cut}
-  | Glued of {tp : tp; local : cut; global : [`Cut of cut | `Con of con] Lazy.t}
+  | Glued of {tp : tp; cut : cut * lazy_con ref option}
   | Zero
   | Suc of con
   | Pair of con * con
@@ -29,6 +28,8 @@ and hd =
   | Var of int (* De Bruijn level *)
 
 and cut = hd * frm list
+
+and lazy_con = [`Do of con * frm list | `Done of con]
 
 and frm = 
   | KAp of nf

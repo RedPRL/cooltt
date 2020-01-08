@@ -15,9 +15,8 @@ let elab_err err = raise @@ Err.ElabError err
 
 let push_var id tp : 'a m -> 'a m = 
   scope @@ fun env ->
-  let var = D.Var (Env.size env) in
-  let term = D.Ne {cut = var, []; tp} in
-  Env.append_el id term tp env
+  let con = D.mk_var tp @@ Env.size env in 
+  Env.append_el id con tp env
 
 let push_def id tp el : 'a m -> 'a m = 
   scope @@ fun env ->

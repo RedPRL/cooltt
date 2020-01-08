@@ -21,6 +21,8 @@ sig
   val do_snd : D.con -> D.con CmpM.m
   val do_ap : D.con -> D.con -> D.con CmpM.m
   val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con CmpM.m
+  val do_frm : D.con -> D.frm -> D.con CmpM.m
+  val do_spine : D.con -> D.frm list -> D.con CmpM.m
 end =
 struct
   open CmpM
@@ -33,27 +35,42 @@ struct
     | D.Suc n -> 
       let* v = do_nat_elim mot zero suc n in 
       inst_tm_clo suc [n; v]
-    | D.Ne {cut; _} ->
+    | D.Glued {cut; _} ->
       let+ final_tp = inst_tp_clo mot [n] in
-      D.Ne {tp = final_tp; cut = cut |> D.push @@ D.KNatElim (mot, zero, suc)}
+      let k = D.KNatElim (mot, zero, suc) in
+      D.Glued {tp = final_tp; cut = push_frm k cut}
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
   and do_fst p : D.con CmpM.m =
     match p with
     | D.Pair (p1, _) -> ret p1
-    | D.Ne {tp = D.Sg (t, _); cut} ->
-      ret @@ D.Ne {tp = t; cut = cut |> D.push D.KFst}
+    | D.Glued ({tp = D.Sg (base, _)} as gl) ->
+      ret @@ D.Glued {tp = base; cut = push_frm D.KFst gl.cut} 
     | _ -> 
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
+
+  and push_frm k =
+    function
+    | cut, None -> 
+      D.push k cut, None
+    | cut, Some r -> 
+      let s = ref @@
+        match !r with
+        | `Done con ->
+          `Do (con, [k])
+        | `Do (con, spine) ->
+          `Do (con, spine @ [k])
+      in 
+      D.push k cut, Some s
 
   and do_snd p : D.con CmpM.m =
     match p with
     | D.Pair (_, p2) -> ret p2
-    | D.Ne {tp = D.Sg (_, clo); cut} ->
+    | D.Glued {tp = D.Sg (_, clo); cut} ->
       let* fst = do_fst p in
       let+ fib = inst_tp_clo clo [fst] in 
-      D.Ne {tp = fib; cut = cut |> D.push D.KSnd}
+      D.Glued {tp = fib; cut = push_frm D.KSnd cut} 
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd: " ^ D.show_con p)
 
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp CmpM.m =
@@ -77,12 +94,13 @@ struct
   and do_id_elim mot refl eq =
     match eq with
     | D.Refl t -> inst_tm_clo refl [t]
-    | D.Ne {tp; cut} -> 
+    | D.Glued {tp; cut} -> 
       begin
         match tp with
         | D.Id (tp, left, right) ->
           let+ fib = inst_tp_clo mot [left; right; eq] in
-          D.Ne {tp = fib; cut = cut |> D.push @@ D.KIdElim (mot, refl, tp, left, right)}
+          let k = D.KIdElim (mot, refl, tp, left, right) in
+          D.Glued {tp = fib; cut = push_frm k cut}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not an Id in do_id_elim"
       end
@@ -93,17 +111,33 @@ struct
     match f with
     | D.Lam clo -> 
       inst_tm_clo clo [a]
-    | D.Ne {tp; cut} ->
+    | D.Glued {tp; cut} ->
       begin
         match tp with
         | D.Pi (src, dst) ->
           let+ dst = inst_tp_clo dst [a] in
-          D.Ne {tp = dst; cut = cut |> D.push @@ D.KAp (D.Nf {tp = src; el = a})}
+          let k = D.KAp (D.Nf {tp = src; el = a}) in
+          D.Glued {tp = dst; cut = push_frm k cut}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
       end
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a function in do_ap"
+
+  let do_frm v =
+    function
+    | D.KAp (D.Nf nf) -> do_ap v nf.el
+    | D.KFst -> do_fst v
+    | D.KSnd -> do_snd v
+    | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc v
+    | D.KIdElim (mot, case_refl, _, _, _) -> do_id_elim mot case_refl v
+
+  let rec do_spine v =
+    function
+    | [] -> ret v
+    | k :: sp ->
+      let* v' = do_frm v k in
+      do_spine v' sp
 
 end
 
@@ -144,9 +178,10 @@ struct
     | S.Var i -> 
       get_local i 
     | S.Global sym -> 
-      let+ st = EvM.read_global in
+      let* st = EvM.read_global in
       let D.Nf nf = ElabState.get_global sym st in
-      nf.el
+      let lcon = ref @@ `Done nf.el in
+      ret @@ D.Glued {tp = nf.tp; cut = (D.Global sym, []), Some lcon}
     | S.Let (def, body) -> 
       let* vdef = eval def in 
       append [vdef] @@ eval body
@@ -209,8 +244,8 @@ struct
 
   let rec quote tp el : S.t m =
     match tp, el with 
-    | _, D.Glued {local; _} ->
-      quote_cut local
+    | _, D.Glued {cut = cut, _; _} ->
+      quote_cut cut
     | D.Pi (base, fam), f ->
       binder 1 @@ 
       let* arg = top_var base in
@@ -233,8 +268,6 @@ struct
     | D.Id (tp, _, _), D.Refl el ->
       let+ t = quote tp el in 
       S.Refl t
-    | (D.Nat | D.Id _), D.Ne {cut; _} -> 
-      quote_cut cut
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
 
@@ -384,31 +417,112 @@ struct
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
       equate_con tp con0 con1
-    | _, D.Ne ne0, D.Ne ne1 ->
-      equate_cut ne0.cut ne1.cut
     | _, D.Glued glued0, D.Glued glued1 ->
-      let global0 = Lazy.force glued0.global in
-      let global1 = Lazy.force glued1.global in
-      failwith ""
+      begin 
+        match glued0.cut, glued1.cut with 
+        | (_, Some lcon0), (_, Some lcon1) ->
+          let* con0' = do_lazy_con lcon0 in 
+          let* con1' = do_lazy_con lcon1 in 
+          equate_con tp con0' con1'
+        | (cut0, None) , (cut1, None) ->
+          equate_cut cut0 cut1
+        | _ -> throw @@ NbeFailed "mismatch"
+      end
     | _ -> 
       throw @@ NbeFailed ("Unequal values " ^ D.show_con con0 ^ " and " ^ D.show_con con1)
 
-  and equate_cut _cut0 _cut1 = 
-    failwith ""
+  and equate_cut cut0 cut1 = 
+    let hd0, sp0 = cut0 in
+    let hd1, sp1 = cut1 in
+    let* () = equate_hd hd0 hd1 in
+    equate_spine sp0 sp1
+
+  and equate_spine sp0 sp1 =
+    match sp0, sp1 with
+    | [], [] -> ret ()
+    | k0 :: sp0, k1 :: sp1 ->
+      let* () = equate_frm k0 k1 in 
+      equate_spine sp0 sp1
+    | _ -> 
+      throw @@ NbeFailed "Spine length mismatch"
+
+  and equate_frm k0 k1 = 
+    match k0, k1 with 
+    | D.KFst, D.KFst -> ret ()
+    | D.KSnd, D.KSnd -> ret ()
+    | D.KAp (D.Nf nf0), D.KAp (D.Nf nf1) ->
+      let* () = equate_tp nf0.tp nf1.tp in
+      equate_con nf0.tp nf0.el nf1.el 
+    | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
+      let* fibx =
+        binder 1 @@
+        let* var = top_var D.Nat in
+        let* fib0 = lift_cmp @@ Compute.inst_tp_clo mot0 [var] in
+        let* fib1 = lift_cmp @@ Compute.inst_tp_clo mot1 [var] in
+        let+ () = equate_tp fib0 fib1  in
+        fib0 
+      in
+      let* () = 
+        let* fib = lift_cmp @@ Compute.inst_tp_clo mot0 [D.Zero] in
+        equate_con fib zero_case0 zero_case1
+      in
+      binder 1 @@
+      let* x = top_var D.Nat in 
+      binder 1 @@ 
+      let* ih = top_var fibx in
+      let* fib_sucx = lift_cmp @@ Compute.inst_tp_clo mot0 [D.Suc x] in
+      let* con0 = lift_cmp @@ Compute.inst_tm_clo suc_case0 [x; ih] in
+      let* con1 = lift_cmp @@ Compute.inst_tm_clo suc_case1 [x; ih] in
+      equate_con fib_sucx con0 con1
+    | D.KIdElim (mot0, refl_case0, tp0, left0, right0), D.KIdElim (mot1, refl_case1, tp1, left1, right1) ->
+      let* () = equate_tp tp0 tp1 in
+      let* () = equate_con tp0 left0 left1 in
+      let* () = equate_con tp0 right0 right1 in
+      let* () =
+        binder 1 @@
+        let* l = top_var tp0 in
+        binder 1 @@ 
+        let* r = top_var tp0 in
+        binder 1 @@ 
+        let* p = top_var @@ D.Id (tp0, l, r) in
+        let* fib0 = lift_cmp @@ Compute.inst_tp_clo mot0 [l; r; p] in
+        let* fib1 = lift_cmp @@ Compute.inst_tp_clo mot1 [l; r; p] in
+        equate_tp fib0 fib1
+      in
+      binder 1 @@
+      let* x = top_var tp0 in
+      let* fib_reflx = lift_cmp @@ Compute.inst_tp_clo mot0 [x; x; D.Refl x] in
+      let* con0 = lift_cmp @@ Compute.inst_tm_clo refl_case0 [x] in
+      let* con1 = lift_cmp @@ Compute.inst_tm_clo refl_case1 [x] in
+      equate_con fib_reflx con0 con1
+    | _ -> 
+      throw @@ NbeFailed "Mismatched frames"
+
+  and equate_hd hd0 hd1 = 
+    match hd0, hd1 with
+    | D.Global sym0, D.Global sym1 ->
+      if Symbol.equal sym0 sym1 then ret () else 
+        throw @@ NbeFailed "Different head symbols"
+    | D.Var lvl0, D.Var lvl1 ->
+      if lvl0 = lvl1 then ret () else
+        throw @@ NbeFailed "Different head variables"
+    | _ ->
+      throw @@ NbeFailed "Different heads"
+
+  and do_lazy_con r = 
+    match !r with 
+    | `Done con -> ret con
+    | `Do (con, spine) -> 
+      let+ con' = lift_cmp @@ Compute.do_spine con spine in
+      r := `Done con;
+      con'
 
 
-  let equal_tp _tp0 _tp1 = 
-    (* match tp0, tp1 with 
-       | D.Pi (base0, fam0), D.Pi (base1, fam1) -> 
-       (* let* () = equal_tp base0 base1 in *)
-       failwith ""
-       | _ ->  *)
-    failwith ""
+  let equal_tp tp0 tp1 : bool quote = 
+    successful @@ equate_tp tp0 tp1
 
   let equal_cut cut0 cut1 = 
-    let+ t0 = quote_cut cut0
-    and+ t1 = quote_cut cut1 in 
-    t0 = t1
+    successful @@ equate_cut cut0 cut1
 end
 
 include Eval

@@ -14,12 +14,14 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 
 and con =
   | Lam of (ze su) tm_clo
-  | Ne of {tp : tp; cut : cut}
-  | Glued of {tp : tp; local : cut; global : [`Cut of cut | `Con of con] Lazy.t}
+  | Glued of {tp : tp; cut : cut * lazy_con ref option}
   | Zero
   | Suc of con
   | Pair of con * con
   | Refl of con
+[@@deriving show]
+
+and lazy_con = [`Do of con * frm list | `Done of con]
 [@@deriving show]
 
 and cut = hd * frm list 
@@ -50,4 +52,4 @@ and nf = Nf of {tp : tp; el : con} [@@deriving show]
 let push frm (hd, sp) = 
   hd, sp @ [frm]
 
-let mk_var tp lev = Ne {tp; cut = Var lev, []}
+let mk_var tp lev = Glued {tp; cut = (Var lev, []), None}
