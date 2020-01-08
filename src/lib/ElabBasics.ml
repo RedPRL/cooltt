@@ -88,3 +88,13 @@ let dest_id =
     ret (tp, l, r)
   | tp ->
     elab_err @@ Err.ExpectedConnective (`Id, tp)
+
+let abstract nm tp k =
+  push_var nm tp @@
+  let* x = get_local 0 in
+  k x
+
+let define nm tp con k =
+  push_def nm tp con @@
+  let* x = get_local 0 in
+  k x

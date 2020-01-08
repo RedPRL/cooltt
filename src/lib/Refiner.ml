@@ -56,16 +56,6 @@ let unleash_hole name : chk_tac =
 
   EM.lift_qu @@ Nbe.quote_cut cut
 
-let abstract nm tp k =
-  EM.push_var nm tp @@
-  let* x = EM.get_local 0 in
-  k x
-
-let define nm tp con k =
-  EM.push_def nm tp con @@
-  let* x = EM.get_local 0 in
-  k x
-
 module Id = 
 struct
   let formation tac_tp tac_l tac_r =
@@ -89,13 +79,13 @@ struct
     let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
     let* tp, l, r = EM.dest_id idtp in
     let* tmot =
-      abstract nm_x0 tp @@ fun x0 ->
-      abstract nm_x1 tp @@ fun x1 ->
-      abstract nm_p (Id (tp, x0, x1)) @@ fun _ ->
+      EM.abstract nm_x0 tp @@ fun x0 ->
+      EM.abstract nm_x1 tp @@ fun x1 ->
+      EM.abstract nm_p (Id (tp, x0, x1)) @@ fun _ ->
       tac_mot
     in
     let* t_refl_case =
-      abstract nm_x tp @@ fun x ->
+      EM.abstract nm_x tp @@ fun x ->
       let* fib_refl_x = EM.lift_ev @@ EvM.append [x; D.Refl x] @@ Nbe.eval_tp tmot in
       tac_case_refl fib_refl_x
     in
@@ -115,7 +105,7 @@ struct
   let intro name tac_body : chk_tac =
     function
     | D.Pi (base, fam) ->
-      abstract name base @@ fun var ->
+      EM.abstract name base @@ fun var ->
       let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
       let+ t = tac_body fib in
       S.Lam t
@@ -191,7 +181,7 @@ struct
     let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
 
     let* tmot =
-      abstract nm_mot nattp @@ fun _ ->
+      EM.abstract nm_mot nattp @@ fun _ ->
       tac_mot
     in
 
@@ -201,10 +191,10 @@ struct
     in
 
     let* tcase_suc =
-      abstract nm_x nattp @@ fun x ->
+      EM.abstract nm_x nattp @@ fun x ->
       let* fib_x = EM.lift_ev @@ EvM.append [x] @@ Nbe.eval_tp tmot in
       let* fib_suc_x = EM.lift_ev @@ EvM.append [D.Suc x] @@ Nbe.eval_tp tmot in
-      abstract nm_ih fib_x @@ fun _ ->
+      EM.abstract nm_ih fib_x @@ fun _ ->
       tac_case_suc fib_suc_x
     in
 
@@ -244,7 +234,7 @@ struct
     fun tp ->
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Nbe.eval tdef in
-    define nm_x tp_def vdef @@ fun _ ->
+    EM.define nm_x tp_def vdef @@ fun _ ->
     let+ tbdy = tac_bdy tp in
     S.Let (tdef, tbdy)
 end
