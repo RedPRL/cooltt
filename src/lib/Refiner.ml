@@ -20,26 +20,27 @@ let rec int_to_term =
   | 0 -> S.Zero
   | n -> S.Suc (int_to_term (n - 1))
 
-let unleash_hole name : chk_tac =
-  fun tp ->
-  let rec go_tp : Env.cell list -> S.tp m =
-    function
-    | [] ->
-      EM.lift_qu @@ Nbe.quote_tp tp
-    | (D.Nf cell, name) :: cells ->
-      let+ base = EM.lift_qu @@ Nbe.quote_tp cell.tp
-      and+ fam = EM.push_var name cell.tp @@ go_tp cells in
-      S.Pi (base, fam)
-  in
+module Hole =
+struct
 
-  let rec go_tm cut : Env.cell bwd -> D.cut =
-    function
-    | Emp -> cut
-    | Snoc (cells, (nf, _)) ->
-      go_tm cut cells |> D.push @@ D.KAp nf
-  in
+  let make_hole name tp = 
+    let rec go_tp : Env.cell list -> S.tp m =
+      function
+      | [] ->
+        EM.lift_qu @@ Nbe.quote_tp tp
+      | (D.Nf cell, name) :: cells ->
+        let+ base = EM.lift_qu @@ Nbe.quote_tp cell.tp
+        and+ fam = EM.push_var name cell.tp @@ go_tp cells in
+        S.Pi (base, fam)
+    in
 
-  let* cut =
+    let rec go_tm cut : Env.cell bwd -> D.cut =
+      function
+      | Emp -> cut
+      | Snoc (cells, (nf, _)) ->
+        go_tm cut cells |> D.push @@ D.KAp nf
+    in
+
     let* env = EM.read in
     EM.globally @@
     let+ sym =
@@ -52,9 +53,16 @@ let unleash_hole name : chk_tac =
       EM.add_global name vtp None
     in
     go_tm (D.Global sym, []) @@ Env.locals env
-  in
 
-  EM.lift_qu @@ Nbe.quote_cut cut
+  let unleash_hole name : chk_tac =
+    fun tp ->
+    let* cut = make_hole name tp in 
+    EM.lift_qu @@ Nbe.quote_cut cut
+
+  let unleash_tp_hole name : tp_tac =
+    let* cut = make_hole name D.Univ in 
+    EM.lift_qu @@ Nbe.quote_tp (D.El cut)
+end
 
 module Id = 
 struct
@@ -200,6 +208,13 @@ struct
 
     let+ fib_scrut = EM.lift_ev @@ EvM.append [vscrut] @@ Nbe.eval_tp tmot in
     S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
+end
+
+module El =
+struct
+  let formation tac = 
+    let+ tm = tac D.Univ in 
+    S.El tm
 end
 
 module Structural = 

@@ -5,7 +5,11 @@ open Bwd
 
 type env = {locals : con bwd}
 
-and ('n, 't, 'o, 'sp) clo = Clo of {bdy : 't; env : env; spine : 'sp} | ConstClo of 'o
+and ('n, 't, 'o, 'sp) clo = 
+  | Clo : {bdy : 't; env : env; spine : 'sp}  -> ('n, 't, 'o, 'sp) clo
+  | ElClo : ('n, S.t, con, frm list) clo -> ('n, S.tp, tp, unit) clo
+  | ConstClo : 'o -> ('n, 't, 'o, 'sp) clo
+
 and 'n tm_clo = ('n, S.t, con, frm list) clo
 and 'n tp_clo = ('n, S.tp, tp, unit) clo
 
@@ -22,6 +26,8 @@ and tp =
   | Id of tp * con * con
   | Pi of tp * ze su tp_clo
   | Sg of tp * ze su tp_clo
+  | Univ
+  | El of cut 
 
 and hd =
   | Global of Symbol.t 
@@ -43,12 +49,14 @@ and nf = Nf of {tp : tp; con : con}
 val mk_var : tp -> int -> con
 val push : frm -> cut -> cut
 
-val pp_con : con Pp.printer
 val pp_tp : tp Pp.printer
+val pp_con : con Pp.printer
+
+(* 
 val pp_nf : nf Pp.printer
 val pp_cut : cut Pp.printer
 
 val show_con : con -> string
 val show_tp : tp -> string
 val show_nf : nf -> string
-val show_cut : cut -> string
+val show_cut : cut -> string *)

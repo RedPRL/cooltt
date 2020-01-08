@@ -19,6 +19,8 @@ and tp =
   | Pi of tp * (* BINDS *) tp
   | Sg of tp * (* BINDS *) tp
   | Id of tp * t * t
+  | Univ
+  | El of t
 
 type env = tp list
 

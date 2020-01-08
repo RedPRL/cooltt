@@ -22,6 +22,8 @@ and tp =
   | Pi of tp * (* BINDS *) tp
   | Sg of tp * (* BINDS *) tp
   | Id of tp * t * t
+  | Univ
+  | El of t
 [@@deriving show]
 
 let rec condense = function
@@ -153,6 +155,10 @@ and pp_tp_ env =
         (pp_ env) r
     | _, Nat ->
       Format.fprintf fmt "Nat"
+    | _, Univ ->
+      Format.fprintf fmt "Univ"
+    | _, El tm ->
+      Fmt.fprintf fmt "@[<hv1>(el@ %a)@]" (pp_ env) tm
   in
   go env `Start
 

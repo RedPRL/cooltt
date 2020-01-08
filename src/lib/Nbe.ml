@@ -23,6 +23,9 @@ sig
   val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con CmpM.m
   val do_frm : D.con -> D.frm -> D.con CmpM.m
   val do_spine : D.con -> D.frm list -> D.con CmpM.m
+
+  val do_el : D.con -> D.tp CmpM.m
+  val force_lazy_con : D.lazy_con ref -> D.con CmpM.m
 end =
 struct
   open CmpM
@@ -71,7 +74,7 @@ struct
       let* fst = do_fst p in
       let+ fib = inst_tp_clo clo [fst] in 
       D.Cut {tp = fib; cut = push_frm D.KSnd cut} 
-    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd: " ^ D.show_con p)
+    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp CmpM.m =
     fun clo xs ->
@@ -79,6 +82,9 @@ struct
     | Clo {bdy; env; _} -> 
       lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
       Eval.eval_tp bdy
+    | ElClo clo ->
+      let* con = inst_tm_clo clo xs in
+      do_el con
     | ConstClo t -> 
       CmpM.ret t
 
@@ -142,6 +148,25 @@ struct
       let* v' = do_frm v k in
       do_spine v' sp
 
+  and do_el =
+    function
+    | D.Cut {cut = cut, None; tp = D.Univ} ->
+      ret @@ D.El cut
+
+    | D.Cut {cut = _, Some r; tp = D.Univ} ->
+      let* con = force_lazy_con r in 
+      do_el con
+
+    | _ ->
+      CmpM.throw @@ NbeFailed "do_el failed"
+
+  and force_lazy_con r = 
+    match !r with 
+    | `Done con -> ret con
+    | `Do (con, spine) -> 
+      let+ con' = do_spine con spine in
+      r := `Done con';
+      con'
 end
 
 and Eval :
@@ -175,6 +200,11 @@ struct
       and+ vl = eval left 
       and+ vr = eval right in
       D.Id (vtp, vl, vr)
+    | S.Univ ->
+      ret D.Univ
+    | S.El tm ->
+      let* con = eval tm in
+      lift_cmp @@ Compute.do_el con
 
   and eval =
     function
@@ -254,7 +284,7 @@ struct
           begin
             match Veil.policy sym veil with
             | `Transparent ->
-              let* con = do_lazy_con lcon in
+              let* con = lift_cmp @@ Compute.force_lazy_con lcon in 
               quote tp con
             | _ ->
               quote_cut (hd, sp)
@@ -313,6 +343,12 @@ struct
       and+ tleft = quote tp left 
       and+ tright = quote tp right in 
       S.Id (ttp, tleft, tright)
+    | D.Univ ->
+      ret S.Univ
+    | D.El cut ->
+      let+ tm = quote_cut cut in
+      S.El tm
+
 
   and quote_hd =
     function
@@ -381,14 +417,6 @@ struct
       let+ targ = quote nf.tp nf.con in
       S.Ap (tm, targ)
 
-  and do_lazy_con r = 
-    match !r with 
-    | `Done con -> ret con
-    | `Do (con, spine) -> 
-      let+ con' = lift_cmp @@ Compute.do_spine con spine in
-      r := `Done con';
-      con'
-
 
   let equal tp el1 el2 = 
     let+ t1 = quote tp el1
@@ -417,8 +445,12 @@ struct
       equate_con tp0 r0 r1
     | D.Nat, D.Nat -> 
       ret ()
-    | tp0, tp1 -> 
-      throw @@ NbeFailed ("Unequal types " ^ D.show_tp tp0 ^ " and " ^ D.show_tp tp1)
+    | D.Univ, D.Univ ->
+      ret ()
+    | D.El cut0, D.El cut1 ->
+      equate_cut cut0 cut1
+    | _tp0, _tp1 -> 
+      throw @@ NbeFailed ("Unequal types")
 
   and equate_con tp con0 con1 =
     match tp, con0, con1 with
@@ -445,15 +477,15 @@ struct
       begin 
         match glued0.cut, glued1.cut with 
         | (_, Some lcon0), (_, Some lcon1) ->
-          let* con0' = do_lazy_con lcon0 in 
-          let* con1' = do_lazy_con lcon1 in 
+          let* con0' = lift_cmp @@ Compute.force_lazy_con lcon0 in 
+          let* con1' = lift_cmp @@ Compute.force_lazy_con lcon1 in 
           equate_con tp con0' con1'
         | (cut0, None) , (cut1, None) ->
           equate_cut cut0 cut1
         | _ -> throw @@ NbeFailed "mismatch"
       end
     | _ -> 
-      throw @@ NbeFailed ("Unequal values " ^ D.show_con con0 ^ " and " ^ D.show_con con1)
+      throw @@ NbeFailed ("Unequal values ")
 
   and equate_cut cut0 cut1 = 
     let hd0, sp0 = cut0 in

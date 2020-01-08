@@ -9,7 +9,11 @@ type syn_tac = (S.t * D.tp) EM.m
 
 type quantifier_tac = tp_tac -> CS.ident option * tp_tac -> tp_tac
 
-val unleash_hole : CS.ident option -> chk_tac
+
+module Hole : sig
+  val unleash_hole : CS.ident option -> chk_tac
+  val unleash_tp_hole : CS.ident option -> tp_tac
+end
 
 
 module Pi : sig 
@@ -45,6 +49,10 @@ module Nat : sig
     -> (CS.ident option * CS.ident option * chk_tac)
     -> syn_tac
     -> syn_tac
+end
+
+module El : sig 
+  val formation : chk_tac -> tp_tac
 end
 
 module Structural : sig

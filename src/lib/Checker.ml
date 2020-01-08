@@ -18,6 +18,10 @@ let rec chk_tp : S.tp -> R.tp_tac =
     R.Id.formation (chk_tp tp)(chk_tm l) (chk_tm r)
   | S.Nat -> 
     EM.ret S.Nat
+  | S.Univ -> 
+    EM.ret S.Univ
+  | S.El tm ->
+    R.El.formation @@ chk_tm tm
 
 and chk_tm : S.t -> R.chk_tac =
   function
