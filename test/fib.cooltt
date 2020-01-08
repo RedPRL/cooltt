@@ -1,6 +1,4 @@
-; Not really a particularly interesting program, but good for computing stuff.
-
-def plus : nat -> nat -> nat = {
+def + : nat -> nat -> nat = {
   \m n =>
   rec n at x => nat with [
   | zero => m
@@ -13,15 +11,15 @@ def fib : nat -> nat = {
   let worker : nat * nat =
     rec n at _ => nat * nat with [
     | zero => [1, 0]
-    | suc (_ => p) => [plus {fst p} {snd p}, fst p]
+    | suc (_ => p) => [+ {fst p} {snd p}, fst p]
     ]
   in
   snd worker
 }
 
-def foo : (p : Id nat {fib 2} 1) -> nat =
+def foo : (p : Id nat {fib 3} 1) -> nat =
   \x =>
   unfold fib in ?
 
 
-normalize fib 25
+normalize foo
