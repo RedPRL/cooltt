@@ -32,11 +32,11 @@ struct
 
   let close_tp tp : _ m =
     let+ env = read_local in 
-    D.Clo {bdy = tp; env}
+    D.Clo {bdy = tp; env; spine = ()}
 
   let close_tm t : _ m = 
     let+ env = read_local in 
-    D.Clo {bdy = t; env}
+    D.Clo {bdy = t; env; spine = []}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
     fun (st, _) ->

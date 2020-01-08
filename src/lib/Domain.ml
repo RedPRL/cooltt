@@ -6,11 +6,12 @@ open TLNat
 
 type env = {locals : con bwd}
 
-and ('n, 't, 'o) clo = Clo of {bdy : 't; env : env} | ConstClo of 'o
+and ('n, 't, 'o, 'sp) clo = Clo of {bdy : 't; env : env; spine : 'sp} | ConstClo of 'o
 [@@deriving show]
 
-and 'n tm_clo = ('n, S.t, con) clo
-and 'n tp_clo = ('n, S.tp, tp) clo
+and 'n tm_clo = ('n, S.t, con, frm list) clo
+and 'n tp_clo = ('n, S.tp, tp, unit) clo
+
 
 and con =
   | Lam of (ze su) tm_clo

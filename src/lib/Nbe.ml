@@ -76,7 +76,7 @@ struct
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp CmpM.m =
     fun clo xs ->
     match clo with
-    | Clo {bdy; env} -> 
+    | Clo {bdy; env; _} -> 
       lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
       Eval.eval_tp bdy
     | ConstClo t -> 
@@ -85,9 +85,12 @@ struct
   and inst_tm_clo : type n. n D.tm_clo -> (n, D.con) Vec.vec -> D.con CmpM.m =
     fun clo xs ->
     match clo with
-    | D.Clo {bdy; env} -> 
-      lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
-      Eval.eval bdy
+    | D.Clo {bdy; env; spine} -> 
+      let* con = 
+        lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
+        Eval.eval bdy
+      in 
+      do_spine con spine
     | D.ConstClo t -> 
       CmpM.ret t
 
@@ -124,7 +127,7 @@ struct
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a function in do_ap"
 
-  let do_frm v =
+  and do_frm v =
     function
     | D.KAp (D.Nf nf) -> do_ap v nf.con
     | D.KFst -> do_fst v
@@ -132,7 +135,7 @@ struct
     | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc v
     | D.KIdElim (mot, case_refl, _, _, _) -> do_id_elim mot case_refl v
 
-  let rec do_spine v =
+  and do_spine v =
     function
     | [] -> ret v
     | k :: sp ->

@@ -65,7 +65,7 @@ let rec pp_ (env : Pp.env)  =
       let x, envx = Pp.Env.bind env None in
       let y, envxy = Pp.Env.bind envx None in
       Fmt.fprintf  fmt
-        "@[<hv1>(nat.elim [%a] %a @[<hv1>(zero@ %a)@]@ @[<hv1>(suc@ [%a %a] %a)@]@ %a)@]"
+        "@[<hv1>(nat.elim@ [%a] %a @[<hv1>(zero@ %a)@]@ @[<hv1>(suc@ [%a %a] %a)@]@ %a)@]"
         Uuseg_string.pp_utf_8 x 
         (pp_tp_ envx) mot
         (go env `Start) zero
@@ -78,7 +78,7 @@ let rec pp_ (env : Pp.env)  =
       let y, envxy = Pp.Env.bind envx None in
       let z, envxyz = Pp.Env.bind envxy None in
       Fmt.fprintf fmt
-        "@[<hv1>(id.elim [%a %a %a] %a@ @[<hv1>(refl@ [%a] %a)@]@ %a@]"
+        "@[<hv1>(id.elim@ [%a %a %a] %a@ @[<hv1>(refl@ [%a] %a)@]@ %a@]"
         Uuseg_string.pp_utf_8 x
         Uuseg_string.pp_utf_8 y
         Uuseg_string.pp_utf_8 z
