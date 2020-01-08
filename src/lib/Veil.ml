@@ -1,4 +1,4 @@
-type policy = [`Opaque | `Translucent | `Transparent]
+type policy = [`Translucent | `Transparent]
 type t = Symbol.t -> policy
 
 let policy : Symbol.t -> t -> policy =

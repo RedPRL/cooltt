@@ -218,7 +218,6 @@ struct
     | S.Refl t -> 
       let+ con = eval t in
       D.Refl con
-
     | S.IdElim (mot, refl, eq) ->
       let* veq = eval eq in 
       let* clmot = close_tp mot in
