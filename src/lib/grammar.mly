@@ -63,8 +63,8 @@ spine:
 term:
   | f = atomic; args = list(spine)
     { match args with [] -> f | _ -> Ap (f, args) }
-  | UNFOLD; name = name; IN; body = term; 
-    { Unfold (name, body) }
+  | UNFOLD; names = nonempty_list(name); IN; body = term; 
+    { Unfold (names, body) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
     { Let (Ann {term = def; tp}, B {name; body}) }
   | LET; name = name; EQUALS; def = term; IN; body = term

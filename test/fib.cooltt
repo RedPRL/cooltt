@@ -21,5 +21,7 @@ def fib : nat -> nat = {
 
 def foo : (p : Id nat {fib 2} 1) -> nat =
   \x =>
-    unfold fib in ?
+    unfold fib plus in ?
 
+
+normalize fib 25

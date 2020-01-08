@@ -1,13 +1,20 @@
 type policy = [`Translucent | `Transparent]
-type t = Symbol.t -> policy
+[@@deriving show]
+
+type t = {default : policy; custom : policy SymbolMap.t}
+[@@deriving show]
 
 let policy : Symbol.t -> t -> policy =
-  fun sym veil -> veil sym
+  fun sym veil -> 
+  match SymbolMap.find_opt sym veil.custom with
+  | Some p -> p
+  | None -> veil.default
 
-let unfold _sym _veil _sym' = 
-  `Transparent
-(* if sym = sym' then `Transparent else veil sym' *)
+let unfold syms veil = 
+  {veil with 
+   custom = 
+     List.fold_left (fun m sym -> SymbolMap.add sym `Transparent m) veil.custom syms}
 
 let const : policy -> t = 
-  fun pol _ ->
-  pol
+  fun p ->
+  {default = p; custom = SymbolMap.empty}

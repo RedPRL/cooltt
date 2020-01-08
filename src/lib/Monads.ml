@@ -83,7 +83,8 @@ struct
   include M
 
   let globally m =
-    m |> scope @@ fun _ -> Env.init
+    m |> scope @@ fun env -> 
+    Env.veil (Env.get_veil env) Env.init
 
   let emit pp a : unit m = 
     fun (st, _env) -> 
