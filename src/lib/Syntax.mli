@@ -13,6 +13,7 @@ type t =
   | Snd of t
   | Refl of t
   | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
+  | CodeNat
 
 and tp =
   | Nat

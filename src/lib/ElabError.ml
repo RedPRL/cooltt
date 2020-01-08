@@ -8,7 +8,7 @@ type t =
   | ExpectedEqual of D.tp * D.con * D.con
   | ExpectedEqualTypes of D.tp * D.tp
   | InvalidTypeExpression of CS.t
-  | ExpectedConnective of [`Pi | `Sg | `Id | `Nat] * D.tp
+  | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
   | ExpectedSynthesizableTerm of S.t
 [@@deriving show]
 

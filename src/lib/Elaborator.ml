@@ -38,6 +38,8 @@ let rec chk_tp : CS.t -> S.tp EM.m =
     R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
   | CS.Nat -> 
     EM.ret S.Nat
+  | CS.Univ ->
+    R.Univ.formation
   | CS.Unfold (idents, c) -> 
     unfold idents @@ chk_tp c
   | tp -> 
@@ -64,6 +66,8 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.Unfold (idents, c) -> 
     fun tp ->
       unfold idents @@ chk_tm c tp
+  | CS.Nat ->
+    R.Univ.nat
   | cs ->
     R.Structural.syn_to_chk @@ syn_tm cs
 

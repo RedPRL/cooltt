@@ -23,6 +23,7 @@ and con =
   | Suc of con
   | Pair of con * con
   | Refl of con
+  | CodeNat
 
 and lazy_con = [`Do of con * frm list | `Done of con]
 

@@ -157,6 +157,9 @@ struct
       let* con = force_lazy_con r in 
       do_el con
 
+    | D.CodeNat ->
+      ret D.Nat
+
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
@@ -256,6 +259,8 @@ struct
       let* clmot = close_tp mot in
       let* clrefl = close_tm refl in
       lift_cmp @@ Compute.do_id_elim clmot clrefl veq
+    | S.CodeNat ->
+      ret D.CodeNat
 end
 
 module Quote : sig 
@@ -314,6 +319,8 @@ struct
     | D.Id (tp, _, _), D.Refl con ->
       let+ t = quote tp con in 
       S.Refl t
+    | D.Univ, D.CodeNat -> 
+      ret S.CodeNat
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
 

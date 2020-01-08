@@ -20,6 +20,7 @@ and con =
   | Suc of con
   | Pair of con * con
   | Refl of con
+  | CodeNat
 
 and tp =
   | Nat

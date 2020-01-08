@@ -8,6 +8,7 @@
 %token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS
+%token UNIV
 %token TIMES FST SND
 %token LAM LET IN WITH
 %token REC SUC NAT ZERO UNFOLD
@@ -51,6 +52,8 @@ atomic:
     { Nat }
   | REFL
     { Refl }
+  | UNIV 
+    { Univ }
   | LSQ; left = term; COMMA; right = term; RSQ
     { Pair (left, right) }
   | name = HOLE_NAME

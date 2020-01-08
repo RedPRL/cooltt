@@ -22,7 +22,6 @@ let rec int_to_term =
 
 module Hole =
 struct
-
   let make_hole name flexity tp = 
     let rec go_tp : Env.cell list -> S.tp m =
       function
@@ -64,6 +63,23 @@ struct
   let unleash_tp_hole name flexity : tp_tac =
     let* cut = make_hole name flexity D.Univ in 
     EM.lift_qu @@ Nbe.quote_tp (D.El cut)
+end
+
+module Univ = 
+struct
+  let formation : tp_tac = 
+    EM.ret S.Univ
+
+  let dest_univ =
+    function
+    | D.Univ -> EM.ret ()
+    | tp -> EM.elab_err @@ Err.ExpectedConnective (`Univ, tp)
+
+  let nat : chk_tac =
+    fun tp ->
+    let* () = dest_univ tp in
+    EM.ret S.CodeNat
+
 end
 
 module Id = 

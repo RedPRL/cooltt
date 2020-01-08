@@ -15,6 +15,7 @@ type t =
   | Snd of t
   | Refl of t
   | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
+  | CodeNat
 [@@deriving show]
 
 and tp =
@@ -38,7 +39,7 @@ let rec condense = function
 module Fmt = Format
 
 let rec pp_ (env : Pp.env)  =
-  let rec go env mode fmt tm= 
+  let rec go env (mode : [`Start | `Lam | `Ap]) fmt tm= 
     match mode, tm with
     | _, Var i -> 
       Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var i env
@@ -110,6 +111,8 @@ let rec pp_ (env : Pp.env)  =
       Fmt.fprintf fmt "@[<hv1>(pair@ %a@ %a)@]" (go env `Start) tm0 (go env `Start) tm1
     | _, Refl tm ->
       Fmt.fprintf fmt "@[<hv1>(refl %a)@]" (go env `Start) tm
+    | _, CodeNat ->
+      Fmt.fprintf fmt "nat"
   in
   go env `Start
 

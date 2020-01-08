@@ -37,6 +37,7 @@ let keywords =
     ("at", AT);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
+    ("univ", UNIV)
   ]
 }
 

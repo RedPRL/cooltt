@@ -16,6 +16,11 @@ module Hole : sig
 end
 
 
+module Univ : sig
+  val formation : tp_tac
+  val nat : chk_tac
+end
+
 module Pi : sig 
   val formation : quantifier_tac
   val intro : CS.ident option -> chk_tac -> chk_tac

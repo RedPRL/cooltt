@@ -30,6 +30,7 @@ and t =
   | Id of t * t * t
   | Refl
   | IdElim of {mot : binder3; case_refl : binder; scrut : t}
+  | Univ
   | Hole of ident option
   | Underscore
   | Unfold of ident list * t
