@@ -2,7 +2,8 @@ module StringMap = Map.Make (String)
 module D = Domain
 module S = Syntax
 
-open CoolBasis.Bwd
+open CoolBasis
+open Bwd
 open BwdNotation
 
 type cell = D.nf * string option
@@ -10,6 +11,7 @@ type cell = D.nf * string option
 type t = 
   {resolver : Symbol.t StringMap.t;
    veil : Veil.t;
+   pp : Pp.env;
    locals : cell bwd}
 
 let locals env = env.locals
@@ -17,6 +19,7 @@ let locals env = env.locals
 let init = 
   {resolver = StringMap.empty;
    veil = Veil.const `Translucent;
+   pp = Pp.Env.emp;
    locals = Emp}
 
 let size env = Bwd.length env.locals
@@ -43,6 +46,7 @@ let resolve_local key env =
 
 let append_el name con tp env =
   {env with 
+   pp = snd @@ Pp.Env.bind env.pp name;
    locals = env.locals <>< [D.Nf {tp; con}, name]}
 
 
@@ -50,6 +54,8 @@ let sem_env env : D.env =
   {locals = 
      Bwd.map (function D.Nf {con; _}, _-> con)
        env.locals}
+
+let pp_env env = env.pp
 
 let get_veil env = env.veil
 

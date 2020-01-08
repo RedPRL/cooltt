@@ -22,5 +22,9 @@ and tp =
 
 type env = tp list
 
-val pp : Format.formatter -> t -> unit
-val pp_tp : Format.formatter -> tp -> unit
+open CoolBasis
+val pp : t Pp.printer 
+val pp_tp : tp Pp.printer 
+
+val pp_ : Pp.env -> t Pp.printer
+val pp_tp_ : Pp.env -> tp Pp.printer

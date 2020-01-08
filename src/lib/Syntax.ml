@@ -1,3 +1,5 @@
+open CoolBasis
+
 type t =
   | Var of int (* DeBruijn indices for variables *)
   | Global of Symbol.t
@@ -13,12 +15,14 @@ type t =
   | Snd of t
   | Refl of t
   | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
+[@@deriving show]
 
 and tp =
   | Nat
   | Pi of tp * (* BINDS *) tp
   | Sg of tp * (* BINDS *) tp
   | Id of tp * t * t
+[@@deriving show]
 
 let rec condense = function
   | Zero -> Some 0
@@ -28,46 +32,79 @@ let rec condense = function
       | None -> None )
   | _ -> None
 
-let rec pp fmt =
-  let open Format in
-  function
-  | Var i -> fprintf fmt "#%d" i
-  | Global sym -> fprintf fmt "%a" Symbol.pp sym
-  | Let (def, body) ->
-    fprintf fmt "let@,@[<hov>%a@]@,in@,@[<hov%a@]" pp def pp body
-  | Ann (term, tp) ->
-    fprintf fmt "(@[<hov>%a@]@ :@,@[<hov>%a@])" pp term pp_tp tp
-  | Zero -> fprintf fmt "0"
-  | Suc t -> (
-      match condense t with
-      | Some n -> fprintf fmt "%d" (n + 1)
-      | None -> fprintf fmt "suc(@[<hov>%a@])" pp t )
-  | NatElim (mot, zero, suc, n) ->
-    fprintf fmt
-      "rec(@[<hov>@[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@]@])"
-      pp_tp mot pp zero pp suc pp n
-  | Lam body -> fprintf fmt "lam(@[<hov>%a@])" pp body
-  | Ap (l, r) ->
-    fprintf fmt "app(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp l pp r
-  | Fst body -> fprintf fmt "fst(@[<hov>%a@])" pp body
-  | Snd body -> fprintf fmt "snd(@[<hov>%a@])" pp body
-  | Pair (l, r) ->
-    fprintf fmt "pair(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp l pp r
-  | Refl t -> fprintf fmt "refl(@[<hov>%a@])" pp t
-  | IdElim (mot, refl, eq) ->
-    fprintf fmt "IdElim(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@, @[<hov>%a@]@])" pp_tp
-      mot pp refl pp eq
 
-and pp_tp fmt =
-  let open Format in
+module Fmt = Format
+
+let rec pp_ (env : Pp.env) fmt =
   function
-  | Nat -> fprintf fmt "Nat"
-  | Pi (l, r) ->
-    fprintf fmt "Pi(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp_tp l pp_tp r
-  | Sg (l, r) ->
-    fprintf fmt "Sg(@[<hov>@[<hov>%a@],@ @[<hov>%a@]@])" pp_tp l pp_tp r
+  | Var i -> 
+    Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var i env
+  | Global sym ->
+    Symbol.pp fmt sym
+  | Let (tm, bnd) ->
+    let x, env' = Pp.Env.bind env None in
+    Fmt.fprintf fmt "@[<hv1>(let@ @[<hv1>[%a %a]@]@ %a)@]" Uuseg_string.pp_utf_8 x (pp_ env) tm (pp_ env') bnd
+  | Ann (tm, tp) ->
+    Fmt.fprintf fmt "@[<hv1>(: @[<hov>%a@ %a@])@]" (pp_tp_ env) tp (pp_ env) tm
+  | Zero ->
+    Fmt.fprintf fmt "0"
+  | Suc tm ->
+    begin
+      match condense tm with 
+      | Some n -> Fmt.fprintf fmt "%d" @@ n + 1
+      | None -> Fmt.fprintf fmt "@[<hv1>(suc@ %a)@]" (pp_ env) tm
+    end
+  | NatElim (mot, zero, suc, scrut) ->
+    let x, envx = Pp.Env.bind env None in
+    let y, envxy = Pp.Env.bind envx None in
+    Fmt.fprintf  fmt
+      "@[<hv1>(nat.elim [%a] %a @[<hv1>(zero@ %a)@]@ @[<hv1>(suc@ [%a %a] %a)@]@ %a)@]"
+      Uuseg_string.pp_utf_8 x 
+      (pp_tp_ envx) mot
+      (pp_ env) zero
+      Uuseg_string.pp_utf_8 x 
+      Uuseg_string.pp_utf_8 y
+      (pp_ envxy) suc
+      (pp_ env) scrut
+  | IdElim (mot, refl, scrut) ->
+    let x, envx = Pp.Env.bind env None in
+    let y, envxy = Pp.Env.bind envx None in
+    let z, envxyz = Pp.Env.bind envxy None in
+    Fmt.fprintf fmt
+      "@[<hv1>(id.elim [%a %a %a] %a@ @[<hv1>(refl@ [%a] %a)@]@ %a@]"
+      Uuseg_string.pp_utf_8 x
+      Uuseg_string.pp_utf_8 y
+      Uuseg_string.pp_utf_8 z
+      (pp_tp_ envxyz) mot 
+      Uuseg_string.pp_utf_8 x
+      (pp_ envx) refl
+      (pp_ env) scrut
+  | Lam tm ->
+    let x, envx = Pp.Env.bind env None in
+    Fmt.fprintf fmt "@[<hv1>(lam@ [%a] %a)@]" Uuseg_string.pp_utf_8 x (pp_ envx) tm
+  | Fst tm ->
+    Fmt.fprintf fmt "@[<hv1>(fst@ %a)@]" (pp_ env) tm
+  | Snd tm ->
+    Fmt.fprintf fmt "@[<hv1>(snd@ %a)@]" (pp_ env) tm
+  | Ap (tm0, tm1) ->
+    Fmt.fprintf fmt "@[<hv1>(%a@ %a)@]" (pp_ env) tm0 (pp_ env) tm1
+  | Pair (tm0, tm1) ->
+    Fmt.fprintf fmt "@[<hv1>(pair@ %a@ %a)@]" (pp_ env) tm0 (pp_ env) tm1
+  | Refl tm ->
+    Fmt.fprintf fmt "@[<hv1>(refl %a)@]" (pp_ env) tm
+
+
+and pp_tp_ env fmt = 
+  function
+  | Pi (base, fam) ->
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" Uuseg_string.pp_utf_8 "->" Uuseg_string.pp_utf_8 x (pp_tp_ env) base (pp_tp_ envx) fam
+  | Sg (base, fam) -> 
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" Uuseg_string.pp_utf_8 "*" Uuseg_string.pp_utf_8 x (pp_tp_ env) base (pp_tp_ envx) fam
   | Id (tp, l, r) ->
-    fprintf fmt "Id(@[<hov>@[<hov>%a@],@ @[<hov>%a@],@ @[<hov>%a@]@])" pp_tp
-      tp pp l pp r
+    Format.fprintf fmt "@[<hv1>(Id@ %a@ %a@ %a)@]" (pp_tp_ env) tp (pp_ env) l (pp_ env) r
+  | Nat ->
+    Fmt.fprintf fmt "nat"
 
 type env = tp list

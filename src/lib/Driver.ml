@@ -11,11 +11,10 @@ type message =
 let pp_message fmt = 
   function
   | NormalizedTerm (s, t) ->
-    Format.fprintf fmt "Computed normal form of@ @[<hv>";
-    S.pp fmt s;
-    Format.fprintf fmt "@] as @ @[<hv>";
-    S.pp fmt t;
-    Format.fprintf fmt "@]@,"
+    let env = Pp.Env.emp in
+    Format.fprintf fmt 
+      "Computed normal form of@ @[<hv>%a@] as@ @[hv> %a@]@,"
+      (S.pp_ env) s (S.pp_ env) t
 
 let rec int_to_term = 
   function
