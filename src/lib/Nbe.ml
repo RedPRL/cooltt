@@ -244,8 +244,22 @@ struct
 
   let rec quote tp el : S.t m =
     match tp, el with 
-    | _, D.Cut {cut = cut, _; _} ->
-      quote_cut cut
+    | _, D.Cut {cut = (hd, sp), olcon; tp} ->
+      begin
+        match hd, olcon with
+        | D.Global sym, Some lcon ->
+          let* veil = read_veil in
+          begin
+            match Veil.policy sym veil with
+            | `Transparent ->
+              let* con = do_lazy_con lcon in
+              quote tp con
+            | _ ->
+              quote_cut (hd, sp)
+          end
+        | _ -> 
+          quote_cut (hd, sp)
+      end
     | D.Pi (base, fam), f ->
       binder 1 @@ 
       let* arg = top_var base in
@@ -365,11 +379,19 @@ struct
       let+ targ = quote nf.tp nf.el in
       S.Ap (tm, targ)
 
+  and do_lazy_con r = 
+    match !r with 
+    | `Done con -> ret con
+    | `Do (con, spine) -> 
+      let+ con' = lift_cmp @@ Compute.do_spine con spine in
+      r := `Done con;
+      con'
+
+
   let equal tp el1 el2 = 
     let+ t1 = quote tp el1
     and+ t2 = quote tp el2 in 
     t1 = t2
-
 
   let rec equate_tp tp0 tp1 = 
     match tp0, tp1 with 
@@ -508,14 +530,6 @@ struct
         throw @@ NbeFailed "Different head variables"
     | _ ->
       throw @@ NbeFailed "Different heads"
-
-  and do_lazy_con r = 
-    match !r with 
-    | `Done con -> ret con
-    | `Do (con, spine) -> 
-      let+ con' = lift_cmp @@ Compute.do_spine con spine in
-      r := `Done con;
-      con'
 
 
   let equal_tp tp0 tp1 : bool quote = 

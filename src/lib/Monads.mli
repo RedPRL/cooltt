@@ -34,12 +34,13 @@ end
 module QuM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a quote
-    with type local := St.t * int
+    with type local := St.t * Veil.t * int
 
   val lift_cmp : 'a compute -> 'a m
 
   val read_global : ElabState.t m
   val read_local : int m
+  val read_veil : Veil.t m
 
   val binder : int -> 'a m -> 'a m
 end

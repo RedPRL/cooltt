@@ -9,12 +9,14 @@ type cell = D.nf * string option
 
 type t = 
   {resolver : Symbol.t StringMap.t;
+   veil : Veil.t;
    locals : cell bwd}
 
 let locals env = env.locals
 
 let init = 
   {resolver = StringMap.empty;
+   veil = Veil.default;
    locals = Emp}
 
 let size env = Bwd.length env.locals
@@ -48,3 +50,5 @@ let sem_env env : D.env =
   {locals = 
      Bwd.map (function D.Nf {el; _}, _-> el)
        env.locals}
+
+let veil env = env.veil
