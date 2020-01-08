@@ -23,7 +23,7 @@ let rec int_to_term =
 module Hole =
 struct
 
-  let make_hole name tp = 
+  let make_hole name flexity tp = 
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
@@ -50,17 +50,19 @@ struct
         Format.fprintf fmt "Emitted hole: %a@." (S.pp_tp_ Pp.Env.emp) tp
       in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
-      EM.add_global name vtp None
+      match flexity with
+      | `Flex -> EM.add_flex_global vtp 
+      | `Rigid -> EM.add_global name vtp None
     in
     go_tm (D.Global sym, []) @@ Env.locals env
 
-  let unleash_hole name : chk_tac =
+  let unleash_hole name flexity : chk_tac =
     fun tp ->
-    let* cut = make_hole name tp in 
+    let* cut = make_hole name flexity tp in 
     EM.lift_qu @@ Nbe.quote_cut cut
 
-  let unleash_tp_hole name : tp_tac =
-    let* cut = make_hole name D.Univ in 
+  let unleash_tp_hole name flexity : tp_tac =
+    let* cut = make_hole name flexity D.Univ in 
     EM.lift_qu @@ Nbe.quote_tp (D.El cut)
 end
 

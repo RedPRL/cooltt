@@ -39,6 +39,12 @@ let add_global id tp con =
   let* () = set st' in 
   ret sym
 
+let add_flex_global tp = 
+  let* st = get in
+  let sym, st' = St.add_flex_global tp st in 
+  let* () = set st' in 
+  ret sym
+
 let get_global sym : D.nf m =
   let* st = get in
   match St.get_global sym st with

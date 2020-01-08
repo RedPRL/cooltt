@@ -13,6 +13,7 @@ val abstract : CS.ident option -> D.tp -> (D.con -> 'a m) -> 'a m
 val define : CS.ident option -> D.tp -> D.con -> (D.con -> 'a m) -> 'a m
 
 val add_global : CS.ident option -> D.tp -> D.con option -> Symbol.t m
+val add_flex_global : D.tp -> Symbol.t m
 
 val resolve : CS.ident -> [`Local of int | `Global of Symbol.t | `Unbound] m
 val get_global : Symbol.t -> D.nf m

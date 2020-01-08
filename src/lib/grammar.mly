@@ -41,7 +41,7 @@ sign:
 atomic:
   | LBR; term = term; RBR
     { term }
-  | a = name
+  | a = ATOM
     { Var a }
   | ZERO
     { Lit 0 }
@@ -55,6 +55,8 @@ atomic:
     { Pair (left, right) }
   | name = HOLE_NAME
     { Hole name }
+  | UNDERSCORE 
+    { Underscore }
 
 spine:
   | t = atomic 

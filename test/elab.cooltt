@@ -27,7 +27,7 @@ normalize trans
 def hole-in-type : {
   (x : nat) (y : nat) (z : nat)
   (p : Id nat x y) (q : Id nat y z)
-  -> ?
+  -> _
 } = {
-  ?
+  ?tmhole
 }

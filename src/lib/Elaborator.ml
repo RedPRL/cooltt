@@ -25,7 +25,9 @@ let rec unfold idents k =
 let rec chk_tp : CS.t -> S.tp EM.m = 
   function
   | CS.Hole name ->
-    R.Hole.unleash_tp_hole name
+    R.Hole.unleash_tp_hole name `Rigid
+  | CS.Underscore -> 
+    R.Hole.unleash_tp_hole None `Flex
   | CS.Pi (cells, body) -> 
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
     R.Tactic.tac_nary_quantifier R.Pi.formation tacs @@ chk_tp body
@@ -44,7 +46,9 @@ let rec chk_tp : CS.t -> S.tp EM.m =
 and chk_tm : CS.t -> D.tp -> S.t EM.m =
   function
   | CS.Hole name ->
-    R.Hole.unleash_hole name
+    R.Hole.unleash_hole name `Rigid
+  | CS.Underscore -> 
+    R.Hole.unleash_hole None `Flex
   | CS.Refl ->
     R.Id.intro 
   | CS.Lit n ->
