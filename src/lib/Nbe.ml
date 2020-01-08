@@ -264,12 +264,15 @@ struct
 end
 
 module Quote : sig 
-  val quote : D.tp -> D.con -> S.t QuM.m
+  val quote : D.tp -> D.con -> S.t QuM.m (* TODO, rename *)
   val quote_tp : D.tp -> S.tp QuM.m
   val quote_cut : D.cut -> S.t QuM.m
-  val equal : D.tp -> D.con -> D.con -> bool QuM.m
+  val equal : D.tp -> D.con -> D.con -> bool QuM.m (* TODO, rename *)
   val equal_tp : D.tp -> D.tp -> bool QuM.m
   val equal_cut : D.cut -> D.cut -> bool QuM.m
+  val equate_con : D.tp -> D.con -> D.con -> unit QuM.m
+  val equate_tp : D.tp -> D.tp -> unit QuM.m
+  val equate_cut : D.cut -> D.cut -> unit QuM.m
 end = 
 struct
   open QuM

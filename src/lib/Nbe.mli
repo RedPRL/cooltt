@@ -19,5 +19,9 @@ val equal : D.tp -> D.con -> D.con -> bool quote
 val equal_tp : D.tp -> D.tp -> bool quote
 val equal_cut : D.cut -> D.cut -> bool quote
 
+val equate_con : D.tp -> D.con -> D.con -> unit quote
+val equate_tp : D.tp -> D.tp -> unit quote
+val equate_cut : D.cut -> D.cut -> unit quote
+
 val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
 val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
