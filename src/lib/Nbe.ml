@@ -383,7 +383,7 @@ struct
     | `Done con -> ret con
     | `Do (con, spine) -> 
       let+ con' = lift_cmp @@ Compute.do_spine con spine in
-      r := `Done con;
+      r := `Done con';
       con'
 
 
