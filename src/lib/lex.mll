@@ -25,7 +25,6 @@ let keywords =
     ("let", LET);
     ("in", IN);
     ("with", WITH);
-    ("end", END);
     ("rec", REC);
     ("fst", FST);
     ("snd", SND);
@@ -33,6 +32,7 @@ let keywords =
     ("match", MATCH);
     ("Id", ID);
     ("refl", REFL);
+    ("unfold", UNFOLD);
     ("def", DEF);
     ("at", AT);
     ("normalize", NORMALIZE);

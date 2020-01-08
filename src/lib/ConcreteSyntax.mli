@@ -31,6 +31,7 @@ and t =
   | Refl
   | IdElim of {mot : binder3; case_refl : binder; scrut : t}
   | Hole of ident option
+  | Unfold of ident * t
 
 type decl =
   | Def of {name : ident; def : t; tp : t}

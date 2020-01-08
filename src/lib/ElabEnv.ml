@@ -51,4 +51,6 @@ let sem_env env : D.env =
      Bwd.map (function D.Nf {con; _}, _-> con)
        env.locals}
 
-let veil env = env.veil
+let get_veil env = env.veil
+
+let veil v env = {env with veil = v}

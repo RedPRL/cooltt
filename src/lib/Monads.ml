@@ -68,11 +68,6 @@ struct
     M.scope @@ fun (st, veil, size) ->
     st, veil, i + size
 
-  let veil v = 
-    M.scope @@ fun (st, _, size) ->
-    st, v, size
-
-
   let lift_cmp m (st, _, _) = m st
 
   include M
@@ -95,10 +90,13 @@ struct
     let () = Format.fprintf Format.std_formatter "%a@." pp a in 
     Ok (), st
 
+  let veil v = 
+    M.scope @@ fun env ->
+    Env.veil v env
 
   let lift_qu (m : 'a quote) : 'a m = 
     fun (st, env) ->
-    match QuM.run (st, Env.veil env, Env.size env) m with 
+    match QuM.run (st, Env.get_veil env, Env.size env) m with 
     | Ok v -> Ok v, st
     | Error exn -> Error exn, st
 

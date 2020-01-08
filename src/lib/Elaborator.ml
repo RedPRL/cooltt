@@ -9,6 +9,16 @@ module R = Refiner
 open CoolBasis
 open Monad.Notation (EM)
 
+let unfold ident k =
+  let* res = EM.resolve ident in
+  match res with
+  | `Global sym ->
+    let* env = EM.read in
+    let veil = Veil.unfold sym @@ Env.get_veil env in
+    EM.veil veil k
+  | _ -> 
+    k
+
 let rec chk_tp : CS.t -> S.tp EM.m = 
   function
   | CS.Pi (cells, body) -> 
@@ -21,6 +31,8 @@ let rec chk_tp : CS.t -> S.tp EM.m =
     R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
   | CS.Nat -> 
     EM.ret S.Nat
+  | CS.Unfold (ident, c) -> 
+    unfold ident @@ chk_tp c
   | tp -> 
     EM.elab_err @@ Err.InvalidTypeExpression tp
 
@@ -40,6 +52,11 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
     R.Nat.suc (chk_tm c)
   | CS.Let (c, B bdy) -> 
     R.Structural.let_ (syn_tm c) (Some bdy.name, chk_tm bdy.body)
+  | CS.Unfold (ident, c) -> 
+    begin 
+      fun tp ->
+        unfold ident @@ chk_tm c tp
+    end
   | cs ->
     R.Structural.syn_to_chk @@ syn_tm cs
 
@@ -69,5 +86,7 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
       (syn_tm scrut)
   | CS.Ann {term; tp} ->
     R.Structural.chk_to_syn (chk_tm term) (chk_tp tp)
+  | CS.Unfold (ident, c) -> 
+    unfold ident @@ syn_tm c
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs

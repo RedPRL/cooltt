@@ -6,4 +6,6 @@ type policy = [`Translucent | `Transparent]
 type t 
 
 val const : policy -> t
+val unfold : Symbol.t -> t -> t
+
 val policy : Symbol.t -> t -> policy

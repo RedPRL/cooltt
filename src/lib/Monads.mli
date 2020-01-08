@@ -42,8 +42,6 @@ module QuM : sig
   val read_local : int m
   val read_veil : Veil.t m
 
-  val veil : Veil.t -> 'a m -> 'a m
-
   val binder : int -> 'a m -> 'a m
 end
 
@@ -55,6 +53,8 @@ module ElabM : sig
   val lift_qu : 'a quote -> 'a m
   val lift_ev : 'a evaluate -> 'a m
   val lift_cmp : 'a compute -> 'a m
+
+  val veil : Veil.t -> 'a m -> 'a m
 
   val globally : 'a m -> 'a m
   val emit : (Format.formatter -> 'a -> unit) -> 'a -> unit m

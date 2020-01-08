@@ -9,8 +9,8 @@
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS
 %token TIMES FST SND
-%token LAM LET IN END WITH
-%token REC SUC NAT ZERO
+%token LAM LET IN WITH
+%token REC SUC NAT ZERO UNFOLD
 %token QUIT NORMALIZE DEF
 %token ID REFL MATCH
 %token EOF
@@ -63,9 +63,11 @@ spine:
 term:
   | f = atomic; args = list(spine)
     { match args with [] -> f | _ -> Ap (f, args) }
+  | UNFOLD; name = name; IN; body = term; 
+    { Unfold (name, body) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
     { Let (Ann {term = def; tp}, B {name; body}) }
-  | LET; name = name; EQUALS; def = term; IN; body = term; END
+  | LET; name = name; EQUALS; def = term; IN; body = term
     { Let (def, B {name; body}) }
   | LPR t = term; AT; tp = term RPR
     { Ann {term = t; tp} }
