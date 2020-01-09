@@ -13,6 +13,7 @@ type quantifier_tac = tp_tac -> CS.ident option * tp_tac -> tp_tac
 module Hole : sig
   val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> chk_tac
   val unleash_tp_hole : CS.ident option -> [`Flex | `Rigid] -> tp_tac
+  val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> syn_tac
 end
 
 

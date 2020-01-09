@@ -73,6 +73,8 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
 
 and syn_tm : CS.t -> (S.t * D.tp) EM.m = 
   function
+  | CS.Hole name ->
+    R.Hole.unleash_syn_hole name `Rigid
   | CS.Var id -> 
     R.Structural.lookup_var id
   | CS.Ap (t, ts) ->

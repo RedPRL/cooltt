@@ -63,6 +63,13 @@ struct
   let unleash_tp_hole name flexity : tp_tac =
     let* cut = make_hole name flexity D.Univ in 
     EM.lift_qu @@ Nbe.quote_tp (D.El cut)
+
+  let unleash_syn_hole name flexity : syn_tac =
+    let* tpcut = make_hole name `Flex D.Univ in 
+    let+ tm = unleash_hole name flexity @@ D.El tpcut in
+    tm, D.El tpcut
+
+
 end
 
 module Univ = 
