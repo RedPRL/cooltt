@@ -185,6 +185,9 @@ let pp_sequent_goal env fmt =
     Format.fprintf fmt "?%a : @[<hv>%a@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp_ env) tp
+  | GoalTp (None, tp) ->
+    Format.fprintf fmt "@[<hv>%a@]"
+      (pp_tp_ env) tp
   | tp ->
     pp_tp_ env fmt tp
 
@@ -192,7 +195,7 @@ let rec pp_sequent_inner env fmt =
   function
   | Pi (base, fam) ->
     let x, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "%a : %a@,%a"
+    Fmt.fprintf fmt "%a : %a@;%a"
       Uuseg_string.pp_utf_8 x
       (pp_tp_ env) base
       (pp_sequent_inner envx) fam
@@ -202,7 +205,7 @@ let rec pp_sequent_inner env fmt =
 
 let pp_sequent env : tp Pp.printer =
   fun fmt tp ->
-  Format.fprintf fmt "@[<hv>%a@]"
+  Format.fprintf fmt "@[<v>%a@]"
     (pp_sequent_inner env) tp
 
 type env = tp list
