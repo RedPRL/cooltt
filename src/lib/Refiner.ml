@@ -27,17 +27,19 @@ struct
       function
       | [] ->
         EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, tp)
-      | (D.Nf cell, name) :: cells ->
-        let+ base = EM.lift_qu @@ Nbe.quote_tp cell.tp
-        and+ fam = EM.push_var name cell.tp @@ go_tp cells in
+      | cell :: cells ->
+        let ctp = Env.Cell.tp cell in
+        let name = Env.Cell.name cell in
+        let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
+        and+ fam = EM.push_var name ctp @@ go_tp cells in
         S.Pi (base, fam)
     in
 
     let rec go_tm cut : Env.cell bwd -> D.cut =
       function
       | Emp -> cut
-      | Snoc (cells, (D.Nf nf, _)) ->
-        go_tm cut cells |> D.push @@ D.KAp (nf.tp, nf.con)
+      | Snoc (cells, cell) ->
+        go_tm cut cells |> D.push @@ D.KAp (Env.Cell.tp cell, Env.Cell.con cell)
     in
 
     let* env = EM.read in

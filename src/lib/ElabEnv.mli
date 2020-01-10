@@ -4,8 +4,16 @@ module D := Domain
 open CoolBasis
 open Bwd
 
+module Cell : sig
+  type t
+
+  val tp : t -> D.tp
+  val name : t -> string option
+  val con : t -> D.con
+end
+
 type t
-type cell = D.nf * string option
+type cell = Cell.t
 
 val locals : t -> cell bwd
 

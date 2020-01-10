@@ -6,7 +6,23 @@ open CoolBasis
 open Bwd
 open BwdNotation
 
-type cell = D.nf * string option
+
+module Cell : sig 
+  type t 
+  val make : D.tp -> D.con -> string option -> t
+  val tp : t -> D.tp
+  val con : t -> D.con
+  val name : t -> string option
+end =
+struct
+  type t = D.nf * string option
+  let make tp con nm = D.Nf {tp; con}, nm
+  let tp (D.Nf nf, _) = nf.tp 
+  let name (_, name) = name 
+  let con (D.Nf nf, _) = nf.con
+end
+
+type cell = Cell.t
 
 type t = 
   {resolver : Symbol.t StringMap.t;
@@ -25,19 +41,22 @@ let init =
 let size env = Bwd.length env.locals
 
 let get_local_tp ix env = 
-  match Bwd.nth env.locals ix with 
-  | D.Nf {tp; _}, _ -> tp
+  Cell.tp @@ Bwd.nth env.locals ix
 
 let get_local ix env = 
-  match Bwd.nth env.locals ix with 
-  | D.Nf {con; _}, _ -> con
+  Cell.con @@ Bwd.nth env.locals ix
 
 let resolve_local key env =
   let exception E in
   let rec go i = function
     | Emp -> raise E
-    | Snoc (xs, (_, Some x)) -> if String.equal x key then i else go (i + 1) xs
-    | Snoc (xs, (_, None)) -> go (i + 1) xs
+    | Snoc (xs, cell) ->
+      begin
+        match Cell.name cell with
+        | Some x ->
+          if String.equal x key then i else go (i + 1) xs
+        | None -> go (i + 1) xs
+      end
   in
   match go 0 @@ env.locals with
   | i -> Some i
@@ -47,13 +66,11 @@ let resolve_local key env =
 let append_el name con tp env =
   {env with 
    pp = snd @@ Pp.Env.bind env.pp name;
-   locals = env.locals <>< [D.Nf {tp; con}, name]}
+   locals = env.locals <>< [Cell.make tp con name]}
 
 
 let sem_env env : D.env =
-  {locals = 
-     Bwd.map (function D.Nf {con; _}, _-> con)
-       env.locals}
+  {locals = Bwd.map Cell.con env.locals}
 
 let pp_env env = env.pp
 
