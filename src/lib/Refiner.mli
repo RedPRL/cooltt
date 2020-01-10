@@ -16,6 +16,9 @@ module Hole : sig
   val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> syn_tac
 end
 
+module Goal : sig
+  val formation : string option -> tp_tac -> tp_tac
+end
 
 module Univ : sig
   val formation : tp_tac

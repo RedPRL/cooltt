@@ -38,6 +38,8 @@ let rec unify_tp : D.tp -> D.tp -> unit EM.m =
     EM.ret ()
   | D.Univ, D.Univ -> 
     EM.ret ()
+  | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
+    unify_tp tp0 tp1
   | D.El (D.Global sym0, spine0), _ ->
     unify_tp_cut_with_tp (sym0, spine0) tp1
   | _, D.El (D.Global sym1, spine1) ->

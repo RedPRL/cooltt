@@ -23,6 +23,7 @@ and con =
   | Pair of con * con
   | Refl of con
   | CodeNat
+  | GoalRet of con
 
 and lazy_con = [`Do of con * frm list | `Done of con]
 
@@ -35,6 +36,7 @@ and tp =
   | Sg of tp * ze su tp_clo
   | Univ
   | El of cut 
+  | GoalTp of string option * tp
 
 and hd =
   | Global of Symbol.t 
@@ -46,6 +48,7 @@ and frm =
   | KSnd
   | KNatElim of ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
+  | KGoalProj
 
 and nf = Nf of {tp : tp; con : con}
 

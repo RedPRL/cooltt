@@ -68,9 +68,16 @@ struct
     let* tpcut = make_hole name `Flex D.Univ in 
     let+ tm = unleash_hole name flexity @@ D.El tpcut in
     tm, D.El tpcut
-
-
 end
+
+
+module Goal = 
+struct
+  let formation lbl tac =
+    let+ tp = tac in
+    S.GoalTp (lbl, tp)
+end
+
 
 module Univ = 
 struct

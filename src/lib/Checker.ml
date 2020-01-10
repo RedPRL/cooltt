@@ -22,6 +22,8 @@ let rec chk_tp : S.tp -> R.tp_tac =
     EM.ret S.Univ
   | S.El tm ->
     R.El.formation @@ chk_tm tm
+  | S.GoalTp (lbl, tp) ->
+    R.Goal.formation lbl @@ chk_tp tp
 
 and chk_tm : S.t -> R.chk_tac =
   function

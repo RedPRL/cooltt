@@ -21,6 +21,7 @@ sig
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
   val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
+  val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
   val do_spine : D.con -> D.frm list -> D.con compute
 
@@ -114,6 +115,15 @@ struct
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
+  and do_goal_proj =
+    function
+    | D.GoalRet con -> ret con
+    | D.Cut {tp = D.GoalTp (_, tp); cut} ->
+      ret @@ D.Cut {tp; cut = push_frm D.KGoalProj cut}
+    | _ ->
+      CmpM.throw @@ NbeFailed "do_goal_proj"
+
+
   and do_ap f a =
     match f with
     | D.Lam clo -> 
@@ -131,20 +141,21 @@ struct
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a function in do_ap"
 
-  and do_frm v =
+  and do_frm con =
     function
-    | D.KAp (D.Nf nf) -> do_ap v nf.con
-    | D.KFst -> do_fst v
-    | D.KSnd -> do_snd v
-    | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc v
-    | D.KIdElim (mot, case_refl, _, _, _) -> do_id_elim mot case_refl v
+    | D.KAp (D.Nf nf) -> do_ap con nf.con
+    | D.KFst -> do_fst con
+    | D.KSnd -> do_snd con
+    | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
+    | D.KIdElim (mot, case_refl, _, _, _) -> do_id_elim mot case_refl con
+    | D.KGoalProj -> do_goal_proj con
 
-  and do_spine v =
+  and do_spine con =
     function
-    | [] -> ret v
+    | [] -> ret con
     | k :: sp ->
-      let* v' = do_frm v k in
-      do_spine v' sp
+      let* con' = do_frm con k in
+      do_spine con' sp
 
   and do_el =
     function
@@ -207,6 +218,9 @@ struct
     | S.El tm ->
       let* con = eval tm in
       lift_cmp @@ do_el con
+    | S.GoalTp (lbl, tp) ->
+      let+ tp = eval_tp tp in
+      D.GoalTp (lbl, tp)
 
   and eval =
     function
@@ -260,6 +274,12 @@ struct
       lift_cmp @@ do_id_elim clmot clrefl veq
     | S.CodeNat ->
       ret D.CodeNat
+    | S.GoalRet tm ->
+      let+ con = eval tm in
+      D.GoalRet con
+    | S.GoalProj tm ->
+      let* con = eval tm in
+      lift_cmp @@ do_goal_proj con
 end
 
 module Quote : sig 
@@ -358,6 +378,9 @@ struct
     | D.El cut ->
       let+ tm = quote_cut cut in
       S.El tm
+    | D.GoalTp (lbl, tp) ->
+      let+ tp = quote_tp tp in
+      S.GoalTp (lbl, tp)
 
 
   and quote_hd =
@@ -426,6 +449,8 @@ struct
     | D.KAp (D.Nf nf) ->
       let+ targ = quote_con nf.tp nf.con in
       S.Ap (tm, targ)
+    | D.KGoalProj ->
+      ret @@ S.GoalProj tm
 
 
   let rec equate_tp tp0 tp1 = 
@@ -454,6 +479,8 @@ struct
       ret ()
     | D.El cut0, D.El cut1 ->
       equate_cut cut0 cut1
+    | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
+      equate_tp tp0 tp1
     | _tp0, _tp1 -> 
       throw @@ NbeFailed ("Unequal types")
 
@@ -474,6 +501,10 @@ struct
       let* snd0 = lift_cmp @@ do_snd con0 in
       let* snd1 = lift_cmp @@ do_snd con1 in
       equate_con fib snd0 snd1
+    | D.GoalTp (_, tp), _, _ ->
+      let* con0 = lift_cmp @@ do_goal_proj con0 in
+      let* con1 = lift_cmp @@ do_goal_proj con1 in
+      equate_con tp con0 con1
     | _, D.Zero, D.Zero ->
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
@@ -556,6 +587,8 @@ struct
       let* con0 = lift_cmp @@ inst_tm_clo refl_case0 [x] in
       let* con1 = lift_cmp @@ inst_tm_clo refl_case1 [x] in
       equate_con fib_reflx con0 con1
+    | D.KGoalProj, D.KGoalProj ->
+      ret ()
     | _ -> 
       throw @@ NbeFailed "Mismatched frames"
 

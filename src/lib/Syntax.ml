@@ -16,6 +16,8 @@ type t =
   | Refl of t
   | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
   | CodeNat
+  | GoalRet of t
+  | GoalProj of t
 [@@deriving show]
 
 and tp =
@@ -25,6 +27,7 @@ and tp =
   | Id of tp * t * t
   | Univ
   | El of t
+  | GoalTp of string option * tp
 [@@deriving show]
 
 let rec condense = function
@@ -113,6 +116,10 @@ let rec pp_ (env : Pp.env)  =
       Fmt.fprintf fmt "@[<hv1>(refl %a)@]" (go env `Start) tm
     | _, CodeNat ->
       Fmt.fprintf fmt "nat"
+    | _, GoalRet tm ->
+      Fmt.fprintf fmt "@[<hv1>(goal-ret %a)@]" (go env `Start) tm
+    | _, GoalProj tm ->
+      Fmt.fprintf fmt "@[<hv1>(goal-proj %a)@]" (go env `Start) tm
   in
   go env `Start
 
@@ -162,6 +169,8 @@ and pp_tp_ env =
       Format.fprintf fmt "Univ"
     | _, El tm ->
       Fmt.fprintf fmt "@[<hv1>(el@ %a)@]" (pp_ env) tm
+    | _, GoalTp (_, tp) ->
+      Fmt.fprintf fmt "@[<hv1>(goal@ %a)@]" (pp_tp_ env) tp
   in
   go env `Start
 

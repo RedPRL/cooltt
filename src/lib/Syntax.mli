@@ -14,6 +14,8 @@ type t =
   | Refl of t
   | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
   | CodeNat
+  | GoalRet of t
+  | GoalProj of t
 
 and tp =
   | Nat
@@ -22,6 +24,7 @@ and tp =
   | Id of tp * t * t
   | Univ
   | El of t
+  | GoalTp of string option * tp
 
 type env = tp list
 
