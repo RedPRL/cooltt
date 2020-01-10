@@ -16,11 +16,11 @@ let elab_err err = raise @@ Err.ElabError err
 let push_var id tp : 'a m -> 'a m = 
   scope @@ fun env ->
   let con = D.mk_var tp @@ Env.size env in 
-  Env.append_el id con tp env
+  Env.append_con id con tp env
 
 let push_def id tp con : 'a m -> 'a m = 
   scope @@ fun env ->
-  Env.append_el id con tp env
+  Env.append_con id con tp env
 
 
 let resolve id = 

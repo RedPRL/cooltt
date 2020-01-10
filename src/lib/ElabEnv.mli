@@ -4,7 +4,7 @@ module D := Domain
 open CoolBasis
 open Bwd
 
-module Cell : sig
+module ConCell : sig
   type t
 
   val tp : t -> D.tp
@@ -13,17 +13,17 @@ module Cell : sig
 end
 
 type t
-type cell = Cell.t
+type cell = [`Con of ConCell.t]
 
 val locals : t -> cell bwd
 
 val init : t
-val append_el : string option -> D.con -> D.tp -> t -> t
+val append_con : string option -> D.con -> D.tp -> t -> t
 val sem_env : t -> D.env
 val pp_env : t -> Pp.env
 
 val get_veil : t -> Veil.t
-val veil : Veil.t -> t -> t
+val set_veil : Veil.t -> t -> t
 
 val size : t -> int
 

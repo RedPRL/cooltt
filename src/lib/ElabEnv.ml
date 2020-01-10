@@ -7,7 +7,7 @@ open Bwd
 open BwdNotation
 
 
-module Cell : sig 
+module ConCell : sig 
   type t 
   val make : D.tp -> D.con -> string option -> t
   val tp : t -> D.tp
@@ -22,7 +22,7 @@ struct
   let con (_, con, _) = con
 end
 
-type cell = Cell.t
+type cell = [`Con of ConCell.t]
 
 type t = 
   {resolver : Symbol.t StringMap.t;
@@ -41,18 +41,20 @@ let init =
 let size env = Bwd.length env.locals
 
 let get_local_tp ix env = 
-  Cell.tp @@ Bwd.nth env.locals ix
+  match Bwd.nth env.locals ix with
+  | `Con cell -> ConCell.tp cell
 
 let get_local ix env = 
-  Cell.con @@ Bwd.nth env.locals ix
+  match Bwd.nth env.locals ix with
+  | `Con cell -> ConCell.con cell
 
 let resolve_local key env =
   let exception E in
   let rec go i = function
     | Emp -> raise E
-    | Snoc (xs, cell) ->
+    | Snoc (xs, `Con cell) ->
       begin
-        match Cell.name cell with
+        match ConCell.name cell with
         | Some x when x = key -> i
         | _ -> go (i + 1) xs
       end
@@ -62,18 +64,18 @@ let resolve_local key env =
   | exception E -> None
 
 
-let append_el name con tp env =
+let append_con name con tp env =
   {env with 
    pp = snd @@ Pp.Env.bind env.pp name;
-   locals = env.locals <>< [Cell.make tp con name]}
+   locals = env.locals <>< [`Con (ConCell.make tp con name)]}
 
 
 let sem_env (env : t) : D.env =
-  env.locals |> Bwd.map @@ fun cell ->
-  `Con (Cell.con cell)
+  env.locals |> Bwd.map @@ function 
+  | `Con cell ->
+    `Con (ConCell.con cell)
 
 let pp_env env = env.pp
 
 let get_veil env = env.veil
-
-let veil v env = {env with veil = v}
+let set_veil v env = {env with veil = v}

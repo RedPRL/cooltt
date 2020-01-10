@@ -84,7 +84,7 @@ struct
 
   let globally m =
     m |> scope @@ fun env -> 
-    Env.veil (Env.get_veil env) Env.init
+    Env.set_veil (Env.get_veil env) Env.init
 
   let emit pp a : unit m = 
     fun (st, _env) -> 
@@ -93,7 +93,7 @@ struct
 
   let veil v = 
     M.scope @@ fun env ->
-    Env.veil v env
+    Env.set_veil v env
 
   let lift_qu (m : 'a quote) : 'a m = 
     fun (st, env) ->
