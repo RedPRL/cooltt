@@ -274,7 +274,7 @@ struct
       let+ tp = EM.get_local_tp ix in
       S.Var ix, tp
     | `Global sym ->
-      let+ D.Nf {tp; _} = EM.get_global sym in
+      let+ tp, _ = EM.get_global sym in
       S.Global sym, tp
     | `Unbound ->
       EM.elab_err @@ Err.UnboundVariable id

@@ -50,9 +50,6 @@ and frm =
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
 
-and nf = Nf of {tp : tp; con : con}
-
-
 let pp_tp fmt _ = Format.fprintf fmt "<tp>"
 let pp_con fmt _ = Format.fprintf fmt "<con>"
 

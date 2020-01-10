@@ -228,9 +228,9 @@ struct
       get_local i 
     | S.Global sym -> 
       let* st = EvM.read_global in
-      let D.Nf nf = ElabState.get_global sym st in
-      let lcon = ref @@ `Done nf.con in
-      ret @@ D.Cut {tp = nf.tp; cut = (D.Global sym, []), Some lcon}
+      let tp, con = ElabState.get_global sym st in
+      let lcon = ref @@ `Done con in
+      ret @@ D.Cut {tp = tp; cut = (D.Global sym, []), Some lcon}
     | S.Let (def, body) -> 
       let* vdef = eval def in 
       append [vdef] @@ eval body

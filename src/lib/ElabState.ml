@@ -4,7 +4,7 @@ module StringMap = Map.Make (String)
 type t = 
   {resolver : Symbol.t StringMap.t;
    flexity : [`Flex | `Rigid] SymbolMap.t;
-   globals : D.nf SymbolMap.t}
+   globals : (D.tp * D.con) SymbolMap.t}
 
 let init = 
   {resolver = StringMap.empty;
@@ -26,7 +26,7 @@ let add_global ident tp oel st =
        | None -> st.resolver
      end;
    flexity = SymbolMap.add sym `Rigid st.flexity;
-   globals = SymbolMap.add sym (D.Nf {con; tp}) st.globals}
+   globals = SymbolMap.add sym (tp, con) st.globals}
 
 let add_flex_global tp st =
   let sym = Symbol.fresh () in
@@ -34,7 +34,7 @@ let add_flex_global tp st =
   sym, 
   {st with 
    flexity = SymbolMap.add sym `Flex st.flexity;
-   globals = SymbolMap.add sym (D.Nf {con; tp}) st.globals}
+   globals = SymbolMap.add sym (tp, con) st.globals}
 
 let resolve_global ident st =
   StringMap.find_opt ident st.resolver

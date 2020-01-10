@@ -15,11 +15,11 @@ module Cell : sig
   val name : t -> string option
 end =
 struct
-  type t = D.nf * string option
-  let make tp con nm = D.Nf {tp; con}, nm
-  let tp (D.Nf nf, _) = nf.tp 
-  let name (_, name) = name 
-  let con (D.Nf nf, _) = nf.con
+  type t = D.tp * D.con * string option
+  let make tp con nm = tp, con, nm
+  let tp (tp, _, _) = tp 
+  let name (_, _, name) = name 
+  let con (_, con, _) = con
 end
 
 type cell = Cell.t

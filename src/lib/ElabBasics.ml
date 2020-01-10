@@ -45,10 +45,10 @@ let add_flex_global tp =
   let* () = set st' in 
   ret sym
 
-let get_global sym : D.nf m =
+let get_global sym : (D.tp * D.con) m =
   let* st = get in
   match St.get_global sym st with
-  | nf -> ret nf
+  | tp, con -> ret (tp, con)
   | exception exn -> throw exn
 
 let get_local_tp ix =

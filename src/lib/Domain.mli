@@ -48,8 +48,6 @@ and frm =
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
 
-and nf = Nf of {tp : tp; con : con}
-
 val mk_var : tp -> int -> con
 val push : frm -> cut -> cut
 
