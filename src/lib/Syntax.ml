@@ -169,8 +169,12 @@ and pp_tp_ env =
       Format.fprintf fmt "Univ"
     | _, El tm ->
       Fmt.fprintf fmt "@[<hv1>(el@ %a)@]" (pp_ env) tm
-    | _, GoalTp (_, tp) ->
-      Fmt.fprintf fmt "@[<hv1>(goal@ %a)@]" (pp_tp_ env) tp
+    | _, GoalTp (None, tp) ->
+      Fmt.fprintf fmt "@[<hv1>(goal@ _@ %a)@]" (pp_tp_ env) tp
+    | _, GoalTp (Some lbl, tp) ->
+      Fmt.fprintf fmt "@[<hv1>(goal@ ?%a@ %a)@]" 
+        Uuseg_string.pp_utf_8 lbl 
+        (pp_tp_ env) tp
   in
   go env `Start
 

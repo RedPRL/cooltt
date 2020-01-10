@@ -26,7 +26,7 @@ struct
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Nbe.quote_tp tp
+        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, tp)
       | (D.Nf cell, name) :: cells ->
         let+ base = EM.lift_qu @@ Nbe.quote_tp cell.tp
         and+ fam = EM.push_var name cell.tp @@ go_tp cells in
@@ -50,10 +50,11 @@ struct
       in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
       match flexity with
-      | `Flex -> EM.add_flex_global vtp 
+      | `Flex -> EM.add_flex_global vtp
       | `Rigid -> EM.add_global name vtp None
     in
-    go_tm (D.Global sym, []) @@ Env.locals env
+
+    D.push D.KGoalProj @@ go_tm (D.Global sym, []) @@ Env.locals env 
 
   let unleash_hole name flexity : chk_tac =
     fun tp ->
