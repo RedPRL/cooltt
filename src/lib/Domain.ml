@@ -43,7 +43,7 @@ and hd =
   | Var of int (* De Bruijn level *)
 
 and frm = 
-  | KAp of nf
+  | KAp of tp * con
   | KFst 
   | KSnd
   | KNatElim of ze su tp_clo * con * ze su su tm_clo

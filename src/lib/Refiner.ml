@@ -36,8 +36,8 @@ struct
     let rec go_tm cut : Env.cell bwd -> D.cut =
       function
       | Emp -> cut
-      | Snoc (cells, (nf, _)) ->
-        go_tm cut cells |> D.push @@ D.KAp nf
+      | Snoc (cells, (D.Nf nf, _)) ->
+        go_tm cut cells |> D.push @@ D.KAp (nf.tp, nf.con)
     in
 
     let* env = EM.read in

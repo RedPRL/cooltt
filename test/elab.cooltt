@@ -29,5 +29,5 @@ def hole-in-type : {
   (p : Id nat x y) (q : Id nat y z)
   -> ?tyhole
 } = {
-  ?tmhole
+  \y z => ?tmhole
 }

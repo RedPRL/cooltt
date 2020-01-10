@@ -41,7 +41,7 @@ and cut = hd * frm list
 and lazy_con = [`Do of con * frm list | `Done of con]
 
 and frm = 
-  | KAp of nf
+  | KAp of tp * con
   | KFst 
   | KSnd
   | KNatElim of ze su tp_clo * con * ze su su tm_clo
@@ -55,12 +55,3 @@ val push : frm -> cut -> cut
 
 val pp_tp : tp Pp.printer
 val pp_con : con Pp.printer
-
-(* 
-val pp_nf : nf Pp.printer
-val pp_cut : cut Pp.printer
-
-val show_con : con -> string
-val show_tp : tp -> string
-val show_nf : nf -> string
-val show_cut : cut -> string *)

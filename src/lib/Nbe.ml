@@ -131,10 +131,10 @@ struct
     | D.Cut {tp; cut} ->
       begin
         match tp with
-        | D.Pi (src, dst) ->
-          let+ dst = inst_tp_clo dst [a] in
-          let k = D.KAp (D.Nf {tp = src; con = a}) in
-          D.Cut {tp = dst; cut = push_frm k cut}
+        | D.Pi (base, fam) ->
+          let+ fib = inst_tp_clo fam [a] in
+          let k = D.KAp (base, a) in
+          D.Cut {tp = fib; cut = push_frm k cut}
         | _ -> 
           CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
       end
@@ -143,7 +143,7 @@ struct
 
   and do_frm con =
     function
-    | D.KAp (D.Nf nf) -> do_ap con nf.con
+    | D.KAp (_, con') -> do_ap con con'
     | D.KFst -> do_fst con
     | D.KSnd -> do_snd con
     | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
@@ -446,8 +446,8 @@ struct
       ret @@ S.Fst tm
     | D.KSnd -> 
       ret @@ S.Snd tm
-    | D.KAp (D.Nf nf) ->
-      let+ targ = quote_con nf.tp nf.con in
+    | D.KAp (tp, con) ->
+      let+ targ = quote_con tp con in
       S.Ap (tm, targ)
     | D.KGoalProj ->
       ret @@ S.GoalProj tm
@@ -542,9 +542,9 @@ struct
     match k0, k1 with 
     | D.KFst, D.KFst -> ret ()
     | D.KSnd, D.KSnd -> ret ()
-    | D.KAp (D.Nf nf0), D.KAp (D.Nf nf1) ->
-      let* () = equate_tp nf0.tp nf1.tp in
-      equate_con nf0.tp nf0.con nf1.con 
+    | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
+      let* () = equate_tp tp0 tp1 in
+      equate_con tp0 con0 con1
     | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
       let* fibx =
         binder 1 @@
