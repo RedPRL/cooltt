@@ -4,7 +4,7 @@ open CoolBasis
 open Bwd 
 open TLNat
 
-type env = {locals : con bwd}
+type env = [`Con of con] bwd
 
 
 and ('n, 't, 'o) clo = 
@@ -49,6 +49,7 @@ and frm =
   | KNatElim of ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
+
 
 let pp_tp fmt _ = Format.fprintf fmt "<tp>"
 let pp_con fmt _ = Format.fprintf fmt "<con>"

@@ -68,8 +68,9 @@ let append_el name con tp env =
    locals = env.locals <>< [Cell.make tp con name]}
 
 
-let sem_env env : D.env =
-  {locals = Bwd.map Cell.con env.locals}
+let sem_env (env : t) : D.env =
+  env.locals |> Bwd.map @@ fun cell ->
+  `Con (Cell.con cell)
 
 let pp_env env = env.pp
 

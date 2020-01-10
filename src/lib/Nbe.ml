@@ -82,7 +82,8 @@ struct
     fun clo xs ->
     match clo with
     | Clo {bdy; env; _} -> 
-      lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
+      let cons = Vec.to_list xs |> List.map @@ fun con -> `Con con in
+      lift_ev (env <>< cons) @@ 
       eval_tp bdy
     | ElClo clo ->
       let* con = inst_tm_clo clo xs in
@@ -94,7 +95,8 @@ struct
     fun clo xs ->
     match clo with
     | D.Clo {bdy; env} -> 
-      lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
+      let cons = Vec.to_list xs |> List.map @@ fun con -> `Con con in
+      lift_ev (env <>< cons) @@ 
       eval bdy
     | D.ConstClo t -> 
       CmpM.ret t
@@ -193,7 +195,7 @@ struct
 
   let get_local i =
     let* env = EvM.read_local in
-    match Bwd.nth env.locals i with 
+    match Bwd.nth env i with 
     | v -> EvM.ret v 
     | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
@@ -225,7 +227,11 @@ struct
   and eval =
     function
     | S.Var i -> 
-      get_local i 
+      let+ cell = get_local i in
+      begin 
+        match cell with
+        | `Con con -> con
+      end
     | S.Global sym -> 
       let* st = EvM.read_global in
       let tp, con = ElabState.get_global sym st in
@@ -233,7 +239,7 @@ struct
       ret @@ D.Cut {tp = tp; cut = (D.Global sym, []), Some lcon}
     | S.Let (def, body) -> 
       let* vdef = eval def in 
-      append [vdef] @@ eval body
+      append [`Con vdef] @@ eval body
     | S.Ann (term, _) -> 
       eval term
     | S.Zero -> 

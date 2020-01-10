@@ -3,7 +3,7 @@ open CoolBasis
 open TLNat
 open Bwd
 
-type env = {locals : con bwd}
+type env = [`Con of con] bwd
 
 and ('n, 't, 'o) clo = 
   | Clo : {bdy : 't; env : env}  -> ('n, 't, 'o) clo

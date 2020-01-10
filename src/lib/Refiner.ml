@@ -130,10 +130,10 @@ struct
     in
     let* t_refl_case =
       EM.abstract nm_x tp @@ fun x ->
-      let* fib_refl_x = EM.lift_ev @@ EvM.append [x; D.Refl x] @@ Nbe.eval_tp tmot in
+      let* fib_refl_x = EM.lift_ev @@ EvM.append [`Con x; `Con (D.Refl x)] @@ Nbe.eval_tp tmot in
       tac_case_refl fib_refl_x
     in
-    let+ fib = EM.lift_ev @@ EvM.append [l; r; vscrut] @@ Nbe.eval_tp tmot in
+    let+ fib = EM.lift_ev @@ EvM.append [`Con l; `Con r; `Con vscrut] @@ Nbe.eval_tp tmot in
     S.IdElim (tmot, t_refl_case, tscrut), fib
 end
 
@@ -230,19 +230,19 @@ struct
     in
 
     let* tcase_zero =
-      let* fib_zero = EM.lift_ev @@ EvM.append [D.Zero] @@ Nbe.eval_tp tmot in
+      let* fib_zero = EM.lift_ev @@ EvM.append [`Con D.Zero] @@ Nbe.eval_tp tmot in
       tac_case_zero fib_zero
     in
 
     let* tcase_suc =
       EM.abstract nm_x nattp @@ fun x ->
-      let* fib_x = EM.lift_ev @@ EvM.append [x] @@ Nbe.eval_tp tmot in
-      let* fib_suc_x = EM.lift_ev @@ EvM.append [D.Suc x] @@ Nbe.eval_tp tmot in
+      let* fib_x = EM.lift_ev @@ EvM.append [`Con x] @@ Nbe.eval_tp tmot in
+      let* fib_suc_x = EM.lift_ev @@ EvM.append [`Con (D.Suc x)] @@ Nbe.eval_tp tmot in
       EM.abstract nm_ih fib_x @@ fun _ ->
       tac_case_suc fib_suc_x
     in
 
-    let+ fib_scrut = EM.lift_ev @@ EvM.append [vscrut] @@ Nbe.eval_tp tmot in
+    let+ fib_scrut = EM.lift_ev @@ EvM.append [`Con vscrut] @@ Nbe.eval_tp tmot in
     S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
 end
 
