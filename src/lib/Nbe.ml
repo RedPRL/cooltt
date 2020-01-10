@@ -515,17 +515,14 @@ struct
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
       equate_con tp con0 con1
-    | _, D.Cut glued0, D.Cut glued1 ->
-      begin 
-        match glued0.cut, glued1.cut with 
-        | (_, Some lcon0), (_, Some lcon1) ->
-          let* con0' = lift_cmp @@ force_lazy_con lcon0 in 
-          let* con1' = lift_cmp @@ force_lazy_con lcon1 in 
-          equate_con tp con0' con1'
-        | (cut0, None) , (cut1, None) ->
-          equate_cut cut0 cut1
-        | _ -> throw @@ NbeFailed "mismatch"
-      end
+    | _, D.Cut {cut = _, Some lcon0}, _ ->
+      let* con0 = lift_cmp @@ force_lazy_con lcon0 in
+      equate_con tp con0 con1
+    | _, _, D.Cut {cut = _, Some lcon1} ->
+      let* con1 = lift_cmp @@ force_lazy_con lcon1 in
+      equate_con tp con0 con1
+    | _, D.Cut {cut = cut0, None}, D.Cut {cut = cut1, None} ->
+      equate_cut cut0 cut1
     | _ -> 
       throw @@ NbeFailed ("Unequal values ")
 

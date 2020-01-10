@@ -1,25 +1,50 @@
 def + : nat -> nat -> nat = {
   \m n =>
-  rec n at x => nat with [
-  | zero => m
+  rec m at x => nat with [
+  | zero => n
   | suc (_ => p) => suc p
   ]
 }
 
-def fib : nat -> nat = {
-  \n=>
-  let worker : nat * nat =
-    rec n at _ => nat * nat with [
-    | zero => [1, 0]
-    | suc (_ => p) => [+ {fst p} {snd p}, fst p]
+def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
+  \x =>
+  rec x at x => Id nat {+ x 0} x with [
+  | zero => refl
+  | suc (_ => ih) =>
+    match ih at u v _ => Id nat {suc u} {suc v} with [
+    | refl _ => refl
     ]
-  in
-  snd worker
+  ]
 }
 
-def foo : (p : Id nat {fib 3} 1) -> nat =
+
+def +-left-unit : (x : nat) -> Id nat {+ 0 x} x = {
   \x =>
-  unfold fib in ?
+  refl
+}
 
 
-normalize foo
+def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
+  \x =>
+  rec x at x => (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} with [
+  | zero => \y => refl
+  | suc (x' => ih/x') =>
+    \y =>
+    match ih/x' y at u v _ => Id nat {suc u} {suc v} with [
+    | refl _ => refl
+    ]
+  ]
+}
+
+
+quit
+
+def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
+  \x =>
+  rec x at x => (y : nat) -> Id nat {+ y x} {+ x y} with [
+  | zero => +-right-unit
+  | suc (x' => h/x') =>
+    \y =>
+    ?
+  ]
+}

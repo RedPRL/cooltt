@@ -6,7 +6,7 @@ open CoolBasis
 type t =
   | UnboundVariable of CS.ident
   | ExpectedEqual of Pp.env * S.tp * S.t * S.t
-  | ExpectedEqualTypes of D.tp * D.tp
+  | ExpectedEqualTypes of Pp.env * S.tp * S.tp
   | InvalidTypeExpression of CS.t
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
   | ExpectedSynthesizableTerm of S.t
@@ -23,9 +23,11 @@ let pp fmt =
       (S.pp_ ppenv) tm0
       (S.pp_ ppenv) tm1
       (S.pp_tp_ ppenv) tp
-  | ExpectedEqualTypes (_tp0, _tp1) ->
-    Fmt.fprintf fmt 
-      "Type mismatch"
+  | ExpectedEqualTypes (ppenv, tp0, tp1) ->
+    Fmt.fprintf fmt
+      "Expected @[<hv>%a@;= %a@]"
+      (S.pp_tp_ ppenv) tp0
+      (S.pp_tp_ ppenv) tp1
   | ExpectedConnective _ ->
     Fmt.fprintf fmt 
       "Head connective mismatch"

@@ -74,9 +74,12 @@ let equate tp l r =
     elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr)
 
 let equate_tp tp tp' =
+  let* env = read in
   let* res = lift_qu @@ Nbe.equal_tp tp tp' in 
   if res then ret () else 
-    elab_err @@ Err.ExpectedEqualTypes (tp, tp')
+    let* ttp = lift_qu @@ Nbe.quote_tp tp in
+    let* ttp' = lift_qu @@ Nbe.quote_tp tp' in
+    elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp')
 
 let dest_pi = 
   function

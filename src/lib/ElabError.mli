@@ -7,7 +7,7 @@ open CoolBasis
 type t =
   | UnboundVariable of CS.ident
   | ExpectedEqual of Pp.env * S.tp * S.t * S.t
-  | ExpectedEqualTypes of D.tp * D.tp
+  | ExpectedEqualTypes of Pp.env * S.tp * S.tp
   | InvalidTypeExpression of CS.t
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
   | ExpectedSynthesizableTerm of S.t

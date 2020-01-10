@@ -258,7 +258,7 @@ struct
   let syn_to_chk (tac : syn_tac) : chk_tac =
     fun tp ->
       let* tm, tp' = tac in
-      let+ () = Unify.unify_tp tp tp' in
+      let+ () = EM.equate_tp tp tp' in
       tm
 
   let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
