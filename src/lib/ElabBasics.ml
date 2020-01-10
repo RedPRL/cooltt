@@ -65,9 +65,13 @@ let get_local ix =
   | exception exn -> throw exn
 
 let equate tp l r =
+  let* env = read in
   let* res = lift_qu @@ Nbe.equal_con tp l r in
   if res then ret () else 
-    elab_err @@ Err.ExpectedEqual (tp, l, r)
+    let* ttp = lift_qu @@ Nbe.quote_tp tp in
+    let* tl = lift_qu @@ Nbe.quote_con tp l in
+    let* tr = lift_qu @@ Nbe.quote_con tp r in
+    elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr)
 
 let equate_tp tp tp' =
   let* res = lift_qu @@ Nbe.equal_tp tp tp' in 

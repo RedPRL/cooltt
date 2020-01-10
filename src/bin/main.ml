@@ -9,21 +9,20 @@ let main input =
     0
   with
   | Invalid_argument s ->
-    Printf.eprintf "Internal error (invalid argument): %s\n" s;
+    Format.eprintf "Internal error (invalid argument): %s\n" s;
     1
   | Failure s ->
-    Printf.eprintf "Internal error (Failure): %s\n" s;
+    Format.eprintf "Internal error (Failure): %s\n" s;
     1
   | Load.Parse_error s ->
-    Printf.eprintf "Frontend error: %s" s;
+    Format.eprintf "Frontend error: %s" s;
     1
   | Nbe.NbeFailed s ->
-    Printf.eprintf "Internal error (Failed to normalize): %s\n" s;
+    Format.eprintf "Internal error (Failed to normalize): %s\n" s;
     1
   | ElabError.ElabError e ->
-    Printf.eprintf "Elaboration error: ";
-    ElabError.pp Format.err_formatter e;
-    Format.pp_print_flush Format.err_formatter ();
+    Format.eprintf "@[<v2>Elaboration error:@;@[<hv>%a@]@]@."
+      ElabError.pp e;
     1
 
 let input_file =

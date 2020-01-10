@@ -2,9 +2,11 @@ module CS := ConcreteSyntax
 module D := Domain
 module S := Syntax
 
+open CoolBasis
+
 type t =
   | UnboundVariable of CS.ident
-  | ExpectedEqual of D.tp * D.con * D.con
+  | ExpectedEqual of Pp.env * S.tp * S.t * S.t
   | ExpectedEqualTypes of D.tp * D.tp
   | InvalidTypeExpression of CS.t
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
