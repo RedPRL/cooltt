@@ -11,7 +11,7 @@ Sterling, and Birkedal. Code has been incorporated from [redtt](https://www.gith
 
 ## building
 
-cooltt has been built with OCaml 4.08.1 with [opam 2.0.1](https://opam.ocaml.org/). Once
+cooltt has been built with OCaml 4.00.0 with [opam 2.0.5](https://opam.ocaml.org/). Once
 these dependencies are installed cooltt can be built with the following set of commands.
 
 ```
