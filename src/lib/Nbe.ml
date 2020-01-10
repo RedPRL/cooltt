@@ -14,24 +14,24 @@ exception NbeFailed of string
 
 module rec Compute : 
 sig 
-  val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp CmpM.m
-  val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con CmpM.m
-  val do_nat_elim : ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con CmpM.m
-  val do_fst : D.con -> D.con CmpM.m
-  val do_snd : D.con -> D.con CmpM.m
-  val do_ap : D.con -> D.con -> D.con CmpM.m
-  val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con CmpM.m
-  val do_frm : D.con -> D.frm -> D.con CmpM.m
-  val do_spine : D.con -> D.frm list -> D.con CmpM.m
+  val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
+  val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
+  val do_nat_elim : ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
+  val do_fst : D.con -> D.con compute
+  val do_snd : D.con -> D.con compute
+  val do_ap : D.con -> D.con -> D.con compute
+  val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
+  val do_frm : D.con -> D.frm -> D.con compute
+  val do_spine : D.con -> D.frm list -> D.con compute
 
-  val do_el : D.con -> D.tp CmpM.m
-  val force_lazy_con : D.lazy_con ref -> D.con CmpM.m
+  val do_el : D.con -> D.tp compute
+  val force_lazy_con : D.lazy_con ref -> D.con compute
 end =
 struct
   open CmpM
   open Monad.Notation (CmpM)
 
-  let rec do_nat_elim (mot : ze su D.tp_clo) zero suc n : D.con CmpM.m =
+  let rec do_nat_elim (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
     | D.Zero -> 
       ret zero
@@ -45,7 +45,7 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
-  and do_fst p : D.con CmpM.m =
+  and do_fst p : D.con compute =
     match p with
     | D.Pair (p1, _) -> ret p1
     | D.Cut ({tp = D.Sg (base, _)} as gl) ->
@@ -67,7 +67,7 @@ struct
       in 
       D.push k cut, Some s
 
-  and do_snd p : D.con CmpM.m =
+  and do_snd p : D.con compute =
     match p with
     | D.Pair (_, p2) -> ret p2
     | D.Cut {tp = D.Sg (_, clo); cut} ->
@@ -76,7 +76,7 @@ struct
       D.Cut {tp = fib; cut = push_frm D.KSnd cut} 
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
-  and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp CmpM.m =
+  and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp compute =
     fun clo xs ->
     match clo with
     | Clo {bdy; env; _} -> 
@@ -88,7 +88,7 @@ struct
     | ConstClo t -> 
       CmpM.ret t
 
-  and inst_tm_clo : type n. n D.tm_clo -> (n, D.con) Vec.vec -> D.con CmpM.m =
+  and inst_tm_clo : type n. n D.tm_clo -> (n, D.con) Vec.vec -> D.con compute =
     fun clo xs ->
     match clo with
     | D.Clo {bdy; env; spine} -> 
@@ -174,8 +174,8 @@ end
 
 and Eval :
 sig
-  val eval_tp : S.tp -> D.tp EvM.m
-  val eval : S.t -> D.con EvM.m
+  val eval_tp : S.tp -> D.tp evaluate
+  val eval : S.t -> D.con evaluate
 end = 
 struct 
   open EvM
@@ -264,15 +264,15 @@ struct
 end
 
 module Quote : sig 
-  val quote : D.tp -> D.con -> S.t QuM.m (* TODO, rename *)
-  val quote_tp : D.tp -> S.tp QuM.m
-  val quote_cut : D.cut -> S.t QuM.m
-  val equal : D.tp -> D.con -> D.con -> bool QuM.m (* TODO, rename *)
-  val equal_tp : D.tp -> D.tp -> bool QuM.m
-  val equal_cut : D.cut -> D.cut -> bool QuM.m
-  val equate_con : D.tp -> D.con -> D.con -> unit QuM.m
-  val equate_tp : D.tp -> D.tp -> unit QuM.m
-  val equate_cut : D.cut -> D.cut -> unit QuM.m
+  val quote_con : D.tp -> D.con -> S.t quote
+  val quote_tp : D.tp -> S.tp quote
+  val equal_con : D.tp -> D.con -> D.con -> bool quote
+  val quote_cut : D.cut -> S.t quote
+  val equal_tp : D.tp -> D.tp -> bool quote
+  val equal_cut : D.cut -> D.cut -> bool quote
+  val equate_con : D.tp -> D.con -> D.con -> unit quote
+  val equate_tp : D.tp -> D.tp -> unit quote
+  val equate_cut : D.cut -> D.cut -> unit quote
 end = 
 struct
   open QuM
@@ -282,7 +282,7 @@ struct
     let+ n = read_local in 
     D.mk_var tp @@ n - 1
 
-  let rec quote tp con : S.t m =
+  let rec quote_con tp con : S.t m =
     match tp, con with 
     | _, D.Cut {cut = (hd, sp), olcon; tp} ->
       begin
@@ -293,7 +293,7 @@ struct
             match Veil.policy sym veil with
             | `Transparent ->
               let* con = lift_cmp @@ Compute.force_lazy_con lcon in 
-              quote tp con
+              quote_con tp con
             | _ ->
               quote_cut (hd, sp)
           end
@@ -305,22 +305,22 @@ struct
       let* arg = top_var base in
       let* fib = lift_cmp @@ Compute.inst_tp_clo fam [arg] in
       let* ap = lift_cmp @@ Compute.do_ap f arg in
-      let+ body = quote fib ap in
+      let+ body = quote_con fib ap in
       S.Lam body
     | D.Sg (base, fam), p ->
       let* fst = lift_cmp @@ Compute.do_fst p in
       let* snd = lift_cmp @@ Compute.do_snd p in
       let* fib = lift_cmp @@ Compute.inst_tp_clo fam [fst] in 
-      let+ tfst = quote base fst
-      and+ tsnd = quote fib snd in 
+      let+ tfst = quote_con base fst
+      and+ tsnd = quote_con fib snd in 
       S.Pair (tfst, tsnd)
     | D.Nat, D.Zero ->
       ret S.Zero
     | D.Nat, D.Suc n ->
-      let+ tn = quote D.Nat n in 
+      let+ tn = quote_con D.Nat n in 
       S.Suc tn
     | D.Id (tp, _, _), D.Refl con ->
-      let+ t = quote tp con in 
+      let+ t = quote_con tp con in 
       S.Refl t
     | D.Univ, D.CodeNat -> 
       ret S.CodeNat
@@ -350,8 +350,8 @@ struct
       S.Sg (tbase, tfam)
     | D.Id (tp, left, right) ->
       let+ ttp = quote_tp tp 
-      and+ tleft = quote tp left 
-      and+ tright = quote tp right in 
+      and+ tleft = quote_con tp left 
+      and+ tright = quote_con tp right in 
       S.Id (ttp, tleft, tright)
     | D.Univ ->
       ret S.Univ
@@ -391,13 +391,13 @@ struct
       in
       let+ tzero_case = 
         let* mot_zero = lift_cmp @@ Compute.inst_tp_clo mot [D.Zero] in
-        quote mot_zero zero_case
+        quote_con mot_zero zero_case
       and+ tsuc_case =
         binder 2 @@
         let* ih = top_var mot_x in 
         let* mot_suc_x = lift_cmp @@ Compute.inst_tp_clo mot [D.Suc x] in 
         let* suc_case_x = lift_cmp @@ Compute.inst_tm_clo suc_case [x; ih] in
-        quote mot_suc_x suc_case_x
+        quote_con mot_suc_x suc_case_x
       in
       S.NatElim (tmot, tzero_case, tsuc_case, tm)
     | D.KIdElim (mot, refl_case, tp, left, right) ->
@@ -416,7 +416,7 @@ struct
         binder 1 @@ 
         let* mot_refl_x = lift_cmp @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
         let* refl_case_x = lift_cmp @@ Compute.inst_tm_clo refl_case [x] in
-        quote mot_refl_x refl_case_x
+        quote_con mot_refl_x refl_case_x
       in
       S.IdElim (tmot, trefl_case, tm)
     | D.KFst -> 
@@ -424,14 +424,9 @@ struct
     | D.KSnd -> 
       ret @@ S.Snd tm
     | D.KAp (D.Nf nf) ->
-      let+ targ = quote nf.tp nf.con in
+      let+ targ = quote_con nf.tp nf.con in
       S.Ap (tm, targ)
 
-
-  let equal tp el1 el2 = 
-    let+ t1 = quote tp el1
-    and+ t2 = quote tp el2 in 
-    t1 = t2
 
   let rec equate_tp tp0 tp1 = 
     match tp0, tp1 with 
@@ -581,6 +576,9 @@ struct
 
   let equal_cut cut0 cut1 = 
     successful @@ equate_cut cut0 cut1
+
+  let equal_con tp con0 con1 = 
+    successful @@ equate_con tp con0 con1
 end
 
 include Eval

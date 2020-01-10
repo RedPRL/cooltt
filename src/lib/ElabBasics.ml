@@ -65,7 +65,7 @@ let get_local ix =
   | exception exn -> throw exn
 
 let equate tp l r =
-  let* res = lift_qu @@ Nbe.equal tp l r in
+  let* res = lift_qu @@ Nbe.equal_con tp l r in
   if res then ret () else 
     elab_err @@ Err.ExpectedEqual (tp, l, r)
 

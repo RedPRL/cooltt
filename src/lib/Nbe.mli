@@ -11,11 +11,11 @@ open Monads
 val eval : S.t -> D.con evaluate
 val eval_tp : S.tp -> D.tp evaluate
 
-val quote : D.tp -> D.con -> S.t quote
+val quote_con : D.tp -> D.con -> S.t quote
 val quote_tp : D.tp -> S.tp quote
 val quote_cut : D.cut -> S.t quote
 
-val equal : D.tp -> D.con -> D.con -> bool quote
+val equal_con : D.tp -> D.con -> D.con -> bool quote
 val equal_tp : D.tp -> D.tp -> bool quote
 val equal_cut : D.cut -> D.cut -> bool quote
 

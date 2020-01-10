@@ -102,7 +102,7 @@ struct
     function
     | D.Id (tp, l, r) ->
       let+ () = EM.equate tp l r
-      and+ t = EM.lift_qu @@ Nbe.quote tp l in
+      and+ t = EM.lift_qu @@ Nbe.quote_con tp l in
       S.Refl t
     | tp ->
       EM.elab_err @@ Err.ExpectedConnective (`Id, tp)

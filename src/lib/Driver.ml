@@ -41,7 +41,7 @@ let execute_decl =
   | CS.NormalizeTerm term ->
     let* tm, vtp = Elaborator.syn_tm term in
     let* vtm = EM.lift_ev @@ Nbe.eval tm in
-    let* tm' = EM.veil (Veil.const `Transparent) @@ EM.lift_qu @@ Nbe.quote vtp vtm in
+    let* tm' = EM.veil (Veil.const `Transparent) @@ EM.lift_qu @@ Nbe.quote_con vtp vtm in
     let+ () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in 
     `Continue
   | CS.Quit -> 
