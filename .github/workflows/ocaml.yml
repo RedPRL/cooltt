@@ -1,0 +1,19 @@
+name: Build and test
+on: [push]
+jobs:
+  run:
+    name: Build
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [macos-latest, ubuntu-latest]
+        ocaml-version: [ '4.09.0' ]
+    steps:
+    - uses: actions/checkout@master
+    - uses: avsm/setup-ocaml@master
+      with:
+        ocaml-version: ${{ matrix.ocaml-version }}
+    - run: opam install dune
+    - run: opam pin add -y cooltt .
+    - run: make
+    - run: make test
