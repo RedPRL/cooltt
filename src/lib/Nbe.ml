@@ -29,6 +29,7 @@ sig
 end =
 struct
   open CmpM
+  open Eval
   open Monad.Notation (CmpM)
 
   let rec do_nat_elim (mot : ze su D.tp_clo) zero suc n : D.con compute =
@@ -81,7 +82,7 @@ struct
     match clo with
     | Clo {bdy; env; _} -> 
       lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
-      Eval.eval_tp bdy
+      eval_tp bdy
     | ElClo clo ->
       let* con = inst_tm_clo clo xs in
       do_el con
@@ -94,7 +95,7 @@ struct
     | D.Clo {bdy; env; spine} -> 
       let* con = 
         lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
-        Eval.eval bdy
+        eval bdy
       in 
       do_spine con spine
     | D.ConstClo t -> 
@@ -179,6 +180,7 @@ sig
 end = 
 struct 
   open EvM
+  open Compute
   open Monad.Notation (EvM)
 
   let get_local i =
@@ -207,7 +209,7 @@ struct
       ret D.Univ
     | S.El tm ->
       let* con = eval tm in
-      lift_cmp @@ Compute.do_el con
+      lift_cmp @@ do_el con
 
   and eval =
     function
@@ -233,24 +235,24 @@ struct
       let* vn = eval n in
       let* cltp = EvM.close_tp tp in
       let* clsuc = close_tm suc in
-      lift_cmp @@ Compute.do_nat_elim cltp vzero clsuc vn
+      lift_cmp @@ do_nat_elim cltp vzero clsuc vn
     | S.Lam t -> 
       let+ cl = close_tm t in
       D.Lam cl
     | S.Ap (t1, t2) -> 
       let* el1 = eval t1 in 
       let* el2 = eval t2 in
-      lift_cmp @@ Compute.do_ap el1 el2
+      lift_cmp @@ do_ap el1 el2
     | S.Pair (t1, t2) -> 
       let+ el1 = eval t1
       and+ el2 = eval t2 in
       D.Pair (el1, el2)
     | S.Fst t -> 
       let* con = eval t in 
-      lift_cmp @@ Compute.do_fst con
+      lift_cmp @@ do_fst con
     | S.Snd t -> 
       let* con = eval t in 
-      lift_cmp @@ Compute.do_snd con
+      lift_cmp @@ do_snd con
     | S.Refl t -> 
       let+ con = eval t in
       D.Refl con
@@ -258,7 +260,7 @@ struct
       let* veq = eval eq in 
       let* clmot = close_tp mot in
       let* clrefl = close_tm refl in
-      lift_cmp @@ Compute.do_id_elim clmot clrefl veq
+      lift_cmp @@ do_id_elim clmot clrefl veq
     | S.CodeNat ->
       ret D.CodeNat
 end
@@ -277,6 +279,7 @@ end =
 struct
   open QuM
   open Monad.Notation (QuM)
+  open Compute
 
   let top_var tp =
     let+ n = read_local in 
@@ -292,7 +295,7 @@ struct
           begin
             match Veil.policy sym veil with
             | `Transparent ->
-              let* con = lift_cmp @@ Compute.force_lazy_con lcon in 
+              let* con = lift_cmp @@ force_lazy_con lcon in 
               quote_con tp con
             | _ ->
               quote_cut (hd, sp)
@@ -303,14 +306,14 @@ struct
     | D.Pi (base, fam), f ->
       binder 1 @@ 
       let* arg = top_var base in
-      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [arg] in
-      let* ap = lift_cmp @@ Compute.do_ap f arg in
+      let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
+      let* ap = lift_cmp @@ do_ap f arg in
       let+ body = quote_con fib ap in
       S.Lam body
     | D.Sg (base, fam), p ->
-      let* fst = lift_cmp @@ Compute.do_fst p in
-      let* snd = lift_cmp @@ Compute.do_snd p in
-      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [fst] in 
+      let* fst = lift_cmp @@ do_fst p in
+      let* snd = lift_cmp @@ do_snd p in
+      let* fib = lift_cmp @@ inst_tp_clo fam [fst] in 
       let+ tfst = quote_con base fst
       and+ tsnd = quote_con fib snd in 
       S.Pair (tfst, tsnd)
@@ -335,7 +338,7 @@ struct
       let+ tfam = 
         binder 1 @@ 
         let* var = top_var base in
-        let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
+        let* fib = lift_cmp @@ inst_tp_clo fam [var] in
         quote_tp fib
       in
       S.Pi (tbase, tfam)
@@ -344,7 +347,7 @@ struct
       let+ tfam = 
         binder 1 @@ 
         let* var = top_var base in
-        let* fib = lift_cmp @@ Compute.inst_tp_clo fam [var] in
+        let* fib = lift_cmp @@ inst_tp_clo fam [var] in
         quote_tp fib
       in
       S.Sg (tbase, tfam)
@@ -385,18 +388,18 @@ struct
       let* x, mot_x, tmot = 
         binder 1 @@ 
         let* x = top_var D.Nat in
-        let* mot_x = lift_cmp @@ Compute.inst_tp_clo mot [x] in 
+        let* mot_x = lift_cmp @@ inst_tp_clo mot [x] in 
         let+ tmot = quote_tp mot_x in 
         x, mot_x, tmot
       in
       let+ tzero_case = 
-        let* mot_zero = lift_cmp @@ Compute.inst_tp_clo mot [D.Zero] in
+        let* mot_zero = lift_cmp @@ inst_tp_clo mot [D.Zero] in
         quote_con mot_zero zero_case
       and+ tsuc_case =
         binder 2 @@
         let* ih = top_var mot_x in 
-        let* mot_suc_x = lift_cmp @@ Compute.inst_tp_clo mot [D.Suc x] in 
-        let* suc_case_x = lift_cmp @@ Compute.inst_tm_clo suc_case [x; ih] in
+        let* mot_suc_x = lift_cmp @@ inst_tp_clo mot [D.Suc x] in 
+        let* suc_case_x = lift_cmp @@ inst_tm_clo suc_case [x; ih] in
         quote_con mot_suc_x suc_case_x
       in
       S.NatElim (tmot, tzero_case, tsuc_case, tm)
@@ -408,14 +411,14 @@ struct
         let* y = top_var tp in 
         binder 1 @@ 
         let* z = top_var @@ D.Id (tp, left, right) in 
-        let* mot_xyz = lift_cmp @@ Compute.inst_tp_clo mot [x; y; z] in 
+        let* mot_xyz = lift_cmp @@ inst_tp_clo mot [x; y; z] in 
         let+ tmot = quote_tp mot_xyz in 
         x, tmot
       in 
       let+ trefl_case =
         binder 1 @@ 
-        let* mot_refl_x = lift_cmp @@ Compute.inst_tp_clo mot [x; x; D.Refl x] in
-        let* refl_case_x = lift_cmp @@ Compute.inst_tm_clo refl_case [x] in
+        let* mot_refl_x = lift_cmp @@ inst_tp_clo mot [x; x; D.Refl x] in
+        let* refl_case_x = lift_cmp @@ inst_tm_clo refl_case [x] in
         quote_con mot_refl_x refl_case_x
       in
       S.IdElim (tmot, trefl_case, tm)
@@ -434,15 +437,15 @@ struct
       let* () = equate_tp base0 base1 in
       binder 1 @@ 
       let* x = top_var base0 in
-      let* fib0 = lift_cmp @@ Compute.inst_tp_clo fam0 [x] in
-      let* fib1 = lift_cmp @@ Compute.inst_tp_clo fam1 [x] in
+      let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
+      let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
       equate_tp fib0 fib1
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in
       binder 1 @@ 
       let* x = top_var base0 in
-      let* fib0 = lift_cmp @@ Compute.inst_tp_clo fam0 [x] in
-      let* fib1 = lift_cmp @@ Compute.inst_tp_clo fam1 [x] in
+      let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
+      let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
       equate_tp fib0 fib1
     | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
       let* () = equate_tp tp0 tp1 in
@@ -462,17 +465,17 @@ struct
     | D.Pi (base, fam), _, _ ->
       binder 1 @@ 
       let* x = top_var base in 
-      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [x] in 
-      let* ap0 = lift_cmp @@ Compute.do_ap con0 x in
-      let* ap1 = lift_cmp @@ Compute.do_ap con1 x in
+      let* fib = lift_cmp @@ inst_tp_clo fam [x] in 
+      let* ap0 = lift_cmp @@ do_ap con0 x in
+      let* ap1 = lift_cmp @@ do_ap con1 x in
       equate_con fib ap0 ap1
     | D.Sg (base, fam), _, _ ->
-      let* fst0 = lift_cmp @@ Compute.do_fst con0 in
-      let* fst1 = lift_cmp @@ Compute.do_fst con1 in
+      let* fst0 = lift_cmp @@ do_fst con0 in
+      let* fst1 = lift_cmp @@ do_fst con1 in
       let* () = equate_con base fst0 fst1 in
-      let* fib = lift_cmp @@ Compute.inst_tp_clo fam [fst0] in
-      let* snd0 = lift_cmp @@ Compute.do_snd con0 in
-      let* snd1 = lift_cmp @@ Compute.do_snd con1 in
+      let* fib = lift_cmp @@ inst_tp_clo fam [fst0] in
+      let* snd0 = lift_cmp @@ do_snd con0 in
+      let* snd1 = lift_cmp @@ do_snd con1 in
       equate_con fib snd0 snd1
     | _, D.Zero, D.Zero ->
       ret ()
@@ -482,8 +485,8 @@ struct
       begin 
         match glued0.cut, glued1.cut with 
         | (_, Some lcon0), (_, Some lcon1) ->
-          let* con0' = lift_cmp @@ Compute.force_lazy_con lcon0 in 
-          let* con1' = lift_cmp @@ Compute.force_lazy_con lcon1 in 
+          let* con0' = lift_cmp @@ force_lazy_con lcon0 in 
+          let* con1' = lift_cmp @@ force_lazy_con lcon1 in 
           equate_con tp con0' con1'
         | (cut0, None) , (cut1, None) ->
           equate_cut cut0 cut1
@@ -518,22 +521,22 @@ struct
       let* fibx =
         binder 1 @@
         let* var = top_var D.Nat in
-        let* fib0 = lift_cmp @@ Compute.inst_tp_clo mot0 [var] in
-        let* fib1 = lift_cmp @@ Compute.inst_tp_clo mot1 [var] in
+        let* fib0 = lift_cmp @@ inst_tp_clo mot0 [var] in
+        let* fib1 = lift_cmp @@ inst_tp_clo mot1 [var] in
         let+ () = equate_tp fib0 fib1  in
         fib0 
       in
       let* () = 
-        let* fib = lift_cmp @@ Compute.inst_tp_clo mot0 [D.Zero] in
+        let* fib = lift_cmp @@ inst_tp_clo mot0 [D.Zero] in
         equate_con fib zero_case0 zero_case1
       in
       binder 1 @@
       let* x = top_var D.Nat in 
       binder 1 @@ 
       let* ih = top_var fibx in
-      let* fib_sucx = lift_cmp @@ Compute.inst_tp_clo mot0 [D.Suc x] in
-      let* con0 = lift_cmp @@ Compute.inst_tm_clo suc_case0 [x; ih] in
-      let* con1 = lift_cmp @@ Compute.inst_tm_clo suc_case1 [x; ih] in
+      let* fib_sucx = lift_cmp @@ inst_tp_clo mot0 [D.Suc x] in
+      let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
+      let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
       equate_con fib_sucx con0 con1
     | D.KIdElim (mot0, refl_case0, tp0, left0, right0), D.KIdElim (mot1, refl_case1, tp1, left1, right1) ->
       let* () = equate_tp tp0 tp1 in
@@ -546,15 +549,15 @@ struct
         let* r = top_var tp0 in
         binder 1 @@ 
         let* p = top_var @@ D.Id (tp0, l, r) in
-        let* fib0 = lift_cmp @@ Compute.inst_tp_clo mot0 [l; r; p] in
-        let* fib1 = lift_cmp @@ Compute.inst_tp_clo mot1 [l; r; p] in
+        let* fib0 = lift_cmp @@ inst_tp_clo mot0 [l; r; p] in
+        let* fib1 = lift_cmp @@ inst_tp_clo mot1 [l; r; p] in
         equate_tp fib0 fib1
       in
       binder 1 @@
       let* x = top_var tp0 in
-      let* fib_reflx = lift_cmp @@ Compute.inst_tp_clo mot0 [x; x; D.Refl x] in
-      let* con0 = lift_cmp @@ Compute.inst_tm_clo refl_case0 [x] in
-      let* con1 = lift_cmp @@ Compute.inst_tm_clo refl_case1 [x] in
+      let* fib_reflx = lift_cmp @@ inst_tp_clo mot0 [x; x; D.Refl x] in
+      let* con0 = lift_cmp @@ inst_tm_clo refl_case0 [x] in
+      let* con1 = lift_cmp @@ inst_tm_clo refl_case1 [x] in
       equate_con fib_reflx con0 con1
     | _ -> 
       throw @@ NbeFailed "Mismatched frames"
