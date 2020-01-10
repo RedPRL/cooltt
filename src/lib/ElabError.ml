@@ -23,8 +23,19 @@ let pp fmt =
       (S.pp_ ppenv) tm0
       (S.pp_ ppenv) tm1
       (S.pp_tp_ ppenv) tp
-  | _ ->
-    Format.fprintf fmt "<exception, todo>"
+  | ExpectedEqualTypes (_tp0, _tp1) ->
+    Fmt.fprintf fmt 
+      "Type mismatch"
+  | ExpectedConnective _ ->
+    Fmt.fprintf fmt 
+      "Head connective mismatch"
+  | ExpectedSynthesizableTerm _ ->
+    Fmt.fprintf fmt 
+      "Expected synthesizable term"
+  | InvalidTypeExpression cs ->
+    Fmt.fprintf fmt 
+      "Invalid type expression: %a"
+      CS.pp cs
 
 
 exception ElabError of t
