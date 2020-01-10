@@ -46,7 +46,7 @@ struct
       let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
       let* () =
         () |> EM.emit @@ fun fmt () ->
-        Format.fprintf fmt "Emitted hole: %a@." (S.pp_tp_ Pp.Env.emp) tp
+        Format.fprintf fmt "Emitted hole: %a@." (S.pp_sequent Pp.Env.emp) tp
       in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
       match flexity with

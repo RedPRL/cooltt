@@ -34,3 +34,5 @@ val pp_tp : tp Pp.printer
 
 val pp_ : Pp.env -> t Pp.printer
 val pp_tp_ : Pp.env -> tp Pp.printer
+
+val pp_sequent : Pp.env -> tp Pp.printer
