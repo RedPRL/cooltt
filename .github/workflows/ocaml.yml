@@ -1,0 +1,18 @@
+name: Build and test
+on: [push]
+jobs:
+  run:
+    name: Build
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [macos-latest, ubuntu-latest, windows-latest]
+        ocaml-version: [ '4.09.0', '4.08.1' ]
+    steps:
+    - uses: actions/checkout@master
+    - uses: avsm/setup-ocaml@master
+      with:
+        ocaml-version: ${{ matrix.ocaml-version }}
+    - run: opam pin add -y cooltt .
+    - run: make
+    - run: make test
