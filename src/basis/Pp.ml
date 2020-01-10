@@ -9,17 +9,6 @@ struct
 
   let emp = Emp
 
-  let var i xs =
-    if i < Bwd.length xs then
-      Bwd.nth xs i
-    else
-      failwith "Pp printer: tried to resolve bound variable out of range"
-
-  let proj xs =
-    match xs with
-    | Emp -> failwith "ppenv/proj"
-    | Snoc (xs, _) -> xs
-
   let nat_to_suffix n =
     let formatted = string_of_int n in
     let lookup : int -> string = List.nth ["₀";"₁";"₂";"₃";"₄";"₅";"₆";"₇";"₈";"₉"] in
@@ -32,18 +21,34 @@ struct
     let new_x = x ^ suffix in
     if Bwd.mem new_x xs then (rename [@tailcall]) xs x (i + 1) else new_x
 
-  let choose_name xs x =
-    if Bwd.mem x xs then rename xs x 1 else x
+  let choose_name (env : t) (x : string) =
+    if Bwd.mem x env then rename env x 1 else x
 
-  let bind xs nm =
+  let or_default env ox = 
+    match ox with 
+    | Some x -> x
+    | None -> choose_name env "_x"
+
+  let var i env =
+    if i < Bwd.length env then
+      Bwd.nth env i
+    else
+      failwith "Pp printer: tried to resolve bound variable out of range"
+
+  let proj xs =
+    match xs with
+    | Emp -> failwith "ppenv/proj"
+    | Snoc (xs, _) -> xs
+
+  let bind (env : t) (nm : string option) : string * t =
     let x =
       match nm with
-      | None | Some "_" -> choose_name xs "x"
-      | Some x -> choose_name xs x
+      | None -> choose_name env "_x"
+      | Some x -> choose_name env x
     in
-    x, xs #< x
+    x, env #< x
 
-  let rec bindn env (nms : string option list) =
+  let rec bindn (env : t) (nms : string option list) : string list * t =
     match nms with
     | [] ->
       [], env
@@ -51,6 +56,9 @@ struct
       let x, env' = bind env nm in
       let xs, env'' = bindn env' nms in
       (x :: xs), env''
+
+  let names (env : t) : string list =
+    env <>> []
 end
 
 type env = Env.t

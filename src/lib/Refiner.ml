@@ -41,12 +41,13 @@ struct
     in
 
     let* env = EM.read in
+    let names = Pp.Env.names @@ Env.pp_env env in
     EM.globally @@
     let+ sym =
       let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
       let* () =
         () |> EM.emit @@ fun fmt () ->
-        Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent Pp.Env.emp) tp
+        Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~names) tp
       in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
       match flexity with

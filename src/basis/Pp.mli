@@ -9,6 +9,7 @@ sig
   val bindn : t -> string option list -> string list * t
 
   val proj : t -> t
+  val names : t -> string list
 end
 
 type env = Env.t

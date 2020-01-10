@@ -191,21 +191,21 @@ let pp_sequent_goal env fmt =
   | tp ->
     pp_tp_ env fmt tp
 
-let rec pp_sequent_inner env fmt =
-  function
-  | Pi (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
+let rec pp_sequent_inner ~names env fmt tp =
+  match names, tp with
+  | nm :: names, Pi (base, fam) ->
+    let x, envx = Pp.Env.bind env @@ Some nm in
     Fmt.fprintf fmt "%a : %a@;%a"
       Uuseg_string.pp_utf_8 x
       (pp_tp_ env) base
-      (pp_sequent_inner envx) fam
-  | tp ->
+      (pp_sequent_inner ~names envx) fam
+  | _, tp ->
     Format.fprintf fmt "|- @[<hv>%a@]"
       (pp_sequent_goal env) tp
 
-let pp_sequent env : tp Pp.printer =
+let pp_sequent ~names : tp Pp.printer =
   fun fmt tp ->
   Format.fprintf fmt "@[<v>%a@]"
-    (pp_sequent_inner env) tp
+    (pp_sequent_inner ~names Pp.Env.emp) tp
 
 type env = tp list
