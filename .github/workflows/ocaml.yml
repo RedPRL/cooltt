@@ -13,6 +13,7 @@ jobs:
     - uses: avsm/setup-ocaml@master
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
+    - run: opam install dune
     - run: opam pin add -y cooltt .
     - run: make
     - run: make test
