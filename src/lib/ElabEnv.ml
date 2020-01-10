@@ -53,9 +53,8 @@ let resolve_local key env =
     | Snoc (xs, cell) ->
       begin
         match Cell.name cell with
-        | Some x ->
-          if String.equal x key then i else go (i + 1) xs
-        | None -> go (i + 1) xs
+        | Some x when x = key -> i
+        | _ -> go (i + 1) xs
       end
   in
   match go 0 @@ env.locals with
