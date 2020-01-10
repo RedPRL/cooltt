@@ -7,14 +7,13 @@ open TLNat
 type env = {locals : con bwd}
 
 
-and ('n, 't, 'o, 'sp) clo = 
-  | Clo : {bdy : 't; env : env; spine : 'sp}  -> ('n, 't, 'o, 'sp) clo
-  | ElClo : ('n, S.t, con, frm list) clo -> ('n, S.tp, tp, unit) clo
-  | ConstClo : 'o -> ('n, 't, 'o, 'sp) clo
+and ('n, 't, 'o) clo = 
+  | Clo : {bdy : 't; env : env}  -> ('n, 't, 'o) clo
+  | ElClo : ('n, S.t, con) clo -> ('n, S.tp, tp) clo
+  | ConstClo : 'o -> ('n, 't, 'o) clo
 
-and 'n tm_clo = ('n, S.t, con, frm list) clo
-and 'n tp_clo = ('n, S.tp, tp, unit) clo
-
+and 'n tm_clo = ('n, S.t, con) clo
+and 'n tp_clo = ('n, S.tp, tp) clo
 
 and con =
   | Lam of ze su tm_clo

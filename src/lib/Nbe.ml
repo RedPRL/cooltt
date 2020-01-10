@@ -92,12 +92,9 @@ struct
   and inst_tm_clo : type n. n D.tm_clo -> (n, D.con) Vec.vec -> D.con compute =
     fun clo xs ->
     match clo with
-    | D.Clo {bdy; env; spine} -> 
-      let* con = 
-        lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
-        eval bdy
-      in 
-      do_spine con spine
+    | D.Clo {bdy; env} -> 
+      lift_ev {D.locals = env.locals <>< Vec.to_list xs} @@ 
+      eval bdy
     | D.ConstClo t -> 
       CmpM.ret t
 
