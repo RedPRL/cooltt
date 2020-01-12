@@ -6,8 +6,8 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-latest, ubuntu-latest]
-        ocaml-version: [ '4.09.0' ]
+        operating-system: [ubuntu-latest]
+        ocaml-version: [ '4.09.0', '4.08.1' ]
     steps:
     - uses: actions/checkout@master
     - uses: avsm/setup-ocaml@master
