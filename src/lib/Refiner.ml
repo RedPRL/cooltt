@@ -367,6 +367,7 @@ struct
         let* tp = EM.lift_qu @@ Nbe.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (Env.pp_env env, tp)
 
+    (* TODO: make this only work for non-indexed inductive types *)
     let lam_elim cases : chk_tac = 
       match_goal @@ fun tp ->
       let* base, fam = EM.dest_pi tp in
