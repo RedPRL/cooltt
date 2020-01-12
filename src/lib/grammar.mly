@@ -91,9 +91,9 @@ term:
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
   | dom = atomic RIGHT_ARROW; cod = term
-    { Pi ([Cell {name = ""; tp = dom}], cod) }
+    { Pi ([Cell {name = "_"; tp = dom}], cod) }
   | dom = atomic; TIMES; cod = term
-    { Sg ([Cell {name = ""; tp = dom}], cod) }
+    { Sg ([Cell {name = "_"; tp = dom}], cod) }
   | FST; t = term 
     { Fst t }
   | SND; t = term 

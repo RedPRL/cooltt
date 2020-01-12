@@ -78,6 +78,8 @@ module Tactic : sig
   val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
   val tac_nary_quantifier : quantifier_tac -> (CS.ident option * tp_tac) list -> tp_tac -> tp_tac
 
+  val match_goal : (D.tp -> chk_tac EM.m) -> chk_tac
+
   module Elim : sig
     type case_tac = CS.pat * chk_tac
 

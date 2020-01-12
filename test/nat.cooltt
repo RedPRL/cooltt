@@ -15,7 +15,7 @@ def trans : {
 } = {
   \A x y z p =>
   elim p @ {u v _ => (q : Id A v z) -> Id A u z} [
-  | refl _ => \q => q
+  | refl => \q => q
   ]
 }
 
@@ -26,14 +26,14 @@ def cong : {
 } = {
   \A B f x y p =>
   elim p @ {u v _ => Id B {f u} {f v}} [
-  | refl w => refl
+  | refl => refl
   ]
 }
 
 def + : nat -> nat -> nat = {
   \elim [
   | zero => \n => n
-  | suc {m => ih} => \n => suc {ih n}
+  | suc {_ => ih} => \n => suc {ih n}
   ]
 }
 
@@ -45,14 +45,14 @@ def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
 }
 
 def +-left-unit : (x : nat) -> Id nat {+ 0 x} x = {
-  \x =>
+  \_ =>
   refl
 }
 
-
 def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
   \elim [
-  | zero => \y => refl
+  | zero =>
+    \_ => refl
   | suc {x => ih} =>
     \y =>
     cong nat nat {\w => suc w} {+ x {suc y}} {suc {+ x y}} {ih y}

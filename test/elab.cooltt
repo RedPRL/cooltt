@@ -1,23 +1,23 @@
 def foo : (x : nat) -> (y : nat) * Id nat x y = {
-  \x=>
+  \x =>
   [x, ?hole1]
 }
 
-def sym : (x : nat) (y : nat) (p : Id nat x y) -> Id nat y x = {
-  \x y p =>
-  elim p @ {u v _ => Id nat v u} [
-  | refl u => refl
+def sym : (A : univ) (x : A) (y : A) (p : Id A x y) -> Id A y x = {
+  \A x y p =>
+  elim p @ {u v _ => Id A v u} [
+  | refl => refl
   ]
 }
 
 def trans : {
-  (x : nat) (y : nat) (z : nat)
-  (p : Id nat x y) (q : Id nat y z)
-  -> Id nat x z
+  (A : univ) (x : A) (y : A) (z : A)
+  (p : Id A x y) (q : Id A y z)
+  -> Id A x z
 } = {
-  \x y z p =>
-  elim p @ {u v _ => (q : Id nat v z) -> Id nat u z} [
-  | refl _ => \q => q
+  \A x y z p =>
+  elim p @ {u v _ => (q : Id A v z) -> Id A u z} [
+  | refl => \q => q
   ]
 }
 
