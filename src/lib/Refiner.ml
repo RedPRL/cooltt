@@ -283,7 +283,9 @@ struct
     | `Unbound ->
       EM.elab_err @@ Err.UnboundVariable id
 
-
+  let variable ix =
+    let+ tp = EM.get_local_tp ix in 
+    S.Var ix, tp
 
   let let_ tac_def (nm_x, tac_bdy) : chk_tac =
     fun tp ->
@@ -367,21 +369,30 @@ struct
         let* tp = EM.lift_qu @@ Nbe.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (Env.pp_env env, tp)
 
+    let assert_simple_inductive =
+      function
+      | D.Nat -> 
+        EM.ret () 
+      | tp ->
+        let* env = EM.read in
+        let ppenv = Env.pp_env env in
+        let* tp = EM.lift_qu @@ Nbe.quote_tp tp in
+        EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
+
     (* TODO: make this only work for non-indexed inductive types *)
     let lam_elim cases : chk_tac = 
       match_goal @@ fun tp ->
-      let* base, fam = EM.dest_pi tp in
-      let* vmot = 
-        EM.abstract None base @@ fun x ->
-        EM.lift_cmp @@ Nbe.inst_tp_clo fam [x]
+      let* _, fam = EM.dest_pi tp in
+      let mot_tac : tp_tac =
+        let* x, _ = Structural.variable 0 in
+        let* vx = EM.lift_ev @@ Nbe.eval x in
+        let* vmot = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vx] in
+        EM.lift_qu @@ Nbe.quote_tp vmot 
       in
-      let body_tac : chk_tac = 
-        fun tp ->
-          let* tmot = EM.lift_qu @@ Nbe.quote_tp vmot in
-          let top_var = S.Var 0, base in
-          Structural.syn_to_chk (elim ([None], EM.ret tmot) cases (EM.ret top_var)) tp
-      in
-      EM.ret @@ Pi.intro None body_tac
+      EM.ret @@ Pi.intro None @@
+      Structural.syn_to_chk @@ 
+      elim ([None], mot_tac) cases @@ 
+      Structural.variable 0
 
   end
 end

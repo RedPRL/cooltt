@@ -70,6 +70,7 @@ module Structural : sig
   val chk_to_syn : chk_tac -> tp_tac -> syn_tac
   val let_ : syn_tac -> CS.ident option * chk_tac -> chk_tac 
   val lookup_var : CS.ident -> syn_tac 
+  val variable : int -> syn_tac
 end
 
 module Tactic : sig

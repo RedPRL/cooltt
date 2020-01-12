@@ -13,6 +13,7 @@ type t =
   | MalformedCase
   | MissingCase of CS.ident
   | CannotEliminate of Pp.env * S.tp
+  | ExpectedSimpleInductive of Pp.env * S.tp
 
 
 module Fmt = Format
@@ -48,6 +49,10 @@ let pp fmt =
   | CannotEliminate (ppenv, tp) ->
     Fmt.fprintf fmt 
       "Cannot eliminate element of type %a"
+      (S.pp_tp_ ppenv) tp
+  | ExpectedSimpleInductive (ppenv, tp) ->
+    Fmt.fprintf fmt 
+      "Expected simple inductive type but found %a"
       (S.pp_tp_ ppenv) tp
 
 

@@ -14,6 +14,7 @@ type t =
   | MalformedCase
   | MissingCase of CS.ident
   | CannotEliminate of Pp.env * S.tp
+  | ExpectedSimpleInductive of Pp.env * S.tp
 
 val pp : Format.formatter -> t -> unit
 
