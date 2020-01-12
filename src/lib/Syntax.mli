@@ -1,3 +1,5 @@
+open CoolBasis.Bwd
+
 type t =
   | Var of int (* DeBruijn indices for variables *)
   | Global of Symbol.t
@@ -5,7 +7,7 @@ type t =
   | Ann of t * tp
   | Zero
   | Suc of t
-  | NatElim of (* BINDS *) tp * t * (* BINDS 2 *) t * t
+  | NatElim of ghost option * (* BINDS *) tp * t * (* BINDS 2 *) t * t
   | Lam of (* BINDS *) t
   | Ap of t * t
   | Pair of t * t
@@ -25,6 +27,8 @@ and tp =
   | Univ
   | El of t
   | GoalTp of string option * tp
+
+and ghost = string bwd * (tp * t) list
 
 type env = tp list
 

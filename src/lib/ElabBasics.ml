@@ -6,6 +6,7 @@ module Env = ElabEnv
 module Err = ElabError
 
 open CoolBasis
+open Bwd
 include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)
@@ -111,3 +112,34 @@ let define nm tp con k =
   push_def nm tp con @@
   let* x = get_local 0 in
   k x
+
+let problem = 
+  let+ env = read in
+  Env.problem env
+
+let push_problem lbl = 
+  scope @@ 
+  Env.push_problem lbl
+
+let current_ghost : S.ghost option m =
+  let* env = read in 
+  let rec go_locals = 
+    function
+    | Emp -> ret []
+    | Snoc (cells, `Con cell) ->
+      begin
+        match Env.ConCell.visibility cell with 
+        | `Hidden ->
+          go_locals cells
+        | `Visible ->
+          let* cells = go_locals cells in
+          let tp = Env.ConCell.tp cell in
+          let* ttp = lift_qu @@ Nbe.quote_tp tp in
+          let* tm = lift_qu @@ Nbe.quote_con tp @@ Env.ConCell.con cell in
+          ret @@ cells @ [ttp, tm]
+      end
+  in
+  let+ cells = go_locals @@ Env.locals env in
+  match Env.problem env with
+  | Emp -> None
+  | problem -> Some (problem, cells)

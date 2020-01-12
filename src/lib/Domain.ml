@@ -46,10 +46,11 @@ and frm =
   | KAp of tp * con
   | KFst 
   | KSnd
-  | KNatElim of ze su tp_clo * con * ze su su tm_clo
+  | KNatElim of ghost option * ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
 
+and ghost = string bwd * (tp * con) list
 
 let pp_tp fmt _ = 
   Format.fprintf fmt "<tp>"

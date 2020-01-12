@@ -13,6 +13,7 @@ module ConCell : sig
   val tp : t -> D.tp
   val con : t -> D.con
   val name : t -> string option
+  val visibility : t -> [`Visible | `Hidden]
 end =
 struct
   type t = D.tp * D.con * string option
@@ -20,6 +21,11 @@ struct
   let tp (tp, _, _) = tp 
   let name (_, _, name) = name 
   let con (_, con, _) = con
+
+  let visibility : t -> [`Visible | `Hidden] =
+    function
+    | (_, _, None) -> `Hidden 
+    | _ -> `Visible
 end
 
 type cell = [`Con of ConCell.t]
@@ -28,7 +34,8 @@ type t =
   {resolver : Symbol.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
-   locals : cell bwd}
+   locals : cell bwd;
+   problem : string bwd}
 
 let locals env = env.locals
 
@@ -36,7 +43,8 @@ let init =
   {resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
-   locals = Emp}
+   locals = Emp;
+   problem = Emp}
 
 let size env = Bwd.length env.locals
 
@@ -79,3 +87,9 @@ let pp_env env = env.pp
 
 let get_veil env = env.veil
 let set_veil v env = {env with veil = v}
+
+let problem env = env.problem
+
+let push_problem lbl env = 
+  {env with
+   problem = env.problem #< lbl}

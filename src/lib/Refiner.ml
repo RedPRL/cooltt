@@ -224,6 +224,7 @@ struct
     S.Suc t
 
   let elim (nm_mot, tac_mot) tac_case_zero (nm_x, nm_ih, tac_case_suc) tac_scrut : syn_tac =
+    let* ghost = EM.current_ghost in
     let* tscrut, nattp = tac_scrut in
     let* () = assert_nat nattp in
     let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
@@ -247,7 +248,7 @@ struct
     in
 
     let+ fib_scrut = EM.lift_ev @@ EvM.append [`Con vscrut] @@ Nbe.eval_tp tmot in
-    S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
+    S.NatElim (ghost, tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
 end
 
 module El =

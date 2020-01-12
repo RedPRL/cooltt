@@ -2,7 +2,13 @@ module CS := ConcreteSyntax
 module D := Domain
 module S := Syntax
 
+open CoolBasis.Bwd
+
 include module type of Monads.ElabM
+
+val push_problem : string -> 'a m -> 'a m
+val problem : string bwd m
+val current_ghost : S.ghost option m
 
 val elab_err : ElabError.t -> 'a m
 

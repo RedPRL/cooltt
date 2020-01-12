@@ -16,7 +16,7 @@ module rec Compute :
 sig 
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
-  val do_nat_elim : ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
+  val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
@@ -33,16 +33,16 @@ struct
   open Eval
   open Monad.Notation (CmpM)
 
-  let rec do_nat_elim (mot : ze su D.tp_clo) zero suc n : D.con compute =
+  let rec do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
     | D.Zero -> 
       ret zero
     | D.Suc n -> 
-      let* v = do_nat_elim mot zero suc n in 
+      let* v = do_nat_elim ~ghost mot zero suc n in 
       inst_tm_clo suc [n; v]
     | D.Cut {cut; _} ->
       let+ final_tp = inst_tp_clo mot [n] in
-      let k = D.KNatElim (mot, zero, suc) in
+      let k = D.KNatElim (ghost, mot, zero, suc) in
       D.Cut {tp = final_tp; cut = push_frm k cut}
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
@@ -148,7 +148,7 @@ struct
     | D.KAp (_, con') -> do_ap con con'
     | D.KFst -> do_fst con
     | D.KSnd -> do_snd con
-    | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
+    | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
     | D.KIdElim (mot, case_refl, _, _, _) -> do_id_elim mot case_refl con
     | D.KGoalProj -> do_goal_proj con
 
@@ -245,14 +245,15 @@ struct
     | S.Zero -> 
       ret D.Zero
     | S.Suc t -> 
-      let+ con = eval t in 
+      let+ con = eval t in
       D.Suc con
-    | S.NatElim (tp, zero, suc, n) ->
+    | S.NatElim (ghost, tp, zero, suc, n) ->
       let* vzero = eval zero in
       let* vn = eval n in
       let* cltp = EvM.close_tp tp in
       let* clsuc = close_tm suc in
-      lift_cmp @@ do_nat_elim cltp vzero clsuc vn
+      let* ghost = eval_ghost ghost in
+      lift_cmp @@ do_nat_elim ~ghost cltp vzero clsuc vn
     | S.Lam t -> 
       let+ cl = close_tm t in
       D.Lam cl
@@ -286,6 +287,23 @@ struct
     | S.GoalProj tm ->
       let* con = eval tm in
       lift_cmp @@ do_goal_proj con
+
+  and eval_ghost =
+    function 
+    | None -> 
+      ret None
+    | Some (lbl, cells) ->
+      let rec go =
+        function 
+        | [] -> ret []
+        | (tp, tm) :: cells -> 
+          let* tp = eval_tp tp in 
+          let* con = eval tm in
+          let* cells = go cells in
+          ret @@ (tp, con) :: cells
+      in 
+      let+ cells = go cells in
+      Some (lbl, cells)
 end
 
 module Quote : sig 
@@ -408,9 +426,25 @@ struct
       let* tm' = quote_frm tm k in
       quote_spine tm' spine
 
+  and quote_ghost =
+    function
+    | None -> ret None
+    | Some (lbl, cells) -> 
+      let rec go =
+        function
+        | [] -> ret []
+        | (tp, con) :: cells ->
+          let* ttp = quote_tp tp in
+          let* tm = quote_con tp con in 
+          let* cells = go cells in
+          ret @@ (ttp, tm) :: cells
+      in
+      let+ cells = go cells in
+      Some (lbl, cells)
+
   and quote_frm tm = 
     function
-    | D.KNatElim (mot, zero_case, suc_case) ->
+    | D.KNatElim (ghost, mot, zero_case, suc_case) ->
       let* x, mot_x, tmot = 
         binder 1 @@ 
         let* x = top_var D.Nat in
@@ -427,8 +461,8 @@ struct
         let* mot_suc_x = lift_cmp @@ inst_tp_clo mot [D.Suc x] in 
         let* suc_case_x = lift_cmp @@ inst_tm_clo suc_case [x; ih] in
         quote_con mot_suc_x suc_case_x
-      in
-      S.NatElim (tmot, tzero_case, tsuc_case, tm)
+      and+ ghost = quote_ghost ghost in
+      S.NatElim (ghost, tmot, tzero_case, tsuc_case, tm)
     | D.KIdElim (mot, refl_case, tp, left, right) ->
       let* x, tmot =
         binder 1 @@ 
@@ -548,7 +582,7 @@ struct
     | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
       let* () = equate_tp tp0 tp1 in
       equate_con tp0 con0 con1
-    | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
+    | D.KNatElim (_, mot0, zero_case0, suc_case0), D.KNatElim (_, mot1, zero_case1, suc_case1) ->
       let* fibx =
         binder 1 @@
         let* var = top_var D.Nat in

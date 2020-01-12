@@ -1,4 +1,4 @@
-open CoolBasis
+open CoolBasis open Bwd
 
 type t =
   | Var of int (* DeBruijn indices for variables *)
@@ -7,7 +7,7 @@ type t =
   | Ann of t * tp
   | Zero
   | Suc of t
-  | NatElim of (* BINDS *) tp * t * (* BINDS 2 *) t * t
+  | NatElim of ghost option * (* BINDS *) tp * t * (* BINDS 2 *) t * t
   | Lam of (* BINDS *) t
   | Ap of t * t
   | Pair of t * t
@@ -28,6 +28,9 @@ and tp =
   | Univ
   | El of t
   | GoalTp of string option * tp
+[@@deriving show]
+
+and ghost = string bwd * (tp * t) list
 [@@deriving show]
 
 let rec condense = function
@@ -67,10 +70,12 @@ let rec pp_ (env : Pp.env)  =
         | Some n -> Fmt.fprintf fmt "%d" @@ n + 1
         | None -> Fmt.fprintf fmt "@[<hv1>(suc@ %a)@]" (go env `Start) tm
       end
-    | _, NatElim (mot, zero, suc, scrut) ->
+    | _, NatElim (Some ghost, _, _, _, scrut) ->
+      pp_ghost_ env fmt (ghost, scrut)
+    | _, NatElim (None, mot, zero, suc, scrut) ->
       let x, envx = Pp.Env.bind env None in
       let y, envxy = Pp.Env.bind envx None in
-      Fmt.fprintf  fmt
+      Fmt.fprintf fmt
         "@[<hv1>(nat.elim@ [%a] %a @[<hv1>(zero@ %a)@]@ @[<hv1>(suc@ [%a %a] %a)@]@ %a)@]"
         Uuseg_string.pp_utf_8 x 
         (pp_tp_ envx) mot
@@ -122,6 +127,20 @@ let rec pp_ (env : Pp.env)  =
       Fmt.fprintf fmt "@[<hv1>(goal-proj %a)@]" (go env `Start) tm
   in
   go env `Start
+
+and pp_ghost_ env fmt ((name, cells), scrut) =
+  let rec go_cells env fmt =
+    function 
+    | [] -> pp_ env fmt scrut
+    | (_, tm) :: cells -> 
+      Fmt.fprintf fmt "%a %a" (pp_ env) tm (go_cells env) cells
+  in
+  Fmt.fprintf fmt "@[<hv1>(%a %a)@]" pp_problem name (go_cells env) cells
+
+and pp_problem fmt problem =
+  let lbls = Bwd.to_list problem in
+  let dot fmt () = Fmt.fprintf fmt "." in
+  Fmt.pp_print_list ~pp_sep:dot Uuseg_string.pp_utf_8 fmt lbls
 
 
 and pp_tp_ env = 

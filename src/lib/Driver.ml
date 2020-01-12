@@ -23,11 +23,18 @@ let rec int_to_term =
 
 module EM = ElabBasics
 
-let elaborate_typed_term tp tm = 
+let elaborate_typed_term name tp tm = 
   let open Monad.Notation (EM) in
-  let* tp = Elaborator.chk_tp tp in
+  EM.push_problem name @@ 
+  let* tp = 
+    EM.push_problem "tp" @@
+    Elaborator.chk_tp tp
+  in
   let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in 
-  let* tm = Elaborator.chk_tm tm vtp in
+  let* tm = 
+  EM.push_problem "tm" @@
+  Elaborator.chk_tm tm vtp
+   in
   let+ vtm = EM.lift_ev @@ Nbe.eval tm in
   tp, vtp, tm, vtm
 
@@ -35,7 +42,7 @@ let execute_decl =
   let open Monad.Notation (EM) in 
   function
   | CS.Def {name; def; tp} ->
-    let* _tp, vtp, _tm, vtm = elaborate_typed_term tp def in
+    let* _tp, vtp, _tm, vtm = elaborate_typed_term name tp def in
     let+ _sym = EM.add_global (Some name) vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->

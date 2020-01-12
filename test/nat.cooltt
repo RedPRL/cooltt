@@ -40,7 +40,8 @@ def + : nat -> nat -> nat = {
 def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
   \elim [
   | zero => refl
-  | suc {x => ih} => cong nat nat {\z => suc z} {+ x 0} x ih
+  | suc {y => ih} =>
+    cong nat nat {\z => suc z} {+ y 0} y ih
   ]
 }
 
