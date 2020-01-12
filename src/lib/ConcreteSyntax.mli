@@ -1,13 +1,7 @@
 type ident = string
 
 type binder = B of {name : ident; body : t}
-
 and bindern = BN of {names : ident list; body : t}
-
-and binder2 = B2 of {name1 : ident; name2 : ident; body : t}
-
-and binder3 = B3 of {name1 : ident; name2 : ident; name3 : ident; body : t}
-
 and cell = Cell of {name : ident; tp : t}
 
 and spine = Term of t
@@ -19,7 +13,6 @@ and t =
   | Nat
   | Suc of t
   | Lit of int
-  | NatElim of {mot : binder; case_zero : t; case_suc : binder2; scrut : t}
   | Pi of cell list * t
   | Lam of bindern
   | Ap of t * spine list
@@ -29,11 +22,16 @@ and t =
   | Snd of t
   | Id of t * t * t
   | Refl
-  | IdElim of {mot : binder3; case_refl : binder; scrut : t}
   | Univ
   | Hole of ident option
   | Underscore
   | Unfold of ident list * t
+  | Elim of {mot : bindern; cases : case list; scrut : t}
+
+and case = pat * t
+and pat = Pat of {lbl : ident; args : pat_arg list}
+and pat_arg = [`Simple of ident option | `Inductive of ident option * ident option]
+
 
 type decl =
   | Def of {name : ident; def : t; tp : t}

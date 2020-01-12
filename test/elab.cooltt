@@ -5,7 +5,7 @@ def foo : (x : nat) -> (y : nat) * Id nat x y = {
 
 def sym : (x : nat) (y : nat) (p : Id nat x y) -> Id nat y x = {
   \x y p =>
-  match p at u v q => Id nat v u with [
+  elim p at u v q => Id nat v u with [
   | refl u => refl
   ]
 }
@@ -16,7 +16,7 @@ def trans : {
   -> Id nat x z
 } = {
   \x y z p =>
-  match p at u v _ => (q : Id nat v z) -> Id nat u z with [
+  elim p at u v _ => (q : Id nat v z) -> Id nat u z with [
   | refl _ => \q => q
   ]
 }

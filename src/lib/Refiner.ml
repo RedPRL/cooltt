@@ -314,4 +314,52 @@ struct
     | [] -> body
     | (nm, tac) :: cells -> 
       quant tac (nm, tac_nary_quantifier quant cells body)
+
+  module Elim =
+  struct
+    type case_tac = CS.pat * chk_tac
+
+    let rec find_case (lbl : CS.ident) (cases : case_tac list) : (CS.pat_arg list * chk_tac) m = 
+      match cases with 
+      | (CS.Pat pat, tac) :: _ when pat.lbl = lbl ->
+        EM.ret (pat.args, tac)
+      | _ :: cases ->
+        find_case lbl cases
+      | [] ->
+        EM.elab_err @@ Err.MissingCase lbl
+
+    let elim (mot : CS.ident option list * tp_tac) (cases : case_tac list) (scrut : syn_tac) : syn_tac =
+      let* tscrut, ind_tp = scrut in
+      let scrut = EM.ret (tscrut, ind_tp) in
+      match ind_tp, mot with
+      | D.Id (_, _, _), ([nm_u; nm_v; nm_p], mot) ->
+        let* tac_refl =
+          let* case = find_case "refl" cases in
+          match case with 
+          | [`Simple nm_w], tac -> EM.ret (nm_w, tac)
+          | [], tac -> EM.ret (None, tac)
+          | _ -> 
+            EM.elab_err Err.MalformedCase 
+        in
+        Id.elim (nm_u, nm_v, nm_p, mot) tac_refl scrut
+      | D.Nat, ([nm_x], mot) ->
+        let* tac_zero = 
+          let* case = find_case "zero" cases in
+          match case with 
+          | [], tac -> EM.ret tac
+          | _ -> EM.elab_err Err.MalformedCase
+        in
+        let* tac_suc =
+          let* case = find_case "suc" cases in 
+          match case with
+          | [`Simple nm_z], tac -> EM.ret (nm_z, None, tac)
+          | [`Inductive (nm_z, nm_ih)], tac -> EM.ret (nm_z, nm_ih, tac)
+          | _ -> EM.elab_err Err.MalformedCase
+        in
+        Nat.elim (nm_x, mot) tac_zero tac_suc scrut
+      | _ -> 
+        let* env = EM.read in
+        let* tp = EM.lift_qu @@ Nbe.quote_tp ind_tp in
+        EM.elab_err @@ Err.CannotEliminate (Env.pp_env env, tp)
+  end
 end

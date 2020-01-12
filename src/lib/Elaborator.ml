@@ -86,16 +86,11 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
     R.Sg.pi1 @@ syn_tm t
   | CS.Snd t ->
     R.Sg.pi2 @@ syn_tm t
-  | CS.IdElim {mot = B3 mot; case_refl = B case_refl; scrut} ->
-    R.Id.elim 
-      (Some mot.name1, Some mot.name2, Some mot.name3, chk_tp mot.body) 
-      (Some case_refl.name, chk_tm case_refl.body) 
-      (syn_tm scrut)
-  | CS.NatElim {mot = B mot; case_zero; case_suc = B2 case_suc; scrut} ->
-    R.Nat.elim 
-      (Some mot.name, chk_tp mot.body)
-      (chk_tm case_zero)
-      (Some case_suc.name1, Some case_suc.name2, chk_tm case_suc.body)
+  | CS.Elim {mot = BN mot; cases; scrut} ->
+    let names = List.map (fun x -> Some x) mot.names in
+    R.Tactic.Elim.elim 
+      (names, chk_tp mot.body) 
+      (chk_cases cases)
       (syn_tm scrut)
   | CS.Ann {term; tp} ->
     R.Structural.chk_to_syn (chk_tm term) (chk_tp tp)
@@ -103,3 +98,9 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
     unfold idents @@ syn_tm c
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs
+
+and chk_cases cases =
+  List.map chk_case cases
+
+and chk_case (pat, c) =
+  pat, chk_tm c

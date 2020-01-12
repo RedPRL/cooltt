@@ -164,9 +164,9 @@ and pp_tp_ env =
         (pp_ env) l 
         (pp_ env) r
     | _, Nat ->
-      Format.fprintf fmt "Nat"
+      Format.fprintf fmt "nat"
     | _, Univ ->
-      Format.fprintf fmt "Univ"
+      Format.fprintf fmt "univ"
     | _, El tm ->
       Fmt.fprintf fmt "@[<hv1>(el@ %a)@]" (pp_ env) tm
     | _, GoalTp (None, tp) ->

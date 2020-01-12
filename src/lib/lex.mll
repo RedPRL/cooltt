@@ -25,11 +25,10 @@ let keywords =
     ("let", LET);
     ("in", IN);
     ("with", WITH);
-    ("rec", REC);
     ("fst", FST);
     ("snd", SND);
     ("fun", LAM);
-    ("match", MATCH);
+    ("elim", ELIM);
     ("Id", ID);
     ("refl", REFL);
     ("unfold", UNFOLD);

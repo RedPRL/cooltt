@@ -10,6 +10,9 @@ type t =
   | InvalidTypeExpression of CS.t
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
   | ExpectedSynthesizableTerm of S.t
+  | MalformedCase
+  | MissingCase of CS.ident
+  | CannotEliminate of Pp.env * S.tp
 
 
 module Fmt = Format
@@ -38,6 +41,14 @@ let pp fmt =
     Fmt.fprintf fmt 
       "Invalid type expression: %a"
       CS.pp cs
+  | MalformedCase ->
+    Fmt.fprintf fmt "Malformed case"
+  | MissingCase lbl ->
+    Fmt.fprintf fmt "Missing case %a" Uuseg_string.pp_utf_8 lbl
+  | CannotEliminate (ppenv, tp) ->
+    Fmt.fprintf fmt 
+      "Cannot eliminate element of type %a"
+      (S.pp_tp_ ppenv) tp
 
 
 exception ElabError of t

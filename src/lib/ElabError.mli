@@ -11,6 +11,9 @@ type t =
   | InvalidTypeExpression of CS.t
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
   | ExpectedSynthesizableTerm of S.t
+  | MalformedCase
+  | MissingCase of CS.ident
+  | CannotEliminate of Pp.env * S.tp
 
 val pp : Format.formatter -> t -> unit
 

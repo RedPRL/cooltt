@@ -11,9 +11,9 @@
 %token UNIV
 %token TIMES FST SND
 %token LAM LET IN WITH
-%token REC SUC NAT ZERO UNFOLD
+%token SUC NAT ZERO UNFOLD
 %token QUIT NORMALIZE DEF
-%token ID REFL MATCH
+%token ID REFL ELIM
 %token EOF
 
 %start <ConcreteSyntax.signature> sign
@@ -78,22 +78,15 @@ term:
     { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
-  | REC; n = term; AT; mot_name = name; RRIGHT_ARROW; mot = term; WITH; LSQ;
-    option(PIPE); ZERO; RRIGHT_ARROW; case_zero = term;
-    PIPE; SUC; LPR; suc_var = name; RRIGHT_ARROW; ih_var = name; RPR; RRIGHT_ARROW; case_suc = term; RSQ
-    { NatElim 
-       {mot = B {name = mot_name; body = mot};
-        case_zero;
-        case_suc = B2 {name1 = suc_var; name2 = ih_var; body = case_suc};
-        scrut = n}
-    }
   | ID; tp = atomic; left = atomic; right = atomic
     { Id (tp, left, right) }
-  | MATCH; scrut = term; AT; name1 = name; name2 = name; name3 = name; RRIGHT_ARROW; mot_term = term; WITH; LSQ;
-    option(PIPE); REFL; name = name; RRIGHT_ARROW; case_refl = term; RSQ
-    { IdElim {mot = B3 {name1; name2; name3; body = mot_term}; case_refl = B {name; body = case_refl}; scrut} }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
+  | ELIM; scrut = term; AT; names = list(name); RRIGHT_ARROW; mot = term; WITH; LSQ; option(PIPE); cases = separated_list(PIPE,case); RSQ 
+    { Elim
+       {mot = BN {names = names; body = mot};
+        cases;
+        scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
@@ -106,6 +99,31 @@ term:
     { Fst t }
   | SND; t = term 
     { Snd t }
+
+case: 
+  | p = pat RRIGHT_ARROW t = term 
+    { p, t }
+
+pat_lbl:
+  | REFL
+    { "refl" }
+  | ZERO 
+    { "zero" }
+  | SUC 
+    { "suc" }
+  | lbl = ATOM 
+    { lbl }
+  
+
+pat:
+  | lbl = pat_lbl args = list(pat_arg)
+   { Pat {lbl; args} } 
+
+pat_arg:
+  | ident = name
+    { `Simple (Some ident) }
+  | LBR i0 = name RRIGHT_ARROW i1 = name RBR 
+    { `Inductive (Some i0, Some i1) }
 
 tele_cell:
   | LPR name = name; COLON tp = term; RPR
