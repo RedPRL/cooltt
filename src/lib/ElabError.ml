@@ -11,7 +11,6 @@ type t =
   | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
   | ExpectedSynthesizableTerm of S.t
   | MalformedCase
-  | MissingCase of CS.ident
   | CannotEliminate of Pp.env * S.tp
   | ExpectedSimpleInductive of Pp.env * S.tp
 
@@ -44,8 +43,6 @@ let pp fmt =
       CS.pp cs
   | MalformedCase ->
     Fmt.fprintf fmt "Malformed case"
-  | MissingCase lbl ->
-    Fmt.fprintf fmt "Missing case %a" Uuseg_string.pp_utf_8 lbl
   | CannotEliminate (ppenv, tp) ->
     Fmt.fprintf fmt 
       "Cannot eliminate element of type %a"

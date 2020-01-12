@@ -326,14 +326,14 @@ struct
   struct
     type case_tac = CS.pat * chk_tac
 
-    let rec find_case (lbl : CS.ident) (cases : case_tac list) : (CS.pat_arg list * chk_tac) m = 
+    let rec find_case (lbl : CS.ident) (cases : case_tac list) : (CS.pat_arg list * chk_tac) option = 
       match cases with 
       | (CS.Pat pat, tac) :: _ when pat.lbl = lbl ->
-        EM.ret (pat.args, tac)
+        Some (pat.args, tac)
       | _ :: cases ->
         find_case lbl cases
       | [] ->
-        EM.elab_err @@ Err.MissingCase lbl
+        None
 
     let elim (mot : CS.ident option list * tp_tac) (cases : case_tac list) (scrut : syn_tac) : syn_tac =
       let* tscrut, ind_tp = scrut in
@@ -341,27 +341,26 @@ struct
       match ind_tp, mot with
       | D.Id (_, _, _), ([nm_u; nm_v; nm_p], mot) ->
         let* tac_refl =
-          let* case = find_case "refl" cases in
-          match case with 
-          | [`Simple nm_w], tac -> EM.ret (nm_w, tac)
-          | [], tac -> EM.ret (None, tac)
-          | _ -> 
-            EM.elab_err Err.MalformedCase 
+          match find_case "refl" cases with
+          | Some ([`Simple nm_w], tac) -> EM.ret (nm_w, tac)
+          | Some ([], tac) -> EM.ret (None, tac)
+          | Some _ -> EM.elab_err Err.MalformedCase 
+          | None -> EM.ret (None, Hole.unleash_hole (Some "refl") `Rigid)
         in
         Id.elim (nm_u, nm_v, nm_p, mot) tac_refl scrut
       | D.Nat, ([nm_x], mot) ->
         let* tac_zero = 
-          let* case = find_case "zero" cases in
-          match case with 
-          | [], tac -> EM.ret tac
-          | _ -> EM.elab_err Err.MalformedCase
+          match find_case "zero" cases with 
+          | Some ([], tac) -> EM.ret tac
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ Hole.unleash_hole (Some "zero") `Rigid
         in
         let* tac_suc =
-          let* case = find_case "suc" cases in 
-          match case with
-          | [`Simple nm_z], tac -> EM.ret (nm_z, None, tac)
-          | [`Inductive (nm_z, nm_ih)], tac -> EM.ret (nm_z, nm_ih, tac)
-          | _ -> EM.elab_err Err.MalformedCase
+          match find_case "suc" cases with
+          | Some ([`Simple nm_z], tac) -> EM.ret (nm_z, None, tac)
+          | Some ([`Inductive (nm_z, nm_ih)], tac) -> EM.ret (nm_z, nm_ih, tac)
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ (None, None, Hole.unleash_hole (Some "suc") `Rigid)
         in
         Nat.elim (nm_x, mot) tac_zero tac_suc scrut
       | _ -> 
