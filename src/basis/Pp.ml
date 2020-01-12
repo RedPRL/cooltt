@@ -24,11 +24,6 @@ struct
   let choose_name (env : t) (x : string) =
     if Bwd.mem x env then rename env x 1 else x
 
-  let or_default env ox = 
-    match ox with 
-    | Some x -> x
-    | None -> choose_name env "_x"
-
   let var i env =
     if i < Bwd.length env then
       Bwd.nth env i
