@@ -379,10 +379,10 @@ struct
         let* tp = EM.lift_qu @@ Nbe.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
-    (* TODO: make this only work for non-indexed inductive types *)
     let lam_elim cases : chk_tac = 
       match_goal @@ fun tp ->
-      let* _, fam = EM.dest_pi tp in
+      let* base, fam = EM.dest_pi tp in
+      let* () = assert_simple_inductive base in
       let mot_tac : tp_tac =
         let* x, _ = Structural.variable 0 in
         let* vx = EM.lift_ev @@ Nbe.eval x in
