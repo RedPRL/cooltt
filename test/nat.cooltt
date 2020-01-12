@@ -1,0 +1,78 @@
+def symm : {
+  (A : univ) (x : A) (y : A) (p : Id A x y)
+  -> Id A y x
+} = {
+  \A x y p =>
+  match p at u v _ => Id A v u with [
+  | refl _ => refl
+  ]
+}
+
+def trans : {
+  (A : univ) (x : A) (y : A) (z : A)
+  (p : Id A x y) (q : Id A y z)
+  -> Id A x z
+} = {
+  \A x y z p =>
+  match p at u v _ => (q : Id A v z) -> Id A u z with [
+  | refl _ => \q => q
+  ]
+}
+
+def cong : {
+  (A : univ) (B : univ) (f : A -> B)
+  (x : A) (y : A) (p : Id A x y)
+  -> Id B {f x} {f y}
+} = {
+  \A B f x y p =>
+  match p at u v _ => Id B {f u} {f v} with [
+  | refl w => refl
+  ]
+}
+
+def + : nat -> nat -> nat = {
+  \m n =>
+  rec m at x => nat with [
+  | zero => n
+  | suc (_ => p) => suc p
+  ]
+}
+
+
+def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
+  \x =>
+  rec x at x => Id nat {+ x 0} x with [
+  | zero => refl
+  | suc (y => ih) =>
+    cong nat nat {\z => suc z} {+ y 0} y ih
+  ]
+}
+
+def +-left-unit : (x : nat) -> Id nat {+ 0 x} x = {
+  \x =>
+  refl
+}
+
+
+def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
+  \x =>
+  rec x at x => (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} with [
+  | zero => \y => refl
+  | suc (z => ih) =>
+    \y =>
+    cong nat nat {\w => suc w} {+ z {suc y}} {suc {+ z y}} {ih y}
+  ]
+}
+
+def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
+  \x =>
+  rec x at x => (y : nat) -> Id nat {+ y x} {+ x y} with [
+  | zero => +-right-unit
+  | suc (y => ih) =>
+    \z =>
+    trans nat {+ z {suc y}} {suc {+ z y}} {suc {+ y z}}
+      {+-suc-r z y}
+      {cong nat nat {\w => suc w} {+ z y} {+ y z} {ih z}}
+  ]
+}
+

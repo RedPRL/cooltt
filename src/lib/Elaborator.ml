@@ -42,8 +42,8 @@ let rec chk_tp : CS.t -> S.tp EM.m =
     R.Univ.formation
   | CS.Unfold (idents, c) -> 
     unfold idents @@ chk_tp c
-  | tp -> 
-    EM.elab_err @@ Err.InvalidTypeExpression tp
+  | tm -> 
+    Refiner.Univ.el_formation @@ chk_tm tm
 
 and chk_tm : CS.t -> D.tp -> S.t EM.m =
   function

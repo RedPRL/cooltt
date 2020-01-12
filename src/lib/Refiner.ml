@@ -98,6 +98,10 @@ struct
     let* () = dest_univ tp in
     EM.ret S.CodeNat
 
+  let el_formation tac = 
+    let+ tm = tac D.Univ in
+    S.El tm
+
 end
 
 module Id = 

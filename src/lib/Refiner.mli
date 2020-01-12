@@ -23,6 +23,7 @@ end
 module Univ : sig
   val formation : tp_tac
   val nat : chk_tac
+  val el_formation : chk_tac -> tp_tac
 end
 
 module Pi : sig 
