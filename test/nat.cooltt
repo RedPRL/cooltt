@@ -3,7 +3,7 @@ def symm : {
   -> Id A y x
 } = {
   \A x y p =>
-  elim p at u v _ => Id A v u with [
+  elim p @ {u v _ => Id A v u} [
   | refl => refl
   ]
 }
@@ -14,7 +14,7 @@ def trans : {
   -> Id A x z
 } = {
   \A x y z p =>
-  elim p at u v _ => (q : Id A v z) -> Id A u z with [
+  elim p @ {u v _ => (q : Id A v z) -> Id A u z} [
   | refl _ => \q => q
   ]
 }
@@ -25,14 +25,14 @@ def cong : {
   -> Id B {f x} {f y}
 } = {
   \A B f x y p =>
-  elim p at u v _ => Id B {f u} {f v} with [
+  elim p @ {u v _ => Id B {f u} {f v}} [
   | refl w => refl
   ]
 }
 
 def + : nat -> nat -> nat = {
   \m n =>
-  elim m at x => nat with [
+  elim m @{_ => nat} [
   | zero => n
   | suc {_ => p} => suc p
   ]
@@ -41,7 +41,7 @@ def + : nat -> nat -> nat = {
 
 def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
   \x =>
-  elim x at x => Id nat {+ x 0} x with [
+  elim x @ {x => Id nat {+ x 0} x} [
   | zero => refl
   | suc {y => ih} =>
     cong nat nat {\z => suc z} {+ y 0} y ih
@@ -56,7 +56,7 @@ def +-left-unit : (x : nat) -> Id nat {+ 0 x} x = {
 
 def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
   \x =>
-  elim x at x => (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} with [
+  elim x @ {x => (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}}} [
   | zero => \y => refl
   | suc {z => ih} =>
     \y =>
@@ -66,7 +66,7 @@ def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
 
 def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
   \x =>
-  elim x at x => (y : nat) -> Id nat {+ y x} {+ x y} with [
+  elim x @ {x => (y : nat) -> Id nat {+ y x} {+ x y}} [
   | zero => +-right-unit
   | suc {y => ih} =>
     \z =>

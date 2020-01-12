@@ -10,7 +10,7 @@
 %token EQUALS
 %token UNIV
 %token TIMES FST SND
-%token LAM LET IN WITH
+%token LAM LET IN 
 %token SUC NAT ZERO UNFOLD
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
@@ -82,11 +82,8 @@ term:
     { Id (tp, left, right) }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
-  | ELIM; scrut = term; AT; names = list(name); RRIGHT_ARROW; mot = term; WITH; LSQ; option(PIPE); cases = separated_list(PIPE,case); RSQ 
-    { Elim
-       {mot = BN {names = names; body = mot};
-        cases;
-        scrut}}
+  | ELIM; scrut = term; AT; mot = motive; LSQ; option(PIPE); cases = separated_list(PIPE,case); RSQ 
+    { Elim {mot; cases; scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
@@ -100,6 +97,9 @@ term:
   | SND; t = term 
     { Snd t }
 
+motive:
+  | LBR names = list(name) RRIGHT_ARROW body = term RBR
+    { BN {names; body} }
 case: 
   | p = pat RRIGHT_ARROW t = term 
     { p, t }

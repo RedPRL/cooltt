@@ -24,7 +24,6 @@ let keywords =
     ("nat", NAT);
     ("let", LET);
     ("in", IN);
-    ("with", WITH);
     ("fst", FST);
     ("snd", SND);
     ("fun", LAM);
@@ -33,7 +32,6 @@ let keywords =
     ("refl", REFL);
     ("unfold", UNFOLD);
     ("def", DEF);
-    ("at", AT);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
     ("univ", UNIV)
@@ -107,6 +105,8 @@ rule token = parse
     }
   | "?"
     { HOLE_NAME None }
+  | "@" 
+    { AT }
   | "--"
     { comment lexbuf }
   | line_ending
