@@ -57,6 +57,8 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
     R.Nat.literal n
   | CS.Lam (BN bnd) ->
     R.Tactic.tac_multi_lam bnd.names @@ chk_tm bnd.body
+  | CS.LamElim cases ->
+    R.Tactic.Elim.lam_elim @@ chk_cases cases
   | CS.Pair (c0, c1) ->
     R.Sg.intro (chk_tm c0) (chk_tm c1)
   | CS.Suc c ->

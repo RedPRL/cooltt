@@ -31,20 +31,16 @@ def cong : {
 }
 
 def + : nat -> nat -> nat = {
-  \m n =>
-  elim m @{_ => nat} [
-  | zero => n
-  | suc {_ => p} => suc p
+  \elim [
+  | zero => \n => n
+  | suc {m => ih} => \n => suc {ih n}
   ]
 }
 
-
 def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
-  \x =>
-  elim x @ {x => Id nat {+ x 0} x} [
+  \elim [
   | zero => refl
-  | suc {y => ih} =>
-    cong nat nat {\z => suc z} {+ y 0} y ih
+  | suc {x => ih} => cong nat nat {\z => suc z} {+ x 0} x ih
   ]
 }
 
@@ -55,18 +51,16 @@ def +-left-unit : (x : nat) -> Id nat {+ 0 x} x = {
 
 
 def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
-  \x =>
-  elim x @ {x => (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}}} [
+  \elim [
   | zero => \y => refl
-  | suc {z => ih} =>
+  | suc {x => ih} =>
     \y =>
-    cong nat nat {\w => suc w} {+ z {suc y}} {suc {+ z y}} {ih y}
+    cong nat nat {\w => suc w} {+ x {suc y}} {suc {+ x y}} {ih y}
   ]
 }
 
 def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
-  \x =>
-  elim x @ {x => (y : nat) -> Id nat {+ y x} {+ x y}} [
+  \elim [
   | zero => +-right-unit
   | suc {y => ih} =>
     \z =>
@@ -75,4 +69,3 @@ def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
       {cong nat nat {\w => suc w} {+ z y} {+ y z} {ih z}}
   ]
 }
-

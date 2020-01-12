@@ -315,6 +315,11 @@ struct
     | (nm, tac) :: cells -> 
       quant tac (nm, tac_nary_quantifier quant cells body)
 
+  let match_goal (tac : D.tp -> chk_tac m) : chk_tac =
+    fun tp ->
+    let* tac = tac tp in
+    tac tp
+
   module Elim =
   struct
     type case_tac = CS.pat * chk_tac
@@ -361,5 +366,21 @@ struct
         let* env = EM.read in
         let* tp = EM.lift_qu @@ Nbe.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (Env.pp_env env, tp)
+
+    let lam_elim cases : chk_tac = 
+      match_goal @@ fun tp ->
+      let* base, fam = EM.dest_pi tp in
+      let* vmot = 
+        EM.abstract None base @@ fun x ->
+        EM.lift_cmp @@ Nbe.inst_tp_clo fam [x]
+      in
+      let body_tac : chk_tac = 
+        fun tp ->
+          let* tmot = EM.lift_qu @@ Nbe.quote_tp vmot in
+          let top_var = S.Var 0, base in
+          Structural.syn_to_chk (elim ([None], EM.ret tmot) cases (EM.ret top_var)) tp
+      in
+      EM.ret @@ Pi.intro None body_tac
+
   end
 end

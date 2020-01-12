@@ -27,6 +27,7 @@ and t =
   | Underscore
   | Unfold of ident list * t
   | Elim of {mot : bindern; cases : case list; scrut : t}
+  | LamElim of case list 
 
 and case = pat * t
 and pat = Pat of {lbl : ident; args : pat_arg list}

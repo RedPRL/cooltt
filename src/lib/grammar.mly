@@ -82,7 +82,9 @@ term:
     { Id (tp, left, right) }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
-  | ELIM; scrut = term; AT; mot = motive; LSQ; option(PIPE); cases = separated_list(PIPE,case); RSQ 
+  | LAM; ELIM; cases = cases 
+    { LamElim cases }
+  | ELIM; scrut = term; AT; mot = motive; cases = cases 
     { Elim {mot; cases; scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
@@ -100,6 +102,11 @@ term:
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR
     { BN {names; body} }
+
+cases:
+  | LSQ option(PIPE) cases = separated_list(PIPE, case) RSQ 
+    { cases }
+
 case: 
   | p = pat RRIGHT_ARROW t = term 
     { p, t }

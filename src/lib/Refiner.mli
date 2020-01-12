@@ -85,5 +85,9 @@ module Tactic : sig
       -> case_tac list 
       -> syn_tac 
       -> syn_tac
+
+    val lam_elim 
+      : case_tac list 
+      -> chk_tac
   end
 end
