@@ -69,3 +69,16 @@ def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
       {cong nat nat {\w => suc w} {+ z y} {+ y z} {ih z}}
   ]
 }
+
+def +-assoc : {
+  (x : nat) (y : nat) (z : nat) ->
+  Id nat {+ {+ x y} z} {+ x {+ y z}}
+} = {
+  \elim [
+  | zero => \y z => refl
+  | suc {x => ih} =>
+    \y z =>
+    cong nat nat {\w => suc w} {+ {+ x y} z} {+ x {+ y z}} {ih y z}
+  ]
+}
+
