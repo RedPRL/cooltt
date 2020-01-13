@@ -15,7 +15,12 @@ type 'a compute = 'a CmpM.m
 
 module EvM =
 struct
-  module M = Monad.MonadReaderResult (struct type local = St.t * Restriction.t * D.env end)
+  module E =
+  struct
+    type local = St.t * Restriction.t * D.env
+  end
+
+  module M = Monad.MonadReaderResult (E)
   open Monad.Notation (M)
 
   let read_global =
@@ -42,6 +47,7 @@ struct
     fun (st, rst, _) ->
     m (st, rst)
 
+  include E
   include M
 end
 
@@ -49,7 +55,12 @@ type 'a evaluate = 'a EvM.m
 
 module QuM =
 struct
-  module M = Monad.MonadReaderResult (struct type local = St.t * Restriction.t * Veil.t * int end)
+  module E = 
+  struct
+    type local = St.t * Restriction.t * Veil.t * int
+  end
+
+  module M = Monad.MonadReaderResult (E)
   open Monad.Notation (M)
 
   let read_global =
@@ -72,6 +83,7 @@ struct
     fun (st, rst, _, _) ->
     m (st, rst)
 
+  include E
   include M
 end
 

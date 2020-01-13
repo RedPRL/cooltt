@@ -18,7 +18,6 @@ end
 module EvM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a evaluate
-    with type local := St.t * Restriction.t * D.env
 
   val lift_cmp : 'a compute -> 'a m
 
@@ -33,7 +32,6 @@ end
 module QuM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a quote
-    with type local := St.t * Restriction.t * Veil.t * int
 
   val lift_cmp : 'a compute -> 'a m
 
