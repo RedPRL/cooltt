@@ -29,11 +29,11 @@ def trans-assoc : {
 } = {
   \A s t u v p =>
   elim p @ {s t p =>
-    (q : Id A t u) (r : Id A u v) ->
-    Id
-      {Id A s v}
-      {trans A s u v {trans A s t u p q} r}
-      {trans A s t v p {trans A t u v q r}}
+    (q : Id A t u) (r : Id A u v)
+    -> Id
+        {Id A s v}
+        {trans A s u v {trans A s t u p q} r}
+        {trans A s t v p {trans A t u v q r}}
   } [
   | refl => \q r => refl
   ]
@@ -82,8 +82,7 @@ def cong : {
 def + : nat -> nat -> nat = {
   \elim [
   | zero => \n => n
-  | suc {_ => ih} => \n => suc {ih n}
-  ]
+  | suc {_ => ih} => \n => suc {ih n} ]
 }
 
 def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
@@ -131,4 +130,3 @@ def +-assoc : {
     cong nat nat {\w => suc w} {+ {+ x y} z} {+ x {+ y z}} {ih y z}
   ]
 }
-
