@@ -62,6 +62,9 @@ let equate r0 r1 t =
   end;
   res
 
+let equal r0 r1 t =
+  find r0 t = find r1 t
+
 (* poor man's tests *)
 let _  =
   try
