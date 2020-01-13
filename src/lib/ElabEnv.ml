@@ -34,6 +34,7 @@ type t =
   {resolver : Symbol.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
+   restriction : Restriction.t;
    locals : cell bwd;
    problem : string bwd}
 
@@ -43,6 +44,7 @@ let init =
   {resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
+   restriction = Restriction.emp ();
    locals = Emp;
    problem = Emp}
 
@@ -84,6 +86,8 @@ let sem_env (env : t) : D.env =
     `Con (ConCell.con cell)
 
 let pp_env env = env.pp
+
+let restriction env = env.restriction
 
 let get_veil env = env.veil
 let set_veil v env = {env with veil = v}

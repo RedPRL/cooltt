@@ -30,6 +30,11 @@ and _ gtp =
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
 
+and dim =
+  | Dim0
+  | Dim1
+  | DimVar of int (* De Bruijn index *)
+
 and ghost = string bwd * (tp * t) list
 
 type env = tp list

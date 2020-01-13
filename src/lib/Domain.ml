@@ -53,6 +53,11 @@ and frm =
   | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
 
+and dim =
+  | Dim0
+  | Dim1
+  | DimVar of int (* De Bruijn level *)
+
 and ghost = string bwd * (tp * con) list
 
 let pp_tp fmt _ = 

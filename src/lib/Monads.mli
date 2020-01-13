@@ -10,16 +10,15 @@ type 'a quote
 module CmpM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a compute
-    with type local := St.t
+    with type local := St.t * Restriction.t
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
-  val read : ElabState.t m
 end
 
 module EvM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a evaluate
-    with type local := St.t * D.env
+    with type local := St.t * Restriction.t * D.env
 
   val lift_cmp : 'a compute -> 'a m
 
@@ -34,7 +33,7 @@ end
 module QuM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a quote
-    with type local := St.t * Veil.t * int
+    with type local := St.t * Restriction.t * Veil.t * int
 
   val lift_cmp : 'a compute -> 'a m
 

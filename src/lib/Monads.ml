@@ -7,28 +7,28 @@ open BwdNotation
 
 module CmpM =
 struct
-  include Monad.MonadReaderResult (struct type local = St.t end)
-  let lift_ev env m st = m (st, env)
+  include Monad.MonadReaderResult (struct type local = St.t * Restriction.t end)
+  let lift_ev env m (st, rst) = m (st, rst, env)
 end
 
 type 'a compute = 'a CmpM.m
 
 module EvM =
 struct
-  module M = Monad.MonadReaderResult (struct type local = St.t * D.env end)
+  module M = Monad.MonadReaderResult (struct type local = St.t * Restriction.t * D.env end)
   open Monad.Notation (M)
 
   let read_global =
-    let+ (st, _) = M.read in 
+    let+ (st,_, _) = M.read in 
     st
 
   let read_local =
-    let+ (_, env) = M.read in 
+    let+ (_, _, env) = M.read in 
     env
 
   let append cells = 
-    M.scope @@ fun (st, env) ->
-    st, env <>< cells
+    M.scope @@ fun (st, rst, env) ->
+    st, rst, env <>< cells
 
   let close_tp tp : _ m =
     let+ env = read_local in 
@@ -39,8 +39,8 @@ struct
     D.Clo {bdy = t; env}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
-    fun (st, _) ->
-    m st
+    fun (st, rst, _) ->
+    m (st, rst)
 
   include M
 end
@@ -49,26 +49,28 @@ type 'a evaluate = 'a EvM.m
 
 module QuM =
 struct
-  module M = Monad.MonadReaderResult (struct type local = St.t * Veil.t * int end)
+  module M = Monad.MonadReaderResult (struct type local = St.t * Restriction.t * Veil.t * int end)
   open Monad.Notation (M)
 
   let read_global =
-    let+ (st, _, _) = M.read in 
+    let+ (st, _, _, _) = M.read in 
     st
 
   let read_local =
-    let+ (_, _, size) = M.read in 
+    let+ (_, _, _, size) = M.read in 
     size
 
   let read_veil = 
-    let+ (_, veil, _) = M.read in
+    let+ (_, _, veil, _) = M.read in
     veil
 
   let binder i =
-    M.scope @@ fun (st, veil, size) ->
-    st, veil, i + size
+    M.scope @@ fun (st, rst, veil, size) ->
+    st, rst, veil, i + size
 
-  let lift_cmp m (st, _, _) = m st
+  let lift_cmp (m : 'a compute) : 'a m = 
+    fun (st, rst, _, _) ->
+    m (st, rst)
 
   include M
 end
@@ -97,19 +99,19 @@ struct
 
   let lift_qu (m : 'a quote) : 'a m = 
     fun (st, env) ->
-    match QuM.run (st, Env.get_veil env, Env.size env) m with 
+    match QuM.run (st, Env.restriction env, Env.get_veil env, Env.size env) m with 
     | Ok v -> Ok v, st
     | Error exn -> Error exn, st
 
   let lift_ev (m : 'a evaluate) : 'a m = 
     fun (st, env) ->
-    match EvM.run (st, Env.sem_env env) m with 
+    match EvM.run (st, Env.restriction env, Env.sem_env env) m with 
     | Ok v -> Ok v, st 
     | Error exn -> Error exn, st
 
   let lift_cmp (m : 'a compute) : 'a m = 
-    fun (st, _env) ->
-    match CmpM.run st m with
+    fun (st, env) ->
+    match CmpM.run (st, Env.restriction env) m with
     | Ok v -> Ok v, st 
     | Error exn -> Error exn, st
 end
