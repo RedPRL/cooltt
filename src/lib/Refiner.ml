@@ -123,6 +123,7 @@ struct
       EM.elab_err @@ Err.ExpectedConnective (`Id, tp)
 
   let elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_case_refl) tac_scrut : syn_tac =
+    let* ghost = EM.current_ghost in
     let* tscrut, idtp = tac_scrut in
     let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
     let* tp, l, r = EM.dest_id idtp in
@@ -138,7 +139,7 @@ struct
       tac_case_refl fib_refl_x
     in
     let+ fib = EM.lift_ev @@ EvM.append [`Con l; `Con r; `Con vscrut] @@ Nbe.eval_tp tmot in
-    S.IdElim (tmot, t_refl_case, tscrut), fib
+    S.IdElim (ghost, tmot, t_refl_case, tscrut), fib
 end
 
 

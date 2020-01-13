@@ -14,7 +14,7 @@ type t =
   | Fst of t
   | Snd of t
   | Refl of t
-  | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
+  | IdElim of ghost option * (* BINDS 3 *) tp * (* BINDS *) t * t
   | CodeNat
   | GoalRet of t
   | GoalProj of t
@@ -72,6 +72,8 @@ let rec pp_ (env : Pp.env)  =
       end
     | _, NatElim (Some ghost, _, _, _, scrut) ->
       pp_ghost_ env fmt (ghost, scrut)
+    | _, IdElim (Some ghost, _, _, scrut) ->
+      pp_ghost_ env fmt (ghost, scrut)
     | _, NatElim (None, mot, zero, suc, scrut) ->
       let x, envx = Pp.Env.bind env None in
       let y, envxy = Pp.Env.bind envx None in
@@ -84,7 +86,7 @@ let rec pp_ (env : Pp.env)  =
         Uuseg_string.pp_utf_8 y
         (go envxy `Start) suc
         (go env `Start) scrut
-    | _, IdElim (mot, refl, scrut) ->
+    | _, IdElim (_, mot, refl, scrut) ->
       let x, envx = Pp.Env.bind env None in
       let y, envxy = Pp.Env.bind envx None in
       let z, envxyz = Pp.Env.bind envxy None in

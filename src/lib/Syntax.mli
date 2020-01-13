@@ -14,7 +14,7 @@ type t =
   | Fst of t
   | Snd of t
   | Refl of t
-  | IdElim of (* BINDS 3 *) tp * (* BINDS *) t * t
+  | IdElim of ghost option * (* BINDS 3 *) tp * (* BINDS *) t * t
   | CodeNat
   | GoalRet of t
   | GoalProj of t

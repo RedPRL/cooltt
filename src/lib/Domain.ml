@@ -47,7 +47,7 @@ and frm =
   | KFst 
   | KSnd
   | KNatElim of ghost option * ze su tp_clo * con * ze su su tm_clo
-  | KIdElim of ze su su su tp_clo * ze su tm_clo * tp * con * con
+  | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
 
 and ghost = string bwd * (tp * con) list

@@ -53,7 +53,7 @@ and syn_tm : S.t -> R.syn_tac =
     R.Sg.pi1 @@ syn_tm t
   | S.Snd t ->
     R.Sg.pi2 @@ syn_tm t
-  | S.IdElim (mot, case_refl, scrut) ->
+  | S.IdElim (_, mot, case_refl, scrut) ->
     R.Id.elim 
       (None, None, None, chk_tp mot)
       (None, chk_tm case_refl)

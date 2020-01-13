@@ -20,7 +20,7 @@ sig
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
-  val do_id_elim : ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
+  val do_id_elim : ghost:D.ghost option -> ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
   val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
   val do_spine : D.con -> D.frm list -> D.con compute
@@ -46,6 +46,22 @@ struct
       D.Cut {tp = final_tp; cut = push_frm k cut}
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
+
+  and do_id_elim ~ghost mot refl eq =
+    match eq with
+    | D.Refl t -> inst_tm_clo refl [t]
+    | D.Cut {tp; cut} -> 
+      begin
+        match tp with
+        | D.Id (tp, left, right) ->
+          let+ fib = inst_tp_clo mot [left; right; eq] in
+          let k = D.KIdElim (ghost, mot, refl, tp, left, right) in
+          D.Cut {tp = fib; cut = push_frm k cut}
+        | _ -> 
+          CmpM.throw @@ NbeFailed "Not an Id in do_id_elim"
+      end
+    | _ -> 
+      CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
   and do_fst p : D.con compute =
     match p with
@@ -101,21 +117,6 @@ struct
     | D.ConstClo t -> 
       CmpM.ret t
 
-  and do_id_elim mot refl eq =
-    match eq with
-    | D.Refl t -> inst_tm_clo refl [t]
-    | D.Cut {tp; cut} -> 
-      begin
-        match tp with
-        | D.Id (tp, left, right) ->
-          let+ fib = inst_tp_clo mot [left; right; eq] in
-          let k = D.KIdElim (mot, refl, tp, left, right) in
-          D.Cut {tp = fib; cut = push_frm k cut}
-        | _ -> 
-          CmpM.throw @@ NbeFailed "Not an Id in do_id_elim"
-      end
-    | _ -> 
-      CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
   and do_goal_proj =
     function
@@ -149,7 +150,7 @@ struct
     | D.KFst -> do_fst con
     | D.KSnd -> do_snd con
     | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
-    | D.KIdElim (mot, case_refl, _, _, _) -> do_id_elim mot case_refl con
+    | D.KIdElim (ghost, mot, case_refl, _, _, _) -> do_id_elim ~ghost mot case_refl con
     | D.KGoalProj -> do_goal_proj con
 
   and do_spine con =
@@ -274,11 +275,12 @@ struct
     | S.Refl t -> 
       let+ con = eval t in
       D.Refl con
-    | S.IdElim (mot, refl, eq) ->
+    | S.IdElim (ghost, mot, refl, eq) ->
       let* veq = eval eq in 
       let* clmot = close_tp mot in
       let* clrefl = close_tm refl in
-      lift_cmp @@ do_id_elim clmot clrefl veq
+      let* ghost = eval_ghost ghost in
+      lift_cmp @@ do_id_elim ~ghost clmot clrefl veq
     | S.CodeNat ->
       ret D.CodeNat
     | S.GoalRet tm ->
@@ -461,9 +463,10 @@ struct
         let* mot_suc_x = lift_cmp @@ inst_tp_clo mot [D.Suc x] in 
         let* suc_case_x = lift_cmp @@ inst_tm_clo suc_case [x; ih] in
         quote_con mot_suc_x suc_case_x
-      and+ ghost = quote_ghost ghost in
+      and+ ghost = quote_ghost ghost 
+      in
       S.NatElim (ghost, tmot, tzero_case, tsuc_case, tm)
-    | D.KIdElim (mot, refl_case, tp, left, right) ->
+    | D.KIdElim (ghost, mot, refl_case, tp, left, right) ->
       let* x, tmot =
         binder 1 @@ 
         let* x = top_var tp in 
@@ -480,8 +483,9 @@ struct
         let* mot_refl_x = lift_cmp @@ inst_tp_clo mot [x; x; D.Refl x] in
         let* refl_case_x = lift_cmp @@ inst_tm_clo refl_case [x] in
         quote_con mot_refl_x refl_case_x
+      and+ ghost = quote_ghost ghost 
       in
-      S.IdElim (tmot, trefl_case, tm)
+      S.IdElim (ghost, tmot, trefl_case, tm)
     | D.KFst -> 
       ret @@ S.Fst tm
     | D.KSnd -> 
@@ -545,6 +549,8 @@ struct
       let* con0 = lift_cmp @@ do_goal_proj con0 in
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
+    | D.Id (tp, _, _), D.Refl x, D.Refl y ->
+      equate_con tp x y
     | _, D.Zero, D.Zero ->
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
@@ -603,7 +609,7 @@ struct
       let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
       let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
       equate_con fib_sucx con0 con1
-    | D.KIdElim (mot0, refl_case0, tp0, left0, right0), D.KIdElim (mot1, refl_case1, tp1, left1, right1) ->
+    | D.KIdElim (_, mot0, refl_case0, tp0, left0, right0), D.KIdElim (_, mot1, refl_case1, tp1, left1, right1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_con tp0 left0 left1 in
       let* () = equate_con tp0 right0 right1 in

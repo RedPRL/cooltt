@@ -22,13 +22,13 @@ let pp fmt =
     Fmt.fprintf fmt "Unbound variable %a" Uuseg_string.pp_utf_8 id
   | ExpectedEqual (ppenv, tp, tm0, tm1) ->
     Fmt.fprintf fmt
-      "Expected @[<hv>%a@;= %a@;: %a@]"
+      "Expected @[<hv>%a =@;%a@;: %a@]"
       (S.pp_ ppenv) tm0
       (S.pp_ ppenv) tm1
       (S.pp_tp_ ppenv) tp
   | ExpectedEqualTypes (ppenv, tp0, tp1) ->
     Fmt.fprintf fmt
-      "Expected @[<hv>%a@;= %a@]"
+      "Expected @[<hv>%a =@;%a@]"
       (S.pp_tp_ ppenv) tp0
       (S.pp_tp_ ppenv) tp1
   | ExpectedConnective _ ->
