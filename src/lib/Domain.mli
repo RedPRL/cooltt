@@ -24,14 +24,16 @@ and con =
   | CodePi of con * ze su tm_clo
   | GoalRet of con
 
-and tp =
-  | Nat
-  | Id of tp * con * con
-  | Pi of tp * ze su tp_clo
-  | Sg of tp * ze su tp_clo
-  | Univ
-  | El of cut 
-  | GoalTp of string option * tp
+and tp = Tp of (tp, S.tp) gtp
+
+and (_, _) gtp =
+  | GNat : ('d, 't) gtp
+  | GId : tp * con * con -> (tp, S.tp) gtp
+  | GPi : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
+  | GSg : tp * (ze su, S.tp, tp) clo -> (tp, S.tp) gtp
+  | GUniv : (tp, S.tp) gtp
+  | GEl : cut -> (tp, S.tp) gtp
+  | GGoalTp : string option * tp -> (tp, S.tp) gtp
 
 and hd =
   | Global of Symbol.t 
