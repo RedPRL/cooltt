@@ -9,20 +9,21 @@ open CoolBasis
 open Monad.Notation (EM)
 
 let rec chk_tp : S.tp -> R.tp_tac =
-  function
-  | S.Pi (base, fam) ->
+  fun (Tp tp) ->
+  match tp with
+  | S.GPi (base, fam) ->
     R.Pi.formation (chk_tp base) (None, chk_tp fam)
-  | S.Sg (base, fam) ->
+  | S.GSg (base, fam) ->
     R.Sg.formation (chk_tp base) (None, chk_tp fam)
-  | S.Id (tp, l, r) ->
+  | S.GId (tp, l, r) ->
     R.Id.formation (chk_tp tp)(chk_tm l) (chk_tm r)
-  | S.Nat -> 
-    EM.ret S.Nat
-  | S.Univ -> 
-    EM.ret S.Univ
-  | S.El tm ->
+  | S.GNat -> 
+    R.Nat.formation
+  | S.GUniv -> 
+    R.Univ.formation
+  | S.GEl tm ->
     R.El.formation @@ chk_tm tm
-  | S.GoalTp (lbl, tp) ->
+  | S.GGoalTp (lbl, tp) ->
     R.Goal.formation lbl @@ chk_tp tp
 
 and chk_tm : S.t -> R.chk_tac =

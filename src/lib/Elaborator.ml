@@ -37,7 +37,7 @@ let rec chk_tp : CS.t -> S.tp EM.m =
   | CS.Id (tp, l, r) ->
     R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
   | CS.Nat -> 
-    EM.ret S.Nat
+    R.Nat.formation
   | CS.Univ ->
     R.Univ.formation
   | CS.Unfold (idents, c) -> 

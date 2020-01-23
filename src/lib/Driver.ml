@@ -14,7 +14,8 @@ let pp_message fmt =
     let env = Pp.Env.emp in
     Format.fprintf fmt 
       "Computed normal form of@ @[<hv>%a@] as@ @[<hv> %a@]@,"
-      (S.pp_ env) s (S.pp_ env) t
+      (S.pp env) s 
+      (S.pp env) t
 
 let rec int_to_term = 
   function
@@ -32,9 +33,9 @@ let elaborate_typed_term name tp tm =
   in
   let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in 
   let* tm = 
-  EM.push_problem "tm" @@
-  Elaborator.chk_tm tm vtp
-   in
+    EM.push_problem "tm" @@
+    Elaborator.chk_tm tm vtp
+  in
   let+ vtm = EM.lift_ev @@ Nbe.eval tm in
   tp, vtp, tm, vtm
 

@@ -15,29 +15,27 @@ type t =
   | Snd of t
   | Refl of t
   | IdElim of ghost option * tp * t * t
-  | CodeNat
-  | CodePi of t * t
   | GoalRet of t
   | GoalProj of t
+  | TpCode of t gtp
 
-and tp =
-  | Nat
-  | Pi of tp * tp
-  | Sg of tp * tp
-  | Id of tp * t * t
-  | Univ
-  | El of t
-  | GoalTp of string option * tp
+and tp = Tp of tp gtp
+
+and _ gtp =
+  | GNat : 'a gtp
+  | GPi : 'a * 'a -> 'a gtp
+  | GSg : tp * tp -> tp gtp
+  | GId : tp * t * t -> tp gtp
+  | GUniv : tp gtp
+  | GEl : t -> tp gtp
+  | GGoalTp : string option * tp -> tp gtp
 
 and ghost = string bwd * (tp * t) list
 
 type env = tp list
 
 open CoolBasis
-val pp : t Pp.printer 
-val pp_tp : tp Pp.printer 
-
-val pp_ : Pp.env -> t Pp.printer
-val pp_tp_ : Pp.env -> tp Pp.printer
+val pp : Pp.env -> t Pp.printer
+val pp_tp : Pp.env -> tp Pp.printer
 
 val pp_sequent : names:string list -> tp Pp.printer

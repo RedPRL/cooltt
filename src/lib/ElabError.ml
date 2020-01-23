@@ -23,14 +23,14 @@ let pp fmt =
   | ExpectedEqual (ppenv, tp, tm0, tm1) ->
     Fmt.fprintf fmt
       "Expected @[<hv>%a =@;%a@;: %a@]"
-      (S.pp_ ppenv) tm0
-      (S.pp_ ppenv) tm1
-      (S.pp_tp_ ppenv) tp
+      (S.pp ppenv) tm0
+      (S.pp ppenv) tm1
+      (S.pp_tp ppenv) tp
   | ExpectedEqualTypes (ppenv, tp0, tp1) ->
     Fmt.fprintf fmt
       "Expected @[<hv>%a =@;%a@]"
-      (S.pp_tp_ ppenv) tp0
-      (S.pp_tp_ ppenv) tp1
+      (S.pp_tp ppenv) tp0
+      (S.pp_tp ppenv) tp1
   | ExpectedConnective _ ->
     Fmt.fprintf fmt 
       "Head connective mismatch"
@@ -46,11 +46,11 @@ let pp fmt =
   | CannotEliminate (ppenv, tp) ->
     Fmt.fprintf fmt 
       "Cannot eliminate element of type %a"
-      (S.pp_tp_ ppenv) tp
+      (S.pp_tp ppenv) tp
   | ExpectedSimpleInductive (ppenv, tp) ->
     Fmt.fprintf fmt 
       "Expected simple inductive type but found %a"
-      (S.pp_tp_ ppenv) tp
+      (S.pp_tp ppenv) tp
 
 
 exception ElabError of t
