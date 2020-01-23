@@ -76,6 +76,8 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
     R.Tactic.tac_nary_quantifier R.Univ.sg tacs @@ chk_tm body
+  | CS.Id (tp, l, r) ->
+    R.Univ.id (chk_tm tp) (chk_tm l) (chk_tm r)
   | cs ->
     R.Structural.syn_to_chk @@ syn_tm cs
 

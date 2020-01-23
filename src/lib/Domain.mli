@@ -27,7 +27,7 @@ and tp = Tp of (tp, S.tp) gtp
 
 and (_, _) gtp =
   | Nat : ('d, 't) gtp
-  | Id : tp * con * con -> (tp, S.tp) gtp
+  | Id : 'd * con * con -> ('d, 't) gtp
   | Pi : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
   | Sg : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
   | Univ : (tp, S.tp) gtp

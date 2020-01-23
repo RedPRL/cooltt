@@ -46,7 +46,9 @@ and chk_tm : S.t -> R.chk_tac =
     R.Univ.pi (chk_tm base) (None, chk_tm fam)
   | S.TpCode (S.Sg (base, fam)) -> 
     R.Univ.sg (chk_tm base) (None, chk_tm fam)
-  | t -> 
+  | S.TpCode (S.Id (tp, left, right)) ->
+    R.Univ.id (chk_tm tp) (chk_tm left) (chk_tm right)
+  | t ->
     R.Structural.syn_to_chk @@ syn_tm t
 
 and syn_tm : S.t -> R.syn_tac = 

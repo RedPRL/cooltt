@@ -25,7 +25,7 @@ and _ gtp =
   | Nat : 'a gtp
   | Pi : 'a * 'a -> 'a gtp
   | Sg : 'a * 'a -> 'a gtp
-  | Id : tp * t * t -> tp gtp
+  | Id : 'a * t * t -> 'a gtp
   | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp

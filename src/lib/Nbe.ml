@@ -291,22 +291,33 @@ struct
       let* clrefl = close_tm refl in
       let* ghost = eval_ghost ghost in
       lift_cmp @@ do_id_elim ~ghost clmot clrefl veq
-    | S.TpCode S.Nat ->
-      ret @@ D.TpCode D.Nat
-    | S.TpCode (S.Pi (base, fam)) ->
-      let+ vbase = eval base
-      and+ clfam = close_tm fam in
-      D.TpCode (D.Pi (vbase, clfam))
-    | S.TpCode (S.Sg (base, fam)) ->
-      let+ vbase = eval base
-      and+ clfam = close_tm fam in
-      D.TpCode (D.Sg (vbase, clfam))
     | S.GoalRet tm ->
       let+ con = eval tm in
       D.GoalRet con
     | S.GoalProj tm ->
       let* con = eval tm in
       lift_cmp @@ do_goal_proj con
+    | S.TpCode tm ->
+      let+ vcode = eval_tp_code tm in
+      D.TpCode vcode
+
+  and eval_tp_code =
+    function
+    | S.Nat ->
+      ret @@ D.Nat
+    | S.Pi (base, fam) ->
+      let+ vbase = eval base
+      and+ clfam = close_tm fam in
+      D.Pi (vbase, clfam)
+    | S.Sg (base, fam) ->
+      let+ vbase = eval base
+      and+ clfam = close_tm fam in
+      D.Sg (vbase, clfam)
+    | S.Id (tp, left, right) ->
+      let+ vtp = eval tp
+      and+ vl = eval left 
+      and+ vr = eval right in
+      D.Id (vtp, vl, vr)
 
   and eval_ghost =
     function 
@@ -386,30 +397,42 @@ struct
     | D.Id (tp, _, _), D.Refl con ->
       let+ t = quote_con tp con in 
       S.Refl t
-    | D.Univ, D.TpCode D.Nat -> 
-      ret @@ S.TpCode S.Nat
-    | D.Univ, D.TpCode (D.Pi (base, fam)) ->
-      let+ tbase = quote_con (D.Tp D.Univ) base 
-      and+ tfam = 
-        let* tpbase = lift_cmp @@ do_el base in
-        binder 1 @@
-        let* var = top_var tpbase in
-        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
-        quote_con (D.Tp D.Univ) fib
-      in 
-      S.TpCode (S.Pi (tbase, tfam))
-    | D.Univ, D.TpCode (D.Sg (base, fam)) ->
-      let+ tbase = quote_con (D.Tp D.Univ) base 
-      and+ tfam = 
-        let* tpbase = lift_cmp @@ do_el base in
-        binder 1 @@
-        let* var = top_var tpbase in
-        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
-        quote_con (D.Tp D.Univ) fib
-      in 
-      S.TpCode (S.Sg (tbase, tfam))
+    | D.Univ, D.TpCode code ->
+      let+ tcode = quote_tp_code (D.Tp D.Univ) code in
+      S.TpCode tcode
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
+
+  and quote_tp_code univ =
+    function
+    | D.Nat -> 
+      ret S.Nat
+    | D.Pi (base, fam) ->
+      let+ tbase = quote_con univ base 
+      and+ tfam = 
+        let* tpbase = lift_cmp @@ do_el base in
+        binder 1 @@
+        let* var = top_var tpbase in
+        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
+        quote_con univ fib
+      in 
+      S.Pi (tbase, tfam)
+    | D.Sg (base, fam) ->
+      let+ tbase = quote_con (D.Tp D.Univ) base 
+      and+ tfam = 
+        let* tpbase = lift_cmp @@ do_el base in
+        binder 1 @@
+        let* var = top_var tpbase in
+        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
+        quote_con univ fib
+      in 
+      S.Sg (tbase, tfam)
+    | D.Id (tp, left, right) ->
+      let* eltp = lift_cmp @@ do_el tp in
+      let+ ttp = quote_con univ tp 
+      and+ tleft = quote_con eltp left 
+      and+ tright = quote_con eltp right in 
+      S.Id (ttp, tleft, tright)
 
   and quote_tp (D.Tp tp) =
     match tp with
