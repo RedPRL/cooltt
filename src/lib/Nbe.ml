@@ -207,26 +207,26 @@ struct
 
   let rec eval_tp (S.Tp t) =
     match t with
-    | S.GNat -> ret D.Nat
-    | S.GPi (base, fam) -> 
+    | S.Nat -> ret D.Nat
+    | S.Pi (base, fam) -> 
       let+ vbase = eval_tp base 
       and+ clfam = close_tp fam in
       D.Pi (vbase, clfam)
-    | S.GSg (base, fam) -> 
+    | S.Sg (base, fam) -> 
       let+ vbase = eval_tp base 
       and+ clfam = close_tp fam in
       D.Sg (vbase, clfam)
-    | S.GId (tp, left, right) ->
+    | S.Id (tp, left, right) ->
       let+ vtp = eval_tp tp
       and+ vl = eval left 
       and+ vr = eval right in
       D.Id (vtp, vl, vr)
     | S.GUniv ->
       ret D.Univ
-    | S.GEl tm ->
+    | S.El tm ->
       let* con = eval tm in
       lift_cmp @@ do_el con
-    | S.GGoalTp (lbl, tp) ->
+    | S.GoalTp (lbl, tp) ->
       let+ tp = eval_tp tp in
       D.GoalTp (lbl, tp)
 
@@ -286,9 +286,9 @@ struct
       let* clrefl = close_tm refl in
       let* ghost = eval_ghost ghost in
       lift_cmp @@ do_id_elim ~ghost clmot clrefl veq
-    | S.TpCode S.GNat ->
+    | S.TpCode S.Nat ->
       ret D.CodeNat
-    | S.TpCode (S.GPi (base, fam)) ->
+    | S.TpCode (S.Pi (base, fam)) ->
       let+ vbase = eval base
       and+ clfam = close_tm fam in
       D.CodePi (vbase, clfam)
@@ -378,7 +378,7 @@ struct
       let+ t = quote_con tp con in 
       S.Refl t
     | D.Univ, D.CodeNat -> 
-      ret @@ S.TpCode S.GNat
+      ret @@ S.TpCode S.Nat
     | D.Univ, D.CodePi (base, fam) ->
       let+ tbase = quote_con D.Univ base 
       and+ tfam = 
@@ -388,13 +388,13 @@ struct
         let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
         quote_con D.Univ fib
       in 
-      S.TpCode (S.GPi (tbase, tfam))
+      S.TpCode (S.Pi (tbase, tfam))
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
 
   and quote_tp =
     function
-    | D.Nat -> ret @@ S.Tp S.GNat
+    | D.Nat -> ret @@ S.Tp S.Nat
     | D.Pi (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
@@ -403,7 +403,7 @@ struct
         let* fib = lift_cmp @@ inst_tp_clo fam [var] in
         quote_tp fib
       in
-      S.Tp (S.GPi (tbase, tfam))
+      S.Tp (S.Pi (tbase, tfam))
     | D.Sg (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
@@ -412,20 +412,20 @@ struct
         let* fib = lift_cmp @@ inst_tp_clo fam [var] in
         quote_tp fib
       in
-      S.Tp (S.GSg (tbase, tfam))
+      S.Tp (S.Sg (tbase, tfam))
     | D.Id (tp, left, right) ->
       let+ ttp = quote_tp tp 
       and+ tleft = quote_con tp left 
       and+ tright = quote_con tp right in 
-      S.Tp (S.GId (ttp, tleft, tright))
+      S.Tp (S.Id (ttp, tleft, tright))
     | D.Univ ->
       ret @@ S.Tp S.GUniv
     | D.El cut ->
       let+ tm = quote_cut cut in
-      S.Tp (S.GEl tm)
+      S.Tp (S.El tm)
     | D.GoalTp (lbl, tp) ->
       let+ tp = quote_tp tp in
-      S.Tp (S.GGoalTp (lbl, tp))
+      S.Tp (S.GoalTp (lbl, tp))
 
 
   and quote_hd =

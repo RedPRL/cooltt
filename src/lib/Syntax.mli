@@ -22,13 +22,13 @@ type t =
 and tp = Tp of tp gtp
 
 and _ gtp =
-  | GNat : 'a gtp
-  | GPi : 'a * 'a -> 'a gtp
-  | GSg : tp * tp -> tp gtp
-  | GId : tp * t * t -> tp gtp
+  | Nat : 'a gtp
+  | Pi : 'a * 'a -> 'a gtp
+  | Sg : tp * tp -> tp gtp
+  | Id : tp * t * t -> tp gtp
   | GUniv : tp gtp
-  | GEl : t -> tp gtp
-  | GGoalTp : string option * tp -> tp gtp
+  | El : t -> tp gtp
+  | GoalTp : string option * tp -> tp gtp
 
 and ghost = string bwd * (tp * t) list
 

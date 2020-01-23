@@ -32,7 +32,7 @@ struct
         let name = Env.ConCell.name cell in
         let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
         and+ fam = EM.push_var name ctp @@ go_tp cells in
-        S.Tp (S.GPi (base, fam))
+        S.Tp (S.Pi (base, fam))
     in
 
     let rec go_tm cut : Env.cell bwd -> D.cut =
@@ -79,7 +79,7 @@ module Goal =
 struct
   let formation lbl tac =
     let+ tp = tac in
-    S.Tp (S.GGoalTp (lbl, tp))
+    S.Tp (S.GoalTp (lbl, tp))
 end
 
 
@@ -96,20 +96,20 @@ struct
   let nat : chk_tac =
     fun tp ->
     let* () = dest_univ tp in
-    EM.ret @@ S.TpCode S.GNat
+    EM.ret @@ S.TpCode S.Nat
 
   let pi tac_base (nm, tac_fam) : chk_tac =
     fun univ ->
     let* () = dest_univ univ in
     let* base = tac_base univ in
-    let* vbase = EM.lift_ev @@ Nbe.eval_tp @@ S.Tp (S.GEl base) in
+    let* vbase = EM.lift_ev @@ Nbe.eval_tp @@ S.Tp (S.El base) in
     let+ fam = EM.push_var nm vbase @@ tac_fam univ in
-    S.TpCode (S.GPi (base, fam))
+    S.TpCode (S.Pi (base, fam))
 
 
   let el_formation tac = 
     let+ tm = tac D.Univ in
-    S.Tp (S.GEl tm)
+    S.Tp (S.El tm)
 
 end
 
@@ -120,7 +120,7 @@ struct
     let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
     let+ l = tac_l vtp
     and+ r = tac_r vtp in
-    S.Tp (S.GId (tp, l, r))
+    S.Tp (S.Id (tp, l, r))
 
   let intro : chk_tac =
     function
@@ -158,7 +158,7 @@ struct
     let* base = tac_base in
     let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
     let+ fam = EM.push_var nm vbase tac_fam in
-    S.Tp (S.GPi (base, fam))
+    S.Tp (S.Pi (base, fam))
 
   let intro name tac_body : chk_tac =
     function
@@ -185,7 +185,7 @@ struct
     let* base = tac_base in
     let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
     let+ fam = EM.push_var nm vbase tac_fam in
-    S.Tp (S.GSg (base, fam))
+    S.Tp (S.Sg (base, fam))
 
   let intro tac_fst tac_snd : chk_tac =
     function
@@ -215,7 +215,7 @@ end
 module Nat = 
 struct
   let formation = 
-    EM.ret @@ S.Tp S.GNat
+    EM.ret @@ S.Tp S.Nat
 
   let assert_nat =
     function
@@ -265,7 +265,7 @@ module El =
 struct
   let formation tac = 
     let+ tm = tac D.Univ in 
-    S.Tp (S.GEl tm)
+    S.Tp (S.El tm)
 end
 
 module Structural = 

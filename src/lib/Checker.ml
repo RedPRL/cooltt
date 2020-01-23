@@ -11,19 +11,19 @@ open Monad.Notation (EM)
 let rec chk_tp : S.tp -> R.tp_tac =
   fun (Tp tp) ->
   match tp with
-  | S.GPi (base, fam) ->
+  | S.Pi (base, fam) ->
     R.Pi.formation (chk_tp base) (None, chk_tp fam)
-  | S.GSg (base, fam) ->
+  | S.Sg (base, fam) ->
     R.Sg.formation (chk_tp base) (None, chk_tp fam)
-  | S.GId (tp, l, r) ->
+  | S.Id (tp, l, r) ->
     R.Id.formation (chk_tp tp)(chk_tm l) (chk_tm r)
-  | S.GNat -> 
+  | S.Nat -> 
     R.Nat.formation
   | S.GUniv -> 
     R.Univ.formation
-  | S.GEl tm ->
+  | S.El tm ->
     R.El.formation @@ chk_tm tm
-  | S.GGoalTp (lbl, tp) ->
+  | S.GoalTp (lbl, tp) ->
     R.Goal.formation lbl @@ chk_tp tp
 
 and chk_tm : S.t -> R.chk_tac =

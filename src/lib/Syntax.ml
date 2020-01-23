@@ -22,13 +22,13 @@ type t =
 and tp = Tp of tp gtp
 
 and _ gtp =
-  | GNat : 'a gtp
-  | GPi : 'a * 'a -> 'a gtp
-  | GSg : tp * tp -> tp gtp
-  | GId : tp * t * t -> tp gtp
+  | Nat : 'a gtp
+  | Pi : 'a * 'a -> 'a gtp
+  | Sg : tp * tp -> tp gtp
+  | Id : tp * t * t -> tp gtp
   | GUniv : tp gtp
-  | GEl : t -> tp gtp
-  | GGoalTp : string option * tp -> tp gtp
+  | El : t -> tp gtp
+  | GoalTp : string option * tp -> tp gtp
 
 
 and ghost = string bwd * (tp * t) list
@@ -147,14 +147,14 @@ and pp_problem fmt problem =
 and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env -> [`Start | `Pi | `Sg] -> x gtp Pp.printer = 
   fun go env mode fmt gtp -> 
   match mode, gtp with 
-  | `Pi, GPi (base, fam) -> 
+  | `Pi, Pi (base, fam) -> 
     let x, env' = Pp.Env.bind env None in
     Format.fprintf fmt 
       "[%a : %a]@ %a" 
       Uuseg_string.pp_utf_8 x 
       (go env `Start) base 
       (go env' `Pi) fam
-  | _, GPi (base, fam) ->
+  | _, Pi (base, fam) ->
     let x, envx = Pp.Env.bind env None in
     Format.fprintf fmt 
       "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
@@ -162,14 +162,14 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       Uuseg_string.pp_utf_8 x 
       (go env `Start) base 
       (go envx `Pi) fam
-  | `Sg, GSg (base, fam) ->
+  | `Sg, Sg (base, fam) ->
     let x, env' = Pp.Env.bind env None in
     Format.fprintf fmt 
       "[%a : %a]@ %a" 
       Uuseg_string.pp_utf_8 x 
       (go env `Start) base 
       (go env' `Sg) fam
-  | _, GSg (base, fam) ->
+  | _, Sg (base, fam) ->
     let x, envx = Pp.Env.bind env None in
     Format.fprintf fmt 
       "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
@@ -177,21 +177,21 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       Uuseg_string.pp_utf_8 x 
       (go env `Start) base 
       (go envx `Pi) fam
-  | _, GId (tp, l, r) ->
+  | _, Id (tp, l, r) ->
     Format.fprintf fmt 
       "@[<hv1>(Id@ %a@ %a@ %a)@]" 
       (go env `Start) tp 
       (pp env) l 
       (pp env) r
-  | _, GNat ->
+  | _, Nat ->
     Format.fprintf fmt "nat"
   | _, GUniv ->
     Format.fprintf fmt "univ"
-  | _, GEl tm ->
+  | _, El tm ->
     Fmt.fprintf fmt "@[<hv1>(el@ %a)@]" (pp env) tm
-  | _, GGoalTp (None, tp) ->
+  | _, GoalTp (None, tp) ->
     Fmt.fprintf fmt "@[<hv1>(goal@ _@ %a)@]" (go env `Start) tp
-  | _, GGoalTp (Some lbl, tp) ->
+  | _, GoalTp (Some lbl, tp) ->
     Fmt.fprintf fmt "@[<hv1>(goal@ ?%a@ %a)@]" 
       Uuseg_string.pp_utf_8 lbl 
       (go env `Start) tp
@@ -205,11 +205,11 @@ and pp_tp env = pp_tp_ env `Start
 
 let pp_sequent_goal env fmt (Tp tp)  =
   match tp with
-  | GGoalTp (Some lbl, tp) ->
+  | GoalTp (Some lbl, tp) ->
     Format.fprintf fmt "?%a : @[<hv>%a@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp_ env `Start) tp
-  | GGoalTp (None, tp) ->
+  | GoalTp (None, tp) ->
     Format.fprintf fmt "@[<hv>%a@]"
       (pp_tp_ env `Start) tp
   | tp ->
@@ -217,7 +217,7 @@ let pp_sequent_goal env fmt (Tp tp)  =
 
 let rec pp_sequent_inner ~names env fmt (Tp tp) =
   match names, tp with
-  | nm :: names, GPi (base, fam) ->
+  | nm :: names, Pi (base, fam) ->
     let x, envx = Pp.Env.bind env @@ Some nm in
     Fmt.fprintf fmt "%a : %a@;%a"
       Uuseg_string.pp_utf_8 x
