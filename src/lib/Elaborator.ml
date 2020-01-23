@@ -70,6 +70,8 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
       unfold idents @@ chk_tm c tp
   | CS.Nat ->
     R.Univ.nat
+  | CS.Pi _ ->
+    failwith "TODO"
   | cs ->
     R.Structural.syn_to_chk @@ syn_tm cs
 

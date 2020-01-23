@@ -21,6 +21,7 @@ and con =
   | Pair of con * con
   | Refl of con
   | CodeNat
+  | CodePi of con * ze su tm_clo
   | GoalRet of con
 
 and tp =

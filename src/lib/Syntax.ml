@@ -16,6 +16,7 @@ type t =
   | Refl of t
   | IdElim of ghost option * (* BINDS 3 *) tp * (* BINDS *) t * t
   | CodeNat
+  | CodePi of t * t
   | GoalRet of t
   | GoalProj of t
 [@@deriving show]
@@ -45,7 +46,7 @@ let rec condense = function
 module Fmt = Format
 
 let rec pp_ (env : Pp.env)  =
-  let rec go env (mode : [`Start | `Lam | `Ap]) fmt tm= 
+  let rec go env (mode : [`Start | `Lam  | `Pi | `Ap]) fmt tm= 
     match mode, tm with
     | _, Var i -> 
       Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var i env
@@ -123,6 +124,21 @@ let rec pp_ (env : Pp.env)  =
       Fmt.fprintf fmt "@[<hv1>(refl %a)@]" (go env `Start) tm
     | _, CodeNat ->
       Fmt.fprintf fmt "nat"
+    | `Pi, CodePi (base, fam) ->
+      let x, env' = Pp.Env.bind env None in
+      Format.fprintf fmt 
+        "[%a : %a]@ %a" 
+        Uuseg_string.pp_utf_8 x 
+        (go env `Start) base 
+        (go env' `Pi) fam
+    | _, CodePi (base, fam) ->
+      let x, envx = Pp.Env.bind env None in
+      Format.fprintf fmt 
+        "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
+        Uuseg_string.pp_utf_8 "->" 
+        Uuseg_string.pp_utf_8 x 
+        (go env `Start) base 
+        (go envx `Pi) fam
     | _, GoalRet tm ->
       Fmt.fprintf fmt "@[<hv1>(goal-ret %a)@]" (go env `Start) tm
     | _, GoalProj tm ->

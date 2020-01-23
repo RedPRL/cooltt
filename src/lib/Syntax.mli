@@ -3,26 +3,27 @@ open CoolBasis.Bwd
 type t =
   | Var of int (* DeBruijn indices for variables *)
   | Global of Symbol.t
-  | Let of t * (* BINDS *) t
+  | Let of t * t
   | Ann of t * tp
   | Zero
   | Suc of t
-  | NatElim of ghost option * (* BINDS *) tp * t * (* BINDS 2 *) t * t
-  | Lam of (* BINDS *) t
+  | NatElim of ghost option * tp * t * t * t
+  | Lam of t
   | Ap of t * t
   | Pair of t * t
   | Fst of t
   | Snd of t
   | Refl of t
-  | IdElim of ghost option * (* BINDS 3 *) tp * (* BINDS *) t * t
+  | IdElim of ghost option * tp * t * t
   | CodeNat
+  | CodePi of t * t
   | GoalRet of t
   | GoalProj of t
 
 and tp =
   | Nat
-  | Pi of tp * (* BINDS *) tp
-  | Sg of tp * (* BINDS *) tp
+  | Pi of tp * tp
+  | Sg of tp * tp
   | Id of tp * t * t
   | Univ
   | El of t

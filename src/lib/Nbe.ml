@@ -172,6 +172,11 @@ struct
     | D.CodeNat ->
       ret D.Nat
 
+    | D.CodePi (base, clfam) ->
+      let+ base = do_el base in
+      let clfam = D.ElClo clfam in
+      D.Pi (base, clfam)
+
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
@@ -283,6 +288,10 @@ struct
       lift_cmp @@ do_id_elim ~ghost clmot clrefl veq
     | S.CodeNat ->
       ret D.CodeNat
+    | S.CodePi (base, fam) ->
+      let+ vbase = eval base
+      and+ clfam = close_tm fam in
+      D.CodePi (vbase, clfam)
     | S.GoalRet tm ->
       let+ con = eval tm in
       D.GoalRet con
@@ -370,6 +379,16 @@ struct
       S.Refl t
     | D.Univ, D.CodeNat -> 
       ret S.CodeNat
+    | D.Univ, D.CodePi (base, fam) ->
+      let+ tbase = quote_con D.Univ base 
+      and+ tfam = 
+        let* tpbase = lift_cmp @@ do_el base in
+        binder 1 @@
+        let* var = top_var tpbase in
+        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
+        quote_con D.Univ fib
+      in 
+      S.CodePi (tbase, tfam)
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
 
@@ -563,6 +582,17 @@ struct
       equate_con tp con0 con1
     | _, D.Cut {cut = cut0, None}, D.Cut {cut = cut1, None} ->
       equate_cut cut0 cut1
+    | _, D.CodeNat, D.CodeNat -> 
+      ret ()
+    | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1) ->
+      let* () = equate_con univ base0 base1 in
+      let* tpbase = lift_cmp @@ do_el base0 in
+      binder 1 @@ 
+      let* x = top_var tpbase in
+      let* fib0 = lift_cmp @@ inst_tm_clo fam0 [x] in
+      let* fib1 = lift_cmp @@ inst_tm_clo fam1 [x] in
+      equate_con univ fib0 fib1
+
     | _ -> 
       throw @@ NbeFailed ("Unequal values ")
 
