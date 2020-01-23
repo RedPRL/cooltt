@@ -3,18 +3,18 @@ open CoolBasis open Bwd
 type t =
   | Var of int (* DeBruijn indices for variables *)
   | Global of Symbol.t
-  | Let of t * (* BINDS *) t
+  | Let of t * t
   | Ann of t * tp
   | Zero
   | Suc of t
-  | NatElim of ghost option * (* BINDS *) tp * t * (* BINDS 2 *) t * t
-  | Lam of (* BINDS *) t
+  | NatElim of ghost option * tp * t * t * t
+  | Lam of t
   | Ap of t * t
   | Pair of t * t
   | Fst of t
   | Snd of t
   | Refl of t
-  | IdElim of ghost option * (* BINDS 3 *) tp * (* BINDS *) t * t
+  | IdElim of ghost option * tp * t * t
   | GoalRet of t
   | GoalProj of t
   | TpCode of t gtp
@@ -33,12 +33,15 @@ and _ gtp =
 
 and ghost = string bwd * (tp * t) list
 
-let rec condense = function
+let rec condense = 
+  function
   | Zero -> Some 0
-  | Suc t -> (
+  | Suc t -> 
+    begin
       match condense t with
       | Some n -> Some (n + 1)
-      | None -> None )
+      | None -> None
+    end
   | _ -> None
 
 
