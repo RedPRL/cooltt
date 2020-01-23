@@ -24,7 +24,7 @@ and tp = Tp of tp gtp
 and _ gtp =
   | Nat : 'a gtp
   | Pi : 'a * 'a -> 'a gtp
-  | Sg : tp * tp -> tp gtp
+  | Sg : 'a * 'a -> 'a gtp
   | Id : tp * t * t -> tp gtp
   | Univ : tp gtp
   | El : t -> tp gtp

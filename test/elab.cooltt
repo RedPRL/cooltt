@@ -33,6 +33,8 @@ def hole-in-type : {
 }
 
 
-def pi-test : univ = (x : nat) -> nat
+def pi-code-test : univ = (x : nat) -> nat
+def sg-code-test : univ = (x : nat) * ?
 
-normalize pi-test
+normalize pi-code-test
+normalize sg-code-test

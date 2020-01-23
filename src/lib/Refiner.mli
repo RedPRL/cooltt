@@ -24,6 +24,7 @@ module Univ : sig
   val formation : tp_tac
   val nat : chk_tac
   val pi : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
+  val sg : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
   val el_formation : chk_tac -> tp_tac
 end
 

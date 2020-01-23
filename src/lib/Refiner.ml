@@ -106,6 +106,14 @@ struct
     let+ fam = EM.push_var nm vbase @@ tac_fam univ in
     S.TpCode (S.Pi (base, fam))
 
+  let sg tac_base (nm, tac_fam) : chk_tac =
+    fun univ ->
+    let* () = dest_univ univ in
+    let* base = tac_base univ in
+    let* vbase = EM.lift_ev @@ Nbe.eval_tp @@ S.Tp (S.El base) in
+    let+ fam = EM.push_var nm vbase @@ tac_fam univ in
+    S.TpCode (S.Sg (base, fam))
+
 
   let el_formation tac = 
     let+ tm = tac @@ D.Tp D.Univ in

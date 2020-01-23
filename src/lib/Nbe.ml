@@ -177,6 +177,11 @@ struct
       let clfam = D.ElClo clfam in
       D.Tp (D.Pi (base, clfam))
 
+    | D.TpCode (D.Sg (base, clfam)) ->
+      let+ base = do_el base in
+      let clfam = D.ElClo clfam in
+      D.Tp (D.Sg (base, clfam))
+
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
@@ -292,6 +297,10 @@ struct
       let+ vbase = eval base
       and+ clfam = close_tm fam in
       D.TpCode (D.Pi (vbase, clfam))
+    | S.TpCode (S.Sg (base, fam)) ->
+      let+ vbase = eval base
+      and+ clfam = close_tm fam in
+      D.TpCode (D.Sg (vbase, clfam))
     | S.GoalRet tm ->
       let+ con = eval tm in
       D.GoalRet con
@@ -389,6 +398,16 @@ struct
         quote_con (D.Tp D.Univ) fib
       in 
       S.TpCode (S.Pi (tbase, tfam))
+    | D.Univ, D.TpCode (D.Sg (base, fam)) ->
+      let+ tbase = quote_con (D.Tp D.Univ) base 
+      and+ tfam = 
+        let* tpbase = lift_cmp @@ do_el base in
+        binder 1 @@
+        let* var = top_var tpbase in
+        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
+        quote_con (D.Tp D.Univ) fib
+      in 
+      S.TpCode (S.Sg (tbase, tfam))
     | _ -> 
       throw @@ NbeFailed "ill-typed quotation problem"
 
@@ -584,7 +603,8 @@ struct
       equate_cut cut0 cut1
     | _, D.TpCode D.Nat, D.TpCode D.Nat -> 
       ret ()
-    | univ, D.TpCode (D.Pi (base0, fam0)), D.TpCode (D.Pi (base1, fam1)) ->
+    | univ, D.TpCode (D.Pi (base0, fam0)), D.TpCode (D.Pi (base1, fam1))
+    | univ, D.TpCode (D.Sg (base0, fam0)), D.TpCode (D.Sg (base1, fam1)) ->
       let* () = equate_con (D.Tp univ) base0 base1 in
       let* tpbase = lift_cmp @@ do_el base0 in
       binder 1 @@ 

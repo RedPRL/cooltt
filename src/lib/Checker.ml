@@ -40,6 +40,12 @@ and chk_tm : S.t -> R.chk_tac =
     R.Pi.intro None @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     R.Sg.intro (chk_tm t0) (chk_tm t1)
+  | S.TpCode S.Nat -> 
+    R.Univ.nat
+  | S.TpCode (S.Pi (base, fam)) -> 
+    R.Univ.pi (chk_tm base) (None, chk_tm fam)
+  | S.TpCode (S.Sg (base, fam)) -> 
+    R.Univ.sg (chk_tm base) (None, chk_tm fam)
   | t -> 
     R.Structural.syn_to_chk @@ syn_tm t
 

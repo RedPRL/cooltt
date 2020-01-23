@@ -29,7 +29,7 @@ and (_, _) gtp =
   | Nat : ('d, 't) gtp
   | Id : tp * con * con -> (tp, S.tp) gtp
   | Pi : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
-  | Sg : tp * (ze su, S.tp, tp) clo -> (tp, S.tp) gtp
+  | Sg : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
   | Univ : (tp, S.tp) gtp
   | El : cut -> (tp, S.tp) gtp
   | GoalTp : string option * tp -> (tp, S.tp) gtp
