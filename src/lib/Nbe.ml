@@ -16,6 +16,7 @@ module rec Compute :
 sig 
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
+  val inst_dim_con_clo : D.dim_clo -> D.dim -> D.con compute
   val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
@@ -104,8 +105,6 @@ struct
     | ElClo clo ->
       let* con = inst_tm_clo clo xs in
       do_el con
-    | ConstClo t -> 
-      CmpM.ret t
 
   and inst_tm_clo : type n. n D.tm_clo -> (n, D.con) Vec.vec -> D.con compute =
     fun clo xs ->
@@ -114,8 +113,30 @@ struct
       let cons = Vec.to_list xs |> List.map @@ fun con -> `Con con in
       lift_ev (env <>< cons) @@ 
       eval bdy
-    | D.ConstClo t -> 
-      CmpM.ret t
+
+  and inst_dim_con_clo : D.dim_clo -> D.dim -> D.con compute = 
+    fun clo r ->
+    match clo with 
+    | D.DimClo (bdy, env) ->
+      lift_ev (env <>< [`Dim r]) @@ eval bdy
+    | D.PiCoeBaseClo clo -> 
+      let* pi_code = inst_dim_con_clo clo.pi_clo r in
+      let+ base, _ = dest_pi_code pi_code in
+      base
+    | D.PiCoeFibClo clo -> 
+      let* pi_code = inst_dim_con_clo clo.pi_clo r in
+      let* base, fam = dest_pi_code pi_code in
+      let* arg_r = do_coe clo.dest r clo.base_abs clo.arg in
+      inst_tm_clo fam [arg_r]
+
+  and dest_pi_code con = 
+    match con with 
+    | D.TpCode (D.Pi (base, fam)) ->
+      ret (base, fam)
+    | _ ->
+      CmpM.throw @@ NbeFailed "Expected pi code"
+
+
 
 
   and do_goal_proj =
@@ -131,6 +152,19 @@ struct
     match f with
     | D.Lam clo -> 
       inst_tm_clo clo [a]
+
+    | D.PiCoe (D.CoeAbs abs, r, s, f) ->
+      let* peek_base, peek_fam = dest_pi_code abs.peek in
+      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.PiCoeBaseClo {pi_clo = abs.clo}} in
+      let* fib_abs = 
+        let* a_i = do_rigid_coe base_abs s (D.DimVar abs.lvl) a in
+        let+ peek_fib = inst_tm_clo peek_fam [a_i] in
+        D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; pi_clo = abs.clo}}
+      in
+      let* a_r = do_rigid_coe base_abs s r a in
+      let* f_a_r = do_ap f a_r in
+      do_rigid_coe fib_abs r s @@ f_a_r
+
     | D.Cut {tp = D.Tp tp; cut} ->
       begin
         match tp with
@@ -192,6 +226,19 @@ struct
       let+ con' = do_spine con spine in
       r := `Done con';
       con'
+
+  and do_coe r s abs con =
+    let* rs_eq = compare_dim r s in
+    match rs_eq with
+    | `Same -> ret con
+    | _ -> do_rigid_coe abs r s con
+
+  and do_rigid_coe (D.CoeAbs abs) r s con =
+    match abs.peek with
+    | D.TpCode (D.Pi _) ->
+      ret @@ D.PiCoe (D.CoeAbs abs, r, s, con)
+    | _ -> 
+      failwith ""
 end
 
 and Eval :
@@ -238,10 +285,11 @@ struct
   and eval =
     function
     | S.Var i -> 
-      let+ cell = get_local i in
+      let* cell = get_local i in
       begin 
         match cell with
-        | `Con con -> con
+        | `Con con -> ret con
+        | _ -> throw @@ NbeFailed "Expected `Con cell in environment"
       end
     | S.Global sym -> 
       let* st = EvM.read_global in

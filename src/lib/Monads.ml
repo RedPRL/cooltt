@@ -7,8 +7,15 @@ open BwdNotation
 
 module CmpM =
 struct
-  include Monad.MonadReaderResult (struct type local = St.t * Restriction.t end)
+  module M = Monad.MonadReaderResult (struct type local = St.t * Restriction.t end)
+  open Monad.Notation (M)
+  include M
+
   let lift_ev env m (st, rst) = m (st, rst, env)
+
+  let compare_dim r s = 
+    let+ (_, rst) = read in 
+    Restriction.compare r s rst
 end
 
 type 'a compute = 'a CmpM.m
