@@ -31,3 +31,8 @@ def hole-in-type : {
 } = {
   \y z => ?tmhole
 }
+
+
+def pi-test : univ = (x : nat) -> nat
+
+normalize pi-test

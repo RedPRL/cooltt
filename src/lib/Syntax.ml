@@ -123,7 +123,7 @@ let rec pp_ (env : Pp.env)  =
     | _, Refl tm ->
       Fmt.fprintf fmt "@[<hv1>(refl %a)@]" (go env `Start) tm
     | _, CodeNat ->
-      Fmt.fprintf fmt "nat"
+      Fmt.fprintf fmt "'nat"
     | `Pi, CodePi (base, fam) ->
       let x, env' = Pp.Env.bind env None in
       Format.fprintf fmt 
@@ -134,7 +134,7 @@ let rec pp_ (env : Pp.env)  =
     | _, CodePi (base, fam) ->
       let x, envx = Pp.Env.bind env None in
       Format.fprintf fmt 
-        "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
+        "@[<hv1>('%a @[<hv>[%a : %a]@ %a@])@]" 
         Uuseg_string.pp_utf_8 "->" 
         Uuseg_string.pp_utf_8 x 
         (go env `Start) base 
