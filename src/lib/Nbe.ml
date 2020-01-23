@@ -169,10 +169,10 @@ struct
       let* con = force_lazy_con r in 
       do_el con
 
-    | D.CodeNat ->
+    | D.TpCode D.Nat ->
       ret @@ D.Tp D.Nat
 
-    | D.CodePi (base, clfam) ->
+    | D.TpCode (D.Pi (base, clfam)) ->
       let+ base = do_el base in
       let clfam = D.ElClo clfam in
       D.Tp (D.Pi (base, clfam))
@@ -287,11 +287,11 @@ struct
       let* ghost = eval_ghost ghost in
       lift_cmp @@ do_id_elim ~ghost clmot clrefl veq
     | S.TpCode S.Nat ->
-      ret D.CodeNat
+      ret @@ D.TpCode D.Nat
     | S.TpCode (S.Pi (base, fam)) ->
       let+ vbase = eval base
       and+ clfam = close_tm fam in
-      D.CodePi (vbase, clfam)
+      D.TpCode (D.Pi (vbase, clfam))
     | S.GoalRet tm ->
       let+ con = eval tm in
       D.GoalRet con
@@ -377,9 +377,9 @@ struct
     | D.Id (tp, _, _), D.Refl con ->
       let+ t = quote_con tp con in 
       S.Refl t
-    | D.Univ, D.CodeNat -> 
+    | D.Univ, D.TpCode D.Nat -> 
       ret @@ S.TpCode S.Nat
-    | D.Univ, D.CodePi (base, fam) ->
+    | D.Univ, D.TpCode (D.Pi (base, fam)) ->
       let+ tbase = quote_con (D.Tp D.Univ) base 
       and+ tfam = 
         let* tpbase = lift_cmp @@ do_el base in
@@ -582,9 +582,9 @@ struct
       equate_con (D.Tp tp) con0 con1
     | _, D.Cut {cut = cut0, None}, D.Cut {cut = cut1, None} ->
       equate_cut cut0 cut1
-    | _, D.CodeNat, D.CodeNat -> 
+    | _, D.TpCode D.Nat, D.TpCode D.Nat -> 
       ret ()
-    | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1) ->
+    | univ, D.TpCode (D.Pi (base0, fam0)), D.TpCode (D.Pi (base1, fam1)) ->
       let* () = equate_con (D.Tp univ) base0 base1 in
       let* tpbase = lift_cmp @@ do_el base0 in
       binder 1 @@ 
@@ -592,7 +592,6 @@ struct
       let* fib0 = lift_cmp @@ inst_tm_clo fam0 [x] in
       let* fib1 = lift_cmp @@ inst_tm_clo fam1 [x] in
       equate_con (D.Tp univ) fib0 fib1
-
     | _ -> 
       throw @@ NbeFailed ("Unequal values ")
 

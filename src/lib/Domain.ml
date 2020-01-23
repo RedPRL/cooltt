@@ -22,9 +22,8 @@ and con =
   | Suc of con
   | Pair of con * con
   | Refl of con
-  | CodeNat
-  | CodePi of con * ze su tm_clo
   | GoalRet of con
+  | TpCode of (con, S.t) gtp
 
 and lazy_con = [`Do of con * frm list | `Done of con]
 

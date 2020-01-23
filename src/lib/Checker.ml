@@ -30,7 +30,7 @@ and chk_tm : S.t -> R.chk_tac =
   function
   | S.Refl _ ->
     R.Id.intro
-  | S.Zero -> 
+  | S.Zero ->
     R.Nat.literal 0
   | S.Suc t ->
     R.Nat.suc (chk_tm t)
