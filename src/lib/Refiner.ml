@@ -26,7 +26,7 @@ struct
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Nbe.quote_tp @@ D.Tp (D.GGoalTp (name, tp))
+        EM.lift_qu @@ Nbe.quote_tp @@ D.Tp (D.GoalTp (name, tp))
       | `Con cell :: cells ->
         let ctp = Env.ConCell.tp cell in
         let name = Env.ConCell.name cell in
@@ -65,13 +65,13 @@ struct
     EM.lift_qu @@ Nbe.quote_cut cut
 
   let unleash_tp_hole name flexity : tp_tac =
-    let* cut = make_hole name flexity @@ D.Tp D.GUniv in 
-    EM.lift_qu @@ Nbe.quote_tp (D.Tp (D.GEl cut))
+    let* cut = make_hole name flexity @@ D.Tp D.Univ in 
+    EM.lift_qu @@ Nbe.quote_tp (D.Tp (D.El cut))
 
   let unleash_syn_hole name flexity : syn_tac =
-    let* tpcut = make_hole name `Flex @@ D.Tp D.GUniv in 
-    let+ tm = unleash_hole name flexity @@ D.Tp (D.GEl tpcut) in
-    tm, D.Tp (D.GEl tpcut)
+    let* tpcut = make_hole name `Flex @@ D.Tp D.Univ in 
+    let+ tm = unleash_hole name flexity @@ D.Tp (D.El tpcut) in
+    tm, D.Tp (D.El tpcut)
 end
 
 
@@ -86,11 +86,11 @@ end
 module Univ = 
 struct
   let formation : tp_tac = 
-    EM.ret @@ S.Tp S.GUniv
+    EM.ret @@ S.Tp S.Univ
 
   let dest_univ =
     function
-    | D.Tp D.GUniv -> EM.ret ()
+    | D.Tp D.Univ -> EM.ret ()
     | tp -> EM.elab_err @@ Err.ExpectedConnective (`Univ, tp)
 
   let nat : chk_tac =
@@ -108,7 +108,7 @@ struct
 
 
   let el_formation tac = 
-    let+ tm = tac @@ D.Tp D.GUniv in
+    let+ tm = tac @@ D.Tp D.Univ in
     S.Tp (S.El tm)
 
 end
@@ -124,7 +124,7 @@ struct
 
   let intro : chk_tac =
     function
-    | D.Tp (D.GId (tp, l, r)) ->
+    | D.Tp (D.Id (tp, l, r)) ->
       let+ () = EM.equate tp l r
       and+ t = EM.lift_qu @@ Nbe.quote_con tp l in
       S.Refl t
@@ -139,7 +139,7 @@ struct
     let* tmot =
       EM.abstract nm_x0 tp @@ fun x0 ->
       EM.abstract nm_x1 tp @@ fun x1 ->
-      EM.abstract nm_p (D.Tp (D.GId (tp, x0, x1))) @@ fun _ ->
+      EM.abstract nm_p (D.Tp (D.Id (tp, x0, x1))) @@ fun _ ->
       tac_mot
     in
     let* t_refl_case =
@@ -162,7 +162,7 @@ struct
 
   let intro name tac_body : chk_tac =
     function
-    | D.Tp (D.GPi (base, fam)) ->
+    | D.Tp (D.Pi (base, fam)) ->
       EM.abstract name base @@ fun var ->
       let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
       let+ t = tac_body fib in
@@ -189,7 +189,7 @@ struct
 
   let intro tac_fst tac_snd : chk_tac =
     function
-    | D.Tp (D.GSg (base, fam)) ->
+    | D.Tp (D.Sg (base, fam)) ->
       let* tfst = tac_fst base in
       let* vfst = EM.lift_ev @@ Nbe.eval tfst in
       let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
@@ -219,7 +219,7 @@ struct
 
   let assert_nat =
     function
-    | D.Tp D.GNat -> EM.ret ()
+    | D.Tp D.Nat -> EM.ret ()
     | tp -> EM.elab_err @@ Err.ExpectedConnective (`Nat, tp)
 
   let literal n : chk_tac =
@@ -264,7 +264,7 @@ end
 module El =
 struct
   let formation tac = 
-    let+ tm = tac @@ D.Tp D.GUniv in 
+    let+ tm = tac @@ D.Tp D.Univ in 
     S.Tp (S.El tm)
 end
 
@@ -350,7 +350,7 @@ struct
       let* tscrut, D.Tp ind_tp = scrut in
       let scrut = EM.ret (tscrut, D.Tp ind_tp) in
       match ind_tp, mot with
-      | D.GId (_, _, _), ([nm_u; nm_v; nm_p], mot) ->
+      | D.Id (_, _, _), ([nm_u; nm_v; nm_p], mot) ->
         let* tac_refl =
           match find_case "refl" cases with
           | Some ([`Simple nm_w], tac) -> EM.ret (nm_w, tac)
@@ -359,7 +359,7 @@ struct
           | None -> EM.ret (None, Hole.unleash_hole (Some "refl") `Rigid)
         in
         Id.elim (nm_u, nm_v, nm_p, mot) tac_refl scrut
-      | D.GNat, ([nm_x], mot) ->
+      | D.Nat, ([nm_x], mot) ->
         let* tac_zero = 
           match find_case "zero" cases with 
           | Some ([], tac) -> EM.ret tac
@@ -381,7 +381,7 @@ struct
 
     let assert_simple_inductive =
       function
-      | D.Tp D.GNat -> 
+      | D.Tp D.Nat -> 
         EM.ret () 
       | tp ->
         let* env = EM.read in

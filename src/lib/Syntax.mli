@@ -26,7 +26,7 @@ and _ gtp =
   | Pi : 'a * 'a -> 'a gtp
   | Sg : tp * tp -> tp gtp
   | Id : tp * t * t -> tp gtp
-  | GUniv : tp gtp
+  | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
 

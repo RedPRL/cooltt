@@ -19,7 +19,7 @@ let rec chk_tp : S.tp -> R.tp_tac =
     R.Id.formation (chk_tp tp)(chk_tm l) (chk_tm r)
   | S.Nat -> 
     R.Nat.formation
-  | S.GUniv -> 
+  | S.Univ -> 
     R.Univ.formation
   | S.El tm ->
     R.El.formation @@ chk_tm tm

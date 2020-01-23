@@ -33,13 +33,13 @@ and cut = hd * frm list
 and tp = Tp of (tp, S.tp) gtp
 
 and (_, _) gtp =
-  | GNat : ('d, 't) gtp
-  | GId : tp * con * con -> (tp, S.tp) gtp
-  | GPi : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
-  | GSg : tp * (ze su, S.tp, tp) clo -> (tp, S.tp) gtp
-  | GUniv : (tp, S.tp) gtp
-  | GEl : cut -> (tp, S.tp) gtp
-  | GGoalTp : string option * tp -> (tp, S.tp) gtp
+  | Nat : ('d, 't) gtp
+  | Id : tp * con * con -> (tp, S.tp) gtp
+  | Pi : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
+  | Sg : tp * (ze su, S.tp, tp) clo -> (tp, S.tp) gtp
+  | Univ : (tp, S.tp) gtp
+  | El : cut -> (tp, S.tp) gtp
+  | GoalTp : string option * tp -> (tp, S.tp) gtp
 
 
 and hd =

@@ -84,21 +84,21 @@ let equate_tp tp tp' =
 
 let dest_pi = 
   function
-  | D.Tp (D.GPi (base, fam)) -> 
+  | D.Tp (D.Pi (base, fam)) -> 
     ret (base, fam)
   | tp -> 
     elab_err @@ Err.ExpectedConnective (`Pi, tp)
 
 let dest_sg = 
   function
-  | D.Tp (D.GSg (base, fam)) -> 
+  | D.Tp (D.Sg (base, fam)) -> 
     ret (base, fam)
   | tp -> 
     elab_err @@ Err.ExpectedConnective (`Sg, tp)
 
 let dest_id =
   function
-  | D.Tp (D.GId (tp, l, r)) ->
+  | D.Tp (D.Id (tp, l, r)) ->
     ret (tp, l, r)
   | tp ->
     elab_err @@ Err.ExpectedConnective (`Id, tp)

@@ -26,7 +26,7 @@ and _ gtp =
   | Pi : 'a * 'a -> 'a gtp
   | Sg : tp * tp -> tp gtp
   | Id : tp * t * t -> tp gtp
-  | GUniv : tp gtp
+  | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
 
@@ -185,7 +185,7 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       (pp env) r
   | _, Nat ->
     Format.fprintf fmt "nat"
-  | _, GUniv ->
+  | _, Univ ->
     Format.fprintf fmt "univ"
   | _, El tm ->
     Fmt.fprintf fmt "@[<hv1>(el@ %a)@]" (pp env) tm
