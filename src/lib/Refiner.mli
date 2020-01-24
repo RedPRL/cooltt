@@ -64,10 +64,6 @@ module Nat : sig
     -> syn_tac
 end
 
-module El : sig 
-  val formation : chk_tac -> tp_tac
-end
-
 module Structural : sig
   val syn_to_chk : syn_tac -> chk_tac
   val chk_to_syn : chk_tac -> tp_tac -> syn_tac

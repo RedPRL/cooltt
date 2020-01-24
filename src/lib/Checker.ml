@@ -22,7 +22,7 @@ let rec chk_tp : S.tp -> R.tp_tac =
   | S.Univ -> 
     R.Univ.formation
   | S.El tm ->
-    R.El.formation @@ chk_tm tm
+    R.Univ.el_formation @@ chk_tm tm
   | S.GoalTp (lbl, tp) ->
     R.Goal.formation lbl @@ chk_tp tp
 
