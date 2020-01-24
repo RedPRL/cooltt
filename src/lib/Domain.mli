@@ -15,13 +15,13 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 and dim_clo = 
   | DimClo of S.t * env
   | PiCoeBaseClo of {pi_clo : dim_clo}
-  | PiCoeFibClo of {dest : dim; base_abs : coe_abs; arg : con; pi_clo: dim_clo}
+  | PiCoeFibClo of {dest : dim; base_abs : con coe_abs; arg : con; pi_clo: dim_clo}
 
-and coe_abs = CoeAbs of {lvl : int; peek : con; clo : dim_clo}
+and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : dim_clo}
 
 and con =
   | Lam of ze su tm_clo
-  | PiCoe of coe_abs * dim * dim * con
+  | PiCoe of con coe_abs * dim * dim * con
   | Cut of {tp : tp; cut : cut * lazy_con ref option}
   | Zero
   | Suc of con
