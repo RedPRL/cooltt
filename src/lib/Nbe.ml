@@ -14,6 +14,9 @@ exception NbeFailed of string
 
 module rec Compute : 
 sig 
+  (** A cheaper version of re-evaluation which only guarantees that the head constructor is cubically rigid *)
+  val whnf : D.con -> D.con compute
+
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
   val inst_dim_con_clo : D.dim_clo -> D.dim -> D.con compute
@@ -34,7 +37,21 @@ struct
   open Eval
   open Monad.Notation (CmpM)
 
-  let rec do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
+  let rec whnf =
+    function
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Cut {cut = _, None; _} as con -> 
+      ret con
+    | D.Cut {cut = _, Some lcon} -> 
+      whnf @<< force_lazy_con lcon
+    | D.PiCoe (abs, r, s, con) as picoe ->
+      begin
+        let* rs_eq = compare_dim r s in
+        match rs_eq with
+        | `Same -> whnf con
+        | _ -> ret picoe
+      end
+
+  and do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
     | D.Zero -> 
       ret zero
@@ -220,7 +237,7 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
-  and force_lazy_con lcon = 
+  and force_lazy_con lcon : D.con m = 
     match lcon with 
     | `Done con -> ret con
     | `Do (con, spine) -> 
@@ -630,6 +647,8 @@ struct
       throw @@ NbeFailed ("Unequal types")
 
   and equate_con (D.Tp tp) con0 con1 =
+    let* con0 = lift_cmp @@ whnf con0 in
+    let* con1 = lift_cmp @@ whnf con1 in
     match tp, con0, con1 with
     | D.Pi (base, fam), _, _ ->
       binder 1 @@ 
@@ -655,12 +674,6 @@ struct
     | _, D.Zero, D.Zero ->
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
-      equate_con (D.Tp tp) con0 con1
-    | _, D.Cut {cut = _, Some lcon0}, _ ->
-      let* con0 = lift_cmp @@ force_lazy_con lcon0 in
-      equate_con (D.Tp tp) con0 con1
-    | _, _, D.Cut {cut = _, Some lcon1} ->
-      let* con1 = lift_cmp @@ force_lazy_con lcon1 in
       equate_con (D.Tp tp) con0 con1
     | _, D.Cut {cut = cut0, None}, D.Cut {cut = cut1, None} ->
       equate_cut cut0 cut1
