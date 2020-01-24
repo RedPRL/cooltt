@@ -168,9 +168,7 @@ struct
         let+ peek_fib = inst_tm_clo peek_fam [a_i] in
         D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; pi_clo = abs.clo}}
       in
-      let* a_r = do_rigid_coe base_abs s r a in
-      let* f_a_r = do_ap f a_r in
-      do_rigid_coe fib_abs r s @@ f_a_r
+      do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
     | D.Cut {tp; cut} ->
       let* base, fam = dest_pi_tp tp in
@@ -418,7 +416,7 @@ struct
           begin
             match Veil.policy sym veil with
             | `Transparent ->
-              quote_con tp =<< 
+              quote_con tp @<< 
               lift_cmp @@ force_lazy_con lcon 
             | _ ->
               quote_cut (hd, sp)
@@ -464,7 +462,7 @@ struct
         let* tpbase = lift_cmp @@ do_el base in
         binder 1 @@
         let* var = top_var tpbase in
-        quote_con univ =<< 
+        quote_con univ @<< 
         lift_cmp @@ inst_tm_clo fam [var] 
       in 
       S.Pi (tbase, tfam)
@@ -474,7 +472,7 @@ struct
         let* tpbase = lift_cmp @@ do_el base in
         binder 1 @@
         let* var = top_var tpbase in
-        quote_con univ =<< 
+        quote_con univ @<< 
         lift_cmp @@ inst_tm_clo fam [var] 
       in 
       S.Sg (tbase, tfam)
@@ -493,7 +491,7 @@ struct
       let+ tfam = 
         binder 1 @@ 
         let* var = top_var base in
-        quote_tp =<< 
+        quote_tp @<< 
         lift_cmp @@ inst_tp_clo fam [var] 
       in
       S.Tp (S.Pi (tbase, tfam))
@@ -502,7 +500,7 @@ struct
       let+ tfam = 
         binder 1 @@ 
         let* var = top_var base in
-        quote_tp =<< 
+        quote_tp @<< 
         lift_cmp @@ inst_tp_clo fam [var]
       in
       S.Tp (S.Sg (tbase, tfam))

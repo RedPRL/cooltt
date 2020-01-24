@@ -215,7 +215,7 @@ struct
     in
     let* t_refl_case =
       EM.abstract nm_x tp @@ fun x ->
-      tac_case_refl =<<
+      tac_case_refl @<<
       EM.lift_ev @@ EvM.append [`Con x; `Con (D.Refl x)] @@ Nbe.eval_tp tmot
     in
     let+ fib = 
@@ -234,7 +234,7 @@ struct
     function
     | D.Tp (D.Pi (base, fam)) ->
       EM.abstract name base @@ fun var ->
-      let+ t = tac_body =<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
+      let+ t = tac_body @<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
       S.Lam t
     | tp ->
       EM.elab_err @@ Err.ExpectedConnective (`Pi, tp)
@@ -260,7 +260,7 @@ struct
       let* tfst = tac_fst base in
       let+ tsnd = 
         let* vfst = EM.lift_ev @@ Nbe.eval tfst in
-        tac_snd =<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] 
+        tac_snd @<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] 
       in
       S.Pair (tfst, tsnd)
     | tp ->
@@ -313,7 +313,7 @@ struct
     in
 
     let* tcase_zero =
-      tac_case_zero =<<
+      tac_case_zero @<<
       EM.lift_ev @@ EvM.append [`Con D.Zero] @@ Nbe.eval_tp tmot
     in
 
