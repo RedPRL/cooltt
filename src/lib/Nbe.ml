@@ -27,7 +27,7 @@ sig
   val do_spine : D.con -> D.frm list -> D.con compute
 
   val do_el : D.con -> D.tp compute
-  val force_lazy_con : D.lazy_con ref -> D.con compute
+  val force_lazy_con : D.lazy_con -> D.con compute
 end =
 struct
   open CmpM
@@ -76,9 +76,9 @@ struct
     function
     | cut, None -> 
       D.push k cut, None
-    | cut, Some r -> 
-      let s = ref @@
-        match !r with
+    | cut, Some lcon -> 
+      let s = 
+        match lcon with
         | `Done con ->
           `Do (con, [k])
         | `Do (con, spine) ->
@@ -220,13 +220,11 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
-  and force_lazy_con r = 
-    match !r with 
+  and force_lazy_con lcon = 
+    match lcon with 
     | `Done con -> ret con
     | `Do (con, spine) -> 
-      let+ con' = do_spine con spine in
-      r := `Done con';
-      con'
+      do_spine con spine 
 
   and do_coe r s abs con =
     let* rs_eq = compare_dim r s in
@@ -295,7 +293,7 @@ struct
     | S.Global sym -> 
       let* st = EvM.read_global in
       let tp, con = ElabState.get_global sym st in
-      let lcon = ref @@ `Done con in
+      let lcon = `Done con in
       ret @@ D.Cut {tp = tp; cut = (D.Global sym, []), Some lcon}
     | S.Let (def, body) -> 
       let* vdef = eval def in 

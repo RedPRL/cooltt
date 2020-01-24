@@ -24,8 +24,7 @@ and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : dim_clo}
 and con =
   | Lam of ze su tm_clo
   | PiCoe of con coe_abs * dim * dim * con
-
-  | Cut of {tp : tp; cut : cut * lazy_con ref option}
+  | Cut of {tp : tp; cut : cut * lazy_con option}
   | Zero
   | Suc of con
   | Pair of con * con
