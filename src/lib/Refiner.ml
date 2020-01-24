@@ -149,18 +149,20 @@ struct
     G.make @@ fun _ ->
     EM.ret @@ G.tp S.Nat
 
-  let pi (tac_base : G.tac) (nm, tac_fam) : G.tac = 
-    G.make @@ fun goal ->
+  let family tac_base (nm, tac_fam) goal =
     let* base = G.run goal tac_base in
     let* vbase = G.eval_tp base in
     let+ fam = EM.push_var nm vbase @@ G.run goal tac_fam in 
+    base, fam
+
+  let pi (tac_base : G.tac) (nm, tac_fam) : G.tac = 
+    G.make @@ fun goal ->
+    let+ base, fam = family tac_base (nm, tac_fam) goal in
     G.tp @@ S.Pi (base, fam)
 
   let sg (tac_base : G.tac) (nm, tac_fam) : G.tac = 
     G.make @@ fun goal ->
-    let* base = G.run goal tac_base in
-    let* vbase = G.eval_tp base in
-    let+ fam = EM.push_var nm vbase @@ G.run goal tac_fam in 
+    let+ base, fam = family tac_base (nm, tac_fam) goal in
     G.tp @@ S.Sg (base, fam)
 
   let id tac_tp tac_l tac_r =
@@ -204,7 +206,6 @@ struct
   let elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_case_refl) tac_scrut : syn_tac =
     let* ghost = EM.current_ghost in
     let* tscrut, idtp = tac_scrut in
-    let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
     let* tp, l, r = EM.dest_id idtp in
     let* tmot =
       EM.abstract nm_x0 tp @@ fun x0 ->
@@ -214,10 +215,13 @@ struct
     in
     let* t_refl_case =
       EM.abstract nm_x tp @@ fun x ->
-      let* fib_refl_x = EM.lift_ev @@ EvM.append [`Con x; `Con (D.Refl x)] @@ Nbe.eval_tp tmot in
-      tac_case_refl fib_refl_x
+      tac_case_refl =<<
+      EM.lift_ev @@ EvM.append [`Con x; `Con (D.Refl x)] @@ Nbe.eval_tp tmot
     in
-    let+ fib = EM.lift_ev @@ EvM.append [`Con l; `Con r; `Con vscrut] @@ Nbe.eval_tp tmot in
+    let+ fib = 
+      let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
+      EM.lift_ev @@ EvM.append [`Con l; `Con r; `Con vscrut] @@ Nbe.eval_tp tmot
+    in
     S.IdElim (ghost, tmot, t_refl_case, tscrut), fib
 end
 
@@ -230,8 +234,7 @@ struct
     function
     | D.Tp (D.Pi (base, fam)) ->
       EM.abstract name base @@ fun var ->
-      let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
-      let+ t = tac_body fib in
+      let+ t = tac_body =<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
       S.Lam t
     | tp ->
       EM.elab_err @@ Err.ExpectedConnective (`Pi, tp)
@@ -240,8 +243,10 @@ struct
     let* tfun, tp = tac_fun in
     let* base, fam = EM.dest_pi tp in
     let* targ = tac_arg base in
-    let* varg = EM.lift_ev @@ Nbe.eval targ in
-    let+ fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [varg] in
+    let+ fib = 
+      let* varg = EM.lift_ev @@ Nbe.eval targ in
+      EM.lift_cmp @@ Nbe.inst_tp_clo fam [varg] 
+    in
     S.Ap (tfun, targ), fib
 end
 
@@ -253,9 +258,10 @@ struct
     function
     | D.Tp (D.Sg (base, fam)) ->
       let* tfst = tac_fst base in
-      let* vfst = EM.lift_ev @@ Nbe.eval tfst in
-      let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
-      let+ tsnd = tac_snd fib in
+      let+ tsnd = 
+        let* vfst = EM.lift_ev @@ Nbe.eval tfst in
+        tac_snd =<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] 
+      in
       S.Pair (tfst, tsnd)
     | tp ->
       EM.elab_err @@ Err.ExpectedConnective (`Sg, tp)
@@ -267,9 +273,11 @@ struct
 
   let pi2 tac : syn_tac =
     let* tpair, tp = tac in
-    let* vfst = EM.lift_ev @@ Nbe.eval @@ S.Fst tpair in
-    let* _, fam = EM.dest_sg tp in
-    let+ fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
+    let+ fib = 
+      let* vfst = EM.lift_ev @@ Nbe.eval @@ S.Fst tpair in
+      let* _, fam = EM.dest_sg tp in
+      EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] 
+    in
     S.Snd tpair, fib
 end
 
@@ -285,8 +293,8 @@ struct
 
   let literal n : chk_tac =
     fun tp ->
-    let* () = assert_nat tp in
-    EM.ret @@ int_to_term n
+    let+ () = assert_nat tp in
+    int_to_term n
 
   let suc tac : chk_tac =
     fun tp ->
@@ -298,7 +306,6 @@ struct
     let* ghost = EM.current_ghost in
     let* tscrut, nattp = tac_scrut in
     let* () = assert_nat nattp in
-    let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
 
     let* tmot =
       EM.abstract nm_mot nattp @@ fun _ ->
@@ -306,8 +313,8 @@ struct
     in
 
     let* tcase_zero =
-      let* fib_zero = EM.lift_ev @@ EvM.append [`Con D.Zero] @@ Nbe.eval_tp tmot in
-      tac_case_zero fib_zero
+      tac_case_zero =<<
+      EM.lift_ev @@ EvM.append [`Con D.Zero] @@ Nbe.eval_tp tmot
     in
 
     let* tcase_suc =
@@ -318,9 +325,13 @@ struct
       tac_case_suc fib_suc_x
     in
 
-    let+ fib_scrut = EM.lift_ev @@ EvM.append [`Con vscrut] @@ Nbe.eval_tp tmot in
+    let+ fib_scrut = 
+      let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
+      EM.lift_ev @@ EvM.append [`Con vscrut] @@ Nbe.eval_tp tmot
+    in
     S.NatElim (ghost, tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
 end
+
 
 module Structural = 
 struct
@@ -446,14 +457,14 @@ struct
     let lam_elim cases : chk_tac = 
       match_goal @@ fun tp ->
       let* base, fam = EM.dest_pi tp in
-      let* () = assert_simple_inductive base in
+      let+ () = assert_simple_inductive base in
       let mot_tac : tp_tac =
         let* x, _ = Structural.variable 0 in
         let* vx = EM.lift_ev @@ Nbe.eval x in
         let* vmot = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vx] in
         EM.lift_qu @@ Nbe.quote_tp vmot 
       in
-      EM.ret @@ Pi.intro None @@
+      Pi.intro None @@
       Structural.syn_to_chk @@ 
       elim ([None], mot_tac) cases @@ 
       Structural.variable 0

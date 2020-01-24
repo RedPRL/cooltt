@@ -136,6 +136,13 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "Expected pi code"
 
+  and dest_pi_tp con = 
+    match con with 
+    | D.Tp (D.Pi (base, fam)) ->
+      ret (base, fam)
+    | _ ->
+      CmpM.throw @@ NbeFailed "Expected pi type"
+
 
 
 
@@ -165,16 +172,12 @@ struct
       let* f_a_r = do_ap f a_r in
       do_rigid_coe fib_abs r s @@ f_a_r
 
-    | D.Cut {tp = D.Tp tp; cut} ->
-      begin
-        match tp with
-        | D.Pi (base, fam) ->
-          let+ fib = inst_tp_clo fam [a] in
-          let k = D.KAp (base, a) in
-          D.Cut {tp = fib; cut = push_frm k cut}
-        | _ -> 
-          CmpM.throw @@ NbeFailed "Not a Pi in do_ap"
-      end
+    | D.Cut {tp; cut} ->
+      let* base, fam = dest_pi_tp tp in
+      let+ fib = inst_tp_clo fam [a] in
+      let k = D.KAp (base, a) in
+      D.Cut {tp = fib; cut = push_frm k cut}
+
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a function in do_ap"
 
@@ -415,8 +418,8 @@ struct
           begin
             match Veil.policy sym veil with
             | `Transparent ->
-              let* con = lift_cmp @@ force_lazy_con lcon in 
-              quote_con tp con
+              quote_con tp =<< 
+              lift_cmp @@ force_lazy_con lcon 
             | _ ->
               quote_cut (hd, sp)
           end
@@ -461,8 +464,8 @@ struct
         let* tpbase = lift_cmp @@ do_el base in
         binder 1 @@
         let* var = top_var tpbase in
-        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
-        quote_con univ fib
+        quote_con univ =<< 
+        lift_cmp @@ inst_tm_clo fam [var] 
       in 
       S.Pi (tbase, tfam)
     | D.Sg (base, fam) ->
@@ -471,8 +474,8 @@ struct
         let* tpbase = lift_cmp @@ do_el base in
         binder 1 @@
         let* var = top_var tpbase in
-        let* fib = lift_cmp @@ inst_tm_clo fam [var] in 
-        quote_con univ fib
+        quote_con univ =<< 
+        lift_cmp @@ inst_tm_clo fam [var] 
       in 
       S.Sg (tbase, tfam)
     | D.Id (tp, left, right) ->
@@ -490,8 +493,8 @@ struct
       let+ tfam = 
         binder 1 @@ 
         let* var = top_var base in
-        let* fib = lift_cmp @@ inst_tp_clo fam [var] in
-        quote_tp fib
+        quote_tp =<< 
+        lift_cmp @@ inst_tp_clo fam [var] 
       in
       S.Tp (S.Pi (tbase, tfam))
     | D.Sg (base, fam) ->
@@ -499,8 +502,8 @@ struct
       let+ tfam = 
         binder 1 @@ 
         let* var = top_var base in
-        let* fib = lift_cmp @@ inst_tp_clo fam [var] in
-        quote_tp fib
+        quote_tp =<< 
+        lift_cmp @@ inst_tp_clo fam [var]
       in
       S.Tp (S.Sg (tbase, tfam))
     | D.Id (tp, left, right) ->
@@ -608,13 +611,7 @@ struct
 
   let rec equate_tp (D.Tp tp0) (D.Tp tp1) = 
     match tp0, tp1 with 
-    | D.Pi (base0, fam0), D.Pi (base1, fam1) ->
-      let* () = equate_tp base0 base1 in
-      binder 1 @@ 
-      let* x = top_var base0 in
-      let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
-      let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
-      equate_tp fib0 fib1
+    | D.Pi (base0, fam0), D.Pi (base1, fam1) 
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in
       binder 1 @@ 
@@ -626,9 +623,8 @@ struct
       let* () = equate_tp tp0 tp1 in
       let* () = equate_con tp0 l0 l1 in
       equate_con tp0 r0 r1
-    | D.Nat, D.Nat -> 
-      ret ()
-    | D.Univ, D.Univ ->
+    | D.Nat, D.Nat 
+    | D.Univ, D.Univ -> 
       ret ()
     | D.El cut0, D.El cut1 ->
       equate_cut cut0 cut1
@@ -672,17 +668,10 @@ struct
       equate_con (D.Tp tp) con0 con1
     | _, D.Cut {cut = cut0, None}, D.Cut {cut = cut1, None} ->
       equate_cut cut0 cut1
-    | _, D.TpCode D.Nat, D.TpCode D.Nat -> 
-      ret ()
-    | univ, D.TpCode (D.Pi (base0, fam0)), D.TpCode (D.Pi (base1, fam1))
-    | univ, D.TpCode (D.Sg (base0, fam0)), D.TpCode (D.Sg (base1, fam1)) ->
-      let* () = equate_con (D.Tp univ) base0 base1 in
-      let* tpbase = lift_cmp @@ do_el base0 in
-      binder 1 @@ 
-      let* x = top_var tpbase in
-      let* fib0 = lift_cmp @@ inst_tm_clo fam0 [x] in
-      let* fib1 = lift_cmp @@ inst_tm_clo fam1 [x] in
-      equate_con (D.Tp univ) fib0 fib1
+    | _, (D.TpCode _ as con0), (D.TpCode _ as con1) -> 
+      let* tp0 = lift_cmp @@ do_el con0 in
+      let* tp1 = lift_cmp @@ do_el con1 in
+      equate_tp tp0 tp1
     | _ -> 
       throw @@ NbeFailed ("Unequal values ")
 
@@ -703,8 +692,9 @@ struct
 
   and equate_frm k0 k1 = 
     match k0, k1 with 
-    | D.KFst, D.KFst -> ret ()
-    | D.KSnd, D.KSnd -> ret ()
+    | D.KFst, D.KFst 
+    | D.KSnd, D.KSnd -> 
+      ret ()
     | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
       let* () = equate_tp tp0 tp1 in
       equate_con tp0 con0 con1
