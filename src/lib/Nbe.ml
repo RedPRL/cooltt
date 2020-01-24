@@ -15,7 +15,8 @@ exception NbeFailed of string
 module rec Compute : 
 sig 
   (** A cheaper version of re-evaluation which only guarantees that the head constructor is cubically rigid *)
-  val whnf : D.con -> D.con compute
+  val whnf_con : D.con -> D.con compute
+  val whnf_tp : D.tp -> D.tp compute
 
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
@@ -37,19 +38,23 @@ struct
   open Eval
   open Monad.Notation (CmpM)
 
-  let rec whnf =
+  let rec whnf_con =
     function
     | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Cut {cut = _, None; _} as con -> 
       ret con
     | D.Cut {cut = _, Some lcon} -> 
-      whnf @<< force_lazy_con lcon
+      whnf_con @<< force_lazy_con lcon
     | D.PiCoe (abs, r, s, con) as picoe ->
       begin
         let* rs_eq = compare_dim r s in
         match rs_eq with
-        | `Same -> whnf con
+        | `Same -> whnf_con con
         | _ -> ret picoe
       end
+
+  and whnf_tp = 
+    function
+    | tp -> ret tp
 
   and do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
@@ -622,7 +627,9 @@ struct
       ret @@ S.GoalProj tm
 
 
-  let rec equate_tp (D.Tp tp0) (D.Tp tp1) = 
+  let rec equate_tp tp0 tp1 = 
+    let* D.Tp tp0 = lift_cmp @@ whnf_tp tp0 in
+    let* D.Tp tp1 = lift_cmp @@ whnf_tp tp1 in
     match tp0, tp1 with 
     | D.Pi (base0, fam0), D.Pi (base1, fam1) 
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
@@ -646,9 +653,10 @@ struct
     | _tp0, _tp1 -> 
       throw @@ NbeFailed ("Unequal types")
 
-  and equate_con (D.Tp tp) con0 con1 =
-    let* con0 = lift_cmp @@ whnf con0 in
-    let* con1 = lift_cmp @@ whnf con1 in
+  and equate_con tp con0 con1 =
+    let* D.Tp tp = lift_cmp @@ whnf_tp tp in 
+    let* con0 = lift_cmp @@ whnf_con con0 in
+    let* con1 = lift_cmp @@ whnf_con con1 in
     match tp, con0, con1 with
     | D.Pi (base, fam), _, _ ->
       binder 1 @@ 
