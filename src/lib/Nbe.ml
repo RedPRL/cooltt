@@ -14,7 +14,6 @@ exception NbeFailed of string
 
 module rec Compute : 
 sig 
-  (** A cheaper version of re-evaluation which only guarantees that the head constructor is cubically rigid *)
   val whnf_con : D.con -> D.con compute
   val whnf_tp : D.tp -> D.tp compute
 

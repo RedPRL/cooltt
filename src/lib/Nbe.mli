@@ -23,5 +23,10 @@ val equate_con : D.tp -> D.con -> D.con -> unit quote
 val equate_tp : D.tp -> D.tp -> unit quote
 val equate_cut : D.cut -> D.cut -> unit quote
 
+
+(** A cheaper version of re-evaluation which only guarantees that the head constructor is cubically rigid *)
+val whnf_tp : D.tp -> D.tp compute
+val whnf_con : D.con -> D.con compute
+
 val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
 val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
