@@ -1,5 +1,12 @@
 open CoolBasis open Bwd
 
+type dim =
+  | Dim0
+  | Dim1
+  | DimVar of int (* De Bruijn index *)
+
+type cof = dim Cof.cof
+
 type t =
   | Var of int (* DeBruijn indices for variables *)
   | Global of Symbol.t
@@ -19,6 +26,9 @@ type t =
   | GoalProj of t
   | Coe of t * dim * dim * t
   | TpCode of t gtp
+  | CofTree of cof_tree
+
+and cof_tree = (dim, t) Cof.tree
 
 and tp = Tp of tp gtp
 
@@ -31,11 +41,6 @@ and _ gtp =
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
 
-
-and dim =
-  | Dim0
-  | Dim1
-  | DimVar of int (* De Bruijn index *)
 
 and ghost = string bwd * [`Con of (tp * t) | `Dim of dim] list
 
@@ -143,6 +148,8 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(goal-proj %a)@]" (pp env) tm
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
+  | _, CofTree tree ->
+    Cof.pp_tree pp_dim pp env fmt tree
 
 and pp_dim env fmt =
   function

@@ -1,7 +1,14 @@
 open CoolBasis.Bwd
 
+type dim =
+  | Dim0
+  | Dim1
+  | DimVar of int
+
+type cof = dim Cof.cof
+
 type t =
-  | Var of int (* DeBruijn indices for variables *)
+  | Var of int
   | Global of Symbol.t
   | Let of t * t
   | Ann of t * tp
@@ -19,6 +26,9 @@ type t =
   | GoalProj of t
   | Coe of t * dim * dim * t
   | TpCode of t gtp
+  | CofTree of cof_tree
+
+and cof_tree = (dim, t) Cof.tree
 
 and tp = Tp of tp gtp
 
@@ -30,11 +40,6 @@ and _ gtp =
   | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
-
-and dim =
-  | Dim0
-  | Dim1
-  | DimVar of int (* De Bruijn index *)
 
 and ghost = string bwd * [`Con of (tp * t) | `Dim of dim] list
 

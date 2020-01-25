@@ -428,6 +428,52 @@ struct
           let* coe_abs = eval_coe_abs tpcode in
           lift_cmp @@ do_rigid_coe coe_abs r s con
       end
+    | S.CofTree tree ->
+      eval_cof_tree tree |>> function
+      | `Valid con -> ret con
+      | `Invalid -> 
+        throw @@ NbeFailed "Cofibration not true in current environment"
+
+  and eval_cof_tree =
+    function
+    | Cof.Const (tphi, tm) ->
+      begin
+        eval_cof_status tphi |>> function
+        | `Valid -> 
+          let+ con = eval tm in 
+          `Valid con
+        | `Invalid -> 
+          ret `Invalid
+      end
+    | Cof.Split (tree0, tree1) -> 
+      eval_cof_tree tree0 |>> function
+      | `Valid con -> 
+        ret @@ `Valid con
+      | `Invalid -> 
+        eval_cof_tree tree1
+
+  and eval_cof_status =
+    function
+    | Cof.Eq (tr, ts) -> 
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in 
+      begin
+        CmpM.equal_dim r s |> lift_cmp |>> function
+        | true -> ret `Valid
+        | false -> ret `Invalid
+      end
+    | Cof.Join (tphi, tpsi) ->
+      begin
+        eval_cof_status tphi |>> function
+        | `Valid -> ret `Valid
+        | `Invalid -> eval_cof_status tpsi
+      end
+    | Cof.Meet (tphi, tpsi) ->
+      begin
+        eval_cof_status tphi |>> function
+        | `Invalid -> ret `Invalid
+        | `Valid -> eval_cof_status tpsi
+      end
 
   and eval_coe_abs code = 
     let* env = read_local in 

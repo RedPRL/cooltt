@@ -1,7 +1,14 @@
 open CoolBasis
 
-type 'a cof 
-type ('a, 'b) tree
+type 'a cof = 
+  | Eq of 'a * 'a
+  | Join of 'a cof * 'a cof
+  | Meet of 'a cof * 'a cof
+
+type ('a, 'b) tree =
+  | Const of 'a cof * 'b
+  | Split of ('a, 'b) tree * ('a, 'b) tree
+
 
 
 val eq : 'a -> 'a -> 'a cof
