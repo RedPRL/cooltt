@@ -31,6 +31,7 @@ and line_clo =
 and pline_clo =
   | PLineClo of S.t * env
   | AppClo of con * pline_clo
+  | FstClo of pline_clo
 
 and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : line_clo}
 

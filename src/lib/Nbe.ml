@@ -210,6 +210,8 @@ struct
     | D.AppClo (arg, clo) ->
       let* con = inst_pline_clo clo r in 
       do_ap con arg
+    | D.FstClo clo -> 
+      do_fst @<< inst_pline_clo clo r
 
   and do_goal_proj =
     function
@@ -219,18 +221,19 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "do_goal_proj"
 
-  and do_fst p : D.con compute =
-    match p with
-    | D.Pair (p1, _) -> 
-      ret p1
+  and do_fst con : D.con compute =
+    match con with
+    | D.Pair (con0, _) -> 
+      ret con0
 
     | D.ConCoe (D.CoeAbs abs, r, s, f) -> 
-      let* peek_base, peek_fam = dest_sg_code abs.peek in
+      let* peek_base, _ = dest_sg_code abs.peek in
       let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.SgCoeBaseClo abs.clo} in
       do_rigid_coe base_abs r s @<< do_fst f
 
-    | D.ConHCom _ -> 
-      failwith "TODO: do_fst / ConHCom"
+    | D.ConHCom (code, r, s, phi, clo) -> 
+      let* base, _ = dest_sg_code code in
+      do_rigid_hcom base r s phi @@ D.FstClo clo
 
     | D.Cut {tp = D.Tp (D.Sg (base, _)); cut; unfold} ->
       ret @@ cut_frm ~tp:base ~cut ~unfold D.KFst
@@ -238,13 +241,16 @@ struct
     | _ -> 
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
 
-  and do_snd p : D.con compute =
-    match p with
-    | D.Pair (_, p2) -> ret p2
+  and do_snd con : D.con compute =
+    match con with
+    | D.Pair (_, con1) -> 
+      ret con1
+
     | D.Cut {tp = D.Tp (D.Sg (_, fam)); cut; unfold} ->
-      let* fst = do_fst p in
+      let* fst = do_fst con in
       let+ fib = inst_tp_clo fam [fst] in 
       cut_frm ~tp:fib ~cut ~unfold D.KSnd
+
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
   and do_ap f a =
@@ -262,8 +268,8 @@ struct
       in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
-    | D.ConHCom (picode, r, s, phi, clo) ->
-      let* base, fam = dest_pi_code picode in
+    | D.ConHCom (code, r, s, phi, clo) ->
+      let* base, fam = dest_pi_code code in
       let* fib = inst_tm_clo fam [a] in
       do_rigid_hcom fib r s phi @@ D.AppClo (a, clo)
 
