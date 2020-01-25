@@ -94,7 +94,7 @@ struct
     M.scope @@ fun (st, rst, veil, size) ->
     st, rst, veil, i + size
 
-  let lift_cmp (m : 'a compute) : 'a m = 
+  let lift_cmp (m : 'a compute) : 'a m =   
     fun (st, rst, _, _) ->
     m (st, rst)
 

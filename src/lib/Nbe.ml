@@ -44,7 +44,7 @@ struct
     | D.TpCode (D.Pi (base, fam)) ->
       ret (base, fam)
     | _ ->
-      CmpM.throw @@ NbeFailed "Expected pi code"
+      throw @@ NbeFailed "Expected pi code"
 
   let rec whnf_con =
     function
@@ -65,6 +65,13 @@ struct
       begin
         equal_dim r s |>> function
         | true -> whnf_con con 
+        | false -> ret picoe
+      end
+
+    | D.PiHCom (_, r, s, phi, clo) as picoe ->
+      begin
+        test_sequent [] (Cof.join (Cof.eq r s) phi) |>> function
+        | true -> whnf_con @<< inst_pline_clo clo s
         | false -> ret picoe
       end
 
@@ -220,6 +227,9 @@ struct
     match clo with
     | D.PLineClo (bdy, env) -> 
       lift_ev (env <>< [`Dim r]) @@ eval bdy
+    | D.AppClo (arg, clo) ->
+      let* con = inst_pline_clo clo r in 
+      do_ap con arg
 
   and do_goal_proj =
     function
@@ -243,6 +253,11 @@ struct
         D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; pi_clo = abs.clo}}
       in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
+
+    | D.PiHCom (picode, r, s, phi, clo) ->
+      let* base, fam = dest_pi_code picode in
+      let* fib = inst_tm_clo fam [a] in
+      do_rigid_hcom fib r s phi @@ D.AppClo (a, clo)
 
     | D.Cut {tp = D.Tp (D.Pi (base, fam)); cut; unfold} ->
       let+ fib = inst_tp_clo fam [a] in
@@ -297,7 +312,18 @@ struct
       throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
 
   and do_rigid_hcom code r s phi clo = 
-    failwith "TODO"
+    match code with 
+    | D.TpCode (D.Pi _) ->
+      ret @@ D.PiHCom (code, r, s, phi, clo)
+    | D.Cut {unfold = Some lcon} ->
+      let* code = force_lazy_con lcon in 
+      do_rigid_hcom code r s phi clo
+    | D.Cut {cut; unfold = None} ->
+      let tp = D.Tp (D.El cut) in
+      let hd = D.HCom (cut, r, s, phi, clo) in
+      ret @@ D.Cut {tp; cut = hd, []; unfold = None}
+    | _ ->
+      throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
