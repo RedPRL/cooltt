@@ -39,9 +39,9 @@ struct
 
   let rec whnf_con =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Cut {cut = _, None; _} as con -> 
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Cut {unfold = None} as con -> 
       ret con
-    | D.Cut {cut = _, Some lcon} -> 
+    | D.Cut {unfold = Some lcon} -> 
       whnf_con @<< force_lazy_con lcon
     | D.PiCoe (abs, r, s, con) as picoe ->
       begin
@@ -62,36 +62,42 @@ struct
     | D.Suc n -> 
       let* v = do_nat_elim ~ghost mot zero suc n in 
       inst_tm_clo suc [n; v]
-    | D.Cut {cut; _} ->
-      let+ final_tp = inst_tp_clo mot [n] in
-      let k = D.KNatElim (ghost, mot, zero, suc) in
-      D.Cut {tp = final_tp; cut = push_frm k cut}
+    | D.Cut {cut; unfold} ->
+      let+ fib = inst_tp_clo mot [n] in
+      cut_frm ~tp:fib ~cut ~unfold @@
+      D.KNatElim (ghost, mot, zero, suc) 
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
   and do_id_elim ~ghost mot refl eq =
     match eq with
     | D.Refl t -> inst_tm_clo refl [t]
-    | D.Cut {tp = D.Tp tp; cut} -> 
-      begin
-        match tp with
-        | D.Id (tp, left, right) ->
-          let+ fib = inst_tp_clo mot [left; right; eq] in
-          let k = D.KIdElim (ghost, mot, refl, tp, left, right) in
-          D.Cut {tp = fib; cut = push_frm k cut}
-        | _ -> 
-          CmpM.throw @@ NbeFailed "Not an Id in do_id_elim"
-      end
+    | D.Cut {tp = D.Tp (D.Id (tp, con0, con1)); cut; unfold} -> 
+      let+ fib = inst_tp_clo mot [con0; con1; eq] in 
+      cut_frm ~tp:fib ~cut ~unfold @@
+      D.KIdElim (ghost, mot, refl, tp, con0, con1)
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
   and do_fst p : D.con compute =
     match p with
     | D.Pair (p1, _) -> ret p1
-    | D.Cut ({tp = D.Tp (D.Sg (base, _))} as gl) ->
-      ret @@ D.Cut {tp = base; cut = push_frm D.KFst gl.cut} 
+    | D.Cut {tp = D.Tp (D.Sg (base, _)); cut; unfold} ->
+      ret @@ cut_frm ~tp:base ~cut ~unfold D.KFst
     | _ -> 
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
+
+  and cut_frm ~tp ~cut ~unfold frm = 
+    let unfold = 
+      unfold |> Option.map @@ 
+      function 
+      | `Done con ->
+        `Do (con, [frm])
+      | `Do (con, spine) -> 
+        `Do (con, spine @ [frm])
+    in
+    D.Cut {tp; cut = D.push frm cut; unfold}
+
 
   and push_frm k =
     function
@@ -110,10 +116,10 @@ struct
   and do_snd p : D.con compute =
     match p with
     | D.Pair (_, p2) -> ret p2
-    | D.Cut {tp = D.Tp (D.Sg (_, clo)); cut} ->
+    | D.Cut {tp = D.Tp (D.Sg (_, fam)); cut; unfold} ->
       let* fst = do_fst p in
-      let+ fib = inst_tp_clo clo [fst] in 
-      D.Cut {tp = fib; cut = push_frm D.KSnd cut} 
+      let+ fib = inst_tp_clo fam [fst] in 
+      cut_frm ~tp:fib ~cut ~unfold D.KSnd
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp compute =
@@ -157,21 +163,25 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "Expected pi code"
 
-  and dest_pi_tp con = 
-    match con with 
+  and dest_pi_tp = 
+    function
     | D.Tp (D.Pi (base, fam)) ->
       ret (base, fam)
     | _ ->
       CmpM.throw @@ NbeFailed "Expected pi type"
 
-
-
+  and dest_id_tp =
+    function
+    | D.Tp (D.Id (tp, con0, con1)) ->
+      ret (tp, con0, con1)
+    | _ -> 
+      CmpM.throw @@ NbeFailed "expected identity type"
 
   and do_goal_proj =
     function
     | D.GoalRet con -> ret con
-    | D.Cut {tp = D.Tp (D.GoalTp (_, tp)); cut} ->
-      ret @@ D.Cut {tp; cut = push_frm D.KGoalProj cut}
+    | D.Cut {tp = D.Tp (D.GoalTp (_, tp)); cut; unfold} ->
+      ret @@ cut_frm ~tp ~cut ~unfold D.KGoalProj
     | _ ->
       CmpM.throw @@ NbeFailed "do_goal_proj"
 
@@ -191,11 +201,9 @@ struct
       in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
-    | D.Cut {tp; cut} ->
-      let* base, fam = dest_pi_tp tp in
+    | D.Cut {tp = D.Tp (D.Pi (base, fam)); cut; unfold} ->
       let+ fib = inst_tp_clo fam [a] in
-      let k = D.KAp (base, a) in
-      D.Cut {tp = fib; cut = push_frm k cut}
+      cut_frm ~tp:fib ~cut ~unfold @@ D.KAp (base, a) 
 
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a function in do_ap"
@@ -218,12 +226,11 @@ struct
 
   and do_el =
     function
-    | D.Cut {cut = cut, None; tp = D.Tp D.Univ} ->
+    | D.Cut {cut; unfold = None} ->
       ret @@ D.Tp (D.El cut)
 
-    | D.Cut {cut = _, Some r; tp = D.Tp D.Univ} ->
-      let* con = force_lazy_con r in 
-      do_el con
+    | D.Cut {unfold = Some lcon} ->
+      do_el @<< force_lazy_con lcon
 
     | D.TpCode D.Nat ->
       ret @@ D.Tp D.Nat
@@ -314,8 +321,7 @@ struct
     | S.Global sym -> 
       let* st = EvM.read_global in
       let tp, con = ElabState.get_global sym st in
-      let lcon = `Done con in
-      ret @@ D.Cut {tp = tp; cut = (D.Global sym, []), Some lcon}
+      ret @@ D.Cut {tp; cut = (D.Global sym, []); unfold = Some (`Done con)}
     | S.Let (def, body) -> 
       let* vdef = eval def in 
       append [`Con vdef] @@ eval body
@@ -427,9 +433,9 @@ struct
 
   let rec quote_con (D.Tp tp) con : S.t m =
     match tp, con with 
-    | _, D.Cut {cut = (hd, sp), olcon; tp} ->
+    | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
-        match hd, olcon with
+        match hd, unfold with
         | D.Global sym, Some lcon ->
           let* veil = read_veil in
           begin
@@ -682,7 +688,7 @@ struct
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
       equate_con (D.Tp tp) con0 con1
-    | _, D.Cut {cut = cut0, None}, D.Cut {cut = cut1, None} ->
+    | _, D.Cut {cut = cut0; unfold = None}, D.Cut {cut = cut1; unfold = None} ->
       equate_cut cut0 cut1
     | _, (D.TpCode _ as con0), (D.TpCode _ as con1) -> 
       let* tp0 = lift_cmp @@ do_el con0 in
