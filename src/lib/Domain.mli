@@ -3,6 +3,11 @@ open CoolBasis
 open TLNat
 open Bwd
 
+type dim =
+  | Dim0
+  | Dim1
+  | DimVar of int (* De Bruijn level *)
+
 type env = [`Con of con | `Dim of dim | `Prf] bwd
 
 and ('n, 't, 'o) clo = 
@@ -63,11 +68,6 @@ and frm =
   | KNatElim of ghost option * ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
-
-and dim =
-  | Dim0
-  | Dim1
-  | DimVar of int (* De Bruijn level *)
 
 and ghost = string bwd * [`Con of (tp * con) | `Dim of dim] list
 

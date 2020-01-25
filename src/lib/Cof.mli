@@ -1,0 +1,26 @@
+open CoolBasis
+
+type 'a cof 
+type ('a, 'b) tree
+
+
+val eq : 'a -> 'a -> 'a cof
+val join : 'a cof -> 'a cof -> 'a cof
+val meet : 'a cof -> 'a cof -> 'a cof
+
+val const : 'a cof -> 'b -> ('a, 'b) tree
+val split : ('a, 'b) tree -> ('a, 'b) tree -> ('a, 'b) tree
+
+
+val condition : ('a, 'b) tree -> 'a cof
+
+
+val pp_cof 
+  : (Pp.env -> 'a Pp.printer) 
+  -> Pp.env 
+  -> 'a cof Pp.printer
+
+val pp_tree 
+  : (Pp.env -> 'a Pp.printer)
+  -> (Pp.env -> 'b Pp.printer)
+  -> Pp.env -> ('a, 'b) tree Pp.printer
