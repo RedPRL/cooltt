@@ -12,12 +12,12 @@ and ('n, 't, 'o) clo =
 and 'n tm_clo = ('n, S.t, con) clo
 and 'n tp_clo = ('n, S.tp, tp) clo
 
-and dim_clo = 
-  | DimClo of S.t * env
-  | PiCoeBaseClo of {pi_clo : dim_clo}
-  | PiCoeFibClo of {dest : dim; base_abs : con coe_abs; arg : con; pi_clo: dim_clo}
+and line_clo = 
+  | LineClo of S.t * env
+  | PiCoeBaseClo of {pi_clo : line_clo}
+  | PiCoeFibClo of {dest : dim; base_abs : con coe_abs; arg : con; pi_clo: line_clo}
 
-and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : dim_clo}
+and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : line_clo}
 
 and con =
   | Lam of ze su tm_clo

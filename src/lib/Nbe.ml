@@ -19,7 +19,7 @@ sig
 
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
-  val inst_dim_con_clo : D.dim_clo -> D.dim -> D.con compute
+  val inst_line_clo : D.line_clo -> D.dim -> D.con compute
   val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
@@ -184,17 +184,17 @@ struct
       lift_ev (env <>< cons) @@ 
       eval bdy
 
-  and inst_dim_con_clo : D.dim_clo -> D.dim -> D.con compute = 
+  and inst_line_clo : D.line_clo -> D.dim -> D.con compute = 
     fun clo r ->
     match clo with 
-    | D.DimClo (bdy, env) ->
+    | D.LineClo (bdy, env) ->
       lift_ev (env <>< [`Dim r]) @@ eval bdy
     | D.PiCoeBaseClo clo -> 
-      let* pi_code = inst_dim_con_clo clo.pi_clo r in
+      let* pi_code = inst_line_clo clo.pi_clo r in
       let+ base, _ = dest_pi_code pi_code in
       base
     | D.PiCoeFibClo clo -> 
-      let* pi_code = inst_dim_con_clo clo.pi_clo r in
+      let* pi_code = inst_line_clo clo.pi_clo r in
       let* base, fam = dest_pi_code pi_code in
       let* arg_r = do_coe clo.dest r clo.base_abs clo.arg in
       inst_tm_clo fam [arg_r]
@@ -269,7 +269,7 @@ struct
     | D.Cut {cut; unfold = None} ->
       let coe_abs = D.CoeAbs {abs with peek = cut} in
       let hd = D.Coe (coe_abs, r, s, con) in
-      let+ tp = do_el @<< inst_dim_con_clo abs.clo s in
+      let+ tp = do_el @<< inst_line_clo abs.clo s in
       D.Cut {tp; cut = hd, []; unfold = None}
     | _ ->
       throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
@@ -432,7 +432,7 @@ struct
   and eval_coe_abs code = 
     let* env = read_local in 
     let lvl = Bwd.length env in
-    let clo = D.DimClo (code, env) in
+    let clo = D.LineClo (code, env) in
     let+ peek = append [`Dim (D.DimVar lvl)] @@ eval code in
     D.CoeAbs {peek; clo; lvl} 
 
@@ -616,7 +616,7 @@ struct
       let* tpcode = binder 1 @@ quote_cut abs.peek in
       let* tr = quote_dim r in
       let* ts = quote_dim s in
-      let* tp_con_r = lift_cmp @@ inst_dim_con_clo abs.clo r in
+      let* tp_con_r = lift_cmp @@ inst_line_clo abs.clo r in
       let* tp_r = lift_cmp @@ do_el tp_con_r in
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
@@ -867,7 +867,7 @@ struct
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
       let* () = binder 1 @@ equate_cut abs0.peek abs1.peek in
-      let* code = lift_cmp @@ inst_dim_con_clo abs0.clo r0 in
+      let* code = lift_cmp @@ inst_line_clo abs0.clo r0 in
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
     | _ ->
