@@ -6,9 +6,11 @@ open Bwd
 type dim =
   | Dim0
   | Dim1
-  | DimVar of int (* De Bruijn level *)
+  | DimVar of int
 
-type env = [`Con of con | `Dim of dim | `Prf] bwd
+type cof = dim Cof.cof
+
+type env = [`Con of con | `Dim of dim] bwd
 
 and ('n, 't, 'o) clo = 
   | Clo : {bdy : 't; env : env}  -> ('n, 't, 'o) clo
@@ -56,6 +58,7 @@ and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
   | Coe of cut coe_abs * dim * dim * con
+  | HCom of cut * dim * dim * cof * pline_clo
 
 and cut = hd * frm list
 

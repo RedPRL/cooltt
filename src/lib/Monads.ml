@@ -15,11 +15,15 @@ struct
 
   let compare_dim r s = 
     let+ (_, rst) = read in 
-    Restriction.compare r s rst
+    Restriction.compare rst r s
 
   let equal_dim r s = 
     let+ (_, rst) = read in 
-    Restriction.equal r s rst
+    Restriction.equal rst r s
+
+  let test_sequent cx phi =
+    let+ (_, rst) = read in 
+    Restriction.test_sequent rst cx phi 
 end
 
 type 'a compute = 'a CmpM.m
@@ -93,6 +97,32 @@ struct
   let lift_cmp (m : 'a compute) : 'a m = 
     fun (st, rst, _, _) ->
     m (st, rst)
+
+  let under_dim_eq_ r s m =
+    fun (st, rst, veil, size) ->
+    match Restriction.equate rst r s with
+    | exception Restriction.Inconsistent -> 
+      Result.Ok ()
+    | rst' ->
+      m (st, rst', veil, size)
+
+
+  let rec under_cofs_ cx m = 
+    match cx with 
+    | [] -> m
+
+    | Cof.Eq (r, s) :: cx -> 
+      under_dim_eq_ r s @@ 
+      under_cofs_ cx m
+
+    | Cof.Join (phi, psi) :: cx -> 
+      let+ () = under_cofs_ (phi :: cx) m 
+      and+ () = under_cofs_ (psi :: cx) m in 
+      ()
+
+    | Cof.Meet (phi, psi) :: cx ->
+      under_cofs_ (phi :: psi :: cx) m
+
 
   include E
   include M

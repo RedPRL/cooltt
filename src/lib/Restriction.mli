@@ -7,7 +7,10 @@ val emp : unit -> t
 
 
 (* May raise Inconsistent *)
-val equate : dim -> dim -> t -> t
+val equate : t -> dim -> dim -> t
 
-val compare : dim -> dim -> t -> [`Same | `Apart | `Indet]
-val equal : dim -> dim -> t -> bool
+val compare : t -> dim -> dim -> [`Same | `Apart | `Indet]
+val equal : t -> dim -> dim -> bool
+
+(** Checks whether a sequent is valid by left-inversion proof search *)
+val test_sequent : t -> dim Cof.cof list -> dim Cof.cof -> bool

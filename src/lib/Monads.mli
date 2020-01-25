@@ -15,6 +15,7 @@ module CmpM : sig
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val compare_dim : D.dim -> D.dim -> [`Same | `Apart | `Indet] m
   val equal_dim : D.dim -> D.dim -> bool m
+  val test_sequent : D.dim Cof.cof list -> D.dim Cof.cof -> bool m
 end
 
 module EvM : sig 
@@ -28,7 +29,7 @@ module EvM : sig
 
   val close_tp : S.tp -> 'n D.tp_clo m
   val close_tm : S.t -> 'n D.tm_clo m
-  val append : [`Con of D.con | `Dim of D.dim | `Prf] list -> 'a m -> 'a m
+  val append : [`Con of D.con | `Dim of D.dim] list -> 'a m -> 'a m
 end
 
 module QuM : sig 
@@ -42,6 +43,8 @@ module QuM : sig
   val read_veil : Veil.t m
 
   val binder : int -> 'a m -> 'a m
+
+  val under_cofs_ : D.dim Cof.cof list -> unit m -> unit m
 end
 
 module ElabM : sig

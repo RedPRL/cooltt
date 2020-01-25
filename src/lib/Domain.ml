@@ -4,7 +4,14 @@ open CoolBasis
 open Bwd 
 open TLNat
 
-type env = [`Con of con | `Dim of dim | `Prf] bwd
+type dim =
+  | Dim0
+  | Dim1
+  | DimVar of int
+
+type cof = dim Cof.cof
+
+type env = [`Con of con | `Dim of dim] bwd
 
 and ('n, 't, 'o) clo = 
   | Clo : {bdy : 't; env : env}  -> ('n, 't, 'o) clo
@@ -54,6 +61,7 @@ and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
   | Coe of cut coe_abs * dim * dim * con
+  | HCom of cut * dim * dim * cof * pline_clo
 
 and frm = 
   | KAp of tp * con
@@ -62,11 +70,6 @@ and frm =
   | KNatElim of ghost option * ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
-
-and dim =
-  | Dim0
-  | Dim1
-  | DimVar of int (* De Bruijn level *)
 
 and ghost = string bwd * [`Con of (tp * con) | `Dim of dim] list
 

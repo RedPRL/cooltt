@@ -20,6 +20,8 @@ sig
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
   val inst_line_clo : D.line_clo -> D.dim -> D.con compute
+  val inst_pline_clo : D.pline_clo -> D.dim -> D.con compute
+
   val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
@@ -85,6 +87,20 @@ struct
             let coe_abs = D.CoeAbs {abs with peek = code} in
             let+ coe = do_rigid_coe coe_abs r s con in
             `Reduce coe
+      end
+    | D.HCom (cut, r, s, phi, clo) ->
+      begin
+        Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
+        | true ->
+          let+ con = inst_pline_clo clo s in
+          `Reduce con
+        | false -> 
+          whnf_cut cut |>> function
+          | `Unchanged -> 
+            ret `Unchanged
+          | `Reduce code ->
+            let+ hcom = do_rigid_hcom code r s phi clo in 
+            `Reduce hcom
       end
 
   and whnf_tp = 
@@ -199,6 +215,12 @@ struct
       let* arg_r = do_coe clo.dest r clo.base_abs clo.arg in
       inst_tm_clo fam [arg_r]
 
+  and inst_pline_clo : D.pline_clo -> D.dim -> D.con compute =
+    fun clo r ->
+    match clo with
+    | D.PLineClo (bdy, env) -> 
+      lift_ev (env <>< [`Dim r]) @@ eval bdy
+
   and do_goal_proj =
     function
     | D.GoalRet con -> ret con
@@ -273,6 +295,9 @@ struct
       D.Cut {tp; cut = hd, []; unfold = None}
     | _ ->
       throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
+
+  and do_rigid_hcom code r s phi clo = 
+    failwith "TODO"
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
@@ -437,12 +462,13 @@ struct
   and eval_cof_tree =
     function
     | Cof.Const (tphi, tm) ->
+      let* phi = eval_cof tphi in
       begin
-        eval_cof_status tphi |>> function
-        | `Valid -> 
+        CmpM.test_sequent [] phi |> lift_cmp |>> function
+        | true ->
           let+ con = eval tm in 
           `Valid con
-        | `Invalid -> 
+        | false -> 
           ret `Invalid
       end
     | Cof.Split (tree0, tree1) -> 
@@ -452,28 +478,20 @@ struct
       | `Invalid -> 
         eval_cof_tree tree1
 
-  and eval_cof_status =
+  and eval_cof =
     function
     | Cof.Eq (tr, ts) -> 
-      let* r = eval_dim tr in
-      let* s = eval_dim ts in 
-      begin
-        CmpM.equal_dim r s |> lift_cmp |>> function
-        | true -> ret `Valid
-        | false -> ret `Invalid
-      end
+      let+ r = eval_dim tr 
+      and+ s = eval_dim ts in
+      Cof.eq r s
     | Cof.Join (tphi, tpsi) ->
-      begin
-        eval_cof_status tphi |>> function
-        | `Valid -> ret `Valid
-        | `Invalid -> eval_cof_status tpsi
-      end
+      let+ phi = eval_cof tphi
+      and+ psi = eval_cof tpsi in
+      Cof.join phi psi
     | Cof.Meet (tphi, tpsi) ->
-      begin
-        eval_cof_status tphi |>> function
-        | `Invalid -> ret `Invalid
-        | `Valid -> eval_cof_status tpsi
-      end
+      let+ phi = eval_cof tphi
+      and+ psi = eval_cof tpsi in
+      Cof.meet phi psi
 
   and eval_coe_abs code = 
     let* env = read_local in 
@@ -542,6 +560,10 @@ struct
   let top_var tp =
     let+ n = read_local in 
     D.mk_var tp @@ n - 1
+
+  let top_dim_var =
+    let+ n = read_local in
+    D.DimVar (n - 1)
 
   let rec quote_con (D.Tp tp) con : S.t m =
     match tp, con with 
@@ -671,6 +693,8 @@ struct
       let* tp_r = lift_cmp @@ do_el tp_con_r in
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
+    | D.HCom (cut, r, s, phi, clo) ->
+      failwith "TODO: quote_hd/hcom"
 
   and quote_dim =
     function
@@ -925,9 +949,28 @@ struct
       let* code = lift_cmp @@ inst_line_clo abs0.clo r0 in
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
+    | D.HCom (cut0, r0, s0, phi0, clo0), D.HCom (cut1, r1, s1, phi1, clo1) ->
+      let* () = equate_cut cut0 cut1 in
+      let* () = equate_dim r0 r1 in
+      let* () = equate_dim s0 s1 in
+      let* () = approx_cof phi0 phi1 in
+      let* () = approx_cof phi1 phi0 in
+      binder 1 @@ 
+      let* i = top_dim_var in
+      under_cofs_ [Cof.join (Cof.eq i r0) phi0] @@ 
+      let* con0 = lift_cmp @@ inst_pline_clo clo0 i in
+      let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
+      let tp = D.Tp (D.El cut0) in
+      equate_con tp con0 con1
     | _ ->
       throw @@ NbeFailed "Different heads"
 
+  and approx_cof phi psi =
+    CmpM.test_sequent [phi] psi |> lift_cmp |>> function 
+    | false ->
+      throw @@ NbeFailed "Invalid cofibration sequent"
+    | true ->
+      ret ()
 
   let equal_tp tp0 tp1 : bool quote = 
     successful @@ equate_tp tp0 tp1
