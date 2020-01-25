@@ -28,7 +28,7 @@ module EvM : sig
 
   val close_tp : S.tp -> 'n D.tp_clo m
   val close_tm : S.t -> 'n D.tm_clo m
-  val append : [`Con of D.con | `Dim of D.dim] list -> 'a m -> 'a m
+  val append : [`Con of D.con | `Dim of D.dim | `Prf] list -> 'a m -> 'a m
 end
 
 module QuM : sig 
