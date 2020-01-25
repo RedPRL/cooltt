@@ -136,8 +136,12 @@ let current_ghost : S.ghost option m =
           let tp = Env.ConCell.tp cell in
           let* ttp = lift_qu @@ Nbe.quote_tp tp in
           let* tm = lift_qu @@ Nbe.quote_con tp @@ Env.ConCell.con cell in
-          ret @@ cells @ [ttp, tm]
+          ret @@ cells @ [`Con (ttp, tm)]
       end
+    | Snoc (cells, `Dim cell) ->
+      let* cells = go_locals cells in
+      let+ r = lift_qu @@ Nbe.quote_dim @@ Env.DimCell.dim cell in
+      cells @ [`Dim r]
   in
   let+ cells = go_locals @@ Env.locals env in
   match Env.problem env with

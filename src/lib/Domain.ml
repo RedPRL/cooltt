@@ -68,7 +68,7 @@ and dim =
   | Dim1
   | DimVar of int (* De Bruijn level *)
 
-and ghost = string bwd * (tp * con) list
+and ghost = string bwd * [`Con of (tp * con) | `Dim of dim] list
 
 let pp_tp fmt _ = 
   Format.fprintf fmt "<tp>"

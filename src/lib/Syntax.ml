@@ -37,7 +37,7 @@ and dim =
   | Dim1
   | DimVar of int (* De Bruijn index *)
 
-and ghost = string bwd * (tp * t) list
+and ghost = string bwd * [`Con of (tp * t) | `Dim of dim] list
 
 let rec condense = 
   function
@@ -159,8 +159,11 @@ and pp_ghost_ env mode fmt ((name, cells), scrut) =
   let rec go_cells env fmt =
     function 
     | [] -> pp env fmt scrut
-    | (_, tm) :: cells -> 
+    | `Con (_, tm) :: cells -> 
+      (* should that really be `Ap? *)
       Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (go_cells env) cells
+    | `Dim r :: cells -> 
+      Fmt.fprintf fmt "%a@ %a" (pp_dim env) r (go_cells env) cells
   in
   match mode with
   | `Ap ->

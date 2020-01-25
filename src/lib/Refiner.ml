@@ -34,6 +34,8 @@ struct
         let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
         and+ fam = EM.push_var name ctp @@ go_tp cells in
         S.Tp (S.Pi (base, fam))
+      | `Dim _ :: _ -> 
+        failwith "Not supported yet"
     in
 
     let rec go_tm cut : Env.cell bwd -> D.cut =
@@ -41,6 +43,8 @@ struct
       | Emp -> cut
       | Snoc (cells, `Con cell) ->
         go_tm cut cells |> D.push @@ D.KAp (Env.ConCell.tp cell, Env.ConCell.con cell)
+      | Snoc (_, `Dim _) ->
+        failwith "Not supported yet"
     in
 
     let* env = EM.read in

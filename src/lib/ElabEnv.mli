@@ -13,8 +13,16 @@ module ConCell : sig
   val con : t -> D.con
 end
 
+module DimCell : sig
+  type t
+
+  val name : t -> string option
+  val dim : t -> D.dim
+end
+
+
 type t
-type cell = [`Con of ConCell.t]
+type cell = [`Con of ConCell.t | `Dim of DimCell.t]
 
 val locals : t -> cell bwd
 

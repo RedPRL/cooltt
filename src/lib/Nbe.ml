@@ -462,11 +462,15 @@ struct
       let rec go =
         function 
         | [] -> ret []
-        | (tp, tm) :: cells -> 
+        | `Con (tp, tm) :: cells -> 
           let* tp = eval_tp tp in 
           let* con = eval tm in
           let* cells = go cells in
-          ret @@ (tp, con) :: cells
+          ret @@ `Con (tp, con) :: cells
+        | `Dim tr :: cells ->
+          let* r = eval_dim tr in
+          let* cells = go cells in
+          ret @@ `Dim r :: cells
       in 
       let+ cells = go cells in
       Some (lbl, cells)
@@ -477,6 +481,7 @@ module Quote : sig
   val quote_tp : D.tp -> S.tp quote
   val equal_con : D.tp -> D.con -> D.con -> bool quote
   val quote_cut : D.cut -> S.t quote
+  val quote_dim : D.dim -> S.dim quote
   val equal_tp : D.tp -> D.tp -> bool quote
   val equal_cut : D.cut -> D.cut -> bool quote
   val equate_con : D.tp -> D.con -> D.con -> unit quote
@@ -647,11 +652,15 @@ struct
       let rec go =
         function
         | [] -> ret []
-        | (tp, con) :: cells ->
-          let* ttp = quote_tp tp in
-          let* tm = quote_con tp con in 
-          let* cells = go cells in
-          ret @@ (ttp, tm) :: cells
+        | `Con (tp, con) :: cells ->
+          let+ ttp = quote_tp tp 
+          and+ tm = quote_con tp con 
+          and+ cells = go cells in
+          `Con (ttp, tm) :: cells
+        | `Dim r :: cells ->
+          let+ tr = quote_dim r
+          and+ cells = go cells in
+          `Dim tr :: cells
       in
       let+ cells = go cells in
       Some (lbl, cells)

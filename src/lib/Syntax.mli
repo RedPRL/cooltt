@@ -36,7 +36,7 @@ and dim =
   | Dim1
   | DimVar of int (* De Bruijn index *)
 
-and ghost = string bwd * (tp * t) list
+and ghost = string bwd * [`Con of (tp * t) | `Dim of dim] list
 
 type env = tp list
 

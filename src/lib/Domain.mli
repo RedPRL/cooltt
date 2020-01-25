@@ -69,7 +69,7 @@ and dim =
   | Dim1
   | DimVar of int (* De Bruijn level *)
 
-and ghost = string bwd * (tp * con) list
+and ghost = string bwd * [`Con of (tp * con) | `Dim of dim] list
 
 val mk_var : tp -> int -> con
 val push : frm -> cut -> cut
