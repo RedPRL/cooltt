@@ -37,6 +37,13 @@ struct
   open Eval
   open Monad.Notation (CmpM)
 
+  let dest_pi_code con = 
+    match con with 
+    | D.TpCode (D.Pi (base, fam)) ->
+      ret (base, fam)
+    | _ ->
+      CmpM.throw @@ NbeFailed "Expected pi code"
+
   let rec whnf_con =
     function
     | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Cut {unfold = None} as con -> 
@@ -156,27 +163,6 @@ struct
       let* arg_r = do_coe clo.dest r clo.base_abs clo.arg in
       inst_tm_clo fam [arg_r]
 
-  and dest_pi_code con = 
-    match con with 
-    | D.TpCode (D.Pi (base, fam)) ->
-      ret (base, fam)
-    | _ ->
-      CmpM.throw @@ NbeFailed "Expected pi code"
-
-  and dest_pi_tp = 
-    function
-    | D.Tp (D.Pi (base, fam)) ->
-      ret (base, fam)
-    | _ ->
-      CmpM.throw @@ NbeFailed "Expected pi type"
-
-  and dest_id_tp =
-    function
-    | D.Tp (D.Id (tp, con0, con1)) ->
-      ret (tp, con0, con1)
-    | _ -> 
-      CmpM.throw @@ NbeFailed "expected identity type"
-
   and do_goal_proj =
     function
     | D.GoalRet con -> ret con
@@ -184,7 +170,6 @@ struct
       ret @@ cut_frm ~tp ~cut ~unfold D.KGoalProj
     | _ ->
       CmpM.throw @@ NbeFailed "do_goal_proj"
-
 
   and do_ap f a =
     match f with
@@ -207,22 +192,6 @@ struct
 
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a function in do_ap"
-
-  and do_frm con =
-    function
-    | D.KAp (_, con') -> do_ap con con'
-    | D.KFst -> do_fst con
-    | D.KSnd -> do_snd con
-    | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
-    | D.KIdElim (ghost, mot, case_refl, _, _, _) -> do_id_elim ~ghost mot case_refl con
-    | D.KGoalProj -> do_goal_proj con
-
-  and do_spine con =
-    function
-    | [] -> ret con
-    | k :: sp ->
-      let* con' = do_frm con k in
-      do_spine con' sp
 
   and do_el =
     function
@@ -248,12 +217,6 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
-  and force_lazy_con lcon : D.con m = 
-    match lcon with 
-    | `Done con -> ret con
-    | `Do (con, spine) -> 
-      do_spine con spine 
-
   and do_coe r s abs con =
     let* rs_eq = compare_dim r s in
     match rs_eq with
@@ -264,8 +227,41 @@ struct
     match abs.peek with
     | D.TpCode (D.Pi _) ->
       ret @@ D.PiCoe (D.CoeAbs abs, r, s, con)
-    | _ -> 
-      failwith ""
+    | D.Cut {unfold = Some lcon} -> 
+      let* peek = force_lazy_con lcon in
+      let coe_abs = D.CoeAbs {abs with peek} in
+      do_rigid_coe coe_abs r s con
+    | D.Cut {cut; unfold = None} ->
+      let coe_abs = D.CoeAbs {abs with peek = cut} in
+      let hd = D.Coe (coe_abs, r, s, con) in
+      let+ tp = do_el @<< inst_dim_con_clo abs.clo s in
+      D.Cut {tp; cut = hd, []; unfold = None}
+    | _ ->
+      throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
+
+  and force_lazy_con lcon : D.con m = 
+    match lcon with 
+    | `Done con -> ret con
+    | `Do (con, spine) -> 
+      do_spine con spine 
+
+  and do_frm con =
+    function
+    | D.KAp (_, con') -> do_ap con con'
+    | D.KFst -> do_fst con
+    | D.KSnd -> do_snd con
+    | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
+    | D.KIdElim (ghost, mot, case_refl, _, _, _) -> do_id_elim ~ghost mot case_refl con
+    | D.KGoalProj -> do_goal_proj con
+
+  and do_spine con =
+    function
+    | [] -> ret con
+    | k :: sp ->
+      let* con' = do_frm con k in
+      do_spine con' sp
+
+
 end
 
 and Eval :
@@ -551,6 +547,8 @@ struct
       S.Var (n - (lvl + 1))
     | D.Global sym ->
       ret @@ S.Global sym
+    | D.Coe _ ->
+      failwith "TODO"
 
   and quote_cut (hd, spine) = 
     let* tm = quote_hd hd in 

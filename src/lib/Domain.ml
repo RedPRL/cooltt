@@ -51,6 +51,7 @@ and (_, _) gtp =
 and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
+  | Coe of cut coe_abs * dim * dim * con
 
 and frm = 
   | KAp of tp * con
