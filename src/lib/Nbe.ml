@@ -46,6 +46,13 @@ struct
     | _ ->
       throw @@ NbeFailed "Expected pi code"
 
+  let dest_sg_code con = 
+    match con with 
+    | D.TpCode (D.Sg (base, fam)) ->
+      ret (base, fam)
+    | _ ->
+      throw @@ NbeFailed "Expected pi code"
+
   let rec whnf_con =
     function
     | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ as con ->
@@ -146,14 +153,6 @@ struct
     | _ -> 
       CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
-  and do_fst p : D.con compute =
-    match p with
-    | D.Pair (p1, _) -> ret p1
-    | D.Cut {tp = D.Tp (D.Sg (base, _)); cut; unfold} ->
-      ret @@ cut_frm ~tp:base ~cut ~unfold D.KFst
-    | _ -> 
-      throw @@ NbeFailed "Couldn't fst argument in do_fst"
-
   and cut_frm ~tp ~cut ~unfold frm = 
     let unfold = 
       unfold |> Option.map @@ 
@@ -164,15 +163,6 @@ struct
         `Do (con, spine @ [frm])
     in
     D.Cut {tp; cut = D.push frm cut; unfold}
-
-  and do_snd p : D.con compute =
-    match p with
-    | D.Pair (_, p2) -> ret p2
-    | D.Cut {tp = D.Tp (D.Sg (_, fam)); cut; unfold} ->
-      let* fst = do_fst p in
-      let+ fib = inst_tp_clo fam [fst] in 
-      cut_frm ~tp:fib ~cut ~unfold D.KSnd
-    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
   and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp compute =
     fun clo xs ->
@@ -199,8 +189,12 @@ struct
     | D.LineClo (bdy, env) ->
       lift_ev (env <>< [`Dim r]) @@ eval bdy
     | D.PiCoeBaseClo clo -> 
-      let* pi_code = inst_line_clo clo.pi_clo r in
+      let* pi_code = inst_line_clo clo r in
       let+ base, _ = dest_pi_code pi_code in
+      base
+    | D.SgCoeBaseClo clo -> 
+      let* sg_code = inst_line_clo clo r in
+      let+ base, _ = dest_pi_code sg_code in
       base
     | D.PiCoeFibClo clo -> 
       let* pi_code = inst_line_clo clo.pi_clo r in
@@ -225,6 +219,34 @@ struct
     | _ ->
       CmpM.throw @@ NbeFailed "do_goal_proj"
 
+  and do_fst p : D.con compute =
+    match p with
+    | D.Pair (p1, _) -> 
+      ret p1
+
+    | D.ConCoe (D.CoeAbs abs, r, s, f) -> 
+      let* peek_base, peek_fam = dest_sg_code abs.peek in
+      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.SgCoeBaseClo abs.clo} in
+      do_rigid_coe base_abs r s @<< do_fst f
+
+    | D.ConHCom _ -> 
+      failwith "TODO: do_fst / ConHCom"
+
+    | D.Cut {tp = D.Tp (D.Sg (base, _)); cut; unfold} ->
+      ret @@ cut_frm ~tp:base ~cut ~unfold D.KFst
+
+    | _ -> 
+      throw @@ NbeFailed "Couldn't fst argument in do_fst"
+
+  and do_snd p : D.con compute =
+    match p with
+    | D.Pair (_, p2) -> ret p2
+    | D.Cut {tp = D.Tp (D.Sg (_, fam)); cut; unfold} ->
+      let* fst = do_fst p in
+      let+ fib = inst_tp_clo fam [fst] in 
+      cut_frm ~tp:fib ~cut ~unfold D.KSnd
+    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
+
   and do_ap f a =
     match f with
     | D.Lam clo -> 
@@ -232,7 +254,7 @@ struct
 
     | D.ConCoe (D.CoeAbs abs, r, s, f) ->
       let* peek_base, peek_fam = dest_pi_code abs.peek in
-      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.PiCoeBaseClo {pi_clo = abs.clo}} in
+      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.PiCoeBaseClo abs.clo} in
       let* fib_abs = 
         let* a_i = do_rigid_coe base_abs s (D.DimVar abs.lvl) a in
         let+ peek_fib = inst_tm_clo peek_fam [a_i] in

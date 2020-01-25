@@ -22,8 +22,9 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 
 and line_clo = 
   | LineClo of S.t * env
-  | PiCoeBaseClo of {pi_clo : line_clo}
+  | PiCoeBaseClo of line_clo
   | PiCoeFibClo of {dest : dim; base_abs : con coe_abs; arg : con; pi_clo: line_clo}
+  | SgCoeBaseClo of line_clo
 
 and pline_clo =
   | PLineClo of S.t * env
