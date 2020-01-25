@@ -665,6 +665,12 @@ struct
       ret @@ S.GoalProj tm
 
 
+  let equate_dim r s =
+    CmpM.equal_dim r s |> lift_cmp |>> function
+    | true -> ret ()
+    | false -> throw @@ NbeFailed "Expected dimensions to be equal"
+
+  (* Invariant: tp0 and tp1 not necessarily whnf *)
   let rec equate_tp tp0 tp1 = 
     let* D.Tp tp0 = lift_cmp @@ whnf_tp tp0 in
     let* D.Tp tp1 = lift_cmp @@ whnf_tp tp1 in
@@ -691,6 +697,7 @@ struct
     | _tp0, _tp1 -> 
       throw @@ NbeFailed ("Unequal types")
 
+  (* Invariant: tp, con0, con1 not necessarily whnf *)
   and equate_con tp con0 con1 =
     let* D.Tp tp = lift_cmp @@ whnf_tp tp in 
     let* con0 = lift_cmp @@ whnf_con con0 in
@@ -730,12 +737,14 @@ struct
     | _ -> 
       throw @@ NbeFailed ("Unequal values ")
 
+  (* Invariant: cut0, cut1 are whnf *)
   and equate_cut cut0 cut1 = 
     let hd0, sp0 = cut0 in
     let hd1, sp1 = cut1 in
     let* () = equate_hd hd0 hd1 in
     equate_spine sp0 sp1
 
+  (* Invariant: sp0, sp1 are whnf *)
   and equate_spine sp0 sp1 =
     match sp0, sp1 with
     | [], [] -> ret ()
@@ -745,6 +754,7 @@ struct
     | _ -> 
       throw @@ NbeFailed "Spine length mismatch"
 
+  (* Invariant: k0, k1 are whnf *)
   and equate_frm k0 k1 = 
     match k0, k1 with 
     | D.KFst, D.KFst 
@@ -800,6 +810,7 @@ struct
     | _ -> 
       throw @@ NbeFailed "Mismatched frames"
 
+  (* Invariant: hd0, hd1 are whnf *)
   and equate_hd hd0 hd1 = 
     match hd0, hd1 with
     | D.Global sym0, D.Global sym1 ->
@@ -808,6 +819,13 @@ struct
     | D.Var lvl0, D.Var lvl1 ->
       if lvl0 = lvl1 then ret () else
         throw @@ NbeFailed "Different head variables"
+    | D.Coe (D.CoeAbs abs0, r0, s0, con0), D.Coe (D.CoeAbs abs1, r1, s1, con1) -> 
+      let* () = equate_dim r0 r1 in
+      let* () = equate_dim s0 s1 in
+      let* () = binder 1 @@ equate_cut abs0.peek abs1.peek in
+      let* code = lift_cmp @@ inst_dim_con_clo abs0.clo s0 in
+      let* tp = lift_cmp @@ do_el code in
+      equate_con tp con0 con1
     | _ ->
       throw @@ NbeFailed "Different heads"
 
