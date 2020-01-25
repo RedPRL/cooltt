@@ -301,8 +301,9 @@ end
 
 and Eval :
 sig
-  val eval_tp : S.tp -> D.tp evaluate
   val eval : S.t -> D.con evaluate
+  val eval_tp : S.tp -> D.tp evaluate
+  val eval_dim : S.dim -> D.dim evaluate
 end = 
 struct 
   open EvM
@@ -340,12 +341,22 @@ struct
       let+ tp = eval_tp tp in
       D.Tp (D.GoalTp (lbl, tp))
 
+  and eval_dim = 
+    function
+    | S.DimVar i ->
+      begin
+        get_local i |>> function
+        | `Dim r -> ret r
+        | _ -> throw @@ NbeFailed "Expected `Dim cell in environment"
+      end
+    | S.Dim0 -> ret D.Dim0
+    | S.Dim1 -> ret D.Dim1
+
   and eval =
     function
     | S.Var i -> 
-      let* cell = get_local i in
       begin 
-        match cell with
+        get_local i |>> function
         | `Con con -> ret con
         | _ -> throw @@ NbeFailed "Expected `Con cell in environment"
       end
