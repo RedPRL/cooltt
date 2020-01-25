@@ -46,21 +46,57 @@ struct
 
   let rec whnf_con =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Cut {unfold = None} as con -> 
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ as con ->
       ret con
+
     | D.Cut {unfold = Some lcon} -> 
       whnf_con @<< force_lazy_con lcon
+
+    | D.Cut {unfold = None; cut} as con ->
+      begin
+        whnf_cut cut |>> function 
+        | `Unchanged -> ret con
+        | `Reduce con -> ret con
+      end
+
     | D.PiCoe (abs, r, s, con) as picoe ->
       begin
-        let* rs_eq = compare_dim r s in
-        match rs_eq with
-        | `Same -> whnf_con con
+        compare_dim r s |>> function
+        | `Same -> whnf_con con 
         | _ -> ret picoe
+      end
+
+  and whnf_cut cut : [`Unchanged | `Reduce of D.con] m=
+    let hd, sp = cut in
+    match hd with
+    | D.Global _ | D.Var _ -> 
+      ret `Unchanged
+    | D.Coe (D.CoeAbs abs, r, s, con) -> 
+      begin
+        compare_dim r s |>> function
+        | `Same -> 
+          let+ con = whnf_con con in 
+          `Reduce con
+        | _ ->
+          whnf_cut abs.peek |>> function
+          | `Unchanged -> 
+            ret `Unchanged
+          | `Reduce code -> 
+            let coe_abs = D.CoeAbs {abs with peek = code} in
+            let+ coe = do_rigid_coe coe_abs r s con in
+            `Reduce coe
       end
 
   and whnf_tp = 
     function
-    | tp -> ret tp
+    | D.Tp (D.El cut) as tp ->
+      begin
+        whnf_cut cut |>> function
+        | `Unchanged -> ret tp
+        | `Reduce con -> do_el con 
+      end
+    | tp -> 
+      ret tp
 
   and do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
