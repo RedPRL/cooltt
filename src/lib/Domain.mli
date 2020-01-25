@@ -35,8 +35,8 @@ and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : line_clo}
 
 and con =
   | Lam of ze su tm_clo
-  | PiCoe of con coe_abs * dim * dim * con
-  | PiHCom of con * dim * dim * cof * pline_clo
+  | ConCoe of con coe_abs * dim * dim * con
+  | ConHCom of con * dim * dim * cof * pline_clo
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
   | Suc of con

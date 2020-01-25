@@ -61,18 +61,19 @@ struct
         | `Reduce con -> ret con
       end
 
-    | D.PiCoe (abs, r, s, con) as picoe ->
+    | D.ConCoe (abs, r, s, con) 
+      as coe ->
       begin
         equal_dim r s |>> function
         | true -> whnf_con con 
-        | false -> ret picoe
+        | false -> ret coe
       end
 
-    | D.PiHCom (_, r, s, phi, clo) as picoe ->
+    | D.ConHCom (_, r, s, phi, clo) as hcom ->
       begin
         test_sequent [] (Cof.join (Cof.eq r s) phi) |>> function
         | true -> whnf_con @<< inst_pline_clo clo s
-        | false -> ret picoe
+        | false -> ret hcom
       end
 
   and whnf_cut cut : [`Unchanged | `Reduce of D.con] m=
@@ -244,7 +245,7 @@ struct
     | D.Lam clo -> 
       inst_tm_clo clo [a]
 
-    | D.PiCoe (D.CoeAbs abs, r, s, f) ->
+    | D.ConCoe (D.CoeAbs abs, r, s, f) ->
       let* peek_base, peek_fam = dest_pi_code abs.peek in
       let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.PiCoeBaseClo {pi_clo = abs.clo}} in
       let* fib_abs = 
@@ -254,7 +255,7 @@ struct
       in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
-    | D.PiHCom (picode, r, s, phi, clo) ->
+    | D.ConHCom (picode, r, s, phi, clo) ->
       let* base, fam = dest_pi_code picode in
       let* fib = inst_tm_clo fam [a] in
       do_rigid_hcom fib r s phi @@ D.AppClo (a, clo)
@@ -298,7 +299,7 @@ struct
   and do_rigid_coe (D.CoeAbs abs) r s con =
     match abs.peek with
     | D.TpCode (D.Pi _) ->
-      ret @@ D.PiCoe (D.CoeAbs abs, r, s, con)
+      ret @@ D.ConCoe (D.CoeAbs abs, r, s, con)
     | D.Cut {unfold = Some lcon} -> 
       let* peek = force_lazy_con lcon in
       let coe_abs = D.CoeAbs {abs with peek} in
@@ -314,7 +315,7 @@ struct
   and do_rigid_hcom code r s phi clo = 
     match code with 
     | D.TpCode (D.Pi _) ->
-      ret @@ D.PiHCom (code, r, s, phi, clo)
+      ret @@ D.ConHCom (code, r, s, phi, clo)
     | D.Cut {unfold = Some lcon} ->
       let* code = force_lazy_con lcon in 
       do_rigid_hcom code r s phi clo
