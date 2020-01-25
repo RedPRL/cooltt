@@ -16,6 +16,10 @@ struct
   let compare_dim r s = 
     let+ (_, rst) = read in 
     Restriction.compare r s rst
+
+  let equal_dim r s = 
+    let+ (_, rst) = read in 
+    Restriction.equal r s rst
 end
 
 type 'a compute = 'a CmpM.m

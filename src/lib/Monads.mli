@@ -14,6 +14,7 @@ module CmpM : sig
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val compare_dim : D.dim -> D.dim -> [`Same | `Apart | `Indet] m
+  val equal_dim : D.dim -> D.dim -> bool m
 end
 
 module EvM : sig 

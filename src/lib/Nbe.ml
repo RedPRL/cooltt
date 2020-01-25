@@ -61,9 +61,9 @@ struct
 
     | D.PiCoe (abs, r, s, con) as picoe ->
       begin
-        compare_dim r s |>> function
-        | `Same -> whnf_con con 
-        | _ -> ret picoe
+        equal_dim r s |>> function
+        | true -> whnf_con con 
+        | false -> ret picoe
       end
 
   and whnf_cut cut : [`Unchanged | `Reduce of D.con] m=
@@ -73,11 +73,11 @@ struct
       ret `Unchanged
     | D.Coe (D.CoeAbs abs, r, s, con) -> 
       begin
-        compare_dim r s |>> function
-        | `Same -> 
+        equal_dim r s |>> function
+        | true -> 
           let+ con = whnf_con con in 
           `Reduce con
-        | _ ->
+        | false ->
           whnf_cut abs.peek |>> function
           | `Unchanged -> 
             ret `Unchanged
@@ -254,9 +254,8 @@ struct
       CmpM.throw @@ NbeFailed "do_el failed"
 
   and do_coe r s abs con =
-    let* rs_eq = compare_dim r s in
-    match rs_eq with
-    | `Same -> ret con
+    equal_dim r s |>> function
+    | true -> ret con 
     | _ -> do_rigid_coe abs r s con
 
   and do_rigid_coe (D.CoeAbs abs) r s con =
