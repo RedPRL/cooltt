@@ -215,6 +215,9 @@ struct
       do_ap con arg
     | D.FstClo clo -> 
       do_fst @<< inst_pline_clo clo r
+    | D.ComClo (s, coe_abs, clo) ->
+      let* con = inst_pline_clo clo r in
+      do_rigid_coe coe_abs r s con
 
   and do_goal_proj =
     function
@@ -268,8 +271,6 @@ struct
       let* fst = do_fst con in
       let+ fib = inst_tp_clo fam [fst] in 
       cut_frm ~tp:fib ~cut ~unfold D.KSnd
-
-
 
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
@@ -358,6 +359,10 @@ struct
       ret @@ D.Cut {tp; cut = hd, []; unfold = None}
     | _ ->
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
+
+  and do_rigid_com (D.CoeAbs abs) r s phi clo =
+    let* code_s = inst_line_clo abs.clo s in
+    do_rigid_hcom code_s r s phi @@ D.ComClo (s, D.CoeAbs abs, clo)
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
