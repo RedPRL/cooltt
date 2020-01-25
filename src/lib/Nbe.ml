@@ -197,10 +197,13 @@ struct
       let+ base, _ = dest_pi_code sg_code in
       base
     | D.PiCoeFibClo clo -> 
-      let* pi_code = inst_line_clo clo.pi_clo r in
-      let* base, fam = dest_pi_code pi_code in
+      let* base, fam = dest_pi_code @<< inst_line_clo clo.clo r in
       let* arg_r = do_coe clo.dest r clo.base_abs clo.arg in
       inst_tm_clo fam [arg_r]
+    | D.SgCoeFibClo clo ->
+      let* base, fam = dest_sg_code @<< inst_line_clo clo.clo r in
+      let* fst_r = do_coe clo.src r clo.base_abs clo.fst in
+      inst_tm_clo fam [fst_r]
 
   and inst_pline_clo : D.pline_clo -> D.dim -> D.con compute =
     fun clo r ->
@@ -226,10 +229,10 @@ struct
     | D.Pair (con0, _) -> 
       ret con0
 
-    | D.ConCoe (D.CoeAbs abs, r, s, f) -> 
+    | D.ConCoe (D.CoeAbs abs, r, s, con) -> 
       let* peek_base, _ = dest_sg_code abs.peek in
       let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.SgCoeBaseClo abs.clo} in
-      do_rigid_coe base_abs r s @<< do_fst f
+      do_rigid_coe base_abs r s @<< do_fst con
 
     | D.ConHCom (code, r, s, phi, clo) -> 
       let* base, _ = dest_sg_code code in
@@ -246,10 +249,27 @@ struct
     | D.Pair (_, con1) -> 
       ret con1
 
+    | D.ConCoe (D.CoeAbs abs, r, s, con) -> 
+      let* peek_base, peek_fam = dest_sg_code abs.peek in
+      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.SgCoeBaseClo abs.clo} in
+      let* fib_abs = 
+        let* con_fst = do_fst con in
+        let* con_fst_i = do_rigid_coe base_abs r (D.DimVar abs.lvl) con_fst in
+        let+ peek_fib = inst_tm_clo peek_fam [con_fst_i] in
+        D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.SgCoeFibClo {src = r; base_abs; fst = con_fst; clo = abs.clo}}
+      in
+      do_rigid_coe fib_abs r s @<< do_snd con
+
+    | D.ConHCom (code, r, s, phi, clo) -> 
+      let* base, _ = dest_sg_code code in
+      failwith "todo: sg/hcom/snd"
+
     | D.Cut {tp = D.Tp (D.Sg (_, fam)); cut; unfold} ->
       let* fst = do_fst con in
       let+ fib = inst_tp_clo fam [fst] in 
       cut_frm ~tp:fib ~cut ~unfold D.KSnd
+
+
 
     | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
@@ -264,7 +284,7 @@ struct
       let* fib_abs = 
         let* a_i = do_rigid_coe base_abs s (D.DimVar abs.lvl) a in
         let+ peek_fib = inst_tm_clo peek_fam [a_i] in
-        D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; pi_clo = abs.clo}}
+        D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; clo = abs.clo}}
       in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
