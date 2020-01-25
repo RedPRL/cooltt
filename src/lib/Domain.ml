@@ -6,7 +6,6 @@ open TLNat
 
 type env = [`Con of con | `Dim of dim] bwd
 
-
 and ('n, 't, 'o) clo = 
   | Clo : {bdy : 't; env : env}  -> ('n, 't, 'o) clo
   | ElClo : ('n, S.t, con) clo -> ('n, S.tp, tp) clo
