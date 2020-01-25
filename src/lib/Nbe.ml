@@ -32,7 +32,8 @@ sig
   val do_spine : D.con -> D.frm list -> D.con compute
   val do_el : D.con -> D.tp compute
   val force_lazy_con : D.lazy_con -> D.con compute
-  val do_rigid_coe : D.con D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
+
+  val do_rigid_coe : D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
 end =
 struct
   open CmpM
@@ -88,20 +89,16 @@ struct
     match hd with
     | D.Global _ | D.Var _ -> 
       ret `Unchanged
-    | D.Coe (D.CoeAbs abs, r, s, con) -> 
+    | D.Coe (abs, r, s, con) -> 
       begin
         equal_dim r s |>> function
         | true -> 
           let+ con = whnf_con con in 
           `Reduce con
         | false ->
-          whnf_cut abs.peek |>> function
-          | `Unchanged -> 
-            ret `Unchanged
-          | `Reduce code -> 
-            let coe_abs = D.CoeAbs {abs with peek = code} in
-            let+ coe = do_rigid_coe coe_abs r s con in
-            `Reduce coe
+          (* TODO, improve *)
+          let+ coe = do_rigid_coe abs r s con in 
+          `Reduce coe
       end
     | D.HCom (cut, r, s, phi, clo) ->
       begin
@@ -204,6 +201,9 @@ struct
       let* base, fam = dest_sg_code @<< inst_line_clo clo.clo r in
       let* fst_r = do_coe clo.src r clo.base_abs clo.fst in
       inst_tm_clo fam [fst_r]
+    | D.SgHComFibClo clo ->
+      let* fst_r = do_rigid_hcom clo.base clo.src r clo.cof @@ D.FstClo clo.clo in
+      inst_tm_clo clo.fam [fst_r]
 
   and inst_pline_clo : D.pline_clo -> D.dim -> D.con compute =
     fun clo r ->
@@ -215,6 +215,8 @@ struct
       do_ap con arg
     | D.FstClo clo -> 
       do_fst @<< inst_pline_clo clo r
+    | D.SndClo clo -> 
+      do_snd @<< inst_pline_clo clo r
     | D.ComClo (s, coe_abs, clo) ->
       let* con = inst_pline_clo clo r in
       do_rigid_coe coe_abs r s con
@@ -233,8 +235,7 @@ struct
       ret con0
 
     | D.ConCoe (D.CoeAbs abs, r, s, con) -> 
-      let* peek_base, _ = dest_sg_code abs.peek in
-      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.SgCoeBaseClo abs.clo} in
+      let base_abs = D.CoeAbs {clo = D.SgCoeBaseClo abs.clo} in
       do_rigid_coe base_abs r s @<< do_fst con
 
     | D.ConHCom (code, r, s, phi, clo) -> 
@@ -253,26 +254,23 @@ struct
       ret con1
 
     | D.ConCoe (D.CoeAbs abs, r, s, con) -> 
-      let* peek_base, peek_fam = dest_sg_code abs.peek in
-      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.SgCoeBaseClo abs.clo} in
-      let* fib_abs = 
-        let* con_fst = do_fst con in
-        let* con_fst_i = do_rigid_coe base_abs r (D.DimVar abs.lvl) con_fst in
-        let+ peek_fib = inst_tm_clo peek_fam [con_fst_i] in
-        D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.SgCoeFibClo {src = r; base_abs; fst = con_fst; clo = abs.clo}}
-      in
+      let base_abs = D.CoeAbs {clo = D.SgCoeBaseClo abs.clo} in
+      let* con_fst = do_fst con in
+      let fib_abs = D.CoeAbs {clo = D.SgCoeFibClo {src = r; base_abs; fst = con_fst; clo = abs.clo}} in
       do_rigid_coe fib_abs r s @<< do_snd con
 
     | D.ConHCom (code, r, s, phi, clo) -> 
-      let* base, _ = dest_sg_code code in
-      failwith "todo: sg/hcom/snd"
+      let* base, fam = dest_sg_code code in
+      let* fib_abs = ret @@ D.CoeAbs {clo = SgHComFibClo {src = r; base; fam; cof = phi; clo}} in
+      do_rigid_com fib_abs r s phi @@ D.SndClo clo
 
     | D.Cut {tp = D.Tp (D.Sg (_, fam)); cut; unfold} ->
       let* fst = do_fst con in
       let+ fib = inst_tp_clo fam [fst] in 
       cut_frm ~tp:fib ~cut ~unfold D.KSnd
 
-    | _ -> throw @@ NbeFailed ("Couldn't snd argument in do_snd")
+    | _ -> 
+      throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
   and do_ap f a =
     match f with
@@ -280,13 +278,8 @@ struct
       inst_tm_clo clo [a]
 
     | D.ConCoe (D.CoeAbs abs, r, s, f) ->
-      let* peek_base, peek_fam = dest_pi_code abs.peek in
-      let base_abs = D.CoeAbs {lvl = abs.lvl; peek = peek_base; clo = D.PiCoeBaseClo abs.clo} in
-      let* fib_abs = 
-        let* a_i = do_rigid_coe base_abs s (D.DimVar abs.lvl) a in
-        let+ peek_fib = inst_tm_clo peek_fam [a_i] in
-        D.CoeAbs {lvl = abs.lvl; peek = peek_fib; clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; clo = abs.clo}}
-      in
+      let base_abs = D.CoeAbs {clo = D.PiCoeBaseClo abs.clo} in
+      let fib_abs = D.CoeAbs {clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; clo = abs.clo}} in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
     | D.ConHCom (code, r, s, phi, clo) ->
@@ -331,20 +324,22 @@ struct
     | _ -> do_rigid_coe abs r s con
 
   and do_rigid_coe (D.CoeAbs abs) r s con =
-    match abs.peek with
-    | D.TpCode (D.Pi _) ->
-      ret @@ D.ConCoe (D.CoeAbs abs, r, s, con)
-    | D.Cut {unfold = Some lcon} -> 
-      let* peek = force_lazy_con lcon in
-      let coe_abs = D.CoeAbs {abs with peek} in
-      do_rigid_coe coe_abs r s con
-    | D.Cut {cut; unfold = None} ->
-      let coe_abs = D.CoeAbs {abs with peek = cut} in
-      let hd = D.Coe (coe_abs, r, s, con) in
-      let+ tp = do_el @<< inst_line_clo abs.clo s in
-      D.Cut {tp; cut = hd, []; unfold = None}
-    | _ ->
-      throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
+    let i = D.DimProbe (Symbol.fresh ()) in
+    let rec go peek =
+      match peek with
+      | D.TpCode (D.Pi _) ->
+        ret @@ D.ConCoe (D.CoeAbs abs, r, s, con)
+      | D.Cut {unfold = Some lcon} -> 
+        go @<< force_lazy_con lcon
+      | D.Cut {cut; unfold = None} ->
+        let hd = D.Coe (D.CoeAbs abs, r, s, con) in
+        let+ tp = do_el @<< inst_line_clo abs.clo s in
+        D.Cut {tp; cut = hd, []; unfold = None}
+      | _ ->
+        throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
+    in
+    go @<< inst_line_clo abs.clo i
+
 
   and do_rigid_hcom code r s phi clo = 
     match code with 
@@ -386,7 +381,13 @@ struct
       let* con' = do_frm con k in
       do_spine con' sp
 
-
+  and pline_clo_lvl = 
+    function
+    | D.PLineClo (_, env) -> Bwd.length env
+    | D.AppClo (_, clo) -> pline_clo_lvl clo
+    | D.FstClo clo -> pline_clo_lvl clo
+    | D.SndClo clo -> pline_clo_lvl clo
+    | D.ComClo (_,_,clo) -> pline_clo_lvl clo
 end
 
 and Eval :
@@ -559,11 +560,9 @@ struct
       Cof.meet phi psi
 
   and eval_coe_abs code = 
-    let* env = read_local in 
-    let lvl = Bwd.length env in
+    let+ env = read_local in 
     let clo = D.LineClo (code, env) in
-    let+ peek = append [`Dim (D.DimVar lvl)] @@ eval code in
-    D.CoeAbs {peek; clo; lvl} 
+    D.CoeAbs {clo} 
 
   and eval_tp_code =
     function
@@ -751,7 +750,12 @@ struct
     | D.Global sym ->
       ret @@ S.Global sym
     | D.Coe (D.CoeAbs abs, r, s, con) ->
-      let* tpcode = binder 1 @@ quote_cut abs.peek in
+      let* tpcode = 
+        binder 1 @@ 
+        let* i = top_dim_var in
+        let* code = lift_cmp @@ inst_line_clo abs.clo i in
+        quote_con (D.Tp D.Univ) code
+      in
       let* tr = quote_dim r in
       let* ts = quote_dim s in
       let* tp_con_r = lift_cmp @@ inst_line_clo abs.clo r in
@@ -768,6 +772,8 @@ struct
     | D.DimVar lvl -> 
       let+ n = read_local in 
       S.DimVar (n - (lvl + 1))
+    | D.DimProbe _ -> 
+      failwith "DimProbe should not be quoted!"
 
   and quote_cut (hd, spine) = 
     let* tm = quote_hd hd in 
@@ -1010,7 +1016,13 @@ struct
     | D.Coe (D.CoeAbs abs0, r0, s0, con0), D.Coe (D.CoeAbs abs1, r1, s1, con1) -> 
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
-      let* () = binder 1 @@ equate_cut abs0.peek abs1.peek in
+      let* () = 
+        binder 1 @@ 
+        let* i = top_dim_var in
+        let* code0 = lift_cmp @@ inst_line_clo abs0.clo i in
+        let* code1 = lift_cmp @@ inst_line_clo abs0.clo i in
+        equate_con (D.Tp D.Univ) code0 code1
+      in
       let* code = lift_cmp @@ inst_line_clo abs0.clo r0 in
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1

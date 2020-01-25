@@ -8,6 +8,7 @@ type dim =
   | Dim0
   | Dim1
   | DimVar of int
+  | DimProbe of Symbol.t
 
 type cof = dim Cof.cof
 
@@ -23,20 +24,24 @@ and 'n tp_clo = ('n, S.tp, tp) clo
 and line_clo = 
   | LineClo of S.t * env
   | PiCoeBaseClo of line_clo
-  | PiCoeFibClo of {dest : dim; base_abs : con coe_abs; arg : con; clo: line_clo}
+  | PiCoeFibClo of {dest : dim; base_abs : coe_abs; arg : con; clo: line_clo}
   | SgCoeBaseClo of line_clo
-  | SgCoeFibClo of {src : dim; base_abs : con coe_abs; fst : con; clo: line_clo}
+  | SgCoeFibClo of {src : dim; base_abs : coe_abs; fst : con; clo: line_clo}
+  | SgHComFibClo of {src : dim; base : con; fam : ze su tm_clo; cof : cof; clo : pline_clo}
 
 and pline_clo =
   | PLineClo of S.t * env
   | AppClo of con * pline_clo
   | FstClo of pline_clo
+  | SndClo of pline_clo
+  | ComClo of dim * coe_abs * pline_clo
 
-and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : line_clo}
+and coe_shape = [`Pi | `Sg | `Cut]
+and coe_abs = CoeAbs of {clo : line_clo}
 
 and con =
   | Lam of ze su tm_clo
-  | ConCoe of con coe_abs * dim * dim * con
+  | ConCoe of coe_abs * dim * dim * con
   | ConHCom of con * dim * dim * cof * pline_clo
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
@@ -65,7 +70,7 @@ and (_, _) gtp =
 and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
-  | Coe of cut coe_abs * dim * dim * con
+  | Coe of coe_abs * dim * dim * con
   | HCom of cut * dim * dim * cof * pline_clo
 
 and frm = 
