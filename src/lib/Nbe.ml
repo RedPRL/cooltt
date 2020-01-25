@@ -834,7 +834,7 @@ struct
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
       let* () = binder 1 @@ equate_cut abs0.peek abs1.peek in
-      let* code = lift_cmp @@ inst_dim_con_clo abs0.clo s0 in
+      let* code = lift_cmp @@ inst_dim_con_clo abs0.clo r0 in
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
     | _ ->
