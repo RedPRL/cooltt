@@ -19,6 +19,9 @@ and line_clo =
   | PiCoeBaseClo of {pi_clo : line_clo}
   | PiCoeFibClo of {dest : dim; base_abs : con coe_abs; arg : con; pi_clo: line_clo}
 
+and pline_clo =
+  | PLineClo of S.t * env
+
 and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : line_clo}
 
 and con =

@@ -12,10 +12,16 @@ and ('n, 't, 'o) clo =
 and 'n tm_clo = ('n, S.t, con) clo
 and 'n tp_clo = ('n, S.tp, tp) clo
 
+(** line closures *)
 and line_clo = 
   | LineClo of S.t * env
   | PiCoeBaseClo of {pi_clo : line_clo}
   | PiCoeFibClo of {dest : dim; base_abs : con coe_abs; arg : con; pi_clo: line_clo}
+
+
+(** partial line closures *)
+and pline_clo =
+  | PLineClo of S.t * env
 
 and 'a coe_abs = CoeAbs of {lvl : int; peek : 'a; clo : line_clo}
 
