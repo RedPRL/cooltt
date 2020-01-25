@@ -17,6 +17,7 @@ type t =
   | IdElim of ghost option * tp * t * t
   | GoalRet of t
   | GoalProj of t
+  | Coe of t * dim * dim * t
   | TpCode of t gtp
 
 and tp = Tp of tp gtp
@@ -68,6 +69,14 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, Ann (tm, tp) ->
     Fmt.fprintf fmt "@[<hv1>(: @[<hov>%a@ %a@])@]" 
       (pp_tp env) tp 
+      (pp env) tm
+  | _, Coe (code, r, s, tm) ->
+    let x, envx = Pp.Env.bind env None in
+    Fmt.fprintf fmt "@[<hv1>(coe@ [%a] %a@ %a %a@ %a)@]"
+      Uuseg_string.pp_utf_8 x 
+      (pp env) code
+      (pp_dim env) r 
+      (pp_dim env) s
       (pp env) tm
   | _, Zero ->
     Fmt.fprintf fmt "0"
@@ -134,6 +143,15 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(goal-proj %a)@]" (pp env) tm
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
+
+and pp_dim env fmt =
+  function
+  | Dim0 -> 
+    Format.fprintf fmt "0"
+  | Dim1 -> 
+    Format.fprintf fmt "1"
+  | DimVar i -> 
+    Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var i env
 
 and pp env = pp_ env `Start
 

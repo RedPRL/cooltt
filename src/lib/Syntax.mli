@@ -17,6 +17,7 @@ type t =
   | IdElim of ghost option * tp * t * t
   | GoalRet of t
   | GoalProj of t
+  | Coe of t * dim * dim * t
   | TpCode of t gtp
 
 and tp = Tp of tp gtp

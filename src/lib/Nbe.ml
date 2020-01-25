@@ -28,9 +28,9 @@ sig
   val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
   val do_spine : D.con -> D.frm list -> D.con compute
-
   val do_el : D.con -> D.tp compute
   val force_lazy_con : D.lazy_con -> D.con compute
+  val do_rigid_coe : D.con D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
 end =
 struct
   open CmpM
@@ -416,6 +416,25 @@ struct
     | S.TpCode tm ->
       let+ vcode = eval_tp_code tm in
       D.TpCode vcode
+    | S.Coe (tpcode, tr, ts, tm) ->
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in
+      let* con = eval tm in
+      begin
+        CmpM.equal_dim r s |> lift_cmp |>> function
+        | true -> 
+          ret con
+        | false -> 
+          let* coe_abs = eval_coe_abs tpcode in
+          lift_cmp @@ do_rigid_coe coe_abs r s con
+      end
+
+  and eval_coe_abs code = 
+    let* env = read_local in 
+    let lvl = Bwd.length env in
+    let clo = D.DimClo (code, env) in
+    let+ peek = append [`Dim (D.DimVar lvl)] @@ eval code in
+    D.CoeAbs {peek; clo; lvl} 
 
   and eval_tp_code =
     function
@@ -593,8 +612,22 @@ struct
       S.Var (n - (lvl + 1))
     | D.Global sym ->
       ret @@ S.Global sym
-    | D.Coe _ ->
-      failwith "TODO"
+    | D.Coe (D.CoeAbs abs, r, s, con) ->
+      let* tpcode = binder 1 @@ quote_cut abs.peek in
+      let* tr = quote_dim r in
+      let* ts = quote_dim s in
+      let* tp_con_r = lift_cmp @@ inst_dim_con_clo abs.clo r in
+      let* tp_r = lift_cmp @@ do_el tp_con_r in
+      let+ tm = quote_con tp_r con in
+      S.Coe (tpcode, tr, ts, tm)
+
+  and quote_dim =
+    function
+    | D.Dim0 -> ret S.Dim0 
+    | D.Dim1 -> ret S.Dim1
+    | D.DimVar lvl -> 
+      let+ n = read_local in 
+      S.DimVar (n - (lvl + 1))
 
   and quote_cut (hd, spine) = 
     let* tm = quote_hd hd in 
