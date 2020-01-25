@@ -165,21 +165,6 @@ struct
     in
     D.Cut {tp; cut = D.push frm cut; unfold}
 
-
-  and push_frm k =
-    function
-    | cut, None -> 
-      D.push k cut, None
-    | cut, Some lcon -> 
-      let s = 
-        match lcon with
-        | `Done con ->
-          `Do (con, [k])
-        | `Do (con, spine) ->
-          `Do (con, spine @ [k])
-      in 
-      D.push k cut, Some s
-
   and do_snd p : D.con compute =
     match p with
     | D.Pair (_, p2) -> ret p2
