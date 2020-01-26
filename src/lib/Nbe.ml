@@ -14,8 +14,9 @@ exception NbeFailed of string
 
 module rec Compute : 
 sig 
-  val whnf_con : D.con -> D.con compute
-  val whnf_tp : D.tp -> D.tp compute
+  type 'a whnf = [`Done | `Reduce of 'a]
+  val whnf_con : D.con -> D.con whnf compute
+  val whnf_tp : D.tp -> D.tp whnf compute
 
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
@@ -55,47 +56,48 @@ struct
     | _ ->
       throw @@ NbeFailed "Expected pi code"
 
-  let rec whnf_con =
+  type 'a whnf = [`Done | `Reduce of 'a]
+
+  let rec whnf_con : D.con -> D.con whnf m =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort as con ->
-      ret con
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort ->
+      ret `Done
 
     | D.Cut {unfold = Some lcon} -> 
-      whnf_con @<< force_lazy_con lcon
+      reduce_to @<< force_lazy_con lcon
 
-    | D.Cut {unfold = None; cut} as con ->
-      begin
-        whnf_cut cut |>> function 
-        | `Unchanged -> ret con
-        | `Reduce con -> ret con
-      end
+    | D.Cut {unfold = None; cut} ->
+      whnf_cut cut 
 
-    | D.ConCoe (abs, r, s, con) 
-      as coe ->
+    | D.ConCoe (abs, r, s, con) ->
       begin
         equal_dim r s |>> function
-        | true -> whnf_con con 
-        | false -> ret coe
+        | true -> reduce_to con 
+        | false -> ret `Done
       end
 
-    | D.ConHCom (_, r, s, phi, clo) as hcom ->
+    | D.ConHCom (_, r, s, phi, clo) ->
       begin
         test_sequent [] (Cof.join (Cof.eq r s) phi) |>> function
-        | true -> whnf_con @<< inst_pline_clo clo s
-        | false -> ret hcom
+        | true -> reduce_to @<< inst_pline_clo clo s
+        | false -> ret `Done
       end
 
-  and whnf_cut cut : [`Unchanged | `Reduce of D.con] m=
+  and reduce_to con =
+    whnf_con con |>> function
+    | `Done -> ret @@ `Reduce con
+    | `Reduce con -> ret @@ `Reduce con
+
+  and whnf_cut cut : D.con whnf m=
     let hd, sp = cut in
     match hd with
     | D.Global _ | D.Var _ -> 
-      ret `Unchanged
+      ret `Done
     | D.Coe (abs, r, s, con) -> 
       begin
         equal_dim r s |>> function
         | true -> 
-          let+ con = whnf_con con in 
-          `Reduce con
+          reduce_to con 
         | false ->
           (* TODO, improve *)
           let+ coe = do_rigid_coe abs r s con in 
@@ -109,8 +111,8 @@ struct
           `Reduce con
         | false -> 
           whnf_cut cut |>> function
-          | `Unchanged -> 
-            ret `Unchanged
+          | `Done -> 
+            ret `Done
           | `Reduce code ->
             let+ hcom = do_rigid_hcom code r s phi clo in 
             `Reduce hcom
@@ -118,14 +120,16 @@ struct
 
   and whnf_tp = 
     function
-    | D.Tp (D.El cut) as tp ->
+    | D.Tp (D.El cut) ->
       begin
         whnf_cut cut |>> function
-        | `Unchanged -> ret tp
-        | `Reduce con -> do_el con 
+        | `Done -> ret `Done
+        | `Reduce con -> 
+          let+ tp = do_el con  in
+          `Reduce tp
       end
     | tp -> 
-      ret tp
+      ret `Done
 
   and do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
@@ -934,10 +938,17 @@ struct
     | true -> ret ()
     | false -> throw @@ NbeFailed "Expected dimensions to be equal"
 
+  let contractum_or x =
+    function
+    | `Done -> x
+    | `Reduce y -> y
+
   (* Invariant: tp0 and tp1 not necessarily whnf *)
   let rec equate_tp tp0 tp1 = 
-    let* D.Tp tp0 = lift_cmp @@ whnf_tp tp0 in
-    let* D.Tp tp1 = lift_cmp @@ whnf_tp tp1 in
+    (* let* D.Tp tp0 = lift_cmp @@ whnf_tp tp0 in
+       let* D.Tp tp1 = lift_cmp @@ whnf_tp tp1 in *)
+    let D.Tp tp0 = tp0 in
+    let D.Tp tp1 = tp1 in
     match tp0, tp1 with 
     | D.Pi (base0, fam0), D.Pi (base1, fam1) 
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
@@ -958,14 +969,19 @@ struct
       equate_cut cut0 cut1
     | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
       equate_tp tp0 tp1
-    | _tp0, _tp1 -> 
-      throw @@ NbeFailed ("Unequal types")
+    | tp0, tp1 -> 
+      let* wtp0 = lift_cmp @@ whnf_tp @@ D.Tp tp0 in
+      let* wtp1 = lift_cmp @@ whnf_tp @@ D.Tp tp1 in
+      match wtp0, wtp1 with 
+      | `Done, `Done ->
+        throw @@ NbeFailed ("Unequal types")
+      | _ ->
+        equate_tp 
+          (contractum_or (D.Tp tp0) wtp0)
+          (contractum_or (D.Tp tp1) wtp1)
 
   (* Invariant: tp, con0, con1 not necessarily whnf *)
-  and equate_con tp con0 con1 =
-    let* D.Tp tp = lift_cmp @@ whnf_tp tp in 
-    let* con0 = lift_cmp @@ whnf_con con0 in
-    let* con1 = lift_cmp @@ whnf_con con1 in
+  and equate_con (D.Tp tp) con0 con1 =
     match tp, con0, con1 with
     | D.Pi (base, fam), _, _ ->
       binder 1 @@ 
@@ -999,7 +1015,17 @@ struct
       let* tp1 = lift_cmp @@ do_el con1 in
       equate_tp tp0 tp1
     | _ -> 
-      throw @@ NbeFailed ("Unequal values ")
+      let* wtp = lift_cmp @@ whnf_tp @@ D.Tp tp in 
+      let* wcon0 = lift_cmp @@ whnf_con con0 in
+      let* wcon1 = lift_cmp @@ whnf_con con1 in
+      match wtp, wcon0, wcon1 with
+      | `Done, `Done, `Done ->
+        throw @@ NbeFailed ("Unequal values ")
+      | _ ->
+        equate_con
+          (contractum_or (D.Tp tp) wtp)
+          (contractum_or con0 wcon0)
+          (contractum_or con1 wcon1)
 
   (* Invariant: cut0, cut1 are whnf *)
   and equate_cut cut0 cut1 = 
