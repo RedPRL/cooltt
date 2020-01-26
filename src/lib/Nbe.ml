@@ -617,16 +617,17 @@ struct
     | Some (lbl, cells) ->
       let rec go =
         function 
-        | [] -> ret []
+        | [] -> 
+          ret []
         | `Con (tp, tm) :: cells -> 
-          let* tp = eval_tp tp in 
-          let* con = eval tm in
-          let* cells = go cells in
-          ret @@ `Con (tp, con) :: cells
+          let+ tp = eval_tp tp 
+          and+ con = eval tm
+          and+ cells = go cells in
+          `Con (tp, con) :: cells
         | `Dim tr :: cells ->
-          let* r = eval_dim tr in
-          let* cells = go cells in
-          ret @@ `Dim r :: cells
+          let+ r = eval_dim tr 
+          and+ cells = go cells in
+          `Dim r :: cells
       in 
       let+ cells = go cells in
       Some (lbl, cells)
@@ -1012,7 +1013,7 @@ struct
       let* tp1 = lift_cmp @@ do_el con1 in
       equate_tp tp0 tp1
     | _ -> 
-        throw @@ NbeFailed "unequal values"
+      throw @@ NbeFailed "unequal values"
 
   (* Invariant: cut0, cut1 are whnf *)
   and equate_cut cut0 cut1 = 
