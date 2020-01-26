@@ -98,14 +98,6 @@ struct
     fun (st, rst, _, _) ->
     m (st, rst)
 
-  let under_dim_eq_ r s m =
-    fun (st, rst, veil, size) ->
-    match Restriction.equate rst r s with
-    | exception Restriction.Inconsistent -> 
-      Result.Ok ()
-    | rst' ->
-      m (st, rst', veil, size)
-
   let restrict r s m =
     let* _, rst, _, _ = M.read in
     match Restriction.equate rst r s with
