@@ -5,50 +5,74 @@ open CoolBasis
 open Bwd 
 open BwdNotation
 
+module CmpL = 
+struct
+  type local = 
+    {state : St.t; 
+     restriction : Restriction.t}
+end
+
+module EvL =
+struct
+  type local = 
+    {state : St.t;
+     restriction : Restriction.t; 
+     env : D.env}
+end
+
+module QuL = 
+struct
+  type local = 
+    {state : St.t;
+     restriction : Restriction.t;
+     veil : Veil.t;
+     size : int}
+end
+
+
 module CmpM =
 struct
-  module M = Monad.MonadReaderResult (struct type local = St.t * Restriction.t end)
+  module M = Monad.MonadReaderResult (CmpL)
   open Monad.Notation (M)
-  include M
 
-  let lift_ev env m (st, rst) = m (st, rst, env)
+  let lift_ev env m CmpL.{state; restriction} = 
+    m EvL.{state; restriction; env}
 
   let compare_dim r s = 
-    let+ (_, rst) = read in 
-    Restriction.compare rst r s
+    let+ {restriction} = M.read in 
+    Restriction.compare restriction r s
 
   let equal_dim r s = 
-    let+ (_, rst) = read in 
-    Restriction.equal rst r s
+    let+ {restriction} = M.read in 
+    Restriction.equal restriction r s
 
   let test_sequent cx phi =
-    let+ (_, rst) = read in 
-    Restriction.test_sequent rst cx phi 
+    let+ {restriction} = M.read in 
+    Restriction.test_sequent restriction cx phi 
+
+  include M 
+  include CmpL
 end
 
 type 'a compute = 'a CmpM.m
 
 module EvM =
 struct
-  module E =
-  struct
-    type local = St.t * Restriction.t * D.env
-  end
 
-  module M = Monad.MonadReaderResult (E)
+  module M = Monad.MonadReaderResult (EvL)
   open Monad.Notation (M)
 
   let read_global =
-    let+ (st,_, _) = M.read in 
-    st
+    let+ {state} = M.read in 
+    state
 
   let read_local =
-    let+ (_, _, env) = M.read in 
+    let+ {env} = M.read in 
     env
 
   let append cells = 
-    M.scope @@ fun (st, rst, env) ->
-    st, rst, env <>< cells
+    M.scope @@ fun local ->
+    {local with env = local.env <>< cells}
 
   let close_tp tp : _ m =
     let+ env = read_local in 
@@ -59,10 +83,10 @@ struct
     D.Clo {bdy = t; env}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
-    fun (st, rst, _) ->
-    m (st, rst)
+    fun {state; restriction} ->
+    m {state; restriction}
 
-  include E
+  include EvL
   include M
 end
 
@@ -70,41 +94,37 @@ type 'a evaluate = 'a EvM.m
 
 module QuM =
 struct
-  module E = 
-  struct
-    type local = St.t * Restriction.t * Veil.t * int
-  end
 
-  module M = Monad.MonadReaderResult (E)
+  module M = Monad.MonadReaderResult (QuL)
   open Monad.Notation (M)
 
   let read_global =
-    let+ (st, _, _, _) = M.read in 
-    st
+    let+ {state} = M.read in 
+    state
 
   let read_local =
-    let+ (_, _, _, size) = M.read in 
+    let+ {size} = M.read in 
     size
 
   let read_veil = 
-    let+ (_, _, veil, _) = M.read in
+    let+ {veil} = M.read in
     veil
 
   let binder i =
-    M.scope @@ fun (st, rst, veil, size) ->
-    st, rst, veil, i + size
+    M.scope @@ fun local ->
+    {local with size = i + local.size}
 
   let lift_cmp (m : 'a compute) : 'a m =   
-    fun (st, rst, _, _) ->
-    m (st, rst)
+    fun {state; restriction} ->
+    m {state; restriction} 
 
   let restrict r s m =
-    let* _, rst, _, _ = M.read in
-    match Restriction.equate rst r s with
+    let* {restriction} = M.read in
+    match Restriction.equate restriction r s with
     | exception Restriction.Inconsistent ->
       M.ret `Abort
-    | rst' ->
-      M.scope (fun (st, _, veil, size) -> st, rst', veil, size) @@ 
+    | restriction ->
+      M.scope (fun local -> {local with restriction}) @@
       let+ x = m () in
       `Continue x
 
@@ -148,7 +168,7 @@ struct
     let+ _ = under_cofs cx m in
     ()
 
-  include E
+  include QuL
   include M
 end
 
@@ -175,20 +195,20 @@ struct
     Env.set_veil v env
 
   let lift_qu (m : 'a quote) : 'a m = 
-    fun (st, env) ->
-    match QuM.run (st, Env.restriction env, Env.get_veil env, Env.size env) m with 
-    | Ok v -> Ok v, st
-    | Error exn -> Error exn, st
+    fun (state, env) ->
+    match QuM.run {state; restriction = Env.restriction env; veil = Env.get_veil env; size = Env.size env} m with 
+    | Ok v -> Ok v, state
+    | Error exn -> Error exn, state
 
   let lift_ev (m : 'a evaluate) : 'a m = 
-    fun (st, env) ->
-    match EvM.run (st, Env.restriction env, Env.sem_env env) m with 
-    | Ok v -> Ok v, st 
-    | Error exn -> Error exn, st
+    fun (state, env) ->
+    match EvM.run {state; restriction = Env.restriction env; env = Env.sem_env env} m with 
+    | Ok v -> Ok v, state
+    | Error exn -> Error exn, state
 
   let lift_cmp (m : 'a compute) : 'a m = 
-    fun (st, env) ->
-    match CmpM.run (st, Env.restriction env) m with
-    | Ok v -> Ok v, st 
-    | Error exn -> Error exn, st
+    fun (state, env) ->
+    match CmpM.run {state; restriction = Env.restriction env} m with
+    | Ok v -> Ok v, state
+    | Error exn -> Error exn, state
 end

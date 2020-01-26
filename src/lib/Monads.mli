@@ -10,7 +10,6 @@ type 'a quote
 module CmpM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a compute
-    with type local := St.t * Restriction.t
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val compare_dim : D.dim -> D.dim -> [`Same | `Apart | `Indet] m
