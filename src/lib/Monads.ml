@@ -106,23 +106,55 @@ struct
     | rst' ->
       m (st, rst', veil, size)
 
+  let restrict r s m =
+    let* _, rst, _, _ = M.read in
+    match Restriction.equate rst r s with
+    | exception Restriction.Inconsistent ->
+      M.ret `Abort
+    | rst' ->
+      M.scope (fun (st, _, veil, size) -> st, rst', veil, size) @@ 
+      let+ x = m () in
+      `Continue x
 
-  let rec under_cofs_ cx m = 
-    match cx with 
-    | [] -> m
+  let rec left_focus acc lfoc m = 
+    match lfoc with 
+    | [] -> 
+      let+ x = m in 
+      Cof.const acc x
+    | `Eq (r, s) :: lfoc ->
+      let+ result = 
+        restrict r s @@ fun () ->
+        left_focus (Cof.meet (Cof.eq r s) acc) lfoc m
+      in 
+      match result with 
+      | `Abort -> Cof.abort 
+      | `Continue x -> x
 
-    | Cof.Eq (r, s) :: cx -> 
-      under_dim_eq_ r s @@ 
-      under_cofs_ cx m
-
-    | Cof.Join (phi, psi) :: cx -> 
-      let+ () = under_cofs_ (phi :: cx) m 
-      and+ () = under_cofs_ (psi :: cx) m in 
-      ()
-
+  let rec left_inversion (lfoc : [`Eq of D.dim * D.dim] list) (linv : D.dim Cof.cof list) (m : 'a m) : (D.dim, 'a) Cof.tree m =
+    match linv with 
+    | [] -> 
+      left_focus Cof.top lfoc m
+    | Cof.Eq (r, s) :: cx ->
+      left_inversion (`Eq (r, s) :: lfoc) cx m
+    | Cof.Join (phi, psi) :: cx ->
+      let+ tree0 = left_inversion lfoc (phi :: cx) m 
+      and+ tree1 = left_inversion lfoc (psi :: cx) m in
+      Cof.split tree0 tree1
+    | Cof.Bot :: _ ->
+      M.ret @@ Cof.abort
+    | Cof.Top :: linv ->
+      left_inversion lfoc linv m
     | Cof.Meet (phi, psi) :: cx ->
-      under_cofs_ (phi :: psi :: cx) m
+      left_inversion lfoc (phi :: psi :: linv) m
 
+
+  let under_cofs : D.dim Cof.cof list -> 'a m -> (D.dim, 'a) Cof.tree m =
+    fun linv ->
+    left_inversion [] linv
+
+  let under_cofs_ cx m = 
+    let+ _ = under_cofs cx m in
+    ()
 
   include E
   include M

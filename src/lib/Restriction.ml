@@ -74,6 +74,10 @@ let rec test_cof t =
     if test_cof t phi0 then true else test_cof t phi1
   | Cof.Meet (phi0, phi1) ->
     if test_cof t phi0 then test_cof t phi1 else false
+  | Cof.Bot ->
+    equal t D.Dim0 D.Dim1
+  | Cof.Top -> 
+    true
 
 let test_sequent (t : t) (cx : _ list) (psi : dim Cof.cof) =
   let rec go (t : t) (cx : _ list) (psi : dim Cof.cof) =
@@ -86,6 +90,10 @@ let test_sequent (t : t) (cx : _ list) (psi : dim Cof.cof) =
       if go t (phi0 :: cx) psi then go t (psi :: cx) psi else false
     | Cof.Meet (phi0, phi1) :: cx -> 
       go t (phi0 :: phi1 :: cx) psi
+    | Cof.Bot :: cx -> 
+      true
+    | Cof.Top :: cx ->
+      go t cx psi
   in 
   try go t cx psi with 
   | Inconsistent -> 

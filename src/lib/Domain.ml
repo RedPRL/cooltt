@@ -50,6 +50,7 @@ and con =
   | Refl of con
   | GoalRet of con
   | TpCode of (con, S.t) gtp
+  | Abort
 
 and lazy_con = [`Do of con * frm list | `Done of con]
 

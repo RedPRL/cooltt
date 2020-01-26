@@ -34,6 +34,7 @@ sig
   val force_lazy_con : D.lazy_con -> D.con compute
 
   val do_rigid_coe : D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
+  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.pline_clo -> D.con compute
 end =
 struct
   open CmpM
@@ -56,7 +57,7 @@ struct
 
   let rec whnf_con =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ as con ->
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort as con ->
       ret con
 
     | D.Cut {unfold = Some lcon} -> 
@@ -511,11 +512,29 @@ struct
           let* coe_abs = eval_coe_abs tpcode in
           lift_cmp @@ do_rigid_coe coe_abs r s con
       end
-    | S.CofTree tree ->
-      eval_cof_tree tree |>> function
-      | `Valid con -> ret con
-      | `Invalid -> 
-        throw @@ NbeFailed "Cofibration not true in current environment"
+    | S.HCom (tpcode, tr, ts, tphi, tm) ->
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in
+      let* phi = eval_cof tphi in
+      let* vtpcode = eval tpcode in
+      begin
+        CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
+        | true -> 
+          append [`Dim s] @@ eval tm
+        | false ->
+          let* env = read_local in
+          let clo = D.PLineClo (tm, env) in
+          lift_cmp @@ do_rigid_hcom vtpcode r s phi clo
+      end
+    | S.CofTree tree -> 
+      force_eval_cof_tree tree
+
+  and force_eval_cof_tree tree =
+    eval_cof_tree tree |>> function
+    | `Valid con -> ret con
+    | `Invalid -> 
+      throw @@ NbeFailed "Cofibration not true in current environment"
+
 
   and eval_cof_tree =
     function
@@ -526,6 +545,14 @@ struct
         | true ->
           let+ con = eval tm in 
           `Valid con
+        | false -> 
+          ret `Invalid
+      end
+    | Cof.Abort ->
+      begin
+        CmpM.test_sequent [] Cof.bot |> lift_cmp |>> function
+        | true ->
+          ret @@ `Valid D.Abort
         | false -> 
           ret `Invalid
       end
@@ -550,6 +577,10 @@ struct
       let+ phi = eval_cof tphi
       and+ psi = eval_cof tpsi in
       Cof.meet phi psi
+    | Cof.Bot -> 
+      ret Cof.bot
+    | Cof.Top ->
+      ret Cof.top
 
   and eval_coe_abs code = 
     let+ env = read_local in 
@@ -755,7 +786,34 @@ struct
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
     | D.HCom (cut, r, s, phi, clo) ->
-      failwith "TODO: quote_hd/hcom"
+      let* tpcode = quote_cut cut in
+      let* tr = quote_dim r in
+      let* ts = quote_dim s in
+      let* tphi = quote_cof phi in
+      let+ tube = 
+        binder 1 @@ 
+        let* i = top_dim_var in
+        let+ tree = 
+          quote_cof_tree @<<
+          under_cofs [Cof.join (Cof.eq r i) phi] @@
+          let* body = lift_cmp @@ inst_pline_clo clo i in 
+          quote_con (D.Tp (D.El cut)) body
+        in
+        S.CofTree tree
+      in
+      S.HCom (tpcode, tr, ts, tphi, tube)
+
+  and quote_cof_tree = 
+    function
+    | Cof.Const (phi, tm) ->
+      let+ tphi = quote_cof phi in 
+      Cof.const tphi tm
+    | Cof.Split (tree0, tree1) ->
+      let+ ttree0 = quote_cof_tree tree0 
+      and+ ttree1 = quote_cof_tree tree1 in
+      Cof.split ttree0 ttree1
+    | Cof.Abort ->
+      ret Cof.abort
 
   and quote_dim =
     function
@@ -766,6 +824,26 @@ struct
       S.DimVar (n - (lvl + 1))
     | D.DimProbe _ -> 
       failwith "DimProbe should not be quoted!"
+
+  and quote_cof =
+    function
+    | Cof.Eq (r, s) ->
+      let+ tr = quote_dim r 
+      and+ ts = quote_dim s in
+      Cof.eq tr ts
+    | Cof.Join (phi, psi) ->
+      let+ tphi = quote_cof phi 
+      and+ tpsi = quote_cof psi in 
+      Cof.join tphi tpsi
+    | Cof.Meet (phi, psi) ->
+      let+ tphi = quote_cof phi 
+      and+ tpsi = quote_cof psi in 
+      Cof.meet tphi tpsi
+    | Cof.Bot ->
+      ret Cof.bot
+    | Cof.Top ->
+      ret Cof.top
+
 
   and quote_cut (hd, spine) = 
     let* tm = quote_hd hd in 

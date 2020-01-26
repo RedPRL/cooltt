@@ -25,6 +25,7 @@ type t =
   | GoalRet of t
   | GoalProj of t
   | Coe of t * dim * dim * t
+  | HCom of t * dim * dim * dim Cof.cof * t
   | TpCode of t gtp
   | CofTree of cof_tree
 

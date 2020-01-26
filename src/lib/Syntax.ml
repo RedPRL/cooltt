@@ -25,6 +25,7 @@ type t =
   | GoalRet of t
   | GoalProj of t
   | Coe of t * dim * dim * t
+  | HCom of t * dim * dim * dim Cof.cof * t
   | TpCode of t gtp
   | CofTree of cof_tree
 
@@ -83,6 +84,15 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       (pp_dim env) r 
       (pp_dim env) s
       (pp env) tm
+  | _, HCom (code, r, s, phi, tm) ->
+    let x, envx = Pp.Env.bind env None in
+    Fmt.fprintf fmt "@[<hv1>(hcom@ %a@ %a %a@ %a@ [%a] %a)@]"
+      (pp env) code
+      (pp_dim env) r 
+      (pp_dim env) s
+      (Cof.pp_cof pp_dim env) phi
+      Uuseg_string.pp_utf_8 x
+      (pp envx) tm
   | _, Zero ->
     Fmt.fprintf fmt "0"
   | _, Suc tm ->

@@ -53,6 +53,7 @@ and con =
   | Refl of con
   | GoalRet of con
   | TpCode of (con, S.t) gtp
+  | Abort
 
 and tp = Tp of (tp, S.tp) gtp
 

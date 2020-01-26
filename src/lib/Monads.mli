@@ -44,6 +44,7 @@ module QuM : sig
 
   val binder : int -> 'a m -> 'a m
 
+  val under_cofs : D.dim Cof.cof list -> 'a m -> (D.dim, 'a) Cof.tree m
   val under_cofs_ : D.dim Cof.cof list -> unit m -> unit m
 end
 
