@@ -12,6 +12,7 @@ module type Notation = sig
   val (let*) : 'a m -> ('a -> 'b m) -> 'b m
   val (let+) : 'a m -> ('a -> 'b) -> 'b m
   val (and+) : 'a m -> 'b m -> ('a * 'b) m
+  val (<@>) : ('a -> 'b) -> 'a m -> 'b m
   val (|>>) : 'a m -> ('a -> 'b m) -> 'b m
   val (@<<) : ('a -> 'b m) -> 'a m -> 'b m
   val (<&>) : 'a m -> 'b m -> ('a * 'b) m
@@ -29,6 +30,7 @@ module Notation (M : S) : Notation with type 'a m = 'a M.m = struct
     let* y = n in
     M.ret (x, y)
 
+  let (<@>) f m = (let+) m f
   let (|>>) = (let*)
   let (@<<) f m = m |>> f
   let (<&>) = (and+)
