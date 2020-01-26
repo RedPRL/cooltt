@@ -380,14 +380,6 @@ struct
     | k :: sp ->
       let* con' = do_frm con k in
       do_spine con' sp
-
-  and pline_clo_lvl = 
-    function
-    | D.PLineClo (_, env) -> Bwd.length env
-    | D.AppClo (_, clo) -> pline_clo_lvl clo
-    | D.FstClo clo -> pline_clo_lvl clo
-    | D.SndClo clo -> pline_clo_lvl clo
-    | D.ComClo (_,_,clo) -> pline_clo_lvl clo
 end
 
 and Eval :
