@@ -1,0 +1,81 @@
+open CoolBasis
+
+module D = Domain
+module UF = DisjointSet.Make (PersistentTable.M)
+
+type env = 
+  {classes : D.dim UF.t;
+   cof : D.dim Cof.cof;
+   status : [`Consistent | `Inconsistent]}
+
+let init () = 
+  {classes = UF.init ~size:100;
+   cof = Cof.top;
+   status = `Consistent}
+
+let inconsistent = 
+  {classes = UF.init ~size:0;
+   cof = Cof.bot;
+   status = `Inconsistent}
+
+let status env = env.status
+
+let rec assume env phi = 
+  match env.status with 
+  | `Inconsistent -> env
+  | `Consistent -> 
+    match phi with 
+    | Cof.Meet (phi0, phi1) -> 
+      assume (assume env phi0) phi1
+    | Cof.Join (_, _) -> 
+      {env with cof = Cof.meet env.cof phi}
+    | Cof.Top ->
+      env 
+    | Cof.Bot ->
+      inconsistent
+    | Cof.Eq (r, s) ->
+      let classes = UF.union r s env.classes in
+      if UF.find D.Dim0 classes = UF.find D.Dim1 classes then 
+        inconsistent
+      else 
+        {env with classes}
+
+let find_class classes r =
+  try UF.find r classes with _ -> r
+
+let rec test env phi = 
+  let rec right classes = 
+    function
+    | Cof.Eq (r, s) ->
+      find_class classes r = find_class classes s
+    | Cof.Join (phi0, phi1) ->
+      if right classes phi0 then true else right classes phi1
+    | Cof.Meet (phi0, phi1) ->
+      if right classes phi0 then right classes phi1 else false
+    | Cof.Bot -> false
+    | Cof.Top -> true
+  in
+  let rec left classes cx phi =
+    match cx with 
+    | [] -> right classes phi
+    | Cof.Eq (r, s) :: cx ->
+      let classes = UF.union r s classes in
+      if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
+        true
+      else
+        left (UF.union r s classes) cx phi
+    | Cof.Join (psi0, psi1) :: cx ->
+      if left classes (psi0 :: cx) phi then left classes (psi1 :: cx) phi else false
+    | Cof.Meet (psi0, psi1) :: cx -> 
+      left classes (psi0 :: psi1 :: cx) phi
+    | Cof.Top :: cx -> 
+      left classes cx phi
+    | Cof.Bot :: cx -> 
+      true
+  in 
+  left env.classes [env.cof] phi
+
+
+let test_sequent env cx phi = 
+  let psi = List.fold_left Cof.meet Cof.top cx in
+  test (assume env psi) phi
