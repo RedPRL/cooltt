@@ -36,7 +36,6 @@ and pline_clo =
   | SndClo of pline_clo
   | ComClo of dim * coe_abs * pline_clo
 
-and coe_shape = [`Pi | `Sg | `Cut]
 and coe_abs = CoeAbs of {clo : line_clo}
 
 and con =

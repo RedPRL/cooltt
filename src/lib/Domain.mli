@@ -20,8 +20,6 @@ and ('n, 't, 'o) clo =
 and 'n tm_clo = ('n, S.t, con) clo
 and 'n tp_clo = ('n, S.tp, tp) clo
 
-and coe_shape = [`Pi | `Sg | `Cut]
-
 (** line closures *)
 and line_clo = 
   | LineClo of S.t * env
