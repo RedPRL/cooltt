@@ -5,8 +5,7 @@ module UF = DisjointSet.Make (PersistentTable.M)
 
 type dim = D.dim
 
-type t =
-  {classes : dim UF.t}
+type t = {classes : dim UF.t}
 
 let emp () =
   {classes = UF.init ~size:100}
