@@ -121,6 +121,7 @@ struct
     | `Inconsistent -> 
       M.ret `Abort
 
+  (* I guess this isn't really left focus, rename *)
   let rec left_focus acc lfoc m = 
     match lfoc with 
     | [] -> 
