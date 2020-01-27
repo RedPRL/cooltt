@@ -72,7 +72,7 @@ struct
 
     | D.ConCoe (abs, r, s, con) ->
       begin
-        equal_dim r s |>> function
+        test_sequent [] (Cof.eq r s) |>> function
         | true -> reduce_to con 
         | false -> ret `Done
       end
@@ -96,7 +96,7 @@ struct
       ret `Done
     | D.Coe (abs, r, s, con) -> 
       begin
-        equal_dim r s |>> function
+        test_sequent [] (Cof.eq r s) |>> function
         | true -> 
           reduce_to con 
         | false ->
@@ -325,7 +325,7 @@ struct
       CmpM.throw @@ NbeFailed "do_el failed"
 
   and do_coe r s abs con =
-    equal_dim r s |>> function
+    test_sequent [] (Cof.eq r s) |>> function
     | true -> ret con 
     | _ -> do_rigid_coe abs r s con
 
@@ -510,7 +510,7 @@ struct
       let* s = eval_dim ts in
       let* con = eval tm in
       begin
-        CmpM.equal_dim r s |> lift_cmp |>> function
+        CmpM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
         | true -> 
           ret con
         | false -> 
@@ -936,7 +936,7 @@ struct
 
 
   let equate_dim r s =
-    CmpM.equal_dim r s |> lift_cmp |>> function
+    CmpM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
     | true -> ret ()
     | false -> throw @@ NbeFailed "Expected dimensions to be equal"
 

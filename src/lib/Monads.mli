@@ -12,8 +12,6 @@ module CmpM : sig
     with type 'a m = 'a compute
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
-  val compare_dim : D.dim -> D.dim -> [`Same | `Apart | `Indet] m
-  val equal_dim : D.dim -> D.dim -> bool m
   val test_sequent : D.dim Cof.cof list -> D.dim Cof.cof -> bool m
 end
 

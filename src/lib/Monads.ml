@@ -38,14 +38,6 @@ struct
   let lift_ev env m CmpL.{state; restriction} = 
     m EvL.{state; restriction; env}
 
-  let compare_dim r s = 
-    let+ {restriction} = M.read in 
-    Restriction.compare restriction r s
-
-  let equal_dim r s = 
-    let+ {restriction} = M.read in 
-    Restriction.equal restriction r s
-
   let test_sequent cx phi =
     let+ {restriction} = M.read in 
     Restriction.test_sequent restriction cx phi 
@@ -120,13 +112,14 @@ struct
 
   let restrict r s m =
     let* {restriction} = M.read in
-    match Restriction.equate restriction r s with
-    | exception Restriction.Inconsistent ->
-      M.ret `Abort
-    | restriction ->
+    let restriction = Restriction.equate restriction r s in 
+    match Restriction.status restriction with 
+    | `Consistent -> 
       M.scope (fun local -> {local with restriction}) @@
       let+ x = m () in
       `Continue x
+    | `Inconsistent -> 
+      M.ret `Abort
 
   let rec left_focus acc lfoc m = 
     match lfoc with 
