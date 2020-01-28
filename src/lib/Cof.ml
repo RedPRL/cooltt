@@ -48,6 +48,14 @@ let split t0 t1 =
 
 let abort = Abort
 
+let rec reduce =
+  function
+  | Top -> top
+  | Bot -> bot
+  | Join (phi, psi) -> join (reduce phi) (reduce psi)
+  | Meet (phi, psi) -> meet (reduce phi) (reduce psi)
+  | Eq (r, s) -> eq r s
+
 let rec condition : ('a, 'b) tree -> 'a cof =
   function
   | Const (psi, _) -> 

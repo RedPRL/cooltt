@@ -82,17 +82,15 @@ let rec assume env phi =
   | `Consistent -> 
     (* If the new assumption is stronger than what's on deck, throw the latter away *)
     let env = if test_sequent env [phi] env.cof then {env with cof = Cof.top} else env in
-    match phi with 
-    | Cof.Meet (phi0, phi1) -> 
-      assume (assume env phi0) phi1
-    | Cof.Join (_, _) -> 
-      {env with cof = Cof.meet env.cof phi}
-    | Cof.Top ->
-      env 
+    match Cof.reduce phi with 
     | Cof.Bot ->
       inconsistent
-    | Cof.Eq (r, s) when r = s -> 
+    | Cof.Top ->
       env
+    | Cof.Meet (phi0, phi1) -> 
+      assume (assume env phi0) phi1
+    | Cof.Join _ -> 
+      {env with cof = Cof.meet env.cof phi}
     | Cof.Eq (r, s) ->
       let classes = UF.union r s env.classes in
       if UF.find D.Dim0 classes = UF.find D.Dim1 classes then 

@@ -19,6 +19,8 @@ val meet : 'a cof -> 'a cof -> 'a cof
 val bot : 'a cof
 val top : 'a cof
 
+val reduce : 'a cof -> 'a cof
+
 val const : 'a cof -> 'b -> ('a, 'b) tree
 val split : ('a, 'b) tree -> ('a, 'b) tree -> ('a, 'b) tree
 val abort : ('a, 'b) tree
