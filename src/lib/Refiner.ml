@@ -38,6 +38,8 @@ struct
         failwith "Not supported yet"
       | `Cof _ :: _ -> 
         failwith "Not supported yet"
+      | `Prf _ :: _ -> 
+        failwith "Not supported yet"
     in
 
     let rec go_tm cut : Env.cell bwd -> D.cut =
@@ -49,6 +51,8 @@ struct
       | Snoc (_, `Dim _) ->
         failwith "Not supported yet"
       | Snoc (_, `Cof _) ->
+        failwith "Not supported yet"
+      | Snoc (_, `Prf _) ->
         failwith "Not supported yet"
     in
 

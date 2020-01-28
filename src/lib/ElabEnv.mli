@@ -15,6 +15,7 @@ type cell =
   [ `Con of (D.tp * D.con) Cell.t
   | `Dim of D.dim Cell.t
   | `Cof of D.cof Cell.t
+  | `Prf of D.cof
   ]
 
 

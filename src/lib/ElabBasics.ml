@@ -140,6 +140,8 @@ let current_ghost : S.ghost option m =
       let* cells = go_locals cells in
       let+ phi = lift_qu @@ Nbe.quote_cof @@ Env.Cell.contents cell in
       cells @ [`Cof phi]
+    | Snoc (cells, `Prf _) ->
+      go_locals cells
   in
   let+ cells = go_locals @@ Env.locals env in
   match Env.problem env with

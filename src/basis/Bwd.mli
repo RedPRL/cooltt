@@ -25,6 +25,7 @@ sig
   val iter : ('a -> unit) -> 'a bwd -> unit
   val map : ('a -> 'b) -> 'a bwd -> 'b bwd
   val mapi : (int -> 'a -> 'b) -> 'a bwd -> 'b bwd
+  val filter_map : ('a -> 'b option) -> 'a bwd -> 'b bwd
   val flat_map : ('a -> 'b list) -> 'a bwd -> 'b bwd
   val filter : ('a -> bool) -> 'a bwd -> 'a bwd
   val fold_left : ('a -> 'b -> 'a) -> 'a -> 'b bwd -> 'a

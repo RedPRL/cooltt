@@ -20,6 +20,7 @@ type cell =
   [ `Con of (D.tp * D.con) Cell.t
   | `Dim of D.dim Cell.t
   | `Cof of D.cof Cell.t
+  | `Prf of D.cof
   ]
 
 type t = 
@@ -80,6 +81,8 @@ let resolve_local key env =
         | Some x when x = key -> i
         | _ -> go (i + 1) xs
       end
+    | Snoc (xs, `Prf _) ->
+      go i xs
   in
   match go 0 @@ env.locals with
   | i -> Some i
@@ -93,14 +96,16 @@ let append_con name con tp env =
 
 
 let sem_env (env : t) : D.env =
-  env.locals |> Bwd.map @@ function 
+  env.locals |> Bwd.filter_map @@ function 
   | `Con cell ->
     let _, con = Cell.contents cell in
-    `Con con
+    Some (`Con con)
   | `Dim cell ->
-    `Dim (Cell.contents cell)
+    Some (`Dim (Cell.contents cell))
   | `Cof cell -> 
-    `Cof (Cell.contents cell)
+    Some (`Cof (Cell.contents cell))
+  | `Prf _ ->
+    None
 
 let pp_env env = env.pp
 
