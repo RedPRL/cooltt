@@ -12,26 +12,50 @@ type ('a, 'b) tree =
   | Abort
 
 
-let eq x y = Eq (x, y)
-let join phi psi = Join (phi, psi)
-let meet phi psi = Meet (phi, psi)  
 let bot = Bot
 let top = Top
 
+let eq x y = 
+  if x = y then top else Eq (x, y)
 
-let const psi x = Const (psi, x)
-let split t0 t1 = Split (t0, t1)
+let join phi psi = 
+  match phi, psi with 
+  | Top, _ -> Top
+  | _, Top -> Top 
+  | Bot, psi -> psi
+  | phi, Bot -> phi
+  | phi, psi -> Join (phi, psi)
+
+let meet phi psi =
+  match phi, psi with
+  | Top, phi -> phi
+  | phi, Top -> phi
+  | Bot, phi -> Bot 
+  | phi, Bot -> Bot 
+  | phi, psi -> Meet (phi, psi)
+
+let const psi x = 
+  match psi with 
+  | Bot -> Abort
+  | _ ->
+    Const (psi, x)
+
+let split t0 t1 =
+  match t0, t1 with
+  | Abort, t1 -> t1
+  | t0, Abort -> t0 
+  | t0, t1 -> Split (t0, t1)
+
 let abort = Abort
-
 
 let rec condition : ('a, 'b) tree -> 'a cof =
   function
   | Const (psi, _) -> 
     psi
   | Split (t0, t1) ->
-    Meet (condition t0, condition t1)
+    meet (condition t0) (condition t1)
   | Abort ->
-    Bot
+    bot
 
 
 
