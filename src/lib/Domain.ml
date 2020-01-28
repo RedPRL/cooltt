@@ -10,9 +10,9 @@ type dim =
   | DimVar of int
   | DimProbe of Symbol.t
 
-type cof = dim Cof.cof
+type cof = (int, dim) Cof.cof
 
-type env = [`Con of con | `Dim of dim] bwd
+type env = [`Con of con | `Dim of dim | `Cof of cof] bwd
 
 and ('n, 't, 'o) clo = 
   | Clo : {bdy : 't; env : env}  -> ('n, 't, 'o) clo
@@ -81,7 +81,7 @@ and frm =
   | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
 
-and ghost = string bwd * [`Con of (tp * con) | `Dim of dim] list
+and ghost = string bwd * [`Con of (tp * con) | `Dim of dim | `Cof of cof] list
 
 let pp_tp fmt _ = 
   Format.fprintf fmt "<tp>"

@@ -41,7 +41,20 @@ struct
   let name (_, nm) = nm
 end
 
-type cell = [`Con of ConCell.t | `Dim of DimCell.t]
+module CofCell : sig 
+  type t
+  val make : D.cof -> string option -> t
+  val cof : t -> D.cof
+  val name : t -> string option
+end =
+struct
+  type t = D.cof * string option
+  let make phi nm = phi, nm
+  let cof (phi, _) = phi
+  let name (_, nm) = nm
+end
+
+type cell = [`Con of ConCell.t | `Dim of DimCell.t | `Cof of CofCell.t]
 
 type t = 
   {resolver : Symbol.t StringMap.t;
@@ -91,6 +104,12 @@ let resolve_local key env =
         | Some x when x = key -> i
         | _ -> go (i + 1) xs
       end
+    | Snoc (xs, `Cof cell) ->
+      begin
+        match CofCell.name cell with
+        | Some x when x = key -> i
+        | _ -> go (i + 1) xs
+      end
   in
   match go 0 @@ env.locals with
   | i -> Some i
@@ -109,6 +128,8 @@ let sem_env (env : t) : D.env =
     `Con (ConCell.con cell)
   | `Dim cell ->
     `Dim (DimCell.dim cell)
+  | `Cof cell -> 
+    `Cof (CofCell.cof cell)
 
 let pp_env env = env.pp
 

@@ -12,7 +12,7 @@ module CmpM : sig
     with type 'a m = 'a compute
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
-  val test_sequent : D.dim Cof.cof list -> D.dim Cof.cof -> bool m
+  val test_sequent : D.cof list -> D.cof -> bool m
 end
 
 module EvM : sig 
@@ -26,7 +26,7 @@ module EvM : sig
 
   val close_tp : S.tp -> 'n D.tp_clo m
   val close_tm : S.t -> 'n D.tm_clo m
-  val append : [`Con of D.con | `Dim of D.dim] list -> 'a m -> 'a m
+  val append : [`Con of D.con | `Dim of D.dim | `Cof of D.cof] list -> 'a m -> 'a m
 end
 
 module QuM : sig 
@@ -41,8 +41,8 @@ module QuM : sig
 
   val binder : int -> 'a m -> 'a m
 
-  val under_cofs : D.dim Cof.cof list -> 'a m -> (D.dim, 'a) Cof.tree m
-  val under_cofs_ : D.dim Cof.cof list -> unit m -> unit m
+  val under_cofs : D.cof list -> 'a m -> (int, D.dim, 'a) Cof.tree m
+  val under_cofs_ : D.cof list -> unit m -> unit m
 end
 
 module ElabM : sig

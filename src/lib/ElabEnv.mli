@@ -20,9 +20,17 @@ module DimCell : sig
   val dim : t -> D.dim
 end
 
+module CofCell : sig
+  type t
+
+  val name : t -> string option
+  val cof : t -> D.cof
+end
+
+
 
 type t
-type cell = [`Con of ConCell.t | `Dim of DimCell.t]
+type cell = [`Con of ConCell.t | `Dim of DimCell.t | `Cof of CofCell.t]
 
 val locals : t -> cell bwd
 

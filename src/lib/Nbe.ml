@@ -586,6 +586,12 @@ struct
       ret Cof.bot
     | Cof.Top ->
       ret Cof.top
+    | Cof.Var ix ->
+      begin 
+        get_local ix |>> function
+        | `Cof phi -> ret phi
+        | _ -> throw @@ NbeFailed "Expected `Cof cell in environment"
+      end
 
   and eval_coe_abs code = 
     let+ env = read_local in 
@@ -628,6 +634,10 @@ struct
           let+ r = eval_dim tr 
           and+ cells = go cells in
           `Dim r :: cells
+        | `Cof tphi :: cells ->
+          let+ phi = eval_cof tphi
+          and+ cells = go cells in
+          `Cof phi :: cells
       in 
       let+ cells = go cells in
       Some (lbl, cells)
@@ -639,6 +649,7 @@ module Quote : sig
   val equal_con : D.tp -> D.con -> D.con -> bool quote
   val quote_cut : D.cut -> S.t quote
   val quote_dim : D.dim -> S.dim quote
+  val quote_cof : D.cof -> S.cof quote
   val equal_tp : D.tp -> D.tp -> bool quote
   val equal_cut : D.cut -> D.cut -> bool quote
   val equate_con : D.tp -> D.con -> D.con -> unit quote
@@ -826,8 +837,8 @@ struct
     | D.Dim0 -> ret S.Dim0 
     | D.Dim1 -> ret S.Dim1
     | D.DimVar lvl -> 
-      let+ n = read_local in 
-      S.DimVar (n - (lvl + 1))
+      let+ ix = quote_var lvl in
+      S.DimVar ix
     | D.DimProbe _ -> 
       failwith "DimProbe should not be quoted!"
 
@@ -849,6 +860,14 @@ struct
       ret Cof.bot
     | Cof.Top ->
       ret Cof.top
+    | Cof.Var lvl ->
+      let+ ix = quote_var lvl in
+      Cof.var ix
+
+  and quote_var lvl =
+    let+ n = read_local in 
+    n - (lvl + 1)
+
 
 
   and quote_cut (hd, spine) = 
@@ -878,6 +897,10 @@ struct
           let+ tr = quote_dim r
           and+ cells = go cells in
           `Dim tr :: cells
+        | `Cof phi :: cells ->
+          let+ tphi = quote_cof phi 
+          and+ cells = go cells in
+          `Cof tphi :: cells
       in
       let+ cells = go cells in
       Some (lbl, cells)
@@ -912,7 +935,7 @@ struct
         let* y = top_var tp in 
         binder 1 @@ 
         let* z = top_var @@ D.Tp (D.Id (tp, left, right)) in 
-        let* mot_xyz = lift_cmp @@ inst_tp_clo mot [x; y; z] in 
+        let* mot_xyz = lift_cmp @@ inst_tp_clo mot [x; y; z] in
         let+ tmot = quote_tp mot_xyz in 
         x, tmot
       in 

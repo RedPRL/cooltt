@@ -5,7 +5,7 @@ type dim =
   | Dim1
   | DimVar of int (* De Bruijn index *)
 
-type cof = dim Cof.cof
+type cof = (int, dim) Cof.cof
 
 type t =
   | Var of int (* DeBruijn indices for variables *)
@@ -25,11 +25,11 @@ type t =
   | GoalRet of t
   | GoalProj of t
   | Coe of t * dim * dim * t
-  | HCom of t * dim * dim * dim Cof.cof * t
+  | HCom of t * dim * dim * cof * t
   | TpCode of t gtp
   | CofTree of cof_tree
 
-and cof_tree = (dim, t) Cof.tree
+and cof_tree = (int, dim, t) Cof.tree
 
 and tp = Tp of tp gtp
 
@@ -43,7 +43,7 @@ and _ gtp =
   | GoalTp : string option * tp -> tp gtp
 
 
-and ghost = string bwd * [`Con of (tp * t) | `Dim of dim] list
+and ghost = string bwd * [`Con of (tp * t) | `Dim of dim | `Cof of cof] list
 
 let rec condense = 
   function
@@ -59,10 +59,13 @@ let rec condense =
 
 module Fmt = Format
 
+let pp_var env fmt ix = 
+  Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
+
 let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   match mode, tm with
   | _, Var i -> 
-    Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var i env
+    pp_var env fmt i
   | _, Global sym ->
     Symbol.pp fmt sym
   | _, Let (tm, bnd) ->
@@ -90,7 +93,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       (pp env) code
       (pp_dim env) r 
       (pp_dim env) s
-      (Cof.pp_cof pp_dim env) phi
+      (Cof.pp_cof pp_var pp_dim env) phi
       Uuseg_string.pp_utf_8 x
       (pp envx) tm
   | _, Zero ->
@@ -159,7 +162,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
   | _, CofTree tree ->
-    Cof.pp_tree pp_dim pp env fmt tree
+    Cof.pp_tree pp_var pp_dim pp env fmt tree
 
 and pp_dim env fmt =
   function
@@ -181,6 +184,10 @@ and pp_ghost_ env mode fmt ((name, cells), scrut) =
       Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (go_cells env) cells
     | `Dim r :: cells -> 
       Fmt.fprintf fmt "%a@ %a" (pp_dim env) r (go_cells env) cells
+    | `Cof phi :: cells -> 
+      Fmt.fprintf fmt "%a@ %a" 
+        (Cof.pp_cof pp_var pp_dim env) phi
+        (go_cells env) cells
   in
   match mode with
   | `Ap ->

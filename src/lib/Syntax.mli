@@ -5,7 +5,7 @@ type dim =
   | Dim1
   | DimVar of int
 
-type cof = dim Cof.cof
+type cof = (int, dim) Cof.cof
 
 type t =
   | Var of int
@@ -25,11 +25,11 @@ type t =
   | GoalRet of t
   | GoalProj of t
   | Coe of t * dim * dim * t
-  | HCom of t * dim * dim * dim Cof.cof * t
+  | HCom of t * dim * dim * cof * t
   | TpCode of t gtp
   | CofTree of cof_tree
 
-and cof_tree = (dim, t) Cof.tree
+and cof_tree = (int, dim, t) Cof.tree
 
 and tp = Tp of tp gtp
 
@@ -42,7 +42,7 @@ and _ gtp =
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
 
-and ghost = string bwd * [`Con of (tp * t) | `Dim of dim] list
+and ghost = string bwd * [`Con of (tp * t) | `Dim of dim | `Cof of cof] list
 
 type env = tp list
 

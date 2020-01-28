@@ -1,17 +1,18 @@
-type 'a cof = 
+type ('v, 'a) cof = 
+  | Var of 'v
   | Eq of 'a * 'a
-  | Join of 'a cof * 'a cof
-  | Meet of 'a cof * 'a cof
+  | Join of ('v, 'a) cof * ('v, 'a) cof
+  | Meet of ('v, 'a) cof * ('v, 'a) cof
   | Bot
   | Top
 
 
-type ('a, 'b) tree =
-  | Const of 'a cof * 'b
-  | Split of ('a, 'b) tree * ('a, 'b) tree
+type ('v, 'a, 'b) tree =
+  | Const of ('v, 'a) cof * 'b
+  | Split of ('v, 'a, 'b) tree * ('v, 'a, 'b) tree
   | Abort
 
-
+let var v = Var v
 let bot = Bot
 let top = Top
 
@@ -55,8 +56,9 @@ let rec reduce =
   | Join (phi, psi) -> join (reduce phi) (reduce psi)
   | Meet (phi, psi) -> meet (reduce phi) (reduce psi)
   | Eq (r, s) -> eq r s
+  | Var v -> var v
 
-let rec condition : ('a, 'b) tree -> 'a cof =
+let rec condition : ('v, 'a, 'b) tree -> ('v, 'a) cof =
   function
   | Const (psi, _) -> 
     psi
@@ -68,7 +70,7 @@ let rec condition : ('a, 'b) tree -> 'a cof =
 
 
 (* TODO: make the output more beautiful *)
-let rec pp_cof pp env fmt =
+let rec pp_cof pp_v pp env fmt =
   function
   | Eq (x, y) -> 
     Format.fprintf fmt "%a = %a"
@@ -76,19 +78,21 @@ let rec pp_cof pp env fmt =
       (pp env) y
   | Join (phi, psi) ->
     Format.fprintf fmt "(%a) \\/ (%a)"
-      (pp_cof pp env) phi
-      (pp_cof pp env) psi
+      (pp_cof pp_v pp env) phi
+      (pp_cof pp_v pp env) psi
   | Meet (phi, psi) ->
     Format.fprintf fmt "(%a) /\\ (%a)"
-      (pp_cof pp env) phi
-      (pp_cof pp env) psi
+      (pp_cof pp_v pp env) phi
+      (pp_cof pp_v pp env) psi
   | Bot -> 
     Format.fprintf fmt "false"
   | Top -> 
     Format.fprintf fmt "true"
+  | Var v ->
+    pp_v env fmt v
 
 
-let pp_tree ppa ppb env fmt = 
+let pp_tree pp_v ppa ppb env fmt = 
   function
   | _ ->
     Format.fprintf fmt "TODO: pp_tree"

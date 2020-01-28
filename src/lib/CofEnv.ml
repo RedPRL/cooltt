@@ -2,67 +2,86 @@ open CoolBasis
 
 module D = Domain
 module UF = DisjointSet.Make (PersistentTable.M)
+module VarSet = Set.Make (Int)
 
 type env = 
   { classes : D.dim UF.t;
     (** equivalence classes of dimensions *)
 
-    cof : D.dim Cof.cof;
+    cof : D.cof;
     (** a cofibration which is assumed true, but has not been eliminated yet *)
 
-    status : [`Consistent | `Inconsistent]
+    status : [`Consistent | `Inconsistent];
     (** a cache which must be maintained *)
+
+    true_vars : VarSet.t
   }
 
 let init () = 
   {classes = UF.init ~size:100;
+   true_vars = VarSet.empty;
    cof = Cof.top;
    status = `Consistent}
 
 let inconsistent = 
   {classes = UF.init ~size:0;
    cof = Cof.bot;
+   true_vars = VarSet.empty;
    status = `Inconsistent}
 
 let status env = env.status
-
 
 let find_class classes r =
   try UF.find r classes with _ -> r
 
 
-module Inversion =
+module Inversion :
+sig 
+  type local = 
+    {classes : D.dim UF.t;
+     true_vars : VarSet.t}
+
+  val left : local -> D.cof list -> D.cof -> bool
+end =
 struct
+  type local = 
+    {classes : D.dim UF.t;
+     true_vars : VarSet.t}
+
   (* Invariant: classes is consistent *)
-  let rec right classes =
+  let rec right local =
     function
     | Cof.Eq (r, s) when r = s ->
       true
     | Cof.Eq (r, s) ->
-      find_class classes r = find_class classes s
+      find_class local.classes r = find_class local.classes s
     | Cof.Join (phi0, phi1) ->
-      if right classes phi0 then true else right classes phi1
+      if right local phi0 then true else right local phi1
     | Cof.Meet (phi0, phi1) ->
-      if right classes phi0 then right classes phi1 else false
+      if right local phi0 then right local phi1 else false
     | Cof.Bot -> false
     | Cof.Top -> true
+    | Cof.Var v -> 
+      VarSet.mem v local.true_vars 
 
   (* Invariant: classes is consistent *)
-  let rec left classes cx phi = 
+  let rec left local cx phi = 
     match cx with 
-    | [] -> right classes phi
+    | [] -> right local phi
     | Cof.Eq (r, s) :: cx ->
-      let classes = UF.union r s classes in
+      let classes = UF.union r s local.classes in
       if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
         true
       else
-        left classes cx phi
+        left {local with classes} cx phi
+    | Cof.Var v :: cx ->
+      failwith "todo"
     | Cof.Join (psi0, psi1) :: cx ->
-      if left classes (psi0 :: cx) phi then left classes (psi1 :: cx) phi else false
+      if left local (psi0 :: cx) phi then left local (psi1 :: cx) phi else false
     | Cof.Meet (psi0, psi1) :: cx -> 
-      left classes (psi0 :: psi1 :: cx) phi
+      left local (psi0 :: psi1 :: cx) phi
     | Cof.Top :: cx -> 
-      left classes cx phi
+      left local cx phi
     | Cof.Bot :: cx -> 
       true
 end
@@ -72,11 +91,13 @@ let test env phi =
   | `Inconsistent -> 
     true
   | `Consistent ->
-    Inversion.left env.classes [env.cof] phi
+    let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
+    Inversion.left local [env.cof] phi
 
-let test_sequent env cx phi = 
+let test_sequent (env : env) cx phi = 
   let psi = List.fold_left Cof.meet Cof.top cx in
-  Inversion.left env.classes [env.cof; psi] phi
+  let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
+  Inversion.left local [env.cof; psi] phi
 
 let rec assume env phi = 
   match env.status with 
@@ -101,6 +122,8 @@ let rec assume env phi =
         inconsistent
       else 
         {env with classes}
+    | Cof.Var v -> 
+      {env with true_vars = VarSet.add v env.true_vars}
 
 let equate env r s = 
   assume env @@ Cof.eq r s

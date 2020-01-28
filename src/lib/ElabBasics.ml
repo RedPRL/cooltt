@@ -142,6 +142,10 @@ let current_ghost : S.ghost option m =
       let* cells = go_locals cells in
       let+ r = lift_qu @@ Nbe.quote_dim @@ Env.DimCell.dim cell in
       cells @ [`Dim r]
+    | Snoc (cells, `Cof cell) ->
+      let* cells = go_locals cells in
+      let+ phi = lift_qu @@ Nbe.quote_cof @@ Env.CofCell.cof cell in
+      cells @ [`Cof phi]
   in
   let+ cells = go_locals @@ Env.locals env in
   match Env.problem env with

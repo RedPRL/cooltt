@@ -16,6 +16,7 @@ val quote_con : D.tp -> D.con -> S.t quote
 val quote_tp : D.tp -> S.tp quote
 val quote_cut : D.cut -> S.t quote
 val quote_dim : D.dim -> S.dim quote
+val quote_cof : D.cof -> S.cof quote
 
 val equal_con : D.tp -> D.con -> D.con -> bool quote
 val equal_tp : D.tp -> D.tp -> bool quote
