@@ -20,10 +20,60 @@ let inconsistent =
 
 let status env = env.status
 
+
+let find_class classes r =
+  try UF.find r classes with _ -> r
+
+
+module Inversion =
+struct
+
+  let rec right classes =
+    function
+    | Cof.Eq (r, s) ->
+      find_class classes r = find_class classes s
+    | Cof.Join (phi0, phi1) ->
+      if right classes phi0 then true else right classes phi1
+    | Cof.Meet (phi0, phi1) ->
+      if right classes phi0 then right classes phi1 else false
+    | Cof.Bot -> false
+    | Cof.Top -> true
+
+  let rec left classes cx phi = 
+    match cx with 
+    | [] -> right classes phi
+    | Cof.Eq (r, s) :: cx ->
+      let classes = UF.union r s classes in
+      if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
+        true
+      else
+        left (UF.union r s classes) cx phi
+    | Cof.Join (psi0, psi1) :: cx ->
+      if left classes (psi0 :: cx) phi then left classes (psi1 :: cx) phi else false
+    | Cof.Meet (psi0, psi1) :: cx -> 
+      left classes (psi0 :: psi1 :: cx) phi
+    | Cof.Top :: cx -> 
+      left classes cx phi
+    | Cof.Bot :: cx -> 
+      true
+end
+
+let test env phi = 
+  match env.status with 
+  | `Inconsistent -> true
+  | `Consistent ->
+    Inversion.left env.classes [env.cof] phi
+
+let test_sequent env cx phi = 
+  let psi = List.fold_left Cof.meet Cof.top cx in
+  Inversion.left env.classes [env.cof; psi] phi
+
 let rec assume env phi = 
   match env.status with 
   | `Inconsistent -> env
   | `Consistent -> 
+    (* If the new assumption is stronger than what's on deck, throw the latter away *)
+    let env = if test_sequent env [phi] env.cof then {env with cof = Cof.top} else env in
     match phi with 
     | Cof.Meet (phi0, phi1) -> 
       assume (assume env phi0) phi1
@@ -42,43 +92,3 @@ let rec assume env phi =
 
 let equate env r s = 
   assume env @@ Cof.eq r s
-
-let find_class classes r =
-  try UF.find r classes with _ -> r
-
-let rec test env phi = 
-  let rec right classes = 
-    function
-    | Cof.Eq (r, s) ->
-      find_class classes r = find_class classes s
-    | Cof.Join (phi0, phi1) ->
-      if right classes phi0 then true else right classes phi1
-    | Cof.Meet (phi0, phi1) ->
-      if right classes phi0 then right classes phi1 else false
-    | Cof.Bot -> false
-    | Cof.Top -> true
-  in
-  let rec left classes cx phi =
-    match cx with 
-    | [] -> right classes phi
-    | Cof.Eq (r, s) :: cx ->
-      let classes = UF.union r s classes in
-      if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
-        true
-      else
-        left (UF.union r s classes) cx phi
-    | Cof.Join (psi0, psi1) :: cx ->
-      if left classes (psi0 :: cx) phi then left classes (psi1 :: cx) phi else false
-    | Cof.Meet (psi0, psi1) :: cx -> 
-      left classes (psi0 :: psi1 :: cx) phi
-    | Cof.Top :: cx -> 
-      left classes cx phi
-    | Cof.Bot :: cx -> 
-      true
-  in 
-  left env.classes [env.cof] phi
-
-
-let test_sequent env cx phi = 
-  let psi = List.fold_left Cof.meet Cof.top cx in
-  test (assume env psi) phi
