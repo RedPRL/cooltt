@@ -33,9 +33,10 @@ let find_class classes r =
 
 module Inversion =
 struct
-
   let rec right classes =
     function
+    | Cof.Eq (r, s) when r = s ->
+      true
     | Cof.Eq (r, s) ->
       find_class classes r = find_class classes s
     | Cof.Join (phi0, phi1) ->
@@ -66,7 +67,8 @@ end
 
 let test env phi = 
   match env.status with 
-  | `Inconsistent -> true
+  | `Inconsistent -> 
+    true
   | `Consistent ->
     Inversion.left env.classes [env.cof] phi
 
@@ -89,6 +91,8 @@ let rec assume env phi =
       env 
     | Cof.Bot ->
       inconsistent
+    | Cof.Eq (r, s) when r = s -> 
+      env
     | Cof.Eq (r, s) ->
       let classes = UF.union r s env.classes in
       if UF.find D.Dim0 classes = UF.find D.Dim1 classes then 
