@@ -4,9 +4,15 @@ module D = Domain
 module UF = DisjointSet.Make (PersistentTable.M)
 
 type env = 
-  {classes : D.dim UF.t;
-   cof : D.dim Cof.cof;
-   status : [`Consistent | `Inconsistent]}
+  { classes : D.dim UF.t;
+    (** equivalence classes of dimensions *)
+
+    cof : D.dim Cof.cof;
+    (** a cofibration which is assumed true, but has not been eliminated yet *)
+
+    status : [`Consistent | `Inconsistent]
+    (** a cache which must be maintained *)
+  }
 
 let init () = 
   {classes = UF.init ~size:100;
