@@ -6,6 +6,7 @@ module CS := ConcreteSyntax
 type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
+type dim_tac = S.dim EM.m
 
 type 'a quantifier = 'a -> CS.ident option * 'a -> 'a
 
@@ -24,6 +25,7 @@ module Univ : sig
   val formation : tp_tac
   val nat : chk_tac
   val pi : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
+  val dim_pi : CS.ident option * chk_tac -> chk_tac
   val sg : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
   val id : chk_tac -> chk_tac -> chk_tac -> chk_tac
   val el_formation : chk_tac -> tp_tac
@@ -33,6 +35,12 @@ module Pi : sig
   val formation : tp_tac quantifier
   val intro : CS.ident option -> chk_tac -> chk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
+end
+
+module DimPi : sig 
+  val formation : CS.ident option * tp_tac -> tp_tac
+  val intro : CS.ident option -> chk_tac -> chk_tac
+  val apply: syn_tac -> dim_tac -> syn_tac
 end
 
 module Sg : sig

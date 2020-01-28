@@ -60,6 +60,13 @@ let get_local ix env =
   | _ -> 
     failwith "get_local"
 
+let get_local_dim ix env = 
+  match Bwd.nth env.locals ix with
+  | `Dim cell -> 
+    Cell.contents cell
+  | _ -> 
+    failwith "get_local_dim"
+
 let resolve_local key env =
   let exception E in
   let rec go i = function

@@ -33,4 +33,5 @@ val whnf_con : D.con -> D.con whnf compute
 val whnf_tp : D.tp -> D.tp whnf compute
 
 val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
-val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
+val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute  val inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute
+val inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute

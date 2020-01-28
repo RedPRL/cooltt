@@ -17,6 +17,8 @@ type t =
   | NatElim of ghost option * tp * t * t * t
   | Lam of t
   | Ap of t * t
+  | DimLam of t
+  | DimAp of t * dim
   | Pair of t * t
   | Fst of t
   | Snd of t
@@ -38,6 +40,7 @@ and _ gtp =
   | Pi : 'a * 'a -> 'a gtp
   | Sg : 'a * 'a -> 'a gtp
   | Id : 'a * t * t -> 'a gtp
+  | DimPi : 'a -> 'a gtp
   | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
@@ -133,12 +136,12 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp envx) refl
       (pp env) scrut
-  | `Lam, Lam tm ->
+  | `Lam, (Lam tm | DimLam tm) ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "[%a] %a" 
       Uuseg_string.pp_utf_8 x 
       (pp_ envx `Lam) tm
-  | _, Lam tm ->
+  | _, (Lam tm | DimLam tm) ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "@[<hv1>(lam@ [%a] %a)@]" 
       Uuseg_string.pp_utf_8 x 
@@ -151,6 +154,10 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm0 (pp env) tm1
   | _, Ap (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hv1>(%a@ %a)@]" (pp_ env `Ap) tm0 (pp env) tm1
+  | `Ap, DimAp (tm, tr) ->
+    Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (pp_dim env) tr
+  | _, DimAp (tm, tr) ->
+    Fmt.fprintf fmt "@[<hv1>(%a@ %a)@]" (pp_ env `Ap) tm (pp_dim env) tr
   | _, Pair (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hv1>(pair@ %a@ %a)@]" (pp env) tm0 (pp env) tm1
   | _, Refl tm ->
@@ -221,6 +228,19 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       Uuseg_string.pp_utf_8 "->" 
       Uuseg_string.pp_utf_8 x 
       (go env `Start) base 
+      (go envx `Pi) fam
+  | `Pi, DimPi fam -> 
+    let x, env' = Pp.Env.bind env None in
+    Format.fprintf fmt 
+      "[%a : dim]@ %a" 
+      Uuseg_string.pp_utf_8 x 
+      (go env' `Pi) fam
+  | _, DimPi fam ->
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt 
+      "@[<hv1>(%a @[<hv>[%a : dim]@ %a@])@]" 
+      Uuseg_string.pp_utf_8 "->" 
+      Uuseg_string.pp_utf_8 x 
       (go envx `Pi) fam
   | `Sg, Sg (base, fam) ->
     let x, env' = Pp.Env.bind env None in

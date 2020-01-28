@@ -8,7 +8,7 @@ type t =
   | ExpectedEqual of Pp.env * S.tp * S.t * S.t
   | ExpectedEqualTypes of Pp.env * S.tp * S.tp
   | InvalidTypeExpression of CS.t
-  | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ] * D.tp
+  | ExpectedConnective of [`Pi | `DimPi | `Sg | `Id | `Nat | `Univ] * D.tp (* TODO: change to Pp.env * S.tp *)
   | ExpectedSynthesizableTerm of S.t
   | MalformedCase
   | CannotEliminate of Pp.env * S.tp

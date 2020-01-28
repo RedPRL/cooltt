@@ -17,6 +17,8 @@ type t =
   | NatElim of ghost option * tp * t * t * t
   | Lam of t
   | Ap of t * t
+  | DimLam of t
+  | DimAp of t * dim
   | Pair of t * t
   | Fst of t
   | Snd of t
@@ -38,6 +40,7 @@ and _ gtp =
   | Pi : 'a * 'a -> 'a gtp
   | Sg : 'a * 'a -> 'a gtp
   | Id : 'a * t * t -> 'a gtp
+  | DimPi : 'a -> 'a gtp
   | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp

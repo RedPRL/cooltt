@@ -21,13 +21,15 @@ sig
 
   val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
   val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
-  val inst_line_clo : D.line_clo -> D.dim -> D.con compute
-  val inst_pline_clo : D.pline_clo -> D.dim -> D.con compute
+  val inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute
+  val inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute
+  val inst_pline_clo : S.t D.pline_clo -> D.dim -> D.con compute
 
   val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
+  val do_dim_ap : D.con -> D.dim -> D.con compute
   val do_id_elim : ghost:D.ghost option -> ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
   val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
@@ -36,7 +38,7 @@ sig
   val force_lazy_con : D.lazy_con -> D.con compute
 
   val do_rigid_coe : D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
-  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.pline_clo -> D.con compute
+  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> S.t D.pline_clo -> D.con compute
 end =
 struct
   open CmpM
@@ -61,7 +63,7 @@ struct
 
   let rec whnf_con : D.con -> D.con whnf m =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort ->
+    | D.Lam _ | D.DimLam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort ->
       ret `Done
 
     | D.Cut {unfold = Some lcon} -> 
@@ -186,7 +188,13 @@ struct
       lift_ev (env <>< cons) @@ 
       eval bdy
 
-  and inst_line_clo : D.line_clo -> D.dim -> D.con compute = 
+  and inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute = 
+    fun clo r ->
+    match clo with
+    | D.LineClo (bdy, env) ->
+      lift_ev (env <>< [`Dim r]) @@ eval_tp bdy
+
+  and inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute = 
     fun clo r ->
     match clo with 
     | D.LineClo (bdy, env) ->
@@ -211,7 +219,7 @@ struct
       let* fst_r = do_rigid_hcom clo.base clo.src r clo.cof @@ D.FstClo clo.clo in
       inst_tm_clo clo.fam [fst_r]
 
-  and inst_pline_clo : D.pline_clo -> D.dim -> D.con compute =
+  and inst_pline_clo : S.t D.pline_clo -> D.dim -> D.con compute =
     fun clo r ->
     match clo with
     | D.PLineClo (bdy, env) -> 
@@ -298,7 +306,17 @@ struct
       cut_frm ~tp:fib ~cut ~unfold @@ D.KAp (base, a) 
 
     | _ -> 
-      CmpM.throw @@ NbeFailed "Not a function in do_ap"
+      throw @@ NbeFailed "Not a function in do_ap"
+
+  and do_dim_ap con r =
+    match con with 
+    | D.DimLam clo ->
+      inst_line_clo clo r 
+    | D.Cut {tp = D.Tp (D.DimPi fam); cut; unfold} ->
+      let+ fib = inst_tp_line_clo fam r in
+      cut_frm ~tp:fib ~cut ~unfold @@ D.KDimAp r
+    | _ ->
+      throw @@ NbeFailed "Not a line in do_dim_ap"
 
   and do_el =
     function
@@ -374,6 +392,7 @@ struct
   and do_frm con =
     function
     | D.KAp (_, con') -> do_ap con con'
+    | D.KDimAp r -> do_dim_ap con r
     | D.KFst -> do_fst con
     | D.KSnd -> do_snd con
     | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
@@ -429,6 +448,7 @@ struct
     | S.GoalTp (lbl, tp) ->
       let+ tp = eval_tp tp in
       D.Tp (D.GoalTp (lbl, tp))
+    | S.DimPi _ -> failwith ""
 
   and eval_dim = 
     function
@@ -473,10 +493,18 @@ struct
     | S.Lam t -> 
       let+ cl = close_tm t in
       D.Lam cl
-    | S.Ap (t1, t2) -> 
-      let* el1 = eval t1 in 
-      let* el2 = eval t2 in
-      lift_cmp @@ do_ap el1 el2
+    | S.DimLam t ->
+      let+ env = read_local in
+      let clo = D.LineClo (t, env) in
+      D.DimLam clo
+    | S.Ap (t0, t1) -> 
+      let* con0 = eval t0 in 
+      let* con1 = eval t1 in 
+      lift_cmp @@ do_ap con0 con1
+    | S.DimAp (t, tr) ->
+      let* con = eval t in
+      let* r = eval_dim tr in
+      lift_cmp @@ do_dim_ap con r
     | S.Pair (t1, t2) -> 
       let+ el1 = eval t1
       and+ el2 = eval t2 in
@@ -615,6 +643,7 @@ struct
       and+ vl = eval left 
       and+ vr = eval right in
       D.Id (vtp, vl, vr)
+    | S.DimPi _ -> failwith ""
 
   and eval_ghost =
     function 
@@ -687,16 +716,23 @@ struct
         | _ -> 
           quote_cut (hd, sp)
       end
-    | D.Pi (base, fam), f ->
+    | D.Pi (base, fam), con ->
       binder 1 @@ 
       let* arg = top_var base in
       let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
-      let* ap = lift_cmp @@ do_ap f arg in
+      let* ap = lift_cmp @@ do_ap con arg in
       let+ body = quote_con fib ap in
       S.Lam body
-    | D.Sg (base, fam), p ->
-      let* fst = lift_cmp @@ do_fst p in
-      let* snd = lift_cmp @@ do_snd p in
+    | D.DimPi fam, con -> 
+      binder 1 @@ 
+      let* arg = top_dim_var in
+      let* fib = lift_cmp @@ inst_tp_line_clo fam arg in
+      let* ap = lift_cmp @@ do_dim_ap con arg in
+      let+ body = quote_con fib ap in 
+      S.DimLam body
+    | D.Sg (base, fam), _ ->
+      let* fst = lift_cmp @@ do_fst con in
+      let* snd = lift_cmp @@ do_snd con in
       let* fib = lift_cmp @@ inst_tp_clo fam [fst] in 
       let+ tfst = quote_con base fst
       and+ tsnd = quote_con fib snd in 
@@ -745,6 +781,14 @@ struct
       and+ tleft = quote_con eltp left 
       and+ tright = quote_con eltp right in 
       S.Id (ttp, tleft, tright)
+    | D.DimPi clo ->
+      let+ tfam = 
+        binder 1 @@
+        let* var = top_dim_var in
+        quote_con univ @<< 
+        lift_cmp @@ inst_line_clo clo var
+      in
+      S.DimPi tfam
 
   and quote_tp (D.Tp tp) =
     match tp with
@@ -780,6 +824,14 @@ struct
     | D.GoalTp (lbl, tp) ->
       let+ tp = quote_tp tp in
       S.Tp (S.GoalTp (lbl, tp))
+    | D.DimPi clo ->
+      let+ tfam = 
+        binder 1 @@
+        let* var = top_dim_var in
+        quote_tp @<< 
+        lift_cmp @@ inst_tp_line_clo clo var
+      in
+      S.Tp (S.DimPi tfam)
 
 
   and quote_hd =
@@ -868,8 +920,6 @@ struct
     let+ n = read_local in 
     n - (lvl + 1)
 
-
-
   and quote_cut (hd, spine) = 
     let* tm = quote_hd hd in 
     quote_spine tm spine
@@ -954,6 +1004,9 @@ struct
     | D.KAp (tp, con) ->
       let+ targ = quote_con tp con in
       S.Ap (tm, targ)
+    | D.KDimAp r ->
+      let+ tr = quote_dim r in
+      S.DimAp (tm, tr)
     | D.KGoalProj ->
       ret @@ S.GoalProj tm
 
@@ -988,6 +1041,12 @@ struct
       let* () = equate_tp tp0 tp1 in
       let* () = equate_con tp0 l0 l1 in
       equate_con tp0 r0 r1
+    | D.DimPi fam0, D.DimPi fam1 ->
+      binder 1 @@ 
+      let* x = top_dim_var in
+      let* fib0 = lift_cmp @@ inst_tp_line_clo fam0 x in 
+      let* fib1 = lift_cmp @@ inst_tp_line_clo fam1 x in 
+      equate_tp fib0 fib1
     | D.Nat, D.Nat 
     | D.Univ, D.Univ -> 
       ret ()
@@ -1010,6 +1069,13 @@ struct
       let* fib = lift_cmp @@ inst_tp_clo fam [x] in 
       let* ap0 = lift_cmp @@ do_ap con0 x in
       let* ap1 = lift_cmp @@ do_ap con1 x in
+      equate_con fib ap0 ap1
+    | D.DimPi fam, _, _ ->
+      binder 1 @@ 
+      let* x = top_dim_var in 
+      let* fib = lift_cmp @@ inst_tp_line_clo fam x in
+      let* ap0 = lift_cmp @@ do_dim_ap con0 x in
+      let* ap1 = lift_cmp @@ do_dim_ap con1 x in
       equate_con fib ap0 ap1
     | D.Sg (base, fam), _, _ ->
       let* fst0 = lift_cmp @@ do_fst con0 in

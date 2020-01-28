@@ -19,6 +19,10 @@ let push_var id tp : 'a m -> 'a m =
   let con = D.mk_var tp @@ Env.size env in 
   Env.append_con id con tp env
 
+let push_dim_var id : 'a m -> 'a m = 
+  scope @@ fun env ->
+  Env.append_dim id (D.DimVar (Env.size env)) env
+
 let push_def id tp con : 'a m -> 'a m = 
   scope @@ fun env ->
   Env.append_con id con tp env
@@ -67,6 +71,12 @@ let get_local ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
+let get_local_dim ix = 
+  let* env = read in
+  match Env.get_local_dim ix env with
+  | r -> ret r
+  | exception exn -> throw exn
+
 let equate tp l r =
   let* env = read in
   let* res = lift_qu @@ Nbe.equal_con tp l r in
@@ -91,6 +101,13 @@ let dest_pi =
   | tp -> 
     elab_err @@ Err.ExpectedConnective (`Pi, tp)
 
+let dest_dim_pi = 
+  function
+  | D.Tp (D.DimPi fam) -> 
+    ret fam
+  | tp -> 
+    elab_err @@ Err.ExpectedConnective (`DimPi, tp)
+
 let dest_sg = 
   function
   | D.Tp (D.Sg (base, fam)) -> 
@@ -108,6 +125,11 @@ let dest_id =
 let abstract nm tp k =
   push_var nm tp @@
   let* x = get_local 0 in
+  k x
+
+let abstract_dim nm k =
+  push_dim_var nm @@ 
+  let* x = lift_ev @@ Nbe.eval_dim @@ S.DimVar 0 in
   k x
 
 let define nm tp con k =
