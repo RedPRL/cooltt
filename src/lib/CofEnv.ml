@@ -33,6 +33,7 @@ let find_class classes r =
 
 module Inversion =
 struct
+  (* Invariant: classes is consistent *)
   let rec right classes =
     function
     | Cof.Eq (r, s) when r = s ->
@@ -46,6 +47,7 @@ struct
     | Cof.Bot -> false
     | Cof.Top -> true
 
+  (* Invariant: classes is consistent *)
   let rec left classes cx phi = 
     match cx with 
     | [] -> right classes phi
@@ -54,7 +56,7 @@ struct
       if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
         true
       else
-        left (UF.union r s classes) cx phi
+        left classes cx phi
     | Cof.Join (psi0, psi1) :: cx ->
       if left classes (psi0 :: cx) phi then left classes (psi1 :: cx) phi else false
     | Cof.Meet (psi0, psi1) :: cx -> 
@@ -90,7 +92,8 @@ let rec assume env phi =
     | Cof.Meet (phi0, phi1) -> 
       assume (assume env phi0) phi1
     | Cof.Join _ -> 
-      {env with cof = Cof.meet env.cof phi}
+      if test_sequent env [phi] Cof.bot then inconsistent else
+        {env with cof = Cof.meet env.cof phi}
     | Cof.Eq (r, s) ->
       let classes = UF.union r s env.classes in
       if UF.find D.Dim0 classes = UF.find D.Dim1 classes then 
