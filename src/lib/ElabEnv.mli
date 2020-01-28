@@ -24,7 +24,11 @@ type t
 val locals : t -> cell bwd
 
 val init : t
+
 val append_con : string option -> D.con -> D.tp -> t -> t
+val append_dim : string option -> D.dim -> t -> t
+val append_prf : D.cof -> t -> t
+
 val sem_env : t -> D.env
 val pp_env : t -> Pp.env
 val cof_env : t -> CofEnv.env

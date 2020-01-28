@@ -23,6 +23,8 @@ let push_def id tp con : 'a m -> 'a m =
   scope @@ fun env ->
   Env.append_con id con tp env
 
+let assume phi : 'a m -> 'a m =
+  scope @@ Env.append_prf phi
 
 let resolve id = 
   let* env = read in

@@ -12,6 +12,7 @@ struct
     {contents : 'a;
      name : string option}
 
+  let make nm c = {contents = c; name = nm}
   let name cell = cell.name
   let contents cell = cell.contents
 end
@@ -93,6 +94,17 @@ let append_con name con tp env =
   {env with 
    pp = snd @@ Pp.Env.bind env.pp name;
    locals = env.locals <>< [`Con {contents = tp, con; name}]}
+
+let append_dim name r env = 
+  {env with 
+   pp = snd @@ Pp.Env.bind env.pp name;
+   locals = env.locals <>< [`Dim {contents = r; name}]}
+
+
+let append_prf phi env = 
+  {env with 
+   locals = env.locals <>< [`Prf phi];
+   cof_env = CofEnv.assume env.cof_env phi}
 
 
 let sem_env (env : t) : D.env =
