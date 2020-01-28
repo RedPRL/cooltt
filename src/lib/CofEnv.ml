@@ -82,9 +82,10 @@ let rec assume env phi =
   match env.status with 
   | `Inconsistent -> env
   | `Consistent -> 
+    let phi = Cof.reduce phi in
     (* If the new assumption is stronger than what's on deck, throw the latter away *)
     let env = if test_sequent env [phi] env.cof then {env with cof = Cof.top} else env in
-    match Cof.reduce phi with 
+    match phi with 
     | Cof.Bot ->
       inconsistent
     | Cof.Top ->
