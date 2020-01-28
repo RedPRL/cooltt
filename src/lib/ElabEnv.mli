@@ -4,33 +4,21 @@ module D := Domain
 open CoolBasis
 open Bwd
 
-module ConCell : sig
-  type t
+module Cell : sig
+  type 'a t
 
-  val tp : t -> D.tp
-  val visibility : t -> [`Visible | `Hidden]
-  val name : t -> string option
-  val con : t -> D.con
+  val contents : 'a t -> 'a
+  val name : 'a t -> string option
 end
 
-module DimCell : sig
-  type t
-
-  val name : t -> string option
-  val dim : t -> D.dim
-end
-
-module CofCell : sig
-  type t
-
-  val name : t -> string option
-  val cof : t -> D.cof
-end
-
+type cell = 
+  [ `Con of (D.tp * D.con) Cell.t
+  | `Dim of D.dim Cell.t
+  | `Cof of D.cof Cell.t
+  ]
 
 
 type t
-type cell = [`Con of ConCell.t | `Dim of DimCell.t | `Cof of CofCell.t]
 
 val locals : t -> cell bwd
 

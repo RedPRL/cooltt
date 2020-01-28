@@ -127,24 +127,18 @@ let current_ghost : S.ghost option m =
     function
     | Emp -> ret []
     | Snoc (cells, `Con cell) ->
-      begin
-        match Env.ConCell.visibility cell with 
-        | `Hidden ->
-          go_locals cells
-        | `Visible ->
-          let* cells = go_locals cells in
-          let tp = Env.ConCell.tp cell in
-          let* ttp = lift_qu @@ Nbe.quote_tp tp in
-          let* tm = lift_qu @@ Nbe.quote_con tp @@ Env.ConCell.con cell in
-          ret @@ cells @ [`Con (ttp, tm)]
-      end
+      let* cells = go_locals cells in
+      let tp, con = Env.Cell.contents cell in 
+      let* ttp = lift_qu @@ Nbe.quote_tp tp in
+      let* tm = lift_qu @@ Nbe.quote_con tp con in
+      ret @@ cells @ [`Con (ttp, tm)]
     | Snoc (cells, `Dim cell) ->
       let* cells = go_locals cells in
-      let+ r = lift_qu @@ Nbe.quote_dim @@ Env.DimCell.dim cell in
+      let+ r = lift_qu @@ Nbe.quote_dim @@ Env.Cell.contents cell in
       cells @ [`Dim r]
     | Snoc (cells, `Cof cell) ->
       let* cells = go_locals cells in
-      let+ phi = lift_qu @@ Nbe.quote_cof @@ Env.CofCell.cof cell in
+      let+ phi = lift_qu @@ Nbe.quote_cof @@ Env.Cell.contents cell in
       cells @ [`Cof phi]
   in
   let+ cells = go_locals @@ Env.locals env in

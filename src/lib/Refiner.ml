@@ -29,8 +29,8 @@ struct
       | [] ->
         EM.lift_qu @@ Nbe.quote_tp @@ D.Tp (D.GoalTp (name, tp))
       | `Con cell :: cells ->
-        let ctp = Env.ConCell.tp cell in
-        let name = Env.ConCell.name cell in
+        let ctp, _ = Env.Cell.contents cell in
+        let name = Env.Cell.name cell in
         let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
         and+ fam = EM.push_var name ctp @@ go_tp cells in
         S.Tp (S.Pi (base, fam))
@@ -44,7 +44,8 @@ struct
       function
       | Emp -> cut
       | Snoc (cells, `Con cell) ->
-        go_tm cut cells |> D.push @@ D.KAp (Env.ConCell.tp cell, Env.ConCell.con cell)
+        let tp, con = Env.Cell.contents cell in
+        go_tm cut cells |> D.push @@ D.KAp (tp, con) 
       | Snoc (_, `Dim _) ->
         failwith "Not supported yet"
       | Snoc (_, `Cof _) ->
