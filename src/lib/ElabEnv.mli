@@ -30,7 +30,7 @@ val init : t
 val append_con : string option -> D.con -> D.tp -> t -> t
 val sem_env : t -> D.env
 val pp_env : t -> Pp.env
-val restriction : t -> Restriction.t
+val cof_env : t -> CofEnv.env
 
 val get_veil : t -> Veil.t
 val set_veil : Veil.t -> t -> t

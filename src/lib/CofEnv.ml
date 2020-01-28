@@ -40,6 +40,9 @@ let rec assume env phi =
       else 
         {env with classes}
 
+let equate env r s = 
+  assume env @@ Cof.eq r s
+
 let find_class classes r =
   try UF.find r classes with _ -> r
 

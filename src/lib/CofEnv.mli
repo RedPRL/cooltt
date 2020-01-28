@@ -17,6 +17,9 @@ val status : env -> [`Consistent | `Inconsistent]
     sequents. *)
 val assume : env -> D.dim Cof.cof -> env
 
+(** Equivalent to [assume env (Cof.eq r s)] *)
+val equate : env -> D.dim -> D.dim -> env
+
 (** Tests the truth of a cofibration against the supplied environment. *)
 val test : env -> D.dim Cof.cof -> bool
 
