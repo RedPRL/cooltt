@@ -73,6 +73,14 @@ struct
     | Emp -> Emp
     | Snoc (xs, x) -> Snoc (map f xs, f x)
 
+  let rec filter_map f =
+    function
+    | Emp -> Emp
+    | Snoc (xs, x) ->
+      match f x with 
+      | None -> filter_map f xs
+      | Some fx -> Snoc (filter_map f xs, fx)
+
   let mapi f =
     let rec go i =
       function

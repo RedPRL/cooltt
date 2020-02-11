@@ -10,16 +10,14 @@ type 'a quote
 module CmpM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a compute
-    with type local := St.t
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
-  val read : ElabState.t m
+  val test_sequent : D.cof list -> D.cof -> bool m
 end
 
 module EvM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a evaluate
-    with type local := St.t * D.env
 
   val lift_cmp : 'a compute -> 'a m
 
@@ -28,13 +26,12 @@ module EvM : sig
 
   val close_tp : S.tp -> 'n D.tp_clo m
   val close_tm : S.t -> 'n D.tm_clo m
-  val append : [`Con of D.con] list -> 'a m -> 'a m
+  val append : [`Con of D.con | `Dim of D.dim | `Cof of D.cof] list -> 'a m -> 'a m
 end
 
 module QuM : sig 
   include Monad.MonadReaderResult 
     with type 'a m = 'a quote
-    with type local := St.t * Veil.t * int
 
   val lift_cmp : 'a compute -> 'a m
 
@@ -43,6 +40,9 @@ module QuM : sig
   val read_veil : Veil.t m
 
   val binder : int -> 'a m -> 'a m
+
+  val under_cofs : D.cof list -> 'a m -> (int, D.dim, 'a) Cof.tree m
+  val under_cofs_ : D.cof list -> unit m -> unit m
 end
 
 module ElabM : sig

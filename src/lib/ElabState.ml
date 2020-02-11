@@ -16,7 +16,7 @@ let add_global ident tp oel st =
   let con = 
     match oel with
     | Some con -> con
-    | None -> D.Cut {tp; cut = (D.Global sym, []), None}
+    | None -> D.Cut {tp; cut = D.Global sym, []; unfold = None}
   in
   sym, 
   {resolver = 
@@ -30,7 +30,7 @@ let add_global ident tp oel st =
 
 let add_flex_global tp st =
   let sym = Symbol.fresh () in
-  let con = D.Cut {tp; cut = (D.Global sym, []), None} in
+  let con = D.Cut {tp; cut = D.Global sym, []; unfold = None} in
   sym, 
   {st with 
    flexity = SymbolMap.add sym `Flex st.flexity;

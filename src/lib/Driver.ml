@@ -13,7 +13,7 @@ let pp_message fmt =
   | NormalizedTerm (s, t) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt 
-      "Computed normal form of@ @[<hv>%a@] as@ @[<hv> %a@]@,"
+      "Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@,"
       (S.pp env) s 
       (S.pp env) t
 
@@ -69,4 +69,5 @@ let rec execute_signature sign =
 
 let process_sign : CS.signature -> unit =
   fun sign ->
-  EM.run_exn ElabState.init Env.init @@ execute_signature sign 
+  EM.run_exn ElabState.init Env.init @@ 
+  execute_signature sign 
