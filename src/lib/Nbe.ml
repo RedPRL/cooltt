@@ -312,9 +312,17 @@ struct
     match con with 
     | D.DimLam clo ->
       inst_line_clo clo r 
+      
     | D.Cut {tp = D.Tp (D.DimPi fam); cut; unfold} ->
       let+ fib = inst_tp_line_clo fam r in
       cut_frm ~tp:fib ~cut ~unfold @@ D.KDimAp r
+
+    | D.ConCoe (D.CoeAbs abs, r, s, f) ->
+      failwith "todo: dim-ap / coe"
+
+    | D.ConHCom (code, r, s, phi, clo) ->
+      failwith "todo: dim-ap / hcom"
+
     | _ ->
       throw @@ NbeFailed "Not a line in do_dim_ap"
 
