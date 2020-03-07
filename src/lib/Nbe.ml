@@ -448,7 +448,10 @@ struct
     | S.GoalTp (lbl, tp) ->
       let+ tp = eval_tp tp in
       D.Tp (D.GoalTp (lbl, tp))
-    | S.DimPi _ -> failwith ""
+    | S.DimPi fam -> 
+      let+ env = EvM.read_local in
+      let clfam = D.LineClo (fam, env) in
+      D.Tp (D.DimPi clfam)
 
   and eval_dim = 
     function
@@ -643,7 +646,10 @@ struct
       and+ vl = eval left 
       and+ vr = eval right in
       D.Id (vtp, vl, vr)
-    | S.DimPi _ -> failwith ""
+    | S.DimPi fam ->
+      let+ env = read_local in
+      let clo = D.LineClo (fam, env) in
+      D.DimPi clo
 
   and eval_ghost =
     function 
