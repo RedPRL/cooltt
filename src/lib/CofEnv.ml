@@ -75,7 +75,8 @@ struct
       else
         left {local with classes} cx phi
     | Cof.Var v :: cx ->
-      failwith "todo"
+      let local = {local with true_vars = VarSet.add v local.true_vars} in
+      left local cx phi
     | Cof.Join (psi0, psi1) :: cx ->
       if left local (psi0 :: cx) phi then left local (psi1 :: cx) phi else false
     | Cof.Meet (psi0, psi1) :: cx -> 
