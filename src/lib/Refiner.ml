@@ -15,7 +15,7 @@ type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 type dim_tac = S.dim EM.m
 
-type 'a quantifier = 'a -> CS.ident option * 'a -> 'a
+type ('a, 'b) quantifier = 'a -> CS.ident option * 'b -> 'b
 
 let rec int_to_term =
   function
@@ -157,6 +157,7 @@ module FormationRules (G : TypeGoal) :
 sig
   val nat : G.tac
   val pi : G.tac -> CS.ident option * G.tac -> G.tac
+  val gen_pi : [`Dim | `Tp of G.tac] -> CS.ident option * G.tac -> G.tac
   val sg : G.tac -> CS.ident option * G.tac -> G.tac
   val id : G.tac -> chk_tac -> chk_tac -> G.tac
   val dim_pi : CS.ident option * G.tac -> G.tac
@@ -181,6 +182,11 @@ struct
     G.make @@ fun goal ->
     let+ fam = EM.push_dim_var nm @@ G.run goal tac_fam in 
     G.tp @@ S.DimPi fam
+
+  let gen_pi =
+    function
+    | `Dim -> dim_pi 
+    | `Tp tp -> pi tp
 
   let sg (tac_base : G.tac) (nm, tac_fam) : G.tac = 
     G.make @@ fun goal ->
@@ -433,6 +439,8 @@ struct
       EM.ret @@ DimPi.intro name tac_body
     | _ ->
       EM.throw @@ Invalid_argument "tac_lam cannot be called on this goal"
+
+  let tac_gen_pi_formation = TypeFormationRules.gen_pi
 
   let rec tac_multi_lam names tac_body =
     match names with

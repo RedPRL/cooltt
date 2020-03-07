@@ -5,7 +5,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE
+%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS
 %token UNIV
@@ -60,6 +60,8 @@ atomic:
     { Hole name }
   | UNDERSCORE 
     { Underscore }
+  | DIM 
+    { Dim }
 
 spine:
   | t = atomic 

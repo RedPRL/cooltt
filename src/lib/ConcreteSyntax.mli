@@ -23,11 +23,13 @@ and t =
   | Id of t * t * t
   | Refl
   | Univ
-  | Hole of ident option
+  | Hole of ident option 
+
   | Underscore
   | Unfold of ident list * t
   | Elim of {mot : bindern; cases : case list; scrut : t}
   | LamElim of case list 
+  | Dim
 
 and case = pat * t
 and pat = Pat of {lbl : ident; args : pat_arg list}

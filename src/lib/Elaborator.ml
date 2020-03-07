@@ -29,8 +29,13 @@ let rec chk_tp : CS.t -> S.tp EM.m =
   | CS.Underscore -> 
     R.Hole.unleash_tp_hole None `Flex
   | CS.Pi (cells, body) -> 
-    let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
-    R.Tactic.tac_nary_quantifier R.Pi.formation tacs @@ chk_tp body
+    let tac (CS.Cell cell) = 
+      match cell.tp with
+      | CS.Dim -> Some cell.name, `Dim
+      | _ -> Some cell.name, `Tp (chk_tp cell.tp)
+    in
+    let tacs = cells |> List.map tac in 
+    R.Tactic.tac_nary_quantifier R.Tactic.tac_gen_pi_formation tacs @@ chk_tp body
   | CS.Sg (cells, body) -> 
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
     R.Tactic.tac_nary_quantifier R.Sg.formation tacs @@ chk_tp body
@@ -71,8 +76,13 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.Nat ->
     R.Univ.nat
   | CS.Pi (cells, body) ->
-    let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
-    R.Tactic.tac_nary_quantifier R.Univ.pi tacs @@ chk_tm body
+    let tac (CS.Cell cell) = 
+      match cell.tp with
+      | CS.Dim -> Some cell.name, `Dim
+      | _ -> Some cell.name, `Tp (chk_tm cell.tp)
+    in
+    let tacs = cells |> List.map tac in 
+    R.Tactic.tac_nary_quantifier R.Univ.gen_pi tacs @@ chk_tm body
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
     R.Tactic.tac_nary_quantifier R.Univ.sg tacs @@ chk_tm body

@@ -34,7 +34,8 @@ let keywords =
     ("def", DEF);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
-    ("univ", UNIV)
+    ("univ", UNIV);
+    ("dim", DIM)
   ]
 }
 
