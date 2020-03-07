@@ -351,7 +351,7 @@ struct
     let i = D.DimProbe (Symbol.fresh ()) in
     let rec go peek =
       match peek with
-      | D.TpCode (D.Pi _) ->
+      | D.TpCode (D.Pi _ | D.DimPi _ | D.Sg _) ->
         ret @@ D.ConCoe (D.CoeAbs abs, r, s, con)
       | D.Cut {unfold = Some lcon} -> 
         go @<< force_lazy_con lcon
@@ -367,7 +367,7 @@ struct
 
   and do_rigid_hcom code r s phi clo = 
     match code with 
-    | D.TpCode (D.Pi _) ->
+    | D.TpCode (D.Pi _ | D.DimPi _ | D.Sg _)->
       ret @@ D.ConHCom (code, r, s, phi, clo)
     | D.Cut {unfold = Some lcon} ->
       let* code = force_lazy_con lcon in 
