@@ -30,6 +30,8 @@ type t =
   | HCom of t * dim * dim * cof * t
   | TpCode of t gtp
   | CofTree of cof_tree
+  | SubIn of t
+  | SubOut of t
 
 and cof_tree = (int, dim, t) Cof.tree
 

@@ -56,6 +56,7 @@ and con =
   | GoalRet of con
   | TpCode of (con, S.t) gtp
   | Abort
+  | SubIn of S.t pclo
 
 and tp = Tp of (tp, S.tp) gtp
 
@@ -88,5 +89,6 @@ and frm =
   | KNatElim of ghost option * ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
+  | KSubOut
 
 and ghost = string bwd * [`Con of (tp * con) | `Dim of dim | `Cof of cof] list

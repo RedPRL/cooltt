@@ -123,6 +123,10 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
   | _, CofTree tree ->
     Cof.pp_tree pp_var pp_dim pp env fmt tree
+  | _, SubIn tm ->
+    Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
+  | _, SubOut tm ->
+    Fmt.fprintf fmt "@[<hv1>(sub/out %a)@]" (pp env) tm
 
 and pp_dim env fmt =
   function

@@ -64,14 +64,14 @@ struct
 
   let rec whnf_con : D.con -> D.con whnf m =
     function
-    | D.Lam _ | D.DimLam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort ->
+    | D.Lam _ | D.DimLam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort | D.SubIn _ ->
       ret `Done
 
     | D.Cut {unfold = Some lcon} -> 
       reduce_to @<< force_lazy_con lcon
 
     | D.Cut {unfold = None; cut} ->
-      whnf_cut cut 
+      whnf_cut cut
 
     | D.ConCoe (abs, r, s, con) ->
       begin
@@ -314,6 +314,16 @@ struct
     | _ -> 
       throw @@ NbeFailed "Not a function in do_ap"
 
+  and do_sub_out v =
+    match v with 
+    | D.SubIn pclo ->
+      inst_pclo pclo 
+    | D.Cut {tp = D.Tp (D.Sub (tp, _, _)); cut; unfold} ->
+      ret @@ cut_frm ~tp ~cut ~unfold @@ D.KSubOut
+    | _ ->
+      throw @@ NbeFailed "do_sub_out"
+
+
   and do_dim_ap con r =
     match con with 
     | D.DimLam clo ->
@@ -412,6 +422,7 @@ struct
     | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
     | D.KIdElim (ghost, mot, case_refl, _, _, _) -> do_id_elim ~ghost mot case_refl con
     | D.KGoalProj -> do_goal_proj con
+    | D.KSubOut -> do_sub_out con
 
   and do_spine con =
     function
@@ -584,6 +595,7 @@ struct
       end
     | S.CofTree tree -> 
       force_eval_cof_tree tree
+    | S.SubIn _ | S.SubOut _ -> failwith "todo: issue 28"
 
   and force_eval_cof_tree tree =
     eval_cof_tree tree |>> function
@@ -1060,6 +1072,8 @@ struct
       S.DimAp (tm, tr)
     | D.KGoalProj ->
       ret @@ S.GoalProj tm
+    | D.KSubOut ->
+      ret @@ S.SubOut tm
 
 
   let equate_dim r s =
@@ -1140,6 +1154,8 @@ struct
       let* con0 = lift_cmp @@ do_goal_proj con0 in
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
+    | D.Sub _, _, _ ->
+      failwith "todo: issue 28"
     | D.Id (tp, _, _), D.Refl x, D.Refl y ->
       equate_con tp x y
     | _, D.Zero, D.Zero ->
@@ -1223,7 +1239,7 @@ struct
       let* con0 = lift_cmp @@ inst_tm_clo refl_case0 [x] in
       let* con1 = lift_cmp @@ inst_tm_clo refl_case1 [x] in
       equate_con fib_reflx con0 con1
-    | D.KGoalProj, D.KGoalProj ->
+    | (D.KGoalProj, D.KGoalProj) | (D.KSubOut, D.KSubOut) ->
       ret ()
     | _ -> 
       throw @@ NbeFailed "Mismatched frames"
