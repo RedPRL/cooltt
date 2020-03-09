@@ -37,6 +37,10 @@ and _ pline_clo =
   | SndClo : S.t pline_clo -> S.t pline_clo
   | ComClo : dim * coe_abs * S.t pline_clo -> S.t pline_clo
 
+(* partial element closures *)
+and _ pclo =
+  | PClo : 'a * env -> 'a pclo
+
 and coe_abs = CoeAbs of {clo : S.t line_clo}
 
 and con =
@@ -61,6 +65,7 @@ and (_, _) gtp =
   | Pi : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
   | Sg : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
   | DimPi : 't line_clo -> ('d, 't) gtp
+  | Sub : 'd * cof * S.t pclo -> ('d, 't) gtp
   | Univ : (tp, S.tp) gtp
   | El : cut -> (tp, S.tp) gtp
   | GoalTp : string option * tp -> (tp, S.tp) gtp

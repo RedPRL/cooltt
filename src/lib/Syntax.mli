@@ -41,6 +41,7 @@ and _ gtp =
   | Sg : 'a * 'a -> 'a gtp
   | Id : 'a * t * t -> 'a gtp
   | DimPi : 'a -> 'a gtp
+  | Sub : 'a * cof * t -> 'a gtp
   | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp

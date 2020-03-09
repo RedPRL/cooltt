@@ -41,6 +41,7 @@ and _ gtp =
   | Sg : 'a * 'a -> 'a gtp
   | Id : 'a * t * t -> 'a gtp
   | DimPi : 'a -> 'a gtp
+  | Sub : 'a * cof * t -> 'a gtp
   | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
@@ -263,6 +264,12 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       (go env `Start) tp 
       (pp env) l 
       (pp env) r
+  | _, Sub (tp, phi, t) ->
+    Format.fprintf fmt 
+      "@[<hv1>(sub@ %a@ %a@ %a)]"
+      (go env `Start) tp
+      (Cof.pp_cof pp_var pp_dim env) phi
+      (pp env) t
   | _, Nat ->
     Format.fprintf fmt "nat"
   | _, Univ ->

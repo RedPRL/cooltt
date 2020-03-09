@@ -24,6 +24,7 @@ sig
   val inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute
   val inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute
   val inst_pline_clo : S.t D.pline_clo -> D.dim -> D.con compute
+  val inst_pclo : S.t D.pclo -> D.con compute
 
   val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
@@ -235,6 +236,11 @@ struct
       let* con = inst_pline_clo clo r in
       do_rigid_coe coe_abs r s con
 
+  and inst_pclo : S.t D.pclo -> D.con compute =
+    function
+    | D.PClo (bdy, env) ->
+      lift_ev env @@ eval bdy
+
   and do_goal_proj =
     function
     | D.GoalRet con -> ret con
@@ -312,7 +318,7 @@ struct
     match con with 
     | D.DimLam clo ->
       inst_line_clo clo r 
-      
+
     | D.Cut {tp = D.Tp (D.DimPi fam); cut; unfold} ->
       let+ fib = inst_tp_line_clo fam r in
       cut_frm ~tp:fib ~cut ~unfold @@ D.KDimAp r
@@ -457,9 +463,15 @@ struct
       let+ tp = eval_tp tp in
       D.Tp (D.GoalTp (lbl, tp))
     | S.DimPi fam -> 
-      let+ env = EvM.read_local in
+      let+ env = read_local in
       let clfam = D.LineClo (fam, env) in
       D.Tp (D.DimPi clfam)
+    | S.Sub (tp, tphi, tm) ->
+      let+ env = read_local 
+      and+ tp = eval_tp tp 
+      and+ phi = eval_cof tphi in
+      let cl = D.PClo (tm, env) in
+      D.Tp (D.Sub (tp, phi, cl))
 
   and eval_dim = 
     function
@@ -658,6 +670,12 @@ struct
       let+ env = read_local in
       let clo = D.LineClo (fam, env) in
       D.DimPi clo
+    | S.Sub (tp, tphi, tm) ->
+      let+ env = read_local 
+      and+ tp = eval tp 
+      and+ phi = eval_cof tphi in
+      let cl = D.PClo (tm, env) in
+      D.Sub (tp, phi, cl)
 
   and eval_ghost =
     function 
@@ -803,6 +821,16 @@ struct
         lift_cmp @@ inst_line_clo clo var
       in
       S.DimPi tfam
+    | D.Sub (tp, phi, cl) ->
+      let* eltp = lift_cmp @@ do_el tp in
+      let* ttp = quote_con univ tp in
+      let* tphi = quote_cof phi in
+      let+ tree = 
+        quote_cof_tree @<<
+        under_cofs [phi] @@ 
+        quote_con eltp @<< lift_cmp @@ inst_pclo cl
+      in
+      S.Sub (ttp, tphi, S.CofTree tree)
 
   and quote_tp (D.Tp tp) =
     match tp with
@@ -846,6 +874,15 @@ struct
         lift_cmp @@ inst_tp_line_clo clo var
       in
       S.Tp (S.DimPi tfam)
+    | D.Sub (tp, phi, cl) ->
+      let* ttp = quote_tp tp in
+      let* tphi = quote_cof phi in
+      let+ tree = 
+        quote_cof_tree @<<
+        under_cofs [phi] @@ 
+        quote_con tp @<< lift_cmp @@ inst_pclo cl
+      in
+      S.Tp (S.Sub (ttp, tphi, S.CofTree tree))
 
 
   and quote_hd =
