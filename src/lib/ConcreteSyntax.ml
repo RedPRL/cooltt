@@ -30,6 +30,7 @@ and t =
   | Elim of {mot : bindern; cases : case list; scrut : t}
   | LamElim of case list 
   | Dim
+  | CofEq of t * t
 [@@deriving show]
 
 and case = pat * t
