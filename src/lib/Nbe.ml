@@ -769,6 +769,12 @@ struct
       let+ tfst = quote_con base fst
       and+ tsnd = quote_con fib snd in 
       S.Pair (tfst, tsnd)
+    | D.Sub (tp, phi, clo), _ ->
+      let+ tout = 
+        let* out = lift_cmp @@ do_sub_out con in
+        quote_con tp out
+      in
+      S.SubIn tout
     | D.Nat, D.Zero ->
       ret S.Zero
     | D.Nat, D.Suc n ->
@@ -1074,6 +1080,14 @@ struct
       let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
       let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
       equate_tp fib0 fib1
+    | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
+      let* () = equate_tp tp0 tp1 in
+      let* () = approx_cof phi0 phi1 in
+      let* () = approx_cof phi1 phi0 in
+      under_cofs_ [phi0] @@ 
+      let* con0 = lift_cmp @@ inst_pclo clo0 in
+      let* con1 = lift_cmp @@ inst_pclo clo1 in
+      equate_con tp0 con0 con1
     | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_con tp0 l0 l1 in
