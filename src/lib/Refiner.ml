@@ -21,11 +21,11 @@ let rec int_to_term =
 
 module Hole =
 struct
-  let make_hole name flexity tp = 
+  let make_hole name flexity (tp, phi, clo) = 
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Nbe.quote_tp @@ D.Tp (D.GoalTp (name, tp))
+        EM.lift_qu @@ Nbe.quote_tp @@ D.Tp (D.GoalTp (name, D.Tp (D.Sub (tp, phi, clo))))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
@@ -45,7 +45,7 @@ struct
     let* env = EM.read in
     let names = Pp.Env.names @@ Env.pp_env env in
     EM.globally @@
-    let+ sym =
+    let* sym =
       let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
       let* () =
         () |> EM.emit @@ fun fmt () ->
@@ -57,20 +57,22 @@ struct
       | `Rigid -> EM.add_global name vtp None
     in
 
-    D.push D.KGoalProj @@ go_tm (D.Global sym, []) @@ Env.locals env 
 
-  let unleash_hole name flexity : chk_tac =
-    fun tp ->
-    let* cut = make_hole name flexity tp in 
+    let cut = go_tm (D.Global sym, []) @@ Env.locals env in
+    EM.ret (D.SubOut (D.push KGoalProj cut, phi, clo), [])
+
+  let unleash_hole name flexity : bchk_tac =
+    fun (tp, phi, clo) ->
+    let* cut = make_hole name flexity (tp, phi, clo) in 
     EM.lift_qu @@ Nbe.quote_cut cut
 
   let unleash_tp_hole name flexity : tp_tac =
-    let* cut = make_hole name flexity @@ D.Tp D.Univ in 
+    let* cut = make_hole name flexity @@ (D.Tp D.Univ, Cof.bot, D.PCloConst D.Abort) in 
     EM.lift_qu @@ Nbe.quote_tp (D.Tp (D.El cut))
 
   let unleash_syn_hole name flexity : syn_tac =
-    let* tpcut = make_hole name `Flex @@ D.Tp D.Univ in 
-    let+ tm = unleash_hole name flexity @@ D.Tp (D.El tpcut) in
+    let* tpcut = make_hole name `Flex @@ (D.Tp D.Univ, Cof.bot, D.PCloConst D.Abort) in 
+    let+ tm = bchk_to_chk (unleash_hole name flexity) @@ D.Tp (D.El tpcut) in
     tm, D.Tp (D.El tpcut)
 end
 
@@ -440,7 +442,7 @@ struct
           | Some ([`Simple nm_w], tac) -> EM.ret (nm_w, tac)
           | Some ([], tac) -> EM.ret (None, tac)
           | Some _ -> EM.elab_err Err.MalformedCase 
-          | None -> EM.ret (None, Hole.unleash_hole (Some "refl") `Rigid)
+          | None -> EM.ret (None, bchk_to_chk @@ Hole.unleash_hole (Some "refl") `Rigid)
         in
         Id.elim (nm_u, nm_v, nm_p, mot) tac_refl scrut
       | D.Nat, ([nm_x], mot) ->
@@ -448,14 +450,14 @@ struct
           match find_case "zero" cases with 
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "zero") `Rigid
+          | None -> EM.ret @@ bchk_to_chk @@ Hole.unleash_hole (Some "zero") `Rigid
         in
         let* tac_suc =
           match find_case "suc" cases with
           | Some ([`Simple nm_z], tac) -> EM.ret (nm_z, None, tac)
           | Some ([`Inductive (nm_z, nm_ih)], tac) -> EM.ret (nm_z, nm_ih, tac)
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ (None, None, Hole.unleash_hole (Some "suc") `Rigid)
+          | None -> EM.ret @@ (None, None, bchk_to_chk @@ Hole.unleash_hole (Some "suc") `Rigid)
         in
         Nat.elim (nm_x, mot) tac_zero tac_suc scrut
       | _ -> 

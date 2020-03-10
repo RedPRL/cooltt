@@ -6,7 +6,8 @@ open CoolBasis
 open Monad.Notation (EM)
 
 type tp_tac = S.tp EM.m
-type chk_tac = D.tp -> S.t EM.m
+type 'a chk_tac_ = D.tp -> 'a EM.m
+type chk_tac = S.t chk_tac_ 
 type bchk_tac = D.tp * D.cof * S.t D.pclo -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m 
 

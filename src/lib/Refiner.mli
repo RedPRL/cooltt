@@ -3,15 +3,13 @@ module S := Syntax
 module EM := Monads.ElabM
 module CS := ConcreteSyntax
 
-type tp_tac = S.tp EM.m
-type chk_tac = D.tp -> S.t EM.m
-type syn_tac = (S.t * D.tp) EM.m
+open Tactic
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * 'b -> 'b
 
 
 module Hole : sig
-  val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> chk_tac
+  val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> bchk_tac
   val unleash_tp_hole : CS.ident option -> [`Flex | `Rigid] -> tp_tac
   val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> syn_tac
 end

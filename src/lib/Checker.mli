@@ -3,7 +3,7 @@ module S := Syntax
 module EM := Monads.ElabM
 module D := Domain
 
-open Refiner
+open Tactic
 
 val chk_tp : S.tp -> tp_tac
 val chk_tm : S.t -> chk_tac

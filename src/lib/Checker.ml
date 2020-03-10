@@ -4,11 +4,12 @@ module D = Domain
 module R = Refiner
 module EM = ElabBasics
 module Err = ElabError
+module T = Tactic
 
 open CoolBasis
 open Monad.Notation (EM)
 
-let rec chk_tp : S.tp -> R.tp_tac =
+let rec chk_tp : S.tp -> T.tp_tac =
   fun (Tp tp) ->
   match tp with
   | S.Pi (base, fam) ->
@@ -34,7 +35,7 @@ let rec chk_tp : S.tp -> R.tp_tac =
   | S.TpCof -> 
     EM.ret @@ S.Tp S.TpCof
 
-and chk_tm : S.t -> R.chk_tac =
+and chk_tm : S.t -> T.chk_tac =
   function
   | S.Refl _ ->
     R.Id.intro
@@ -59,7 +60,7 @@ and chk_tm : S.t -> R.chk_tac =
   | t ->
     R.Structural.syn_to_chk @@ syn_tm t
 
-and syn_tm : S.t -> R.syn_tac = 
+and syn_tm : S.t -> T.syn_tac = 
   function
   | S.Var ix ->
     let+ tp = EM.get_local_tp ix in 

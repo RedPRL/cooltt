@@ -118,7 +118,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
   | _, CofTree tree ->
-    failwith "todo"
+    Fmt.fprintf fmt "[todo]"
   | _, SubIn tm ->
     Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
   | _, SubOut tm ->
@@ -127,7 +127,8 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "0"
   | _, Dim1 ->
     Fmt.fprintf fmt "1"
-  | _, Cof _ -> failwith "todo"
+  | _, Cof _ -> 
+    Fmt.fprintf fmt "[todo/print cof]"
 
 
 and pp env = pp_ env `Start

@@ -51,9 +51,9 @@ let rec chk_tp : CS.t -> S.tp EM.m =
 and chk_tm : CS.t -> D.tp -> S.t EM.m =
   function
   | CS.Hole name ->
-    R.Hole.unleash_hole name `Rigid
+    Tactic.bchk_to_chk @@ R.Hole.unleash_hole name `Rigid
   | CS.Underscore -> 
-    R.Hole.unleash_hole None `Flex
+    Tactic.bchk_to_chk @@ R.Hole.unleash_hole None `Flex
   | CS.Refl ->
     R.Id.intro 
   | CS.Lit n ->
