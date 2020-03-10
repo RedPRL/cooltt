@@ -157,8 +157,8 @@ struct
       | Cof.Var v :: cx ->
         left_inversion (`Var v :: xi) cx m
       | Cof.Join (phi, psi) :: cx ->
-        let+ tree0 = left_inversion xi (phi :: cx) m 
-        and+ tree1 = left_inversion xi (psi :: cx) m in
+        let+ tree0 = binder 1 @@ left_inversion xi (phi :: cx) m 
+        and+ tree1 = binder 1 @@ left_inversion xi (psi :: cx) m in
         Cof.split tree0 tree1
       | Cof.Bot :: _ ->
         M.ret @@ Cof.abort

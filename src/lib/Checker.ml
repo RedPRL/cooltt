@@ -13,8 +13,6 @@ let rec chk_tp : S.tp -> R.tp_tac =
   match tp with
   | S.Pi (base, fam) ->
     R.Pi.formation (chk_tp base) (None, chk_tp fam)
-  | S.DimPi fam ->
-    R.DimPi.formation (None, chk_tp fam)
   | S.Sg (base, fam) ->
     R.Sg.formation (chk_tp base) (None, chk_tp fam)
   | S.Id (tp, l, r) ->
@@ -28,6 +26,10 @@ let rec chk_tp : S.tp -> R.tp_tac =
   | S.GoalTp (lbl, tp) ->
     R.Goal.formation lbl @@ chk_tp tp
   | S.Sub _ -> failwith "todo: issue 28"
+  | S.TpDim ->
+    EM.ret @@ S.Tp S.TpDim 
+  | S.TpPrf phi -> 
+    failwith "todo"
 
 and chk_tm : S.t -> R.chk_tac =
   function
@@ -41,16 +43,12 @@ and chk_tm : S.t -> R.chk_tac =
     R.Structural.let_ (syn_tm def) (None, chk_tm bdy)
   | S.Lam bdy ->
     R.Pi.intro None @@ chk_tm bdy
-  | S.DimLam bdy ->
-    R.DimPi.intro None @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     R.Sg.intro (chk_tm t0) (chk_tm t1)
   | S.TpCode S.Nat -> 
     R.Univ.nat
   | S.TpCode (S.Pi (base, fam)) -> 
     R.Univ.pi (chk_tm base) (None, chk_tm fam)
-  | S.TpCode (S.DimPi fam) ->
-    R.Univ.dim_pi (None, chk_tm fam)
   | S.TpCode (S.Sg (base, fam)) -> 
     R.Univ.sg (chk_tm base) (None, chk_tm fam)
   | S.TpCode (S.Id (tp, left, right)) ->
@@ -65,8 +63,6 @@ and syn_tm : S.t -> R.syn_tac =
     S.Var ix, tp
   | S.Ap (t0, t1) ->
     R.Pi.apply (syn_tm t0) (chk_tm t1)
-  | S.DimAp (t, tr) ->
-    R.DimPi.apply (syn_tm t) (chk_dim tr)
   | S.Fst t ->
     R.Sg.pi1 @@ syn_tm t
   | S.Snd t ->
@@ -86,13 +82,3 @@ and syn_tm : S.t -> R.syn_tac =
     R.Structural.chk_to_syn (chk_tm t) (chk_tp tp)
   | t -> 
     EM.elab_err @@ Err.ExpectedSynthesizableTerm t 
-
-and chk_dim : S.dim -> R.dim_tac =
-  function
-  | S.Dim0 -> 
-    EM.ret S.Dim0
-  | S.Dim1 ->
-    EM.ret S.Dim1
-  | S.DimVar ix ->
-    let+ _ = EM.get_local_dim ix in 
-    S.DimVar ix

@@ -6,7 +6,6 @@ module CS := ConcreteSyntax
 type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
-type dim_tac = S.dim EM.m
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * 'b -> 'b
 
@@ -25,8 +24,6 @@ module Univ : sig
   val formation : tp_tac
   val nat : chk_tac
   val pi : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
-  val dim_pi : CS.ident option * chk_tac -> chk_tac
-  val gen_pi : [`Dim | `Tp of chk_tac] -> CS.ident option * chk_tac -> chk_tac
   val sg : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
   val id : chk_tac -> chk_tac -> chk_tac -> chk_tac
   val el_formation : chk_tac -> tp_tac
@@ -36,12 +33,6 @@ module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
   val intro : CS.ident option -> chk_tac -> chk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
-end
-
-module DimPi : sig 
-  val formation : CS.ident option * tp_tac -> tp_tac
-  val intro : CS.ident option -> chk_tac -> chk_tac
-  val apply: syn_tac -> dim_tac -> syn_tac
 end
 
 module Sg : sig
@@ -85,7 +76,6 @@ module Tactic : sig
   val tac_multi_lam : CS.ident list -> chk_tac -> chk_tac
   val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
 
-  val tac_gen_pi_formation : ([`Tp of tp_tac | `Dim], tp_tac) quantifier
   val tac_nary_quantifier : ('a, 'b) quantifier -> (CS.ident option * 'a) list -> 'b -> 'b
 
   val match_goal : (D.tp -> chk_tac EM.m) -> chk_tac

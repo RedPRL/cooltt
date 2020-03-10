@@ -2,6 +2,7 @@ include module type of DomainData
 
 open CoolBasis
 
+val dim_to_con : dim -> con
 val mk_var : tp -> int -> con
 val push : frm -> cut -> cut
 

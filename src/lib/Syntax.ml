@@ -40,16 +40,16 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(coe@ [%a] %a@ %a %a@ %a)@]"
       Uuseg_string.pp_utf_8 x 
       (pp env) code
-      (pp_dim env) r 
-      (pp_dim env) s
+      (pp env) r 
+      (pp env) s
       (pp env) tm
   | _, HCom (code, r, s, phi, tm) ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "@[<hv1>(hcom@ %a@ %a %a@ %a@ [%a] %a)@]"
       (pp env) code
-      (pp_dim env) r 
-      (pp_dim env) s
-      (Cof.pp_cof pp_var pp_dim env) phi
+      (pp env) r 
+      (pp env) s
+      (Cof.pp_cof pp_var pp env) phi
       Uuseg_string.pp_utf_8 x
       (pp envx) tm
   | _, Zero ->
@@ -89,12 +89,12 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp envx) refl
       (pp env) scrut
-  | `Lam, (Lam tm | DimLam tm) ->
+  | `Lam, Lam tm ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "[%a] %a" 
       Uuseg_string.pp_utf_8 x 
       (pp_ envx `Lam) tm
-  | _, (Lam tm | DimLam tm) ->
+  | _, Lam tm ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "@[<hv1>(lam@ [%a] %a)@]" 
       Uuseg_string.pp_utf_8 x 
@@ -107,10 +107,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm0 (pp env) tm1
   | _, Ap (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hv1>(%a@ %a)@]" (pp_ env `Ap) tm0 (pp env) tm1
-  | `Ap, DimAp (tm, tr) ->
-    Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (pp_dim env) tr
-  | _, DimAp (tm, tr) ->
-    Fmt.fprintf fmt "@[<hv1>(%a@ %a)@]" (pp_ env `Ap) tm (pp_dim env) tr
   | _, Pair (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hv1>(pair@ %a@ %a)@]" (pp env) tm0 (pp env) tm1
   | _, Refl tm ->
@@ -122,20 +118,16 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
   | _, CofTree tree ->
-    Cof.pp_tree pp_var pp_dim pp env fmt tree
+    Cof.pp_tree pp_var pp pp env fmt tree
   | _, SubIn tm ->
     Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
   | _, SubOut tm ->
     Fmt.fprintf fmt "@[<hv1>(sub/out %a)@]" (pp env) tm
+  | _, Dim0 ->
+    Fmt.fprintf fmt "0"
+  | _, Dim1 ->
+    Fmt.fprintf fmt "1"
 
-and pp_dim env fmt =
-  function
-  | Dim0 -> 
-    Format.fprintf fmt "0"
-  | Dim1 -> 
-    Format.fprintf fmt "1"
-  | DimVar i -> 
-    Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var i env
 
 and pp env = pp_ env `Start
 
@@ -143,15 +135,9 @@ and pp_ghost_ env mode fmt ((name, cells), scrut) =
   let rec go_cells env fmt =
     function 
     | [] -> pp env fmt scrut
-    | `Con (_, tm) :: cells -> 
+    | (_, tm) :: cells -> 
       (* should that really be `Ap? *)
       Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (go_cells env) cells
-    | `Dim r :: cells -> 
-      Fmt.fprintf fmt "%a@ %a" (pp_dim env) r (go_cells env) cells
-    | `Cof phi :: cells -> 
-      Fmt.fprintf fmt "%a@ %a" 
-        (Cof.pp_cof pp_var pp_dim env) phi
-        (go_cells env) cells
   in
   match mode with
   | `Ap ->
@@ -186,19 +172,6 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       Uuseg_string.pp_utf_8 x 
       (go env `Start) base 
       (go envx `Pi) fam
-  | `Pi, DimPi fam -> 
-    let x, env' = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "[%a : dim]@ %a" 
-      Uuseg_string.pp_utf_8 x 
-      (go env' `Pi) fam
-  | _, DimPi fam ->
-    let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "@[<hv1>(%a @[<hv>[%a : dim]@ %a@])@]" 
-      Uuseg_string.pp_utf_8 "->" 
-      Uuseg_string.pp_utf_8 x 
-      (go envx `Pi) fam
   | `Sg, Sg (base, fam) ->
     let x, env' = Pp.Env.bind env None in
     Format.fprintf fmt 
@@ -224,7 +197,7 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
     Format.fprintf fmt 
       "@[<hv1>(sub@ %a@ %a@ %a)]"
       (go env `Start) tp
-      (Cof.pp_cof pp_var pp_dim env) phi
+      (Cof.pp_cof pp_var pp env) phi
       (pp env) t
   | _, Nat ->
     Format.fprintf fmt "nat"
@@ -238,6 +211,11 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
     Fmt.fprintf fmt "@[<hv1>(goal@ ?%a@ %a)@]" 
       Uuseg_string.pp_utf_8 lbl 
       (go env `Start) tp
+  | _, TpDim ->
+    Format.fprintf fmt "dim"
+  | _, TpPrf phi->
+    Format.fprintf fmt "@[<hv1>(prf@ %a)@]"
+      (Cof.pp_cof pp_var pp env) phi
 
 and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer = 
   fun fmt tp ->
