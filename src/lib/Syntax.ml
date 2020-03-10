@@ -148,12 +148,12 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
 and pp_cof_tree env fmt tree = 
   match tree with 
   | Cof.Abort ->
-    Format.fprintf fmt "*" 
+    Format.fprintf fmt "[]" 
   | Cof.Split (tree0, tree1) ->
-    (* TODO, might need to tweak name environment?? *)
+    let _, envx = Pp.Env.bind env None in
     Format.fprintf fmt "%a@ %a" 
-      (pp_cof_tree env) tree0
-      (pp_cof_tree env) tree1
+      (pp_cof_tree envx) tree0
+      (pp_cof_tree envx) tree1
   | Cof.Const (phi, tm) ->
     Format.fprintf fmt "@[<hv1>[%a@ %a]@]" 
       (pp env) phi
