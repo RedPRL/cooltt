@@ -57,7 +57,6 @@ struct
       | `Rigid -> EM.add_global name vtp None
     in
 
-
     let cut = go_tm (D.Global sym, []) @@ Env.locals env in
     EM.ret (D.SubOut (D.push KGoalProj cut, phi, clo), [])
 

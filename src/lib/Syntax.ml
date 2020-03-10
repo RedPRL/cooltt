@@ -118,7 +118,8 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
   | _, CofTree tree ->
-    Fmt.fprintf fmt "[todo]"
+    Format.fprintf fmt "@[<hv1>(split@ %a)@]"
+      (pp_cof_tree env) tree
   | _, SubIn tm ->
     Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
   | _, SubOut tm ->
@@ -127,8 +128,36 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "0"
   | _, Dim1 ->
     Fmt.fprintf fmt "1"
-  | _, Cof _ -> 
-    Fmt.fprintf fmt "[todo/print cof]"
+  | _, Cof Cof.Bot -> 
+    Fmt.fprintf fmt "false"
+  | _, Cof Cof.Top -> 
+    Fmt.fprintf fmt "true"
+  | _, Cof (Cof.Join (phi, psi)) -> 
+    Fmt.fprintf fmt "@[<hv1>(or %a %a)@]"
+      (pp env) phi
+      (pp env) psi
+  | _, Cof (Cof.Meet (phi, psi)) -> 
+    Fmt.fprintf fmt "@[<hv1>(and %a %a)@]"
+      (pp env) phi
+      (pp env) psi
+  | _, Cof (Cof.Eq (r, s)) ->
+    Fmt.fprintf fmt "@[<hv1>(= %a %a)@]"
+      (pp env) r 
+      (pp env) s
+
+and pp_cof_tree env fmt tree = 
+  match tree with 
+  | Cof.Abort ->
+    Format.fprintf fmt "*" 
+  | Cof.Split (tree0, tree1) ->
+    (* TODO, might need to tweak name environment?? *)
+    Format.fprintf fmt "%a@ %a" 
+      (pp_cof_tree env) tree0
+      (pp_cof_tree env) tree1
+  | Cof.Const (phi, tm) ->
+    Format.fprintf fmt "@[<hv1>[%a@ %a]@]" 
+      (pp env) phi
+      (pp env) tm
 
 
 and pp env = pp_ env `Start
