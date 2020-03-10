@@ -30,6 +30,7 @@ sig
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
+  val do_sub_out : D.con -> D.con compute
   val do_id_elim : ghost:D.ghost option -> ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
   val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
@@ -91,7 +92,7 @@ struct
     | `Done -> ret @@ `Reduce con
     | `Reduce con -> ret @@ `Reduce con
 
-  and whnf_cut cut : D.con whnf m=
+  and whnf_cut cut : D.con whnf m =
     let hd, sp = cut in
     match hd with
     | D.Global _ | D.Var _ -> 
@@ -119,6 +120,20 @@ struct
           | `Reduce code ->
             let+ hcom = do_rigid_hcom code r s phi clo in 
             `Reduce hcom
+      end
+    | D.SubOut (cut, phi, clo) ->
+      begin
+        test_sequent [] phi |>> function
+        | true -> 
+          let+ con = inst_pclo clo in
+          `Reduce con
+        | false ->
+          whnf_cut cut |>> function
+          | `Done ->
+            ret `Done
+          | `Reduce con ->
+            let+ out = do_sub_out con in
+            `Reduce out
       end
 
   and whnf_tp = 
@@ -317,8 +332,8 @@ struct
     match v with 
     | D.SubIn pclo ->
       inst_pclo pclo 
-    | D.Cut {tp = D.Tp (D.Sub (tp, _, _)); cut; unfold} ->
-      ret @@ cut_frm ~tp ~cut ~unfold @@ D.KSubOut
+    | D.Cut {tp = D.Tp (D.Sub (tp, phi, clo)); cut; unfold} ->
+      ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []; unfold = None} (* unfold ?? *)
     | _ ->
       throw @@ NbeFailed "do_sub_out"
 
@@ -401,7 +416,6 @@ struct
     | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
     | D.KIdElim (ghost, mot, case_refl, _, _, _) -> do_id_elim ~ghost mot case_refl con
     | D.KGoalProj -> do_goal_proj con
-    | D.KSubOut -> do_sub_out con
 
   and do_spine con =
     function
@@ -553,7 +567,10 @@ struct
       end
     | S.CofTree tree -> 
       force_eval_cof_tree tree
-    | S.SubIn _ | S.SubOut _ -> failwith "todo: issue 28"
+    | S.SubOut tm ->
+      let* con = eval tm in
+      lift_cmp @@ Compute.do_sub_out con
+    | S.SubIn _ -> failwith "todo: issue 28"
     | S.Dim0 -> ret D.DimCon0
     | S.Dim1 -> ret D.DimCon1
     | S.Cof cof_f ->
@@ -894,6 +911,9 @@ struct
         S.CofTree tree
       in
       S.HCom (tpcode, tr, ts, tphi, tube)
+    | D.SubOut (cut, phi, clo) ->
+      let+ tm = quote_cut cut in
+      S.SubOut tm
 
   and quote_cof_tree = 
     function 
@@ -1024,8 +1044,6 @@ struct
       S.Ap (tm, targ)
     | D.KGoalProj ->
       ret @@ S.GoalProj tm
-    | D.KSubOut ->
-      ret @@ S.SubOut tm
 
 
   let equate_dim r s =
@@ -1178,7 +1196,7 @@ struct
       let* con0 = lift_cmp @@ inst_tm_clo refl_case0 [x] in
       let* con1 = lift_cmp @@ inst_tm_clo refl_case1 [x] in
       equate_con fib_reflx con0 con1
-    | (D.KGoalProj, D.KGoalProj) | (D.KSubOut, D.KSubOut) ->
+    | (D.KGoalProj, D.KGoalProj) ->
       ret ()
     | _ -> 
       throw @@ NbeFailed "Mismatched frames"
@@ -1218,6 +1236,8 @@ struct
       let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
       let tp = D.Tp (D.El cut0) in
       equate_con tp con0 con1
+    | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
+      equate_cut cut0 cut1
     | _ ->
       throw @@ NbeFailed "Different heads"
 

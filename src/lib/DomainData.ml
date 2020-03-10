@@ -82,6 +82,7 @@ and hd =
   | Var of int (* De Bruijn level *)
   | Coe of coe_abs * dim * dim * con
   | HCom of cut * dim * dim * cof * S.t pline_clo
+  | SubOut of cut * cof * S.t pclo
 
 and cut = hd * frm list
 
@@ -94,6 +95,5 @@ and frm =
   | KNatElim of ghost option * ze su tp_clo * con * ze su su tm_clo
   | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
   | KGoalProj
-  | KSubOut
 
 and ghost = string bwd * (tp * con) list
