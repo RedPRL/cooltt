@@ -63,7 +63,7 @@ struct
 
   let rec whnf_con : D.con -> D.con whnf m =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort | D.SubIn _ | D.CofCon _ | D.DimCon0 | D.DimCon1 | D.Prf ->
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort | D.SubIn _ | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf ->
       ret `Done
 
     | D.Cut {unfold = Some lcon} -> 
@@ -452,7 +452,7 @@ struct
     | S.Sub (tp, tphi, tm) ->
       let+ env = read_local 
       and+ tp = eval_tp tp 
-      and+ phi = eval_cof tphi in
+      and+ phi = con_to_cof @<< eval tphi in
       let cl = D.PClo (tm, env) in
       D.Tp (D.Sub (tp, phi, cl))
     | S.TpDim  ->
@@ -460,7 +460,7 @@ struct
     | S.TpCof -> 
       ret @@ D.Tp D.TpCof
     | S.TpPrf tphi ->
-      let+ phi = eval_cof tphi in 
+      let+ phi = con_to_cof @<< eval tphi in 
       D.Tp (D.TpPrf phi)
 
   and eval =
@@ -537,7 +537,7 @@ struct
     | S.HCom (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
       let* s = eval_dim ts in
-      let* phi = eval_cof tphi in
+      let* phi = con_to_cof @<< eval tphi in
       let* vtpcode = eval tpcode in
       begin
         CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
@@ -553,7 +553,24 @@ struct
     | S.SubIn _ | S.SubOut _ -> failwith "todo: issue 28"
     | S.Dim0 -> ret D.DimCon0
     | S.Dim1 -> ret D.DimCon1
-    | S.Cof phi -> failwith ""
+    | S.Cof cof_f ->
+      begin
+        match cof_f with
+        | Cof.Eq (tr, ts) ->
+          let+ r = eval tr 
+          and+ s = eval ts in
+          D.Cof (Cof.Eq (r, s))
+        | Cof.Top -> ret @@ D.Cof Cof.Top
+        | Cof.Bot -> ret @@ D.Cof Cof.Bot
+        | Cof.Join (tphi, tpsi) ->
+          let+ phi = eval tphi 
+          and+ psi = eval tpsi in 
+          D.Cof (Cof.Join (phi, psi))
+        | Cof.Meet (tphi, tpsi) ->
+          let+ phi = eval tphi 
+          and+ psi = eval tpsi in 
+          D.Cof (Cof.Meet (phi, psi))
+      end
 
   and con_to_dim =
     function
@@ -576,7 +593,7 @@ struct
   and eval_cof_tree =
     function
     | Cof.Const (tphi, tm) ->
-      let* phi = eval_cof tphi in
+      let* phi = con_to_cof @<< eval tphi in
       begin
         CmpM.test_sequent [] phi |> lift_cmp |>> function
         | true ->
@@ -584,7 +601,7 @@ struct
           `Valid con
         | false -> 
           ret `Invalid
-      end
+      end 
     | Cof.Abort ->
       begin
         CmpM.test_sequent [] Cof.bot |> lift_cmp |>> function
@@ -600,48 +617,26 @@ struct
       | `Invalid -> 
         eval_cof_tree tree1
 
-  and eval_cof =
-    function
-    | Cof.Eq (tr, ts) -> 
-      let+ r = eval_dim tr 
-      and+ s = eval_dim ts in
-      Cof.eq r s
-    | Cof.Join (tphi, tpsi) ->
-      let+ phi = eval_cof tphi
-      and+ psi = eval_cof tpsi in
-      Cof.join phi psi
-    | Cof.Meet (tphi, tpsi) ->
-      let+ phi = eval_cof tphi
-      and+ psi = eval_cof tpsi in
-      Cof.meet phi psi
-    | Cof.Bot -> 
-      ret Cof.bot
-    | Cof.Top ->
-      ret Cof.top
-    | Cof.Var ix ->
-      get_local ix |>> con_to_cof
-
-  and cof_con_to_cof : (D.con, D.con) Cof.cof -> (int, D.dim) Cof.cof m =
+  and cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof m =
     function
     | Cof.Eq (r, s) ->
       let+ r = con_to_dim r 
       and+ s = con_to_dim s in
       Cof.eq r s
     | Cof.Join (phi, psi) -> 
-      let+ phi = cof_con_to_cof phi 
-      and+ psi = cof_con_to_cof psi in
+      let+ phi = con_to_cof phi 
+      and+ psi = con_to_cof psi in
       Cof.join phi psi
     | Cof.Meet (phi, psi) ->
-      let+ phi = cof_con_to_cof phi 
-      and+ psi = cof_con_to_cof psi in
+      let+ phi = con_to_cof phi 
+      and+ psi = con_to_cof psi in
       Cof.meet phi psi
     | Cof.Bot -> ret Cof.bot
     | Cof.Top -> ret Cof.top
-    | Cof.Var con -> con_to_cof con
 
   and con_to_cof = 
     function
-    | CofCon cof -> cof_con_to_cof cof
+    | Cof cof -> cof_con_to_cof cof
     | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
     | _ -> throw @@ NbeFailed "con_to_cof"
 
@@ -670,7 +665,7 @@ struct
     | S.Sub (tp, tphi, tm) ->
       let+ env = read_local 
       and+ tp = eval tp 
-      and+ phi = eval_cof tphi in
+      and+ phi = con_to_cof @<< eval tphi in
       let cl = D.PClo (tm, env) in
       D.Sub (tp, phi, cl)
 
@@ -698,7 +693,6 @@ module Quote : sig
   val quote_tp : D.tp -> S.tp quote
   val equal_con : D.tp -> D.con -> D.con -> bool quote
   val quote_cut : D.cut -> S.t quote
-  val quote_cof : D.cof -> S.cof quote
   val equal_tp : D.tp -> D.tp -> bool quote
   val equal_cut : D.cut -> D.cut -> bool quote
   val equate_con : D.tp -> D.con -> D.con -> unit quote
@@ -896,10 +890,10 @@ struct
       S.HCom (tpcode, tr, ts, tphi, tube)
 
   and quote_cof_tree = 
-    function
-    | Cof.Const (phi, tm) ->
+    function 
+    | Cof.Const (phi, tm) -> 
       let+ tphi = quote_cof phi in 
-      Cof.const tphi tm
+      Cof.const (tphi, tm)
     | Cof.Split (tree0, tree1) ->
       let+ ttree0 = quote_cof_tree tree0 
       and+ ttree1 = quote_cof_tree tree1 in
@@ -919,25 +913,28 @@ struct
 
   and quote_cof =
     function
-    | Cof.Eq (r, s) ->
-      let+ tr = quote_dim r 
-      and+ ts = quote_dim s in
-      Cof.eq tr ts
-    | Cof.Join (phi, psi) ->
-      let+ tphi = quote_cof phi 
-      and+ tpsi = quote_cof psi in 
-      Cof.join tphi tpsi
-    | Cof.Meet (phi, psi) ->
-      let+ tphi = quote_cof phi 
-      and+ tpsi = quote_cof psi in 
-      Cof.meet tphi tpsi
-    | Cof.Bot ->
-      ret Cof.bot
-    | Cof.Top ->
-      ret Cof.top
     | Cof.Var lvl ->
       let+ ix = quote_var lvl in
-      Cof.var ix
+      S.Var ix
+    | Cof.Cof phi ->
+      match phi with
+      | Cof.Eq (r, s) ->
+        let+ tr = quote_con (D.Tp D.TpDim) @@ D.dim_to_con r 
+        and+ ts = quote_con (D.Tp D.TpDim) @@ D.dim_to_con s in
+        S.Cof (Cof.Eq (tr, ts))
+
+      | Cof.Join (phi, psi) ->
+        let+ tphi = quote_cof phi 
+        and+ tpsi = quote_cof psi in 
+        S.Cof (Cof.Join (tphi, tpsi))
+      | Cof.Meet (phi, psi) ->
+        let+ tphi = quote_cof phi 
+        and+ tpsi = quote_cof psi in 
+        S.Cof (Cof.Meet (tphi, tpsi))
+      | Cof.Bot ->
+        ret @@ S.Cof Cof.Bot
+      | Cof.Top ->
+        ret @@ S.Cof Cof.Top
 
   and quote_var lvl =
     let+ n = read_local in 

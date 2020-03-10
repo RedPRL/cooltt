@@ -58,7 +58,7 @@ and con =
   | SubIn of S.t pclo
   | DimCon0
   | DimCon1
-  | CofCon of (con, con) Cof.cof
+  | Cof of (con, con) Cof.cof_f
   | Prf
 
 and tp = Tp of (tp, S.tp) gtp

@@ -135,7 +135,7 @@ struct
       match xi with 
       | [] -> 
         let+ x = m in 
-        Cof.const acc x
+        Cof.const (acc, x)
       | phi :: xi ->
         let phi = as_cof phi in
         let+ result = 
@@ -148,28 +148,28 @@ struct
           | `Continue x -> x
         end
 
-    let rec left_inversion (xi : atomic list) (linv : D.cof list) (m : 'a m) : (int, D.dim, 'a) Cof.tree m =
+    let rec left_inversion (xi : atomic list) (linv : D.cof list) (m : 'a m) : (D.cof * 'a) Cof.tree m =
       match linv with 
       | [] -> 
         atomics Cof.top xi m
-      | Cof.Eq (r, s) :: cx ->
+      | Cof.Cof (Cof.Eq (r, s)) :: cx ->
         left_inversion (`Eq (r, s) :: xi) cx m
       | Cof.Var v :: cx ->
         left_inversion (`Var v :: xi) cx m
-      | Cof.Join (phi, psi) :: cx ->
+      | Cof.Cof (Cof.Join (phi, psi)) :: cx ->
         let+ tree0 = binder 1 @@ left_inversion xi (phi :: cx) m 
         and+ tree1 = binder 1 @@ left_inversion xi (psi :: cx) m in
         Cof.split tree0 tree1
-      | Cof.Bot :: _ ->
+      | Cof.Cof Cof.Bot :: _ ->
         M.ret @@ Cof.abort
-      | Cof.Top :: linv ->
+      | Cof.Cof Cof.Top :: linv ->
         left_inversion xi linv m
-      | Cof.Meet (phi, psi) :: cx ->
+      | Cof.Cof (Cof.Meet (phi, psi)) :: cx ->
         left_inversion xi (phi :: psi :: linv) m
   end
 
 
-  let under_cofs : D.cof list -> 'a m -> (int, D.dim, 'a) Cof.tree m =
+  let under_cofs : D.cof list -> 'a m -> (D.cof * 'a) Cof.tree m =
     fun linv ->
     Search.left_inversion [] linv
 

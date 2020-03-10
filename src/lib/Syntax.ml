@@ -49,7 +49,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       (pp env) code
       (pp env) r 
       (pp env) s
-      (Cof.pp_cof pp_var pp env) phi
+      (pp env) phi
       Uuseg_string.pp_utf_8 x
       (pp envx) tm
   | _, Zero ->
@@ -118,7 +118,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
   | _, CofTree tree ->
-    Cof.pp_tree pp_var pp pp env fmt tree
+    failwith "todo"
   | _, SubIn tm ->
     Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
   | _, SubOut tm ->
@@ -127,8 +127,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "0"
   | _, Dim1 ->
     Fmt.fprintf fmt "1"
-  | _, Cof phi ->
-    Cof.pp_cof pp pp env fmt phi
+  | _, Cof _ -> failwith "todo"
 
 
 and pp env = pp_ env `Start
@@ -199,7 +198,7 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
     Format.fprintf fmt 
       "@[<hv1>(sub@ %a@ %a@ %a)]"
       (go env `Start) tp
-      (Cof.pp_cof pp_var pp env) phi
+      (pp env) phi
       (pp env) t
   | _, Nat ->
     Format.fprintf fmt "nat"
@@ -219,7 +218,7 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
     Format.fprintf fmt "cof"
   | _, TpPrf phi->
     Format.fprintf fmt "@[<hv1>(prf@ %a)@]"
-      (Cof.pp_cof pp_var pp env) phi
+      (pp env) phi
 
 and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer = 
   fun fmt tp ->

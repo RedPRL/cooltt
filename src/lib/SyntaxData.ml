@@ -18,17 +18,16 @@ type t =
   | GoalRet of t
   | GoalProj of t
   | Coe of t * t * t * t
-  | HCom of t * t * t * cof * t
+  | HCom of t * t * t * t * t
   | TpCode of t gtp
   | CofTree of cof_tree
   | SubIn of t
   | SubOut of t
   | Dim0
   | Dim1
-  | Cof of (t, t) Cof.cof
+  | Cof of (t, t) Cof.cof_f
 
-and cof = (int, t) Cof.cof
-and cof_tree = (int, t, t) Cof.tree
+and cof_tree = (t * t) Cof.tree
 
 and tp = Tp of tp gtp
 
@@ -37,13 +36,13 @@ and _ gtp =
   | Pi : 'a * 'a -> 'a gtp
   | Sg : 'a * 'a -> 'a gtp
   | Id : 'a * t * t -> 'a gtp
-  | Sub : 'a * cof * t -> 'a gtp
+  | Sub : 'a * t * t -> 'a gtp
   | Univ : tp gtp
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
   | TpDim : tp gtp
   | TpCof : tp gtp
-  | TpPrf : cof -> tp gtp
+  | TpPrf : t -> tp gtp
 
 
 and ghost = string bwd * (tp * t) list

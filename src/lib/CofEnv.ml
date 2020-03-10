@@ -51,16 +51,20 @@ struct
   (* Invariant: classes is consistent *)
   let rec right local =
     function
-    | Cof.Eq (r, s) when r = s ->
-      true
-    | Cof.Eq (r, s) ->
-      find_class local.classes r = find_class local.classes s
-    | Cof.Join (phi0, phi1) ->
-      if right local phi0 then true else right local phi1
-    | Cof.Meet (phi0, phi1) ->
-      if right local phi0 then right local phi1 else false
-    | Cof.Bot -> false
-    | Cof.Top -> true
+    | Cof.Cof phi ->
+      begin 
+        match phi with
+        | Cof.Eq (r, s) when r = s ->
+          true
+        | Cof.Eq (r, s) ->
+          find_class local.classes r = find_class local.classes s
+        | Cof.Join (phi0, phi1) ->
+          if right local phi0 then true else right local phi1
+        | Cof.Meet (phi0, phi1) ->
+          if right local phi0 then right local phi1 else false
+        | Cof.Bot -> false
+        | Cof.Top -> true
+      end
     | Cof.Var v -> 
       VarSet.mem v local.true_vars 
 
@@ -68,7 +72,7 @@ struct
   let rec left local cx phi = 
     match cx with 
     | [] -> right local phi
-    | Cof.Eq (r, s) :: cx ->
+    | Cof.Cof (Cof.Eq (r, s)) :: cx ->
       let classes = UF.union r s local.classes in
       if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
         true
@@ -77,13 +81,13 @@ struct
     | Cof.Var v :: cx ->
       let local = {local with true_vars = VarSet.add v local.true_vars} in
       left local cx phi
-    | Cof.Join (psi0, psi1) :: cx ->
+    | Cof.Cof (Cof.Join (psi0, psi1)) :: cx ->
       if left local (psi0 :: cx) phi then left local (psi1 :: cx) phi else false
-    | Cof.Meet (psi0, psi1) :: cx -> 
+    | Cof.Cof (Cof.Meet (psi0, psi1)) :: cx -> 
       left local (psi0 :: psi1 :: cx) phi
-    | Cof.Top :: cx -> 
+    | Cof.Cof Cof.Top :: cx -> 
       left local cx phi
-    | Cof.Bot :: cx -> 
+    | Cof.Cof Cof.Bot :: cx -> 
       true
 end
 
@@ -108,23 +112,25 @@ let rec assume env phi =
     (* If the new assumption is stronger than what's on deck, throw the latter away *)
     let env = if test_sequent env [phi] env.cof then {env with cof = Cof.top} else env in
     match phi with 
-    | Cof.Bot ->
-      inconsistent
-    | Cof.Top ->
-      env
-    | Cof.Meet (phi0, phi1) -> 
-      assume (assume env phi0) phi1
-    | Cof.Join _ -> 
-      if test_sequent env [phi] Cof.bot then inconsistent else
-        {env with cof = Cof.meet env.cof phi}
-    | Cof.Eq (r, s) ->
-      let classes = UF.union r s env.classes in
-      if UF.find D.Dim0 classes = UF.find D.Dim1 classes then 
-        inconsistent
-      else 
-        {env with classes}
     | Cof.Var v -> 
       {env with true_vars = VarSet.add v env.true_vars}
+    | Cof.Cof phi ->
+      match phi with 
+      | Cof.Bot ->
+        inconsistent
+      | Cof.Top ->
+        env
+      | Cof.Meet (phi0, phi1) -> 
+        assume (assume env phi0) phi1
+      | Cof.Join _ -> 
+        if test_sequent env [Cof.Cof phi] Cof.bot then inconsistent else
+          {env with cof = Cof.meet env.cof @@ Cof.Cof phi}
+      | Cof.Eq (r, s) ->
+        let classes = UF.union r s env.classes in
+        if UF.find D.Dim0 classes = UF.find D.Dim1 classes then 
+          inconsistent
+        else 
+          {env with classes}
 
 let equate env r s = 
   assume env @@ Cof.eq r s
