@@ -10,9 +10,7 @@ open Monads
 open Monad.Notation (EM)
 open Bwd
 
-type tp_tac = S.tp EM.m
-type chk_tac = D.tp -> S.t EM.m
-type syn_tac = (S.t * D.tp) EM.m
+include Tactic
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * 'b -> 'b
 

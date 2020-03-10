@@ -237,6 +237,8 @@ struct
     function
     | D.PClo (bdy, env) ->
       lift_ev (env <>< [D.Prf]) @@ eval bdy
+    | D.PCloConst con ->
+      ret con
 
   and do_goal_proj =
     function

@@ -39,6 +39,7 @@ and _ pline_clo =
 
 (* partial element closures *)
 and _ pclo =
+  | PCloConst : con -> 'a pclo
   | PClo : 'a * env -> 'a pclo
 
 and coe_abs = CoeAbs of {clo : S.t line_clo}
