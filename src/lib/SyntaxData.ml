@@ -25,7 +25,7 @@ type t =
   | SubOut of t
   | Dim0
   | Dim1
-  (* | Cof of cof *)
+  | Cof of (t, t) Cof.cof
 
 and cof = (int, t) Cof.cof
 and cof_tree = (int, t, t) Cof.tree
@@ -42,9 +42,8 @@ and _ gtp =
   | El : t -> tp gtp
   | GoalTp : string option * tp -> tp gtp
   | TpDim : tp gtp
+  | TpCof : tp gtp
   | TpPrf : cof -> tp gtp
-  (* | TpCof : tp gtp
-     | TpPrf : cof -> tp gtp *)
 
 
 and ghost = string bwd * (tp * t) list

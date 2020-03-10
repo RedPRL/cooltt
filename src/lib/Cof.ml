@@ -6,6 +6,16 @@ type ('v, 'a) cof =
   | Bot
   | Top
 
+let rec map f g =
+  function
+  | Var v -> Var (f v)
+  | Eq (r, s) -> Eq (g r, g s)
+  | Join (phi, psi) -> Join (map f g phi, map f g psi)
+  | Meet (phi, psi) -> Meet (map f g phi, map f g psi)
+  | Top -> Top
+  | Bot -> Bot
+
+
 
 type ('v, 'a, 'b) tree =
   | Const of ('v, 'a) cof * 'b

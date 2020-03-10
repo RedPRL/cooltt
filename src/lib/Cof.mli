@@ -13,6 +13,9 @@ type ('v, 'a, 'b) tree =
   | Split of ('v, 'a, 'b) tree * ('v, 'a, 'b) tree
   | Abort
 
+
+val map : ('v -> 'u) -> ('a -> 'b) -> ('v, 'a) cof -> ('u, 'b) cof
+
 val var : 'v -> ('v, 'a) cof
 val eq : 'a -> 'a -> ('v, 'a) cof
 val join : ('v, 'a) cof -> ('v, 'a) cof -> ('v, 'a) cof

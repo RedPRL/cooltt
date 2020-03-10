@@ -30,6 +30,8 @@ let rec chk_tp : S.tp -> R.tp_tac =
     EM.ret @@ S.Tp S.TpDim 
   | S.TpPrf phi -> 
     failwith "todo"
+  | S.TpCof -> 
+    failwith "todo"
 
 and chk_tm : S.t -> R.chk_tac =
   function

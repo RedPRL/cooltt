@@ -127,6 +127,8 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "0"
   | _, Dim1 ->
     Fmt.fprintf fmt "1"
+  | _, Cof phi ->
+    Cof.pp_cof pp pp env fmt phi
 
 
 and pp env = pp_ env `Start
@@ -213,6 +215,8 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       (go env `Start) tp
   | _, TpDim ->
     Format.fprintf fmt "dim"
+  | _, TpCof ->
+    Format.fprintf fmt "cof"
   | _, TpPrf phi->
     Format.fprintf fmt "@[<hv1>(prf@ %a)@]"
       (Cof.pp_cof pp_var pp env) phi

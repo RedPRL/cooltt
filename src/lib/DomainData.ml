@@ -73,6 +73,7 @@ and (_, _) gtp =
   | El : cut -> (tp, S.tp) gtp
   | GoalTp : string option * tp -> (tp, S.tp) gtp
   | TpDim : (tp, S.tp) gtp
+  | TpCof : (tp, S.tp) gtp
   | TpPrf : cof -> (tp, S.tp) gtp
 
 and hd =

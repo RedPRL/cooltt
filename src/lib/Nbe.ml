@@ -457,6 +457,8 @@ struct
       D.Tp (D.Sub (tp, phi, cl))
     | S.TpDim  ->
       ret @@ D.Tp D.TpDim
+    | S.TpCof -> 
+      ret @@ D.Tp D.TpCof
     | S.TpPrf tphi ->
       let+ phi = eval_cof tphi in 
       D.Tp (D.TpPrf phi)
@@ -551,6 +553,7 @@ struct
     | S.SubIn _ | S.SubOut _ -> failwith "todo: issue 28"
     | S.Dim0 -> ret D.DimCon0
     | S.Dim1 -> ret D.DimCon1
+    | S.Cof phi -> failwith ""
 
   and con_to_dim =
     function
@@ -847,6 +850,8 @@ struct
       S.Tp (S.Sub (ttp, tphi, S.CofTree tree))
     | D.TpDim -> 
       ret @@ S.Tp S.TpDim
+    | D.TpCof -> 
+      ret @@ S.Tp S.TpCof
     | D.TpPrf phi ->
       let+ tphi = quote_cof phi in 
       S.Tp (S.TpPrf tphi)
