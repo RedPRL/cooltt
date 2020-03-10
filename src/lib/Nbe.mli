@@ -9,6 +9,7 @@ exception NbeFailed of string
 open Monads
 
 val eval : S.t -> D.con evaluate
+val eval_cof : S.t -> D.cof evaluate
 val eval_tp : S.tp -> D.tp evaluate
 
 val quote_con : D.tp -> D.con -> S.t quote

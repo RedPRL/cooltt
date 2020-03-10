@@ -25,13 +25,14 @@ let rec chk_tp : S.tp -> R.tp_tac =
     R.Univ.el_formation @@ chk_tm tm
   | S.GoalTp (lbl, tp) ->
     R.Goal.formation lbl @@ chk_tp tp
-  | S.Sub _ -> failwith "todo: issue 28"
+  | S.Sub (base, phi, tm) ->
+    R.Sub.formation (chk_tp base) (chk_tm phi) (chk_tm tm)
   | S.TpDim ->
     EM.ret @@ S.Tp S.TpDim 
   | S.TpPrf phi -> 
     failwith "todo"
   | S.TpCof -> 
-    failwith "todo"
+    EM.ret @@ S.Tp S.TpCof
 
 and chk_tm : S.t -> R.chk_tac =
   function

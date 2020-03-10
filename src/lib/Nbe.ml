@@ -412,6 +412,7 @@ end
 and Eval :
 sig
   val eval : S.t -> D.con evaluate
+  val eval_cof : S.t -> D.cof evaluate
   val eval_tp : S.tp -> D.tp evaluate
 end = 
 struct 
@@ -639,6 +640,9 @@ struct
     | Cof cof -> cof_con_to_cof cof
     | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
     | _ -> throw @@ NbeFailed "con_to_cof"
+
+  and eval_cof tphi = 
+    con_to_cof @<< eval tphi
 
   and eval_coe_abs code = 
     let+ env = read_local in 

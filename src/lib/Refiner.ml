@@ -178,6 +178,19 @@ end
 module TypeFormationRules = FormationRules (TypeGoalTp)
 module CodeFormationRules = FormationRules (TypeGoalCode)
 
+module Sub = 
+struct
+  let formation (tac_base : tp_tac) (tac_phi : chk_tac) (tac_tm : chk_tac) : tp_tac = 
+    let* base = tac_base in
+    let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
+    let* phi = tac_phi @@ D.Tp D.TpCof in
+    let+ tm = 
+      let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
+      EM.push_var None (D.Tp (D.TpPrf vphi)) @@ tac_tm vbase
+    in
+    S.Tp (S.Sub (base, phi, tm))
+end
+
 
 module Univ = 
 struct

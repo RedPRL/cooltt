@@ -42,6 +42,10 @@ module Sg : sig
   val pi2 : syn_tac -> syn_tac
 end
 
+module Sub : sig 
+  val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
+end
+
 module Id : sig 
   val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
   val intro : chk_tac
