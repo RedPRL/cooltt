@@ -330,8 +330,8 @@ struct
 
   and do_sub_out v =
     match v with 
-    | D.SubIn pclo ->
-      inst_pclo pclo 
+    | D.SubIn con ->
+      ret con
     | D.Cut {tp = D.Tp (D.Sub (tp, phi, clo)); cut; unfold} ->
       ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []; unfold = None} (* unfold ?? *)
     | _ ->
@@ -570,7 +570,9 @@ struct
     | S.SubOut tm ->
       let* con = eval tm in
       lift_cmp @@ Compute.do_sub_out con
-    | S.SubIn _ -> failwith "todo: issue 28"
+    | S.SubIn t -> 
+      let+ con = eval t in
+      D.SubIn con
     | S.Dim0 -> ret D.DimCon0
     | S.Dim1 -> ret D.DimCon1
     | S.Cof cof_f ->

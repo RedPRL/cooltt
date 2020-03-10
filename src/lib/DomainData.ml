@@ -56,7 +56,7 @@ and con =
   | GoalRet of con
   | TpCode of (con, S.t) gtp
   | Abort
-  | SubIn of S.t pclo
+  | SubIn of con
   | DimCon0
   | DimCon1
   | Cof of (con, con) Cof.cof_f
