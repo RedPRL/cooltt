@@ -4,8 +4,6 @@ type binder = B of {name : ident; body : t}
 and bindern = BN of {names : ident list; body : t}
 and cell = Cell of {name : ident; tp : t}
 
-and spine = Term of t
-
 and t =
   | Var of ident
   | Let of t * binder
@@ -15,7 +13,7 @@ and t =
   | Lit of int
   | Pi of cell list * t
   | Lam of bindern
-  | Ap of t * spine list
+  | Ap of t * t list
   | Sg of cell list * t
   | Pair of t * t
   | Fst of t
@@ -30,6 +28,7 @@ and t =
   | Elim of {mot : bindern; cases : case list; scrut : t}
   | LamElim of case list 
   | Dim
+  | Cof
   | CofEq of t * t
 
 and case = pat * t

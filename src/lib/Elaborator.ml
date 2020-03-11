@@ -46,6 +46,8 @@ let rec chk_tp : CS.t -> T.tp_tac =
     unfold idents @@ chk_tp c
   | CS.Dim ->
     EM.ret @@ S.Tp S.TpDim (* todo *)
+  | CS.Cof ->
+    EM.ret @@ S.Tp S.TpCof (* todo *)
   | tm -> 
     Refiner.Univ.el_formation @@ chk_tm tm
 
@@ -62,7 +64,12 @@ and bchk_tm : CS.t -> T.bchk_tac =
   | CS.Refl ->
     T.chk_to_bchk @@ R.Id.intro 
   | CS.Lit n ->
-    T.chk_to_bchk @@ R.Nat.literal n
+    begin
+      T.chk_to_bchk @@ 
+      R.Tactic.match_goal @@ function
+      | D.Tp D.TpDim -> EM.ret @@ R.Dim.literal n
+      | _ -> EM.ret @@ R.Nat.literal n
+    end
   | CS.Lam (BN bnd) ->
     R.Tactic.tac_multi_lam bnd.names @@ bchk_tm bnd.body
   | CS.LamElim cases ->
@@ -87,6 +94,8 @@ and bchk_tm : CS.t -> T.bchk_tac =
     T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier R.Univ.sg tacs @@ chk_tm body
   | CS.Id (tp, l, r) ->
     T.chk_to_bchk @@ R.Univ.id (chk_tm tp) (chk_tm l) (chk_tm r)
+  | CS.CofEq (c0, c1) ->
+    T.chk_to_bchk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
   | cs ->
     T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
 
@@ -98,10 +107,7 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
   | CS.Var id -> 
     R.Structural.lookup_var id
   | CS.Ap (t, ts) ->
-    R.Tactic.tac_multi_apply (syn_tm t) begin
-      ts |> List.map @@ fun (CS.Term cs) ->
-      chk_tm cs
-    end
+    R.Tactic.tac_multi_apply (syn_tm t) @@ List.map chk_tm ts
   | CS.Fst t ->
     R.Sg.pi1 @@ syn_tm t
   | CS.Snd t ->

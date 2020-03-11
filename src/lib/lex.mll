@@ -35,7 +35,8 @@ let keywords =
     ("normalize", NORMALIZE);
     ("quit", QUIT);
     ("univ", UNIV);
-    ("dim", DIM)
+    ("dim", DIM);
+    ("cof", COF)
   ]
 }
 
@@ -83,6 +84,8 @@ rule token = parse
     { TIMES }
   | ':'
     { COLON }
+  | "=="
+    { EEQUALS }
   | "="
     { EQUALS }
   | "->"

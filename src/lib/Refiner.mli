@@ -18,6 +18,16 @@ module Goal : sig
   val formation : string option -> tp_tac -> tp_tac
 end
 
+module Dim : sig 
+  val dim0 : chk_tac
+  val dim1 : chk_tac
+  val literal : int -> chk_tac
+end
+
+module Cof : sig 
+  val eq : chk_tac -> chk_tac -> chk_tac
+end
+
 module Univ : sig
   val formation : tp_tac
   val nat : chk_tac

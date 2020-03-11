@@ -200,6 +200,45 @@ struct
       EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
 end
 
+module Dim = 
+struct
+  let dim0 : chk_tac =
+    function
+    | D.Tp D.TpDim ->
+      EM.ret S.Dim0
+    | tp -> 
+      Format.eprintf "bad: %a" D.pp_tp tp;
+      EM.elab_err @@ Err.ExpectedConnective (`Dim, tp)
+
+  let dim1 : chk_tac =
+    function
+    | D.Tp D.TpDim ->
+      EM.ret S.Dim1
+    | tp -> 
+      Format.eprintf "bad: %a" D.pp_tp tp;
+      EM.elab_err @@ Err.ExpectedConnective (`Dim, tp)
+
+  let literal : int -> chk_tac =
+    function
+    | 0 -> dim0
+    | 1 -> dim1
+    | n -> 
+      fun _ -> 
+        EM.elab_err @@ Err.ExpectedDimensionLiteral n
+end
+
+module Cof = 
+struct
+  let eq tac0 tac1 = 
+    function
+    | D.Tp D.TpCof -> 
+      let+ r0 = tac0 @@ D.Tp D.TpDim
+      and+ r1 = tac1 @@ D.Tp D.TpDim in
+      S.Cof (Cof.Eq (r0, r1))
+    | tp ->
+      Format.eprintf "bad: %a" D.pp_tp tp;
+      EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+end
 
 module Univ = 
 struct
