@@ -151,6 +151,7 @@ struct
 
   and do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
+    | D.Abort -> ret D.Abort
     | D.Zero -> 
       ret zero
     | D.Suc n -> 
@@ -165,6 +166,7 @@ struct
 
   and do_id_elim ~ghost mot refl eq =
     match eq with
+    | D.Abort -> ret D.Abort
     | D.Refl t -> inst_tm_clo refl [t]
     | D.Cut {tp = D.Tp (D.Id (tp, con0, con1)); cut; unfold} -> 
       let+ fib = inst_tp_clo mot [con0; con1; eq] in 
@@ -254,9 +256,25 @@ struct
       lift_ev (env <>< [D.Prf]) @@ eval bdy
     | D.PCloConst con ->
       ret con
+    | D.PCloSubOut clo ->
+      do_sub_out @<< inst_pclo clo
+    | D.PCloSplit (phi0, phi1, clo0, clo1) -> 
+      begin
+        test_sequent [] phi0 |>> function
+        | true -> inst_pclo clo0
+        | false -> inst_pclo clo1
+      end
+    | D.PCloApp (clo, con) ->
+      inst_pclo clo |>> fun f -> 
+      do_ap f con
+    | D.PCloFst clo ->
+      do_fst @<< inst_pclo clo
+    | D.PCloSnd clo ->
+      do_snd @<< inst_pclo clo
 
   and do_goal_proj =
     function
+    | D.Abort -> ret D.Abort
     | D.GoalRet con -> ret con
     | D.Cut {tp = D.Tp (D.GoalTp (_, tp)); cut; unfold} ->
       ret @@ cut_frm ~tp ~cut ~unfold D.KGoalProj
@@ -265,6 +283,8 @@ struct
 
   and do_fst con : D.con compute =
     match con with
+    | D.Abort -> ret D.Abort
+
     | D.Pair (con0, _) -> 
       ret con0
 
@@ -284,6 +304,8 @@ struct
 
   and do_snd con : D.con compute =
     match con with
+    | D.Abort -> ret D.Abort
+
     | D.Pair (_, con1) -> 
       ret con1
 
@@ -308,6 +330,8 @@ struct
 
   and do_ap f a =
     match f with
+    | D.Abort -> ret D.Abort
+
     | D.Lam clo -> 
       inst_tm_clo clo [a]
 
@@ -326,10 +350,12 @@ struct
       cut_frm ~tp:fib ~cut ~unfold @@ D.KAp (base, a) 
 
     | _ -> 
+      Format.eprintf "Bad: %a" D.pp_con f;
       throw @@ NbeFailed "Not a function in do_ap"
 
   and do_sub_out v =
     match v with 
+    | D.Abort -> ret D.Abort
     | D.SubIn con ->
       ret con
     | D.Cut {tp = D.Tp (D.Sub (tp, phi, clo)); cut; unfold} ->
@@ -738,6 +764,7 @@ struct
     D.DimVar (n - 1)
 
   let rec quote_con (D.Tp tp) con : S.t m =
+    QuM.abort_if_inconsistent (S.CofTree Cof.Abort) @@ 
     match tp, con with 
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
@@ -787,6 +814,7 @@ struct
       let+ tcode = quote_tp_code (D.Tp D.Univ) code in
       S.TpCode tcode
     | _ -> 
+      Format.eprintf "bad: %a" D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
 
   and quote_tp_code univ =
@@ -1069,6 +1097,7 @@ struct
 
   (* Invariant: tp0 and tp1 not necessarily whnf *)
   let rec equate_tp tp0 tp1 =
+    QuM.abort_if_inconsistent () @@ 
     let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
     let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
     match tp_proj tp0, tp_proj tp1 with
@@ -1104,6 +1133,7 @@ struct
 
   (* Invariant: tp, con0, con1 not necessarily whnf *)
   and equate_con tp con0 con1 =
+    QuM.abort_if_inconsistent () @@ 
     let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
     let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con con0 in
     let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con con1 in

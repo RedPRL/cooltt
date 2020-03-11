@@ -188,6 +188,16 @@ struct
       EM.push_var None (D.Tp (D.TpPrf vphi)) @@ tac_tm vbase
     in
     S.Tp (S.Sub (base, phi, tm))
+
+  let intro (tac : bchk_tac) : bchk_tac =
+    function 
+    | D.Tp (D.Sub (tp_a, phi_a, clo_a)), phi_sub, clo_sub -> 
+      let phi = Cof.join phi_a phi_sub in
+      let clo = D.PCloSplit (phi_a, phi_sub, clo_a, D.PCloSubOut clo_sub) in
+      let+ tm = tac (tp_a, phi, clo) in
+      S.SubIn tm
+    | tp, _, _ ->
+      EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
 end
 
 
@@ -243,13 +253,14 @@ module Pi =
 struct 
   let formation = TypeFormationRules.pi 
 
-  let intro name tac_body : chk_tac =
+  let intro name (tac_body : bchk_tac) : bchk_tac =
     function
-    | D.Tp (D.Pi (base, fam)) ->
+    | D.Tp (D.Pi (base, fam)), phi, phi_clo ->
       EM.abstract name base @@ fun var ->
-      let+ t = tac_body @<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
-      S.Lam t
-    | tp ->
+      let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
+      let+ tm = tac_body (fib, phi, D.PCloApp (phi_clo, var)) in
+      S.Lam tm
+    | tp, _, _ ->
       EM.elab_err @@ Err.ExpectedConnective (`Pi, tp)
 
   let apply tac_fun tac_arg : syn_tac =
@@ -267,16 +278,17 @@ module Sg =
 struct
   let formation = TypeFormationRules.sg
 
-  let intro tac_fst tac_snd : chk_tac =
+  let intro (tac_fst : bchk_tac) (tac_snd : bchk_tac) : bchk_tac =
     function
-    | D.Tp (D.Sg (base, fam)) ->
-      let* tfst = tac_fst base in
+    | D.Tp (D.Sg (base, fam)), phi, phi_clo ->
+      let* tfst = tac_fst (base, phi, D.PCloFst phi_clo) in
       let+ tsnd = 
         let* vfst = EM.lift_ev @@ Nbe.eval tfst in
-        tac_snd @<< EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] 
+        let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
+        tac_snd (fib, phi, D.PCloSnd phi_clo)
       in
       S.Pair (tfst, tsnd)
-    | tp ->
+    | tp , _, _ ->
       EM.elab_err @@ Err.ExpectedConnective (`Sg, tp)
 
   let pi1 tac : syn_tac =
@@ -395,7 +407,7 @@ struct
   let tac_lam name tac_body : chk_tac = 
     match_goal @@ function
     | D.Tp (D.Pi _) ->
-      EM.ret @@ Pi.intro name tac_body
+      EM.ret @@ bchk_to_chk @@ Pi.intro name @@ chk_to_bchk tac_body
     | _ ->
       EM.throw @@ Invalid_argument "tac_lam cannot be called on this goal"
 
@@ -484,7 +496,9 @@ struct
         let* vmot = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vx] in
         EM.lift_qu @@ Nbe.quote_tp vmot 
       in
+      bchk_to_chk @@
       Pi.intro None @@
+      chk_to_bchk @@ 
       Structural.syn_to_chk @@ 
       elim ([None], mot_tac) cases @@ 
       Structural.variable 0

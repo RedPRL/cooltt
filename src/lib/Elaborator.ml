@@ -63,7 +63,7 @@ and chk_tm : CS.t -> D.tp -> S.t EM.m =
   | CS.LamElim cases ->
     R.Tactic.Elim.lam_elim @@ chk_cases cases
   | CS.Pair (c0, c1) ->
-    R.Sg.intro (chk_tm c0) (chk_tm c1)
+    Tactic.bchk_to_chk @@ R.Sg.intro (Tactic.chk_to_bchk @@ chk_tm c0) (Tactic.chk_to_bchk @@ chk_tm c1)
   | CS.Suc c ->
     R.Nat.suc (chk_tm c)
   | CS.Let (c, B bdy) -> 

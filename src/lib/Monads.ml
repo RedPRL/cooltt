@@ -106,6 +106,13 @@ struct
     M.scope @@ fun local ->
     {local with size = i + local.size}
 
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m -> 
+    fun st ->
+    match CofEnv.status st.cof_env with 
+    | `Consistent -> m st
+    | `Inconsistent -> M.ret abort st
+
   let lift_cmp (m : 'a compute) : 'a m =   
     fun {state; cof_env} ->
     m {state; cof_env} 

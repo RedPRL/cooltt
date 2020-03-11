@@ -10,7 +10,7 @@ struct
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp
     | InvalidTypeExpression of CS.t
-    | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ | `Dim] * D.tp
+    | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ | `Dim | `Sub] * D.tp
     | ExpectedSynthesizableTerm of S.t
     | MalformedCase
     | CannotEliminate of Pp.env * S.tp

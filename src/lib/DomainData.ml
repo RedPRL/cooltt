@@ -41,6 +41,11 @@ and _ pline_clo =
 and _ pclo =
   | PCloConst : con -> 'a pclo
   | PClo : 'a * env -> 'a pclo
+  | PCloSplit : cof * cof * 'a pclo * 'a pclo -> 'a pclo
+  | PCloSubOut : 'a pclo -> 'a pclo
+  | PCloApp : 'a pclo * con -> 'a pclo
+  | PCloFst : 'a pclo -> 'a pclo
+  | PCloSnd : 'a pclo -> 'a pclo
 
 and coe_abs = CoeAbs of {clo : S.t line_clo}
 
@@ -61,6 +66,7 @@ and con =
   | DimCon1
   | Cof of (con, con) Cof.cof_f
   | Prf
+
 
 and tp = Tp of (tp, S.tp) gtp
 

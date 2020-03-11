@@ -46,9 +46,9 @@ and chk_tm : S.t -> T.chk_tac =
   | S.Let (def, bdy) ->
     R.Structural.let_ (syn_tm def) (None, chk_tm bdy)
   | S.Lam bdy ->
-    R.Pi.intro None @@ chk_tm bdy
+    T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm bdy
   | S.Pair (t0, t1) ->
-    R.Sg.intro (chk_tm t0) (chk_tm t1)
+    T.bchk_to_chk @@ R.Sg.intro (T.chk_to_bchk @@ chk_tm t0) (T.chk_to_bchk @@ chk_tm t1)
   | S.TpCode S.Nat -> 
     R.Univ.nat
   | S.TpCode (S.Pi (base, fam)) -> 

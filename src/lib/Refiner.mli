@@ -29,19 +29,20 @@ end
 
 module Pi : sig 
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : CS.ident option -> chk_tac -> chk_tac
+  val intro : CS.ident option -> bchk_tac -> bchk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
 end
 
 module Sg : sig
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : chk_tac -> chk_tac -> chk_tac
+  val intro : bchk_tac -> bchk_tac -> bchk_tac
   val pi1 : syn_tac -> syn_tac
   val pi2 : syn_tac -> syn_tac
 end
 
 module Sub : sig 
   val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
+  val intro : bchk_tac -> bchk_tac
 end
 
 module Id : sig 
