@@ -820,6 +820,13 @@ struct
     | D.Univ, D.TpCode code ->
       let+ tcode = quote_tp_code (D.Tp D.Univ) code in
       S.TpCode tcode
+    | D.TpDim, D.DimCon0 ->
+      ret @@ S.Dim0
+    | D.TpDim, D.DimCon1 ->
+      ret @@ S.Dim1
+    | D.TpCof, D.Cof cof ->
+      let* phi = lift_cmp @@ cof_con_to_cof cof in
+      quote_cof phi
     | _ -> 
       Format.eprintf "bad: %a" D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
