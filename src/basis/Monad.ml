@@ -36,6 +36,18 @@ module Notation (M : S) : Notation with type 'a m = 'a M.m = struct
   let (<&>) = (and+)
 end
 
+module Util (M : S) = 
+struct
+  open Notation (M)
+  let rec commute_list = 
+    function
+    | [] -> M.ret []
+    | m :: ms ->
+      let+ x = m 
+      and+ xs = commute_list ms in 
+      x :: xs
+end
+
 module type MonadReaderResult = sig 
   include S
   type local

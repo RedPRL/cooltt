@@ -33,6 +33,7 @@ and t =
   | Join of t * t
   | Meet of t * t
   | Prf of t
+  | CofSplit of (t * t) list
 [@@deriving show]
 
 and case = pat * t

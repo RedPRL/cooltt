@@ -65,6 +65,10 @@ let pp fmt =
   | ExpectedDimensionLiteral n ->
     Fmt.fprintf fmt 
       "Expected dimension literal 0 or 1, but got %i" n
+  | ExpectedTrue (ppenv, cof) ->
+    Fmt.fprintf fmt 
+      "Expected true cofibration: %a"
+      (S.pp ppenv) cof
 
 
 exception ElabError of t

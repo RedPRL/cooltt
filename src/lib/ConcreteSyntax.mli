@@ -33,6 +33,7 @@ and t =
   | Join of t * t
   | Meet of t * t
   | Prf of t
+  | CofSplit of (t * t) list
 
 and case = pat * t
 and pat = Pat of {lbl : ident; args : pat_arg list}

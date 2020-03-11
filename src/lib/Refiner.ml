@@ -262,6 +262,41 @@ struct
       S.Cof (Cof.Meet (phi0, phi1))
     | tp ->
       EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+
+  let assert_true vphi = 
+    EM.lift_cmp @@ CmpM.test_sequent [] vphi |>> function
+    | true -> EM.ret ()
+    | false -> 
+      let* env = EM.read in
+      let ppenv = Env.pp_env env in
+      let* tphi = EM.lift_qu @@ Nbe.quote_cof vphi in
+      EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
+
+  let split branch_tacs : bchk_tac =
+    fun (tp, psi, psi_clo) ->
+    let rec go (psi, psi_clo) supp branches =
+      match branches with 
+      | [] -> 
+        let* () = assert_true supp in
+        EM.ret Cof.abort
+      | (tac_phi, tac_tm) :: branches -> 
+        let* phi = tac_phi @@ D.Tp D.TpCof in
+        let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
+        let* tm = 
+          EM.push_var None (D.Tp (D.TpPrf vphi)) @@ 
+          tac_tm (tp, psi, psi_clo) 
+        in
+        let+ rest = 
+          let* env = EM.lift_ev @@ EvM.read_local in
+          let psi' = Cof.join psi vphi in
+          let phi_clo = D.PClo (tm, env) in
+          let psi'_clo = D.PCloSplit (psi, vphi, psi_clo, phi_clo) in
+          go (psi', psi'_clo) (Cof.join supp vphi) branches 
+        in
+        Cof.Split (Cof.Const (phi, tm), rest)
+    in
+    let* tree = go (psi, psi_clo) Cof.bot branch_tacs in
+    EM.ret @@ S.CofTree tree
 end
 
 module Prf = 

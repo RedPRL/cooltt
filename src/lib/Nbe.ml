@@ -687,6 +687,7 @@ struct
           ret `Invalid
       end
     | Cof.Split (tree0, tree1) -> 
+      (* TODO: this code isn't enough! We may need to support a split in the domain somehow in case the disjunction is true, but neither disjunct is true. *)
       eval_cof_tree tree0 |>> function
       | `Valid con -> 
         ret @@ `Valid con
@@ -748,6 +749,7 @@ end
 
 module Quote : sig 
   val quote_con : D.tp -> D.con -> S.t quote
+  val quote_cof : D.cof -> S.t quote
   val quote_tp : D.tp -> S.tp quote
   val equal_con : D.tp -> D.con -> D.con -> bool quote
   val quote_cut : D.cut -> S.t quote

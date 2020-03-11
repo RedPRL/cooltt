@@ -2,6 +2,17 @@ def extensional-cofibrations : (phi : cof) (i : dim) (_ : [phi]) (_ : [{i==0} \/
   \phi i _ α => α
 }
 
+def foo : (phi : cof) (psi : cof) (_ : [phi \/ psi]) -> nat = {
+  \phi psi _ => 
+    [ phi => 5
+    | psi => 5
+    ]
+}
+
+-- normalize foo (currently broken)
+
+
+quit
 
 def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
   \A a _ => a

@@ -102,6 +102,9 @@ and bchk_tm : CS.t -> T.bchk_tac =
     T.chk_to_bchk @@ R.Cof.join (chk_tm c0) (chk_tm c1)
   | CS.Meet (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.meet (chk_tm c0) (chk_tm c1)
+  | CS.CofSplit splits ->
+    let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, bchk_tm ctm in 
+    R.Cof.split branch_tacs
   | cs ->
     T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
 

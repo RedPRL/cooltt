@@ -54,8 +54,6 @@ atomic:
     { Refl }
   | UNIV 
     { Univ }
-  | LSQ; left = term; COMMA; right = term; RSQ
-    { Pair (left, right) }
   | name = HOLE_NAME
     { Hole name }
   | UNDERSCORE 
@@ -64,8 +62,19 @@ atomic:
     { Dim }
   | COF 
     { Cof }
-  | LSQ phi = term RSQ
-    { Prf phi }
+    
+  | LSQ t = bracketed RSQ
+    { t }
+
+bracketed:
+  | left = term COMMA right = term
+    { Pair (left, right) }
+  | cases = separated_list(PIPE, cof_case)
+    { CofSplit cases }
+  | PIPE cases = separated_list(PIPE, cof_case)
+    { CofSplit cases }
+  | t = term 
+    { Prf t }
 
 term:
   | f = atomic; args = list(atomic)
@@ -119,6 +128,10 @@ cases:
 case: 
   | p = pat RRIGHT_ARROW t = term 
     { p, t }
+
+cof_case:
+  | phi = term RRIGHT_ARROW t = term
+    { phi, t }
 
 pat_lbl:
   | REFL
