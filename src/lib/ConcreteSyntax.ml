@@ -30,6 +30,7 @@ and t =
   | Dim
   | Cof
   | CofEq of t * t
+  | Prf of t
 [@@deriving show]
 
 and case = pat * t

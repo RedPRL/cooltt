@@ -30,6 +30,7 @@ and t =
   | Dim
   | Cof
   | CofEq of t * t
+  | Prf of t
 
 and case = pat * t
 and pat = Pat of {lbl : ident; args : pat_arg list}

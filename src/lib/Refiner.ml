@@ -202,6 +202,9 @@ end
 
 module Dim = 
 struct
+  let formation : tp_tac = 
+    EM.ret @@ S.Tp S.TpDim
+
   let dim0 : chk_tac =
     function
     | D.Tp D.TpDim ->
@@ -229,6 +232,9 @@ end
 
 module Cof = 
 struct
+  let formation : tp_tac = 
+    EM.ret @@ S.Tp S.TpCof
+
   let eq tac0 tac1 = 
     function
     | D.Tp D.TpCof -> 
@@ -238,6 +244,13 @@ struct
     | tp ->
       Format.eprintf "bad: %a" D.pp_tp tp;
       EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+end
+
+module Prf = 
+struct
+  let formation tac_phi = 
+    let+ phi = tac_phi @@ D.Tp D.TpCof in 
+    S.Tp (S.TpPrf phi)
 end
 
 module Univ = 

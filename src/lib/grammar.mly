@@ -64,6 +64,8 @@ atomic:
     { Dim }
   | COF 
     { Cof }
+  | LSQ phi = term RSQ
+    { Prf phi }
 
 term:
   | f = atomic; args = list(atomic)

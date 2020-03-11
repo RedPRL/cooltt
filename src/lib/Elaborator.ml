@@ -45,9 +45,11 @@ let rec chk_tp : CS.t -> T.tp_tac =
   | CS.Unfold (idents, c) -> 
     unfold idents @@ chk_tp c
   | CS.Dim ->
-    EM.ret @@ S.Tp S.TpDim (* todo *)
+    R.Dim.formation
   | CS.Cof ->
-    EM.ret @@ S.Tp S.TpCof (* todo *)
+    R.Cof.formation
+  | CS.Prf phi ->
+    R.Prf.formation @@ chk_tm phi
   | tm -> 
     Refiner.Univ.el_formation @@ chk_tm tm
 

@@ -1,3 +1,8 @@
+def extensional-cofibrations : (i : dim) (_ : [i==0]) -> [0==i] = {
+  \i α => α
+}
+
+
 def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
   \A a _ => a
 }

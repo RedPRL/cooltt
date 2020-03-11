@@ -1116,6 +1116,8 @@ struct
     let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
     match tp_proj tp0, tp_proj tp1 with
     | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
+    | D.TpPrf phi0, D.TpPrf phi1 -> 
+      equate_cof phi0 phi1
     | D.Pi (base0, fam0), D.Pi (base1, fam1) 
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in

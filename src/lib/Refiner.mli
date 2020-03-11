@@ -19,13 +19,19 @@ module Goal : sig
 end
 
 module Dim : sig 
+  val formation : tp_tac
   val dim0 : chk_tac
   val dim1 : chk_tac
   val literal : int -> chk_tac
 end
 
 module Cof : sig 
+  val formation : tp_tac
   val eq : chk_tac -> chk_tac -> chk_tac
+end
+
+module Prf : sig 
+  val formation : chk_tac -> tp_tac
 end
 
 module Univ : sig
