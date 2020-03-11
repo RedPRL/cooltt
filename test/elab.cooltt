@@ -5,7 +5,7 @@ def extensional-cofibrations : (phi : cof) (i : dim) (_ : [phi]) (_ : [{i==0} \/
 def foo : (phi : cof) (psi : cof) (_ : [phi \/ psi]) -> nat = {
   \phi psi _ => 
     [ phi => 5
-    | psi => 5
+    | psi => ?
     ]
 }
 
