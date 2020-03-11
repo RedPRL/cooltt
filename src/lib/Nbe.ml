@@ -40,11 +40,46 @@ sig
 
   val do_rigid_coe : D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
   val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> S.t D.pline_clo -> D.con compute
+
+  val con_to_dim : D.con -> D.dim compute
+  val con_to_cof : D.con -> D.cof compute
+  val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof compute
 end =
 struct
   open CmpM
   open Eval
   open Monad.Notation (CmpM)
+
+  let con_to_dim =
+    function
+    | D.DimCon0 -> ret D.Dim0
+    | D.DimCon1 -> ret D.Dim1
+    | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
+    | _ -> throw @@ NbeFailed "con_to_dim"
+
+  let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof m =
+    function
+    | Cof.Eq (r, s) ->
+      let+ r = con_to_dim r 
+      and+ s = con_to_dim s in
+      Cof.eq r s
+    | Cof.Join (phi, psi) -> 
+      let+ phi = con_to_cof phi 
+      and+ psi = con_to_cof psi in
+      Cof.join phi psi
+    | Cof.Meet (phi, psi) ->
+      let+ phi = con_to_cof phi 
+      and+ psi = con_to_cof psi in
+      Cof.meet phi psi
+    | Cof.Bot -> ret Cof.bot
+    | Cof.Top -> ret Cof.top
+
+  and con_to_cof = 
+    function
+    | Cof cof -> cof_con_to_cof cof
+    | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
+    | _ -> throw @@ NbeFailed "con_to_cof"
+
 
   let dest_pi_code con = 
     match con with 
@@ -495,7 +530,7 @@ struct
     | S.Sub (tp, tphi, tm) ->
       let+ env = read_local 
       and+ tp = eval_tp tp 
-      and+ phi = con_to_cof @<< eval tphi in
+      and+ phi = eval_cof tphi in
       let cl = D.PClo (tm, env) in
       D.Tp (D.Sub (tp, phi, cl))
     | S.TpDim  ->
@@ -503,7 +538,7 @@ struct
     | S.TpCof -> 
       ret @@ D.Tp D.TpCof
     | S.TpPrf tphi ->
-      let+ phi = con_to_cof @<< eval tphi in 
+      let+ phi = eval_cof tphi in 
       D.Tp (D.TpPrf phi)
 
   and eval =
@@ -580,7 +615,7 @@ struct
     | S.HCom (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
       let* s = eval_dim ts in
-      let* phi = con_to_cof @<< eval tphi in
+      let* phi = eval_cof tphi in
       let* vtpcode = eval tpcode in
       begin
         CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
@@ -620,16 +655,9 @@ struct
           D.Cof (Cof.Meet (phi, psi))
       end
 
-  and con_to_dim =
-    function
-    | D.DimCon0 -> ret D.Dim0
-    | D.DimCon1 -> ret D.Dim1
-    | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
-    | _ -> throw @@ NbeFailed "con_to_dim"
-
   and eval_dim tr =
     let* con = eval tr in
-    con_to_dim con
+    lift_cmp @@ con_to_dim con
 
   and force_eval_cof_tree tree =
     eval_cof_tree tree |>> function
@@ -641,7 +669,7 @@ struct
   and eval_cof_tree =
     function
     | Cof.Const (tphi, tm) ->
-      let* phi = con_to_cof @<< eval tphi in
+      let* phi = eval_cof tphi in
       begin
         CmpM.test_sequent [] phi |> lift_cmp |>> function
         | true ->
@@ -665,31 +693,10 @@ struct
       | `Invalid -> 
         eval_cof_tree tree1
 
-  and cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof m =
-    function
-    | Cof.Eq (r, s) ->
-      let+ r = con_to_dim r 
-      and+ s = con_to_dim s in
-      Cof.eq r s
-    | Cof.Join (phi, psi) -> 
-      let+ phi = con_to_cof phi 
-      and+ psi = con_to_cof psi in
-      Cof.join phi psi
-    | Cof.Meet (phi, psi) ->
-      let+ phi = con_to_cof phi 
-      and+ psi = con_to_cof psi in
-      Cof.meet phi psi
-    | Cof.Bot -> ret Cof.bot
-    | Cof.Top -> ret Cof.top
-
-  and con_to_cof = 
-    function
-    | Cof cof -> cof_con_to_cof cof
-    | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
-    | _ -> throw @@ NbeFailed "con_to_cof"
 
   and eval_cof tphi = 
-    con_to_cof @<< eval tphi
+    let* vphi = eval tphi in 
+    lift_cmp @@ con_to_cof vphi
 
   and eval_coe_abs code = 
     let+ env = read_local in 
@@ -716,7 +723,7 @@ struct
     | S.Sub (tp, tphi, tm) ->
       let+ env = read_local 
       and+ tp = eval tp 
-      and+ phi = con_to_cof @<< eval tphi in
+      and+ phi = eval_cof tphi in
       let cl = D.PClo (tm, env) in
       D.Sub (tp, phi, cl)
 
@@ -1101,6 +1108,7 @@ struct
     let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
     let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
     match tp_proj tp0, tp_proj tp1 with
+    | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
     | D.Pi (base0, fam0), D.Pi (base1, fam1) 
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in
@@ -1165,6 +1173,14 @@ struct
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
       equate_con tp con0 con1
+    | D.TpDim, _, _ ->
+      let* r0 = lift_cmp @@ con_to_dim con0 in
+      let* r1 = lift_cmp @@ con_to_dim con1 in
+      approx_cof Cof.top @@ Cof.eq r0 r1
+    | D.TpCof, _, _ ->
+      let* phi0 = lift_cmp @@ con_to_cof con0 in
+      let* phi1 = lift_cmp @@ con_to_cof con0 in
+      equate_cof phi0 phi1 
     | _, D.Cut {cut = cut0; unfold = None}, D.Cut {cut = cut1; unfold = None} ->
       equate_cut cut0 cut1
     | _, (D.TpCode _ as con0), (D.TpCode _ as con1) -> 
@@ -1273,8 +1289,7 @@ struct
       let* () = equate_cut cut0 cut1 in
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
-      let* () = approx_cof phi0 phi1 in
-      let* () = approx_cof phi1 phi0 in
+      let* () = equate_cof phi0 phi1 in 
       binder 1 @@ 
       let* i = top_dim_var in
       under_cofs_ [Cof.join (Cof.eq i r0) phi0] @@ 
@@ -1286,6 +1301,10 @@ struct
       equate_cut cut0 cut1
     | _ ->
       throw @@ NbeFailed "Different heads"
+
+  and equate_cof phi psi = 
+    let* () = approx_cof phi psi in
+    approx_cof psi phi
 
   and approx_cof phi psi =
     CmpM.test_sequent [phi] psi |> lift_cmp |>> function 
