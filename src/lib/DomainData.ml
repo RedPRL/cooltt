@@ -89,6 +89,7 @@ and hd =
   | Coe of coe_abs * dim * dim * con
   | HCom of cut * dim * dim * cof * S.t pline_clo
   | SubOut of cut * cof * S.t pclo
+  (* TODO: Support splitting on "neutral" proof of disjunction cofibration *)
 
 and cut = hd * frm list
 
