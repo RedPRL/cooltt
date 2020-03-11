@@ -86,6 +86,10 @@ rule token = parse
     { COLON }
   | "=="
     { EEQUALS }
+  | "/\\"
+    { MEET }
+  | "\\/"
+    { JOIN }
   | "="
     { EQUALS }
   | "->"

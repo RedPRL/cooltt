@@ -28,6 +28,8 @@ end
 module Cof : sig 
   val formation : tp_tac
   val eq : chk_tac -> chk_tac -> chk_tac
+  val join : chk_tac -> chk_tac -> chk_tac
+  val meet : chk_tac -> chk_tac -> chk_tac
 end
 
 module Prf : sig 

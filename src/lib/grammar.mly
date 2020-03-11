@@ -7,7 +7,7 @@
 %token <string option> HOLE_NAME
 %token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF
 %token LPR RPR LBR RBR LSQ RSQ
-%token EQUALS EEQUALS
+%token EQUALS EEQUALS JOIN MEET
 %token UNIV
 %token TIMES FST SND
 %token LAM LET IN 
@@ -103,6 +103,10 @@ term:
 
   | r = atomic EEQUALS s = atomic
     { CofEq (r, s) }
+  | phi = atomic JOIN psi = atomic
+    { Join (phi, psi) }
+  | phi = atomic MEET psi = atomic
+    { Meet (phi, psi) }
 
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR

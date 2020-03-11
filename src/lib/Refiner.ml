@@ -244,6 +244,24 @@ struct
     | tp ->
       Format.eprintf "bad: %a" D.pp_tp tp;
       EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+
+  let join tac0 tac1 = 
+    function
+    | D.Tp D.TpCof ->
+      let+ phi0 = tac0 @@ D.Tp D.TpCof
+      and+ phi1 = tac1 @@ D.Tp D.TpCof in
+      S.Cof (Cof.Join (phi0, phi1))
+    | tp ->
+      EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+
+  let meet tac0 tac1 = 
+    function
+    | D.Tp D.TpCof ->
+      let+ phi0 = tac0 @@ D.Tp D.TpCof
+      and+ phi1 = tac1 @@ D.Tp D.TpCof in
+      S.Cof (Cof.Meet (phi0, phi1))
+    | tp ->
+      EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
 end
 
 module Prf = 

@@ -30,6 +30,8 @@ and t =
   | Dim
   | Cof
   | CofEq of t * t
+  | Join of t * t
+  | Meet of t * t
   | Prf of t
 [@@deriving show]
 

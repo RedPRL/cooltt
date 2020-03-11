@@ -98,6 +98,10 @@ and bchk_tm : CS.t -> T.bchk_tac =
     T.chk_to_bchk @@ R.Univ.id (chk_tm tp) (chk_tm l) (chk_tm r)
   | CS.CofEq (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
+  | CS.Join (c0, c1) ->
+    T.chk_to_bchk @@ R.Cof.join (chk_tm c0) (chk_tm c1)
+  | CS.Meet (c0, c1) ->
+    T.chk_to_bchk @@ R.Cof.meet (chk_tm c0) (chk_tm c1)
   | cs ->
     T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
 
