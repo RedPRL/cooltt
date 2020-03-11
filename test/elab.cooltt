@@ -1,5 +1,5 @@
-def extensional-cofibrations : (i : dim) (_ : [i==0]) -> [0==i] = {
-  \i α => α
+def extensional-cofibrations : (phi : cof) (i : dim) (_ : [phi]) (_ : [i==0]) -> [0==i] = {
+  \phi i _ α => α
 }
 
 
