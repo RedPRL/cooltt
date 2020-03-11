@@ -12,3 +12,6 @@ val bchk_to_chk : bchk_tac -> chk_tac
 
 (** Converts a checking tactic to a boundary-checking tactic by a synchronous check. *)
 val chk_to_bchk : chk_tac -> bchk_tac
+
+val syn_to_chk : syn_tac -> chk_tac 
+val chk_to_syn : chk_tac -> tp_tac -> syn_tac 

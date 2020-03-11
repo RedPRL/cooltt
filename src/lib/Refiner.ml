@@ -360,18 +360,6 @@ end
 
 module Structural = 
 struct
-  let syn_to_chk (tac : syn_tac) : chk_tac =
-    fun tp ->
-      let* tm, tp' = tac in
-      let+ () = EM.equate_tp tp tp' in
-      tm
-
-  let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
-    let* tp = tac_tp in
-    let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
-    let+ tm = tac_tm vtp in
-    tm, vtp
-
   let lookup_var id : syn_tac =
     let* res = EM.resolve id in
     match res with
@@ -399,15 +387,15 @@ end
 
 module Tactic =
 struct
-  let match_goal (tac : D.tp -> chk_tac m) : chk_tac =
-    fun tp ->
-      let* tac = tac tp in
-      tac tp
+  let match_goal tac =
+    fun goal ->
+      let* tac = tac goal in
+      tac goal
 
-  let tac_lam name tac_body : chk_tac = 
+  let tac_lam name tac_body : bchk_tac = 
     match_goal @@ function
-    | D.Tp (D.Pi _) ->
-      EM.ret @@ bchk_to_chk @@ Pi.intro name @@ chk_to_bchk tac_body
+    | D.Tp (D.Pi _), _, _ ->
+      EM.ret @@ Pi.intro name tac_body
     | _ ->
       EM.throw @@ Invalid_argument "tac_lam cannot be called on this goal"
 
@@ -499,7 +487,7 @@ struct
       bchk_to_chk @@
       Pi.intro None @@
       chk_to_bchk @@ 
-      Structural.syn_to_chk @@ 
+      syn_to_chk @@ 
       elim ([None], mot_tac) cases @@ 
       Structural.variable 0
 

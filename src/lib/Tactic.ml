@@ -25,4 +25,16 @@ let chk_to_bchk : chk_tac -> bchk_tac =
     EM.push_var None (D.Tp (D.TpPrf phi)) @@
     EM.equate tp con @<< EM.lift_cmp @@ Nbe.inst_pclo pclo
   in
-  EM.ret tm
+  EM.ret tm  
+
+let syn_to_chk (tac : syn_tac) : chk_tac =
+  fun tp ->
+  let* tm, tp' = tac in
+  let+ () = EM.equate_tp tp tp' in
+  tm
+
+let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
+  let* tp = tac_tp in
+  let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
+  let+ tm = tac_tm vtp in
+  tm, vtp

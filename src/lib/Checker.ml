@@ -58,7 +58,7 @@ and chk_tm : S.t -> T.chk_tac =
   | S.TpCode (S.Id (tp, left, right)) ->
     R.Univ.id (chk_tm tp) (chk_tm left) (chk_tm right)
   | t ->
-    R.Structural.syn_to_chk @@ syn_tm t
+    T.syn_to_chk @@ syn_tm t
 
 and syn_tm : S.t -> T.syn_tac = 
   function
@@ -83,6 +83,6 @@ and syn_tm : S.t -> T.syn_tac =
       (None, None, chk_tm case_suc)
       (syn_tm scrut)
   | S.Ann (t, tp) -> 
-    R.Structural.chk_to_syn (chk_tm t) (chk_tp tp)
+    T.chk_to_syn (chk_tm t) (chk_tp tp)
   | t -> 
     EM.elab_err @@ Err.ExpectedSynthesizableTerm t 
