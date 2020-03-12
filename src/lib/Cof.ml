@@ -10,11 +10,6 @@ type ('v, 'r) cof =
   | Var of 'v
 
 
-type 'leaf tree =
-  | Const of 'leaf
-  | Split of 'leaf tree * 'leaf tree
-  | Abort
-
 let var v = Var v
 let bot = Cof Bot
 let top = Cof Top
@@ -37,17 +32,6 @@ let meet phi psi =
   | Cof Bot, phi -> bot 
   | phi, Cof Bot -> bot 
   | phi, psi -> Cof (Meet (phi, psi))
-
-let const leaf = 
-  Const leaf
-
-let split t0 t1 =
-  match t0, t1 with
-  | Abort, t1 -> t1
-  | t0, Abort -> t0 
-  | t0, t1 -> Split (t0, t1)
-
-let abort = Abort
 
 let rec reduce =
   function
@@ -80,9 +64,3 @@ let rec pp_cof pp_v pp env fmt =
     Format.fprintf fmt "true"
   | Var v ->
     pp_v env fmt v
-
-
-let pp_tree pp env fmt = 
-  function
-  | _ ->
-    Format.fprintf fmt "TODO: pp_tree"
