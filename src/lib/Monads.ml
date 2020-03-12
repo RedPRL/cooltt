@@ -106,6 +106,13 @@ struct
     M.scope @@ fun local ->
     {local with size = i + local.size}
 
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m -> 
+    fun st ->
+    match CofEnv.status st.cof_env with 
+    | `Consistent -> m st
+    | `Inconsistent -> M.ret abort st
+
   let lift_cmp (m : 'a compute) : 'a m =   
     fun {state; cof_env} ->
     m {state; cof_env} 
@@ -116,66 +123,14 @@ struct
     match CofEnv.status cof_env with 
     | `Consistent -> 
       M.scope (fun local -> {local with cof_env}) @@
-      let+ x = m () in
-      `Continue x
+      let+ x = m in
+      `Ret x
     | `Inconsistent -> 
       M.ret `Abort
 
-
-  module Search =
-  struct
-    type atomic = [`Eq of D.dim * D.dim | `Var of int]
-
-    let as_cof =
-      function
-      | `Eq (r, s) -> Cof.eq r s
-      | `Var lvl -> Cof.var lvl
-
-    let rec atomics acc (xi : atomic list) m = 
-      match xi with 
-      | [] -> 
-        let+ x = m in 
-        Cof.const acc x
-      | phi :: xi ->
-        let phi = as_cof phi in
-        let+ result = 
-          restrict phi @@ fun () ->
-          atomics (Cof.meet phi acc) xi m
-        in 
-        begin
-          match result with 
-          | `Abort -> Cof.abort 
-          | `Continue x -> x
-        end
-
-    let rec left_inversion (xi : atomic list) (linv : D.cof list) (m : 'a m) : (int, D.dim, 'a) Cof.tree m =
-      match linv with 
-      | [] -> 
-        atomics Cof.top xi m
-      | Cof.Eq (r, s) :: cx ->
-        left_inversion (`Eq (r, s) :: xi) cx m
-      | Cof.Var v :: cx ->
-        left_inversion (`Var v :: xi) cx m
-      | Cof.Join (phi, psi) :: cx ->
-        let+ tree0 = left_inversion xi (phi :: cx) m 
-        and+ tree1 = left_inversion xi (psi :: cx) m in
-        Cof.split tree0 tree1
-      | Cof.Bot :: _ ->
-        M.ret @@ Cof.abort
-      | Cof.Top :: linv ->
-        left_inversion xi linv m
-      | Cof.Meet (phi, psi) :: cx ->
-        left_inversion xi (phi :: psi :: linv) m
-  end
-
-
-  let under_cofs : D.cof list -> 'a m -> (int, D.dim, 'a) Cof.tree m =
-    fun linv ->
-    Search.left_inversion [] linv
-
-  let under_cofs_ cx m = 
-    let+ _ = under_cofs cx m in
-    ()
+  let bind_cof_proof phi m =
+    restrict phi @@ 
+    binder 1 m
 
   include QuL
   include M

@@ -3,19 +3,29 @@ module D = Domain
 module S = Syntax
 open CoolBasis
 
-type t =
-  | UnboundVariable of CS.ident
-  | ExpectedEqual of Pp.env * S.tp * S.t * S.t
-  | ExpectedEqualTypes of Pp.env * S.tp * S.tp
-  | InvalidTypeExpression of CS.t
-  | ExpectedConnective of [`Pi | `DimPi | `Sg | `Id | `Nat | `Univ] * D.tp (* TODO: change to Pp.env * S.tp *)
-  | ExpectedSynthesizableTerm of S.t
-  | MalformedCase
-  | CannotEliminate of Pp.env * S.tp
-  | ExpectedSimpleInductive of Pp.env * S.tp
-
+include ElabErrorData.Data
 
 module Fmt = Format
+
+let pp_connective fmt = 
+  function
+  | `Cof -> 
+    Format.fprintf fmt "cof"
+  | `Dim -> 
+    Format.fprintf fmt "dim"
+  | `Pi ->
+    Format.fprintf fmt "pi"
+  | `Sg ->
+    Format.fprintf fmt "sg"
+  | `Id ->
+    Format.fprintf fmt "id"
+  | `Univ ->
+    Format.fprintf fmt "univ"
+  | `Nat ->
+    Format.fprintf fmt "nat"
+  | `Sub ->
+    Format.fprintf fmt "sub"
+
 let pp fmt =
   function
   | UnboundVariable id -> 
@@ -31,9 +41,10 @@ let pp fmt =
       "Expected @[<hv>%a =@;%a@]"
       (S.pp_tp ppenv) tp0
       (S.pp_tp ppenv) tp1
-  | ExpectedConnective _ ->
+  | ExpectedConnective (conn, _) ->
     Fmt.fprintf fmt 
-      "Head connective mismatch"
+      "Head connective mismatch, expected %a"
+      pp_connective conn
   | ExpectedSynthesizableTerm _ ->
     Fmt.fprintf fmt 
       "Expected synthesizable term"
@@ -51,6 +62,13 @@ let pp fmt =
     Fmt.fprintf fmt 
       "Expected simple inductive type but found %a"
       (S.pp_tp ppenv) tp
+  | ExpectedDimensionLiteral n ->
+    Fmt.fprintf fmt 
+      "Expected dimension literal 0 or 1, but got %i" n
+  | ExpectedTrue (ppenv, cof) ->
+    Fmt.fprintf fmt 
+      "Expected true cofibration: %a"
+      (S.pp ppenv) cof
 
 
 exception ElabError of t

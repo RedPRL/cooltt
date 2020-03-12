@@ -24,12 +24,13 @@ sig
   val inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute
   val inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute
   val inst_pline_clo : S.t D.pline_clo -> D.dim -> D.con compute
+  val inst_pclo : S.t D.pclo -> D.con compute
 
   val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
-  val do_dim_ap : D.con -> D.dim -> D.con compute
+  val do_sub_out : D.con -> D.con compute
   val do_id_elim : ghost:D.ghost option -> ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
   val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
@@ -39,11 +40,46 @@ sig
 
   val do_rigid_coe : D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
   val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> S.t D.pline_clo -> D.con compute
+
+  val con_to_dim : D.con -> D.dim compute
+  val con_to_cof : D.con -> D.cof compute
+  val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof compute
 end =
 struct
   open CmpM
   open Eval
   open Monad.Notation (CmpM)
+
+  let con_to_dim =
+    function
+    | D.DimCon0 -> ret D.Dim0
+    | D.DimCon1 -> ret D.Dim1
+    | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
+    | _ -> throw @@ NbeFailed "con_to_dim"
+
+  let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof m =
+    function
+    | Cof.Eq (r, s) ->
+      let+ r = con_to_dim r 
+      and+ s = con_to_dim s in
+      Cof.eq r s
+    | Cof.Join (phi, psi) -> 
+      let+ phi = con_to_cof phi 
+      and+ psi = con_to_cof psi in
+      Cof.join phi psi
+    | Cof.Meet (phi, psi) ->
+      let+ phi = con_to_cof phi 
+      and+ psi = con_to_cof psi in
+      Cof.meet phi psi
+    | Cof.Bot -> ret Cof.bot
+    | Cof.Top -> ret Cof.top
+
+  and con_to_cof = 
+    function
+    | Cof cof -> cof_con_to_cof cof
+    | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
+    | _ -> throw @@ NbeFailed "con_to_cof"
+
 
   let dest_pi_code con = 
     match con with 
@@ -63,14 +99,14 @@ struct
 
   let rec whnf_con : D.con -> D.con whnf m =
     function
-    | D.Lam _ | D.DimLam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort ->
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort | D.SubIn _ | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf ->
       ret `Done
 
     | D.Cut {unfold = Some lcon} -> 
       reduce_to @<< force_lazy_con lcon
 
     | D.Cut {unfold = None; cut} ->
-      whnf_cut cut 
+      whnf_cut cut
 
     | D.ConCoe (abs, r, s, con) ->
       begin
@@ -91,7 +127,7 @@ struct
     | `Done -> ret @@ `Reduce con
     | `Reduce con -> ret @@ `Reduce con
 
-  and whnf_cut cut : D.con whnf m=
+  and whnf_cut cut : D.con whnf m =
     let hd, sp = cut in
     match hd with
     | D.Global _ | D.Var _ -> 
@@ -120,6 +156,35 @@ struct
             let+ hcom = do_rigid_hcom code r s phi clo in 
             `Reduce hcom
       end
+    | D.SubOut (cut, phi, clo) ->
+      begin
+        test_sequent [] phi |>> function
+        | true -> 
+          let+ con = inst_pclo clo in
+          `Reduce con
+        | false ->
+          whnf_cut cut |>> function
+          | `Done ->
+            ret `Done
+          | `Reduce con ->
+            let+ out = do_sub_out con in
+            `Reduce out
+      end
+    | D.Split (tp, phi0, phi1, clo0, clo1) ->
+      begin
+        test_sequent [] phi0 |>> function
+        | true -> 
+          let+ con = inst_pclo clo0 in
+          `Reduce con
+        | false ->
+          test_sequent [] phi1 |>> function
+          | true -> 
+            let+ con = inst_pclo clo1 in 
+            `Reduce con
+          | false -> 
+            ret `Done
+      end
+
 
   and whnf_tp = 
     function
@@ -136,6 +201,7 @@ struct
 
   and do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
     match n with
+    | D.Abort -> ret D.Abort
     | D.Zero -> 
       ret zero
     | D.Suc n -> 
@@ -150,6 +216,7 @@ struct
 
   and do_id_elim ~ghost mot refl eq =
     match eq with
+    | D.Abort -> ret D.Abort
     | D.Refl t -> inst_tm_clo refl [t]
     | D.Cut {tp = D.Tp (D.Id (tp, con0, con1)); cut; unfold} -> 
       let+ fib = inst_tp_clo mot [con0; con1; eq] in 
@@ -173,8 +240,7 @@ struct
     fun clo xs ->
     match clo with
     | Clo {bdy; env; _} -> 
-      let cons = Vec.to_list xs |> List.map @@ fun con -> `Con con in
-      lift_ev (env <>< cons) @@ 
+      lift_ev (env <>< Vec.to_list xs) @@ 
       eval_tp bdy
     | ElClo clo ->
       let* con = inst_tm_clo clo xs in
@@ -184,21 +250,20 @@ struct
     fun clo xs ->
     match clo with
     | D.Clo {bdy; env} -> 
-      let cons = Vec.to_list xs |> List.map @@ fun con -> `Con con in
-      lift_ev (env <>< cons) @@ 
+      lift_ev (env <>< Vec.to_list xs) @@ 
       eval bdy
 
   and inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute = 
     fun clo r ->
     match clo with
     | D.LineClo (bdy, env) ->
-      lift_ev (env <>< [`Dim r]) @@ eval_tp bdy
+      lift_ev (env <>< [D.dim_to_con r]) @@ eval_tp bdy
 
   and inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute = 
     fun clo r ->
     match clo with 
     | D.LineClo (bdy, env) ->
-      lift_ev (env <>< [`Dim r]) @@ eval bdy
+      lift_ev (env <>< [D.dim_to_con r]) @@ eval bdy
     | D.PiCoeBaseClo clo -> 
       let* pi_code = inst_line_clo clo r in
       let+ base, _ = dest_pi_code pi_code in
@@ -223,7 +288,7 @@ struct
     fun clo r ->
     match clo with
     | D.PLineClo (bdy, env) -> 
-      lift_ev (env <>< [`Dim r]) @@ eval bdy
+      lift_ev (env <>< [D.dim_to_con r; D.Prf]) @@ eval bdy
     | D.AppClo (arg, clo) ->
       let* con = inst_pline_clo clo r in 
       do_ap con arg
@@ -235,8 +300,32 @@ struct
       let* con = inst_pline_clo clo r in
       do_rigid_coe coe_abs r s con
 
+  and inst_pclo : S.t D.pclo -> D.con compute =
+    function
+    | D.PClo (bdy, env) ->
+      lift_ev (env <>< [D.Prf]) @@ eval bdy
+    | D.PCloConst con ->
+      ret con
+    | D.PCloSubOut clo ->
+      do_sub_out @<< inst_pclo clo
+    | D.PCloSplit (tp, phi0, phi1, clo0, clo1) -> 
+      let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
+      begin
+        whnf_cut cut |>> function
+        | `Done -> ret @@ D.Cut {tp; cut; unfold = None}
+        | `Reduce con -> ret con
+      end
+    | D.PCloApp (clo, con) ->
+      inst_pclo clo |>> fun f -> 
+      do_ap f con
+    | D.PCloFst clo ->
+      do_fst @<< inst_pclo clo
+    | D.PCloSnd clo ->
+      do_snd @<< inst_pclo clo
+
   and do_goal_proj =
     function
+    | D.Abort -> ret D.Abort
     | D.GoalRet con -> ret con
     | D.Cut {tp = D.Tp (D.GoalTp (_, tp)); cut; unfold} ->
       ret @@ cut_frm ~tp ~cut ~unfold D.KGoalProj
@@ -245,6 +334,8 @@ struct
 
   and do_fst con : D.con compute =
     match con with
+    | D.Abort -> ret D.Abort
+
     | D.Pair (con0, _) -> 
       ret con0
 
@@ -264,6 +355,8 @@ struct
 
   and do_snd con : D.con compute =
     match con with
+    | D.Abort -> ret D.Abort
+
     | D.Pair (_, con1) -> 
       ret con1
 
@@ -288,6 +381,8 @@ struct
 
   and do_ap f a =
     match f with
+    | D.Abort -> ret D.Abort
+
     | D.Lam clo -> 
       inst_tm_clo clo [a]
 
@@ -306,25 +401,18 @@ struct
       cut_frm ~tp:fib ~cut ~unfold @@ D.KAp (base, a) 
 
     | _ -> 
+      Format.eprintf "Bad: %a" D.pp_con f;
       throw @@ NbeFailed "Not a function in do_ap"
 
-  and do_dim_ap con r =
-    match con with 
-    | D.DimLam clo ->
-      inst_line_clo clo r 
-      
-    | D.Cut {tp = D.Tp (D.DimPi fam); cut; unfold} ->
-      let+ fib = inst_tp_line_clo fam r in
-      cut_frm ~tp:fib ~cut ~unfold @@ D.KDimAp r
-
-    | D.ConCoe (D.CoeAbs abs, r, s, f) ->
-      failwith "todo: dim-ap / coe"
-
-    | D.ConHCom (code, r, s, phi, clo) ->
-      failwith "todo: dim-ap / hcom"
-
+  and do_sub_out v =
+    match v with 
+    | D.Abort -> ret D.Abort
+    | D.SubIn con ->
+      ret con
+    | D.Cut {tp = D.Tp (D.Sub (tp, phi, clo)); cut; unfold} ->
+      ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []; unfold = None} (* unfold ?? *)
     | _ ->
-      throw @@ NbeFailed "Not a line in do_dim_ap"
+      throw @@ NbeFailed "do_sub_out"
 
   and do_el =
     function
@@ -359,7 +447,7 @@ struct
     let i = D.DimProbe (Symbol.fresh ()) in
     let rec go peek =
       match peek with
-      | D.TpCode (D.Pi _ | D.DimPi _ | D.Sg _) ->
+      | D.TpCode (D.Pi _ | D.Sg _) ->
         ret @@ D.ConCoe (D.CoeAbs abs, r, s, con)
       | D.Cut {unfold = Some lcon} -> 
         go @<< force_lazy_con lcon
@@ -375,7 +463,7 @@ struct
 
   and do_rigid_hcom code r s phi clo = 
     match code with 
-    | D.TpCode (D.Pi _ | D.DimPi _ | D.Sg _)->
+    | D.TpCode (D.Pi _ | D.Sg _)->
       ret @@ D.ConHCom (code, r, s, phi, clo)
     | D.Cut {unfold = Some lcon} ->
       let* code = force_lazy_con lcon in 
@@ -400,7 +488,6 @@ struct
   and do_frm con =
     function
     | D.KAp (_, con') -> do_ap con con'
-    | D.KDimAp r -> do_dim_ap con r
     | D.KFst -> do_fst con
     | D.KSnd -> do_snd con
     | D.KNatElim (ghost, mot, case_zero, case_suc) -> do_nat_elim ~ghost mot case_zero case_suc con
@@ -418,8 +505,8 @@ end
 and Eval :
 sig
   val eval : S.t -> D.con evaluate
+  val eval_cof : S.t -> D.cof evaluate
   val eval_tp : S.tp -> D.tp evaluate
-  val eval_dim : S.dim -> D.dim evaluate
 end = 
 struct 
   open EvM
@@ -456,37 +543,30 @@ struct
     | S.GoalTp (lbl, tp) ->
       let+ tp = eval_tp tp in
       D.Tp (D.GoalTp (lbl, tp))
-    | S.DimPi fam -> 
-      let+ env = EvM.read_local in
-      let clfam = D.LineClo (fam, env) in
-      D.Tp (D.DimPi clfam)
-
-  and eval_dim = 
-    function
-    | S.DimVar i ->
-      begin
-        get_local i |>> function
-        | `Dim r -> ret r
-        | _ -> throw @@ NbeFailed "Expected `Dim cell in environment"
-      end
-    | S.Dim0 -> ret D.Dim0
-    | S.Dim1 -> ret D.Dim1
+    | S.Sub (tp, tphi, tm) ->
+      let+ env = read_local 
+      and+ tp = eval_tp tp 
+      and+ phi = eval_cof tphi in
+      let cl = D.PClo (tm, env) in
+      D.Tp (D.Sub (tp, phi, cl))
+    | S.TpDim  ->
+      ret @@ D.Tp D.TpDim
+    | S.TpCof -> 
+      ret @@ D.Tp D.TpCof
+    | S.TpPrf tphi ->
+      let+ phi = eval_cof tphi in 
+      D.Tp (D.TpPrf phi)
 
   and eval =
     function
-    | S.Var i -> 
-      begin 
-        get_local i |>> function
-        | `Con con -> ret con
-        | _ -> throw @@ NbeFailed "Expected `Con cell in environment"
-      end
+    | S.Var i -> get_local i
     | S.Global sym -> 
       let* st = EvM.read_global in
       let tp, con = ElabState.get_global sym st in
       ret @@ D.Cut {tp; cut = (D.Global sym, []); unfold = Some (`Done con)}
     | S.Let (def, body) -> 
       let* vdef = eval def in 
-      append [`Con vdef] @@ eval body
+      append [vdef] @@ eval body
     | S.Ann (term, _) -> 
       eval term
     | S.Zero -> 
@@ -504,18 +584,10 @@ struct
     | S.Lam t -> 
       let+ cl = close_tm t in
       D.Lam cl
-    | S.DimLam t ->
-      let+ env = read_local in
-      let clo = D.LineClo (t, env) in
-      D.DimLam clo
     | S.Ap (t0, t1) -> 
       let* con0 = eval t0 in 
       let* con1 = eval t1 in 
       lift_cmp @@ do_ap con0 con1
-    | S.DimAp (t, tr) ->
-      let* con = eval t in
-      let* r = eval_dim tr in
-      lift_cmp @@ do_dim_ap con r
     | S.Pair (t1, t2) -> 
       let+ el1 = eval t1
       and+ el2 = eval t2 in
@@ -564,73 +636,66 @@ struct
       begin
         CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
         | true -> 
-          append [`Dim s] @@ eval tm
+          append [D.dim_to_con s] @@ eval tm
         | false ->
           let* env = read_local in
           let clo = D.PLineClo (tm, env) in
           lift_cmp @@ do_rigid_hcom vtpcode r s phi clo
       end
-    | S.CofTree tree -> 
-      force_eval_cof_tree tree
-
-  and force_eval_cof_tree tree =
-    eval_cof_tree tree |>> function
-    | `Valid con -> ret con
-    | `Invalid -> 
-      throw @@ NbeFailed "Cofibration not true in current environment"
-
-
-  and eval_cof_tree =
-    function
-    | Cof.Const (tphi, tm) ->
-      let* phi = eval_cof tphi in
+    | S.SubOut tm ->
+      let* con = eval tm in
+      lift_cmp @@ Compute.do_sub_out con
+    | S.SubIn t -> 
+      let+ con = eval t in
+      D.SubIn con
+    | S.Dim0 -> ret D.DimCon0
+    | S.Dim1 -> ret D.DimCon1
+    | S.Cof cof_f ->
       begin
-        CmpM.test_sequent [] phi |> lift_cmp |>> function
-        | true ->
-          let+ con = eval tm in 
-          `Valid con
-        | false -> 
-          ret `Invalid
+        match cof_f with
+        | Cof.Eq (tr, ts) ->
+          let+ r = eval tr 
+          and+ s = eval ts in
+          D.Cof (Cof.Eq (r, s))
+        | Cof.Top -> ret @@ D.Cof Cof.Top
+        | Cof.Bot -> ret @@ D.Cof Cof.Bot
+        | Cof.Join (tphi, tpsi) ->
+          let+ phi = eval tphi 
+          and+ psi = eval tpsi in 
+          D.Cof (Cof.Join (phi, psi))
+        | Cof.Meet (tphi, tpsi) ->
+          let+ phi = eval tphi 
+          and+ psi = eval tpsi in 
+          D.Cof (Cof.Meet (phi, psi))
       end
-    | Cof.Abort ->
+    | S.CofSplit (ttp, tphi0, tphi1, tm0, tm1) -> 
+      let* tp = eval_tp ttp in
+      let* phi0 = eval_cof tphi0 in
+      let* phi1 = eval_cof tphi1 in 
+      let* con = 
+        let+ env = read_local in
+        let pclo0 = D.PClo (tm0, env) in
+        let pclo1 = D.PClo (tm1, env) in
+        let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
+        D.Cut {tp; cut = hd, []; unfold = None} 
+      in
       begin
-        CmpM.test_sequent [] Cof.bot |> lift_cmp |>> function
-        | true ->
-          ret @@ `Valid D.Abort
-        | false -> 
-          ret `Invalid
+        lift_cmp @@ whnf_con con |>> function
+        | `Done -> ret con
+        | `Reduce con -> ret con
       end
-    | Cof.Split (tree0, tree1) -> 
-      eval_cof_tree tree0 |>> function
-      | `Valid con -> 
-        ret @@ `Valid con
-      | `Invalid -> 
-        eval_cof_tree tree1
+    | S.CofAbort -> 
+      ret D.Abort
+    | S.Prf ->
+      ret D.Prf
 
-  and eval_cof =
-    function
-    | Cof.Eq (tr, ts) -> 
-      let+ r = eval_dim tr 
-      and+ s = eval_dim ts in
-      Cof.eq r s
-    | Cof.Join (tphi, tpsi) ->
-      let+ phi = eval_cof tphi
-      and+ psi = eval_cof tpsi in
-      Cof.join phi psi
-    | Cof.Meet (tphi, tpsi) ->
-      let+ phi = eval_cof tphi
-      and+ psi = eval_cof tpsi in
-      Cof.meet phi psi
-    | Cof.Bot -> 
-      ret Cof.bot
-    | Cof.Top ->
-      ret Cof.top
-    | Cof.Var ix ->
-      begin 
-        get_local ix |>> function
-        | `Cof phi -> ret phi
-        | _ -> throw @@ NbeFailed "Expected `Cof cell in environment"
-      end
+  and eval_dim tr =
+    let* con = eval tr in
+    lift_cmp @@ con_to_dim con
+
+  and eval_cof tphi = 
+    let* vphi = eval tphi in 
+    lift_cmp @@ con_to_cof vphi
 
   and eval_coe_abs code = 
     let+ env = read_local in 
@@ -654,10 +719,12 @@ struct
       and+ vl = eval left 
       and+ vr = eval right in
       D.Id (vtp, vl, vr)
-    | S.DimPi fam ->
-      let+ env = read_local in
-      let clo = D.LineClo (fam, env) in
-      D.DimPi clo
+    | S.Sub (tp, tphi, tm) ->
+      let+ env = read_local 
+      and+ tp = eval tp 
+      and+ phi = eval_cof tphi in
+      let cl = D.PClo (tm, env) in
+      D.Sub (tp, phi, cl)
 
   and eval_ghost =
     function 
@@ -668,19 +735,11 @@ struct
         function 
         | [] -> 
           ret []
-        | `Con (tp, tm) :: cells -> 
+        | (tp, tm) :: cells -> 
           let+ tp = eval_tp tp 
           and+ con = eval tm
           and+ cells = go cells in
-          `Con (tp, con) :: cells
-        | `Dim tr :: cells ->
-          let+ r = eval_dim tr 
-          and+ cells = go cells in
-          `Dim r :: cells
-        | `Cof tphi :: cells ->
-          let+ phi = eval_cof tphi
-          and+ cells = go cells in
-          `Cof phi :: cells
+          (tp, con) :: cells
       in 
       let+ cells = go cells in
       Some (lbl, cells)
@@ -688,11 +747,10 @@ end
 
 module Quote : sig 
   val quote_con : D.tp -> D.con -> S.t quote
+  val quote_cof : D.cof -> S.t quote
   val quote_tp : D.tp -> S.tp quote
   val equal_con : D.tp -> D.con -> D.con -> bool quote
   val quote_cut : D.cut -> S.t quote
-  val quote_dim : D.dim -> S.dim quote
-  val quote_cof : D.cof -> S.cof quote
   val equal_tp : D.tp -> D.tp -> bool quote
   val equal_cut : D.cut -> D.cut -> bool quote
   val equate_con : D.tp -> D.con -> D.con -> unit quote
@@ -713,6 +771,7 @@ struct
     D.DimVar (n - 1)
 
   let rec quote_con (D.Tp tp) con : S.t m =
+    (* QuM.abort_if_inconsistent (S.CofTree Cof.Abort) @@  *)
     match tp, con with 
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
@@ -737,13 +796,6 @@ struct
       let* ap = lift_cmp @@ do_ap con arg in
       let+ body = quote_con fib ap in
       S.Lam body
-    | D.DimPi fam, con -> 
-      binder 1 @@ 
-      let* arg = top_dim_var in
-      let* fib = lift_cmp @@ inst_tp_line_clo fam arg in
-      let* ap = lift_cmp @@ do_dim_ap con arg in
-      let+ body = quote_con fib ap in 
-      S.DimLam body
     | D.Sg (base, fam), _ ->
       let* fst = lift_cmp @@ do_fst con in
       let* snd = lift_cmp @@ do_snd con in
@@ -751,6 +803,12 @@ struct
       let+ tfst = quote_con base fst
       and+ tsnd = quote_con fib snd in 
       S.Pair (tfst, tsnd)
+    | D.Sub (tp, phi, clo), _ ->
+      let+ tout = 
+        let* out = lift_cmp @@ do_sub_out con in
+        quote_con tp out
+      in
+      S.SubIn tout
     | D.Nat, D.Zero ->
       ret S.Zero
     | D.Nat, D.Suc n ->
@@ -762,7 +820,17 @@ struct
     | D.Univ, D.TpCode code ->
       let+ tcode = quote_tp_code (D.Tp D.Univ) code in
       S.TpCode tcode
+    | D.TpDim, D.DimCon0 ->
+      ret @@ S.Dim0
+    | D.TpDim, D.DimCon1 ->
+      ret @@ S.Dim1
+    | D.TpCof, D.Cof cof ->
+      let* phi = lift_cmp @@ cof_con_to_cof cof in
+      quote_cof phi
+    | D.TpPrf _, _ ->
+      ret S.Prf
     | _ -> 
+      Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
 
   and quote_tp_code univ =
@@ -795,14 +863,20 @@ struct
       and+ tleft = quote_con eltp left 
       and+ tright = quote_con eltp right in 
       S.Id (ttp, tleft, tright)
-    | D.DimPi clo ->
-      let+ tfam = 
-        binder 1 @@
-        let* var = top_dim_var in
-        quote_con univ @<< 
-        lift_cmp @@ inst_line_clo clo var
+    | D.Sub (tp, phi, cl) ->
+      let+ ttp = quote_con univ tp
+      and+ tphi = quote_cof phi
+      and+ tm = 
+        let* eltp = lift_cmp @@ do_el tp in
+        begin
+          bind_cof_proof phi @@ 
+          let* body = lift_cmp @@ inst_pclo cl in 
+          quote_con eltp body 
+        end |>> function 
+        | `Ret tm -> ret tm 
+        | `Abort -> ret S.CofAbort
       in
-      S.DimPi tfam
+      S.Sub (ttp, tphi, tm)
 
   and quote_tp (D.Tp tp) =
     match tp with
@@ -838,14 +912,26 @@ struct
     | D.GoalTp (lbl, tp) ->
       let+ tp = quote_tp tp in
       S.Tp (S.GoalTp (lbl, tp))
-    | D.DimPi clo ->
-      let+ tfam = 
-        binder 1 @@
-        let* var = top_dim_var in
-        quote_tp @<< 
-        lift_cmp @@ inst_tp_line_clo clo var
+    | D.Sub (tp, phi, cl) ->
+      let* ttp = quote_tp tp in
+      let+ tphi = quote_cof phi
+      and+ tm = 
+        begin
+          bind_cof_proof phi @@ 
+          let* body = lift_cmp @@ inst_pclo cl in 
+          quote_con tp body 
+        end |>> function 
+        | `Ret tm -> ret tm 
+        | `Abort -> ret S.CofAbort
       in
-      S.Tp (S.DimPi tfam)
+      S.Tp (S.Sub (ttp, tphi, tm))
+    | D.TpDim -> 
+      ret @@ S.Tp S.TpDim
+    | D.TpCof -> 
+      ret @@ S.Tp S.TpCof
+    | D.TpPrf phi ->
+      let+ tphi = quote_cof phi in 
+      S.Tp (S.TpPrf tphi)
 
 
   and quote_hd =
@@ -876,27 +962,34 @@ struct
       let+ tube = 
         binder 1 @@ 
         let* i = top_dim_var in
-        let+ tree = 
-          quote_cof_tree @<<
-          under_cofs [Cof.join (Cof.eq r i) phi] @@
-          let* body = lift_cmp @@ inst_pline_clo clo i in 
+        begin
+          bind_cof_proof (Cof.join (Cof.eq r i) phi) @@ 
+          let* body = lift_cmp @@ inst_pline_clo clo i in
           quote_con (D.Tp (D.El cut)) body
-        in
-        S.CofTree tree
+        end |>> function
+        | `Ret tm -> ret tm
+        | `Abort -> ret S.CofAbort
       in
       S.HCom (tpcode, tr, ts, tphi, tube)
-
-  and quote_cof_tree = 
-    function
-    | Cof.Const (phi, tm) ->
-      let+ tphi = quote_cof phi in 
-      Cof.const tphi tm
-    | Cof.Split (tree0, tree1) ->
-      let+ ttree0 = quote_cof_tree tree0 
-      and+ ttree1 = quote_cof_tree tree1 in
-      Cof.split ttree0 ttree1
-    | Cof.Abort ->
-      ret Cof.abort
+    | D.SubOut (cut, phi, clo) ->
+      let+ tm = quote_cut cut in
+      S.SubOut tm
+    | D.Split (tp, phi0, phi1, clo0, clo1) ->
+      let branch_body phi clo =
+        begin
+          bind_cof_proof phi @@ 
+          let* body = lift_cmp @@ inst_pclo clo in
+          quote_con tp body
+        end |>> function 
+        | `Ret tm -> ret tm
+        | `Abort -> ret S.CofAbort
+      in
+      let* ttp = quote_tp tp in
+      let* tphi0 = quote_cof phi0 in
+      let* tphi1 = quote_cof phi1 in
+      let* tm0 = branch_body phi0 clo0 in
+      let* tm1 = branch_body phi1 clo1 in 
+      ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
   and quote_dim =
     function
@@ -904,31 +997,34 @@ struct
     | D.Dim1 -> ret S.Dim1
     | D.DimVar lvl -> 
       let+ ix = quote_var lvl in
-      S.DimVar ix
+      S.Var ix
     | D.DimProbe _ -> 
       failwith "DimProbe should not be quoted!"
 
   and quote_cof =
     function
-    | Cof.Eq (r, s) ->
-      let+ tr = quote_dim r 
-      and+ ts = quote_dim s in
-      Cof.eq tr ts
-    | Cof.Join (phi, psi) ->
-      let+ tphi = quote_cof phi 
-      and+ tpsi = quote_cof psi in 
-      Cof.join tphi tpsi
-    | Cof.Meet (phi, psi) ->
-      let+ tphi = quote_cof phi 
-      and+ tpsi = quote_cof psi in 
-      Cof.meet tphi tpsi
-    | Cof.Bot ->
-      ret Cof.bot
-    | Cof.Top ->
-      ret Cof.top
     | Cof.Var lvl ->
       let+ ix = quote_var lvl in
-      Cof.var ix
+      S.Var ix
+    | Cof.Cof phi ->
+      match phi with
+      | Cof.Eq (r, s) ->
+        let+ tr = quote_con (D.Tp D.TpDim) @@ D.dim_to_con r 
+        and+ ts = quote_con (D.Tp D.TpDim) @@ D.dim_to_con s in
+        S.Cof (Cof.Eq (tr, ts))
+
+      | Cof.Join (phi, psi) ->
+        let+ tphi = quote_cof phi 
+        and+ tpsi = quote_cof psi in 
+        S.Cof (Cof.Join (tphi, tpsi))
+      | Cof.Meet (phi, psi) ->
+        let+ tphi = quote_cof phi 
+        and+ tpsi = quote_cof psi in 
+        S.Cof (Cof.Meet (tphi, tpsi))
+      | Cof.Bot ->
+        ret @@ S.Cof Cof.Bot
+      | Cof.Top ->
+        ret @@ S.Cof Cof.Top
 
   and quote_var lvl =
     let+ n = read_local in 
@@ -952,19 +1048,11 @@ struct
       let rec go =
         function
         | [] -> ret []
-        | `Con (tp, con) :: cells ->
+        | (tp, con) :: cells ->
           let+ ttp = quote_tp tp 
           and+ tm = quote_con tp con 
           and+ cells = go cells in
-          `Con (ttp, tm) :: cells
-        | `Dim r :: cells ->
-          let+ tr = quote_dim r
-          and+ cells = go cells in
-          `Dim tr :: cells
-        | `Cof phi :: cells ->
-          let+ tphi = quote_cof phi 
-          and+ cells = go cells in
-          `Cof tphi :: cells
+          (ttp, tm) :: cells
       in
       let+ cells = go cells in
       Some (lbl, cells)
@@ -1018,9 +1106,6 @@ struct
     | D.KAp (tp, con) ->
       let+ targ = quote_con tp con in
       S.Ap (tm, targ)
-    | D.KDimAp r ->
-      let+ tr = quote_dim r in
-      S.DimAp (tm, tr)
     | D.KGoalProj ->
       ret @@ S.GoalProj tm
 
@@ -1040,9 +1125,13 @@ struct
 
   (* Invariant: tp0 and tp1 not necessarily whnf *)
   let rec equate_tp tp0 tp1 =
+    QuM.abort_if_inconsistent () @@ 
     let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
     let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
     match tp_proj tp0, tp_proj tp1 with
+    | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
+    | D.TpPrf phi0, D.TpPrf phi1 -> 
+      equate_cof phi0 phi1
     | D.Pi (base0, fam0), D.Pi (base1, fam1) 
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in
@@ -1051,16 +1140,18 @@ struct
       let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
       let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
       equate_tp fib0 fib1
+    | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
+      let* () = equate_tp tp0 tp1 in
+      let* () = equate_cof phi0 phi1 in
+      under_cof phi0 @@ 
+      binder 1 @@ 
+      let* con0 = lift_cmp @@ inst_pclo clo0 in
+      let* con1 = lift_cmp @@ inst_pclo clo1 in 
+      equate_con tp0 con0 con1
     | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_con tp0 l0 l1 in
       equate_con tp0 r0 r1
-    | D.DimPi fam0, D.DimPi fam1 ->
-      binder 1 @@ 
-      let* x = top_dim_var in
-      let* fib0 = lift_cmp @@ inst_tp_line_clo fam0 x in 
-      let* fib1 = lift_cmp @@ inst_tp_line_clo fam1 x in 
-      equate_tp fib0 fib1
     | D.Nat, D.Nat 
     | D.Univ, D.Univ -> 
       ret ()
@@ -1071,8 +1162,25 @@ struct
     | _ ->
       throw @@ NbeFailed "unequal types"
 
+  and under_cof phi m =
+    let rec go cofs m =
+      match cofs with 
+      | [] -> m
+      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
+        begin
+          QuM.restrict phi @@ go cofs m |>> fun _ -> ret ()
+        end
+      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
+        go (phi0 :: phi1 :: cofs) m
+      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
+        let* () = go (phi0 :: cofs) m in 
+        go (phi1 :: cofs) m
+    in
+    go [phi] m
+
   (* Invariant: tp, con0, con1 not necessarily whnf *)
   and equate_con tp con0 con1 =
+    QuM.abort_if_inconsistent () @@ 
     let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
     let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con con0 in
     let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con con1 in
@@ -1083,13 +1191,6 @@ struct
       let* fib = lift_cmp @@ inst_tp_clo fam [x] in 
       let* ap0 = lift_cmp @@ do_ap con0 x in
       let* ap1 = lift_cmp @@ do_ap con1 x in
-      equate_con fib ap0 ap1
-    | D.DimPi fam, _, _ ->
-      binder 1 @@ 
-      let* x = top_dim_var in 
-      let* fib = lift_cmp @@ inst_tp_line_clo fam x in
-      let* ap0 = lift_cmp @@ do_dim_ap con0 x in
-      let* ap1 = lift_cmp @@ do_dim_ap con1 x in
       equate_con fib ap0 ap1
     | D.Sg (base, fam), _, _ ->
       let* fst0 = lift_cmp @@ do_fst con0 in
@@ -1103,12 +1204,22 @@ struct
       let* con0 = lift_cmp @@ do_goal_proj con0 in
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
+    | D.Sub _, _, _ ->
+      failwith "todo: issue 28"
     | D.Id (tp, _, _), D.Refl x, D.Refl y ->
       equate_con tp x y
     | _, D.Zero, D.Zero ->
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
       equate_con tp con0 con1
+    | D.TpDim, _, _ ->
+      let* r0 = lift_cmp @@ con_to_dim con0 in
+      let* r1 = lift_cmp @@ con_to_dim con1 in
+      approx_cof Cof.top @@ Cof.eq r0 r1
+    | D.TpCof, _, _ ->
+      let* phi0 = lift_cmp @@ con_to_cof con0 in
+      let* phi1 = lift_cmp @@ con_to_cof con0 in
+      equate_cof phi0 phi1 
     | _, D.Cut {cut = cut0; unfold = None}, D.Cut {cut = cut1; unfold = None} ->
       equate_cut cut0 cut1
     | _, (D.TpCode _ as con0), (D.TpCode _ as con1) -> 
@@ -1186,7 +1297,7 @@ struct
       let* con0 = lift_cmp @@ inst_tm_clo refl_case0 [x] in
       let* con1 = lift_cmp @@ inst_tm_clo refl_case1 [x] in
       equate_con fib_reflx con0 con1
-    | D.KGoalProj, D.KGoalProj ->
+    | (D.KGoalProj, D.KGoalProj) ->
       ret ()
     | _ -> 
       throw @@ NbeFailed "Mismatched frames"
@@ -1217,17 +1328,21 @@ struct
       let* () = equate_cut cut0 cut1 in
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
-      let* () = approx_cof phi0 phi1 in
-      let* () = approx_cof phi1 phi0 in
+      let* () = equate_cof phi0 phi1 in 
       binder 1 @@ 
       let* i = top_dim_var in
-      under_cofs_ [Cof.join (Cof.eq i r0) phi0] @@ 
+      under_cof (Cof.join (Cof.eq i r0) phi0) @@ binder 1 @@
       let* con0 = lift_cmp @@ inst_pline_clo clo0 i in
       let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
-      let tp = D.Tp (D.El cut0) in
-      equate_con tp con0 con1
+      equate_con (D.Tp (D.El cut0)) con0 con1
+    | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
+      equate_cut cut0 cut1
     | _ ->
       throw @@ NbeFailed "Different heads"
+
+  and equate_cof phi psi = 
+    let* () = approx_cof phi psi in
+    approx_cof psi phi
 
   and approx_cof phi psi =
     CmpM.test_sequent [phi] psi |> lift_cmp |>> function 

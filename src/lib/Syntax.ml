@@ -1,52 +1,5 @@
 open CoolBasis open Bwd
-
-type dim =
-  | Dim0
-  | Dim1
-  | DimVar of int (* De Bruijn index *)
-
-type cof = (int, dim) Cof.cof
-
-type t =
-  | Var of int (* DeBruijn indices for variables *)
-  | Global of Symbol.t
-  | Let of t * t
-  | Ann of t * tp
-  | Zero
-  | Suc of t
-  | NatElim of ghost option * tp * t * t * t
-  | Lam of t
-  | Ap of t * t
-  | DimLam of t
-  | DimAp of t * dim
-  | Pair of t * t
-  | Fst of t
-  | Snd of t
-  | Refl of t
-  | IdElim of ghost option * tp * t * t
-  | GoalRet of t
-  | GoalProj of t
-  | Coe of t * dim * dim * t
-  | HCom of t * dim * dim * cof * t
-  | TpCode of t gtp
-  | CofTree of cof_tree
-
-and cof_tree = (int, dim, t) Cof.tree
-
-and tp = Tp of tp gtp
-
-and _ gtp =
-  | Nat : 'a gtp
-  | Pi : 'a * 'a -> 'a gtp
-  | Sg : 'a * 'a -> 'a gtp
-  | Id : 'a * t * t -> 'a gtp
-  | DimPi : 'a -> 'a gtp
-  | Univ : tp gtp
-  | El : t -> tp gtp
-  | GoalTp : string option * tp -> tp gtp
-
-
-and ghost = string bwd * [`Con of (tp * t) | `Dim of dim | `Cof of cof] list
+include SyntaxData
 
 let rec condense = 
   function
@@ -87,16 +40,16 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(coe@ [%a] %a@ %a %a@ %a)@]"
       Uuseg_string.pp_utf_8 x 
       (pp env) code
-      (pp_dim env) r 
-      (pp_dim env) s
+      (pp env) r 
+      (pp env) s
       (pp env) tm
   | _, HCom (code, r, s, phi, tm) ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "@[<hv1>(hcom@ %a@ %a %a@ %a@ [%a] %a)@]"
       (pp env) code
-      (pp_dim env) r 
-      (pp_dim env) s
-      (Cof.pp_cof pp_var pp_dim env) phi
+      (pp env) r 
+      (pp env) s
+      (pp env) phi
       Uuseg_string.pp_utf_8 x
       (pp envx) tm
   | _, Zero ->
@@ -136,12 +89,12 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp envx) refl
       (pp env) scrut
-  | `Lam, (Lam tm | DimLam tm) ->
+  | `Lam, Lam tm ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "[%a] %a" 
       Uuseg_string.pp_utf_8 x 
       (pp_ envx `Lam) tm
-  | _, (Lam tm | DimLam tm) ->
+  | _, Lam tm ->
     let x, envx = Pp.Env.bind env None in
     Fmt.fprintf fmt "@[<hv1>(lam@ [%a] %a)@]" 
       Uuseg_string.pp_utf_8 x 
@@ -154,10 +107,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm0 (pp env) tm1
   | _, Ap (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hv1>(%a@ %a)@]" (pp_ env `Ap) tm0 (pp env) tm1
-  | `Ap, DimAp (tm, tr) ->
-    Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (pp_dim env) tr
-  | _, DimAp (tm, tr) ->
-    Fmt.fprintf fmt "@[<hv1>(%a@ %a)@]" (pp_ env `Ap) tm (pp_dim env) tr
   | _, Pair (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hv1>(pair@ %a@ %a)@]" (pp env) tm0 (pp env) tm1
   | _, Refl tm ->
@@ -168,17 +117,41 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(goal-proj %a)@]" (pp env) tm
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
-  | _, CofTree tree ->
-    Cof.pp_tree pp_var pp_dim pp env fmt tree
-
-and pp_dim env fmt =
-  function
-  | Dim0 -> 
-    Format.fprintf fmt "0"
-  | Dim1 -> 
-    Format.fprintf fmt "1"
-  | DimVar i -> 
-    Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var i env
+  | _, SubIn tm ->
+    Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
+  | _, SubOut tm ->
+    Fmt.fprintf fmt "@[<hv1>(sub/out %a)@]" (pp env) tm
+  | _, Dim0 ->
+    Fmt.fprintf fmt "0"
+  | _, Dim1 ->
+    Fmt.fprintf fmt "1"
+  | _, Cof Cof.Bot -> 
+    Fmt.fprintf fmt "false"
+  | _, Cof Cof.Top -> 
+    Fmt.fprintf fmt "true"
+  | _, Cof (Cof.Join (phi, psi)) -> 
+    Fmt.fprintf fmt "@[<hv1>(or %a %a)@]"
+      (pp env) phi
+      (pp env) psi
+  | _, Cof (Cof.Meet (phi, psi)) -> 
+    Fmt.fprintf fmt "@[<hv1>(and %a %a)@]"
+      (pp env) phi
+      (pp env) psi
+  | _, Cof (Cof.Eq (r, s)) ->
+    Fmt.fprintf fmt "@[<hv1>(= %a %a)@]"
+      (pp env) r 
+      (pp env) s
+  | _, CofAbort ->
+    Fmt.fprintf fmt "[]"
+  | _, CofSplit (_, phi0, phi1, tm0, tm1) ->
+    let _, envx = Pp.Env.bind env None in
+    Fmt.fprintf fmt "@[<hv1>(split@ [%a %a]@ [%a %a])@]"
+      (pp env) phi0
+      (pp envx) tm0
+      (pp env) phi1
+      (pp envx) tm1
+  | _, Prf ->
+    Fmt.fprintf fmt "*"
 
 and pp env = pp_ env `Start
 
@@ -186,15 +159,9 @@ and pp_ghost_ env mode fmt ((name, cells), scrut) =
   let rec go_cells env fmt =
     function 
     | [] -> pp env fmt scrut
-    | `Con (_, tm) :: cells -> 
+    | (_, tm) :: cells -> 
       (* should that really be `Ap? *)
       Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (go_cells env) cells
-    | `Dim r :: cells -> 
-      Fmt.fprintf fmt "%a@ %a" (pp_dim env) r (go_cells env) cells
-    | `Cof phi :: cells -> 
-      Fmt.fprintf fmt "%a@ %a" 
-        (Cof.pp_cof pp_var pp_dim env) phi
-        (go_cells env) cells
   in
   match mode with
   | `Ap ->
@@ -229,19 +196,6 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       Uuseg_string.pp_utf_8 x 
       (go env `Start) base 
       (go envx `Pi) fam
-  | `Pi, DimPi fam -> 
-    let x, env' = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "[%a : dim]@ %a" 
-      Uuseg_string.pp_utf_8 x 
-      (go env' `Pi) fam
-  | _, DimPi fam ->
-    let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "@[<hv1>(%a @[<hv>[%a : dim]@ %a@])@]" 
-      Uuseg_string.pp_utf_8 "->" 
-      Uuseg_string.pp_utf_8 x 
-      (go envx `Pi) fam
   | `Sg, Sg (base, fam) ->
     let x, env' = Pp.Env.bind env None in
     Format.fprintf fmt 
@@ -263,6 +217,13 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       (go env `Start) tp 
       (pp env) l 
       (pp env) r
+  | _, Sub (tp, phi, t) ->
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt 
+      "@[<hv1>(sub@ %a@ %a@ %a)]"
+      (go env `Start) tp
+      (pp env) phi
+      (pp envx) t
   | _, Nat ->
     Format.fprintf fmt "nat"
   | _, Univ ->
@@ -275,6 +236,13 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
     Fmt.fprintf fmt "@[<hv1>(goal@ ?%a@ %a)@]" 
       Uuseg_string.pp_utf_8 lbl 
       (go env `Start) tp
+  | _, TpDim ->
+    Format.fprintf fmt "dim"
+  | _, TpCof ->
+    Format.fprintf fmt "cof"
+  | _, TpPrf phi->
+    Format.fprintf fmt "@[<hv1>(prf@ %a)@]"
+      (pp env) phi
 
 and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer = 
   fun fmt tp ->

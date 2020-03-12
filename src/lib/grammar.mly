@@ -5,9 +5,9 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM
+%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF
 %token LPR RPR LBR RBR LSQ RSQ
-%token EQUALS
+%token EQUALS EEQUALS JOIN MEET
 %token UNIV
 %token TIMES FST SND
 %token LAM LET IN 
@@ -54,21 +54,30 @@ atomic:
     { Refl }
   | UNIV 
     { Univ }
-  | LSQ; left = term; COMMA; right = term; RSQ
-    { Pair (left, right) }
   | name = HOLE_NAME
     { Hole name }
   | UNDERSCORE 
     { Underscore }
   | DIM 
     { Dim }
+  | COF 
+    { Cof }
+    
+  | LSQ t = bracketed RSQ
+    { t }
 
-spine:
-  | t = atomic 
-    { Term t }
+bracketed:
+  | left = term COMMA right = term
+    { Pair (left, right) }
+  | cases = separated_list(PIPE, cof_case)
+    { CofSplit cases }
+  | PIPE cases = separated_list(PIPE, cof_case)
+    { CofSplit cases }
+  | t = term 
+    { Prf t }
 
 term:
-  | f = atomic; args = list(spine)
+  | f = atomic; args = list(atomic)
     { match args with [] -> f | _ -> Ap (f, args) }
   | UNFOLD; names = nonempty_list(name); IN; body = term; 
     { Unfold (names, body) }
@@ -101,6 +110,13 @@ term:
   | SND; t = term 
     { Snd t }
 
+  | r = atomic EEQUALS s = atomic
+    { CofEq (r, s) }
+  | phi = atomic JOIN psi = atomic
+    { Join (phi, psi) }
+  | phi = atomic MEET psi = atomic
+    { Meet (phi, psi) }
+
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR
     { BN {names; body} }
@@ -112,6 +128,10 @@ cases:
 case: 
   | p = pat RRIGHT_ARROW t = term 
     { p, t }
+
+cof_case:
+  | phi = term RRIGHT_ARROW t = term
+    { phi, t }
 
 pat_lbl:
   | REFL

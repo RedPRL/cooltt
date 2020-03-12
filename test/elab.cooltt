@@ -1,3 +1,24 @@
+def extensional-cofibrations : (phi : cof) (i : dim) (_ : [phi]) (_ : [{i==0} \/ {0==1}]) -> [0==i] = {
+  \phi i _ α => α
+}
+
+def foo : (phi : cof) (psi : cof) (_ : [phi \/ psi]) -> nat = {
+  \phi psi _ => 
+    [ phi => 5
+    | psi => ?
+    ]
+}
+
+def boundary-test : (i : dim) (_ : [{i==0} \/ {i==1}]) -> nat = {
+  \i _ =>
+   [ i==1 => 5
+   | i==0 => 19
+   ]
+}
+
+normalize foo
+normalize boundary-test
+
 def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
   \A a _ => a
 }

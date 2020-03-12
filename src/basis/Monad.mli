@@ -20,6 +20,10 @@ end
 
 module Notation (M : S) : Notation with type 'a m = 'a M.m
 
+module Util (M : S) : sig 
+  val commute_list : 'a M.m list -> 'a list M.m
+end
+
 module type MonadReaderResult = sig 
   include S
   type local

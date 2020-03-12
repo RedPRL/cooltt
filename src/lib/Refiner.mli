@@ -3,16 +3,13 @@ module S := Syntax
 module EM := Monads.ElabM
 module CS := ConcreteSyntax
 
-type tp_tac = S.tp EM.m
-type chk_tac = D.tp -> S.t EM.m
-type syn_tac = (S.t * D.tp) EM.m
-type dim_tac = S.dim EM.m
+open Tactic
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * 'b -> 'b
 
 
 module Hole : sig
-  val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> chk_tac
+  val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> bchk_tac
   val unleash_tp_hole : CS.ident option -> [`Flex | `Rigid] -> tp_tac
   val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> syn_tac
 end
@@ -21,12 +18,30 @@ module Goal : sig
   val formation : string option -> tp_tac -> tp_tac
 end
 
+module Dim : sig 
+  val formation : tp_tac
+  val dim0 : chk_tac
+  val dim1 : chk_tac
+  val literal : int -> chk_tac
+end
+
+module Cof : sig 
+  val formation : tp_tac
+  val eq : chk_tac -> chk_tac -> chk_tac
+  val join : chk_tac -> chk_tac -> chk_tac
+  val meet : chk_tac -> chk_tac -> chk_tac
+
+  val split : (chk_tac * bchk_tac) list -> bchk_tac
+end
+
+module Prf : sig 
+  val formation : chk_tac -> tp_tac
+end
+
 module Univ : sig
   val formation : tp_tac
   val nat : chk_tac
   val pi : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
-  val dim_pi : CS.ident option * chk_tac -> chk_tac
-  val gen_pi : [`Dim | `Tp of chk_tac] -> CS.ident option * chk_tac -> chk_tac
   val sg : chk_tac -> (CS.ident option * chk_tac) -> chk_tac
   val id : chk_tac -> chk_tac -> chk_tac -> chk_tac
   val el_formation : chk_tac -> tp_tac
@@ -34,21 +49,20 @@ end
 
 module Pi : sig 
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : CS.ident option -> chk_tac -> chk_tac
+  val intro : CS.ident option -> bchk_tac -> bchk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
-end
-
-module DimPi : sig 
-  val formation : CS.ident option * tp_tac -> tp_tac
-  val intro : CS.ident option -> chk_tac -> chk_tac
-  val apply: syn_tac -> dim_tac -> syn_tac
 end
 
 module Sg : sig
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : chk_tac -> chk_tac -> chk_tac
+  val intro : bchk_tac -> bchk_tac -> bchk_tac
   val pi1 : syn_tac -> syn_tac
   val pi2 : syn_tac -> syn_tac
+end
+
+module Sub : sig 
+  val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
+  val intro : bchk_tac -> bchk_tac
 end
 
 module Id : sig 
@@ -74,18 +88,15 @@ module Nat : sig
 end
 
 module Structural : sig
-  val syn_to_chk : syn_tac -> chk_tac
-  val chk_to_syn : chk_tac -> tp_tac -> syn_tac
   val let_ : syn_tac -> CS.ident option * chk_tac -> chk_tac 
   val lookup_var : CS.ident -> syn_tac 
   val variable : int -> syn_tac
 end
 
 module Tactic : sig
-  val tac_multi_lam : CS.ident list -> chk_tac -> chk_tac
+  val tac_multi_lam : CS.ident list -> bchk_tac -> bchk_tac
   val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
 
-  val tac_gen_pi_formation : ([`Tp of tp_tac | `Dim], tp_tac) quantifier
   val tac_nary_quantifier : ('a, 'b) quantifier -> (CS.ident option * 'a) list -> 'b -> 'b
 
   val match_goal : (D.tp -> chk_tac EM.m) -> chk_tac

@@ -5,6 +5,7 @@ module Env = ElabEnv
 module Err = ElabError
 module EM = ElabBasics
 module R = Refiner
+module T = Tactic
 
 open CoolBasis
 open Monad.Notation (EM)
@@ -22,20 +23,16 @@ let rec unfold idents k =
     | _ -> 
       unfold idents k
 
-let rec chk_tp : CS.t -> S.tp EM.m = 
+let rec chk_tp : CS.t -> T.tp_tac = 
   function
   | CS.Hole name ->
     R.Hole.unleash_tp_hole name `Rigid
   | CS.Underscore -> 
     R.Hole.unleash_tp_hole None `Flex
   | CS.Pi (cells, body) -> 
-    let tac (CS.Cell cell) = 
-      match cell.tp with
-      | CS.Dim -> Some cell.name, `Dim
-      | _ -> Some cell.name, `Tp (chk_tp cell.tp)
-    in
+    let tac (CS.Cell cell) = Some cell.name, chk_tp cell.tp in
     let tacs = cells |> List.map tac in 
-    R.Tactic.tac_nary_quantifier R.Tactic.tac_gen_pi_formation tacs @@ chk_tp body
+    R.Tactic.tac_nary_quantifier R.Pi.formation tacs @@ chk_tp body
   | CS.Sg (cells, body) -> 
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
     R.Tactic.tac_nary_quantifier R.Sg.formation tacs @@ chk_tp body
@@ -47,49 +44,70 @@ let rec chk_tp : CS.t -> S.tp EM.m =
     R.Univ.formation
   | CS.Unfold (idents, c) -> 
     unfold idents @@ chk_tp c
+  | CS.Dim ->
+    R.Dim.formation
+  | CS.Cof ->
+    R.Cof.formation
+  | CS.Prf phi ->
+    R.Prf.formation @@ chk_tm phi
   | tm -> 
     Refiner.Univ.el_formation @@ chk_tm tm
 
-and chk_tm : CS.t -> D.tp -> S.t EM.m =
+and chk_tm : CS.t -> T.chk_tac = 
+  fun cs ->
+  T.bchk_to_chk @@ bchk_tm cs
+
+and bchk_tm : CS.t -> T.bchk_tac = 
   function
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
   | CS.Underscore -> 
     R.Hole.unleash_hole None `Flex
   | CS.Refl ->
-    R.Id.intro 
+    T.chk_to_bchk @@ R.Id.intro 
   | CS.Lit n ->
-    R.Nat.literal n
+    begin
+      T.chk_to_bchk @@ 
+      R.Tactic.match_goal @@ function
+      | D.Tp D.TpDim -> EM.ret @@ R.Dim.literal n
+      | _ -> EM.ret @@ R.Nat.literal n
+    end
   | CS.Lam (BN bnd) ->
-    R.Tactic.tac_multi_lam bnd.names @@ chk_tm bnd.body
+    R.Tactic.tac_multi_lam bnd.names @@ bchk_tm bnd.body
   | CS.LamElim cases ->
-    R.Tactic.Elim.lam_elim @@ chk_cases cases
+    T.chk_to_bchk @@ R.Tactic.Elim.lam_elim @@ chk_cases cases
   | CS.Pair (c0, c1) ->
-    R.Sg.intro (chk_tm c0) (chk_tm c1)
+    R.Sg.intro (bchk_tm c0) (bchk_tm c1)
   | CS.Suc c ->
-    R.Nat.suc (chk_tm c)
+    T.chk_to_bchk @@ R.Nat.suc (chk_tm c)
   | CS.Let (c, B bdy) -> 
-    R.Structural.let_ (syn_tm c) (Some bdy.name, chk_tm bdy.body)
+    T.chk_to_bchk @@ R.Structural.let_ (syn_tm c) (Some bdy.name, chk_tm bdy.body)
   | CS.Unfold (idents, c) -> 
-    fun tp ->
-      unfold idents @@ chk_tm c tp
+    fun goal ->
+      unfold idents @@ bchk_tm c goal
   | CS.Nat ->
-    R.Univ.nat
+    T.chk_to_bchk @@ R.Univ.nat
   | CS.Pi (cells, body) ->
-    let tac (CS.Cell cell) = 
-      match cell.tp with
-      | CS.Dim -> Some cell.name, `Dim
-      | _ -> Some cell.name, `Tp (chk_tm cell.tp)
-    in
+    let tac (CS.Cell cell) =  Some cell.name, chk_tm cell.tp in
     let tacs = cells |> List.map tac in 
-    R.Tactic.tac_nary_quantifier R.Univ.gen_pi tacs @@ chk_tm body
+    T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier R.Univ.pi tacs @@ chk_tm body
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
-    R.Tactic.tac_nary_quantifier R.Univ.sg tacs @@ chk_tm body
+    T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier R.Univ.sg tacs @@ chk_tm body
   | CS.Id (tp, l, r) ->
-    R.Univ.id (chk_tm tp) (chk_tm l) (chk_tm r)
+    T.chk_to_bchk @@ R.Univ.id (chk_tm tp) (chk_tm l) (chk_tm r)
+  | CS.CofEq (c0, c1) ->
+    T.chk_to_bchk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
+  | CS.Join (c0, c1) ->
+    T.chk_to_bchk @@ R.Cof.join (chk_tm c0) (chk_tm c1)
+  | CS.Meet (c0, c1) ->
+    T.chk_to_bchk @@ R.Cof.meet (chk_tm c0) (chk_tm c1)
+  | CS.CofSplit splits ->
+    let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, bchk_tm ctm in 
+    R.Cof.split branch_tacs
   | cs ->
-    R.Structural.syn_to_chk @@ syn_tm cs
+    T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
+
 
 and syn_tm : CS.t -> (S.t * D.tp) EM.m = 
   function
@@ -98,10 +116,7 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
   | CS.Var id -> 
     R.Structural.lookup_var id
   | CS.Ap (t, ts) ->
-    R.Tactic.tac_multi_apply (syn_tm t) begin
-      ts |> List.map @@ fun (CS.Term cs) ->
-      chk_tm cs
-    end
+    R.Tactic.tac_multi_apply (syn_tm t) @@ List.map chk_tm ts
   | CS.Fst t ->
     R.Sg.pi1 @@ syn_tm t
   | CS.Snd t ->
@@ -113,7 +128,7 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
       (chk_cases cases)
       (syn_tm scrut)
   | CS.Ann {term; tp} ->
-    R.Structural.chk_to_syn (chk_tm term) (chk_tp tp)
+    T.chk_to_syn (chk_tm term) (chk_tp tp)
   | CS.Unfold (idents, c) -> 
     unfold idents @@ syn_tm c
   | cs -> 
