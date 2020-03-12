@@ -198,6 +198,14 @@ struct
       S.SubIn tm
     | tp, _, _ ->
       EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
+
+  let elim (tac : syn_tac) : syn_tac = 
+    let* tm, subtp = tac in
+    match subtp with 
+    | D.Tp (D.Sub (tp, _, _)) ->
+      EM.ret (S.SubOut tm, tp)
+    | tp -> 
+      EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
 end
 
 module Dim = 

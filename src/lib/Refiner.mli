@@ -63,6 +63,7 @@ end
 module Sub : sig 
   val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
   val intro : bchk_tac -> bchk_tac
+  val elim : syn_tac -> syn_tac
 end
 
 module Id : sig 
