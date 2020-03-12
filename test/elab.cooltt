@@ -11,8 +11,6 @@ def foo : (phi : cof) (psi : cof) (_ : [phi \/ psi]) -> nat = {
 
 normalize foo
 
-quit
-
 def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
   \A a _ => a
 }
