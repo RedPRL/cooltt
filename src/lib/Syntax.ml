@@ -218,11 +218,12 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
       (pp env) l 
       (pp env) r
   | _, Sub (tp, phi, t) ->
+    let x, envx = Pp.Env.bind env None in
     Format.fprintf fmt 
       "@[<hv1>(sub@ %a@ %a@ %a)]"
       (go env `Start) tp
       (pp env) phi
-      (pp env) t
+      (pp envx) t
   | _, Nat ->
     Format.fprintf fmt "nat"
   | _, Univ ->
