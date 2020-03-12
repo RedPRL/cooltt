@@ -686,6 +686,8 @@ struct
       end
     | S.CofAbort -> 
       ret D.Abort
+    | S.Prf ->
+      ret D.Prf
 
   and eval_dim tr =
     let* con = eval tr in
@@ -825,8 +827,10 @@ struct
     | D.TpCof, D.Cof cof ->
       let* phi = lift_cmp @@ cof_con_to_cof cof in
       quote_cof phi
+    | D.TpPrf _, _ ->
+      ret S.Prf
     | _ -> 
-      Format.eprintf "bad: %a" D.pp_con con;
+      Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
 
   and quote_tp_code univ =
@@ -973,8 +977,8 @@ struct
     | D.Split (tp, phi0, phi1, clo0, clo1) ->
       let branch_body phi clo =
         begin
-          bind_cof_proof phi0 @@ 
-          let* body = lift_cmp @@ inst_pclo clo0 in
+          bind_cof_proof phi @@ 
+          let* body = lift_cmp @@ inst_pclo clo in
           quote_con tp body
         end |>> function 
         | `Ret tm -> ret tm

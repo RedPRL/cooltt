@@ -27,6 +27,7 @@ type t =
   | Cof of (t, t) Cof.cof_f
   | CofSplit of tp * t * t * t * t
   | CofAbort 
+  | Prf
 
 and tp = Tp of tp gtp
 

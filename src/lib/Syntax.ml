@@ -150,6 +150,8 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       (pp envx) tm0
       (pp env) phi1
       (pp envx) tm1
+  | _, Prf ->
+    Fmt.fprintf fmt "*"
 
 and pp env = pp_ env `Start
 

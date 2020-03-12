@@ -11,7 +11,6 @@ type ('v, 'r) cof =
   | Cof of ('r, ('v, 'r) cof) cof_f
   | Var of 'v
 
-
 val var : 'v -> ('v, 'a) cof
 val eq : 'a -> 'a -> ('v, 'a) cof
 val join : ('v, 'a) cof -> ('v, 'a) cof -> ('v, 'a) cof
