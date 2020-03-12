@@ -42,9 +42,6 @@ module QuM : sig
   val binder : int -> 'a m -> 'a m
   val bind_cof_proof : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
 
-  (* val under_cofs : D.cof list -> 'a m -> (D.cof * 'a) Cof.tree m *)
-  (* val under_cofs_ : D.cof list -> unit m -> unit m *)
-
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end
 

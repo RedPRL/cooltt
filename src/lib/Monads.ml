@@ -128,65 +128,6 @@ struct
     | `Inconsistent -> 
       M.ret `Abort
 
-
-  module Search =
-  struct
-    type atomic = [`Eq of D.dim * D.dim | `Var of int]
-
-    let as_cof =
-      function
-      | `Eq (r, s) -> Cof.eq r s
-      | `Var lvl -> Cof.var lvl
-
-    let rec atomics acc (xi : atomic list) m = 
-      failwith ""
-      (* match xi with 
-         | [] -> 
-         let+ x = m in 
-         Cof.const (acc, x)
-         | phi :: xi ->
-         let phi = as_cof phi in
-         let+ result = 
-          restrict phi @@ fun () ->
-          atomics (Cof.meet phi acc) xi m
-         in 
-         begin
-          match result with 
-          | `Abort -> Cof.abort 
-          | `Continue x -> x
-         end *)
-
-    (* let rec left_inversion (xi : atomic list) (linv : D.cof list) (m : 'a m) : (D.cof * 'a) Cof.tree m =
-       match linv with 
-       | [] -> 
-        atomics Cof.top xi m
-       | Cof.Cof (Cof.Eq (r, s)) :: cx ->
-        left_inversion (`Eq (r, s) :: xi) cx m
-       | Cof.Var v :: cx ->
-        left_inversion (`Var v :: xi) cx m
-       | Cof.Cof (Cof.Join (phi, psi)) :: cx ->
-        let+ tree0 = binder 1 @@ left_inversion xi (phi :: cx) m 
-        and+ tree1 = binder 1 @@ left_inversion xi (psi :: cx) m in
-        Cof.split tree0 tree1
-       | Cof.Cof Cof.Bot :: _ ->
-        M.ret @@ Cof.abort
-       | Cof.Cof Cof.Top :: linv ->
-        left_inversion xi linv m
-       | Cof.Cof (Cof.Meet (phi, psi)) :: cx ->
-        left_inversion xi (phi :: psi :: linv) m
-    *)
-  end
-
-
-  (*
-         let under_cofs : D.cof list -> 'a m -> (D.cof * 'a) Cof.tree m =
-         fun linv ->
-         Search.left_inversion [] linv
-
-         let under_cofs_ cx m = 
-         let+ _ = under_cofs cx m in
-         () *)
-
   include QuL
   include M
 end
