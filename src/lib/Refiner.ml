@@ -193,7 +193,7 @@ struct
     function 
     | D.Tp (D.Sub (tp_a, phi_a, clo_a)), phi_sub, clo_sub -> 
       let phi = Cof.join phi_a phi_sub in
-      let clo = D.PCloSplit (phi_a, phi_sub, clo_a, D.PCloSubOut clo_sub) in
+      let clo = D.PCloSplit (tp_a, phi_a, phi_sub, clo_a, D.PCloSubOut clo_sub) in
       let+ tm = tac (tp_a, phi, clo) in
       S.SubIn tm
     | tp, _, _ ->
@@ -290,7 +290,7 @@ struct
         let* phi_rest, rest = 
           let* env = EM.lift_ev @@ EvM.read_local in
           let phi_clo = D.PClo (tm, env) in
-          let psi'_clo = D.PCloSplit (vphi, psi', phi_clo, psi_clo) in
+          let psi'_clo = D.PCloSplit (tp, vphi, psi', phi_clo, psi_clo) in
           go (tp, psi', psi'_clo) branches 
         in
         let+ tphi_rest = EM.lift_qu @@ Nbe.quote_cof phi_rest in

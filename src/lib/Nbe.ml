@@ -308,11 +308,12 @@ struct
       ret con
     | D.PCloSubOut clo ->
       do_sub_out @<< inst_pclo clo
-    | D.PCloSplit (phi0, phi1, clo0, clo1) -> 
+    | D.PCloSplit (tp, phi0, phi1, clo0, clo1) -> 
+      let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
       begin
-        test_sequent [] phi0 |>> function
-        | true -> inst_pclo clo0
-        | false -> inst_pclo clo1
+        whnf_cut cut |>> function
+        | `Done -> ret @@ D.Cut {tp; cut; unfold = None}
+        | `Reduce con -> ret con
       end
     | D.PCloApp (clo, con) ->
       inst_pclo clo |>> fun f -> 

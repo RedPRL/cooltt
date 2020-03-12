@@ -41,7 +41,7 @@ and _ pline_clo =
 and _ pclo =
   | PCloConst : con -> 'a pclo
   | PClo : 'a * env -> 'a pclo
-  | PCloSplit : cof * cof * 'a pclo * 'a pclo -> 'a pclo
+  | PCloSplit : tp * cof * cof * 'a pclo * 'a pclo -> 'a pclo
   | PCloSubOut : 'a pclo -> 'a pclo
   | PCloApp : 'a pclo * con -> 'a pclo
   | PCloFst : 'a pclo -> 'a pclo
