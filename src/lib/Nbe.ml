@@ -859,15 +859,19 @@ struct
       and+ tright = quote_con eltp right in 
       S.Id (ttp, tleft, tright)
     | D.Sub (tp, phi, cl) ->
-      let* eltp = lift_cmp @@ do_el tp in
-      let* ttp = quote_con univ tp in
-      let* tphi = quote_cof phi in
-      let+ tree = failwith ""
-      (* quote_cof_tree @<<
-         under_cofs [phi] @@ 
-         quote_con eltp @<< lift_cmp @@ inst_pclo cl *)
+      let+ ttp = quote_con univ tp
+      and+ tphi = quote_cof phi
+      and+ tm = 
+        let* eltp = lift_cmp @@ do_el tp in
+        begin
+          bind_cof_proof phi @@ 
+          let* body = lift_cmp @@ inst_pclo cl in 
+          quote_con eltp body 
+        end |>> function 
+        | `Ret tm -> ret tm 
+        | `Abort -> ret S.CofAbort
       in
-      S.Sub (ttp, tphi, failwith "")
+      S.Sub (ttp, tphi, tm)
 
   and quote_tp (D.Tp tp) =
     match tp with
@@ -905,8 +909,17 @@ struct
       S.Tp (S.GoalTp (lbl, tp))
     | D.Sub (tp, phi, cl) ->
       let* ttp = quote_tp tp in
-      let* tphi = quote_cof phi in
-      ret @@ S.Tp (S.Sub (ttp, tphi, failwith ""))
+      let+ tphi = quote_cof phi
+      and+ tm = 
+        begin
+          bind_cof_proof phi @@ 
+          let* body = lift_cmp @@ inst_pclo cl in 
+          quote_con tp body 
+        end |>> function 
+        | `Ret tm -> ret tm 
+        | `Abort -> ret S.CofAbort
+      in
+      S.Tp (S.Sub (ttp, tphi, tm))
     | D.TpDim -> 
       ret @@ S.Tp S.TpDim
     | D.TpCof -> 

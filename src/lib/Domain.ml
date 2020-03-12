@@ -46,4 +46,5 @@ let rec pp_con : con Pp.printer =
     Format.fprintf fmt "<lam>"
   | Abort ->
     Format.fprintf fmt "<abort>"
-  | _ -> failwith ""
+  | _ ->
+    Format.fprintf fmt "<don't know how to print>"
