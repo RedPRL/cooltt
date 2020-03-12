@@ -12,10 +12,10 @@ type ('v, 'r) cof =
   | Var of 'v
 
 
-type 'leaf tree =
-  | Const of 'leaf
-  | Split of 'leaf tree * 'leaf tree
-  | Abort
+(* type 'leaf tree =
+   | Const of 'leaf
+   | Split of 'leaf tree * 'leaf tree
+   | Abort *)
 
 
 val var : 'v -> ('v, 'a) cof
@@ -27,9 +27,9 @@ val top : ('v, 'a) cof
 
 val reduce : ('v, 'a) cof -> ('v, 'a) cof
 
-val const : 'leaf -> 'leaf tree
-val split : 'leaf tree -> 'leaf tree -> 'leaf tree
-val abort : 'leaf tree
+(* val const : 'leaf -> 'leaf tree
+   val split : 'leaf tree -> 'leaf tree -> 'leaf tree
+   val abort : 'leaf tree *)
 
 
 val pp_cof 
@@ -38,6 +38,6 @@ val pp_cof
   -> Pp.env 
   -> ('v, 'a) cof Pp.printer
 
-val pp_tree 
-  : (Pp.env -> 'leaf Pp.printer)
-  -> Pp.env -> 'leaf tree Pp.printer
+(* val pp_tree 
+   : (Pp.env -> 'leaf Pp.printer)
+   -> Pp.env -> 'leaf tree Pp.printer *)

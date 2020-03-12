@@ -20,14 +20,11 @@ type t =
   | Coe of t * t * t * t
   | HCom of t * t * t * t * t
   | TpCode of t gtp
-  | CofTree of cof_tree
   | SubIn of t
   | SubOut of t
   | Dim0
   | Dim1
   | Cof of (t, t) Cof.cof_f
-
-and cof_tree = (t * t) Cof.tree
 
 and tp = Tp of tp gtp
 

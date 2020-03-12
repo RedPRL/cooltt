@@ -626,8 +626,6 @@ struct
           let clo = D.PLineClo (tm, env) in
           lift_cmp @@ do_rigid_hcom vtpcode r s phi clo
       end
-    | S.CofTree tree -> 
-      force_eval_cof_tree tree
     | S.SubOut tm ->
       let* con = eval tm in
       lift_cmp @@ Compute.do_sub_out con
@@ -667,32 +665,33 @@ struct
 
 
   and eval_cof_tree =
-    function
-    | Cof.Const (tphi, tm) ->
-      let* phi = eval_cof tphi in
-      begin
-        CmpM.test_sequent [] phi |> lift_cmp |>> function
-        | true ->
-          let+ con = eval tm in 
-          `Valid con
-        | false -> 
-          ret `Invalid
-      end 
-    | Cof.Abort ->
-      begin
-        CmpM.test_sequent [] Cof.bot |> lift_cmp |>> function
-        | true ->
-          ret @@ `Valid D.Abort
-        | false -> 
-          ret `Invalid
-      end
-    | Cof.Split (tree0, tree1) -> 
-      (* TODO: this code isn't enough! We may need to support a split in the domain somehow in case the disjunction is true, but neither disjunct is true. *)
-      eval_cof_tree tree0 |>> function
-      | `Valid con -> 
-        ret @@ `Valid con
-      | `Invalid -> 
-        eval_cof_tree tree1
+    failwith ""
+  (* function
+     | Cof.Const (tphi, tm) ->
+     let* phi = eval_cof tphi in
+     begin
+      CmpM.test_sequent [] phi |> lift_cmp |>> function
+      | true ->
+        let+ con = eval tm in 
+        `Valid con
+      | false -> 
+        ret `Invalid
+     end 
+     | Cof.Abort ->
+     begin
+      CmpM.test_sequent [] Cof.bot |> lift_cmp |>> function
+      | true ->
+        ret @@ `Valid D.Abort
+      | false -> 
+        ret `Invalid
+     end
+     | Cof.Split (tree0, tree1) -> 
+     (* TODO: this code isn't enough! We may need to support a split in the domain somehow in case the disjunction is true, but neither disjunct is true. *)
+     eval_cof_tree tree0 |>> function
+     | `Valid con -> 
+      ret @@ `Valid con
+     | `Invalid -> 
+      eval_cof_tree tree1 *)
 
 
   and eval_cof tphi = 
@@ -773,7 +772,7 @@ struct
     D.DimVar (n - 1)
 
   let rec quote_con (D.Tp tp) con : S.t m =
-    QuM.abort_if_inconsistent (S.CofTree Cof.Abort) @@ 
+    (* QuM.abort_if_inconsistent (S.CofTree Cof.Abort) @@  *)
     match tp, con with 
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
@@ -867,12 +866,12 @@ struct
       let* eltp = lift_cmp @@ do_el tp in
       let* ttp = quote_con univ tp in
       let* tphi = quote_cof phi in
-      let+ tree = 
-        quote_cof_tree @<<
-        under_cofs [phi] @@ 
-        quote_con eltp @<< lift_cmp @@ inst_pclo cl
+      let+ tree = failwith ""
+      (* quote_cof_tree @<<
+         under_cofs [phi] @@ 
+         quote_con eltp @<< lift_cmp @@ inst_pclo cl *)
       in
-      S.Sub (ttp, tphi, S.CofTree tree)
+      S.Sub (ttp, tphi, failwith "")
 
   and quote_tp (D.Tp tp) =
     match tp with
@@ -911,12 +910,7 @@ struct
     | D.Sub (tp, phi, cl) ->
       let* ttp = quote_tp tp in
       let* tphi = quote_cof phi in
-      let+ tree = 
-        quote_cof_tree @<<
-        under_cofs [phi] @@ 
-        quote_con tp @<< lift_cmp @@ inst_pclo cl
-      in
-      S.Tp (S.Sub (ttp, tphi, S.CofTree tree))
+      ret @@ S.Tp (S.Sub (ttp, tphi, failwith ""))
     | D.TpDim -> 
       ret @@ S.Tp S.TpDim
     | D.TpCof -> 
@@ -954,30 +948,29 @@ struct
       let+ tube = 
         binder 1 @@ 
         let* i = top_dim_var in
-        let+ tree = 
-          quote_cof_tree @<<
-          under_cofs [Cof.join (Cof.eq r i) phi] @@
-          let* body = lift_cmp @@ inst_pline_clo clo i in 
-          quote_con (D.Tp (D.El cut)) body
-        in
-        S.CofTree tree
+        (* let+ tree = 
+           quote_cof_tree @<<
+           under_cofs [Cof.join (Cof.eq r i) phi] @@
+           let* body = lift_cmp @@ inst_pline_clo clo i in 
+           quote_con (D.Tp (D.El cut)) body *)
+        failwith ""
       in
       S.HCom (tpcode, tr, ts, tphi, tube)
     | D.SubOut (cut, phi, clo) ->
       let+ tm = quote_cut cut in
       S.SubOut tm
 
-  and quote_cof_tree = 
-    function 
-    | Cof.Const (phi, tm) -> 
-      let+ tphi = quote_cof phi in 
-      Cof.const (tphi, tm)
-    | Cof.Split (tree0, tree1) ->
-      let+ ttree0 = quote_cof_tree tree0 
-      and+ ttree1 = quote_cof_tree tree1 in
-      Cof.split ttree0 ttree1
-    | Cof.Abort ->
-      ret Cof.abort
+  and quote_cof_tree = failwith ""
+  (* function 
+     | Cof.Const (phi, tm) -> 
+     let+ tphi = quote_cof phi in 
+     Cof.const (tphi, tm)
+     | Cof.Split (tree0, tree1) ->
+     let+ ttree0 = quote_cof_tree tree0 
+     and+ ttree1 = quote_cof_tree tree1 in
+     Cof.split ttree0 ttree1
+     | Cof.Abort ->
+     ret Cof.abort *)
 
   and quote_dim =
     function
@@ -1132,10 +1125,11 @@ struct
       let* () = equate_tp tp0 tp1 in
       let* () = approx_cof phi0 phi1 in
       let* () = approx_cof phi1 phi0 in
-      under_cofs_ [phi0] @@ 
-      let* con0 = lift_cmp @@ inst_pclo clo0 in
-      let* con1 = lift_cmp @@ inst_pclo clo1 in
-      equate_con tp0 con0 con1
+      failwith ""
+    (* under_cofs_ [phi0] @@ 
+       let* con0 = lift_cmp @@ inst_pclo clo0 in
+       let* con1 = lift_cmp @@ inst_pclo clo1 in
+       equate_con tp0 con0 con1 *)
     | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_con tp0 l0 l1 in
@@ -1303,11 +1297,12 @@ struct
       let* () = equate_cof phi0 phi1 in 
       binder 1 @@ 
       let* i = top_dim_var in
-      under_cofs_ [Cof.join (Cof.eq i r0) phi0] @@ 
-      let* con0 = lift_cmp @@ inst_pline_clo clo0 i in
-      let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
-      let tp = D.Tp (D.El cut0) in
-      equate_con tp con0 con1
+      failwith ""
+    (* under_cofs_ [Cof.join (Cof.eq i r0) phi0] @@ 
+       let* con0 = lift_cmp @@ inst_pline_clo clo0 i in
+       let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
+       let tp = D.Tp (D.El cut0) in
+       equate_con tp con0 con1 *)
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1
     | _ ->

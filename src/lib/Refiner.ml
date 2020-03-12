@@ -278,7 +278,8 @@ struct
       match branches with 
       | [] -> 
         let* () = assert_true supp in
-        EM.ret Cof.abort
+        failwith ""
+      (* EM.ret Cof.abort *)
       | (tac_phi, tac_tm) :: branches -> 
         let* phi = tac_phi @@ D.Tp D.TpCof in
         let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
@@ -293,10 +294,11 @@ struct
           let psi'_clo = D.PCloSplit (psi, vphi, psi_clo, phi_clo) in
           go (psi', psi'_clo) (Cof.join supp vphi) branches 
         in
-        Cof.Split (Cof.Const (phi, tm), rest)
+        failwith ""
+        (* Cof.Split (Cof.Const (phi, tm), rest) *)
     in
     let* tree = go (psi, psi_clo) Cof.bot branch_tacs in
-    EM.ret @@ S.CofTree tree
+    EM.ret @@ failwith ""
 end
 
 module Prf = 

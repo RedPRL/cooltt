@@ -139,50 +139,53 @@ struct
       | `Var lvl -> Cof.var lvl
 
     let rec atomics acc (xi : atomic list) m = 
-      match xi with 
-      | [] -> 
-        let+ x = m in 
-        Cof.const (acc, x)
-      | phi :: xi ->
-        let phi = as_cof phi in
-        let+ result = 
+      failwith ""
+      (* match xi with 
+         | [] -> 
+         let+ x = m in 
+         Cof.const (acc, x)
+         | phi :: xi ->
+         let phi = as_cof phi in
+         let+ result = 
           restrict phi @@ fun () ->
           atomics (Cof.meet phi acc) xi m
-        in 
-        begin
+         in 
+         begin
           match result with 
           | `Abort -> Cof.abort 
           | `Continue x -> x
-        end
+         end *)
 
-    let rec left_inversion (xi : atomic list) (linv : D.cof list) (m : 'a m) : (D.cof * 'a) Cof.tree m =
-      match linv with 
-      | [] -> 
+    (* let rec left_inversion (xi : atomic list) (linv : D.cof list) (m : 'a m) : (D.cof * 'a) Cof.tree m =
+       match linv with 
+       | [] -> 
         atomics Cof.top xi m
-      | Cof.Cof (Cof.Eq (r, s)) :: cx ->
+       | Cof.Cof (Cof.Eq (r, s)) :: cx ->
         left_inversion (`Eq (r, s) :: xi) cx m
-      | Cof.Var v :: cx ->
+       | Cof.Var v :: cx ->
         left_inversion (`Var v :: xi) cx m
-      | Cof.Cof (Cof.Join (phi, psi)) :: cx ->
+       | Cof.Cof (Cof.Join (phi, psi)) :: cx ->
         let+ tree0 = binder 1 @@ left_inversion xi (phi :: cx) m 
         and+ tree1 = binder 1 @@ left_inversion xi (psi :: cx) m in
         Cof.split tree0 tree1
-      | Cof.Cof Cof.Bot :: _ ->
+       | Cof.Cof Cof.Bot :: _ ->
         M.ret @@ Cof.abort
-      | Cof.Cof Cof.Top :: linv ->
+       | Cof.Cof Cof.Top :: linv ->
         left_inversion xi linv m
-      | Cof.Cof (Cof.Meet (phi, psi)) :: cx ->
+       | Cof.Cof (Cof.Meet (phi, psi)) :: cx ->
         left_inversion xi (phi :: psi :: linv) m
+    *)
   end
 
 
-  let under_cofs : D.cof list -> 'a m -> (D.cof * 'a) Cof.tree m =
-    fun linv ->
-    Search.left_inversion [] linv
+  (*
+         let under_cofs : D.cof list -> 'a m -> (D.cof * 'a) Cof.tree m =
+         fun linv ->
+         Search.left_inversion [] linv
 
-  let under_cofs_ cx m = 
-    let+ _ = under_cofs cx m in
-    ()
+         let under_cofs_ cx m = 
+         let+ _ = under_cofs cx m in
+         () *)
 
   include QuL
   include M

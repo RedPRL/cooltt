@@ -117,9 +117,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(goal-proj %a)@]" (pp env) tm
   | _, TpCode gtp ->
     pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
-  | _, CofTree tree ->
-    Format.fprintf fmt "@[<hv1>(split@ %a)@]"
-      (pp_cof_tree env) tree
   | _, SubIn tm ->
     Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
   | _, SubOut tm ->
@@ -144,21 +141,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(= %a %a)@]"
       (pp env) r 
       (pp env) s
-
-and pp_cof_tree env fmt tree = 
-  match tree with 
-  | Cof.Abort ->
-    Format.fprintf fmt "[]" 
-  | Cof.Split (tree0, tree1) ->
-    let _, envx = Pp.Env.bind env None in
-    Format.fprintf fmt "%a@ %a" 
-      (pp_cof_tree envx) tree0
-      (pp_cof_tree envx) tree1
-  | Cof.Const (phi, tm) ->
-    Format.fprintf fmt "@[<hv1>[%a@ %a]@]" 
-      (pp env) phi
-      (pp env) tm
-
 
 and pp env = pp_ env `Start
 
