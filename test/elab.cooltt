@@ -9,8 +9,7 @@ def foo : (phi : cof) (psi : cof) (_ : [phi \/ psi]) -> nat = {
     ]
 }
 
--- normalize foo (currently broken)
-
+normalize foo
 
 quit
 
