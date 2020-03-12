@@ -4,7 +4,7 @@ module EM := ElabBasics
 
 type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
-type bchk_tac = D.tp * D.cof * S.t D.pclo -> S.t EM.m
+type bchk_tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
 
 (** Converts a boundary-checking tactic to a checking tactic by change of base. *)

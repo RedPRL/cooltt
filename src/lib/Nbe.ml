@@ -20,10 +20,6 @@ sig
 
   val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
   val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute
-  val inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute
-  val inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute
-  val inst_pline_clo : S.t D.pline_clo -> D.dim -> D.con compute
-  val inst_pclo : S.t D.pclo -> D.con compute
 
   val do_nat_elim : ghost:D.ghost option -> D.tp_clo -> D.con -> D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
@@ -38,7 +34,7 @@ sig
   val force_lazy_con : D.lazy_con -> D.con compute
 
   val do_rigid_coe : D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
-  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> S.t D.pline_clo -> D.con compute
+  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.tm_clo -> D.con compute
 
   val con_to_dim : D.con -> D.dim compute
   val con_to_cof : D.con -> D.cof compute
@@ -119,7 +115,7 @@ struct
     | D.ConHCom (_, r, s, phi, clo) ->
       begin
         test_sequent [] (Cof.join (Cof.eq r s) phi) |>> function
-        | true -> reduce_to @<< inst_pline_clo clo s
+        | true -> reduce_to @<< inst_tm_clo clo [D.dim_to_con s; D.Prf]
         | false -> ret `Done
       end
 
@@ -147,7 +143,7 @@ struct
       begin
         Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
-          let+ con = inst_pline_clo clo s in
+          let+ con = inst_tm_clo clo [D.dim_to_con s; D.Prf] in
           `Reduce con
         | false -> 
           whnf_cut cut |>> function
@@ -161,7 +157,7 @@ struct
       begin
         test_sequent [] phi |>> function
         | true -> 
-          let+ con = inst_pclo clo in
+          let+ con = inst_tm_clo clo [D.Prf] in
           `Reduce con
         | false ->
           whnf_cut cut |>> function
@@ -175,12 +171,12 @@ struct
       begin
         test_sequent [] phi0 |>> function
         | true -> 
-          let+ con = inst_pclo clo0 in
+          let+ con = inst_tm_clo clo0 [D.Prf] in
           `Reduce con
         | false ->
           test_sequent [] phi1 |>> function
           | true -> 
-            let+ con = inst_pclo clo1 in 
+            let+ con = inst_tm_clo clo1 [D.Prf] in 
             `Reduce con
           | false -> 
             ret `Done
@@ -253,76 +249,52 @@ struct
     | D.Clo {bdy; env} -> 
       lift_ev (env <>< xs) @@ 
       eval bdy
-
-  and inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute = 
-    fun clo r ->
-    match clo with
-    | D.LineClo (bdy, env) ->
-      lift_ev (env <>< [D.dim_to_con r]) @@ eval_tp bdy
-
-  and inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute = 
-    fun clo r ->
-    match clo with 
-    | D.LineClo (bdy, env) ->
-      lift_ev (env <>< [D.dim_to_con r]) @@ eval bdy
     | D.PiCoeBaseClo clo -> 
-      let* pi_code = inst_line_clo clo r in
+      let r = List.hd xs in
+      let* pi_code = inst_tm_clo clo [r] in
       let+ base, _ = dest_pi_code pi_code in
       base
     | D.SgCoeBaseClo clo -> 
-      let* sg_code = inst_line_clo clo r in
+      let r = List.hd xs in
+      let* sg_code = inst_tm_clo clo [r] in
       let+ base, _ = dest_pi_code sg_code in
       base
     | D.PiCoeFibClo clo -> 
-      let* base, fam = dest_pi_code @<< inst_line_clo clo.clo r in
+      let r = List.hd xs in
+      let* base, fam = dest_pi_code @<< inst_tm_clo clo.clo [r] in
+      let* r = con_to_dim r in
       let* arg_r = do_coe clo.dest r clo.base_abs clo.arg in
       inst_tm_clo fam [arg_r]
     | D.SgCoeFibClo clo ->
-      let* base, fam = dest_sg_code @<< inst_line_clo clo.clo r in
+      let r = List.hd xs in
+      let* base, fam = dest_sg_code @<< inst_tm_clo clo.clo [r] in
+      let* r = con_to_dim r in
       let* fst_r = do_coe clo.src r clo.base_abs clo.fst in
       inst_tm_clo fam [fst_r]
     | D.SgHComFibClo clo ->
+      let r = List.hd xs in
+      let* r = con_to_dim r in
       let* fst_r = do_rigid_hcom clo.base clo.src r clo.cof @@ D.FstClo clo.clo in
       inst_tm_clo clo.fam [fst_r]
-
-  and inst_pline_clo : S.t D.pline_clo -> D.dim -> D.con compute =
-    fun clo r ->
-    match clo with
-    | D.PLineClo (bdy, env) -> 
-      lift_ev (env <>< [D.dim_to_con r; D.Prf]) @@ eval bdy
     | D.AppClo (arg, clo) ->
-      let* con = inst_pline_clo clo r in 
+      let* con = inst_tm_clo clo xs in 
       do_ap con arg
     | D.FstClo clo -> 
-      do_fst @<< inst_pline_clo clo r
+      do_fst @<< inst_tm_clo clo xs
     | D.SndClo clo -> 
-      do_snd @<< inst_pline_clo clo r
+      do_snd @<< inst_tm_clo clo xs
     | D.ComClo (s, coe_abs, clo) ->
-      let* con = inst_pline_clo clo r in
+      let r = List.hd xs in
+      let* con = inst_tm_clo clo [r] in
+      let* r = con_to_dim r in
       do_rigid_coe coe_abs r s con
-
-  and inst_pclo : S.t D.pclo -> D.con compute =
-    function
-    | D.PClo (bdy, env) ->
-      lift_ev (env <>< [D.Prf]) @@ eval bdy
-    | D.PCloConst con ->
-      ret con
-    | D.PCloSubOut clo ->
-      do_sub_out @<< inst_pclo clo
-    | D.PCloSplit (tp, phi0, phi1, clo0, clo1) -> 
+    | D.SubOutClo clo ->
+      do_sub_out @<< inst_tm_clo clo xs
+    | D.SplitClo (tp, phi0, phi1, clo0, clo1) -> 
       let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
-      begin
-        whnf_cut cut |>> function
-        | `Done -> ret @@ D.Cut {tp; cut; unfold = None}
-        | `Reduce con -> ret con
-      end
-    | D.PCloApp (clo, con) ->
-      inst_pclo clo |>> fun f -> 
-      do_ap f con
-    | D.PCloFst clo ->
-      do_fst @<< inst_pclo clo
-    | D.PCloSnd clo ->
-      do_snd @<< inst_pclo clo
+      ret @@ D.Cut {tp; cut; unfold = None}
+    | D.ConstClo con ->
+      ret con
 
   and do_goal_proj =
     function
@@ -454,12 +426,12 @@ struct
         go @<< force_lazy_con lcon
       | D.Cut {cut; unfold = None} ->
         let hd = D.Coe (D.CoeAbs abs, r, s, con) in
-        let+ tp = do_el @<< inst_line_clo abs.clo s in
+        let+ tp = do_el @<< inst_tm_clo abs.clo [D.dim_to_con s] in
         D.Cut {tp; cut = hd, []; unfold = None}
       | _ ->
         throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
     in
-    go @<< inst_line_clo abs.clo i
+    go @<< inst_tm_clo abs.clo [D.dim_to_con i]
 
 
   and do_rigid_hcom code r s phi clo = 
@@ -477,7 +449,7 @@ struct
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
   and do_rigid_com (D.CoeAbs abs) r s phi clo =
-    let* code_s = inst_line_clo abs.clo s in
+    let* code_s = inst_tm_clo abs.clo [D.dim_to_con s] in
     do_rigid_hcom code_s r s phi @@ D.ComClo (s, D.CoeAbs abs, clo)
 
   and force_lazy_con lcon : D.con m = 
@@ -548,7 +520,7 @@ struct
       let+ env = read_local 
       and+ tp = eval_tp tp 
       and+ phi = eval_cof tphi in
-      let cl = D.PClo (tm, env) in
+      let cl = D.Clo {bdy = tm; env} in 
       D.Tp (D.Sub (tp, phi, cl))
     | S.TpDim  ->
       ret @@ D.Tp D.TpDim
@@ -640,7 +612,7 @@ struct
           append [D.dim_to_con s] @@ eval tm
         | false ->
           let* env = read_local in
-          let clo = D.PLineClo (tm, env) in
+          let clo = D.Clo {bdy = tm; env} in
           lift_cmp @@ do_rigid_hcom vtpcode r s phi clo
       end
     | S.SubOut tm ->
@@ -675,8 +647,8 @@ struct
       let* phi1 = eval_cof tphi1 in 
       let* con = 
         let+ env = read_local in
-        let pclo0 = D.PClo (tm0, env) in
-        let pclo1 = D.PClo (tm1, env) in
+        let pclo0 = D.Clo {bdy = tm0; env} in 
+        let pclo1 = D.Clo {bdy = tm1; env} in 
         let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
         D.Cut {tp; cut = hd, []; unfold = None} 
       in
@@ -700,7 +672,7 @@ struct
 
   and eval_coe_abs code = 
     let+ env = read_local in 
-    let clo = D.LineClo (code, env) in
+    let clo = D.Clo {bdy = code; env} in
     D.CoeAbs {clo} 
 
   and eval_tp_code =
@@ -724,7 +696,7 @@ struct
       let+ env = read_local 
       and+ tp = eval tp 
       and+ phi = eval_cof tphi in
-      let cl = D.PClo (tm, env) in
+      let cl = D.Clo {bdy = tm; env} in 
       D.Sub (tp, phi, cl)
 
   and eval_ghost =
@@ -871,7 +843,7 @@ struct
         let* eltp = lift_cmp @@ do_el tp in
         begin
           bind_cof_proof phi @@ 
-          let* body = lift_cmp @@ inst_pclo cl in 
+          let* body = lift_cmp @@ inst_tm_clo cl [D.Prf] in 
           quote_con eltp body 
         end |>> function 
         | `Ret tm -> ret tm 
@@ -919,7 +891,7 @@ struct
       and+ tm = 
         begin
           bind_cof_proof phi @@ 
-          let* body = lift_cmp @@ inst_pclo cl in 
+          let* body = lift_cmp @@ inst_tm_clo cl [D.Prf] in 
           quote_con tp body 
         end |>> function 
         | `Ret tm -> ret tm 
@@ -946,12 +918,12 @@ struct
       let* tpcode = 
         binder 1 @@ 
         let* i = top_dim_var in
-        let* code = lift_cmp @@ inst_line_clo abs.clo i in
+        let* code = lift_cmp @@ inst_tm_clo abs.clo [D.dim_to_con i] in
         quote_con (D.Tp D.Univ) code
       in
       let* tr = quote_dim r in
       let* ts = quote_dim s in
-      let* tp_con_r = lift_cmp @@ inst_line_clo abs.clo r in
+      let* tp_con_r = lift_cmp @@ inst_tm_clo abs.clo [D.dim_to_con r] in
       let* tp_r = lift_cmp @@ do_el tp_con_r in
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
@@ -965,7 +937,7 @@ struct
         let* i = top_dim_var in
         begin
           bind_cof_proof (Cof.join (Cof.eq r i) phi) @@ 
-          let* body = lift_cmp @@ inst_pline_clo clo i in
+          let* body = lift_cmp @@ inst_tm_clo clo [D.dim_to_con i; D.Prf] in
           quote_con (D.Tp (D.El cut)) body
         end |>> function
         | `Ret tm -> ret tm
@@ -979,7 +951,7 @@ struct
       let branch_body phi clo =
         begin
           bind_cof_proof phi @@ 
-          let* body = lift_cmp @@ inst_pclo clo in
+          let* body = lift_cmp @@ inst_tm_clo clo [D.Prf] in
           quote_con tp body
         end |>> function 
         | `Ret tm -> ret tm
@@ -1146,8 +1118,8 @@ struct
       let* () = equate_cof phi0 phi1 in
       under_cof phi0 @@ 
       binder 1 @@ 
-      let* con0 = lift_cmp @@ inst_pclo clo0 in
-      let* con1 = lift_cmp @@ inst_pclo clo1 in 
+      let* con0 = lift_cmp @@ inst_tm_clo clo0 [D.Prf] in
+      let* con1 = lift_cmp @@ inst_tm_clo clo1 [D.Prf] in 
       equate_con tp0 con0 con1
     | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
       let* () = equate_tp tp0 tp1 in
@@ -1318,11 +1290,11 @@ struct
       let* () = 
         binder 1 @@ 
         let* i = top_dim_var in
-        let* code0 = lift_cmp @@ inst_line_clo abs0.clo i in
-        let* code1 = lift_cmp @@ inst_line_clo abs0.clo i in
+        let* code0 = lift_cmp @@ inst_tm_clo abs0.clo [D.dim_to_con i] in
+        let* code1 = lift_cmp @@ inst_tm_clo abs1.clo [D.dim_to_con i] in
         equate_con (D.Tp D.Univ) code0 code1
       in
-      let* code = lift_cmp @@ inst_line_clo abs0.clo r0 in
+      let* code = lift_cmp @@ inst_tm_clo abs0.clo [D.dim_to_con r0] in
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
     | D.HCom (cut0, r0, s0, phi0, clo0), D.HCom (cut1, r1, s1, phi1, clo1) ->
@@ -1333,8 +1305,8 @@ struct
       binder 1 @@ 
       let* i = top_dim_var in
       under_cof (Cof.join (Cof.eq i r0) phi0) @@ binder 1 @@
-      let* con0 = lift_cmp @@ inst_pline_clo clo0 i in
-      let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
+      let* con0 = lift_cmp @@ inst_tm_clo clo0 [D.dim_to_con i; D.Prf] in
+      let* con1 = lift_cmp @@ inst_tm_clo clo1 [D.dim_to_con i; D.Prf] in
       equate_con (D.Tp (D.El cut0)) con0 con1
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1

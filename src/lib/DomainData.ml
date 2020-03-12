@@ -15,45 +15,28 @@ type env = con bwd
 and ('t, 'o) clo = 
   | Clo : {bdy : 't; env : env}  -> ('t, 'o) clo
   | ElClo : (S.t, con) clo -> (S.tp, tp) clo
+  | PiCoeBaseClo : (S.t, con) clo -> (S.t, con) clo
+  | PiCoeFibClo : {dest : dim; base_abs : coe_abs; arg : con; clo: (S.t, con) clo} -> (S.t, con) clo
+  | SgCoeBaseClo : (S.t, con) clo -> (S.t, con) clo
+  | SgCoeFibClo : {src : dim; base_abs : coe_abs; fst : con; clo: (S.t, con) clo} -> (S.t, con) clo
+  | SgHComFibClo : {src : dim; base : con; fam : tm_clo; cof : cof; clo : (S.t, con) clo} -> (S.t, con) clo
+  | AppClo : con * (S.t, con) clo -> (S.t, con) clo
+  | FstClo : (S.t, con) clo -> (S.t, con) clo
+  | SndClo : (S.t, con) clo -> (S.t, con) clo
+  | ComClo : dim * coe_abs * (S.t, con) clo -> (S.t, con) clo
+  | ConstClo : con -> (S.t, con) clo 
+  | SplitClo : tp * cof * cof * (S.t, con) clo * (S.t, con) clo -> (S.t, con) clo
+  | SubOutClo : (S.t, con) clo -> (S.t, con) clo 
 
 and tm_clo = (S.t, con) clo
 and tp_clo = (S.tp, tp) clo
 
-(** line closures *)
-and _ line_clo = 
-  | LineClo : 'a * env -> 'a line_clo
-  | PiCoeBaseClo : S.t line_clo -> S.t line_clo
-  | PiCoeFibClo : {dest : dim; base_abs : coe_abs; arg : con; clo: S.t line_clo} -> S.t line_clo
-  | SgCoeBaseClo : S.t line_clo -> S.t line_clo
-  | SgCoeFibClo : {src : dim; base_abs : coe_abs; fst : con; clo: S.t line_clo} -> S.t line_clo
-  | SgHComFibClo : {src : dim; base : con; fam : tm_clo; cof : cof; clo : S.t pline_clo} -> S.t line_clo
-
-(** partial line closures *)
-and _ pline_clo =
-  | PLineClo : 'a * env -> 'a pline_clo
-  | AppClo : con * S.t pline_clo -> S.t pline_clo
-  | FstClo : S.t pline_clo -> S.t pline_clo
-  | SndClo : S.t pline_clo -> S.t pline_clo
-  | ComClo : dim * coe_abs * S.t pline_clo -> S.t pline_clo
-
-(* partial element closures *)
-and _ pclo =
-  | PCloConst : con -> 'a pclo
-  | PClo : 'a * env -> 'a pclo
-  | PCloSplit : tp * cof * cof * 'a pclo * 'a pclo -> 'a pclo
-  | PCloSubOut : 'a pclo -> 'a pclo
-  | PCloApp : 'a pclo * con -> 'a pclo
-  | PCloFst : 'a pclo -> 'a pclo
-  | PCloSnd : 'a pclo -> 'a pclo
-
-(* TODO: merge all the closure types into one *)
-
-and coe_abs = CoeAbs of {clo : S.t line_clo}
+and coe_abs = CoeAbs of {clo : tm_clo}
 
 and con =
   | Lam of tm_clo
   | ConCoe of coe_abs * dim * dim * con
-  | ConHCom of con * dim * dim * cof * S.t pline_clo
+  | ConHCom of con * dim * dim * cof * (S.t, con) clo
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
   | Suc of con
@@ -76,7 +59,7 @@ and (_, _) gtp =
   | Id : 'd * con * con -> ('d, 't) gtp
   | Pi : 'd * ('t, 'd) clo -> ('d, 't) gtp
   | Sg : 'd * ('t, 'd) clo -> ('d, 't) gtp
-  | Sub : 'd * cof * S.t pclo -> ('d, 't) gtp
+  | Sub : 'd * cof * tm_clo -> ('d, 't) gtp
   | Univ : (tp, S.tp) gtp
   | El : cut -> (tp, S.tp) gtp
   | GoalTp : string option * tp -> (tp, S.tp) gtp
@@ -88,9 +71,9 @@ and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
   | Coe of coe_abs * dim * dim * con
-  | HCom of cut * dim * dim * cof * S.t pline_clo
-  | SubOut of cut * cof * S.t pclo
-  | Split of tp * cof * cof * S.t pclo * S.t pclo
+  | HCom of cut * dim * dim * cof * tm_clo
+  | SubOut of cut * cof * tm_clo
+  | Split of tp * cof * cof * tm_clo * tm_clo
 
 and cut = hd * frm list
 

@@ -101,7 +101,7 @@ module Tactic : sig
   val tac_nary_quantifier : ('a, 'b) quantifier -> (CS.ident option * 'a) list -> 'b -> 'b
 
   val match_goal : (D.tp -> chk_tac EM.m) -> chk_tac
-  val bmatch_goal : (D.tp * D.cof * S.t D.pclo -> bchk_tac EM.m) -> bchk_tac
+  val bmatch_goal : (D.tp * D.cof * D.tm_clo -> bchk_tac EM.m) -> bchk_tac
 
   module Elim : sig
     type case_tac = CS.pat * chk_tac
