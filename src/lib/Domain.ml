@@ -4,9 +4,6 @@ open CoolBasis
 let pp_tp fmt _ = 
   Format.fprintf fmt "<tp>"
 
-let pp_con fmt _ = 
-  Format.fprintf fmt "<con>"
-
 let push frm (hd, sp) = 
   hd, sp @ [frm]
 
