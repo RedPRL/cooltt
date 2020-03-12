@@ -170,6 +170,21 @@ struct
             let+ out = do_sub_out con in
             `Reduce out
       end
+    | D.Split (tp, phi0, phi1, clo0, clo1) ->
+      begin
+        test_sequent [] phi0 |>> function
+        | true -> 
+          let+ con = inst_pclo clo0 in
+          `Reduce con
+        | false ->
+          test_sequent [] phi1 |>> function
+          | true -> 
+            let+ con = inst_pclo clo1 in 
+            `Reduce con
+          | false -> 
+            ret `Done
+      end
+
 
   and whnf_tp = 
     function
@@ -652,47 +667,28 @@ struct
           and+ psi = eval tpsi in 
           D.Cof (Cof.Meet (phi, psi))
       end
+    | S.CofSplit (ttp, tphi0, tphi1, tm0, tm1) -> 
+      let* tp = eval_tp ttp in
+      let* phi0 = eval_cof tphi0 in
+      let* phi1 = eval_cof tphi1 in 
+      let* con = 
+        let+ env = read_local in
+        let pclo0 = D.PClo (tm0, env) in
+        let pclo1 = D.PClo (tm1, env) in
+        let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
+        D.Cut {tp; cut = hd, []; unfold = None} 
+      in
+      begin
+        lift_cmp @@ whnf_con con |>> function
+        | `Done -> ret con
+        | `Reduce con -> ret con
+      end
+    | S.CofAbort -> 
+      ret D.Abort
 
   and eval_dim tr =
     let* con = eval tr in
     lift_cmp @@ con_to_dim con
-
-  and force_eval_cof_tree tree =
-    eval_cof_tree tree |>> function
-    | `Valid con -> ret con
-    | `Invalid -> 
-      throw @@ NbeFailed "Cofibration not true in current environment"
-
-
-  and eval_cof_tree =
-    failwith ""
-  (* function
-     | Cof.Const (tphi, tm) ->
-     let* phi = eval_cof tphi in
-     begin
-      CmpM.test_sequent [] phi |> lift_cmp |>> function
-      | true ->
-        let+ con = eval tm in 
-        `Valid con
-      | false -> 
-        ret `Invalid
-     end 
-     | Cof.Abort ->
-     begin
-      CmpM.test_sequent [] Cof.bot |> lift_cmp |>> function
-      | true ->
-        ret @@ `Valid D.Abort
-      | false -> 
-        ret `Invalid
-     end
-     | Cof.Split (tree0, tree1) -> 
-     (* TODO: this code isn't enough! We may need to support a split in the domain somehow in case the disjunction is true, but neither disjunct is true. *)
-     eval_cof_tree tree0 |>> function
-     | `Valid con -> 
-      ret @@ `Valid con
-     | `Invalid -> 
-      eval_cof_tree tree1 *)
-
 
   and eval_cof tphi = 
     let* vphi = eval tphi in 
@@ -948,29 +944,34 @@ struct
       let+ tube = 
         binder 1 @@ 
         let* i = top_dim_var in
-        (* let+ tree = 
-           quote_cof_tree @<<
-           under_cofs [Cof.join (Cof.eq r i) phi] @@
-           let* body = lift_cmp @@ inst_pline_clo clo i in 
-           quote_con (D.Tp (D.El cut)) body *)
-        failwith ""
+        begin
+          bind_cof_proof (Cof.join (Cof.eq r i) phi) @@ 
+          let* body = lift_cmp @@ inst_pline_clo clo i in
+          quote_con (D.Tp (D.El cut)) body
+        end |>> function
+        | `Ret tm -> ret tm
+        | `Abort -> ret S.CofAbort
       in
       S.HCom (tpcode, tr, ts, tphi, tube)
     | D.SubOut (cut, phi, clo) ->
       let+ tm = quote_cut cut in
       S.SubOut tm
-
-  and quote_cof_tree = failwith ""
-  (* function 
-     | Cof.Const (phi, tm) -> 
-     let+ tphi = quote_cof phi in 
-     Cof.const (tphi, tm)
-     | Cof.Split (tree0, tree1) ->
-     let+ ttree0 = quote_cof_tree tree0 
-     and+ ttree1 = quote_cof_tree tree1 in
-     Cof.split ttree0 ttree1
-     | Cof.Abort ->
-     ret Cof.abort *)
+    | D.Split (tp, phi0, phi1, clo0, clo1) ->
+      let branch_body phi clo =
+        begin
+          bind_cof_proof phi0 @@ 
+          let* body = lift_cmp @@ inst_pclo clo0 in
+          quote_con tp body
+        end |>> function 
+        | `Ret tm -> ret tm
+        | `Abort -> ret S.CofAbort
+      in
+      let* ttp = quote_tp tp in
+      let* tphi0 = quote_cof phi0 in
+      let* tphi1 = quote_cof phi1 in
+      let* tm0 = branch_body phi0 clo0 in
+      let* tm1 = branch_body phi1 clo1 in 
+      ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
   and quote_dim =
     function

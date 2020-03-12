@@ -141,6 +141,15 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(= %a %a)@]"
       (pp env) r 
       (pp env) s
+  | _, CofAbort ->
+    Fmt.fprintf fmt "[]"
+  | _, CofSplit (_, phi0, phi1, tm0, tm1) ->
+    let _, envx = Pp.Env.bind env None in
+    Fmt.fprintf fmt "@[<hv1>[%a %a]@ [%a %a]@]"
+      (pp env) phi0
+      (pp envx) tm0
+      (pp env) phi1
+      (pp envx) tm1
 
 and pp env = pp_ env `Start
 

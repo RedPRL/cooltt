@@ -117,14 +117,14 @@ struct
     fun {state; cof_env} ->
     m {state; cof_env} 
 
-  let restrict phi m =
+  let bind_cof_proof phi m =
     let* {cof_env} = M.read in
     let cof_env = CofEnv.assume cof_env phi in 
     match CofEnv.status cof_env with 
     | `Consistent -> 
-      M.scope (fun local -> {local with cof_env}) @@
-      let+ x = m () in
-      `Continue x
+      M.scope (fun local -> {local with cof_env; size = 1 + local.size}) @@
+      let+ x = m in
+      `Ret x
     | `Inconsistent -> 
       M.ret `Abort
 
