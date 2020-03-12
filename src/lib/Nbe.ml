@@ -1137,13 +1137,12 @@ struct
       equate_tp fib0 fib1
     | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
       let* () = equate_tp tp0 tp1 in
-      let* () = approx_cof phi0 phi1 in
-      let* () = approx_cof phi1 phi0 in
-      failwith ""
-    (* under_cofs_ [phi0] @@ 
-       let* con0 = lift_cmp @@ inst_pclo clo0 in
-       let* con1 = lift_cmp @@ inst_pclo clo1 in
-       equate_con tp0 con0 con1 *)
+      let* () = equate_cof phi0 phi1 in
+      under_cof phi0 @@ 
+      binder 1 @@ 
+      let* con0 = lift_cmp @@ inst_pclo clo0 in
+      let* con1 = lift_cmp @@ inst_pclo clo1 in 
+      equate_con tp0 con0 con1
     | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_con tp0 l0 l1 in
@@ -1157,6 +1156,22 @@ struct
       equate_cut cut0 cut1
     | _ ->
       throw @@ NbeFailed "unequal types"
+
+  and under_cof phi m =
+    let rec go cofs m =
+      match cofs with 
+      | [] -> m
+      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
+        begin
+          QuM.restrict phi @@ go cofs m |>> fun _ -> ret ()
+        end
+      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
+        go (phi0 :: phi1 :: cofs) m
+      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
+        let* () = go (phi0 :: cofs) m in 
+        go (phi1 :: cofs) m
+    in
+    go [phi] m
 
   (* Invariant: tp, con0, con1 not necessarily whnf *)
   and equate_con tp con0 con1 =
@@ -1311,12 +1326,10 @@ struct
       let* () = equate_cof phi0 phi1 in 
       binder 1 @@ 
       let* i = top_dim_var in
-      failwith ""
-    (* under_cofs_ [Cof.join (Cof.eq i r0) phi0] @@ 
-       let* con0 = lift_cmp @@ inst_pline_clo clo0 i in
-       let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
-       let tp = D.Tp (D.El cut0) in
-       equate_con tp con0 con1 *)
+      under_cof (Cof.join (Cof.eq i r0) phi0) @@ binder 1 @@
+      let* con0 = lift_cmp @@ inst_pline_clo clo0 i in
+      let* con1 = lift_cmp @@ inst_pline_clo clo1 i in
+      equate_con (D.Tp (D.El cut0)) con0 con1
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1
     | _ ->

@@ -273,32 +273,33 @@ struct
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
   let split branch_tacs : bchk_tac =
-    fun (tp, psi, psi_clo) ->
-    let rec go (psi, psi_clo) supp branches =
+    let rec go (tp, psi, psi_clo) branches =
       match branches with 
       | [] -> 
-        let* () = assert_true supp in
-        failwith ""
-      (* EM.ret Cof.abort *)
+        EM.ret (Cof.bot, S.CofAbort)
       | (tac_phi, tac_tm) :: branches -> 
-        let* phi = tac_phi @@ D.Tp D.TpCof in
-        let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
+        let* tphi = tac_phi @@ D.Tp D.TpCof in
+        let* vphi = EM.lift_ev @@ Nbe.eval_cof tphi in
+        let* ttp = EM.lift_qu @@ Nbe.quote_tp tp in
         let* tm = 
           EM.push_var None (D.Tp (D.TpPrf vphi)) @@ 
           tac_tm (tp, psi, psi_clo) 
         in
-        let+ rest = 
+        let psi' = Cof.join vphi psi in
+        let* tpsi' = EM.lift_qu @@ Nbe.quote_cof psi' in
+        let* phi_rest, rest = 
           let* env = EM.lift_ev @@ EvM.read_local in
-          let psi' = Cof.join psi vphi in
           let phi_clo = D.PClo (tm, env) in
-          let psi'_clo = D.PCloSplit (psi, vphi, psi_clo, phi_clo) in
-          go (psi', psi'_clo) (Cof.join supp vphi) branches 
+          let psi'_clo = D.PCloSplit (vphi, psi', phi_clo, psi_clo) in
+          go (tp, psi', psi'_clo) branches 
         in
-        failwith ""
-        (* Cof.Split (Cof.Const (phi, tm), rest) *)
+        let+ tphi_rest = EM.lift_qu @@ Nbe.quote_cof phi_rest in
+        (* TODO: might need to bind a variable on rest ?? *)
+        Cof.join vphi phi_rest, S.CofSplit (ttp, tphi, tphi_rest, tm, rest)
     in
-    let* tree = go (psi, psi_clo) Cof.bot branch_tacs in
-    EM.ret @@ failwith ""
+    fun goal ->
+      let* phi, tree = go goal branch_tacs in
+      EM.ret tree
 end
 
 module Prf = 

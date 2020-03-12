@@ -42,6 +42,9 @@ module QuM : sig
   val binder : int -> 'a m -> 'a m
   val bind_cof_proof : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
 
+  (* like bind_cof_proof, but doesn't increase the de bruijn index *)
+  val restrict : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
+
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end
 
