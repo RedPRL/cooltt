@@ -8,7 +8,6 @@ open CoolBasis
 open Bwd 
 open BwdNotation
 open Monads
-open TLNat
 
 exception NbeFailed of string
 
@@ -19,19 +18,19 @@ sig
   val whnf_cut : D.cut -> D.con whnf compute
   val whnf_tp : D.tp -> D.tp whnf compute
 
-  val inst_tp_clo : 'n D.tp_clo -> ('n, D.con) Vec.vec -> D.tp compute
-  val inst_tm_clo : 'n D.tm_clo -> ('n, D.con) Vec.vec -> D.con compute
+  val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
+  val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute
   val inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute
   val inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute
   val inst_pline_clo : S.t D.pline_clo -> D.dim -> D.con compute
   val inst_pclo : S.t D.pclo -> D.con compute
 
-  val do_nat_elim : ghost:D.ghost option -> ze su D.tp_clo -> D.con -> ze su su D.tm_clo -> D.con -> D.con compute
+  val do_nat_elim : ghost:D.ghost option -> D.tp_clo -> D.con -> D.tm_clo -> D.con -> D.con compute
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
   val do_sub_out : D.con -> D.con compute
-  val do_id_elim : ghost:D.ghost option -> ze su su su D.tp_clo -> ze su D.tm_clo -> D.con -> D.con compute
+  val do_id_elim : ghost:D.ghost option -> D.tp_clo -> D.tm_clo -> D.con -> D.con compute
   val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
   val do_spine : D.con -> D.frm list -> D.con compute
@@ -55,7 +54,9 @@ struct
     | D.DimCon0 -> ret D.Dim0
     | D.DimCon1 -> ret D.Dim1
     | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
-    | _ -> throw @@ NbeFailed "con_to_dim"
+    | con -> 
+      Format.eprintf "bad: %a@." D.pp_con con;
+      throw @@ NbeFailed "con_to_dim"
 
   let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof m =
     function
@@ -199,7 +200,7 @@ struct
     | tp -> 
       ret `Done
 
-  and do_nat_elim ~ghost (mot : ze su D.tp_clo) zero suc n : D.con compute =
+  and do_nat_elim ~ghost (mot : D.tp_clo) zero suc n : D.con compute =
     match n with
     | D.Abort -> ret D.Abort
     | D.Zero -> 
@@ -236,21 +237,21 @@ struct
     in
     D.Cut {tp; cut = D.push frm cut; unfold}
 
-  and inst_tp_clo : type n. n D.tp_clo -> (n, D.con) Vec.vec -> D.tp compute =
+  and inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute =
     fun clo xs ->
     match clo with
     | Clo {bdy; env; _} -> 
-      lift_ev (env <>< Vec.to_list xs) @@ 
+      lift_ev (env <>< xs) @@ 
       eval_tp bdy
     | ElClo clo ->
       let* con = inst_tm_clo clo xs in
       do_el con
 
-  and inst_tm_clo : type n. n D.tm_clo -> (n, D.con) Vec.vec -> D.con compute =
+  and inst_tm_clo : D.tm_clo -> D.con list -> D.con compute =
     fun clo xs ->
     match clo with
     | D.Clo {bdy; env} -> 
-      lift_ev (env <>< Vec.to_list xs) @@ 
+      lift_ev (env <>< xs) @@ 
       eval bdy
 
   and inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute = 

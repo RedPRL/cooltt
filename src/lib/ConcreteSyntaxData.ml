@@ -17,6 +17,7 @@ and t =
   | Lam of bindern
   | Ap of t * t list
   | Sg of cell list * t
+  | Sub of t * t * t
   | Pair of t * t
   | Fst of t
   | Snd of t

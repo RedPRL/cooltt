@@ -13,7 +13,6 @@ open Monad.Notation (Monads.ElabM)
 
 let elab_err err = raise @@ Err.ElabError err
 
-
 let push_var id tp : 'a m -> 'a m = 
   scope @@ fun env ->
   let con = D.mk_var tp @@ Env.size env in 
@@ -22,9 +21,6 @@ let push_var id tp : 'a m -> 'a m =
 let push_def id tp con : 'a m -> 'a m = 
   scope @@ fun env ->
   Env.append_con id con tp env
-
-let assume phi : 'a m -> 'a m =
-  scope @@ Env.append_con None D.Prf (D.Tp (D.TpPrf phi)) 
 
 let resolve id = 
   let* env = read in

@@ -508,6 +508,8 @@ struct
       let* tac = tac goal in
       tac goal
 
+  let bmatch_goal = match_goal
+
   let tac_lam name tac_body : bchk_tac = 
     match_goal @@ function
     | D.Tp (D.Pi _), _, _ ->

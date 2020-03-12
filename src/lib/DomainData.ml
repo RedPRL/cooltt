@@ -1,6 +1,5 @@
 module S = Syntax
 open CoolBasis
-open TLNat
 open Bwd
 
 type dim =
@@ -13,12 +12,12 @@ type cof = (int, dim) Cof.cof
 
 type env = con bwd
 
-and ('n, 't, 'o) clo = 
-  | Clo : {bdy : 't; env : env}  -> ('n, 't, 'o) clo
-  | ElClo : ('n, S.t, con) clo -> ('n, S.tp, tp) clo
+and ('t, 'o) clo = 
+  | Clo : {bdy : 't; env : env}  -> ('t, 'o) clo
+  | ElClo : (S.t, con) clo -> (S.tp, tp) clo
 
-and 'n tm_clo = ('n, S.t, con) clo
-and 'n tp_clo = ('n, S.tp, tp) clo
+and tm_clo = (S.t, con) clo
+and tp_clo = (S.tp, tp) clo
 
 (** line closures *)
 and _ line_clo = 
@@ -27,7 +26,7 @@ and _ line_clo =
   | PiCoeFibClo : {dest : dim; base_abs : coe_abs; arg : con; clo: S.t line_clo} -> S.t line_clo
   | SgCoeBaseClo : S.t line_clo -> S.t line_clo
   | SgCoeFibClo : {src : dim; base_abs : coe_abs; fst : con; clo: S.t line_clo} -> S.t line_clo
-  | SgHComFibClo : {src : dim; base : con; fam : ze su tm_clo; cof : cof; clo : S.t pline_clo} -> S.t line_clo
+  | SgHComFibClo : {src : dim; base : con; fam : tm_clo; cof : cof; clo : S.t pline_clo} -> S.t line_clo
 
 (** partial line closures *)
 and _ pline_clo =
@@ -47,10 +46,12 @@ and _ pclo =
   | PCloFst : 'a pclo -> 'a pclo
   | PCloSnd : 'a pclo -> 'a pclo
 
+(* TODO: merge all the closure types into one *)
+
 and coe_abs = CoeAbs of {clo : S.t line_clo}
 
 and con =
-  | Lam of ze su tm_clo
+  | Lam of tm_clo
   | ConCoe of coe_abs * dim * dim * con
   | ConHCom of con * dim * dim * cof * S.t pline_clo
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
@@ -73,8 +74,8 @@ and tp = Tp of (tp, S.tp) gtp
 and (_, _) gtp =
   | Nat : ('d, 't) gtp
   | Id : 'd * con * con -> ('d, 't) gtp
-  | Pi : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
-  | Sg : 'd * (ze su, 't, 'd) clo -> ('d, 't) gtp
+  | Pi : 'd * ('t, 'd) clo -> ('d, 't) gtp
+  | Sg : 'd * ('t, 'd) clo -> ('d, 't) gtp
   | Sub : 'd * cof * S.t pclo -> ('d, 't) gtp
   | Univ : (tp, S.tp) gtp
   | El : cut -> (tp, S.tp) gtp
@@ -99,8 +100,8 @@ and frm =
   | KAp of tp * con
   | KFst 
   | KSnd
-  | KNatElim of ghost option * ze su tp_clo * con * ze su su tm_clo
-  | KIdElim of ghost option * ze su su su tp_clo * ze su tm_clo * tp * con * con
+  | KNatElim of ghost option * tp_clo * con * tm_clo
+  | KIdElim of ghost option * tp_clo * tm_clo * tp * con * con
   | KGoalProj
 
 and ghost = string bwd * (tp * con) list

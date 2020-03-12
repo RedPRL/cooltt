@@ -10,7 +10,7 @@
 %token EQUALS EEQUALS JOIN MEET
 %token UNIV
 %token TIMES FST SND
-%token LAM LET IN 
+%token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
@@ -77,8 +77,10 @@ bracketed:
     { Prf t }
 
 term:
-  | f = atomic; args = list(atomic)
-    { match args with [] -> f | _ -> Ap (f, args) }
+  | f = atomic 
+    { f }
+  | f = atomic; args = nonempty_list(atomic)
+    { Ap (f, args) } 
   | UNFOLD; names = nonempty_list(name); IN; body = term; 
     { Unfold (names, body) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
@@ -105,6 +107,8 @@ term:
     { Pi ([Cell {name = "_"; tp = dom}], cod) }
   | dom = atomic; TIMES; cod = term
     { Sg ([Cell {name = "_"; tp = dom}], cod) }
+  | SUB tp = atomic phi = atomic tm = atomic
+    { Sub (tp, phi, tm) }
   | FST; t = term 
     { Fst t }
   | SND; t = term 

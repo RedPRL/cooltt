@@ -50,6 +50,8 @@ let rec chk_tp : CS.t -> T.tp_tac =
     R.Cof.formation
   | CS.Prf phi ->
     R.Prf.formation @@ chk_tm phi
+  | CS.Sub (ctp, cphi, ctm) ->
+    R.Sub.formation (chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
   | tm -> 
     Refiner.Univ.el_formation @@ chk_tm tm
 
@@ -57,7 +59,16 @@ and chk_tm : CS.t -> T.chk_tac =
   fun cs ->
   T.bchk_to_chk @@ bchk_tm cs
 
+
 and bchk_tm : CS.t -> T.bchk_tac = 
+  fun cs ->
+  R.Tactic.bmatch_goal @@ function
+  | D.Tp (D.Sub _), _, _ ->
+    EM.ret @@ R.Sub.intro (bchk_tm cs)
+  | _ -> 
+    EM.ret @@ bchk_tm_ cs 
+
+and bchk_tm_ : CS.t -> T.bchk_tac = 
   function
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid

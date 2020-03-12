@@ -36,7 +36,8 @@ let keywords =
     ("quit", QUIT);
     ("univ", UNIV);
     ("dim", DIM);
-    ("cof", COF)
+    ("cof", COF);
+    ("sub", SUB)
   ]
 }
 
