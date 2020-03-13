@@ -1158,8 +1158,11 @@ struct
       let* con0 = lift_cmp @@ do_goal_proj con0 in
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
-    | D.Sub _, _, _ ->
-      failwith "todo: issue 28"
+    | D.Sub (tp, phi, _), _, _ ->
+      under_cof phi @@
+      let* out0 = lift_cmp @@ do_sub_out con0 in
+      let* out1 = lift_cmp @@ do_sub_out con1 in
+      equate_con tp out0 out1
     | D.Tp (D.Id (tp, _, _)), D.Refl x, D.Refl y ->
       equate_con tp x y
     | _, D.Zero, D.Zero ->
