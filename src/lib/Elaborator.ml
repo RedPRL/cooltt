@@ -73,7 +73,8 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
   | CS.Underscore -> 
-    R.Hole.unleash_hole None `Flex
+    R.Prf.intro
+  (* R.Hole.unleash_hole None `Flex *)
   | CS.Refl ->
     T.chk_to_bchk @@ R.Id.intro 
   | CS.Lit n ->
