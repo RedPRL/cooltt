@@ -5,7 +5,6 @@ def coe-fun : {
   (r : dim) (f : (_ : A r) -> B r) (i : dim) -> 
   sub {(_ : A i) -> B i} {i==r} f
 } = {
- \A B coeA coeB r f i => 
- \x =>
+ \A B coeA coeB r f i x => 
  coeB r {f {coeA i x r}} i
 }
