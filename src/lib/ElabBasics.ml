@@ -20,7 +20,7 @@ let push_var id tp : 'a m -> 'a m =
 
 let push_def id tp con : 'a m -> 'a m = 
   scope @@ fun env ->
-  let tp' = D.Tp (D.Sub (tp, Cof.top, D.ConstClo con)) in
+  let tp' = D.Sub (tp, Cof.top, D.ConstClo con) in
   let con' = D.SubIn con in
   Env.append_con id con' tp' env
 
@@ -109,7 +109,7 @@ let abstract nm tp k =
   k x
 
 let abstract_dim nm k =
-  push_var nm (D.Tp D.TpDim) @@
+  push_var nm D.TpDim @@
   let* x = get_local 0 in
   k x
 

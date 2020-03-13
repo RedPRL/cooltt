@@ -29,20 +29,21 @@ type t =
   | CofAbort 
   | Prf
 
-and tp = Tp of tp gtp
+and tp = 
+  | Tp of tp gtp
+  | Univ : tp
+  | El : t -> tp
+  | GoalTp : string option * tp -> tp
+  | TpDim : tp
+  | TpCof : tp
+  | TpPrf : t -> tp
+  | Sub : tp * t * t -> tp
 
 and _ gtp =
   | Nat : 'a gtp
   | Pi : 'a * 'a -> 'a gtp
   | Sg : 'a * 'a -> 'a gtp
   | Id : 'a * t * t -> 'a gtp
-  | Sub : 'a * t * t -> 'a gtp
-  | Univ : tp gtp
-  | El : t -> tp gtp
-  | GoalTp : string option * tp -> tp gtp
-  | TpDim : tp gtp
-  | TpCof : tp gtp
-  | TpPrf : t -> tp gtp
 
 
 and ghost = string bwd * (tp * t) list

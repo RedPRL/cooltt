@@ -63,7 +63,7 @@ and chk_tm : CS.t -> T.chk_tac =
 and bchk_tm : CS.t -> T.bchk_tac = 
   fun cs ->
   R.Tactic.bmatch_goal @@ function
-  | D.Tp (D.Sub _), _, _ ->
+  | D.Sub _, _, _ ->
     EM.ret @@ R.Sub.intro (bchk_tm cs)
   | _ -> 
     EM.ret @@ bchk_tm_ cs 
@@ -81,7 +81,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     begin
       T.chk_to_bchk @@ 
       R.Tactic.match_goal @@ function
-      | D.Tp D.TpDim -> EM.ret @@ R.Dim.literal n
+      | D.TpDim -> EM.ret @@ R.Dim.literal n
       | _ -> EM.ret @@ R.Nat.literal n
     end
   | CS.Lam (BN bnd) ->
@@ -150,7 +150,7 @@ and syn_tm : CS.t -> T.syn_tac =
   fun c -> 
   let* tm, tp = syn_tm_ c in 
   match tp with 
-  | D.Tp (D.Sub (tp, _, _)) ->
+  | D.Sub (tp, _, _) ->
     EM.ret (S.SubOut tm, tp)
   | _ -> 
     EM.ret (tm, tp)

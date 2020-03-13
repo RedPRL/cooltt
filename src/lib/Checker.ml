@@ -10,15 +10,14 @@ open CoolBasis
 open Monad.Notation (EM)
 
 let rec chk_tp : S.tp -> T.tp_tac =
-  fun (Tp tp) ->
-  match tp with
-  | S.Pi (base, fam) ->
+  function
+  | S.Tp (S.Pi (base, fam)) ->
     R.Pi.formation (chk_tp base) (None, chk_tp fam)
-  | S.Sg (base, fam) ->
+  | S.Tp (S.Sg (base, fam)) ->
     R.Sg.formation (chk_tp base) (None, chk_tp fam)
-  | S.Id (tp, l, r) ->
+  | S.Tp (S.Id (tp, l, r)) ->
     R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
-  | S.Nat -> 
+  | S.Tp S.Nat -> 
     R.Nat.formation
   | S.Univ -> 
     R.Univ.formation
@@ -29,7 +28,7 @@ let rec chk_tp : S.tp -> T.tp_tac =
   | S.Sub (base, phi, tm) ->
     R.Sub.formation (chk_tp base) (chk_tm phi) (chk_tm tm)
   | S.TpDim ->
-    T.Tp.make @@ EM.ret @@ S.Tp S.TpDim 
+    T.Tp.make @@ EM.ret S.TpDim 
   | S.TpPrf phi -> 
     R.Prf.formation (chk_tm phi)
   | S.TpCof -> 

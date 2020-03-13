@@ -24,7 +24,7 @@ struct
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Nbe.quote_tp @@ D.Tp (D.GoalTp (name, D.Tp (D.Sub (tp, phi, clo))))
+        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
@@ -66,13 +66,13 @@ struct
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@ 
-    let* cut = make_hole name flexity @@ (D.Tp D.Univ, Cof.bot, D.ConstClo D.Abort) in 
-    EM.lift_qu @@ Nbe.quote_tp (D.Tp (D.El cut))
+    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.ConstClo D.Abort) in 
+    EM.lift_qu @@ Nbe.quote_tp @@ D.El cut
 
   let unleash_syn_hole name flexity : T.syn_tac =
-    let* tpcut = make_hole name `Flex @@ (D.Tp D.Univ, Cof.bot, D.ConstClo D.Abort) in 
-    let+ tm = T.bchk_to_chk (unleash_hole name flexity) @@ D.Tp (D.El tpcut) in
-    tm, D.Tp (D.El tpcut)
+    let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.ConstClo D.Abort) in 
+    let+ tm = T.bchk_to_chk (unleash_hole name flexity) @@ D.El tpcut in
+    tm, D.El tpcut
 end
 
 
@@ -81,7 +81,7 @@ struct
   let formation lbl tac =
     T.Tp.make @@
     let+ tp = T.Tp.run tac in
-    S.Tp (S.GoalTp (lbl, tp))
+    S.GoalTp (lbl, tp)
 end
 
 
@@ -126,7 +126,7 @@ struct
 
   let dest_univ =
     function
-    | D.Tp D.Univ -> EM.ret ()
+    | D.Univ -> EM.ret ()
     | tp -> EM.elab_err @@ Err.ExpectedConnective (`Univ, tp)
 
   let make tac = 
@@ -140,7 +140,7 @@ struct
   let run_virtual = run
 
   let eval_tp tp =
-    EM.lift_ev @@ Nbe.eval_tp @@ S.Tp (S.El tp)
+    EM.lift_ev @@ Nbe.eval_tp @@ S.El tp
 
   let tp tp = S.TpCode tp
 end
@@ -193,16 +193,16 @@ struct
     T.Tp.make @@ 
     let* base = T.Tp.run tac_base in
     let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
-    let* phi = tac_phi @@ D.Tp D.TpCof in
+    let* phi = tac_phi D.TpCof in
     let+ tm = 
       let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
-      EM.push_var None (D.Tp (D.TpPrf vphi)) @@ tac_tm vbase
+      EM.push_var None (D.TpPrf vphi) @@ tac_tm vbase
     in
-    S.Tp (S.Sub (base, phi, tm))
+    S.Sub (base, phi, tm)
 
   let intro (tac : T.bchk_tac) : T.bchk_tac =
     function 
-    | D.Tp (D.Sub (tp_a, phi_a, clo_a)), phi_sub, clo_sub -> 
+    | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub -> 
       let phi = Cof.join phi_a phi_sub in
       let clo = D.SplitClo (tp_a, phi_a, phi_sub, clo_a, D.SubOutClo clo_sub) in
       let+ tm = tac (tp_a, phi, clo) in
@@ -213,7 +213,7 @@ struct
   let elim (tac : T.syn_tac) : T.syn_tac = 
     let* tm, subtp = tac in
     match subtp with 
-    | D.Tp (D.Sub (tp, _, _)) ->
+    | D.Sub (tp, _, _) ->
       EM.ret (S.SubOut tm, tp)
     | tp -> 
       EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
@@ -223,11 +223,11 @@ module Dim =
 struct
   let formation : T.tp_tac = 
     T.Tp.make_virtual @@
-    EM.ret @@ S.Tp S.TpDim
+    EM.ret S.TpDim
 
   let dim0 : T.chk_tac =
     function
-    | D.Tp D.TpDim ->
+    | D.TpDim ->
       EM.ret S.Dim0
     | tp -> 
       Format.eprintf "bad: %a" D.pp_tp tp;
@@ -235,7 +235,7 @@ struct
 
   let dim1 : T.chk_tac =
     function
-    | D.Tp D.TpDim ->
+    | D.TpDim ->
       EM.ret S.Dim1
     | tp -> 
       Format.eprintf "bad: %a" D.pp_tp tp;
@@ -254,13 +254,13 @@ module Cof =
 struct
   let formation : T.tp_tac = 
     T.Tp.make_virtual @@
-    EM.ret @@ S.Tp S.TpCof
+    EM.ret S.TpCof
 
   let eq tac0 tac1 = 
     function
-    | D.Tp D.TpCof -> 
-      let+ r0 = tac0 @@ D.Tp D.TpDim
-      and+ r1 = tac1 @@ D.Tp D.TpDim in
+    | D.TpCof -> 
+      let+ r0 = tac0 D.TpDim
+      and+ r1 = tac1 D.TpDim in
       S.Cof (Cof.Eq (r0, r1))
     | tp ->
       Format.eprintf "bad: %a" D.pp_tp tp;
@@ -268,18 +268,18 @@ struct
 
   let join tac0 tac1 = 
     function
-    | D.Tp D.TpCof ->
-      let+ phi0 = tac0 @@ D.Tp D.TpCof
-      and+ phi1 = tac1 @@ D.Tp D.TpCof in
+    | D.TpCof ->
+      let+ phi0 = tac0 D.TpCof
+      and+ phi1 = tac1 D.TpCof in
       S.Cof (Cof.Join (phi0, phi1))
     | tp ->
       EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
 
   let meet tac0 tac1 = 
     function
-    | D.Tp D.TpCof ->
-      let+ phi0 = tac0 @@ D.Tp D.TpCof
-      and+ phi1 = tac1 @@ D.Tp D.TpCof in
+    | D.TpCof ->
+      let+ phi0 = tac0 D.TpCof
+      and+ phi1 = tac1 D.TpCof in
       S.Cof (Cof.Meet (phi0, phi1))
     | tp ->
       EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
@@ -299,11 +299,11 @@ struct
       | [] -> 
         EM.ret (Cof.bot, S.CofAbort)
       | (tac_phi, tac_tm) :: branches -> 
-        let* tphi = tac_phi @@ D.Tp D.TpCof in
+        let* tphi = tac_phi D.TpCof in
         let* vphi = EM.lift_ev @@ Nbe.eval_cof tphi in
         let* ttp = EM.lift_qu @@ Nbe.quote_tp tp in
         let* tm = 
-          EM.push_var None (D.Tp (D.TpPrf vphi)) @@ 
+          EM.push_var None (D.TpPrf vphi) @@ 
           tac_tm (tp, psi, psi_clo) 
         in
         let psi' = Cof.join vphi psi in
@@ -312,7 +312,7 @@ struct
           let* env = EM.lift_ev @@ EvM.read_local in
           let phi_clo = D.Clo {bdy = tm; env} in 
           let psi'_clo = D.SplitClo (tp, vphi, psi', phi_clo, psi_clo) in
-          EM.push_var None (D.Tp (D.TpPrf psi')) @@ 
+          EM.push_var None (D.TpPrf psi') @@ 
           go (tp, psi', psi'_clo) branches 
         in
         let+ tphi_rest = EM.lift_qu @@ Nbe.quote_cof phi_rest in
@@ -327,12 +327,12 @@ module Prf =
 struct
   let formation tac_phi = 
     T.Tp.make_virtual @@ 
-    let+ phi = tac_phi @@ D.Tp D.TpCof in 
-    S.Tp (S.TpPrf phi)
+    let+ phi = tac_phi D.TpCof in 
+    S.TpPrf phi
 
   let intro = 
     function 
-    | D.Tp (D.TpPrf phi), _, _ ->
+    | D.TpPrf phi, _, _ ->
       begin
         EM.lift_cmp @@ CmpM.test_sequent [] phi |>> function
         | true -> EM.ret S.Prf
@@ -352,12 +352,12 @@ struct
 
   let formation : T.tp_tac = 
     T.Tp.make @@
-    EM.ret @@ S.Tp S.Univ
+    EM.ret S.Univ
 
   let el_formation tac = 
     T.Tp.make @@
-    let+ tm = tac @@ D.Tp D.Univ in
-    S.Tp (S.El tm)
+    let+ tm = tac D.Univ in
+    S.El tm
 end
 
 module Id = 
@@ -545,7 +545,7 @@ struct
     match_goal @@ function
     | D.Tp (D.Pi _), _, _ ->
       EM.ret @@ Pi.intro name tac_body
-    | D.Tp (D.Sub _), _, _ ->
+    | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ tac_lam name tac_body
     | _ ->
       EM.throw @@ Invalid_argument "tac_lam cannot be called on this goal"
@@ -583,10 +583,10 @@ struct
         None
 
     let elim (mot : CS.ident option list * T.tp_tac) (cases : case_tac list) (scrut : T.syn_tac) : T.syn_tac =
-      let* tscrut, D.Tp ind_tp = scrut in
-      let scrut = EM.ret (tscrut, D.Tp ind_tp) in
+      let* tscrut, ind_tp = scrut in
+      let scrut = EM.ret (tscrut, ind_tp) in
       match ind_tp, mot with
-      | D.Id (_, _, _), ([nm_u; nm_v; nm_p], mot) ->
+      | D.Tp (D.Id (_, _, _)), ([nm_u; nm_v; nm_p], mot) ->
         let* tac_refl =
           match find_case "refl" cases with
           | Some ([`Simple nm_w], tac) -> EM.ret (nm_w, tac)
@@ -595,7 +595,7 @@ struct
           | None -> EM.ret (None, T.bchk_to_chk @@ Hole.unleash_hole (Some "refl") `Rigid)
         in
         Id.elim (nm_u, nm_v, nm_p, mot) tac_refl scrut
-      | D.Nat, ([nm_x], mot) ->
+      | D.Tp D.Nat, ([nm_x], mot) ->
         let* tac_zero = 
           match find_case "zero" cases with 
           | Some ([], tac) -> EM.ret tac
@@ -612,7 +612,7 @@ struct
         Nat.elim (nm_x, mot) tac_zero tac_suc scrut
       | _ -> 
         let* env = EM.read in
-        let* tp = EM.lift_qu @@ Nbe.quote_tp (D.Tp ind_tp) in
+        let* tp = EM.lift_qu @@ Nbe.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (Env.pp_env env, tp)
 
     let assert_simple_inductive =

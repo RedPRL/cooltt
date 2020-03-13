@@ -52,20 +52,21 @@ and con =
   | Prf
 
 
-and tp = Tp of (tp, S.tp) gtp
+and tp = 
+  | Tp of (tp, S.tp) gtp
+  | Sub of tp * cof * tm_clo
+  | Univ
+  | El of cut
+  | GoalTp of string option * tp
+  | TpDim 
+  | TpCof
+  | TpPrf of cof 
 
 and (_, _) gtp =
   | Nat : ('d, 't) gtp
   | Id : 'd * con * con -> ('d, 't) gtp
   | Pi : 'd * ('t, 'd) clo -> ('d, 't) gtp
   | Sg : 'd * ('t, 'd) clo -> ('d, 't) gtp
-  | Sub : 'd * cof * tm_clo -> ('d, 't) gtp
-  | Univ : (tp, S.tp) gtp
-  | El : cut -> (tp, S.tp) gtp
-  | GoalTp : string option * tp -> (tp, S.tp) gtp
-  | TpDim : (tp, S.tp) gtp
-  | TpCof : (tp, S.tp) gtp
-  | TpPrf : cof -> (tp, S.tp) gtp
 
 and hd =
   | Global of Symbol.t 

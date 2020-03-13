@@ -71,7 +71,7 @@ let append_con name con tp env =
    locals = env.locals <>< [{contents = tp, con; name}];
    cof_env =
      match tp with 
-     | D.Tp (D.TpPrf phi) -> CofEnv.assume env.cof_env phi
+     | D.TpPrf phi -> CofEnv.assume env.cof_env phi
      | _ -> env.cof_env
   }
 
