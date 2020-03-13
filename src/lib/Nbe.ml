@@ -292,7 +292,12 @@ struct
       do_sub_out @<< inst_tm_clo clo xs
     | D.SplitClo (tp, phi0, phi1, clo0, clo1) -> 
       let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
-      ret @@ D.Cut {tp; cut; unfold = None}
+      let con = D.Cut {tp; cut; unfold = None} in
+      begin
+        whnf_con con |>> function
+        | `Done -> ret con
+        | `Reduce con -> ret con
+      end
     | D.ConstClo con ->
       ret con
 

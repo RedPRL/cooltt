@@ -1,0 +1,11 @@
+def coe-fun : {
+  (A : (i : dim) -> univ) (B : (i: dim) -> univ)
+  (coe/A : (r : dim) (x : A r) (i : dim) -> sub {A i} {i==r} x)
+  (coe/B : (r : dim) (x : B r) (i : dim) -> sub {B i} {i==r} x)
+  (r : dim) (f : (_ : A r) -> B r) (i : dim) -> 
+  sub {(_ : A i) -> B i} {i==r} f
+} = {
+ \A B coeA coeB r f i => 
+ \x =>
+ coeB r {f {coeA i x r}} i
+}
