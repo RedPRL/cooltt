@@ -39,11 +39,11 @@ and tp =
   | TpPrf : t -> tp
   | Sub : tp * t * t -> tp
 
-and _ gtp =
-  | Nat : 'a gtp
-  | Pi : 'a * 'a -> 'a gtp
-  | Sg : 'a * 'a -> 'a gtp
-  | Id : 'a * t * t -> 'a gtp
+and 'a gtp =
+  | Nat
+  | Pi of 'a * 'a 
+  | Sg of 'a * 'a 
+  | Id of 'a * t * t 
 
 
 and ghost = string bwd * (tp * t) list
