@@ -38,7 +38,7 @@ sig
 
   val con_to_dim : D.con -> D.dim compute
   val con_to_cof : D.con -> D.cof compute
-  val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof compute
+  val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof compute
 end =
 struct
   open CmpM
@@ -54,7 +54,7 @@ struct
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
 
-  let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> (int, D.dim) Cof.cof m =
+  let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof m =
     function
     | Cof.Eq (r, s) ->
       let+ r = con_to_dim r 

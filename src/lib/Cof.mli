@@ -7,21 +7,22 @@ type ('r, 'a) cof_f =
   | Bot 
   | Top
 
-type ('v, 'r) cof = 
-  | Cof of ('r, ('v, 'r) cof) cof_f
+type ('r, 'v) cof = 
+  | Cof of ('r, ('r, 'v) cof) cof_f
   | Var of 'v
 
-val var : 'v -> ('v, 'a) cof
-val eq : 'a -> 'a -> ('v, 'a) cof
-val join : ('v, 'a) cof -> ('v, 'a) cof -> ('v, 'a) cof
-val meet : ('v, 'a) cof -> ('v, 'a) cof -> ('v, 'a) cof
-val bot : ('v, 'a) cof
-val top : ('v, 'a) cof
 
-val reduce : ('v, 'a) cof -> ('v, 'a) cof
+val var : 'v -> ('a, 'v) cof
+val eq : 'a -> 'a -> ('a, 'v) cof
+val join : ('a, 'v) cof -> ('a, 'v) cof -> ('a, 'v) cof
+val meet : ('a, 'v) cof -> ('a, 'v) cof -> ('a, 'v) cof
+val bot : ('a, 'v) cof
+val top : ('a, 'v) cof
+
+val reduce : ('a, 'v) cof -> ('a, 'v) cof
 
 val pp_cof 
   : (Pp.env -> 'v Pp.printer) 
   -> (Pp.env -> 'a Pp.printer) 
   -> Pp.env 
-  -> ('v, 'a) cof Pp.printer
+  -> ('a, 'v) cof Pp.printer

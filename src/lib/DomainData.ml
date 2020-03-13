@@ -8,7 +8,7 @@ type dim =
   | DimVar of int
   | DimProbe of Symbol.t
 
-type cof = (int, dim) Cof.cof
+type cof = (dim, int) Cof.cof
 
 type env = con bwd
 

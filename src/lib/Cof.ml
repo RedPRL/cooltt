@@ -5,8 +5,8 @@ type ('r, 'a) cof_f =
   | Bot 
   | Top
 
-type ('v, 'r) cof = 
-  | Cof of ('r, ('v, 'r) cof) cof_f
+type ('r, 'v) cof = 
+  | Cof of ('r, ('r, 'v) cof) cof_f
   | Var of 'v
 
 
