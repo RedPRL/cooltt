@@ -43,7 +43,7 @@ let rec chk_tp : CS.t -> T.tp_tac =
   | CS.Univ ->
     R.Univ.formation
   | CS.Unfold (idents, c) -> 
-    unfold idents @@ chk_tp c
+    T.Tp.map (unfold idents) @@ chk_tp c
   | CS.Dim ->
     R.Dim.formation
   | CS.Cof ->

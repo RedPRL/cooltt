@@ -5,9 +5,46 @@ module EM = ElabBasics
 open CoolBasis
 open Monad.Notation (EM)
 
-type tp_tac = S.tp EM.m
-type 'a chk_tac_ = D.tp -> 'a EM.m
-type chk_tac = S.t chk_tac_ 
+module Tp : sig
+  type tac
+
+  val make : S.tp EM.m -> tac
+  val make_virtual : S.tp EM.m -> tac
+
+  val run : tac -> S.tp EM.m
+  val run_virtual : tac -> S.tp EM.m
+  val map : (S.tp EM.m -> S.tp EM.m) -> tac -> tac
+end
+= 
+struct
+  type tac =
+    | Virtual of S.tp EM.m
+    | General of S.tp EM.m
+
+  let make tac = General tac
+  let make_virtual tac = Virtual tac
+
+  let run =
+    function
+    | General tac -> tac 
+    | Virtual _ ->
+      EM.elab_err @@ ElabError.VirtualType
+
+  let run_virtual =
+    function
+    | General tac 
+    | Virtual tac -> tac 
+
+  let map f = 
+    function 
+    | General tac -> General (f tac)
+    | Virtual tac -> Virtual (f tac)
+end
+
+
+type tp_tac = Tp.tac
+
+type chk_tac = D.tp -> S.t EM.m 
 type bchk_tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m 
 
@@ -34,7 +71,7 @@ let syn_to_chk (tac : syn_tac) : chk_tac =
   tm
 
 let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
-  let* tp = tac_tp in
+  let* tp = Tp.run tac_tp in
   let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
   let+ tm = tac_tm vtp in
   tm, vtp

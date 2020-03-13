@@ -71,6 +71,8 @@ let pp fmt =
     Fmt.fprintf fmt 
       "Expected true cofibration: %a"
       (S.pp ppenv) cof
+  | VirtualType ->
+    Fmt.fprintf fmt "Virtual type (dim, cof, etc.) cannot appear in this position"
 
 
 exception ElabError of t

@@ -17,4 +17,5 @@ struct
     | ExpectedSimpleInductive of Pp.env * S.tp
     | ExpectedDimensionLiteral of int
     | ExpectedTrue of Pp.env * S.t
+    | VirtualType
 end

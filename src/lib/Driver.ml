@@ -29,7 +29,7 @@ let elaborate_typed_term name tp tm =
   EM.push_problem name @@ 
   let* tp = 
     EM.push_problem "tp" @@
-    Elaborator.chk_tp tp
+    Tactic.Tp.run @@ Elaborator.chk_tp tp
   in
   let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in 
   let* tm = 

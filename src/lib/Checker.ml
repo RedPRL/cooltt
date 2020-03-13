@@ -29,11 +29,11 @@ let rec chk_tp : S.tp -> T.tp_tac =
   | S.Sub (base, phi, tm) ->
     R.Sub.formation (chk_tp base) (chk_tm phi) (chk_tm tm)
   | S.TpDim ->
-    EM.ret @@ S.Tp S.TpDim 
+    T.Tp.make @@ EM.ret @@ S.Tp S.TpDim 
   | S.TpPrf phi -> 
-    failwith "todo"
+    R.Prf.formation (chk_tm phi)
   | S.TpCof -> 
-    EM.ret @@ S.Tp S.TpCof
+    R.Cof.formation
 
 and chk_tm : S.t -> T.chk_tac =
   function

@@ -2,10 +2,30 @@ module S := Syntax
 module D := Domain
 module EM := ElabBasics
 
-type tp_tac = S.tp EM.m
 type chk_tac = D.tp -> S.t EM.m
 type bchk_tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
+
+(* general types *)
+module Tp :
+sig
+  type tac
+
+  val make : S.tp EM.m -> tac
+
+  (** A "virtual type" is one that is only permitted to appear as the domain of a pi type *)
+  val make_virtual : S.tp EM.m -> tac
+
+  (** Only succeeds for non-virtual types *)
+  val run : tac -> S.tp EM.m
+
+  (** Virtual types allowed *)
+  val run_virtual : tac -> S.tp EM.m
+
+  val map : (S.tp EM.m -> S.tp EM.m) -> tac -> tac
+end
+
+type tp_tac = Tp.tac
 
 (** Converts a boundary-checking tactic to a checking tactic by change of base. *)
 val bchk_to_chk : bchk_tac -> chk_tac
