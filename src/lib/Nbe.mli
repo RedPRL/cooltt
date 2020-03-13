@@ -24,6 +24,8 @@ val equate_tp : D.tp -> D.tp -> unit quote
 val equate_cut : D.cut -> D.cut -> unit quote
 
 
+val do_sub_out : D.con -> D.con compute
+
 (** A cheaper version of re-evaluation which only guarantees that the head constructor is cubically rigid *)
 type 'a whnf = [`Done | `Reduce of 'a]
 val whnf_con : D.con -> D.con whnf compute
@@ -31,6 +33,3 @@ val whnf_tp : D.tp -> D.tp whnf compute
 
 val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute  
-val inst_tp_line_clo : S.tp D.line_clo -> D.dim -> D.tp compute
-val inst_line_clo : S.t D.line_clo -> D.dim -> D.con compute
-val inst_pclo : S.t D.pclo -> D.con compute

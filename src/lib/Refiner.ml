@@ -66,11 +66,11 @@ struct
     EM.lift_qu @@ Nbe.quote_cut cut
 
   let unleash_tp_hole name flexity : tp_tac =
-    let* cut = make_hole name flexity @@ (D.Tp D.Univ, Cof.bot, D.PCloConst D.Abort) in 
+    let* cut = make_hole name flexity @@ (D.Tp D.Univ, Cof.bot, D.ConstClo D.Abort) in 
     EM.lift_qu @@ Nbe.quote_tp (D.Tp (D.El cut))
 
   let unleash_syn_hole name flexity : syn_tac =
-    let* tpcut = make_hole name `Flex @@ (D.Tp D.Univ, Cof.bot, D.PCloConst D.Abort) in 
+    let* tpcut = make_hole name `Flex @@ (D.Tp D.Univ, Cof.bot, D.ConstClo D.Abort) in 
     let+ tm = bchk_to_chk (unleash_hole name flexity) @@ D.Tp (D.El tpcut) in
     tm, D.Tp (D.El tpcut)
 end
@@ -193,7 +193,7 @@ struct
     function 
     | D.Tp (D.Sub (tp_a, phi_a, clo_a)), phi_sub, clo_sub -> 
       let phi = Cof.join phi_a phi_sub in
-      let clo = D.PCloSplit (tp_a, phi_a, phi_sub, clo_a, D.PCloSubOut clo_sub) in
+      let clo = D.SplitClo (tp_a, phi_a, phi_sub, clo_a, D.SubOutClo clo_sub) in
       let+ tm = tac (tp_a, phi, clo) in
       S.SubIn tm
     | tp, _, _ ->
@@ -297,12 +297,12 @@ struct
         let* tpsi' = EM.lift_qu @@ Nbe.quote_cof psi' in
         let* phi_rest, rest = 
           let* env = EM.lift_ev @@ EvM.read_local in
-          let phi_clo = D.PClo (tm, env) in
-          let psi'_clo = D.PCloSplit (tp, vphi, psi', phi_clo, psi_clo) in
+          let phi_clo = D.Clo {bdy = tm; env} in 
+          let psi'_clo = D.SplitClo (tp, vphi, psi', phi_clo, psi_clo) in
+          EM.push_var None (D.Tp (D.TpPrf psi')) @@ 
           go (tp, psi', psi'_clo) branches 
         in
         let+ tphi_rest = EM.lift_qu @@ Nbe.quote_cof phi_rest in
-        (* TODO: might need to bind a variable on rest ?? *)
         Cof.join vphi phi_rest, S.CofSplit (ttp, tphi, tphi_rest, tm, rest)
     in
     fun goal ->
@@ -374,7 +374,7 @@ struct
     | D.Tp (D.Pi (base, fam)), phi, phi_clo ->
       EM.abstract name base @@ fun var ->
       let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
-      let+ tm = tac_body (fib, phi, D.PCloApp (phi_clo, var)) in
+      let+ tm = tac_body (fib, phi, D.AppClo (var, phi_clo)) in
       S.Lam tm
     | tp, _, _ ->
       EM.elab_err @@ Err.ExpectedConnective (`Pi, tp)
@@ -397,11 +397,11 @@ struct
   let intro (tac_fst : bchk_tac) (tac_snd : bchk_tac) : bchk_tac =
     function
     | D.Tp (D.Sg (base, fam)), phi, phi_clo ->
-      let* tfst = tac_fst (base, phi, D.PCloFst phi_clo) in
+      let* tfst = tac_fst (base, phi, D.FstClo phi_clo) in
       let+ tsnd = 
         let* vfst = EM.lift_ev @@ Nbe.eval tfst in
         let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
-        tac_snd (fib, phi, D.PCloSnd phi_clo)
+        tac_snd (fib, phi, D.SndClo phi_clo)
       in
       S.Pair (tfst, tsnd)
     | tp , _, _ ->
@@ -492,7 +492,7 @@ struct
     let+ tp = EM.get_local_tp ix in 
     S.Var ix, tp
 
-  let let_ tac_def (nm_x, tac_bdy) : chk_tac =
+  let let_ tac_def (nm_x, tac_bdy) : bchk_tac =
     fun tp ->
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Nbe.eval tdef in

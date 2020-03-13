@@ -92,7 +92,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Suc c ->
     T.chk_to_bchk @@ R.Nat.suc (chk_tm c)
   | CS.Let (c, B bdy) -> 
-    T.chk_to_bchk @@ R.Structural.let_ (syn_tm c) (Some bdy.name, chk_tm bdy.body)
+    R.Structural.let_ (syn_tm c) (Some bdy.name, bchk_tm bdy.body)
   | CS.Unfold (idents, c) -> 
     fun goal ->
       unfold idents @@ bchk_tm c goal
@@ -120,7 +120,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
 
 
-and syn_tm : CS.t -> (S.t * D.tp) EM.m = 
+and syn_tm_ : CS.t -> T.syn_tac = 
   function
   | CS.Hole name ->
     R.Hole.unleash_syn_hole name `Rigid
@@ -144,6 +144,15 @@ and syn_tm : CS.t -> (S.t * D.tp) EM.m =
     unfold idents @@ syn_tm c
   | cs -> 
     failwith @@ "TODO : " ^ CS.show cs
+
+and syn_tm : CS.t -> T.syn_tac =
+  fun c -> 
+  let* tm, tp = syn_tm_ c in 
+  match tp with 
+  | D.Tp (D.Sub (tp, _, _)) ->
+    EM.ret (S.SubOut tm, tp)
+  | _ -> 
+    EM.ret (tm, tp)
 
 and chk_cases cases =
   List.map chk_case cases

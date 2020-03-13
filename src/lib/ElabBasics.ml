@@ -20,7 +20,9 @@ let push_var id tp : 'a m -> 'a m =
 
 let push_def id tp con : 'a m -> 'a m = 
   scope @@ fun env ->
-  Env.append_con id con tp env
+  let tp' = D.Tp (D.Sub (tp, Cof.top, D.ConstClo con)) in
+  let con' = D.SubIn con in
+  Env.append_con id con' tp' env
 
 let resolve id = 
   let* env = read in
@@ -114,6 +116,7 @@ let abstract_dim nm k =
 let define nm tp con k =
   push_def nm tp con @@
   let* x = get_local 0 in
+  let* x = lift_cmp @@ Nbe.do_sub_out x in
   k x
 
 let problem = 

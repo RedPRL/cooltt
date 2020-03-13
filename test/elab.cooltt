@@ -9,12 +9,12 @@ def boundary-test : (i : dim) (_ : [{i==0} \/ {i==1}]) -> nat = {
    ]
 }
 
-def subtype-test : (i : dim) -> sub nat {i==0} 5 = {
-  \i => 5
+def subtype-test : (i : dim) -> sub nat {{i==0} \/ {i==1}} [i==0 => 4 | i==1 => 5] = {
+  \i => [i==0 => 4 | i==1 => 5]
 }
 
-normalize extensional-cofibrations
 normalize subtype-test
+normalize extensional-cofibrations
 normalize boundary-test
 
 def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
