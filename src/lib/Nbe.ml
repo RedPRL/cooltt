@@ -1161,6 +1161,10 @@ struct
     match tp_proj tp, con0, con1 with
     | _, D.Abort, _ -> ret ()
     | _, _, D.Abort -> ret ()
+    | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), []}, _
+    | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), []} ->
+      under_cof (Cof.join phi0 phi1) @@ 
+      equate_con tp con0 con1
     | D.Pi (base, fam), _, _ ->
       binder 1 @@ 
       let* x = top_var base in 
