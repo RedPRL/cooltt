@@ -89,7 +89,7 @@ module Nat : sig
 end
 
 module Structural : sig
-  val let_ : syn_tac -> CS.ident option * chk_tac -> chk_tac 
+  val let_ : syn_tac -> CS.ident option * bchk_tac -> bchk_tac 
   val lookup_var : CS.ident -> syn_tac 
   val variable : int -> syn_tac
 end

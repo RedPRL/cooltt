@@ -1213,8 +1213,14 @@ struct
   and equate_cut cut0 cut1 = 
     let hd0, sp0 = cut0 in
     let hd1, sp1 = cut1 in
-    let* () = equate_hd hd0 hd1 in
-    equate_spine sp0 sp1
+    match hd0, hd1 with
+    | D.Split (_, phi0, phi1, _, _), _
+    | _, D.Split (_, phi0, phi1, _, _) ->
+      under_cof (Cof.join phi0 phi1) @@ 
+      equate_cut cut0 cut1
+    | _ ->
+      let* () = equate_hd hd0 hd1 in
+      equate_spine sp0 sp1
 
   (* Invariant: sp0, sp1 are whnf *)
   and equate_spine sp0 sp1 =

@@ -492,7 +492,7 @@ struct
     let+ tp = EM.get_local_tp ix in 
     S.Var ix, tp
 
-  let let_ tac_def (nm_x, tac_bdy) : chk_tac =
+  let let_ tac_def (nm_x, tac_bdy) : bchk_tac =
     fun tp ->
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Nbe.eval tdef in

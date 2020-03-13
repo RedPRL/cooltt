@@ -33,7 +33,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       (pp env') bnd
   | _, Ann (tm, tp) ->
     Fmt.fprintf fmt "@[<hv1>(: @[<hov>%a@ %a@])@]" 
-      (pp_tp env) tp 
+      (pp_tp env) tp
       (pp env) tm
   | _, Coe (code, r, s, tm) ->
     let x, envx = Pp.Env.bind env None in
@@ -220,7 +220,7 @@ and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env
   | _, Sub (tp, phi, t) ->
     let x, envx = Pp.Env.bind env None in
     Format.fprintf fmt 
-      "@[<hv1>(sub@ %a@ %a@ %a)]"
+      "@[<hv1>(sub@ %a@ %a@ %a)@]"
       (go env `Start) tp
       (pp env) phi
       (pp envx) t
