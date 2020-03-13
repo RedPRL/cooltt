@@ -1,6 +1,3 @@
-(* This file implements the normalization procedure. In addition the "unary" quotation
- * algorithm described by the paper, we also implement a binary operation for increased
- * efficiency. *)
 module S = Syntax
 module D = Domain
 
@@ -136,22 +133,19 @@ struct
           reduce_to con 
         | false ->
           (* TODO, improve *)
-          let+ coe = do_rigid_coe abs r s con in 
-          `Reduce coe
+          reduce_to @<< do_rigid_coe abs r s con 
       end
     | D.HCom (cut, r, s, phi, clo) ->
       begin
         Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
-          let+ con = inst_tm_clo clo [D.dim_to_con s; D.Prf] in
-          `Reduce con
+          reduce_to @<< inst_tm_clo clo [D.dim_to_con s; D.Prf]
         | false -> 
           whnf_cut cut |>> function
           | `Done -> 
             ret `Done
           | `Reduce code ->
-            let+ hcom = do_rigid_hcom code r s phi clo in 
-            `Reduce hcom
+            reduce_to @<< do_rigid_hcom code r s phi clo 
       end
     | D.SubOut (cut, phi, clo) ->
       begin
@@ -164,20 +158,17 @@ struct
           | `Done ->
             ret `Done
           | `Reduce con ->
-            let+ out = do_sub_out con in
-            `Reduce out
+            reduce_to @<< do_sub_out con 
       end
     | D.Split (tp, phi0, phi1, clo0, clo1) ->
       begin
         test_sequent [] phi0 |>> function
         | true -> 
-          let+ con = inst_tm_clo clo0 [D.Prf] in
-          `Reduce con
+          reduce_to @<< inst_tm_clo clo0 [D.Prf] 
         | false ->
           test_sequent [] phi1 |>> function
           | true -> 
-            let+ con = inst_tm_clo clo1 [D.Prf] in 
-            `Reduce con
+            reduce_to @<< inst_tm_clo clo1 [D.Prf] 
           | false -> 
             ret `Done
       end
@@ -1144,7 +1135,7 @@ struct
     | D.TpPrf _, _, _ -> ret ()
     | _, D.Abort, _ -> ret ()
     | _, _, D.Abort -> ret ()
-    | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), []}, _
+    | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _}, _
     | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), []} ->
       under_cof (Cof.join phi0 phi1) @@ 
       equate_con tp con0 con1
