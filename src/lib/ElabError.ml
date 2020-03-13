@@ -25,6 +25,8 @@ let pp_connective fmt =
     Format.fprintf fmt "nat"
   | `Sub ->
     Format.fprintf fmt "sub"
+  | `Prf ->
+    Format.fprintf fmt "prf"
 
 let pp fmt =
   function

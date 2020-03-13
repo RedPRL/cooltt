@@ -315,6 +315,21 @@ struct
   let formation tac_phi = 
     let+ phi = tac_phi @@ D.Tp D.TpCof in 
     S.Tp (S.TpPrf phi)
+
+  let intro = 
+    function 
+    | D.Tp (D.TpPrf phi), _, _ ->
+      begin
+        EM.lift_cmp @@ CmpM.test_sequent [] phi |>> function
+        | true -> EM.ret S.Prf
+        | false ->
+          let* env = EM.read in
+          let ppenv = Env.pp_env env in
+          let* tphi = EM.lift_qu @@ Nbe.quote_cof phi in
+          EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
+      end
+    | tp, _, _ ->
+      EM.elab_err @@ Err.ExpectedConnective (`Prf, tp)
 end
 
 module Univ = 

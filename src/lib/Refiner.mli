@@ -36,6 +36,7 @@ end
 
 module Prf : sig 
   val formation : chk_tac -> tp_tac
+  val intro : bchk_tac
 end
 
 module Univ : sig
