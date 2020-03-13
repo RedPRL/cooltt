@@ -299,10 +299,10 @@ struct
           let* env = EM.lift_ev @@ EvM.read_local in
           let phi_clo = D.Clo {bdy = tm; env} in 
           let psi'_clo = D.SplitClo (tp, vphi, psi', phi_clo, psi_clo) in
+          EM.push_var None (D.Tp (D.TpPrf psi')) @@ 
           go (tp, psi', psi'_clo) branches 
         in
         let+ tphi_rest = EM.lift_qu @@ Nbe.quote_cof phi_rest in
-        (* TODO: might need to bind a variable on rest ?? *)
         Cof.join vphi phi_rest, S.CofSplit (ttp, tphi, tphi_rest, tm, rest)
     in
     fun goal ->

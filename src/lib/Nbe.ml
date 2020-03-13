@@ -744,8 +744,9 @@ struct
     D.DimVar (n - 1)
 
   let rec quote_con (D.Tp tp) con : S.t m =
-    (* QuM.abort_if_inconsistent (S.CofTree Cof.Abort) @@  *)
+    QuM.abort_if_inconsistent S.CofAbort @@ 
     match tp, con with 
+    | _, D.Abort -> ret S.CofAbort
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
         match hd, unfold with
@@ -1158,6 +1159,8 @@ struct
     let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con con0 in
     let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con con1 in
     match tp_proj tp, con0, con1 with
+    | _, D.Abort, _ -> ret ()
+    | _, _, D.Abort -> ret ()
     | D.Pi (base, fam), _, _ ->
       binder 1 @@ 
       let* x = top_var base in 
