@@ -1164,6 +1164,7 @@ struct
     let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con con0 in
     let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con con1 in
     match tp_proj tp, con0, con1 with
+    | D.TpPrf _, _, _ -> ret ()
     | _, D.Abort, _ -> ret ()
     | _, _, D.Abort -> ret ()
     | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), []}, _
