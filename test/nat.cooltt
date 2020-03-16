@@ -82,7 +82,8 @@ def cong : {
 def + : nat -> nat -> nat = {
   \elim [
   | zero => \n => n
-  | suc {_ => ih} => \n => suc {ih n} ]
+  | suc {_ => ih} => \n => suc {ih n} 
+  ]
 }
 
 def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {

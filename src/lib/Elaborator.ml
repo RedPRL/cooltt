@@ -87,7 +87,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Lam (BN bnd) ->
     R.Tactic.tac_multi_lam bnd.names @@ bchk_tm bnd.body
   | CS.LamElim cases ->
-    T.chk_to_bchk @@ R.Tactic.Elim.lam_elim @@ chk_cases cases
+    R.Tactic.Elim.lam_elim @@ chk_cases cases
   | CS.Pair (c0, c1) ->
     R.Sg.intro (bchk_tm c0) (bchk_tm c1)
   | CS.Suc c ->

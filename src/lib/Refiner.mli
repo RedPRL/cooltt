@@ -115,6 +115,6 @@ module Tactic : sig
 
     val lam_elim 
       : case_tac list 
-      -> chk_tac
+      -> bchk_tac
   end
 end

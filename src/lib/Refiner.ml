@@ -625,8 +625,8 @@ struct
         let* tp = EM.lift_qu @@ Nbe.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
-    let lam_elim cases : T.chk_tac = 
-      match_goal @@ fun tp ->
+    let lam_elim cases : T.bchk_tac = 
+      match_goal @@ fun (tp, _, _) ->
       let* base, fam = EM.dest_pi tp in
       let+ () = assert_simple_inductive base in
       let mot_tac : T.tp_tac =
@@ -636,7 +636,6 @@ struct
         let* vmot = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vx] in
         EM.lift_qu @@ Nbe.quote_tp vmot 
       in
-      T.bchk_to_chk @@
       Pi.intro None @@
       T.chk_to_bchk @@ 
       T.syn_to_chk @@ 
