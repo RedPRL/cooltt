@@ -6,6 +6,8 @@ module Err = ElabError
 module EM = ElabBasics
 module T = Tactic
 
+exception Todo
+
 open CoolBasis
 open Monads
 open Monad.Notation (EM)
@@ -358,6 +360,9 @@ struct
     T.Tp.make @@
     let+ tm = tac D.Univ in
     S.El tm
+
+  let path _ _ =
+    raise Todo
 end
 
 module Id = 

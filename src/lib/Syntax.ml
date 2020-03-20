@@ -1,6 +1,8 @@
 open CoolBasis open Bwd
 include SyntaxData
 
+exception Todo
+
 let rec condense = 
   function
   | Zero -> Some 0
@@ -152,6 +154,8 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       (pp envx) tm1
   | _, Prf ->
     Fmt.fprintf fmt "*"
+  | _, CodePath _ ->
+    raise Todo
 
 and pp env = pp_ env `Start
 

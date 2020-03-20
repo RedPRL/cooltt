@@ -1,6 +1,9 @@
 module S = Syntax
 module D = Domain
 
+
+exception Todo
+
 open CoolBasis
 open Bwd 
 open BwdNotation
@@ -93,7 +96,7 @@ struct
 
   let rec whnf_con : D.con -> D.con whnf m =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort | D.SubIn _ | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf ->
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.TpCode _ | D.Abort | D.SubIn _ | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf | D.CodePath _ ->
       ret `Done
 
     | D.Cut {unfold = Some lcon} -> 
@@ -230,9 +233,33 @@ struct
     | Clo {bdy; env; _} -> 
       lift_ev (env <>< xs) @@ 
       eval_tp bdy
+    | ConstTpClo tp -> 
+      ret tp
     | ElClo clo ->
       let* con = inst_tm_clo clo xs in
       do_el con
+    | CloFromPathData (fam, bdry) ->
+      let rcon = List.hd xs in
+      let* fib = do_ap fam rcon in
+      let* elfib = do_el fib in
+      let* bdry_r = do_ap bdry rcon in
+      (* bdry_r : [r=0\/r=1] -> elfib *)
+      (* elfib [ (r=0\/r=1) -> bdry r * ] *)
+      let* phi = 
+        let* r = con_to_dim rcon in
+        ret @@ Cof.join (Cof.eq r D.Dim0) (Cof.eq r D.Dim1)
+      in
+      (* _ : [phi] |- A r *)
+      ret @@ D.Sub (elfib, phi, D.CloFromFun bdry_r)
+    | CloBoundaryType fam ->
+      let rcon = List.hd xs in
+      let* phi = 
+        let* r = con_to_dim rcon in
+        ret @@ Cof.join (Cof.eq r D.Dim0) (Cof.eq r D.Dim1)
+      in
+      let* fib = do_ap fam rcon in
+      let* elfib = do_el fib in
+      ret @@ D.Tp (D.Pi (D.TpPrf phi, D.ConstTpClo elfib))
 
   and inst_tm_clo : D.tm_clo -> D.con list -> D.con compute =
     fun clo xs ->
@@ -291,6 +318,10 @@ struct
       end
     | D.ConstClo con ->
       ret con
+
+    | D.CloFromFun con ->
+      let v = List.hd xs in
+      do_ap con v
 
   and do_goal_proj =
     function
@@ -404,6 +435,9 @@ struct
       let clfam = D.ElClo clfam in
       D.Tp (D.Sg (base, clfam))
 
+    | D.CodePath (fam, bdry) ->
+      ret @@ D.Tp (D.Pi (D.TpDim, D.CloFromPathData (fam, bdry)))
+
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
@@ -418,6 +452,8 @@ struct
       match peek with
       | D.TpCode (D.Pi _ | D.Sg _) ->
         ret @@ D.ConCoe (D.CoeAbs abs, r, s, con)
+      | D.CodePath _ ->
+        raise Todo
       | D.Cut {unfold = Some lcon} -> 
         go @<< force_lazy_con lcon
       | D.Cut {cut; unfold = None} ->
@@ -434,6 +470,8 @@ struct
     match code with 
     | D.TpCode (D.Pi _ | D.Sg _)->
       ret @@ D.ConHCom (code, r, s, phi, clo)
+    | D.CodePath _ ->
+      raise Todo
     | D.Cut {unfold = Some lcon} ->
       let* code = force_lazy_con lcon in 
       do_rigid_hcom code r s phi clo
@@ -656,7 +694,13 @@ struct
     | S.CofAbort -> 
       ret D.Abort
     | S.Prf ->
-      ret D.Prf
+      ret D.Prf 
+
+    | S.CodePath (fam, bdry) ->
+      let* vfam = eval fam in
+      let* vbdry = eval bdry in
+      ret @@ D.CodePath (vfam, vbdry)
+
 
   and eval_dim tr =
     let* con = eval tr in
@@ -793,6 +837,8 @@ struct
       quote_cof phi
     | D.TpPrf _, _ ->
       ret S.Prf
+    | _, D.CodePath (fam, bdry) ->
+      raise Todo
     | _ -> 
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
@@ -1183,6 +1229,12 @@ struct
       let* tp0 = lift_cmp @@ do_el con0 in
       let* tp1 = lift_cmp @@ do_el con1 in
       equate_tp tp0 tp1
+
+    | _, D.CodePath (fam0, bdry0), D.CodePath (fam1, bdry1) ->
+      let* _ = equate_con (D.Tp (D.Pi (D.TpDim, D.ConstTpClo D.Univ))) fam0 fam1 in
+      let bdry_tp = D.Tp (D.Pi (D.TpDim, CloBoundaryType fam0)) in
+      equate_con bdry_tp bdry0 bdry1 
+
     | _ -> 
       throw @@ NbeFailed "unequal values"
 

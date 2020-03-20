@@ -29,6 +29,8 @@ type t =
   | CofAbort 
   | Prf
 
+  | CodePath of t * t
+
 and tp = 
   | Tp of tp gtp
   | Univ : tp

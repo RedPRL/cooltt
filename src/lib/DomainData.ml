@@ -24,9 +24,14 @@ and ('t, 'o) clo =
   | FstClo : (S.t, con) clo -> (S.t, con) clo
   | SndClo : (S.t, con) clo -> (S.t, con) clo
   | ComClo : dim * coe_abs * (S.t, con) clo -> (S.t, con) clo
-  | ConstClo : con -> (S.t, con) clo 
+  | ConstClo : con -> (S.t, con) clo
+  | ConstTpClo : tp -> (S.tp, tp) clo
   | SplitClo : tp * cof * cof * (S.t, con) clo * (S.t, con) clo -> (S.t, con) clo
   | SubOutClo : (S.t, con) clo -> (S.t, con) clo 
+
+  | CloFromPathData : con * con -> (S.tp, tp) clo
+  | CloBoundaryType : con -> (S.tp, tp) clo
+  | CloFromFun : con -> (S.t, con) clo
 
 and tm_clo = (S.t, con) clo
 and tp_clo = (S.tp, tp) clo
@@ -50,6 +55,8 @@ and con =
   | DimCon1
   | Cof of (con, con) Cof.cof_f
   | Prf
+
+  | CodePath of con * con
 
 
 and tp = 
