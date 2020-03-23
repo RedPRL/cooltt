@@ -20,6 +20,12 @@ let un_lam con =
   Clo (S.Ap (S.Var 1, S.Var 0), Snoc (Emp, con))
   (* y, x |= y(x) *)
 
+let compose f g = 
+  Lam (Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), Snoc (Snoc (Emp, f), g)))
+
+let apply_to x = 
+  Clo (S.Ap (S.Var 0, S.Var 1), Snoc (Emp, x))
+  
 let fst = Lam (Clo (S.Fst (S.Var 0), Emp))
 let snd = Lam (Clo (S.Snd (S.Var 0), Emp))
 
@@ -33,6 +39,15 @@ let dim_to_con =
   | DimProbe sym ->
     (* hmmm *)
     Cut {tp = TpDim; cut = Global sym, []; unfold = None}
+
+let rec cof_to_con =
+  function
+  | Cof.Cof (Cof.Eq (r, s)) -> Cof (Cof.Eq (dim_to_con r, dim_to_con s))
+  | Cof.Cof Cof.Bot -> Cof Cof.Bot
+  | Cof.Cof Cof.Top -> Cof Cof.Top
+  | Cof.Cof (Cof.Join (phi0, phi1)) -> Cof (Cof.Join (cof_to_con phi0, cof_to_con phi1))
+  | Cof.Cof (Cof.Meet (phi0, phi1)) -> Cof (Cof.Meet (cof_to_con phi0, cof_to_con phi1))
+  | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []; unfold = None}
 
 let rec pp_con : con Pp.printer =
   fun fmt ->

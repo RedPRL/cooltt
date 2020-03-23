@@ -346,7 +346,7 @@ struct
     | D.Pi (base, fam), phi, phi_clo ->
       EM.abstract name base @@ fun var ->
       let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
-      let+ tm = tac_body (fib, phi, D.AppClo (var, phi_clo)) in
+      let+ tm = tac_body (fib, phi, D.un_lam @@ D.compose (D.Lam (D.apply_to var)) @@ D.Lam phi_clo) in
       S.Lam tm
     | tp, _, _ ->
       EM.elab_err @@ Err.ExpectedConnective (`Pi, tp)
@@ -375,11 +375,11 @@ struct
   let intro (tac_fst : T.bchk_tac) (tac_snd : T.bchk_tac) : T.bchk_tac =
     function
     | D.Sg (base, fam), phi, phi_clo ->
-      let* tfst = tac_fst (base, phi, D.FstClo phi_clo) in
+      let* tfst = tac_fst (base, phi, D.un_lam @@ D.compose D.fst @@ D.Lam phi_clo) in
       let+ tsnd = 
         let* vfst = EM.lift_ev @@ Nbe.eval tfst in
         let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
-        tac_snd (fib, phi, D.SndClo phi_clo)
+        tac_snd (fib, phi, D.un_lam @@ D.compose D.fst @@ D.Lam phi_clo)
       in
       S.Pair (tfst, tsnd)
     | tp , _, _ ->

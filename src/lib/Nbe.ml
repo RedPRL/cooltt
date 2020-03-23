@@ -25,6 +25,7 @@ sig
   val do_fst : D.con -> D.con compute
   val do_snd : D.con -> D.con compute
   val do_ap : D.con -> D.con -> D.con compute
+  val do_ap2 : D.con -> D.con -> D.con -> D.con compute
   val do_sub_out : D.con -> D.con compute
   val do_id_elim : ghost:D.ghost option -> D.tp_clo -> D.tm_clo -> D.con -> D.con compute
   val do_goal_proj : D.con -> D.con compute
@@ -34,7 +35,7 @@ sig
   val force_lazy_con : D.lazy_con -> D.con compute
 
   val do_rigid_coe : D.con -> D.dim -> D.dim -> D.con -> D.con compute
-  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.tm_clo -> D.con compute
+  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
 
   val con_to_dim : D.con -> D.dim compute
   val con_to_cof : D.con -> D.cof compute
@@ -99,7 +100,7 @@ struct
     | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.Abort | D.SubIn _ 
     | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf 
     | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat 
-    | D.Destruct _ | D.Compose _ ->
+    | D.Destruct _ ->
       ret `Done
 
     | D.Cut {unfold = Some lcon} -> 
@@ -115,10 +116,10 @@ struct
         | false -> ret `Done
       end
 
-    | D.ConHCom (_, _, r, s, phi, clo) ->
+    | D.ConHCom (_, _, r, s, phi, bdy) ->
       begin
         test_sequent [] (Cof.join (Cof.eq r s) phi) |>> function
-        | true -> reduce_to @<< inst_tm_clo clo [D.dim_to_con s; D.Prf]
+        | true -> reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf 
         | false -> ret `Done
       end
 
@@ -141,17 +142,17 @@ struct
           (* TODO, improve *)
           reduce_to @<< do_rigid_coe abs r s con 
       end
-    | D.HCom (cut, r, s, phi, clo) ->
+    | D.HCom (cut, r, s, phi, bdy) ->
       begin
         Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
-          reduce_to @<< inst_tm_clo clo [D.dim_to_con s; D.Prf]
+          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf 
         | false -> 
           whnf_cut cut |>> function
           | `Done -> 
             ret `Done
           | `Reduce code ->
-            reduce_to @<< do_rigid_hcom code r s phi clo 
+            reduce_to @<< do_rigid_hcom code r s phi bdy 
       end
     | D.SubOut (cut, phi, clo) ->
       begin
@@ -270,11 +271,7 @@ struct
     | D.Clo (bdy, env) -> 
       lift_ev (env <>< xs) @@ 
       eval bdy
-    | D.SgHComFibClo clo ->
-      let r = List.hd xs in
-      let* r = con_to_dim r in
-      let* fst_r = do_rigid_hcom clo.base clo.src r clo.cof @@ D.FstClo clo.clo in
-      do_ap clo.fam fst_r
+        (*
     | D.AppClo (arg, clo) ->
       let* con = inst_tm_clo clo xs in 
       do_ap con arg
@@ -287,6 +284,9 @@ struct
       let* con = inst_tm_clo clo [r] in
       let* r = con_to_dim r in
       do_rigid_coe coe_abs r s con
+
+           *)
+
     | D.SubOutClo clo ->
       do_sub_out @<< inst_tm_clo clo xs
     | D.SplitClo (tp, phi0, phi1, clo0, clo1) -> 
@@ -315,12 +315,15 @@ struct
       ret con0
 
     | D.ConCoe (`Sg, line, r, s, con) -> 
-      let base_abs = D.Compose (D.fst, D.Compose (D.Destruct D.DCodeSgSplit, line)) in 
+      let base_abs = D.compose D.fst @@ D.compose (D.Destruct D.DCodeSgSplit) line in
       do_rigid_coe base_abs r s @<< do_fst con
 
-    | D.ConHCom (`Sg, code, r, s, phi, clo) -> 
+    | D.ConHCom (`Sg, code, r, s, phi, bdy) -> 
       let* base, _ = dest_sg_code code in
-      do_rigid_hcom base r s phi @@ D.FstClo clo
+      do_rigid_hcom base r s phi @<< 
+      let env = Emp <>< [bdy] in
+      let tm = S.Lam (S.Lam (S.Fst (S.Ap (S.Ap (S.Var 2, S.Var 1), S.Var 0)))) in
+      lift_ev env @@ eval tm
 
     | D.Cut {tp = D.Sg (base, _); cut; unfold} ->
       ret @@ cut_frm ~tp:base ~cut ~unfold D.KFst
@@ -336,10 +339,9 @@ struct
       ret con1
 
     | D.ConCoe (`Sg, line, r, s, con) -> 
-      let split_line = D.Compose (D.Destruct D.DCodePiSplit, line) in 
-      let base_line = D.Compose (D.fst, split_line) in
-
-      let fam_line = D.Compose (D.snd, split_line) in
+      let split_line = D.compose (D.Destruct D.DCodePiSplit) line in 
+      let base_line = D.compose D.fst split_line in
+      let fam_line = D.compose D.snd split_line in
       let* con_fst = do_fst con in
 
       let fib_clo : D.tm_clo = 
@@ -361,10 +363,21 @@ struct
       let fib_line = D.Lam fib_clo in
       do_rigid_coe fib_line r s @<< do_snd con
 
-    | D.ConHCom (`Sg, code, r, s, phi, clo) -> 
+    | D.ConHCom (`Sg, code, r, s, phi, bdy) ->
       let* base, fam = dest_sg_code code in
-      let fib_abs = D.Lam (D.SgHComFibClo {src = r; base; fam; cof = phi; clo}) in
-      do_rigid_com fib_abs r s phi @@ D.SndClo clo
+      let fib_line = 
+        let env = Emp <>< [base; fam; D.dim_to_con r; D.cof_to_con phi; bdy] in
+        let tphi = S.Var 2 in
+        let tr = S.Var 3 in 
+        let tfam = S.Var 4 in
+        let tbase = S.Var 5 in
+        let i = S.Var 0 in
+        let tfst = S.Lam (S.Lam (S.Fst (S.Ap (S.Ap (S.Var 3, S.Var 1), S.Var 0)))) in
+        let tfst_i' = S.HCom (tbase, tr, i, tphi, tfst) in
+        D.Lam (D.Clo (S.Ap (tfam, tfst_i'), env))
+      in
+      do_rigid_com fib_line r s phi @@ 
+      D.Lam (D.Clo (S.Lam (S.Lam (S.Snd (S.Ap (S.Ap (S.Var 2, S.Var 1), S.Var 0)))), Emp <>< [bdy]))
 
     | D.Cut {tp = D.Sg (_, fam); cut; unfold} ->
       let* fst = do_fst con in
@@ -374,6 +387,11 @@ struct
     | _ -> 
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
+
+  and do_ap2 f a b = 
+    let* fa = do_ap f a in
+    do_ap fa b
+
   and do_ap f a =
     match f with
     | D.Abort -> ret D.Abort
@@ -381,16 +399,13 @@ struct
     | D.Lam clo -> 
       inst_tm_clo clo [a]
 
-    | D.Compose (f0, f1) ->
-      do_ap f0 @<< do_ap f1 a
-
     | D.Destruct dst ->
       do_destruct dst a
 
     | D.ConCoe (`Pi, line, r, s, f) ->
-      let split_line = D.Compose (D.Destruct D.DCodePiSplit, line) in 
-      let base_line = D.Compose (D.fst, split_line) in
-      let fam_line = D.Compose (D.snd, split_line) in
+      let split_line = D.compose (D.Destruct D.DCodePiSplit) line in 
+      let base_line = D.compose D.fst split_line in
+      let fam_line = D.compose D.snd split_line in
       let fib_clo : D.tm_clo = 
         (* BASE/4 : I -> Univ, FAM/3 : (i : I) -> BASE(i) -> UNIV, s/2 : I, a/1 : BASE(s)
          * |= [i/0:DIM]. 
@@ -410,10 +425,13 @@ struct
       let fib_line = D.Lam fib_clo in 
       do_rigid_coe fib_line r s @<< do_ap f @<< do_rigid_coe base_line s r a
 
-    | D.ConHCom (`Pi, code, r, s, phi, clo) ->
+    | D.ConHCom (`Pi, code, r, s, phi, bdy) ->
       let* base, fam = dest_pi_code code in
       let* fib = do_ap fam a in
-      do_rigid_hcom fib r s phi @@ D.AppClo (a, clo)
+      do_rigid_hcom fib r s phi @<<
+      let env = Emp <>< [a; bdy] in
+      let tm = S.Lam (S.Lam (S.Ap (S.Ap (S.Ap (S.Var 2, S.Var 1), S.Var 0), S.Var 3))) in
+      lift_ev env @@ eval tm
 
     | D.Cut {tp = D.Pi (base, fam); cut; unfold} ->
       let+ fib = inst_tp_clo fam [a] in
@@ -495,27 +513,30 @@ struct
     go @<< do_ap abs (D.dim_to_con i)
 
 
-  and do_rigid_hcom code r s phi clo = 
+  and do_rigid_hcom code r s phi (bdy : D.con) = 
     match code with 
     | D.CodePi _ ->
-      ret @@ D.ConHCom (`Pi, code, r, s, phi, clo)
+      ret @@ D.ConHCom (`Pi, code, r, s, phi, bdy)
     | D.CodeSg _->
-      ret @@ D.ConHCom (`Pi, code, r, s, phi, clo)
+      ret @@ D.ConHCom (`Pi, code, r, s, phi, bdy)
     | D.CodePath _ ->
       raise Todo
     | D.Cut {unfold = Some lcon} ->
       let* code = force_lazy_con lcon in 
-      do_rigid_hcom code r s phi clo
+      do_rigid_hcom code r s phi bdy
     | D.Cut {cut; unfold = None} ->
       let tp = D.El cut in
-      let hd = D.HCom (cut, r, s, phi, clo) in
+      let hd = D.HCom (cut, r, s, phi, bdy) in
       ret @@ D.Cut {tp; cut = hd, []; unfold = None}
     | _ ->
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
-  and do_rigid_com (abs : D.con) r s phi clo =
-    let* code_s = do_ap abs (D.dim_to_con s) in
-    do_rigid_hcom code_s r s phi @@ D.ComClo (s, abs, clo)
+  and do_rigid_com (line : D.con) r s phi bdy =
+    let* code_s = do_ap line (D.dim_to_con s) in
+    do_rigid_hcom code_s r s phi @<<
+      let env = Emp <>< [D.dim_to_con s; line; bdy] in
+      let tm = S.Lam (S.Lam (S.Coe (S.Var 4, S.Var 2, S.Var 5, S.Ap (S.Ap (S.Var 3, S.Var 1), S.Var 0)))) in
+      lift_ev env @@ eval tm 
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
@@ -673,9 +694,8 @@ struct
         | true -> 
           append [D.dim_to_con s] @@ eval tm
         | false ->
-          let* env = read_local in
-          let clo = D.Clo (tm, env) in 
-          lift_cmp @@ do_rigid_hcom vtpcode r s phi clo
+          let* bdy = eval tm in 
+          lift_cmp @@ do_rigid_hcom vtpcode r s phi bdy
       end
     | S.SubOut tm ->
       let* con = eval tm in
@@ -968,23 +988,26 @@ struct
       let* tp_r = lift_cmp @@ do_el tp_con_r in
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
-    | D.HCom (cut, r, s, phi, clo) ->
+    | D.HCom (cut, r, s, phi, bdy) ->
       let* tpcode = quote_cut cut in
       let* tr = quote_dim r in
       let* ts = quote_dim s in
       let* tphi = quote_cof phi in
-      let+ tube = 
-        binder 1 @@ 
-        let* i = top_dim_var in
-        begin
-          bind_cof_proof (Cof.join (Cof.eq r i) phi) @@ 
-          let* body = lift_cmp @@ inst_tm_clo clo [D.dim_to_con i; D.Prf] in
-          quote_con (D.El cut) body
-        end |>> function
-        | `Ret tm -> ret tm
-        | `Abort -> ret S.CofAbort
+      let+ tbdy = 
+        let+ tm = 
+          binder 1 @@ 
+          let* i = top_dim_var in
+          begin
+            bind_cof_proof (Cof.join (Cof.eq r i) phi) @@ 
+            let* body = lift_cmp @@ do_ap2 bdy (D.dim_to_con i) D.Prf in 
+            quote_con (D.El cut) body
+          end |>> function
+          | `Ret tm -> ret tm
+          | `Abort -> ret S.CofAbort
+        in 
+        S.Lam (S.Lam tm)
       in
-      S.HCom (tpcode, tr, ts, tphi, tube)
+      S.HCom (tpcode, tr, ts, tphi, tbdy)
     | D.SubOut (cut, phi, clo) ->
       let+ tm = quote_cut cut in
       S.SubOut tm
@@ -1363,7 +1386,7 @@ struct
       let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
-    | D.HCom (cut0, r0, s0, phi0, clo0), D.HCom (cut1, r1, s1, phi1, clo1) ->
+    | D.HCom (cut0, r0, s0, phi0, bdy0), D.HCom (cut1, r1, s1, phi1, bdy1) ->
       let* () = equate_cut cut0 cut1 in
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
@@ -1371,8 +1394,8 @@ struct
       binder 1 @@ 
       let* i = top_dim_var in
       under_cof (Cof.join (Cof.eq i r0) phi0) @@ binder 1 @@
-      let* con0 = lift_cmp @@ inst_tm_clo clo0 [D.dim_to_con i; D.Prf] in
-      let* con1 = lift_cmp @@ inst_tm_clo clo1 [D.dim_to_con i; D.Prf] in
+      let* con0 = lift_cmp @@ do_ap2 bdy0 (D.dim_to_con i) D.Prf in
+      let* con1 = lift_cmp @@ do_ap2 bdy1 (D.dim_to_con i) D.Prf in
       equate_con (D.El cut0) con0 con1
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1

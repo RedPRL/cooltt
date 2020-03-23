@@ -21,18 +21,13 @@ and tp_clo =
 
 and tm_clo = 
   | Clo of S.t * env
-  | SgHComFibClo of {src : dim; base : con; fam : con; cof : cof; clo : tm_clo} 
-  | AppClo of con * tm_clo
-  | FstClo of tm_clo 
-  | SndClo of tm_clo
-  | ComClo of dim * con * tm_clo
   | SplitClo of tp * cof * cof * tm_clo * tm_clo
   | SubOutClo of tm_clo
 
 and con =
   | Lam of tm_clo
   | ConCoe of [`Pi | `Sg | `Path] * con * dim * dim * con
-  | ConHCom of [`Pi | `Sg | `Path] * con * dim * dim * cof * tm_clo (* TODO: change tm_clo to con *)
+  | ConHCom of [`Pi | `Sg | `Path] * con * dim * dim * cof * con
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
   | Suc of con
@@ -52,7 +47,6 @@ and con =
   | CodeNat
 
   | Destruct of dst
-  | Compose of con * con
 
 and tp = 
   | Sub of tp * cof * tm_clo
@@ -71,7 +65,7 @@ and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
   | Coe of con * dim * dim * con
-  | HCom of cut * dim * dim * cof * tm_clo (* TODO: change tm_clo to con *)
+  | HCom of cut * dim * dim * cof * con
   | SubOut of cut * cof * tm_clo
   | Split of tp * cof * cof * tm_clo * tm_clo
 
