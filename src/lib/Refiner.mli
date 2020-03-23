@@ -1,3 +1,6 @@
+(** This is the basis of trusted inference rules for cooltt. This module also contains 
+    some auxiliary tactics, but these don't need to be trusted so they should be moved elsewhere. *)
+
 module D := Domain
 module S := Syntax
 module EM := Monads.ElabM
