@@ -43,7 +43,7 @@ let rec reduce =
   | Var v -> var v
 
 
-(* TODO: make the output more beautiful *)
+(* TODO: make the output even more beautiful *)
 let rec pp_cof pp_v pp env fmt =
   function
   | Cof (Eq (x, y)) -> 
@@ -51,11 +51,11 @@ let rec pp_cof pp_v pp env fmt =
       (pp env) x
       (pp env) y
   | Cof (Join (phi, psi)) ->
-    Format.fprintf fmt "(%a) \\/ (%a)"
+    Format.fprintf fmt "(%a) ∨ (%a)"
       (pp_cof pp_v pp env) phi
       (pp_cof pp_v pp env) psi
   | Cof (Meet (phi, psi)) ->
-    Format.fprintf fmt "(%a) /\\ (%a)"
+    Format.fprintf fmt "(%a) ∧ (%a)"
       (pp_cof pp_v pp env) phi
       (pp_cof pp_v pp env) psi
   | Cof Bot -> 
