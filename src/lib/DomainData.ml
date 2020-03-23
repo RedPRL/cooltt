@@ -22,22 +22,20 @@ and tp_clo =
 and tm_clo = 
   | Clo of S.t * env
   | PiCoeBaseClo of tm_clo
-  | PiCoeFibClo of {dest : dim; base_abs : coe_abs; arg : con; clo: tm_clo}
+  | PiCoeFibClo of {dest : dim; base_abs : tm_clo; arg : con; clo: tm_clo}
   | SgCoeBaseClo of tm_clo
-  | SgCoeFibClo of {src : dim; base_abs : coe_abs; fst : con; clo: tm_clo}
+  | SgCoeFibClo of {src : dim; base_abs : tm_clo; fst : con; clo: tm_clo}
   | SgHComFibClo of {src : dim; base : con; fam : con; cof : cof; clo : tm_clo} 
   | AppClo of con * tm_clo
   | FstClo of tm_clo 
   | SndClo of tm_clo
-  | ComClo of dim * coe_abs * tm_clo
+  | ComClo of dim * tm_clo * tm_clo
   | SplitClo of tp * cof * cof * tm_clo * tm_clo
   | SubOutClo of tm_clo
 
-and coe_abs = CoeAbs of {clo : tm_clo}
-
 and con =
   | Lam of tm_clo
-  | ConCoe of [`Pi | `Sg | `Path] * coe_abs * dim * dim * con
+  | ConCoe of [`Pi | `Sg | `Path] * tm_clo * dim * dim * con
   | ConHCom of [`Pi | `Sg | `Path] * con * dim * dim * cof * tm_clo
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
@@ -74,7 +72,7 @@ and tp =
 and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
-  | Coe of coe_abs * dim * dim * con
+  | Coe of tm_clo * dim * dim * con
   | HCom of cut * dim * dim * cof * tm_clo
   | SubOut of cut * cof * tm_clo
   | Split of tp * cof * cof * tm_clo * tm_clo

@@ -33,7 +33,7 @@ sig
   val do_el : D.con -> D.tp compute
   val force_lazy_con : D.lazy_con -> D.con compute
 
-  val do_rigid_coe : D.coe_abs -> D.dim -> D.dim -> D.con -> D.con compute
+  val do_rigid_coe : D.tm_clo -> D.dim -> D.dim -> D.con -> D.con compute
   val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.tm_clo -> D.con compute
 
   val con_to_dim : D.con -> D.dim compute
@@ -333,8 +333,8 @@ struct
     | D.Pair (con0, _) -> 
       ret con0
 
-    | D.ConCoe (`Sg, D.CoeAbs abs, r, s, con) -> 
-      let base_abs = D.CoeAbs {clo = D.SgCoeBaseClo abs.clo} in
+    | D.ConCoe (`Sg, abs, r, s, con) -> 
+      let base_abs = D.SgCoeBaseClo abs in
       do_rigid_coe base_abs r s @<< do_fst con
 
     | D.ConHCom (`Sg, code, r, s, phi, clo) -> 
@@ -354,15 +354,15 @@ struct
     | D.Pair (_, con1) -> 
       ret con1
 
-    | D.ConCoe (`Sg, D.CoeAbs abs, r, s, con) -> 
-      let base_abs = D.CoeAbs {clo = D.SgCoeBaseClo abs.clo} in
+    | D.ConCoe (`Sg, abs, r, s, con) -> 
+      let base_abs = D.SgCoeBaseClo abs in
       let* con_fst = do_fst con in
-      let fib_abs = D.CoeAbs {clo = D.SgCoeFibClo {src = r; base_abs; fst = con_fst; clo = abs.clo}} in
+      let fib_abs = D.SgCoeFibClo {src = r; base_abs; fst = con_fst; clo = abs} in
       do_rigid_coe fib_abs r s @<< do_snd con
 
     | D.ConHCom (`Sg, code, r, s, phi, clo) -> 
       let* base, fam = dest_sg_code code in
-      let* fib_abs = ret @@ D.CoeAbs {clo = SgHComFibClo {src = r; base; fam; cof = phi; clo}} in
+      let* fib_abs = ret @@ D.SgHComFibClo {src = r; base; fam; cof = phi; clo} in
       do_rigid_com fib_abs r s phi @@ D.SndClo clo
 
     | D.Cut {tp = D.Sg (_, fam); cut; unfold} ->
@@ -380,9 +380,9 @@ struct
     | D.Lam clo -> 
       inst_tm_clo clo [a]
 
-    | D.ConCoe (`Pi, D.CoeAbs abs, r, s, f) ->
-      let base_abs = D.CoeAbs {clo = D.PiCoeBaseClo abs.clo} in
-      let fib_abs = D.CoeAbs {clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; clo = abs.clo}} in
+    | D.ConCoe (`Pi, abs, r, s, f) ->
+      let base_abs = D.PiCoeBaseClo abs in
+      let fib_abs = D.PiCoeFibClo {dest = s; base_abs; arg = a; clo = abs} in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
     | D.ConHCom (`Pi, code, r, s, phi, clo) ->
@@ -440,26 +440,26 @@ struct
     | true -> ret con 
     | _ -> do_rigid_coe abs r s con
 
-  and do_rigid_coe (D.CoeAbs abs) r s con =
+  and do_rigid_coe abs r s con =
     let i = D.DimProbe (Symbol.fresh ()) in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
-        ret @@ D.ConCoe (`Pi, D.CoeAbs abs, r, s, con)
+        ret @@ D.ConCoe (`Pi, abs, r, s, con)
       | D.CodeSg _ ->
-        ret @@ D.ConCoe (`Sg, D.CoeAbs abs, r, s, con)
+        ret @@ D.ConCoe (`Sg, abs, r, s, con)
       | D.CodePath _ ->
         raise Todo
       | D.Cut {unfold = Some lcon} -> 
         go @<< force_lazy_con lcon
       | D.Cut {cut; unfold = None} ->
-        let hd = D.Coe (D.CoeAbs abs, r, s, con) in
-        let+ tp = do_el @<< inst_tm_clo abs.clo [D.dim_to_con s] in
+        let hd = D.Coe (abs, r, s, con) in
+        let+ tp = do_el @<< inst_tm_clo abs [D.dim_to_con s] in
         D.Cut {tp; cut = hd, []; unfold = None}
       | _ ->
         throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
     in
-    go @<< inst_tm_clo abs.clo [D.dim_to_con i]
+    go @<< inst_tm_clo abs [D.dim_to_con i]
 
 
   and do_rigid_hcom code r s phi clo = 
@@ -480,9 +480,9 @@ struct
     | _ ->
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
-  and do_rigid_com (D.CoeAbs abs) r s phi clo =
-    let* code_s = inst_tm_clo abs.clo [D.dim_to_con s] in
-    do_rigid_hcom code_s r s phi @@ D.ComClo (s, D.CoeAbs abs, clo)
+  and do_rigid_com abs r s phi clo =
+    let* code_s = inst_tm_clo abs [D.dim_to_con s] in
+    do_rigid_hcom code_s r s phi @@ D.ComClo (s, abs, clo)
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
@@ -721,7 +721,7 @@ struct
   and eval_coe_abs code = 
     let+ env = read_local in 
     let clo = D.Clo (code, env) in
-    D.CoeAbs {clo} 
+    clo 
 
   and eval_ghost =
     function 
@@ -924,16 +924,16 @@ struct
       S.Var (n - (lvl + 1))
     | D.Global sym ->
       ret @@ S.Global sym
-    | D.Coe (D.CoeAbs abs, r, s, con) ->
+    | D.Coe (abs, r, s, con) ->
       let* tpcode = 
         binder 1 @@ 
         let* i = top_dim_var in
-        let* code = lift_cmp @@ inst_tm_clo abs.clo [D.dim_to_con i] in
+        let* code = lift_cmp @@ inst_tm_clo abs [D.dim_to_con i] in
         quote_con D.Univ code
       in
       let* tr = quote_dim r in
       let* ts = quote_dim s in
-      let* tp_con_r = lift_cmp @@ inst_tm_clo abs.clo [D.dim_to_con r] in
+      let* tp_con_r = lift_cmp @@ inst_tm_clo abs [D.dim_to_con r] in
       let* tp_r = lift_cmp @@ do_el tp_con_r in
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
@@ -1319,17 +1319,17 @@ struct
     | D.Var lvl0, D.Var lvl1 ->
       if lvl0 = lvl1 then ret () else
         throw @@ NbeFailed "Different head variables"
-    | D.Coe (D.CoeAbs abs0, r0, s0, con0), D.Coe (D.CoeAbs abs1, r1, s1, con1) -> 
+    | D.Coe (abs0, r0, s0, con0), D.Coe (abs1, r1, s1, con1) -> 
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
       let* () = 
         binder 1 @@ 
         let* i = top_dim_var in
-        let* code0 = lift_cmp @@ inst_tm_clo abs0.clo [D.dim_to_con i] in
-        let* code1 = lift_cmp @@ inst_tm_clo abs1.clo [D.dim_to_con i] in
+        let* code0 = lift_cmp @@ inst_tm_clo abs0 [D.dim_to_con i] in
+        let* code1 = lift_cmp @@ inst_tm_clo abs1 [D.dim_to_con i] in
         equate_con D.Univ code0 code1
       in
-      let* code = lift_cmp @@ inst_tm_clo abs0.clo [D.dim_to_con r0] in
+      let* code = lift_cmp @@ inst_tm_clo abs0 [D.dim_to_con r0] in
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
     | D.HCom (cut0, r0, s0, phi0, clo0), D.HCom (cut1, r1, s1, phi1, clo1) ->
