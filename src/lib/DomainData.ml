@@ -30,10 +30,8 @@ and tm_clo =
   | FstClo of tm_clo 
   | SndClo of tm_clo
   | ComClo of dim * coe_abs * tm_clo
-  | ConstClo of con
   | SplitClo of tp * cof * cof * tm_clo * tm_clo
   | SubOutClo of tm_clo
-  | CloFromFun of con
 
 and coe_abs = CoeAbs of {clo : tm_clo}
 

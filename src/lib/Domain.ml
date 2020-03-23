@@ -1,6 +1,8 @@
 include DomainData
 open CoolBasis
 
+module S = Syntax
+
 let pp_tp fmt _ = 
   Format.fprintf fmt "<tp>"
 
@@ -9,6 +11,15 @@ let push frm (hd, sp) =
 
 let mk_var tp lvl = 
   Cut {tp; cut = Var lvl, []; unfold = None}
+
+let const_tm_clo con = 
+  Clo (S.Var 1, Snoc (Emp, con)) 
+  (* y, x |= y *)
+
+let clo_from_fun con = 
+  Clo (S.Ap (S.Var 1, S.Var 0), Snoc (Emp, con))
+  (* y, x |= y(x) *)
+
 
 let dim_to_con =
   function

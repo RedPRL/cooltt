@@ -68,11 +68,11 @@ struct
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@ 
-    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.ConstClo D.Abort) in 
+    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in 
     EM.lift_qu @@ Nbe.quote_tp @@ D.El cut
 
   let unleash_syn_hole name flexity : T.syn_tac =
-    let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.ConstClo D.Abort) in 
+    let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in 
     let+ tm = T.bchk_to_chk (unleash_hole name flexity) @@ D.El tpcut in
     tm, D.El tpcut
 end

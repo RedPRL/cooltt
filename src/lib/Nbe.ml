@@ -250,7 +250,7 @@ struct
         ret @@ Cof.join (Cof.eq r D.Dim0) (Cof.eq r D.Dim1)
       in
       (* _ : [phi] |- A r *)
-      ret @@ D.Sub (elfib, phi, D.CloFromFun bdry_r)
+      ret @@ D.Sub (elfib, phi, D.clo_from_fun bdry_r)
     | CloBoundaryType fam ->
       let rcon = List.hd xs in
       let* phi = 
@@ -316,12 +316,6 @@ struct
         | `Done -> ret con
         | `Reduce con -> ret con
       end
-    | D.ConstClo con ->
-      ret con
-
-    | D.CloFromFun con ->
-      let v = List.hd xs in
-      do_ap con v
 
   and do_goal_proj =
     function
@@ -401,7 +395,7 @@ struct
       cut_frm ~tp:fib ~cut ~unfold @@ D.KAp (base, a) 
 
     | _ -> 
-      Format.eprintf "Bad: %a" D.pp_con f;
+      Format.eprintf "Bad: %a@." D.pp_con f;
       throw @@ NbeFailed "Not a function in do_ap"
 
   and do_sub_out v =

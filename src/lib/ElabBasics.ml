@@ -20,7 +20,7 @@ let push_var id tp : 'a m -> 'a m =
 
 let push_def id tp con : 'a m -> 'a m = 
   scope @@ fun env ->
-  let tp' = D.Sub (tp, Cof.top, D.ConstClo con) in
+  let tp' = D.Sub (tp, Cof.top, D.const_tm_clo con) in
   let con' = D.SubIn con in
   Env.append_con id con' tp' env
 

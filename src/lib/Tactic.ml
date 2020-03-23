@@ -50,7 +50,7 @@ type syn_tac = (S.t * D.tp) EM.m
 
 let bchk_to_chk : bchk_tac -> chk_tac =
   fun btac tp -> 
-  let triv = D.ConstClo D.Abort in
+  let triv = D.const_tm_clo D.Abort in
   btac (tp, Cof.bot, triv)
 
 
