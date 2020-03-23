@@ -19,7 +19,6 @@ type t =
   | GoalProj of t
   | Coe of t * t * t * t
   | HCom of t * t * t * t * t
-  | TpCode of t gtp
   | SubIn of t
   | SubOut of t
   | Dim0
@@ -30,23 +29,22 @@ type t =
   | Prf
 
   | CodePath of t * t
+  | CodePi of t * t
+  | CodeSg of t * t
+  | CodeNat
 
 and tp = 
-  | Tp of tp gtp
-  | Univ : tp
-  | El : t -> tp
-  | GoalTp : string option * tp -> tp
-  | TpDim : tp
-  | TpCof : tp
-  | TpPrf : t -> tp
-  | Sub : tp * t * t -> tp
-
-and 'a gtp =
+  | Univ
+  | El of t
+  | GoalTp of string option * tp
+  | TpDim
+  | TpCof
+  | TpPrf of t 
+  | Sub of tp * t * t 
+  | Pi of tp * tp
+  | Sg of tp * tp 
+  | Id of tp * t * t 
   | Nat
-  | Pi of 'a * 'a 
-  | Sg of 'a * 'a 
-  | Id of 'a * t * t 
-
 
 and ghost = string bwd * (tp * t) list
 

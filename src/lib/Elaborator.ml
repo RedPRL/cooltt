@@ -102,12 +102,12 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Pi (cells, body) ->
     let tac (CS.Cell cell) =  Some cell.name, chk_tm cell.tp in
     let tacs = cells |> List.map tac in 
-    T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier R.Univ.pi tacs @@ chk_tm body
+    let quant base (nm, fam) = R.Univ.pi base (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk fam) in
+    T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
-    T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier R.Univ.sg tacs @@ chk_tm body
-  | CS.Id (tp, l, r) ->
-    T.chk_to_bchk @@ R.Univ.id (chk_tm tp) (chk_tm l) (chk_tm r)
+    let quant base (nm, fam) = R.Univ.sg base (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk fam) in
+    T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.CofEq (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
   | CS.Join (c0, c1) ->

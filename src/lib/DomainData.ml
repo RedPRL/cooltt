@@ -14,12 +14,12 @@ type env = con bwd
 
 and ('t, 'o) clo = 
   | Clo : {bdy : 't; env : env}  -> ('t, 'o) clo
-  | ElClo : (S.t, con) clo -> (S.tp, tp) clo
+  | ElClo : con -> (S.tp, tp) clo
   | PiCoeBaseClo : (S.t, con) clo -> (S.t, con) clo
   | PiCoeFibClo : {dest : dim; base_abs : coe_abs; arg : con; clo: (S.t, con) clo} -> (S.t, con) clo
   | SgCoeBaseClo : (S.t, con) clo -> (S.t, con) clo
   | SgCoeFibClo : {src : dim; base_abs : coe_abs; fst : con; clo: (S.t, con) clo} -> (S.t, con) clo
-  | SgHComFibClo : {src : dim; base : con; fam : tm_clo; cof : cof; clo : (S.t, con) clo} -> (S.t, con) clo
+  | SgHComFibClo : {src : dim; base : con; fam : con; cof : cof; clo : (S.t, con) clo} -> (S.t, con) clo
   | AppClo : con * (S.t, con) clo -> (S.t, con) clo
   | FstClo : (S.t, con) clo -> (S.t, con) clo
   | SndClo : (S.t, con) clo -> (S.t, con) clo
@@ -48,7 +48,6 @@ and con =
   | Pair of con * con
   | Refl of con
   | GoalRet of con
-  | TpCode of (con, S.t) gtp
   | Abort
   | SubIn of con
   | DimCon0
@@ -57,10 +56,12 @@ and con =
   | Prf
 
   | CodePath of con * con
+  | CodePi of con * con
+  | CodeSg of con * con
+  | CodeNat
 
 
 and tp = 
-  | Tp of (tp, S.tp) gtp
   | Sub of tp * cof * tm_clo
   | Univ
   | El of cut
@@ -68,12 +69,10 @@ and tp =
   | TpDim 
   | TpCof
   | TpPrf of cof 
-
-and (_, _) gtp =
-  | Nat : ('d, 't) gtp
-  | Id : 'd * con * con -> ('d, 't) gtp
-  | Pi : 'd * ('t, 'd) clo -> ('d, 't) gtp
-  | Sg : 'd * ('t, 'd) clo -> ('d, 't) gtp
+  | Pi of tp * tp_clo
+  | Sg of tp * tp_clo
+  | Id : tp * con * con -> tp
+  | Nat
 
 and hd =
   | Global of Symbol.t 

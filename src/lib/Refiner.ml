@@ -32,7 +32,7 @@ struct
         let name = Env.Cell.name cell in
         let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
         and+ fam = EM.push_var name ctp @@ go_tp cells in
-        S.Tp (S.Pi (base, fam))
+        S.Pi (base, fam)
     in
 
     let rec go_tm cut : Env.cell bwd -> D.cut =
@@ -86,108 +86,6 @@ struct
     S.GoalTp (lbl, tp)
 end
 
-
-module type TypeGoal =
-sig
-  type tac
-  type goal
-  type tp
-
-  val make : (goal -> tp EM.m) -> tac
-  val make_virtual : (goal -> tp EM.m) -> tac
-  val run : goal -> tac -> tp EM.m
-  val run_virtual : goal -> tac -> tp EM.m
-
-  val eval_tp : tp -> D.tp EM.m
-
-  val tp : tp S.gtp -> tp 
-end
-
-module TypeGoalTp : TypeGoal with type tac = T.tp_tac = 
-struct 
-  type goal = unit
-  type tp = S.tp
-  type tac = T.tp_tac
-
-  let make tac = T.Tp.make @@ tac ()
-  let make_virtual tac = T.Tp.make_virtual @@ tac ()
-  let run _ tac = T.Tp.run tac
-  let run_virtual _ tac = T.Tp.run_virtual tac
-
-  let eval_tp tp =
-    EM.lift_ev @@ Nbe.eval_tp tp
-
-  let tp tp = S.Tp tp
-end
-
-module TypeGoalCode : TypeGoal with type tac = T.chk_tac = 
-struct
-  type goal = D.tp
-  type tp = S.t 
-  type tac = T.chk_tac
-
-  let dest_univ =
-    function
-    | D.Univ -> EM.ret ()
-    | tp -> EM.elab_err @@ Err.ExpectedConnective (`Univ, tp)
-
-  let make tac = 
-    fun univ ->
-    let* () = dest_univ univ in
-    tac univ
-
-  let run tp tac = tac tp
-
-  let make_virtual = make
-  let run_virtual = run
-
-  let eval_tp tp =
-    EM.lift_ev @@ Nbe.eval_tp @@ S.El tp
-
-  let tp tp = S.TpCode tp
-end
-
-module FormationRules (G : TypeGoal) : 
-sig
-  val nat : G.tac
-  val pi : G.tac -> CS.ident option * G.tac -> G.tac
-  val sg : G.tac -> CS.ident option * G.tac -> G.tac
-  val id : G.tac -> T.chk_tac -> T.chk_tac -> G.tac
-end = 
-struct 
-  let nat =
-    G.make @@ fun _ ->
-    EM.ret @@ G.tp S.Nat
-
-  let family tac_base (nm, tac_fam) goal =
-    let* base = G.run goal tac_base in
-    let* vbase = G.eval_tp base in
-    let+ fam = EM.push_var nm vbase @@ G.run goal tac_fam in 
-    base, fam
-
-  let pi (tac_base : G.tac) (nm, tac_fam) : G.tac = 
-    G.make @@ fun goal ->
-    let* base = G.run_virtual goal tac_base in
-    let* vbase = G.eval_tp base in
-    let+ fam = EM.push_var nm vbase @@ G.run goal tac_fam in 
-    G.tp @@ S.Pi (base, fam)
-
-  let sg (tac_base : G.tac) (nm, tac_fam) : G.tac = 
-    G.make @@ fun goal ->
-    let+ base, fam = family tac_base (nm, tac_fam) goal in
-    G.tp @@ S.Sg (base, fam)
-
-  let id tac_tp tac_l tac_r =
-    G.make @@ fun goal ->
-    let* tp = G.run goal tac_tp in
-    let* vtp = G.eval_tp tp in
-    let+ l = tac_l vtp
-    and+ r = tac_r vtp in
-    G.tp @@ S.Id (tp, l, r)
-end
-
-module TypeFormationRules = FormationRules (TypeGoalTp)
-module CodeFormationRules = FormationRules (TypeGoalCode)
 
 module Sub = 
 struct
@@ -350,8 +248,6 @@ end
 
 module Univ = 
 struct
-  include CodeFormationRules
-
   let formation : T.tp_tac = 
     T.Tp.make @@
     EM.ret S.Univ
@@ -361,17 +257,51 @@ struct
     let+ tm = tac D.Univ in
     S.El tm
 
-  let path _ _ =
+  let univ_tac : T.chk_tac -> T.chk_tac =
+    fun m ->
+    function
+    | D.Univ -> m D.Univ
+    | tp ->
+      EM.elab_err @@ Err.ExpectedConnective (`Univ, tp)
+
+  let nat : T.chk_tac = 
+    univ_tac @@ fun _ -> EM.ret S.CodeNat
+
+  let quantifier tac_base tac_fam =
+    fun univ ->
+    let* base = tac_base univ in
+    let* vbase = EM.lift_ev @@ Nbe.eval_tp @@ S.El base in
+    let famtp = D.Pi (vbase, D.ConstTpClo univ) in
+    let+ fam = tac_fam famtp in
+    base, fam
+
+  let pi tac_base tac_fam : T.chk_tac =
+    univ_tac @@ fun univ ->
+    let+ tp, fam = quantifier tac_base tac_fam univ in
+    S.CodePi (tp, fam)
+
+  let sg tac_base tac_fam : T.chk_tac =
+    univ_tac @@ fun univ ->
+    let+ tp, fam = quantifier tac_base tac_fam univ in
+    S.CodeSg (tp, fam)
+
+  let path _ _ : T.chk_tac =
     raise Todo
 end
 
 module Id = 
 struct
-  let formation = TypeFormationRules.id
+  let formation (tac_tp : T.tp_tac) (tac0 : T.chk_tac) (tac1 : T.chk_tac) : T.tp_tac = 
+    T.Tp.make @@
+    let* tp = T.Tp.run tac_tp in
+    let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
+    let+ tm0 = tac0 vtp
+    and+ tm1 = tac1 vtp in
+    S.Id (tp, tm0, tm1)
 
   let intro : T.chk_tac =
     function
-    | D.Tp (D.Id (tp, l, r)) ->
+    | D.Id (tp, l, r) ->
       let+ () = EM.equate tp l r
       and+ t = EM.lift_qu @@ Nbe.quote_con tp l in
       S.Refl t
@@ -385,7 +315,7 @@ struct
     let* tmot =
       EM.abstract nm_x0 tp @@ fun x0 ->
       EM.abstract nm_x1 tp @@ fun x1 ->
-      EM.abstract nm_p (D.Tp (D.Id (tp, x0, x1))) @@ fun _ ->
+      EM.abstract nm_p (D.Id (tp, x0, x1)) @@ fun _ ->
       T.Tp.run tac_mot
     in
     let* t_refl_case =
@@ -403,11 +333,17 @@ end
 
 module Pi =
 struct 
-  let formation = TypeFormationRules.pi 
+  let formation : (T.tp_tac, T.tp_tac) quantifier =
+    fun tac_base (nm, tac_fam) ->
+      T.Tp.make @@
+      let* base = T.Tp.run_virtual tac_base in 
+      let* vbase = EM.lift_ev @@ Nbe.eval_tp base in 
+      let+ fam = EM.push_var nm vbase @@ T.Tp.run tac_fam in 
+      S.Pi (base, fam)
 
   let intro name (tac_body : T.bchk_tac) : T.bchk_tac =
     function
-    | D.Tp (D.Pi (base, fam)), phi, phi_clo ->
+    | D.Pi (base, fam), phi, phi_clo ->
       EM.abstract name base @@ fun var ->
       let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
       let+ tm = tac_body (fib, phi, D.AppClo (var, phi_clo)) in
@@ -428,11 +364,17 @@ end
 
 module Sg = 
 struct
-  let formation = TypeFormationRules.sg
+  let formation : (T.tp_tac, T.tp_tac) quantifier =
+    fun tac_base (nm, tac_fam) ->
+      T.Tp.make @@
+      let* base = T.Tp.run tac_base in 
+      let* vbase = EM.lift_ev @@ Nbe.eval_tp base in 
+      let+ fam = EM.push_var nm vbase @@ T.Tp.run tac_fam in 
+      S.Sg (base, fam)
 
   let intro (tac_fst : T.bchk_tac) (tac_snd : T.bchk_tac) : T.bchk_tac =
     function
-    | D.Tp (D.Sg (base, fam)), phi, phi_clo ->
+    | D.Sg (base, fam), phi, phi_clo ->
       let* tfst = tac_fst (base, phi, D.FstClo phi_clo) in
       let+ tsnd = 
         let* vfst = EM.lift_ev @@ Nbe.eval tfst in
@@ -461,11 +403,13 @@ end
 
 module Nat = 
 struct
-  let formation = TypeFormationRules.nat
+  let formation = 
+    T.Tp.make @@
+    EM.ret S.Nat
 
   let assert_nat =
     function
-    | D.Tp D.Nat -> EM.ret ()
+    | D.Nat -> EM.ret ()
     | tp -> EM.elab_err @@ Err.ExpectedConnective (`Nat, tp)
 
   let literal n : T.chk_tac =
@@ -548,7 +492,7 @@ struct
 
   let rec tac_lam name tac_body : T.bchk_tac = 
     match_goal @@ function
-    | D.Tp (D.Pi _), _, _ ->
+    | D.Pi _, _, _ ->
       EM.ret @@ Pi.intro name tac_body
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ tac_lam name tac_body
@@ -591,7 +535,7 @@ struct
       let* tscrut, ind_tp = scrut in
       let scrut = EM.ret (tscrut, ind_tp) in
       match ind_tp, mot with
-      | D.Tp (D.Id (_, _, _)), ([nm_u; nm_v; nm_p], mot) ->
+      | D.Id (_, _, _), ([nm_u; nm_v; nm_p], mot) ->
         let* tac_refl =
           match find_case "refl" cases with
           | Some ([`Simple nm_w], tac) -> EM.ret (nm_w, tac)
@@ -600,7 +544,7 @@ struct
           | None -> EM.ret (None, T.bchk_to_chk @@ Hole.unleash_hole (Some "refl") `Rigid)
         in
         Id.elim (nm_u, nm_v, nm_p, mot) tac_refl scrut
-      | D.Tp D.Nat, ([nm_x], mot) ->
+      | D.Nat, ([nm_x], mot) ->
         let* tac_zero = 
           match find_case "zero" cases with 
           | Some ([], tac) -> EM.ret tac
@@ -622,7 +566,7 @@ struct
 
     let assert_simple_inductive =
       function
-      | D.Tp D.Nat -> 
+      | D.Nat -> 
         EM.ret () 
       | tp ->
         let* env = EM.read in

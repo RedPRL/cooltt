@@ -1,8 +1,6 @@
 open CoolBasis open Bwd
 include SyntaxData
 
-exception Todo
-
 let rec condense = 
   function
   | Zero -> Some 0
@@ -117,8 +115,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hv1>(goal-ret %a)@]" (pp env) tm
   | _, GoalProj tm ->
     Fmt.fprintf fmt "@[<hv1>(goal-proj %a)@]" (pp env) tm
-  | _, TpCode gtp ->
-    pp_gtp_ (fun env _ -> pp env) env `Start fmt gtp
   | _, SubIn tm ->
     Fmt.fprintf fmt "@[<hv1>(sub/in %a)@]" (pp env) tm
   | _, SubOut tm ->
@@ -155,7 +151,13 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, Prf ->
     Fmt.fprintf fmt "*"
   | _, CodePath _ ->
-    raise Todo
+    Fmt.fprintf fmt "<CodePath>"
+  | _, CodePi _ ->
+    Fmt.fprintf fmt "<CodePi>"
+  | _, CodeSg _ ->
+    Fmt.fprintf fmt "<CodeSg>"
+  | _, CodeNat -> 
+    Fmt.fprintf fmt "<CodeNat>"
 
 and pp env = pp_ env `Start
 
@@ -181,48 +183,6 @@ and pp_problem fmt problem =
   let dot fmt () = Fmt.fprintf fmt "." in
   Fmt.pp_print_list ~pp_sep:dot Uuseg_string.pp_utf_8 fmt lbls
 
-
-and pp_gtp_ : type x. (Pp.env -> [`Start | `Pi | `Sg] -> x Pp.printer) -> Pp.env -> [`Start | `Pi | `Sg] -> x gtp Pp.printer = 
-  fun go env mode fmt gtp -> 
-  match mode, gtp with 
-  | `Pi, Pi (base, fam) -> 
-    let x, env' = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "[%a : %a]@ %a" 
-      Uuseg_string.pp_utf_8 x 
-      (go env `Start) base 
-      (go env' `Pi) fam
-  | _, Pi (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
-      Uuseg_string.pp_utf_8 "->" 
-      Uuseg_string.pp_utf_8 x 
-      (go env `Start) base 
-      (go envx `Pi) fam
-  | `Sg, Sg (base, fam) ->
-    let x, env' = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "[%a : %a]@ %a" 
-      Uuseg_string.pp_utf_8 x 
-      (go env `Start) base 
-      (go env' `Sg) fam
-  | _, Sg (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt 
-      "@[<hv1>(%a @[<hv>[%a : %a]@ %a@])@]" 
-      Uuseg_string.pp_utf_8 "*" 
-      Uuseg_string.pp_utf_8 x 
-      (go env `Start) base 
-      (go envx `Pi) fam
-  | _, Id (tp, l, r) ->
-    Format.fprintf fmt 
-      "@[<hv1>(Id@ %a@ %a@ %a)@]" 
-      (go env `Start) tp 
-      (pp env) l 
-      (pp env) r
-  | _, Nat ->
-    Format.fprintf fmt "nat"
 
 and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer = 
   fun fmt tp ->
@@ -251,8 +211,14 @@ and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer =
   | TpPrf phi->
     Format.fprintf fmt "@[<hv1>(prf@ %a)@]"
       (pp env) phi
-  | Tp gtp -> 
-    pp_gtp_ pp_tp_ env mode fmt gtp
+  | Id _ -> 
+    Format.fprintf fmt "<Id>"
+  | Pi _ -> 
+    Format.fprintf fmt "<Pi>"
+  | Sg _ -> 
+    Format.fprintf fmt "<Sg>"
+  | Nat ->
+    Format.fprintf fmt "nat"
 
 and pp_tp env = pp_tp_ env `Start
 
@@ -270,7 +236,7 @@ let pp_sequent_goal env fmt tp  =
 
 let rec pp_sequent_inner ~names env fmt tp =
   match names, tp with
-  | nm :: names, Tp (Pi (base, fam)) ->
+  | nm :: names, Pi (base, fam) ->
     let x, envx = Pp.Env.bind env @@ Some nm in
     Fmt.fprintf fmt "%a : %a@;%a"
       Uuseg_string.pp_utf_8 x

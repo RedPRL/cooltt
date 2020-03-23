@@ -9,15 +9,17 @@ module T = Tactic
 open CoolBasis
 open Monad.Notation (EM)
 
+exception Todo
+
 let rec chk_tp : S.tp -> T.tp_tac =
   function
-  | S.Tp (S.Pi (base, fam)) ->
+  | S.Pi (base, fam) ->
     R.Pi.formation (chk_tp base) (None, chk_tp fam)
-  | S.Tp (S.Sg (base, fam)) ->
+  | S.Sg (base, fam) ->
     R.Sg.formation (chk_tp base) (None, chk_tp fam)
-  | S.Tp (S.Id (tp, l, r)) ->
+  | S.Id (tp, l, r) ->
     R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
-  | S.Tp S.Nat -> 
+  | S.Nat -> 
     R.Nat.formation
   | S.Univ -> 
     R.Univ.formation
@@ -48,14 +50,13 @@ and chk_tm : S.t -> T.chk_tac =
     T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     T.bchk_to_chk @@ R.Sg.intro (T.chk_to_bchk @@ chk_tm t0) (T.chk_to_bchk @@ chk_tm t1)
-  | S.TpCode S.Nat -> 
+  | S.CodePath _ -> raise Todo
+  | S.CodeNat -> 
     R.Univ.nat
-  | S.TpCode (S.Pi (base, fam)) -> 
-    R.Univ.pi (chk_tm base) (None, chk_tm fam)
-  | S.TpCode (S.Sg (base, fam)) -> 
-    R.Univ.sg (chk_tm base) (None, chk_tm fam)
-  | S.TpCode (S.Id (tp, left, right)) ->
-    R.Univ.id (chk_tm tp) (chk_tm left) (chk_tm right)
+  | S.CodeSg (base, fam) -> 
+    R.Univ.sg (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
+  | S.CodePi (base, fam) -> 
+    R.Univ.pi (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
   | t ->
     T.syn_to_chk @@ syn_tm t
 
