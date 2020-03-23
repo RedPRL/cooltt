@@ -343,9 +343,9 @@ struct
       let* con_fst = do_fst con in
 
       let fib_clo : D.tm_clo = 
-        (* BASE/4 : I -> Univ, FAM/3 : (i : I) -> BASE(i) -> UNIV, s/2 : I, a/1 : BASE(s)
+        (* BASE/4 : I -> Univ, FAM/3 : (i : I) -> BASE(i) -> UNIV, r/2 : I, a/1 : BASE(s)
          * |= [i/0:DIM]. 
-         *       FAM i (coe s i BASE a)
+         *       FAM i (coe r i BASE a)
          * *)
         let tm = 
           let tbase = S.Var 4 in
