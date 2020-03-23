@@ -12,36 +12,35 @@ type cof = (dim, int) Cof.cof
 
 type env = con bwd
 
-and ('t, 'o) clo = 
-  | Clo : {bdy : 't; env : env}  -> ('t, 'o) clo
-  | ElClo : con -> (S.tp, tp) clo
-  | PiCoeBaseClo : (S.t, con) clo -> (S.t, con) clo
-  | PiCoeFibClo : {dest : dim; base_abs : coe_abs; arg : con; clo: (S.t, con) clo} -> (S.t, con) clo
-  | SgCoeBaseClo : (S.t, con) clo -> (S.t, con) clo
-  | SgCoeFibClo : {src : dim; base_abs : coe_abs; fst : con; clo: (S.t, con) clo} -> (S.t, con) clo
-  | SgHComFibClo : {src : dim; base : con; fam : con; cof : cof; clo : (S.t, con) clo} -> (S.t, con) clo
-  | AppClo : con * (S.t, con) clo -> (S.t, con) clo
-  | FstClo : (S.t, con) clo -> (S.t, con) clo
-  | SndClo : (S.t, con) clo -> (S.t, con) clo
-  | ComClo : dim * coe_abs * (S.t, con) clo -> (S.t, con) clo
-  | ConstClo : con -> (S.t, con) clo
-  | ConstTpClo : tp -> (S.tp, tp) clo
-  | SplitClo : tp * cof * cof * (S.t, con) clo * (S.t, con) clo -> (S.t, con) clo
-  | SubOutClo : (S.t, con) clo -> (S.t, con) clo 
+and tp_clo = 
+  | TpClo of S.tp * env
+  | ElClo of con
+  | ConstTpClo of tp 
+  | CloFromPathData of con * con
+  | CloBoundaryType of con
 
-  | CloFromPathData : con * con -> (S.tp, tp) clo
-  | CloBoundaryType : con -> (S.tp, tp) clo
-  | CloFromFun : con -> (S.t, con) clo
-
-and tm_clo = (S.t, con) clo
-and tp_clo = (S.tp, tp) clo
+and tm_clo = 
+  | Clo of S.t * env
+  | PiCoeBaseClo of tm_clo
+  | PiCoeFibClo of {dest : dim; base_abs : coe_abs; arg : con; clo: tm_clo}
+  | SgCoeBaseClo of tm_clo
+  | SgCoeFibClo of {src : dim; base_abs : coe_abs; fst : con; clo: tm_clo}
+  | SgHComFibClo of {src : dim; base : con; fam : con; cof : cof; clo : tm_clo} 
+  | AppClo of con * tm_clo
+  | FstClo of tm_clo 
+  | SndClo of tm_clo
+  | ComClo of dim * coe_abs * tm_clo
+  | ConstClo of con
+  | SplitClo of tp * cof * cof * tm_clo * tm_clo
+  | SubOutClo of tm_clo
+  | CloFromFun of con
 
 and coe_abs = CoeAbs of {clo : tm_clo}
 
 and con =
   | Lam of tm_clo
   | ConCoe of coe_abs * dim * dim * con
-  | ConHCom of con * dim * dim * cof * (S.t, con) clo
+  | ConHCom of con * dim * dim * cof * tm_clo
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
   | Suc of con

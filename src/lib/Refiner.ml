@@ -210,7 +210,7 @@ struct
         let* tpsi' = EM.lift_qu @@ Nbe.quote_cof psi' in
         let* phi_rest, rest = 
           let* env = EM.lift_ev @@ EvM.read_local in
-          let phi_clo = D.Clo {bdy = tm; env} in 
+          let phi_clo = D.Clo (tm, env) in 
           let psi'_clo = D.SplitClo (tp, vphi, psi', phi_clo, psi_clo) in
           EM.push_var None (D.TpPrf psi') @@ 
           go (tp, psi', psi'_clo) branches 

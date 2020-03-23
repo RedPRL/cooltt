@@ -230,7 +230,7 @@ struct
   and inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute =
     fun clo xs ->
     match clo with
-    | Clo {bdy; env; _} -> 
+    | TpClo (bdy, env) ->
       lift_ev (env <>< xs) @@ 
       eval_tp bdy
     | ConstTpClo tp -> 
@@ -264,7 +264,7 @@ struct
   and inst_tm_clo : D.tm_clo -> D.con list -> D.con compute =
     fun clo xs ->
     match clo with
-    | D.Clo {bdy; env} -> 
+    | D.Clo (bdy, env) -> 
       lift_ev (env <>< xs) @@ 
       eval bdy
     | D.PiCoeBaseClo clo -> 
@@ -554,7 +554,7 @@ struct
       let+ env = read_local 
       and+ tp = eval_tp tp 
       and+ phi = eval_cof tphi in
-      let cl = D.Clo {bdy = tm; env} in 
+      let cl = D.Clo (tm, env) in 
       D.Sub (tp, phi, cl)
     | S.TpDim  ->
       ret D.TpDim
@@ -643,7 +643,7 @@ struct
           append [D.dim_to_con s] @@ eval tm
         | false ->
           let* env = read_local in
-          let clo = D.Clo {bdy = tm; env} in
+          let clo = D.Clo (tm, env) in 
           lift_cmp @@ do_rigid_hcom vtpcode r s phi clo
       end
     | S.SubOut tm ->
@@ -678,8 +678,8 @@ struct
       let* phi1 = eval_cof tphi1 in 
       let* con = 
         let+ env = read_local in
-        let pclo0 = D.Clo {bdy = tm0; env} in 
-        let pclo1 = D.Clo {bdy = tm1; env} in 
+        let pclo0 = D.Clo (tm0, env) in
+        let pclo1 = D.Clo (tm1, env) in
         let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
         D.Cut {tp; cut = hd, []; unfold = None} 
       in
@@ -722,7 +722,7 @@ struct
 
   and eval_coe_abs code = 
     let+ env = read_local in 
-    let clo = D.Clo {bdy = code; env} in
+    let clo = D.Clo (code, env) in
     D.CoeAbs {clo} 
 
   and eval_ghost =
