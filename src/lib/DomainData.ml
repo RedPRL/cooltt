@@ -81,7 +81,7 @@ and frm =
   | KIdElim of ghost option * tp_clo * tm_clo * tp * con * con
   | KGoalProj
 
-(** destructors: exotic semantic operations that don't exist in syntax *)
+(** destructors: exotic semantic operations that don't exist in syntax; these are meant to fail on things in improper form, rather than become neutral. *)
 and dst =
   | DCodePiSplit
   | DCodeSgSplit
