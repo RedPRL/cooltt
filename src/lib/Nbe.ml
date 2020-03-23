@@ -105,14 +105,14 @@ struct
     | D.Cut {unfold = None; cut} ->
       whnf_cut cut
 
-    | D.ConCoe (abs, r, s, con) ->
+    | D.ConCoe (_, abs, r, s, con) ->
       begin
         test_sequent [] (Cof.eq r s) |>> function
         | true -> reduce_to con 
         | false -> ret `Done
       end
 
-    | D.ConHCom (_, r, s, phi, clo) ->
+    | D.ConHCom (_, _, r, s, phi, clo) ->
       begin
         test_sequent [] (Cof.join (Cof.eq r s) phi) |>> function
         | true -> reduce_to @<< inst_tm_clo clo [D.dim_to_con s; D.Prf]
@@ -333,11 +333,11 @@ struct
     | D.Pair (con0, _) -> 
       ret con0
 
-    | D.ConCoe (D.CoeAbs abs, r, s, con) -> 
+    | D.ConCoe (`Sg, D.CoeAbs abs, r, s, con) -> 
       let base_abs = D.CoeAbs {clo = D.SgCoeBaseClo abs.clo} in
       do_rigid_coe base_abs r s @<< do_fst con
 
-    | D.ConHCom (code, r, s, phi, clo) -> 
+    | D.ConHCom (`Sg, code, r, s, phi, clo) -> 
       let* base, _ = dest_sg_code code in
       do_rigid_hcom base r s phi @@ D.FstClo clo
 
@@ -354,13 +354,13 @@ struct
     | D.Pair (_, con1) -> 
       ret con1
 
-    | D.ConCoe (D.CoeAbs abs, r, s, con) -> 
+    | D.ConCoe (`Sg, D.CoeAbs abs, r, s, con) -> 
       let base_abs = D.CoeAbs {clo = D.SgCoeBaseClo abs.clo} in
       let* con_fst = do_fst con in
       let fib_abs = D.CoeAbs {clo = D.SgCoeFibClo {src = r; base_abs; fst = con_fst; clo = abs.clo}} in
       do_rigid_coe fib_abs r s @<< do_snd con
 
-    | D.ConHCom (code, r, s, phi, clo) -> 
+    | D.ConHCom (`Sg, code, r, s, phi, clo) -> 
       let* base, fam = dest_sg_code code in
       let* fib_abs = ret @@ D.CoeAbs {clo = SgHComFibClo {src = r; base; fam; cof = phi; clo}} in
       do_rigid_com fib_abs r s phi @@ D.SndClo clo
@@ -380,12 +380,12 @@ struct
     | D.Lam clo -> 
       inst_tm_clo clo [a]
 
-    | D.ConCoe (D.CoeAbs abs, r, s, f) ->
+    | D.ConCoe (`Pi, D.CoeAbs abs, r, s, f) ->
       let base_abs = D.CoeAbs {clo = D.PiCoeBaseClo abs.clo} in
       let fib_abs = D.CoeAbs {clo = D.PiCoeFibClo {dest = s; base_abs; arg = a; clo = abs.clo}} in
       do_rigid_coe fib_abs r s @<< do_ap f @<< do_rigid_coe base_abs s r a
 
-    | D.ConHCom (code, r, s, phi, clo) ->
+    | D.ConHCom (`Pi, code, r, s, phi, clo) ->
       let* base, fam = dest_pi_code code in
       let* fib = do_ap fam a in
       do_rigid_hcom fib r s phi @@ D.AppClo (a, clo)
@@ -444,8 +444,10 @@ struct
     let i = D.DimProbe (Symbol.fresh ()) in
     let rec go peek =
       match peek with
-      | D.CodePi _ | D.CodeSg _ ->
-        ret @@ D.ConCoe (D.CoeAbs abs, r, s, con)
+      | D.CodePi _ ->
+        ret @@ D.ConCoe (`Pi, D.CoeAbs abs, r, s, con)
+      | D.CodeSg _ ->
+        ret @@ D.ConCoe (`Sg, D.CoeAbs abs, r, s, con)
       | D.CodePath _ ->
         raise Todo
       | D.Cut {unfold = Some lcon} -> 
@@ -462,8 +464,10 @@ struct
 
   and do_rigid_hcom code r s phi clo = 
     match code with 
-    | D.CodePi _ | D.CodeSg _->
-      ret @@ D.ConHCom (code, r, s, phi, clo)
+    | D.CodePi _ ->
+      ret @@ D.ConHCom (`Pi, code, r, s, phi, clo)
+    | D.CodeSg _->
+      ret @@ D.ConHCom (`Pi, code, r, s, phi, clo)
     | D.CodePath _ ->
       raise Todo
     | D.Cut {unfold = Some lcon} ->

@@ -37,8 +37,8 @@ and coe_abs = CoeAbs of {clo : tm_clo}
 
 and con =
   | Lam of tm_clo
-  | ConCoe of coe_abs * dim * dim * con
-  | ConHCom of con * dim * dim * cof * tm_clo
+  | ConCoe of [`Pi | `Sg | `Path] * coe_abs * dim * dim * con
+  | ConHCom of [`Pi | `Sg | `Path] * con * dim * dim * cof * tm_clo
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
   | Suc of con
