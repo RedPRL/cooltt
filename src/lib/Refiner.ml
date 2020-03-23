@@ -104,7 +104,10 @@ struct
     function 
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub -> 
       let phi = Cof.join phi_a phi_sub in
-      let clo = D.SplitClo (tp_a, phi_a, phi_sub, clo_a, D.SubOutClo clo_sub) in
+      let clo = 
+        let out_clo = D.Clo (S.SubOut (S.Ap (S.Var 1, S.Prf)), Snoc (Emp, D.Lam clo_sub)) in
+        D.SplitClo (tp_a, phi_a, phi_sub, clo_a, out_clo)
+      in
       let+ tm = tac (tp_a, phi, clo) in
       S.SubIn tm
     | tp, _, _ ->

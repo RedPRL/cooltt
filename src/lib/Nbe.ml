@@ -271,24 +271,6 @@ struct
     | D.Clo (bdy, env) -> 
       lift_ev (env <>< xs) @@ 
       eval bdy
-        (*
-    | D.AppClo (arg, clo) ->
-      let* con = inst_tm_clo clo xs in 
-      do_ap con arg
-    | D.FstClo clo -> 
-      do_fst @<< inst_tm_clo clo xs
-    | D.SndClo clo -> 
-      do_snd @<< inst_tm_clo clo xs
-    | D.ComClo (s, coe_abs, clo) ->
-      let r = List.hd xs in
-      let* con = inst_tm_clo clo [r] in
-      let* r = con_to_dim r in
-      do_rigid_coe coe_abs r s con
-
-           *)
-
-    | D.SubOutClo clo ->
-      do_sub_out @<< inst_tm_clo clo xs
     | D.SplitClo (tp, phi0, phi1, clo0, clo1) -> 
       let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
       let con = D.Cut {tp; cut; unfold = None} in
