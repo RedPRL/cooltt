@@ -16,9 +16,12 @@ let const_tm_clo con =
   Clo (S.Var 1, Snoc (Emp, con)) 
   (* y, x |= y *)
 
-let clo_from_fun con = 
+let un_lam con = 
   Clo (S.Ap (S.Var 1, S.Var 0), Snoc (Emp, con))
   (* y, x |= y(x) *)
+
+let fst = Lam (Clo (S.Fst (S.Var 0), Emp))
+let snd = Lam (Clo (S.Snd (S.Var 0), Emp))
 
 
 let dim_to_con =

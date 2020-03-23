@@ -21,22 +21,18 @@ and tp_clo =
 
 and tm_clo = 
   | Clo of S.t * env
-  | PiCoeBaseClo of tm_clo
-  | PiCoeFibClo of {dest : dim; base_abs : tm_clo; arg : con; clo: tm_clo}
-  | SgCoeBaseClo of tm_clo
-  | SgCoeFibClo of {src : dim; base_abs : tm_clo; fst : con; clo: tm_clo}
   | SgHComFibClo of {src : dim; base : con; fam : con; cof : cof; clo : tm_clo} 
   | AppClo of con * tm_clo
   | FstClo of tm_clo 
   | SndClo of tm_clo
-  | ComClo of dim * tm_clo * tm_clo
+  | ComClo of dim * con * tm_clo
   | SplitClo of tp * cof * cof * tm_clo * tm_clo
   | SubOutClo of tm_clo
 
 and con =
   | Lam of tm_clo
-  | ConCoe of [`Pi | `Sg | `Path] * tm_clo * dim * dim * con
-  | ConHCom of [`Pi | `Sg | `Path] * con * dim * dim * cof * tm_clo
+  | ConCoe of [`Pi | `Sg | `Path] * con * dim * dim * con
+  | ConHCom of [`Pi | `Sg | `Path] * con * dim * dim * cof * tm_clo (* TODO: change tm_clo to con *)
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
   | Suc of con
@@ -55,6 +51,8 @@ and con =
   | CodeSg of con * con
   | CodeNat
 
+  | Destruct of dst
+  | Compose of con * con
 
 and tp = 
   | Sub of tp * cof * tm_clo
@@ -72,8 +70,8 @@ and tp =
 and hd =
   | Global of Symbol.t 
   | Var of int (* De Bruijn level *)
-  | Coe of tm_clo * dim * dim * con
-  | HCom of cut * dim * dim * cof * tm_clo
+  | Coe of con * dim * dim * con
+  | HCom of cut * dim * dim * cof * tm_clo (* TODO: change tm_clo to con *)
   | SubOut of cut * cof * tm_clo
   | Split of tp * cof * cof * tm_clo * tm_clo
 
@@ -88,5 +86,10 @@ and frm =
   | KNatElim of ghost option * tp_clo * con * tm_clo
   | KIdElim of ghost option * tp_clo * tm_clo * tp * con * con
   | KGoalProj
+
+(** destructors: exotic semantic operations that don't exist in syntax *)
+and dst =
+  | DCodePiSplit
+  | DCodeSgSplit
 
 and ghost = string bwd * (tp * con) list
