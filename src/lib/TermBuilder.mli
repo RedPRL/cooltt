@@ -1,4 +1,6 @@
-(** A language for building terms without doing De Bruijn arithmetic. *)
+(** A language for building terms without doing De Bruijn arithmetic. This module contains constructors
+ * not only for the primitives of cubical type theory, but also for the more complex derived forms --
+ * for instance, the algorithm of coercion and composition in various type connectives. *)
 
 open CoolBasis
 
