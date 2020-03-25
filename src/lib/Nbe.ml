@@ -808,8 +808,11 @@ struct
         S.Lam bdy
       in 
       S.CodeSg (tbase, tfam)
-    | _, D.CodePath (fam, bdry) ->
-      raise Todo
+    | univ, D.CodePath (fam, bdry) -> (* check *)
+      let* tfam = quote_con univ fam in
+      let+ tbdry = quote_con univ bdry
+      in
+      S.CodePath(tfam, tbdry)
     | _ -> 
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"

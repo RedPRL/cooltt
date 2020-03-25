@@ -36,6 +36,16 @@ let rec chk_tp : S.tp -> T.tp_tac =
   | S.TpCof -> 
     R.Cof.formation
 
+
+(* 
+
+given a well-typed piece of syntax "M : A" such that [[A]] is the whnf/value of
+A, then "chk_tm M [[A]]" will return a well-typed term N : A that is
+judgmentally equal to M.
+
+if the input is ill-typed, throw an error.
+
+*)
 and chk_tm : S.t -> T.chk_tac =
   function
   | S.Refl _ ->
@@ -50,7 +60,7 @@ and chk_tm : S.t -> T.chk_tac =
     T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     T.bchk_to_chk @@ R.Sg.intro (T.chk_to_bchk @@ chk_tm t0) (T.chk_to_bchk @@ chk_tm t1)
-  | S.CodePath _ -> raise Todo
+  | S.CodePath (fam, bound) -> raise Todo
   | S.CodeNat -> 
     R.Univ.nat
   | S.CodeSg (base, fam) -> 
