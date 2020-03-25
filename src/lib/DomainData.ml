@@ -14,10 +14,7 @@ type env = con bwd
 
 and tp_clo = 
   | TpClo of S.tp * env
-  | ElClo of con
   | ConstTpClo of tp 
-  | CloFromPathData of con * con
-  | CloBoundaryType of con
 
 and tm_clo = 
   | Clo of S.t * env

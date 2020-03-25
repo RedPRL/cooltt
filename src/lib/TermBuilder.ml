@@ -101,6 +101,49 @@ let snd m =
   let+ x = m in
   S.Snd x
 
+
+let pi mbase mfam : _ m = 
+  let+ base = mbase
+  and+ fam = scope mfam in 
+  S.Pi (base, fam)
+
+let sg mbase mfam : _ m = 
+  let+ base = mbase
+  and+ fam = scope mfam in 
+  S.Sg (base, fam)
+
+let sub mbase mphi mbdry = 
+  let+ base = mbase
+  and+ phi = mphi 
+  and+ bdry = scope mbdry in 
+  S.Sub (base, phi, bdry)
+
+let el mcode : _ m = 
+  let+ code = mcode in 
+  S.El code
+
+let tp_prf mphi = 
+  let+ phi = mphi in 
+  S.TpPrf phi
+
+let eq mr ms = 
+  let+ r = mr
+  and+ s = ms in 
+  S.Cof (Cof.Eq (r, s))
+
+let join mphi mpsi = 
+  let+ phi = mphi
+  and+ psi = mpsi in 
+  S.Cof (Cof.Join (phi, psi))
+
+let tp_dim = ret S.TpDim
+let dim0 = ret S.Dim0
+let dim1 = ret S.Dim0
+
+let boundary mr = 
+  join (eq mr dim0) (eq mr dim1)
+
+
 module Kan =
 struct
   type coe = r:S.t m -> s:S.t m -> bdy:S.t m -> S.t m

@@ -11,6 +11,10 @@ open Monads
 
 exception NbeFailed of string
 
+module QQ = Quasiquote
+module TB = TermBuilder
+
+
 module rec Compute : 
 sig 
   type 'a whnf = [`Done | `Reduce of 'a]
@@ -40,11 +44,23 @@ sig
   val con_to_dim : D.con -> D.dim compute
   val con_to_cof : D.con -> D.cof compute
   val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof compute
+
+  val quasiquote_tm : S.t QQ.builder -> D.con compute
+  val quasiquote_tp : S.tp QQ.builder -> D.tp compute
 end =
 struct
   open CmpM
   open Eval
   open Monad.Notation (CmpM)
+
+  let quasiquote_tm builder =
+    let env, tm = QQ.compile builder in 
+    lift_ev env @@ eval tm
+
+  let quasiquote_tp builder = 
+    let env, tp = QQ.compile builder in 
+    lift_ev env @@ eval_tp tp
+
 
   let con_to_dim =
     function
@@ -225,31 +241,6 @@ struct
       eval_tp bdy
     | ConstTpClo tp -> 
       ret tp
-    | ElClo fam ->
-      let x = List.hd xs in
-      do_el @<< do_ap fam x
-    | CloFromPathData (fam, bdry) ->
-      let rcon = List.hd xs in
-      let* fib = do_ap fam rcon in
-      let* elfib = do_el fib in
-      let* bdry_r = do_ap bdry rcon in
-      (* bdry_r : [r=0\/r=1] -> elfib *)
-      (* elfib [ (r=0\/r=1) -> bdry r * ] *)
-      let* phi = 
-        let* r = con_to_dim rcon in
-        ret @@ Cof.join (Cof.eq r D.Dim0) (Cof.eq r D.Dim1)
-      in
-      (* _ : [phi] |- A r *)
-      ret @@ D.Sub (elfib, phi, D.un_lam bdry_r)
-    | CloBoundaryType fam ->
-      let rcon = List.hd xs in
-      let* phi = 
-        let* r = con_to_dim rcon in
-        ret @@ Cof.join (Cof.eq r D.Dim0) (Cof.eq r D.Dim1)
-      in
-      let* fib = do_ap fam rcon in
-      let* elfib = do_el fib in
-      ret @@ D.Pi (D.TpPrf phi, D.ConstTpClo elfib)
 
   and inst_tm_clo : D.tm_clo -> D.con list -> D.con compute =
     fun clo xs ->
@@ -356,17 +347,29 @@ struct
       ret D.Nat
 
     | D.CodePi (base, fam) ->
-      let+ base = do_el base in
-      let clfam = D.ElClo fam in
-      D.Pi (base, clfam)
+      quasiquote_tp @@ 
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.term @@ 
+      TB.pi (TB.el base) @@ fun x ->
+      TB.el @@ TB.ap fam [x]
 
     | D.CodeSg (base, fam) ->
-      let+ base = do_el base in
-      let clfam = D.ElClo fam in
-      D.Sg (base, clfam)
+      quasiquote_tp @@ 
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.term @@ 
+      TB.sg (TB.el base) @@ fun x ->
+      TB.el @@ TB.ap fam [x]
 
     | D.CodePath (fam, bdry) ->
-      ret @@ D.Pi (D.TpDim, D.CloFromPathData (fam, bdry))
+      quasiquote_tp @@ 
+      QQ.foreign fam @@ fun fam ->
+      QQ.foreign bdry @@ fun bdry ->
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
+      TB.ap bdry [i]
 
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
@@ -378,36 +381,28 @@ struct
 
   and do_rigid_coe (line : D.con) r s con =
     let i = D.DimProbe (Symbol.fresh ()) in
-    let module Q = Quasiquote in
-    let module TB = TermBuilder in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
         let split_line = D.compose (D.Destruct D.DCodePiSplit) line in 
-        let env, tm = 
-          Q.compile @@
-          Q.foreign split_line @@ fun split_line ->
-          Q.foreign (D.dim_to_con r) @@ fun r ->
-          Q.foreign (D.dim_to_con s) @@ fun s ->
-          Q.foreign con @@ fun bdy ->
-          let base_line = TB.fst split_line in
-          let fam_line = TB.snd split_line in
-          Q.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
-        in
-        lift_ev env @@ eval tm
+        quasiquote_tm @@
+        QQ.foreign split_line @@ fun split_line ->
+        QQ.foreign (D.dim_to_con r) @@ fun r ->
+        QQ.foreign (D.dim_to_con s) @@ fun s ->
+        QQ.foreign con @@ fun bdy ->
+        let base_line = TB.fst split_line in
+        let fam_line = TB.snd split_line in
+        QQ.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
       | D.CodeSg _ ->
         let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in 
-        let env, tm = 
-          Q.compile @@
-          Q.foreign split_line @@ fun split_line ->
-          Q.foreign (D.dim_to_con r) @@ fun r ->
-          Q.foreign (D.dim_to_con s) @@ fun s ->
-          Q.foreign con @@ fun bdy ->
-          let base_line = TB.fst split_line in
-          let fam_line = TB.snd split_line in
-          Q.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
-        in
-        lift_ev env @@ eval tm
+        quasiquote_tm @@
+        QQ.foreign split_line @@ fun split_line ->
+        QQ.foreign (D.dim_to_con r) @@ fun r ->
+        QQ.foreign (D.dim_to_con s) @@ fun s ->
+        QQ.foreign con @@ fun bdy ->
+        let base_line = TB.fst split_line in
+        let fam_line = TB.snd split_line in
+        QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
       | D.CodePath _ ->
         raise Todo
       | D.Cut {unfold = Some lcon} -> 
@@ -423,35 +418,27 @@ struct
 
 
   and do_rigid_hcom code r s phi (bdy : D.con) = 
-    let module Q = Quasiquote in
-    let module TB = TermBuilder in
     match code with 
     | D.CodePi (base, fam) ->
-      let env, tm = 
-        Q.compile @@ 
-        Q.foreign base @@ fun base ->
-        Q.foreign fam @@ fun fam ->
-        Q.foreign (D.dim_to_con r) @@ fun r ->
-        Q.foreign (D.dim_to_con s) @@ fun s ->
-        Q.foreign (D.cof_to_con phi) @@ fun phi ->
-        Q.foreign bdy @@ fun bdy ->
-        Q.term @@
-        TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
-      in
-      lift_ev env @@ eval tm
+      quasiquote_tm @@
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
+      QQ.foreign bdy @@ fun bdy ->
+      QQ.term @@
+      TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
     | D.CodeSg (base, fam) ->
-      let env, tm = 
-        Q.compile @@ 
-        Q.foreign base @@ fun base ->
-        Q.foreign fam @@ fun fam ->
-        Q.foreign (D.dim_to_con r) @@ fun r ->
-        Q.foreign (D.dim_to_con s) @@ fun s ->
-        Q.foreign (D.cof_to_con phi) @@ fun phi ->
-        Q.foreign bdy @@ fun bdy ->
-        Q.term @@
-        TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
-      in
-      lift_ev env @@ eval tm
+      quasiquote_tm @@
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
+      QQ.foreign bdy @@ fun bdy ->
+      QQ.term @@
+      TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
     | D.CodePath _ ->
       raise Todo
     | D.Cut {unfold = Some lcon} ->
@@ -465,22 +452,17 @@ struct
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
   and do_rigid_com (line : D.con) r s phi bdy =
-    let module Q = Quasiquote in
-    let module TB = TermBuilder in
     let* code_s = do_ap line (D.dim_to_con s) in
     do_rigid_hcom code_s r s phi @<<
-      let env, tm = 
-        Q.compile @@ 
-        Q.foreign (D.dim_to_con s) @@ fun s ->
-        Q.foreign line @@ fun line ->
-        Q.foreign bdy @@ fun bdy ->
-        Q.term @@ 
-        TB.lam @@ fun i ->
-        TB.lam @@ fun prf ->
-        TB.coe line i s @@
-        TB.ap bdy [i; prf]
-      in
-      lift_ev env @@ eval tm
+    quasiquote_tm @@
+    QQ.foreign (D.dim_to_con s) @@ fun s ->
+    QQ.foreign line @@ fun line ->
+    QQ.foreign bdy @@ fun bdy ->
+    QQ.term @@ 
+    TB.lam @@ fun i ->
+    TB.lam @@ fun prf ->
+    TB.coe line i s @@
+    TB.ap bdy [i; prf]
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
@@ -1234,7 +1216,15 @@ struct
 
     | univ, D.CodePath (fam0, bdry0), D.CodePath (fam1, bdry1) ->
       let* _ = equate_con (D.Pi (D.TpDim, D.ConstTpClo univ)) fam0 fam1 in
-      let bdry_tp = D.Pi (D.TpDim, CloBoundaryType fam0) in
+      let* bdry_tp = 
+        lift_cmp @@ quasiquote_tp @@ 
+        QQ.foreign fam0 @@ fun fam ->
+        QQ.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        let phi = TB.boundary i in
+        TB.pi (TB.tp_prf phi) @@ fun prf ->
+        TB.el @@ TB.ap fam [i]
+      in
       equate_con bdry_tp bdry0 bdry1 
 
     | _ -> 
