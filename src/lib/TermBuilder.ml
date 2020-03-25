@@ -101,45 +101,51 @@ let snd m =
   let+ x = m in
   S.Snd x
 
-let coe_pi ~base_line ~fam_line ~r ~s ~bdy : _ m = 
-  lam @@ fun arg ->
-  let_ (lam @@ fun i -> coe base_line s i arg) @@ fun coe_base_line ->
-  let fib_line = lam @@ fun i -> ap fam_line [i; ap coe_base_line [i]] in
-  coe fib_line r s @@
-  ap bdy [ap coe_base_line [r]]
+module Kan =
+struct
+  type coe = r:S.t m -> s:S.t m -> bdy:S.t m -> S.t m
+  type hcom = r:S.t m -> s:S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
 
-let coe_sg ~base_line ~fam_line ~r ~s ~bdy : _ m = 
-  let fst_line = lam @@ fun i -> coe base_line r i @@ fst bdy in
-  let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
-  pair (ap fst_line [s]) (coe fib_line r s @@ snd bdy)
+  let coe_pi ~base_line ~fam_line ~r ~s ~bdy : _ m = 
+    lam @@ fun arg ->
+    let_ (lam @@ fun i -> coe base_line s i arg) @@ fun coe_base_line ->
+    let fib_line = lam @@ fun i -> ap fam_line [i; ap coe_base_line [i]] in
+    coe fib_line r s @@
+    ap bdy [ap coe_base_line [r]]
 
-let hcom_pi ~base ~fam ~r ~s ~phi ~bdy : _ m = 
-  lam @@ fun arg ->
-  let tfib = ap fam [arg] in
-  hcom tfib r s phi @@
-  lam @@ fun i ->
-  lam @@ fun prf ->
-  ap bdy [i; prf; arg]
+  let coe_sg ~base_line ~fam_line ~r ~s ~bdy : _ m = 
+    let fst_line = lam @@ fun i -> coe base_line r i @@ fst bdy in
+    let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
+    pair (ap fst_line [s]) (coe fib_line r s @@ snd bdy)
 
-let hcom_sg ~base ~fam ~r ~s ~phi ~bdy : _ m = 
-  lam @@ fun t ->
-  let p0_line = 
-    lam @@ fun i ->
-    hcom base r i phi @@ 
-    lam @@ fun j ->
-    lam @@ fun prf ->
-    fst @@ ap bdy [j; prf]
-  in
-  let p0 = ap p0_line [s] in
-  let fib_line = 
-    lam @@ fun i ->
-    ap fam [ap p0_line [i]]
-  in
-  let p1 = 
-    com fib_line r s phi @@
+  let hcom_pi ~base ~fam ~r ~s ~phi ~bdy : _ m = 
+    lam @@ fun arg ->
+    let tfib = ap fam [arg] in
+    hcom tfib r s phi @@
     lam @@ fun i ->
     lam @@ fun prf ->
-    snd @@ ap bdy [i; prf]
-  in
-  pair p0 p1
+    ap bdy [i; prf; arg]
 
+  let hcom_sg ~base ~fam ~r ~s ~phi ~bdy : _ m = 
+    lam @@ fun t ->
+    let p0_line = 
+      lam @@ fun i ->
+      hcom base r i phi @@ 
+      lam @@ fun j ->
+      lam @@ fun prf ->
+      fst @@ ap bdy [j; prf]
+    in
+    let p0 = ap p0_line [s] in
+    let fib_line = 
+      lam @@ fun i ->
+      ap fam [ap p0_line [i]]
+    in
+    let p1 = 
+      com fib_line r s phi @@
+      lam @@ fun i ->
+      lam @@ fun prf ->
+      snd @@ ap bdy [i; prf]
+    in
+    pair p0 p1
+
+end

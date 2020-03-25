@@ -22,38 +22,13 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
+module Kan : sig
+  type coe = r:t m -> s:t m -> bdy:t m -> t m
+  type hcom = r:t m -> s:t m -> phi:t m -> bdy:t m -> t m
 
-val coe_pi
-  : base_line:t m
-  -> fam_line:t m
-  -> r:t m
-  -> s:t m
-  -> bdy:t m
-  -> t m
+  val coe_pi : base_line:t m -> fam_line:t m -> coe
+  val coe_sg : base_line:t m -> fam_line:t m -> coe
 
-val coe_sg
-  : base_line:t m
-  -> fam_line:t m
-  -> r:t m
-  -> s:t m
-  -> bdy:t m
-  -> t m
-
-val hcom_pi
-  : base:t m
-  -> fam:t m
-  -> r:t m
-  -> s:t m
-  -> phi:t m
-  -> bdy:t m
-  -> t m
-
-val hcom_sg
-  : base:t m
-  -> fam:t m
-  -> r:t m
-  -> s:t m
-  -> phi:t m
-  -> bdy:t m
-  -> t m
-
+  val hcom_pi : base:t m -> fam:t m -> hcom
+  val hcom_sg : base:t m -> fam:t m -> hcom
+end

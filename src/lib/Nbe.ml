@@ -392,7 +392,7 @@ struct
           Q.foreign con @@ fun bdy ->
           let base_line = TB.fst split_line in
           let fam_line = TB.snd split_line in
-          Q.term @@ TB.coe_pi ~base_line ~fam_line ~r ~s ~bdy
+          Q.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
         in
         lift_ev env @@ eval tm
       | D.CodeSg _ ->
@@ -405,7 +405,7 @@ struct
           Q.foreign con @@ fun bdy ->
           let base_line = TB.fst split_line in
           let fam_line = TB.snd split_line in
-          Q.term @@ TB.coe_sg ~base_line ~fam_line ~r ~s ~bdy
+          Q.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
         in
         lift_ev env @@ eval tm
       | D.CodePath _ ->
@@ -436,7 +436,7 @@ struct
         Q.foreign (D.cof_to_con phi) @@ fun phi ->
         Q.foreign bdy @@ fun bdy ->
         Q.term @@
-        TB.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
+        TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
       in
       lift_ev env @@ eval tm
     | D.CodeSg (base, fam) ->
@@ -449,7 +449,7 @@ struct
         Q.foreign (D.cof_to_con phi) @@ fun phi ->
         Q.foreign bdy @@ fun bdy ->
         Q.term @@
-        TB.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
+        TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
       in
       lift_ev env @@ eval tm
     | D.CodePath _ ->
