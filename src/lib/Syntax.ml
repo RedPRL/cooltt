@@ -36,22 +36,25 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       (pp_tp env) tp
       (pp env) tm
   | _, Coe (code, r, s, tm) ->
-    let x, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "@[<hv1>(coe@ [%a] %a@ %a %a@ %a)@]"
-      Uuseg_string.pp_utf_8 x 
+    Fmt.fprintf fmt "@[<hv1>(coe@ %a@ %a@ %a@ %a)@]"
       (pp env) code
       (pp env) r 
       (pp env) s
       (pp env) tm
   | _, HCom (code, r, s, phi, tm) ->
-    let x, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "@[<hv1>(hcom@ %a@ %a %a@ %a@ [%a] %a)@]"
+    Fmt.fprintf fmt "@[<hv1>(hcom@ %a@ %a %a@ %a@ %a)@]"
       (pp env) code
       (pp env) r 
       (pp env) s
       (pp env) phi
-      Uuseg_string.pp_utf_8 x
-      (pp envx) tm
+      (pp env) tm
+  | _, Com (code, r, s, phi, tm) ->
+    Fmt.fprintf fmt "@[<hv1>(com@ %a@ %a %a@ %a@ %a)@]"
+      (pp env) code
+      (pp env) r 
+      (pp env) s
+      (pp env) phi
+      (pp env) tm
   | _, Zero ->
     Fmt.fprintf fmt "0"
   | _, Suc tm ->

@@ -25,8 +25,6 @@ and tm_clo =
 
 and con =
   | Lam of tm_clo
-  | ConCoe of [`Pi | `Sg | `Path] * con * dim * dim * con
-  | ConHCom of [`Pi | `Sg | `Path] * con * dim * dim * cof * con
   | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
   | Zero
   | Suc of con

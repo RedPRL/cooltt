@@ -109,20 +109,6 @@ struct
     | D.Cut {unfold = None; cut} ->
       whnf_cut cut
 
-    | D.ConCoe (_, abs, r, s, con) ->
-      begin
-        test_sequent [] (Cof.eq r s) |>> function
-        | true -> reduce_to con 
-        | false -> ret `Done
-      end
-
-    | D.ConHCom (_, _, r, s, phi, bdy) ->
-      begin
-        test_sequent [] (Cof.join (Cof.eq r s) phi) |>> function
-        | true -> reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf 
-        | false -> ret `Done
-      end
-
   and reduce_to con =
     whnf_con con |>> function
     | `Done -> ret @@ `Reduce con
@@ -296,17 +282,6 @@ struct
     | D.Pair (con0, _) -> 
       ret con0
 
-    | D.ConCoe (`Sg, line, r, s, con) -> 
-      let base_abs = D.compose D.fst @@ D.compose (D.Destruct D.DCodeSgSplit) line in
-      do_rigid_coe base_abs r s @<< do_fst con
-
-    | D.ConHCom (`Sg, code, r, s, phi, bdy) -> 
-      let* base, _ = dest_sg_code code in
-      do_rigid_hcom base r s phi @<< 
-      let env = Emp <>< [bdy] in
-      let tm = S.Lam (S.Lam (S.Fst (S.Ap (S.Ap (S.Var 2, S.Var 1), S.Var 0)))) in
-      lift_ev env @@ eval tm
-
     | D.Cut {tp = D.Sg (base, _); cut; unfold} ->
       ret @@ cut_frm ~tp:base ~cut ~unfold D.KFst
 
@@ -319,47 +294,6 @@ struct
 
     | D.Pair (_, con1) -> 
       ret con1
-
-    | D.ConCoe (`Sg, line, r, s, con) -> 
-      let split_line = D.compose (D.Destruct D.DCodePiSplit) line in 
-      let base_line = D.compose D.fst split_line in
-      let fam_line = D.compose D.snd split_line in
-      let* con_fst = do_fst con in
-
-      let fib_clo : D.tm_clo = 
-        (* BASE/4 : I -> Univ, FAM/3 : (i : I) -> BASE(i) -> UNIV, r/2 : I, a/1 : BASE(s)
-         * |= [i/0:DIM]. 
-         *       FAM i (coe r i BASE a)
-         * *)
-        let tm = 
-          let tbase = S.Var 4 in
-          let tfam = S.Var 3 in
-          let tr = S.Var 2 in 
-          let ta = S.Var 1 in
-          let i = S.Var 0 in
-          S.Ap (S.Ap (tfam, i), S.Coe (tbase, tr, i, ta))
-        in
-        let env = Emp <>< [base_line; fam_line; D.dim_to_con r; con_fst] in
-        D.Clo (tm, env)
-      in 
-      let fib_line = D.Lam fib_clo in
-      do_rigid_coe fib_line r s @<< do_snd con
-
-    | D.ConHCom (`Sg, code, r, s, phi, bdy) ->
-      let* base, fam = dest_sg_code code in
-      let fib_line = 
-        let env = Emp <>< [base; fam; D.dim_to_con r; D.cof_to_con phi; bdy] in
-        let tphi = S.Var 2 in
-        let tr = S.Var 3 in 
-        let tfam = S.Var 4 in
-        let tbase = S.Var 5 in
-        let i = S.Var 0 in
-        let tfst = S.Lam (S.Lam (S.Fst (S.Ap (S.Ap (S.Var 3, S.Var 1), S.Var 0)))) in
-        let tfst_i' = S.HCom (tbase, tr, i, tphi, tfst) in
-        D.Lam (D.Clo (S.Ap (tfam, tfst_i'), env))
-      in
-      do_rigid_com fib_line r s phi @@ 
-      D.Lam (D.Clo (S.Lam (S.Lam (S.Snd (S.Ap (S.Ap (S.Var 2, S.Var 1), S.Var 0)))), Emp <>< [bdy]))
 
     | D.Cut {tp = D.Sg (_, fam); cut; unfold} ->
       let* fst = do_fst con in
@@ -383,22 +317,6 @@ struct
 
     | D.Destruct dst ->
       do_destruct dst a
-
-    | D.ConCoe (`Pi, line, r, s, fn) ->
-      let module Q = Quasiquote in
-      let env, tm = 
-        Q.M.compile @@
-        Q.Coercion.coe_pi ~pi_line:line ~r ~s ~fn ~arg:a 
-      in
-      lift_ev env @@ eval tm
-
-    | D.ConHCom (`Pi, code, r, s, phi, bdy) ->
-      let* base, fam = dest_pi_code code in
-      let* fib = do_ap fam a in
-      do_rigid_hcom fib r s phi @<<
-      let env = Emp <>< [a; bdy] in
-      let tm = S.Lam (S.Lam (S.Ap (S.Ap (S.Ap (S.Var 2, S.Var 1), S.Var 0), S.Var 3))) in
-      lift_ev env @@ eval tm
 
     | D.Cut {tp = D.Pi (base, fam); cut; unfold} ->
       let+ fib = inst_tp_clo fam [a] in
@@ -460,12 +378,21 @@ struct
 
   and do_rigid_coe (abs : D.con) r s con =
     let i = D.DimProbe (Symbol.fresh ()) in
+    let module Q = Quasiquote in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
-        ret @@ D.ConCoe (`Pi, abs, r, s, con)
+        let env, tm = 
+          Q.M.compile @@
+          Q.Kan.coe_pi ~pi_line:abs ~r ~s ~fn:con
+        in
+        lift_ev env @@ eval tm
       | D.CodeSg _ ->
-        ret @@ D.ConCoe (`Sg, abs, r, s, con)
+        let env, tm = 
+          Q.M.compile @@
+          Q.Kan.coe_sg ~sg_line:abs ~r ~s ~pair:con
+        in
+        lift_ev env @@ eval tm
       | D.CodePath _ ->
         raise Todo
       | D.Cut {unfold = Some lcon} -> 
@@ -481,11 +408,20 @@ struct
 
 
   and do_rigid_hcom code r s phi (bdy : D.con) = 
+    let module Q = Quasiquote in
     match code with 
-    | D.CodePi _ ->
-      ret @@ D.ConHCom (`Pi, code, r, s, phi, bdy)
-    | D.CodeSg _->
-      ret @@ D.ConHCom (`Pi, code, r, s, phi, bdy)
+    | D.CodePi (base, fam) ->
+      let env, tm = 
+        Q.M.compile @@ 
+        Q.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
+      in
+      lift_ev env @@ eval tm
+    | D.CodeSg (base, fam) ->
+      let env, tm = 
+        Q.M.compile @@ 
+        Q.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
+      in
+      lift_ev env @@ eval tm
     | D.CodePath _ ->
       raise Todo
     | D.Cut {unfold = Some lcon} ->
@@ -664,6 +600,8 @@ struct
           let* bdy = eval tm in 
           lift_cmp @@ do_rigid_hcom vtpcode r s phi bdy
       end
+    | S.Com _ ->
+      raise Todo
     | S.SubOut tm ->
       let* con = eval tm in
       lift_cmp @@ Compute.do_sub_out con
