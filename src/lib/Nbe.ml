@@ -521,7 +521,13 @@ struct
 
   and eval =
     function
-    | S.Var i -> get_local i
+    | S.Var i -> 
+      let* con = get_local i in
+      begin
+        lift_cmp @@ whnf_con con |>> function
+        | `Done -> ret con
+        | `Reduce con -> ret con
+      end
     | S.Global sym -> 
       let* st = EvM.read_global in
       let tp, con = ElabState.get_global sym st in
