@@ -192,50 +192,75 @@ and pp_problem fmt problem =
 
 and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer = 
   fun fmt tp ->
-  match tp with 
-  | Univ ->
+  match mode, tp with 
+  | `Pi, Pi (base, fam) 
+  | `Sg, Sg (base, fam)-> 
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt "[%a : %a]@ %a"
+      Uuseg_string.pp_utf_8 x
+      (pp_tp env) base
+      (pp_tp_ envx mode) fam
+  | (`Pi | `Sg), _-> 
+    Format.fprintf fmt "@]@ %a" 
+      (pp_tp env) tp
+  | _, Pi _ -> 
+    Format.fprintf fmt "@[<hv1>(->@ @[%a)@]" (pp_tp_ env `Pi) tp
+  | _, Sg _ -> 
+    Format.fprintf fmt "@[<hv1>(*@ @[%a)@]" (pp_tp_ env `Sg) tp
+  | _, Univ ->
     Format.fprintf fmt "univ"
-  | El tm ->
+  | _, El tm ->
     Fmt.fprintf fmt "@[<hov1>(el@ %a)@]" (pp env) tm
-  | Sub (tp, phi, t) ->
+  | _, Sub (tp, phi, t) ->
     let x, envx = Pp.Env.bind env None in
     Format.fprintf fmt 
-      "@[<hov1>(sub@ %a@ %a@ %a)@]"
+      "@[<hv1>(sub@ %a@ %a@ %a)@]"
       (pp_tp env) tp
       (pp env) phi
       (pp envx) t
-  | GoalTp (None, tp) ->
+  | _, GoalTp (None, tp) ->
     Fmt.fprintf fmt "@[<hov1>(goal@ _@ %a)@]" (pp_tp env) tp
-  | GoalTp (Some lbl, tp) ->
+  | _, GoalTp (Some lbl, tp) ->
     Fmt.fprintf fmt "@[<hov1>(goal@ ?%a@ %a)@]" 
       Uuseg_string.pp_utf_8 lbl 
       (pp_tp env) tp
-  | TpDim ->
+  | _, TpDim ->
     Format.fprintf fmt "dim"
-  | TpCof ->
+  | _, TpCof ->
     Format.fprintf fmt "cof"
-  | TpPrf phi->
+  | _, TpPrf phi->
     Format.fprintf fmt "@[<hov1>(prf@ %a)@]"
       (pp env) phi
-  | Id _ -> 
-    Format.fprintf fmt "<Id>"
-  | Pi _ -> 
-    Format.fprintf fmt "<Pi>"
-  | Sg _ -> 
-    Format.fprintf fmt "<Sg>"
-  | Nat ->
+  | _, Id (tp, tm0, tm1) -> 
+    Format.fprintf fmt "@[<hov1>(id@ @[<hv>%a@ %a@ %a@])@]"
+      (pp_tp env) tp
+      (pp env) tm0
+      (pp env) tm1
+  | _, Nat ->
     Format.fprintf fmt "nat"
 
 and pp_tp env = pp_tp_ env `Start
 
 let pp_sequent_goal env fmt tp  =
   match tp with
-  | GoalTp (Some lbl, tp) ->
+  | GoalTp (olbl, Sub (tp, Cof Cof.Bot, _)) ->
+    let lbl = match olbl with Some lbl -> lbl | None -> "" in
     Format.fprintf fmt "?%a : @[<hov>%a@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp
-  | GoalTp (None, tp) ->
-    Format.fprintf fmt "@[<hov>%a@]"
+  | GoalTp (olbl, Sub (tp, phi, tm)) ->
+    let lbl = match olbl with Some lbl -> lbl | None -> "" in
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a : %a => %a]@]"
+      Uuseg_string.pp_utf_8 lbl
+      (pp_tp env) tp
+      Uuseg_string.pp_utf_8 x 
+      (pp env) phi
+      (pp envx) tm
+  | GoalTp (olbl, tp) ->
+    let lbl = match olbl with Some lbl -> lbl | None -> "" in
+    Format.fprintf fmt "?%a : @[<hov>%a@]"
+      Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp
   | tp ->
     pp_tp env fmt tp
