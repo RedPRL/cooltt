@@ -19,6 +19,7 @@ type t =
   | GoalProj of t
   | Coe of t * t * t * t
   | HCom of t * t * t * t * t
+  | Com of t * t * t * t * t
   | SubIn of t
   | SubOut of t
   | Dim0
