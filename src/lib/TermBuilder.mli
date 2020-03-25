@@ -27,8 +27,11 @@ module Kan : sig
   type hcom = r:t m -> s:t m -> phi:t m -> bdy:t m -> t m
 
   val coe_pi : base_line:t m -> fam_line:t m -> coe
-  val coe_sg : base_line:t m -> fam_line:t m -> coe
-
   val hcom_pi : base:t m -> fam:t m -> hcom
+
+  val coe_sg : base_line:t m -> fam_line:t m -> coe
   val hcom_sg : base:t m -> fam:t m -> hcom
+
+  val coe_path : fam_line:t m -> bdry_line:t m -> coe
+  val hcom_path : fam:t m -> bdry:t m -> hcom
 end

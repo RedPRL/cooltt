@@ -113,11 +113,6 @@ struct
     coe fib_line r s @@
     ap bdy [ap coe_base_line [r]]
 
-  let coe_sg ~base_line ~fam_line ~r ~s ~bdy : _ m = 
-    let fst_line = lam @@ fun i -> coe base_line r i @@ fst bdy in
-    let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
-    pair (ap fst_line [s]) (coe fib_line r s @@ snd bdy)
-
   let hcom_pi ~base ~fam ~r ~s ~phi ~bdy : _ m = 
     lam @@ fun arg ->
     let tfib = ap fam [arg] in
@@ -125,6 +120,11 @@ struct
     lam @@ fun i ->
     lam @@ fun prf ->
     ap bdy [i; prf; arg]
+
+  let coe_sg ~base_line ~fam_line ~r ~s ~bdy : _ m = 
+    let fst_line = lam @@ fun i -> coe base_line r i @@ fst bdy in
+    let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
+    pair (ap fst_line [s]) (coe fib_line r s @@ snd bdy)
 
   let hcom_sg ~base ~fam ~r ~s ~phi ~bdy : _ m = 
     lam @@ fun t ->
@@ -147,5 +147,13 @@ struct
       snd @@ ap bdy [i; prf]
     in
     pair p0 p1
+
+  exception Todo
+
+  let coe_path ~fam_line ~bdry_line =
+    raise Todo
+
+  let hcom_path ~fam ~bdry = 
+    raise Todo
 
 end
