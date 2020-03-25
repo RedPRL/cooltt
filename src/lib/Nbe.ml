@@ -376,21 +376,36 @@ struct
     | true -> ret con 
     | _ -> do_rigid_coe abs r s con
 
-  and do_rigid_coe (abs : D.con) r s con =
+  and do_rigid_coe (line : D.con) r s con =
     let i = D.DimProbe (Symbol.fresh ()) in
     let module Q = Quasiquote in
+    let module TB = TermBuilder in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
+        let split_line = D.compose (D.Destruct D.DCodePiSplit) line in 
         let env, tm = 
-          Q.M.compile @@
-          Q.Kan.coe_pi ~pi_line:abs ~r ~s ~fn:con
+          Q.compile @@
+          Q.foreign split_line @@ fun split_line ->
+          Q.foreign (D.dim_to_con r) @@ fun r ->
+          Q.foreign (D.dim_to_con s) @@ fun s ->
+          Q.foreign con @@ fun bdy ->
+          let base_line = TB.fst split_line in
+          let fam_line = TB.snd split_line in
+          Q.term @@ TB.coe_pi ~base_line ~fam_line ~r ~s ~bdy
         in
         lift_ev env @@ eval tm
       | D.CodeSg _ ->
+        let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in 
         let env, tm = 
-          Q.M.compile @@
-          Q.Kan.coe_sg ~sg_line:abs ~r ~s ~pair:con
+          Q.compile @@
+          Q.foreign split_line @@ fun split_line ->
+          Q.foreign (D.dim_to_con r) @@ fun r ->
+          Q.foreign (D.dim_to_con s) @@ fun s ->
+          Q.foreign con @@ fun bdy ->
+          let base_line = TB.fst split_line in
+          let fam_line = TB.snd split_line in
+          Q.term @@ TB.coe_sg ~base_line ~fam_line ~r ~s ~bdy
         in
         lift_ev env @@ eval tm
       | D.CodePath _ ->
@@ -398,28 +413,43 @@ struct
       | D.Cut {unfold = Some lcon} -> 
         go @<< force_lazy_con lcon
       | D.Cut {cut; unfold = None} ->
-        let hd = D.Coe (abs, r, s, con) in
-        let+ tp = do_el @<< do_ap abs (D.dim_to_con s) in
+        let hd = D.Coe (line, r, s, con) in
+        let+ tp = do_el @<< do_ap line (D.dim_to_con s) in
         D.Cut {tp; cut = hd, []; unfold = None}
       | _ ->
         throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
     in
-    go @<< do_ap abs (D.dim_to_con i)
+    go @<< do_ap line (D.dim_to_con i)
 
 
   and do_rigid_hcom code r s phi (bdy : D.con) = 
     let module Q = Quasiquote in
+    let module TB = TermBuilder in
     match code with 
     | D.CodePi (base, fam) ->
       let env, tm = 
-        Q.M.compile @@ 
-        Q.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
+        Q.compile @@ 
+        Q.foreign base @@ fun base ->
+        Q.foreign fam @@ fun fam ->
+        Q.foreign (D.dim_to_con r) @@ fun r ->
+        Q.foreign (D.dim_to_con s) @@ fun s ->
+        Q.foreign (D.cof_to_con phi) @@ fun phi ->
+        Q.foreign bdy @@ fun bdy ->
+        Q.term @@
+        TB.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
       in
       lift_ev env @@ eval tm
     | D.CodeSg (base, fam) ->
       let env, tm = 
-        Q.M.compile @@ 
-        Q.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
+        Q.compile @@ 
+        Q.foreign base @@ fun base ->
+        Q.foreign fam @@ fun fam ->
+        Q.foreign (D.dim_to_con r) @@ fun r ->
+        Q.foreign (D.dim_to_con s) @@ fun s ->
+        Q.foreign (D.cof_to_con phi) @@ fun phi ->
+        Q.foreign bdy @@ fun bdy ->
+        Q.term @@
+        TB.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
       in
       lift_ev env @@ eval tm
     | D.CodePath _ ->
