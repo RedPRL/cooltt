@@ -20,6 +20,20 @@ let pp_var env fmt ix =
 
 let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   match mode, tm with
+  | `Lam, Lam ((Lam _) as tm) ->
+    let x, envx = Pp.Env.bind env None in
+    Fmt.fprintf fmt "%a %a" 
+      Uuseg_string.pp_utf_8 x 
+      (pp_ envx `Lam) tm
+  | `Lam, Lam tm ->
+    let x, envx = Pp.Env.bind env None in
+    Fmt.fprintf fmt "%a%a" 
+      Uuseg_string.pp_utf_8 x 
+      (pp_ envx `Lam) tm
+  | `Lam, tm ->
+    Fmt.fprintf fmt "%s@ %a" "]" (pp env) tm
+  | _, (Lam _ as tm) ->
+    Fmt.fprintf fmt "@[<hov1>(lam %s%a)@]" "[" (pp_ env `Lam) (Lam tm)
   | _, Var i -> 
     pp_var env fmt i
   | _, Global sym ->
@@ -92,20 +106,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp envx) refl
       (pp env) scrut
-  | `Lam, Lam (Lam _ as tm) ->
-    let x, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "%a %a" 
-      Uuseg_string.pp_utf_8 x 
-      (pp_ envx `Lam) tm
-  | `Lam, Lam tm ->
-    let x, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "%a%a" 
-      Uuseg_string.pp_utf_8 x 
-      (pp_ envx `Lam) tm
-  | `Lam, tm ->
-    Fmt.fprintf fmt "%s@ %a" "]" (pp env) tm
-  | _, Lam tm ->
-    Fmt.fprintf fmt "@[<hov1>(lam %s%a)@]" "[" (pp_ env `Lam) (Lam tm)
   | _, Fst tm ->
     Fmt.fprintf fmt "@[<hov1>(fst@ %a)@]" (pp env) tm
   | _, Snd tm ->
