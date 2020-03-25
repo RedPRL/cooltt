@@ -90,10 +90,7 @@ struct
 
   let let_ (m : S.t m) (k : S.t m -> 'a M.m) : 'a M.m = 
     let+ t = m
-    and+ bdy = 
-      M.scope @@ fun x -> 
-      k x
-    in
+    and+ bdy = M.scope k in
     S.Let (t, bdy)
 end
 
