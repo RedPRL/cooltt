@@ -69,8 +69,8 @@ struct
   open Monad.Notation (M)
 
   let lam mbdy : _ M.m = 
-    M.scope @@ fun tok ->
-    let+ bdy = mbdy tok in
+    M.scope @@ fun var ->
+    let+ bdy = mbdy var in
     S.Lam bdy
 
   let rec ap m0 ms : _ M.m = 
@@ -88,6 +88,13 @@ struct
     and+ bdy = mbdy in
     S.Coe (line, r, s, bdy)
 
+  let let_ (m : S.t m) (k : S.t m -> 'a M.m) : 'a M.m = 
+    let+ t = m
+    and+ bdy = 
+      M.scope @@ fun x -> 
+      k x
+    in
+    S.Let (t, bdy)
 end
 
 module Coercion =
@@ -106,7 +113,8 @@ struct
     M.foreign fn @@ fun tfn ->
     M.foreign arg @@ fun targ ->
     M.term @@ 
-    let fib_line = T.lam @@ fun i -> T.ap tfam_line [i; T.coe tbase_line ts i targ] in
+    T.let_ (T.lam @@ fun i -> T.coe tbase_line ts i targ) @@ fun tcoe_base_line ->
+    let fib_line = T.lam @@ fun i -> T.ap tfam_line [i; T.ap tcoe_base_line [i]] in
     T.coe fib_line tr ts @@
-    T.ap tfn [T.coe tbase_line ts tr targ]
+    T.ap tfn [T.ap tcoe_base_line [tr]]
 end
