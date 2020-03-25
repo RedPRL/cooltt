@@ -14,6 +14,7 @@ val run : len:int -> 'a m -> 'a
 val lvl : int -> t m
 
 val lam : t b -> t m
+val ap : t m -> t m list -> t m
 val coe : t m -> t m -> t m -> t m -> t m
 val hcom : t m -> t m -> t m -> t m -> t m -> t m
 val com : t m -> t m -> t m -> t m -> t m -> t m

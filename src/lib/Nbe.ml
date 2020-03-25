@@ -465,11 +465,22 @@ struct
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
   and do_rigid_com (line : D.con) r s phi bdy =
+    let module Q = Quasiquote in
+    let module TB = TermBuilder in
     let* code_s = do_ap line (D.dim_to_con s) in
     do_rigid_hcom code_s r s phi @<<
-      let env = Emp <>< [D.dim_to_con s; line; bdy] in
-      let tm = S.Lam (S.Lam (S.Coe (S.Var 4, S.Var 2, S.Var 5, S.Ap (S.Ap (S.Var 3, S.Var 1), S.Var 0)))) in
-      lift_ev env @@ eval tm 
+      let env, tm = 
+        Q.compile @@ 
+        Q.foreign (D.dim_to_con s) @@ fun s ->
+        Q.foreign line @@ fun line ->
+        Q.foreign bdy @@ fun bdy ->
+        Q.term @@ 
+        TB.lam @@ fun i ->
+        TB.lam @@ fun prf ->
+        TB.coe line i s @@
+        TB.ap bdy [i; prf]
+      in
+      lift_ev env @@ eval tm
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
