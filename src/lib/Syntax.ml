@@ -173,8 +173,7 @@ and pp_ghost_ env mode fmt ((name, cells), scrut) =
     function 
     | [] -> pp env fmt scrut
     | (_, tm) :: cells -> 
-      (* should that really be `Ap? *)
-      Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm (go_cells env) cells
+      Fmt.fprintf fmt "%a@ %a" (pp env) tm (go_cells env) cells
   in
   match mode with
   | `Ap ->
