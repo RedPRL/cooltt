@@ -384,28 +384,13 @@ struct
     | D.Destruct dst ->
       do_destruct dst a
 
-    | D.ConCoe (`Pi, line, r, s, f) ->
-      let split_line = D.compose (D.Destruct D.DCodePiSplit) line in 
-      let base_line = D.compose D.fst split_line in
-      let fam_line = D.compose D.snd split_line in
-      let fib_clo : D.tm_clo = 
-        (* BASE/4 : I -> Univ, FAM/3 : (i : I) -> BASE(i) -> UNIV, s/2 : I, a/1 : BASE(s)
-         * |= [i/0:DIM]. 
-         *       FAM i (coe s i BASE a)
-         * *)
-        let tm = 
-          let tbase = S.Var 4 in
-          let tfam = S.Var 3 in
-          let ts = S.Var 2 in 
-          let ta = S.Var 1 in
-          let i = S.Var 0 in
-          S.Ap (S.Ap (tfam, i), S.Coe (tbase, ts, i, ta))
-        in
-        let env = Emp <>< [base_line; fam_line; D.dim_to_con s; a] in
-        D.Clo (tm, env)
-      in 
-      let fib_line = D.Lam fib_clo in 
-      do_rigid_coe fib_line r s @<< do_ap f @<< do_rigid_coe base_line s r a
+    | D.ConCoe (`Pi, line, r, s, fn) ->
+      let module Q = Quasiquote in
+      let env, tm = 
+        Q.M.compile @@
+        Q.Coercion.coe_pi ~pi_line:line ~r ~s ~fn ~arg:a 
+      in
+      lift_ev env @@ eval tm
 
     | D.ConHCom (`Pi, code, r, s, phi, bdy) ->
       let* base, fam = dest_pi_code code in
