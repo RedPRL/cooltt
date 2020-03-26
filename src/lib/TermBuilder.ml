@@ -107,7 +107,7 @@ let snd m =
   let+ x = m in
   S.Snd x
 
-let cof_split mtp mphi0 mphi1 mtm0 mtm1 =
+let cof_split mtp mphi0 mtm0 mphi1 mtm1 =
   let+ tp = mtp
   and+ phi0 = mphi0 
   and+ phi1 = mphi1 
@@ -227,7 +227,7 @@ struct
      =
      λ i. 
      sub/in {
-       hcom_{A(i)} r s (φ \/ d(i)) {
+       hcom_{fam(i)} r s (φ \/ d(i)) {
         λ k. λ p : [φ \/ d(i) \/ k=r]. 
         [ q : [d(i)] => bdry(i,q)
         | q : [φ \/ k=r] => sub/out {bdy(k,q,i)}
@@ -246,7 +246,7 @@ struct
     cof_split 
       (el fam_i)
       (boundary i)
-      (join phi (eq k r))
       (fun q -> ap bdry [i; q])
+      (join phi (eq k r))
       (fun q -> sub_out (ap bdy [k;q;i]))
 end

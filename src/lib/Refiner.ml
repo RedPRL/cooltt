@@ -114,7 +114,7 @@ struct
         QQ.foreign (D.Lam clo_a) @@ fun fn_a ->
         QQ.foreign (D.Lam clo_sub) @@ fun fn_sub ->
         QQ.term @@ TB.lam @@ fun prf ->
-        TB.cof_split tp_a phi_a phi_sub (fun prf -> TB.ap fn_a [prf]) (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])
+        TB.cof_split tp_a phi_a (fun prf -> TB.ap fn_a [prf]) phi_sub (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])
       in
       let+ tm = tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
@@ -229,7 +229,7 @@ struct
             QQ.foreign (D.cof_to_con psi') @@ fun psi' ->
             QQ.foreign (D.Lam phi_clo) @@ fun phi_fn ->
             QQ.foreign (D.Lam psi_clo) @@ fun psi_fn ->
-            QQ.term @@ TB.lam @@ fun prf -> TB.cof_split tp phi psi' (fun prf -> TB.ap phi_fn [prf]) (fun prf -> TB.ap psi_fn [prf])
+            QQ.term @@ TB.lam @@ fun prf -> TB.cof_split tp phi (fun prf -> TB.ap phi_fn [prf]) psi' (fun prf -> TB.ap psi_fn [prf])
           in
           EM.push_var None (D.TpPrf psi') @@ 
           go (tp, psi', D.un_lam psi'_fn) branches 
