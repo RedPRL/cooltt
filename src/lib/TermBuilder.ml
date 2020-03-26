@@ -223,15 +223,15 @@ struct
    * a : (i : I) (_ : [d(i)]) -> A i
    * bdy : (j : I) (_ : [φ \/ j=r]) (i : I) -> (A [_:d(i) => a(i,_)])
      hcom_{path(A; a)} r s φ bdy : (i : I) -> (A [_:d(i) => a(i,_)]) 
-         such that 
-         [_ : [φ\/s=r] => bdy(s,_)]
+         matching
+         [p : [φ\/s=r] => sub/out {bdy(s,p)}]
      =
      λ i. 
      sub/in {
        hcom_{A(i)} r s (φ \/ d(i)) {
-        λ k. λ _ : [φ \/ d(i) \/ k=r]. 
-        [ _ : [d(i)] => a(i,_)
-        | _ : [φ \/ k=r] => sub/out {bdy(k,_,i)}
+        λ k. λ p : [φ \/ d(i) \/ k=r]. 
+        [ q : [d(i)] => a(i,q)
+        | q : [φ \/ k=r] => sub/out {bdy(k,q,i)}
         ]
        } : A 
      }
