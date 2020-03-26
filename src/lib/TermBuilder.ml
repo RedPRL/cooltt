@@ -192,7 +192,6 @@ struct
     pair (ap fst_line [s]) (coe fib_line r s @@ snd bdy)
 
   let hcom_sg ~base ~fam ~r ~s ~phi ~bdy : _ m = 
-    lam @@ fun t ->
     let p0_line = 
       lam @@ fun i ->
       hcom base r i phi @@ 
@@ -237,5 +236,19 @@ struct
      }
    *)
   let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy = 
-    raise Todo
+    lam @@ fun i ->
+    sub_in @@ 
+    hcom 
+      (ap fam [i]) (* fam is A *)
+      (r)
+      (s)
+      (join phi (boundary i))
+      (lam @@ fun k ->
+       lam @@ fun p ->
+       cof_split (el(ap fam [i]))
+                  (boundary i)
+                  (join phi (eq k r))
+                  (fun q -> ap bdry [i; q]) (*a is bdry *)
+                  (fun q -> sub_out (ap bdy [k;q;i]))
+      )
 end

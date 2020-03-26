@@ -429,8 +429,16 @@ struct
       QQ.foreign bdy @@ fun bdy ->
       QQ.term @@
       TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
-    | D.CodePath _ ->
-      raise Todo
+    | D.CodePath (fam, bdry) ->
+      quasiquote_tm @@ 
+      QQ.foreign fam @@ fun fam ->
+      QQ.foreign bdry @@ fun bdry ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
+      QQ.foreign bdy @@ fun bdy ->
+      QQ.term @@
+      TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
     | D.Cut {unfold = Some lcon} ->
       let* code = force_lazy_con lcon in 
       do_rigid_hcom code r s phi bdy
