@@ -852,11 +852,26 @@ struct
         S.Lam bdy
       in 
       S.CodeSg (tbase, tfam)
+
+  (* 
+   *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
+   * *)
     | univ, D.CodePath (fam, bdry) -> (* check *)
       let* tfam = quote_con univ fam in
-      let+ tbdry = quote_con (D.Pi(raise Todo, raise Todo)) bdry
+      (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
+      let* bdry_tp = 
+        lift_cmp @@
+        quasiquote_tp @@
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.foreign fam @@ fun fam ->
+        QQ.term @@ 
+        TB.pi TB.tp_dim @@ fun i -> 
+        TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+        TB.el @@ TB.ap fam [i]
       in
-      S.CodePath(tfam, tbdry)
+      let+ tbdry = quote_con bdry_tp bdry in
+      S.CodePath (tfam, tbdry)
+
     | _ -> 
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
