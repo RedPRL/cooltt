@@ -222,13 +222,13 @@ struct
    * A : I -> U
    * a : (i : I) (_ : [d(i)]) -> A i
    * bdy : (j : I) (_ : [φ \/ j=r]) (i : I) -> (A [_:d(i) => a(i,_)])
-     hcom_{path(A; a)} r j φ bdy : (i : I) -> (A [_:d(i) => a(i,_)]) 
+     hcom_{path(A; a)} r s φ bdy : (i : I) -> (A [_:d(i) => a(i,_)]) 
          such that 
-         [_ : [φ\/j=r] => bdy(j,_)]
+         [_ : [φ\/s=r] => bdy(s,_)]
      =
      λ i. 
      sub/in {
-       hcom_{A} r j (φ \/ d(i)) {
+       hcom_{A(i)} r s (φ \/ d(i)) {
         λ k. λ _ : [φ \/ d(i) \/ k=r]. 
         [ _ : [d(i)] => a(i,_)
         | _ : [φ \/ k=r] => sub/out {bdy(k,_,i)}
@@ -238,5 +238,4 @@ struct
    *)
   let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy = 
     raise Todo
-
 end
