@@ -1,0 +1,98 @@
+\documentclass{amsart}
+
+\usepackage{amsmath,amssymb}
+\usepackage{libertine}
+\usepackage[libertine]{newtxmath}
+\usepackage{jmsdelim}
+\usepackage{xparse}
+\usepackage{stmaryrd}
+
+\let\prn\parens%
+
+\NewDocumentCommand\EvTp{mm}{%
+  \llbracket%
+  #1\vdash{}#2
+  \rrbracket%
+}
+
+\NewDocumentCommand\EvTm{mmm}{%
+  \llbracket%
+  #1\vdash{}#2:#3
+  \rrbracket%
+}
+
+\NewDocumentCommand\Coe{mm}{%
+  \mathbf{coe}
+  \llbracket%
+  #1\vdash{}#2
+  \rrbracket%
+}
+
+\NewDocumentCommand\ENV{m}{%
+  \llbracket%
+  #1%
+  \rrbracket%
+}
+
+\NewDocumentCommand\DIM{}{\mathbb{I}}
+\NewDocumentCommand\IENV{m}{%
+  \llbracket%
+  #1%
+  \rrbracket^{\DIM}
+}
+
+\NewDocumentCommand\TYPE{}{\mathbf{Type}}
+
+\title{evaluation semantics of coercion}
+\author{Jonathan Sterling}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+An idea for a \emph{new} evaluation dynamics of coercion inspired by the
+denotational semantics of cubical type theory. The main idea is that coercions
+should \emph{not} be evaluated in an ordinary environment, but instead an
+environment where each cell is a line.
+
+\begin{align*}
+  \EvTp{\Gamma}{A} &: \ENV{\Gamma}\to\TYPE\\
+  \EvTm{\Gamma}{a}{A} &: \textstyle\prod_{\gamma:\ENV{\Gamma}}\EvTp{\Gamma}{A}_\gamma\\
+  \Coe{\Gamma}{A} &: 
+  \textstyle
+  \prod_{\boldsymbol{\gamma} : \IENV{\Gamma}}
+  \prod_{r,s : \DIM}
+  \prod_{a : \EvTp{\Gamma}{A}_{\boldsymbol{\gamma}\prn{r}}}
+  \EvTp{\Gamma}{A}_{\boldsymbol{\gamma}\prn{s}}
+\end{align*}
+
+\begin{align*}
+  \EvTm{\Gamma}{%
+    \mathsf{coe}_{F}^{r\to s}M%
+  }{F(r)}\gamma
+  &=
+  \Coe{\Gamma.\DIM}{F(i)}_{\gls{\mathbf{refl}\prn{\gamma},\mathbf{id}_{\DIM}}}^{\EvTm{\Gamma}{r}{\DIM}_\gamma\to\EvTm{\Gamma}{s}{\DIM}_\gamma}
+  \EvTm{\Gamma}{M}{F(r)}_\gamma
+\end{align*}
+
+\begin{align*}
+  \Coe{\Gamma}{\Pi\prn{A,B}}_{\boldsymbol{\gamma}}^{r\to s}f &=
+  \lambda a.
+  \Coe{\Gamma.A}{B}_{%
+    \gls{%
+      \boldsymbol{\gamma},
+      \lambda i.%
+      \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{s\to i}a
+    }
+  }
+  \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{s\to r}a
+  \\
+  \Coe{\Gamma}{\mathsf{V}_i\prn{A,B,E}}_{\boldsymbol{\gamma}}^{r\to s}\prn{v} &=%
+  \begin{cases}
+    {?0} & \mbox{if $\forall{}j:\DIM$, }\EvTm{\Gamma}{i}{\DIM}_{\boldsymbol{\gamma}\prn{j}} = j
+    \\
+    {?1} &\mbox{otherwise}
+  \end{cases}
+\end{align*}
+
+\end{document}

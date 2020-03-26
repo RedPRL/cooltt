@@ -1,0 +1,172 @@
+%%
+%% This is file `jmsdelim.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% jmsdelim.dtx  (with options: `package')
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from jmsdelim.sty.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file jmsdelim.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%% File: jmsdelim.dtx Copyright (C) 2019 Jonathan Sterling
+%%
+%% It may be distributed and/or modified under the conditions of the
+%% LaTeX Project Public License (LPPL), either version 1.3c of this
+%% license or (at your option) any later version.  The latest version
+%% of this license is in the file
+%%
+%%    http://www.latex-project.org/lppl.txt
+%%
+%% This file is part of the "GS1 bundle" (The Work in LPPL)
+%% and all files in that bundle must be distributed together.
+%%
+%% The released version of this bundle is available from CTAN.
+%%
+%% -------------------------------------------------------------------------
+\RequirePackage{expl3}
+\RequirePackage{l3keys2e}
+\RequirePackage{xparse}
+\ProvidesExplPackage {jmsdelim} {2019/09/14} {0.1}
+  {Compositional delimiter sizing}
+\keys_define:nn { jmsdelim } {
+  delimiters .clist_set:N = \l_jmsdelim_size_cmds,
+  formatters .clist_set:N = \l_jmsdelim_fmt_cmds,
+}
+\keys_set:nn { jmsdelim } {
+  delimiters = {{},\big,\Big,\bigg,\Bigg},
+  formatters = {{}}
+}
+\int_new:N \l_jmsdelim_depth
+\cs_new:Npn \__jmsdelim_fmt_delim:nn #1 #2 {
+  \clist_item:Nn \l_jmsdelim_fmt_cmds {
+    \int_mod:nn
+      { \int_max:nn \l_jmsdelim_depth 0 }
+      { \clist_count:N \l_jmsdelim_fmt_cmds }
+    + 1
+  }
+  \bool_if:nT {#2} {
+    \clist_item:Nn \l_jmsdelim_size_cmds {
+      \int_min:nn
+        { \int_max:nn {#1 + 1} {1} }
+        { \clist_count:N \l_jmsdelim_size_cmds }
+    }
+  }
+}
+\cs_new:Npn \__jmsdelim_draw_delim:n #1 {
+  \mathchoice
+    {{\__jmsdelim_fmt_delim:nn \l_jmsdelim_current_delim_size \c_true_bool {#1}}}
+    {{\__jmsdelim_fmt_delim:nn \l_jmsdelim_current_delim_size \c_true_bool {#1}}}
+    {{\__jmsdelim_fmt_delim:nn \l_jmsdelim_current_delim_size \c_false_bool {#1}}}
+    {{\__jmsdelim_fmt_delim:nn \l_jmsdelim_current_delim_size \c_false_bool {#1}}}
+}
+\int_new:N \l_jmsdelim_current_delim_size
+\int_new:N \g_jmsdelim_min_delim_size
+\bool_new:N \l_jmsdelim_counting_mode
+\cs_new:Npn \__jmsdelim_draw:nnn #1 #2 #3 {
+  \bool_if:nT \l_jmsdelim_counting_mode {
+    \msg_fatal:nn {jmsdelim} {
+      \__jmsdelim_draw:nnn called during counting mode. this is a bug
+    }
+  }
+  \group_begin:
+    \int_set:Nn \l_jmsdelim_current_delim_size \g_jmsdelim_min_delim_size
+    \mathopen{}
+    {\__jmsdelim_draw_delim:n {#1}}
+    { #3 }
+    {\__jmsdelim_draw_delim:n {#2}}
+    \mathclose{}
+  \group_end:
+}
+\cs_new:Npn \__jmsdelim_int_gset_monotone:Nn #1 #2 {
+  \int_gset:Nn #1 {
+    \int_max:nn {#1} {#2}
+  }
+}
+\cs_new:Npn \__jmsdelim_set_min:n #1 {
+  \bool_if:nT \l_jmsdelim_counting_mode {
+    \__jmsdelim_int_gset_monotone:Nn \g_jmsdelim_min_delim_size {#1}
+  }
+}
+\bool_new:N \g_jmsdelim_should_bump
+\cs_new:Npn \jmsdelim_make:nnnn #1 #2 #3 #4 {
+  \bool_if:nTF \l_jmsdelim_counting_mode {
+    \bool_set:Nn \l_tmpa_bool \g_jmsdelim_should_bump
+    \hbox_set:Nn \l_tmpa_box { $#4$ }
+    \bool_if:nT {\g_jmsdelim_should_bump && ! \l_tmpa_bool } {
+      \int_gincr:N \g_jmsdelim_min_delim_size
+    }
+    \bool_gset:Nn \g_jmsdelim_should_bump {#1}
+  }{
+    \group_begin:
+      \bool_set:Nn \l_jmsdelim_counting_mode \c_true_bool
+      \bool_gset:Nn \g_jmsdelim_should_bump \c_false_bool
+      \int_gset:Nn \g_jmsdelim_min_delim_size {0}
+      \jmsdelim_make:nnnn {#1} {#2} {#3} {#4}
+    \group_end:
+    \__jmsdelim_draw:nnn {#2} {#3} {
+      \int_incr:N \l_jmsdelim_depth
+      #4
+    }
+  }
+}
+\NewDocumentCommand\jmsdelimsetup{+m}{
+  \keys_set:nn {jmsdelim} {#1}
+}
+\NewDocumentCommand\mindelim{m}{
+  \__jmsdelim_set_min:n {#1}
+}
+\NewDocumentCommand\delimsep{m}{
+  {\__jmsdelim_draw_delim:n {#1}}
+}
+\NewDocumentCommand\delim{+O{}smmm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} {#3} {#4} {#5}
+}
+\NewDocumentCommand\parens{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} () {#3}
+}
+\NewDocumentCommand\brackets{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} [] {#3}
+}
+\NewDocumentCommand\bbrackets{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \llbracket\rrbracket {#3}
+}
+\NewDocumentCommand\gls{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \langle\rangle {#3}
+}
+\NewDocumentCommand\ggls{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \llangle\rrangle {#3}
+}
+\NewDocumentCommand\verts{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \lvert\rvert {#3}
+}
+\NewDocumentCommand\vverts{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \lVert\rVert {#3}
+}
+\NewDocumentCommand\braces{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \{\} {#3}
+}
+\ProcessKeysPackageOptions {jmsdelim}
+\endinput
+%%
+%% End of file `jmsdelim.sty'.
