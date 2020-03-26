@@ -857,7 +857,7 @@ struct
       S.CodeSg (tbase, tfam)
     | univ, D.CodePath (fam, bdry) -> (* check *)
       let* tfam = quote_con univ fam in
-      let+ tbdry = quote_con univ bdry
+      let+ tbdry = quote_con (D.Pi(raise Todo, raise Todo)) bdry
       in
       S.CodePath(tfam, tbdry)
     | _ -> 
