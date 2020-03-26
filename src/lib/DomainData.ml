@@ -52,6 +52,7 @@ and tp =
   | Sg of tp * tp_clo
   | Id : tp * con * con -> tp
   | Nat
+  | TpAbort
 
 and hd =
   | Global of Symbol.t 
