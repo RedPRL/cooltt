@@ -246,14 +246,6 @@ struct
     | D.Clo (bdy, env) -> 
       lift_ev {env with conenv = env.conenv <>< xs} @@ 
       eval bdy
-    | D.SplitClo (tp, phi0, phi1, clo0, clo1) -> 
-      let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
-      let con = D.Cut {tp; cut; unfold = None} in
-      begin
-        whnf_con con |>> function
-        | `Done -> ret con
-        | `Reduce con -> ret con
-      end
 
   and do_goal_proj =
     function

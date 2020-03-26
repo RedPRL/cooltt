@@ -107,6 +107,21 @@ let snd m =
   let+ x = m in
   S.Snd x
 
+let cof_split mtp mphi0 mphi1 mtm0 mtm1 =
+  let+ tp = mtp
+  and+ phi0 = mphi0 
+  and+ phi1 = mphi1 
+  and+ tm0 = scope mtm0 
+  and+ tm1 = scope mtm1 in 
+  S.CofSplit (tp, phi0, phi1, tm0, tm1)
+
+let sub_out mtm =
+  let+ tm = mtm in 
+  S.SubOut tm
+
+let sub_in mtm =
+  let+ tm = mtm in 
+  S.SubIn tm
 
 let pi mbase mfam : _ m = 
   let+ base = mbase
@@ -131,6 +146,7 @@ let el mcode : _ m =
 let tp_prf mphi = 
   let+ phi = mphi in 
   S.TpPrf phi
+
 
 let eq mr ms = 
   let+ r = mr

@@ -106,11 +106,17 @@ struct
     function 
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub -> 
       let phi = Cof.join phi_a phi_sub in
-      let clo = 
-        let out_clo = D.Clo (S.SubOut (S.Ap (S.Var 1, S.Prf)), {tpenv = Emp; conenv = Snoc (Emp, D.Lam clo_sub)}) in
-        D.SplitClo (tp_a, phi_a, phi_sub, clo_a, out_clo)
+      let* partial = 
+        EM.lift_cmp @@ Nbe.quasiquote_tm @@
+        QQ.foreign_tp tp_a @@ fun tp_a ->
+        QQ.foreign (D.cof_to_con phi_a) @@ fun phi_a ->
+        QQ.foreign (D.cof_to_con phi_sub) @@ fun phi_sub ->
+        QQ.foreign (D.Lam clo_a) @@ fun fn_a ->
+        QQ.foreign (D.Lam clo_sub) @@ fun fn_sub ->
+        QQ.term @@ TB.lam @@ fun prf ->
+        TB.cof_split tp_a phi_a phi_sub (fun prf -> TB.ap fn_a [prf]) (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])
       in
-      let+ tm = tac (tp_a, phi, clo) in
+      let+ tm = tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
     | tp, _, _ ->
       EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
@@ -216,9 +222,17 @@ struct
         let* phi_rest, rest = 
           let* env = EM.lift_ev @@ EvM.read_local in
           let phi_clo = D.Clo (tm, env) in 
-          let psi'_clo = D.SplitClo (tp, vphi, psi', phi_clo, psi_clo) in
+          let* psi'_fn =
+            EM.lift_cmp @@ Nbe.quasiquote_tm @@
+            QQ.foreign_tp tp @@ fun tp ->
+            QQ.foreign (D.cof_to_con vphi) @@ fun phi ->
+            QQ.foreign (D.cof_to_con psi') @@ fun psi' ->
+            QQ.foreign (D.Lam phi_clo) @@ fun phi_fn ->
+            QQ.foreign (D.Lam psi_clo) @@ fun psi_fn ->
+            QQ.term @@ TB.lam @@ fun prf -> TB.cof_split tp phi psi' (fun prf -> TB.ap phi_fn [prf]) (fun prf -> TB.ap psi_fn [prf])
+          in
           EM.push_var None (D.TpPrf psi') @@ 
-          go (tp, psi', psi'_clo) branches 
+          go (tp, psi', D.un_lam psi'_fn) branches 
         in
         let+ tphi_rest = EM.lift_qu @@ Nbe.quote_cof phi_rest in
         Cof.join vphi phi_rest, S.CofSplit (ttp, tphi, tphi_rest, tm, rest)

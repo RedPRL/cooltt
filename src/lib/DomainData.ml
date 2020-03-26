@@ -17,7 +17,6 @@ and tp_clo =
 
 and tm_clo = 
   | Clo of S.t * env
-  | SplitClo of tp * cof * cof * tm_clo * tm_clo
 
 and con =
   | Lam of tm_clo
