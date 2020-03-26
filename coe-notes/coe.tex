@@ -16,29 +16,25 @@
 }
 
 \NewDocumentCommand\EvTm{mmm}{%
-  \llbracket%
-  #1\vdash{}#2:#3
-  \rrbracket%
+  \bbrackets{%
+    #1\vdash{}#2:#3
+  }
 }
 
 \NewDocumentCommand\Coe{mm}{%
-  \mathbf{coe}
-  \llbracket%
-  #1\vdash{}#2
-  \rrbracket%
+  \mathbf{coe}%
+  \bbrackets{%
+    #1\vdash{}#2
+  }
 }
 
 \NewDocumentCommand\ENV{m}{%
-  \llbracket%
-  #1%
-  \rrbracket%
+  \bbrackets{#1}
 }
 
 \NewDocumentCommand\DIM{}{\mathbb{I}}
 \NewDocumentCommand\IENV{m}{%
-  \llbracket%
-  #1%
-  \rrbracket^{\DIM}
+  \bbrackets{#1}^{\DIM}
 }
 
 \NewDocumentCommand\TYPE{}{\mathbf{Type}}
@@ -86,6 +82,12 @@ environment where each cell is a line.
     }
   }
   \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{s\to r}a
+  \\
+  \Coe{\Gamma}{\Sigma\prn{A,B}}_{\boldsymbol{\gamma}}^{r\to s}p &=
+  \prn{%
+    \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{r\to s}\pi_1\prn{p},
+    \Coe{\Gamma.A}{B}_{\gls{\boldsymbol{\gamma}, \lambda i.\Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{r\to i}\pi_1\prn{p}}}^{r\to s}\pi_2\prn{p}
+  }
   \\
   \Coe{\Gamma}{\mathsf{V}_i\prn{A,B,E}}_{\boldsymbol{\gamma}}^{r\to s}\prn{v} &=%
   \begin{cases}
