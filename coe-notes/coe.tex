@@ -6,8 +6,11 @@
 \usepackage{jmsdelim}
 \usepackage{xparse}
 \usepackage{stmaryrd}
+\usepackage{fullpage}
 
 \let\prn\parens%
+\let\brk\brackets%
+\let\bbrk\bbrackets%
 
 \NewDocumentCommand\EvTp{mm}{%
   \llbracket%
@@ -23,6 +26,13 @@
 
 \NewDocumentCommand\Coe{mm}{%
   \mathbf{coe}%
+  \bbrackets{%
+    #1\vdash{}#2
+  }
+}
+
+\NewDocumentCommand\Hcom{mm}{%
+  \mathbf{hcom}%
   \bbrackets{%
     #1\vdash{}#2
   }
@@ -91,9 +101,14 @@ environment where each cell is a line.
   \\
   \Coe{\Gamma}{\mathsf{V}_i\prn{A,B,E}}_{\boldsymbol{\gamma}}^{r\to s}\prn{v} &=%
   \begin{cases}
-    {?0} & \mbox{if $\forall{}j:\DIM$, }\EvTm{\Gamma}{i}{\DIM}_{\boldsymbol{\gamma}\prn{j}} = j
+    \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{r\to s}\prn{v} & \mbox{if $\forall{}j:\DIM$, }\bbrk{i}_{\boldsymbol{\gamma}\prn{j}} = 0\\
+    \Coe{\Gamma}{B}_{\boldsymbol{\gamma}}^{r\to s}\prn{v} & \mbox{if $\forall{}j:\DIM$, }\bbrk{i}_{\boldsymbol{\gamma}\prn{j}} = 1\\
+    {?} & \mbox{if $\forall{}j:\DIM$, }\bbrk{i}_{\boldsymbol{\gamma}\prn{j}} = j
     \\
-    {?1} &\mbox{otherwise}
+    \mathbf{Vin}_{\bbrk{i}_{\boldsymbol{\gamma}\prn{s}}}\prn{%
+      \Hcom{\Gamma}{A}_{\boldsymbol{\gamma}\prn{s}}^{r\to s}\brk{\partial\prn{\bbrk{i}_{\boldsymbol{\gamma}\prn{s}}}}{?},
+      {?}
+    }&\mbox{otherwise}
   \end{cases}
 \end{align*}
 
