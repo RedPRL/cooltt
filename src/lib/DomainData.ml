@@ -10,11 +10,10 @@ type dim =
 
 type cof = (dim, int) Cof.cof
 
-type env = con bwd
+type env = {tpenv : tp bwd; conenv: con bwd}
 
 and tp_clo = 
   | TpClo of S.tp * env
-  | ConstTpClo of tp 
 
 and tm_clo = 
   | Clo of S.t * env

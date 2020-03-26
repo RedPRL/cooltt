@@ -5,6 +5,8 @@ module Env = ElabEnv
 module Err = ElabError
 module EM = ElabBasics
 module T = Tactic
+module QQ = Quasiquote
+module TB = TermBuilder
 
 exception Todo
 
@@ -105,7 +107,7 @@ struct
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub -> 
       let phi = Cof.join phi_a phi_sub in
       let clo = 
-        let out_clo = D.Clo (S.SubOut (S.Ap (S.Var 1, S.Prf)), Snoc (Emp, D.Lam clo_sub)) in
+        let out_clo = D.Clo (S.SubOut (S.Ap (S.Var 1, S.Prf)), {tpenv = Emp; conenv = Snoc (Emp, D.Lam clo_sub)}) in
         D.SplitClo (tp_a, phi_a, phi_sub, clo_a, out_clo)
       in
       let+ tm = tac (tp_a, phi, clo) in
@@ -273,8 +275,14 @@ struct
   let quantifier tac_base tac_fam =
     fun univ ->
     let* base = tac_base univ in
-    let* vbase = EM.lift_ev @@ Nbe.eval_tp @@ S.El base in
-    let famtp = D.Pi (vbase, D.ConstTpClo univ) in
+    let* vbase = EM.lift_ev @@ Nbe.eval base in
+    let* famtp = 
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.foreign vbase @@ fun base ->
+      QQ.foreign_tp univ @@ fun univ ->
+      QQ.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+    in
     let+ fam = tac_fam famtp in
     base, fam
 

@@ -11,8 +11,9 @@ type tp := Syntax.tp
 
 type 'a b = t m -> 'a m
 val scope : 'a b -> 'a m
-val run : len:int -> 'a m -> 'a
+val run : tplen:int -> conlen:int -> 'a m -> 'a
 val lvl : int -> t m
+val tplvl : int -> tp m
 
 val lam : t b -> t m
 val ap : t m -> t m list -> t m

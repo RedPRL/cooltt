@@ -7,11 +7,12 @@ module M : sig
   include Monad.S
 
   val scope : (S.t m -> 'a m) -> 'a m
-  val run : len:int -> 'a m -> 'a
+  val run : tplen:int -> conlen:int-> 'a m -> 'a
   val lvl : int -> S.t m
+  val tplvl : int -> S.tp m
 end = 
 struct
-  type local = {len : int}
+  type local = {tplen : int; conlen : int}
   type token = {lvl : int}
 
   type 'a m = local -> 'a
@@ -26,17 +27,22 @@ struct
 
   let var tok : _ m =
     fun loc ->
-    S.Var (loc.len - tok.lvl - 1)
+    S.Var (loc.conlen - tok.lvl - 1)
+
+  let tpvar tok : _ m =
+    fun loc ->
+    S.TpVar (loc.tplen - tok.lvl - 1)
 
   let lvl l = var {lvl = l}
+  let tplvl l = tpvar {lvl = l}
 
   let scope (k : S.t m -> 'a m) : 'a m = 
     fun loc ->
-    let tok = {lvl = loc.len} in
-    k (var tok) {len = loc.len + 1}
+    let tok = {lvl = loc.conlen} in
+    k (var tok) {loc with conlen = loc.conlen + 1}
 
-  let run ~len m =
-    m {len}
+  let run ~tplen ~conlen m =
+    m {tplen; conlen}
 end
 
 

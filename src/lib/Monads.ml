@@ -64,7 +64,7 @@ struct
 
   let append cells = 
     M.scope @@ fun local ->
-    {local with env = local.env <>< cells}
+    {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let close_tp tp : _ m =
     let+ env = read_local in 

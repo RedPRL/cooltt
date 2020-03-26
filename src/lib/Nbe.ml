@@ -237,16 +237,14 @@ struct
     fun clo xs ->
     match clo with
     | TpClo (bdy, env) ->
-      lift_ev (env <>< xs) @@ 
+      lift_ev {env with conenv = env.conenv <>< xs} @@ 
       eval_tp bdy
-    | ConstTpClo tp -> 
-      ret tp
 
   and inst_tm_clo : D.tm_clo -> D.con list -> D.con compute =
     fun clo xs ->
     match clo with
     | D.Clo (bdy, env) -> 
-      lift_ev (env <>< xs) @@ 
+      lift_ev {env with conenv = env.conenv <>< xs} @@ 
       eval bdy
     | D.SplitClo (tp, phi0, phi1, clo0, clo1) -> 
       let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
@@ -500,7 +498,13 @@ struct
 
   let get_local i =
     let* env = EvM.read_local in
-    match Bwd.nth env i with 
+    match Bwd.nth env.conenv i with 
+    | v -> EvM.ret v 
+    | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
+        
+  let get_local_tp i =
+    let* env = EvM.read_local in
+    match Bwd.nth env.tpenv i with 
     | v -> EvM.ret v 
     | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
@@ -541,6 +545,8 @@ struct
     | S.TpPrf tphi ->
       let+ phi = eval_cof tphi in 
       D.TpPrf phi
+    | S.TpVar ix ->
+      get_local_tp ix
 
   and eval =
     function
@@ -855,7 +861,7 @@ struct
         binder 1 @@ 
         let* var = top_var base in
         quote_tp @<< 
-        lift_cmp @@ inst_tp_clo fam [var] 
+        lift_cmp @@ inst_tp_clo fam [var]
       in
       S.Pi (tbase, tfam)
     | D.Sg (base, fam) ->
@@ -1211,11 +1217,23 @@ struct
     | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
       let* _ = equate_con univ base0 base1 in
       let* el_base = lift_cmp @@ do_el base0 in
-      let fam_tp = D.Pi (el_base, D.ConstTpClo univ) in
+      let* fam_tp = 
+        lift_cmp @@
+        quasiquote_tp @@
+        QQ.foreign base0 @@ fun base ->
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+      in
       equate_con fam_tp fam0 fam1
 
     | univ, D.CodePath (fam0, bdry0), D.CodePath (fam1, bdry1) ->
-      let* _ = equate_con (D.Pi (D.TpDim, D.ConstTpClo univ)) fam0 fam1 in
+      let* famtp =
+        lift_cmp @@
+        quasiquote_tp @@
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.term @@ TB.pi TB.tp_dim @@ fun _ -> univ
+      in
+      let* _ = equate_con famtp fam0 fam1 in
       let* bdry_tp = 
         lift_cmp @@ quasiquote_tp @@ 
         QQ.foreign fam0 @@ fun fam ->

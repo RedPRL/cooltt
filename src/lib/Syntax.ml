@@ -238,6 +238,8 @@ and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer =
       (pp env) tm1
   | _, Nat ->
     Format.fprintf fmt "nat"
+  | _, TpVar i ->
+    Format.fprintf fmt "(tpvar %i)" i
 
 and pp_tp env = pp_tp_ env `Start
 
