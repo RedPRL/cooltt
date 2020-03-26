@@ -238,17 +238,13 @@ struct
   let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy = 
     lam @@ fun i ->
     sub_in @@ 
-    hcom 
-      (ap fam [i])
-      (r)
-      (s)
-      (join phi (boundary i))
-      (lam @@ fun k ->
-       lam @@ fun p ->
-       cof_split (el(ap fam [i]))
-                  (boundary i)
-                  (join phi (eq k r))
-                  (fun q -> ap bdry [i; q])
-                  (fun q -> sub_out (ap bdy [k;q;i]))
-      )
+    hcom (ap fam [i]) r s (join phi (boundary i)) @@
+    lam @@ fun k ->
+    lam @@ fun p ->
+    cof_split 
+      (el (ap fam [i]))
+      (boundary i)
+      (join phi (eq k r))
+      (fun q -> ap bdry [i; q])
+      (fun q -> sub_out (ap bdy [k;q;i]))
 end
