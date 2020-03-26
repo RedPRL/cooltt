@@ -218,10 +218,10 @@ struct
     raise Todo
 
   (* 
-   * A : I -> U
-   * a : (i : I) (_ : [d(i)]) -> A i
-   * bdy : (j : I) (_ : [φ \/ j=r]) (i : I) -> (A [_:d(i) => a(i,_)])
-     hcom_{path(A; a)} r s φ bdy : (i : I) -> (A [_:d(i) => a(i,_)]) 
+   * fam : I -> U
+   * bdry : (i : I) (_ : [d(i)]) -> fam i
+   * bdy : (j : I) (_ : [φ \/ j=r]) (i : I) -> (A [_:d(i) => bdry(i,_)])
+     hcom_{path(A; a)} r s φ bdy : (i : I) -> (A [_:d(i) => bdry(i,_)]) 
          matching
          [p : [φ\/s=r] => sub/out {bdy(s,p)}]
      =
@@ -229,17 +229,17 @@ struct
      sub/in {
        hcom_{A(i)} r s (φ \/ d(i)) {
         λ k. λ p : [φ \/ d(i) \/ k=r]. 
-        [ q : [d(i)] => a(i,q)
+        [ q : [d(i)] => bdry(i,q)
         | q : [φ \/ k=r] => sub/out {bdy(k,q,i)}
         ]
-       } : A 
+       } : fam i
      }
    *)
   let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy = 
     lam @@ fun i ->
     sub_in @@ 
     hcom 
-      (ap fam [i]) (* fam is A *)
+      (ap fam [i])
       (r)
       (s)
       (join phi (boundary i))
@@ -248,7 +248,7 @@ struct
        cof_split (el(ap fam [i]))
                   (boundary i)
                   (join phi (eq k r))
-                  (fun q -> ap bdry [i; q]) (*a is bdry *)
+                  (fun q -> ap bdry [i; q])
                   (fun q -> sub_out (ap bdy [k;q;i]))
       )
 end
