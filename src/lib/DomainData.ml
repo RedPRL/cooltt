@@ -10,18 +10,13 @@ type dim =
 
 type cof = (dim, int) Cof.cof
 
-type env = con bwd
+type env = {tpenv : tp bwd; conenv: con bwd}
 
 and tp_clo = 
   | TpClo of S.tp * env
-  | ElClo of con
-  | ConstTpClo of tp 
-  | CloFromPathData of con * con
-  | CloBoundaryType of con
 
 and tm_clo = 
   | Clo of S.t * env
-  | SplitClo of tp * cof * cof * tm_clo * tm_clo
 
 and con =
   | Lam of tm_clo
@@ -57,6 +52,7 @@ and tp =
   | Sg of tp * tp_clo
   | Id : tp * con * con -> tp
   | Nat
+  | TpAbort
 
 and hd =
   | Global of Symbol.t 

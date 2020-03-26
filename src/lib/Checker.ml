@@ -35,6 +35,8 @@ let rec chk_tp : S.tp -> T.tp_tac =
     R.Prf.formation (chk_tm phi)
   | S.TpCof -> 
     R.Cof.formation
+  | S.TpVar _ ->
+    failwith "Not expected"
 
 
 (* 

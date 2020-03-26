@@ -76,9 +76,11 @@ let append_con name con tp env =
   }
 
 let sem_env (env : t) : D.env =
-  env.locals |> Bwd.filter_map @@ fun cell ->
-  let _, con = Cell.contents cell in
-  Some con
+  {tpenv = Emp;
+   conenv = 
+     env.locals |> Bwd.filter_map @@ fun cell ->
+     let _, con = Cell.contents cell in
+     Some con}
 
 let pp_env env = env.pp
 

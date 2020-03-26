@@ -7,11 +7,12 @@ module M : sig
   include Monad.S
 
   val scope : (S.t m -> 'a m) -> 'a m
-  val run : len:int -> 'a m -> 'a
+  val run : tplen:int -> conlen:int-> 'a m -> 'a
   val lvl : int -> S.t m
+  val tplvl : int -> S.tp m
 end = 
 struct
-  type local = {len : int}
+  type local = {tplen : int; conlen : int}
   type token = {lvl : int}
 
   type 'a m = local -> 'a
@@ -26,17 +27,22 @@ struct
 
   let var tok : _ m =
     fun loc ->
-    S.Var (loc.len - tok.lvl - 1)
+    S.Var (loc.conlen - tok.lvl - 1)
+
+  let tpvar tok : _ m =
+    fun loc ->
+    S.TpVar (loc.tplen - tok.lvl - 1)
 
   let lvl l = var {lvl = l}
+  let tplvl l = tpvar {lvl = l}
 
   let scope (k : S.t m -> 'a m) : 'a m = 
     fun loc ->
-    let tok = {lvl = loc.len} in
-    k (var tok) {len = loc.len + 1}
+    let tok = {lvl = loc.conlen} in
+    k (var tok) {loc with conlen = loc.conlen + 1}
 
-  let run ~len m =
-    m {len}
+  let run ~tplen ~conlen m =
+    m {tplen; conlen}
 end
 
 
@@ -100,6 +106,65 @@ let fst m =
 let snd m =
   let+ x = m in
   S.Snd x
+
+let cof_split mtp mphi0 mphi1 mtm0 mtm1 =
+  let+ tp = mtp
+  and+ phi0 = mphi0 
+  and+ phi1 = mphi1 
+  and+ tm0 = scope mtm0 
+  and+ tm1 = scope mtm1 in 
+  S.CofSplit (tp, phi0, phi1, tm0, tm1)
+
+let sub_out mtm =
+  let+ tm = mtm in 
+  S.SubOut tm
+
+let sub_in mtm =
+  let+ tm = mtm in 
+  S.SubIn tm
+
+let pi mbase mfam : _ m = 
+  let+ base = mbase
+  and+ fam = scope mfam in 
+  S.Pi (base, fam)
+
+let sg mbase mfam : _ m = 
+  let+ base = mbase
+  and+ fam = scope mfam in 
+  S.Sg (base, fam)
+
+let sub mbase mphi mbdry = 
+  let+ base = mbase
+  and+ phi = mphi 
+  and+ bdry = scope mbdry in 
+  S.Sub (base, phi, bdry)
+
+let el mcode : _ m = 
+  let+ code = mcode in 
+  S.El code
+
+let tp_prf mphi = 
+  let+ phi = mphi in 
+  S.TpPrf phi
+
+
+let eq mr ms = 
+  let+ r = mr
+  and+ s = ms in 
+  S.Cof (Cof.Eq (r, s))
+
+let join mphi mpsi = 
+  let+ phi = mphi
+  and+ psi = mpsi in 
+  S.Cof (Cof.Join (phi, psi))
+
+let tp_dim = ret S.TpDim
+let dim0 = ret S.Dim0
+let dim1 = ret S.Dim0
+
+let boundary mr = 
+  join (eq mr dim0) (eq mr dim1)
+
 
 module Kan =
 struct

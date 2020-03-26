@@ -19,3 +19,5 @@ def com/fun : {
   \A B com/A com/B r phi p r' x => 
   com/B r phi {\j _ => p j _ {com/A r' {1==0} {\_ _ => x} j}} r'
 }
+
+normalize com/fun

@@ -1,6 +1,7 @@
 module D := Domain
 module S := Syntax
 module St := ElabState
+module QQ := Quasiquote
 
 exception NbeFailed of string
 
@@ -33,3 +34,7 @@ val whnf_tp : D.tp -> D.tp whnf compute
 
 val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute  
+
+
+val quasiquote_tm : S.t QQ.builder -> D.con compute
+val quasiquote_tp : S.tp QQ.builder -> D.tp compute

@@ -1,0 +1,125 @@
+\documentclass{amsart}
+
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb}
+\usepackage{libertine}
+\usepackage[libertine]{newtxmath}
+\usepackage{jmsdelim}
+\usepackage{xparse}
+\usepackage{stmaryrd}
+\usepackage{fullpage}
+
+\let\prn\parens%
+\let\brk\brackets%
+\let\bbrk\bbrackets%
+
+\NewDocumentCommand\EvTp{mm}{%
+  \llbracket%
+  #1\vdash{}#2
+  \rrbracket%
+}
+
+\NewDocumentCommand\EvTm{mmm}{%
+  \bbrackets{%
+    #1\vdash{}#2:#3
+  }
+}
+
+\NewDocumentCommand\Coe{mm}{%
+  \mathbf{coe}%
+  \bbrackets{%
+    #1\vdash{}#2
+  }
+}
+
+\NewDocumentCommand\Com{mm}{%
+  \mathbf{com}%
+  \bbrackets{%
+    #1\vdash{}#2
+  }
+}
+
+\NewDocumentCommand\Hcom{mm}{%
+  \mathbf{hcom}%
+  \bbrackets{%
+    #1\vdash{}#2
+  }
+}
+
+\NewDocumentCommand\ENV{m}{%
+  \bbrackets{#1}
+}
+
+\NewDocumentCommand\DIM{}{\mathbb{I}}
+\NewDocumentCommand\IENV{m}{%
+  \bbrackets{#1}^{\DIM}
+}
+
+\NewDocumentCommand\TYPE{}{\mathbf{Type}}
+
+\title{evaluation semantics of coercion}
+\author{Jonathan Sterling}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+An idea for a \emph{new} evaluation dynamics of coercion inspired by the
+denotational semantics of cubical type theory. The main idea is that coercions
+should \emph{not} be evaluated in an ordinary environment, but instead an
+environment where each cell is a line.
+
+\begin{align*}
+  \EvTp{\Gamma}{A} &: \ENV{\Gamma}\to\TYPE\\
+  \EvTm{\Gamma}{a}{A} &: \textstyle\prod_{\gamma:\ENV{\Gamma}}\EvTp{\Gamma}{A}_\gamma\\
+  \Coe{\Gamma}{A} &: 
+  \textstyle
+  \prod_{\boldsymbol{\gamma} : \IENV{\Gamma}}
+  \prod_{r,s : \DIM}
+  \prod_{a : \EvTp{\Gamma}{A}_{\boldsymbol{\gamma}\prn{r}}}
+  \EvTp{\Gamma}{A}_{\boldsymbol{\gamma}\prn{s}}
+\end{align*}
+
+\begin{align*}
+  \EvTm{\Gamma}{%
+    \mathsf{coe}_{F}^{r\to s}M%
+  }{F(r)}\gamma
+  &=
+  \Coe{\Gamma.\DIM}{F(i)}_{\gls{\mathbf{refl}\prn{\gamma},\mathbf{id}_{\DIM}}}^{\EvTm{\Gamma}{r}{\DIM}_\gamma\to\EvTm{\Gamma}{s}{\DIM}_\gamma}
+  \EvTm{\Gamma}{M}{F(r)}_\gamma
+\end{align*}
+
+\begin{align*}
+  \Coe{\Gamma}{\Pi\prn{A,B}}_{\boldsymbol{\gamma}}^{r\to s}f &=
+  \lambda a.
+  \Coe{\Gamma.A}{B}_{%
+    \gls{%
+      \boldsymbol{\gamma},
+      \lambda i.%
+      \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{s\to i}a
+    }
+  }
+  \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{s\to r}a
+  \\
+  \Coe{\Gamma}{\Sigma\prn{A,B}}_{\boldsymbol{\gamma}}^{r\to s}p &=
+  \prn{%
+    \Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{r\to s}\pi_1\prn{p},
+    \Coe{\Gamma.A}{B}_{\gls{\boldsymbol{\gamma}, \lambda i.\Coe{\Gamma}{A}_{\boldsymbol{\gamma}}^{r\to i}\pi_1\prn{p}}}^{r\to s}\pi_2\prn{p}
+  }
+  \\
+  \Coe{\Gamma}{\mathsf{V}_i\prn{A,B,E}}_{\boldsymbol{\gamma}}^{r\to s}\prn{v} &=%
+  \begin{cases}
+    \Coe{\Gamma,i=0}{A}_{\gls{\boldsymbol{\gamma},\star}}^{r\to s}\prn{v} & \mbox{if $\forall{}j$, }\bbrk{i}_{\boldsymbol{\gamma}\prn{j}} = 0\\
+    \Coe{\Gamma}{B}_{\boldsymbol{\gamma}}^{r\to s}\prn{v} & \mbox{if $\forall{}j$, }\bbrk{i}_{\boldsymbol{\gamma}\prn{j}} = 1\\
+    {?} & \mbox{if $\forall{}j$, }\bbrk{i}_{\boldsymbol{\gamma}\prn{j}} = j
+    \\
+    \mathbf{Vin}_{\bbrk{i}_{\boldsymbol{\gamma}\prn{s}}}\prn{%
+      \Coe{\Gamma.i=0}{A}_{\gls{\boldsymbol{\gamma},\star}}^{r\to s}v,
+      \Com{\Gamma}{B}_{\boldsymbol{\gamma}}^{r\to s}\brk{\partial\prn{\bbrk{i}_{\boldsymbol{\gamma}\prn{s}}}}\prn{\ldots}
+    }&\mbox{otherwise}
+  \end{cases}
+\end{align*}
+
+\textcolor{red}{The part I don't know how to do is to evaluate anything that isn't a type constructor!! LOL}
+
+\end{document}

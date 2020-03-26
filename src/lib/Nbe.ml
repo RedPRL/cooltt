@@ -11,6 +11,10 @@ open Monads
 
 exception NbeFailed of string
 
+module QQ = Quasiquote
+module TB = TermBuilder
+
+
 module rec Compute : 
 sig 
   type 'a whnf = [`Done | `Reduce of 'a]
@@ -40,11 +44,23 @@ sig
   val con_to_dim : D.con -> D.dim compute
   val con_to_cof : D.con -> D.cof compute
   val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof compute
+
+  val quasiquote_tm : S.t QQ.builder -> D.con compute
+  val quasiquote_tp : S.tp QQ.builder -> D.tp compute
 end =
 struct
   open CmpM
   open Eval
   open Monad.Notation (CmpM)
+
+  let quasiquote_tm builder =
+    let env, tm = QQ.compile builder in 
+    lift_ev env @@ eval tm
+
+  let quasiquote_tp builder = 
+    let env, tp = QQ.compile builder in 
+    lift_ev env @@ eval_tp tp
+
 
   let con_to_dim =
     function
@@ -221,50 +237,15 @@ struct
     fun clo xs ->
     match clo with
     | TpClo (bdy, env) ->
-      lift_ev (env <>< xs) @@ 
+      lift_ev {env with conenv = env.conenv <>< xs} @@ 
       eval_tp bdy
-    | ConstTpClo tp -> 
-      ret tp
-    | ElClo fam ->
-      let x = List.hd xs in
-      do_el @<< do_ap fam x
-    | CloFromPathData (fam, bdry) ->
-      let rcon = List.hd xs in
-      let* fib = do_ap fam rcon in
-      let* elfib = do_el fib in
-      let* bdry_r = do_ap bdry rcon in
-      (* bdry_r : [r=0\/r=1] -> elfib *)
-      (* elfib [ (r=0\/r=1) -> bdry r * ] *)
-      let* phi = 
-        let* r = con_to_dim rcon in
-        ret @@ Cof.join (Cof.eq r D.Dim0) (Cof.eq r D.Dim1)
-      in
-      (* _ : [phi] |- A r *)
-      ret @@ D.Sub (elfib, phi, D.un_lam bdry_r)
-    | CloBoundaryType fam ->
-      let rcon = List.hd xs in
-      let* phi = 
-        let* r = con_to_dim rcon in
-        ret @@ Cof.join (Cof.eq r D.Dim0) (Cof.eq r D.Dim1)
-      in
-      let* fib = do_ap fam rcon in
-      let* elfib = do_el fib in
-      ret @@ D.Pi (D.TpPrf phi, D.ConstTpClo elfib)
 
   and inst_tm_clo : D.tm_clo -> D.con list -> D.con compute =
     fun clo xs ->
     match clo with
     | D.Clo (bdy, env) -> 
-      lift_ev (env <>< xs) @@ 
+      lift_ev {env with conenv = env.conenv <>< xs} @@ 
       eval bdy
-    | D.SplitClo (tp, phi0, phi1, clo0, clo1) -> 
-      let cut = D.Split (tp, phi0, phi1, clo0, clo1), [] in
-      let con = D.Cut {tp; cut; unfold = None} in
-      begin
-        whnf_con con |>> function
-        | `Done -> ret con
-        | `Reduce con -> ret con
-      end
 
   and do_goal_proj =
     function
@@ -356,17 +337,29 @@ struct
       ret D.Nat
 
     | D.CodePi (base, fam) ->
-      let+ base = do_el base in
-      let clfam = D.ElClo fam in
-      D.Pi (base, clfam)
+      quasiquote_tp @@ 
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.term @@ 
+      TB.pi (TB.el base) @@ fun x ->
+      TB.el @@ TB.ap fam [x]
 
     | D.CodeSg (base, fam) ->
-      let+ base = do_el base in
-      let clfam = D.ElClo fam in
-      D.Sg (base, clfam)
+      quasiquote_tp @@ 
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.term @@ 
+      TB.sg (TB.el base) @@ fun x ->
+      TB.el @@ TB.ap fam [x]
 
     | D.CodePath (fam, bdry) ->
-      ret @@ D.Pi (D.TpDim, D.CloFromPathData (fam, bdry))
+      quasiquote_tp @@ 
+      QQ.foreign fam @@ fun fam ->
+      QQ.foreign bdry @@ fun bdry ->
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
+      TB.ap bdry [i]
 
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
@@ -378,36 +371,28 @@ struct
 
   and do_rigid_coe (line : D.con) r s con =
     let i = D.DimProbe (Symbol.fresh ()) in
-    let module Q = Quasiquote in
-    let module TB = TermBuilder in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
         let split_line = D.compose (D.Destruct D.DCodePiSplit) line in 
-        let env, tm = 
-          Q.compile @@
-          Q.foreign split_line @@ fun split_line ->
-          Q.foreign (D.dim_to_con r) @@ fun r ->
-          Q.foreign (D.dim_to_con s) @@ fun s ->
-          Q.foreign con @@ fun bdy ->
-          let base_line = TB.fst split_line in
-          let fam_line = TB.snd split_line in
-          Q.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
-        in
-        lift_ev env @@ eval tm
+        quasiquote_tm @@
+        QQ.foreign split_line @@ fun split_line ->
+        QQ.foreign (D.dim_to_con r) @@ fun r ->
+        QQ.foreign (D.dim_to_con s) @@ fun s ->
+        QQ.foreign con @@ fun bdy ->
+        let base_line = TB.fst split_line in
+        let fam_line = TB.snd split_line in
+        QQ.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
       | D.CodeSg _ ->
         let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in 
-        let env, tm = 
-          Q.compile @@
-          Q.foreign split_line @@ fun split_line ->
-          Q.foreign (D.dim_to_con r) @@ fun r ->
-          Q.foreign (D.dim_to_con s) @@ fun s ->
-          Q.foreign con @@ fun bdy ->
-          let base_line = TB.fst split_line in
-          let fam_line = TB.snd split_line in
-          Q.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
-        in
-        lift_ev env @@ eval tm
+        quasiquote_tm @@
+        QQ.foreign split_line @@ fun split_line ->
+        QQ.foreign (D.dim_to_con r) @@ fun r ->
+        QQ.foreign (D.dim_to_con s) @@ fun s ->
+        QQ.foreign con @@ fun bdy ->
+        let base_line = TB.fst split_line in
+        let fam_line = TB.snd split_line in
+        QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
       | D.CodePath _ ->
         raise Todo
       | D.Cut {unfold = Some lcon} -> 
@@ -423,35 +408,27 @@ struct
 
 
   and do_rigid_hcom code r s phi (bdy : D.con) = 
-    let module Q = Quasiquote in
-    let module TB = TermBuilder in
     match code with 
     | D.CodePi (base, fam) ->
-      let env, tm = 
-        Q.compile @@ 
-        Q.foreign base @@ fun base ->
-        Q.foreign fam @@ fun fam ->
-        Q.foreign (D.dim_to_con r) @@ fun r ->
-        Q.foreign (D.dim_to_con s) @@ fun s ->
-        Q.foreign (D.cof_to_con phi) @@ fun phi ->
-        Q.foreign bdy @@ fun bdy ->
-        Q.term @@
-        TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
-      in
-      lift_ev env @@ eval tm
+      quasiquote_tm @@
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
+      QQ.foreign bdy @@ fun bdy ->
+      QQ.term @@
+      TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
     | D.CodeSg (base, fam) ->
-      let env, tm = 
-        Q.compile @@ 
-        Q.foreign base @@ fun base ->
-        Q.foreign fam @@ fun fam ->
-        Q.foreign (D.dim_to_con r) @@ fun r ->
-        Q.foreign (D.dim_to_con s) @@ fun s ->
-        Q.foreign (D.cof_to_con phi) @@ fun phi ->
-        Q.foreign bdy @@ fun bdy ->
-        Q.term @@
-        TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
-      in
-      lift_ev env @@ eval tm
+      quasiquote_tm @@
+      QQ.foreign base @@ fun base ->
+      QQ.foreign fam @@ fun fam ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
+      QQ.foreign bdy @@ fun bdy ->
+      QQ.term @@
+      TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
     | D.CodePath _ ->
       raise Todo
     | D.Cut {unfold = Some lcon} ->
@@ -465,22 +442,17 @@ struct
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
   and do_rigid_com (line : D.con) r s phi bdy =
-    let module Q = Quasiquote in
-    let module TB = TermBuilder in
     let* code_s = do_ap line (D.dim_to_con s) in
     do_rigid_hcom code_s r s phi @<<
-      let env, tm = 
-        Q.compile @@ 
-        Q.foreign (D.dim_to_con s) @@ fun s ->
-        Q.foreign line @@ fun line ->
-        Q.foreign bdy @@ fun bdy ->
-        Q.term @@ 
-        TB.lam @@ fun i ->
-        TB.lam @@ fun prf ->
-        TB.coe line i s @@
-        TB.ap bdy [i; prf]
-      in
-      lift_ev env @@ eval tm
+    quasiquote_tm @@
+    QQ.foreign (D.dim_to_con s) @@ fun s ->
+    QQ.foreign line @@ fun line ->
+    QQ.foreign bdy @@ fun bdy ->
+    QQ.term @@ 
+    TB.lam @@ fun i ->
+    TB.lam @@ fun prf ->
+    TB.coe line i s @@
+    TB.ap bdy [i; prf]
 
   and force_lazy_con lcon : D.con m = 
     match lcon with 
@@ -518,7 +490,13 @@ struct
 
   let get_local i =
     let* env = EvM.read_local in
-    match Bwd.nth env i with 
+    match Bwd.nth env.conenv i with 
+    | v -> EvM.ret v 
+    | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
+        
+  let get_local_tp i =
+    let* env = EvM.read_local in
+    match Bwd.nth env.tpenv i with 
     | v -> EvM.ret v 
     | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
@@ -559,6 +537,8 @@ struct
     | S.TpPrf tphi ->
       let+ phi = eval_cof tphi in 
       D.TpPrf phi
+    | S.TpVar ix ->
+      get_local_tp ix
 
   and eval =
     function
@@ -767,6 +747,25 @@ struct
     let+ n = read_local in
     D.DimVar (n - 1)
 
+
+  let bind_var abort tp m =
+    match tp with 
+    | D.TpPrf phi ->
+      begin
+        begin
+          bind_cof_proof phi @@ 
+          let* var = top_var tp in
+          m var
+        end |>> function 
+        | `Ret tm -> ret tm 
+        | `Abort -> ret abort
+      end
+    | _ -> 
+      binder 1 @@ 
+      let* var = top_var tp in
+      m var
+
+
   let rec quote_con (tp : D.tp) con : S.t m =
     QuM.abort_if_inconsistent S.CofAbort @@ 
     match tp, con with 
@@ -788,7 +787,7 @@ struct
           quote_cut (hd, sp)
       end
     | D.Pi (base, fam), con ->
-      binder 1 @@ 
+      bind_var S.CofAbort base @@ fun arg ->
       let* arg = top_var base in
       let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
       let* ap = lift_cmp @@ do_ap con arg in
@@ -834,8 +833,7 @@ struct
       and+ tfam = 
         let* tpbase = lift_cmp @@ do_el base in
         let+ bdy = 
-          binder 1 @@
-          let* var = top_var tpbase in
+          bind_var S.CofAbort tpbase @@ fun var ->
           quote_con univ @<< 
           lift_cmp @@ do_ap fam var
         in
@@ -847,8 +845,7 @@ struct
       and+ tfam = 
         let* tpbase = lift_cmp @@ do_el base in
         let+ bdy = 
-          binder 1 @@
-          let* var = top_var tpbase in
+          bind_var S.CofAbort tpbase @@ fun var ->
           quote_con univ @<< 
           lift_cmp @@ do_ap fam var
         in
@@ -866,23 +863,20 @@ struct
 
   and quote_tp (tp : D.tp) =
     match tp with
+    | D.TpAbort -> ret @@ S.El S.CofAbort
     | D.Nat -> ret S.Nat
     | D.Pi (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
-        binder 1 @@ 
-        let* var = top_var base in
-        quote_tp @<< 
-        lift_cmp @@ inst_tp_clo fam [var] 
+        bind_var (S.El S.CofAbort) base @@ fun var ->
+        quote_tp @<< lift_cmp @@ inst_tp_clo fam [var]
       in
       S.Pi (tbase, tfam)
     | D.Sg (base, fam) ->
       let* tbase = quote_tp base in
       let+ tfam = 
-        binder 1 @@ 
-        let* var = top_var base in
-        quote_tp @<< 
-        lift_cmp @@ inst_tp_clo fam [var]
+        bind_var (S.El S.CofAbort) base @@ fun var ->
+        quote_tp @<< lift_cmp @@ inst_tp_clo fam [var]
       in
       S.Sg (tbase, tfam)
     | D.Id (tp, left, right) ->
@@ -930,9 +924,8 @@ struct
     | D.Coe (abs, r, s, con) ->
       let* tpcode = 
         let+ bdy = 
-          binder 1 @@ 
-          let* i = top_dim_var in
-          let* code = lift_cmp @@ do_ap abs @@ D.dim_to_con i in
+          bind_var S.CofAbort D.TpDim @@ fun i ->
+          let* code = lift_cmp @@ do_ap abs i in
           quote_con D.Univ code
         in
         S.Lam bdy
@@ -950,11 +943,11 @@ struct
       let* tphi = quote_cof phi in
       let+ tbdy = 
         let+ tm = 
-          binder 1 @@ 
-          let* i = top_dim_var in
+          bind_var S.CofAbort D.TpDim @@ fun i ->
           begin
-            bind_cof_proof (Cof.join (Cof.eq r i) phi) @@ 
-            let* body = lift_cmp @@ do_ap2 bdy (D.dim_to_con i) D.Prf in 
+            let* i_dim = lift_cmp @@ con_to_dim i in
+            bind_cof_proof (Cof.join (Cof.eq r i_dim) phi) @@ 
+            let* body = lift_cmp @@ do_ap2 bdy i D.Prf in 
             quote_con (D.El cut) body
           end |>> function
           | `Ret tm -> ret tm
@@ -1052,19 +1045,20 @@ struct
   and quote_frm tm = 
     function
     | D.KNatElim (ghost, mot, zero_case, suc_case) ->
-      let* x, mot_x, tmot = 
-        binder 1 @@ 
-        let* x = top_var D.Nat in
-        let* mot_x = lift_cmp @@ inst_tp_clo mot [x] in 
-        let+ tmot = quote_tp mot_x in 
-        x, mot_x, tmot
+      let* mot_x = 
+        bind_var D.TpAbort D.Nat @@ fun x ->
+        lift_cmp @@ inst_tp_clo mot [x] 
+      in
+      let* tmot = 
+        bind_var (S.El S.CofAbort) D.Nat @@ fun _ ->
+        quote_tp mot_x
       in
       let+ tzero_case = 
         let* mot_zero = lift_cmp @@ inst_tp_clo mot [D.Zero] in
         quote_con mot_zero zero_case
       and+ tsuc_case =
-        binder 2 @@
-        let* ih = top_var mot_x in 
+        bind_var S.CofAbort D.Nat @@ fun x ->
+        bind_var S.CofAbort mot_x @@ fun ih ->
         let* mot_suc_x = lift_cmp @@ inst_tp_clo mot [D.Suc x] in 
         let* suc_case_x = lift_cmp @@ inst_tm_clo suc_case [x; ih] in
         quote_con mot_suc_x suc_case_x
@@ -1072,19 +1066,16 @@ struct
       in
       S.NatElim (ghost, tmot, tzero_case, tsuc_case, tm)
     | D.KIdElim (ghost, mot, refl_case, tp, left, right) ->
-      let* x, tmot =
-        binder 1 @@ 
-        let* x = top_var tp in 
-        binder 1 @@ 
-        let* y = top_var tp in 
-        binder 1 @@ 
-        let* z = top_var @@ D.Id (tp, left, right) in 
+      let* tmot =
+        bind_var (S.El S.CofAbort) tp @@ fun x ->
+        bind_var (S.El S.CofAbort) tp @@ fun y ->
+        bind_var (S.El S.CofAbort) (D.Id (tp, x, y)) @@ fun z -> (* used to be left/right instead of x/y, I think that was a bug *)
         let* mot_xyz = lift_cmp @@ inst_tp_clo mot [x; y; z] in
         let+ tmot = quote_tp mot_xyz in 
-        x, tmot
+        tmot
       in 
       let+ trefl_case =
-        binder 1 @@ 
+        bind_var S.CofAbort tp @@ fun x ->
         let* mot_refl_x = lift_cmp @@ inst_tp_clo mot [x; x; D.Refl x] in
         let* refl_case_x = lift_cmp @@ inst_tm_clo refl_case [x] in
         quote_con mot_refl_x refl_case_x
@@ -1118,24 +1109,23 @@ struct
     let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
     let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
     match tp0, tp1 with
+    | D.TpAbort, _ | _, D.TpAbort -> ret ()
     | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
     | D.TpPrf phi0, D.TpPrf phi1 -> 
       equate_cof phi0 phi1
     | D.Pi (base0, fam0), D.Pi (base1, fam1)
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in
-      binder 1 @@ 
-      let* x = top_var base0 in
+      bind_var () base0 @@ fun x ->
       let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
       let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
       equate_tp fib0 fib1
     | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_cof phi0 phi1 in
-      under_cof phi0 @@ 
-      binder 1 @@ 
-      let* con0 = lift_cmp @@ inst_tm_clo clo0 [D.Prf] in
-      let* con1 = lift_cmp @@ inst_tm_clo clo1 [D.Prf] in 
+      bind_var () (D.TpPrf phi0) @@ fun prf ->
+      let* con0 = lift_cmp @@ inst_tm_clo clo0 [prf] in
+      let* con1 = lift_cmp @@ inst_tm_clo clo1 [prf] in 
       equate_con tp0 con0 con1
     | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
       let* () = equate_tp tp0 tp1 in
@@ -1182,8 +1172,7 @@ struct
       under_cof (Cof.join phi0 phi1) @@ 
       equate_con tp con0 con1
     | D.Pi (base, fam), _, _ ->
-      binder 1 @@ 
-      let* x = top_var base in 
+      bind_var () base @@ fun x ->
       let* fib = lift_cmp @@ inst_tp_clo fam [x] in 
       let* ap0 = lift_cmp @@ do_ap con0 x in
       let* ap1 = lift_cmp @@ do_ap con1 x in
@@ -1229,12 +1218,32 @@ struct
     | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
       let* _ = equate_con univ base0 base1 in
       let* el_base = lift_cmp @@ do_el base0 in
-      let fam_tp = D.Pi (el_base, D.ConstTpClo univ) in
+      let* fam_tp = 
+        lift_cmp @@
+        quasiquote_tp @@
+        QQ.foreign base0 @@ fun base ->
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+      in
       equate_con fam_tp fam0 fam1
 
     | univ, D.CodePath (fam0, bdry0), D.CodePath (fam1, bdry1) ->
-      let* _ = equate_con (D.Pi (D.TpDim, D.ConstTpClo univ)) fam0 fam1 in
-      let bdry_tp = D.Pi (D.TpDim, CloBoundaryType fam0) in
+      let* famtp =
+        lift_cmp @@
+        quasiquote_tp @@
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.term @@ TB.pi TB.tp_dim @@ fun _ -> univ
+      in
+      let* _ = equate_con famtp fam0 fam1 in
+      let* bdry_tp = 
+        lift_cmp @@ quasiquote_tp @@ 
+        QQ.foreign fam0 @@ fun fam ->
+        QQ.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        let phi = TB.boundary i in
+        TB.pi (TB.tp_prf phi) @@ fun prf ->
+        TB.el @@ TB.ap fam [i]
+      in
       equate_con bdry_tp bdry0 bdry1 
 
     | _ -> 
@@ -1274,8 +1283,7 @@ struct
       equate_con tp0 con0 con1
     | D.KNatElim (_, mot0, zero_case0, suc_case0), D.KNatElim (_, mot1, zero_case1, suc_case1) ->
       let* fibx =
-        binder 1 @@
-        let* var = top_var D.Nat in
+        bind_var D.TpAbort D.Nat @@ fun var ->
         let* fib0 = lift_cmp @@ inst_tp_clo mot0 [var] in
         let* fib1 = lift_cmp @@ inst_tp_clo mot1 [var] in
         let+ () = equate_tp fib0 fib1  in
@@ -1285,10 +1293,8 @@ struct
         let* fib = lift_cmp @@ inst_tp_clo mot0 [D.Zero] in
         equate_con fib zero_case0 zero_case1
       in
-      binder 1 @@
-      let* x = top_var D.Nat in 
-      binder 1 @@ 
-      let* ih = top_var fibx in
+      bind_var () D.Nat @@ fun x ->
+      bind_var () fibx @@ fun ih ->
       let* fib_sucx = lift_cmp @@ inst_tp_clo mot0 [D.Suc x] in
       let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
       let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
@@ -1298,18 +1304,14 @@ struct
       let* () = equate_con tp0 left0 left1 in
       let* () = equate_con tp0 right0 right1 in
       let* () =
-        binder 1 @@
-        let* l = top_var tp0 in
-        binder 1 @@ 
-        let* r = top_var tp0 in
-        binder 1 @@ 
-        let* p = top_var @@ D.Id (tp0, l, r) in
+        bind_var () tp0 @@ fun l ->
+        bind_var () tp0 @@ fun r ->
+        bind_var () (D.Id (tp0, l, r)) @@ fun p ->
         let* fib0 = lift_cmp @@ inst_tp_clo mot0 [l; r; p] in
         let* fib1 = lift_cmp @@ inst_tp_clo mot1 [l; r; p] in
         equate_tp fib0 fib1
       in
-      binder 1 @@
-      let* x = top_var tp0 in
+      bind_var () tp0 @@ fun x ->
       let* fib_reflx = lift_cmp @@ inst_tp_clo mot0 [x; x; D.Refl x] in
       let* con0 = lift_cmp @@ inst_tm_clo refl_case0 [x] in
       let* con1 = lift_cmp @@ inst_tm_clo refl_case1 [x] in
@@ -1332,10 +1334,9 @@ struct
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
       let* () = 
-        binder 1 @@ 
-        let* i = top_dim_var in
-        let* code0 = lift_cmp @@ do_ap abs0 @@ D.dim_to_con i in
-        let* code1 = lift_cmp @@ do_ap abs1 @@ D.dim_to_con i in
+        bind_var () D.TpDim @@ fun i ->
+        let* code0 = lift_cmp @@ do_ap abs0 i in
+        let* code1 = lift_cmp @@ do_ap abs1 i in
         equate_con D.Univ code0 code1
       in
       let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
@@ -1346,11 +1347,11 @@ struct
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
       let* () = equate_cof phi0 phi1 in 
-      binder 1 @@ 
-      let* i = top_dim_var in
-      under_cof (Cof.join (Cof.eq i r0) phi0) @@ binder 1 @@
-      let* con0 = lift_cmp @@ do_ap2 bdy0 (D.dim_to_con i) D.Prf in
-      let* con1 = lift_cmp @@ do_ap2 bdy1 (D.dim_to_con i) D.Prf in
+      bind_var () D.TpDim @@ fun i ->
+      let* i_dim = lift_cmp @@ con_to_dim i in 
+      bind_var () (D.TpPrf (Cof.join (Cof.eq i_dim r0) phi0)) @@ fun prf ->
+      let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
+      let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
       equate_con (D.El cut0) con0 con1
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1

@@ -53,4 +53,7 @@ def hole-in-type : {
 
 def pi-code-test : univ = (x : nat) -> nat
 
+def foo : pi-code-test = 
+  \x => x
+
 normalize pi-code-test
