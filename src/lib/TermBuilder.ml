@@ -245,8 +245,6 @@ struct
     lam @@ fun p ->
     cof_split 
       (el fam_i)
-      (boundary i)
-      (fun q -> ap bdry [i; q])
-      (join phi (eq k r))
-      (fun q -> sub_out (ap bdy [k;q;i]))
+      d_i                 (fun q -> ap bdry [i; q])
+      (join phi (eq k r)) (fun q -> sub_out (ap bdy [k;q;i]))
 end
