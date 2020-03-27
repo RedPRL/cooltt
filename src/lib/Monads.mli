@@ -1,22 +1,22 @@
-module D := Domain 
+module D := Domain
 module S := Syntax
 module St := ElabState
 open CoolBasis
 
-type 'a compute 
+type 'a compute
 type 'a evaluate
 type 'a quote
 
-module CmpM : sig 
-  include Monad.MonadReaderResult 
+module CmpM : sig
+  include Monad.MonadReaderResult
     with type 'a m = 'a compute
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val test_sequent : D.cof list -> D.cof -> bool m
 end
 
-module EvM : sig 
-  include Monad.MonadReaderResult 
+module EvM : sig
+  include Monad.MonadReaderResult
     with type 'a m = 'a evaluate
 
   val lift_cmp : 'a compute -> 'a m
@@ -29,8 +29,8 @@ module EvM : sig
   val append : D.con list -> 'a m -> 'a m
 end
 
-module QuM : sig 
-  include Monad.MonadReaderResult 
+module QuM : sig
+  include Monad.MonadReaderResult
     with type 'a m = 'a quote
 
   val lift_cmp : 'a compute -> 'a m
@@ -49,7 +49,7 @@ module QuM : sig
 end
 
 module ElabM : sig
-  include Monad.MonadReaderStateResult 
+  include Monad.MonadReaderStateResult
     with type global := St.t
     with type local := ElabEnv.t
 

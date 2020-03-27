@@ -26,7 +26,7 @@ type t =
   | Dim1
   | Cof of (t, t) Cof.cof_f
   | CofSplit of tp * t * t * t * t
-  | CofAbort 
+  | CofAbort
   | Prf
 
   | CodePath of t * t
@@ -34,18 +34,18 @@ type t =
   | CodeSg of t * t
   | CodeNat
 
-and tp = 
+and tp =
   | Univ
   | El of t
   | TpVar of int
   | GoalTp of string option * tp
   | TpDim
   | TpCof
-  | TpPrf of t 
-  | Sub of tp * t * t 
+  | TpPrf of t
+  | Sub of tp * t * t
   | Pi of tp * tp
-  | Sg of tp * tp 
-  | Id of tp * t * t 
+  | Sg of tp * tp
+  | Id of tp * t * t
   | Nat
 
 and ghost = string bwd * (tp * t) list

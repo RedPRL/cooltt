@@ -1,7 +1,7 @@
 (** This is a "re-typechecker" which takes core language terms and converts them into tactics.
-    The invariant is that this should always succeed on well-typed core langauge terms, and 
+    The invariant is that this should always succeed on well-typed core langauge terms, and
     behave like the identity function up to judgmental equality.
-   
+
     This code is not actually executed at this point, but is just a proof of concept. It might
     be useful if we ever have an un-trusted module producing core language terms (which is not
     currently the case. *)

@@ -7,7 +7,7 @@ exception SyntaxError of string
 let next_line lexbuf =
   let pos = lexbuf.lex_curr_p in
   lexbuf.lex_curr_p <-
-    { pos with 
+    { pos with
       pos_bol = lexbuf.lex_curr_pos;
       pos_lnum = pos.pos_lnum + 1
     }
@@ -100,7 +100,7 @@ rule token = parse
   | "λ"
     { LAM }
   | "\\"
-    { LAM } 
+    { LAM }
   | '_'
     { UNDERSCORE }
   | "?" atom
@@ -114,7 +114,7 @@ rule token = parse
     }
   | "?"
     { HOLE_NAME None }
-  | "@" 
+  | "@"
     { AT }
   | "--"
     { comment lexbuf }
@@ -127,7 +127,7 @@ rule token = parse
   | atom
     {
       let input = lexeme lexbuf in
-      try Hashtbl.find keywords input with 
+      try Hashtbl.find keywords input with
       | Not_found -> Grammar.ATOM input
     }
   | _

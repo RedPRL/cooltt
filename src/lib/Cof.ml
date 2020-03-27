@@ -1,11 +1,11 @@
-type ('r, 'a) cof_f = 
+type ('r, 'a) cof_f =
   | Eq of 'r * 'r
-  | Join of 'a * 'a 
+  | Join of 'a * 'a
   | Meet of 'a * 'a
-  | Bot 
+  | Bot
   | Top
 
-type ('r, 'v) cof = 
+type ('r, 'v) cof =
   | Cof of ('r, ('r, 'v) cof) cof_f
   | Var of 'v
 
@@ -14,11 +14,11 @@ let var v = Var v
 let bot = Cof Bot
 let top = Cof Top
 
-let eq x y = 
+let eq x y =
   if x = y then top else Cof (Eq (x, y))
 
-let join phi psi = 
-  match phi, psi with 
+let join phi psi =
+  match phi, psi with
   | Cof Top, _ -> top
   | _, Cof Top -> top
   | Cof Bot, psi -> psi
@@ -29,8 +29,8 @@ let meet phi psi =
   match phi, psi with
   | Cof Top, phi -> phi
   | phi, Cof Top -> phi
-  | Cof Bot, phi -> bot 
-  | phi, Cof Bot -> bot 
+  | Cof Bot, phi -> bot
+  | phi, Cof Bot -> bot
   | phi, psi -> Cof (Meet (phi, psi))
 
 let rec reduce =
@@ -46,7 +46,7 @@ let rec reduce =
 (* TODO: make the output even more beautiful *)
 let rec pp_cof pp_v pp env fmt =
   function
-  | Cof (Eq (x, y)) -> 
+  | Cof (Eq (x, y)) ->
     Format.fprintf fmt "%a = %a"
       (pp env) x
       (pp env) y
@@ -58,9 +58,9 @@ let rec pp_cof pp_v pp env fmt =
     Format.fprintf fmt "(%a) ∧ (%a)"
       (pp_cof pp_v pp env) phi
       (pp_cof pp_v pp env) psi
-  | Cof Bot -> 
+  | Cof Bot ->
     Format.fprintf fmt "false"
-  | Cof Top -> 
+  | Cof Top ->
     Format.fprintf fmt "true"
   | Var v ->
     pp_v env fmt v

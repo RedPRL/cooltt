@@ -4,7 +4,7 @@ module D = Domain
 module UF = DisjointSet.Make (PersistentTable.M)
 module VarSet = Set.Make (Int)
 
-type env = 
+type env =
   { classes : D.dim UF.t;
     (** equivalence classes of dimensions *)
 
@@ -17,13 +17,13 @@ type env =
     true_vars : VarSet.t
   }
 
-let init () = 
+let init () =
   {classes = UF.init ~size:100;
    true_vars = VarSet.empty;
    cof = Cof.top;
    status = `Consistent}
 
-let inconsistent = 
+let inconsistent =
   {classes = UF.init ~size:0;
    cof = Cof.bot;
    true_vars = VarSet.empty;
@@ -36,15 +36,15 @@ let find_class classes r =
 
 
 module Inversion :
-sig 
-  type local = 
+sig
+  type local =
     {classes : D.dim UF.t;
      true_vars : VarSet.t}
 
   val left : local -> D.cof list -> D.cof -> bool
 end =
 struct
-  type local = 
+  type local =
     {classes : D.dim UF.t;
      true_vars : VarSet.t}
 
@@ -52,7 +52,7 @@ struct
   let rec right local =
     function
     | Cof.Cof phi ->
-      begin 
+      begin
         match phi with
         | Cof.Eq (r, s) when r = s ->
           true
@@ -65,12 +65,12 @@ struct
         | Cof.Bot -> false
         | Cof.Top -> true
       end
-    | Cof.Var v -> 
-      VarSet.mem v local.true_vars 
+    | Cof.Var v ->
+      VarSet.mem v local.true_vars
 
   (* Invariant: classes is consistent *)
-  let rec left local cx phi = 
-    match cx with 
+  let rec left local cx phi =
+    match cx with
     | [] -> right local phi
     | Cof.Cof (Cof.Eq (r, s)) :: cx ->
       let classes = UF.union r s local.classes in
@@ -83,54 +83,54 @@ struct
       left local cx phi
     | Cof.Cof (Cof.Join (psi0, psi1)) :: cx ->
       if left local (psi0 :: cx) phi then left local (psi1 :: cx) phi else false
-    | Cof.Cof (Cof.Meet (psi0, psi1)) :: cx -> 
+    | Cof.Cof (Cof.Meet (psi0, psi1)) :: cx ->
       left local (psi0 :: psi1 :: cx) phi
-    | Cof.Cof Cof.Top :: cx -> 
+    | Cof.Cof Cof.Top :: cx ->
       left local cx phi
-    | Cof.Cof Cof.Bot :: cx -> 
+    | Cof.Cof Cof.Bot :: cx ->
       true
 end
 
-let test env phi = 
-  match env.status with 
-  | `Inconsistent -> 
+let test env phi =
+  match env.status with
+  | `Inconsistent ->
     true
   | `Consistent ->
     let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
     Inversion.left local [env.cof] phi
 
-let test_sequent (env : env) cx phi = 
+let test_sequent (env : env) cx phi =
   let psi = List.fold_left Cof.meet Cof.top cx in
   let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
   Inversion.left local [env.cof; psi] phi
 
-let rec assume env phi = 
-  match env.status with 
+let rec assume env phi =
+  match env.status with
   | `Inconsistent -> env
-  | `Consistent -> 
+  | `Consistent ->
     let phi = Cof.reduce phi in
     (* If the new assumption is stronger than what's on deck, throw the latter away *)
     let env = if test_sequent env [phi] env.cof then {env with cof = Cof.top} else env in
-    match phi with 
-    | Cof.Var v -> 
+    match phi with
+    | Cof.Var v ->
       {env with true_vars = VarSet.add v env.true_vars}
     | Cof.Cof phi ->
-      match phi with 
+      match phi with
       | Cof.Bot ->
         inconsistent
       | Cof.Top ->
         env
-      | Cof.Meet (phi0, phi1) -> 
+      | Cof.Meet (phi0, phi1) ->
         assume (assume env phi0) phi1
-      | Cof.Join _ -> 
+      | Cof.Join _ ->
         if test_sequent env [Cof.Cof phi] Cof.bot then inconsistent else
           {env with cof = Cof.meet env.cof @@ Cof.Cof phi}
       | Cof.Eq (r, s) ->
         let classes = UF.union r s env.classes in
-        if UF.find D.Dim0 classes = UF.find D.Dim1 classes then 
+        if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
           inconsistent
-        else 
+        else
           {env with classes}
 
-let equate env r s = 
+let equate env r s =
   assume env @@ Cof.eq r s

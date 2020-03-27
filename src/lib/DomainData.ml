@@ -12,10 +12,10 @@ type cof = (dim, int) Cof.cof
 
 type env = {tpenv : tp bwd; conenv: con bwd}
 
-and tp_clo = 
+and tp_clo =
   | TpClo of S.tp * env
 
-and tm_clo = 
+and tm_clo =
   | Clo of S.t * env
 
 and con =
@@ -40,14 +40,14 @@ and con =
 
   | Destruct of dst
 
-and tp = 
+and tp =
   | Sub of tp * cof * tm_clo
   | Univ
   | El of cut
   | GoalTp of string option * tp
-  | TpDim 
+  | TpDim
   | TpCof
-  | TpPrf of cof 
+  | TpPrf of cof
   | Pi of tp * tp_clo
   | Sg of tp * tp_clo
   | Id : tp * con * con -> tp
@@ -55,7 +55,7 @@ and tp =
   | TpAbort
 
 and hd =
-  | Global of Symbol.t 
+  | Global of Symbol.t
   | Var of int (* De Bruijn level *)
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
@@ -66,9 +66,9 @@ and cut = hd * frm list
 
 and lazy_con = [`Do of con * frm list | `Done of con]
 
-and frm = 
+and frm =
   | KAp of tp * con
-  | KFst 
+  | KFst
   | KSnd
   | KNatElim of ghost option * tp_clo * con * tm_clo
   | KIdElim of ghost option * tp_clo * tm_clo * tp * con * con

@@ -19,12 +19,12 @@ let foreign_tp tp k : _ builder =
   let var = TB.tplvl @@ Bwd.length env.tpenv in
   k var env'
 
-let compile (builder : 'a builder) : D.env *'a  = 
+let compile (builder : 'a builder) : D.env *'a  =
   let m, env = builder {tpenv = Emp; conenv = Emp} in
   let tplen = Bwd.length env.tpenv in
   let conlen = Bwd.length env.conenv in
   env, TB.run ~tplen ~conlen m
 
-let term (m : 'a TB.m) : 'a builder = 
+let term (m : 'a TB.m) : 'a builder =
   fun env ->
   m, env
