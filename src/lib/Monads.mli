@@ -1,3 +1,5 @@
+(** All the monads in this file keep track of a cofibration theory. *)
+
 module D := Domain
 module S := Syntax
 module St := ElabState
@@ -7,6 +9,9 @@ type 'a compute
 type 'a evaluate
 type 'a quote
 
+
+(** The "computation" monad; contains enough state to run computations in the semantic domain,
+    does not contain a variable environment or anything that would be needed for evaluation. *)
 module CmpM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a compute
@@ -15,6 +20,7 @@ module CmpM : sig
   val test_sequent : D.cof list -> D.cof -> bool m
 end
 
+(** The "evaluation" monad; like the computation monad but keeps a variable environment. *)
 module EvM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a evaluate
@@ -29,6 +35,8 @@ module EvM : sig
   val append : D.con list -> 'a m -> 'a m
 end
 
+
+(** The quotation environment keeps track of De Bruijn indices for use in quotation and conversion checking. *)
 module QuM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a quote
@@ -40,6 +48,8 @@ module QuM : sig
   val read_veil : Veil.t m
 
   val binder : int -> 'a m -> 'a m
+
+
   val bind_cof_proof : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
 
   (* like bind_cof_proof, but doesn't increase the de bruijn index *)
@@ -48,6 +58,7 @@ module QuM : sig
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end
 
+(** The elaboration monad is the "maximal" monad that can run code from any of the other monads. *)
 module ElabM : sig
   include Monad.MonadReaderStateResult
     with type global := St.t
