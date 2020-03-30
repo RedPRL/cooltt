@@ -1281,6 +1281,7 @@ struct
     | D.Split (_, phi0, phi1, _, _), _
     | _, D.Split (_, phi0, phi1, _, _) ->
       under_cof (Cof.join phi0 phi1) @@
+      (* BUG: This breaks the invariant! But to fix, we will need to know the type of the cut. *)
       equate_cut cut0 cut1
     | _ ->
       let* () = equate_hd hd0 hd1 in
