@@ -332,6 +332,7 @@ struct
       EM.expected_connective `Id tp
 
   let elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_case_refl) tac_scrut : T.syn_tac =
+    EM.push_problem "elim" @@
     let* ghost = EM.current_ghost in
     let* tscrut, idtp = tac_scrut in
     let* tp, l, r = EM.dest_id idtp in
@@ -447,6 +448,7 @@ struct
     S.Suc t
 
   let elim (nm_mot, tac_mot) tac_case_zero (nm_x, nm_ih, tac_case_suc) tac_scrut : T.syn_tac =
+    EM.push_problem "elim" @@
     let* ghost = EM.current_ghost in
     let* tscrut, nattp = tac_scrut in
     let* () = assert_nat nattp in
