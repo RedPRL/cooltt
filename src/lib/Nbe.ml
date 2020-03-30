@@ -1278,11 +1278,12 @@ struct
     let hd0, sp0 = cut0 in
     let hd1, sp1 = cut1 in
     match hd0, hd1 with
-    | D.Split (_, phi0, phi1, _, _), _
-    | _, D.Split (_, phi0, phi1, _, _) ->
+    | D.Split (tp, phi0, phi1, _, _), _
+    | _, D.Split (tp, phi0, phi1, _, _) ->
       under_cof (Cof.join phi0 phi1) @@
-      (* BUG: This breaks the invariant! But to fix, we will need to know the type of the cut. *)
-      equate_cut cut0 cut1
+      let* con0 = contractum_or (D.Cut {tp; cut = cut0; unfold = None}) <@> lift_cmp @@ whnf_cut cut0 in
+      let* con1 = contractum_or (D.Cut {tp; cut = cut1; unfold = None}) <@> lift_cmp @@ whnf_cut cut1 in
+      equate_con tp con0 con1
     | _ ->
       let* () = equate_hd hd0 hd1 in
       equate_spine sp0 sp1
