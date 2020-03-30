@@ -66,14 +66,6 @@ struct
     M.scope @@ fun local ->
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
-  let close_tp tp : _ m =
-    let+ env = read_local in
-    D.TpClo (tp, env)
-
-  let close_tm t : _ m =
-    let+ env = read_local in
-    D.Clo (t, env)
-
   let lift_cmp (m : 'a compute) : 'a M.m =
     fun {state; cof_env} ->
     m {state; cof_env}

@@ -30,8 +30,6 @@ module EvM : sig
   val read_global : ElabState.t m
   val read_local : D.env m
 
-  val close_tp : S.tp -> D.tp_clo m
-  val close_tm : S.t -> D.tm_clo m
   val append : D.con list -> 'a m -> 'a m
 end
 

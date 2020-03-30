@@ -512,13 +512,13 @@ struct
     match tp with
     | S.Nat -> ret D.Nat
     | S.Pi (base, fam) ->
-      let+ vbase = eval_tp base
-      and+ clfam = close_tp fam in
-      D.Pi (vbase, clfam)
+      let+ env = read_local
+      and+ vbase = eval_tp base in
+      D.Pi (vbase, D.TpClo (fam, env))
     | S.Sg (base, fam) ->
-      let+ vbase = eval_tp base
-      and+ clfam = close_tp fam in
-      D.Sg (vbase, clfam)
+      let+ env = read_local
+      and+ vbase = eval_tp base in
+      D.Sg (vbase, D.TpClo (fam, env))
     | S.Id (tp, left, right) ->
       let+ vtp = eval_tp tp
       and+ vl = eval left
@@ -536,8 +536,7 @@ struct
       let+ env = read_local
       and+ tp = eval_tp tp
       and+ phi = eval_cof tphi in
-      let cl = D.Clo (tm, env) in
-      D.Sub (tp, phi, cl)
+      D.Sub (tp, phi, D.Clo (tm, env))
     | S.TpDim  ->
       ret D.TpDim
     | S.TpCof ->
@@ -571,16 +570,17 @@ struct
     | S.Suc t ->
       let+ con = eval t in
       D.Suc con
-    | S.NatElim (ghost, tp, zero, suc, n) ->
+    | S.NatElim (ghost, mot, zero, suc, n) ->
       let* vzero = eval zero in
       let* vn = eval n in
-      let* cltp = EvM.close_tp tp in
-      let* clsuc = close_tm suc in
+      let* env = read_local in
+      let clmot = D.TpClo (mot, env) in
+      let clsuc = D.Clo (suc, env) in
       let* ghost = eval_ghost ghost in
-      lift_cmp @@ do_nat_elim ~ghost cltp vzero clsuc vn
+      lift_cmp @@ do_nat_elim ~ghost clmot vzero clsuc vn
     | S.Lam t ->
-      let+ cl = close_tm t in
-      D.Lam cl
+      let+ env = read_local in
+      D.Lam (D.Clo (t, env))
     | S.Ap (t0, t1) ->
       let* con0 = eval t0 in
       let* con1 = eval t1 in
@@ -600,9 +600,10 @@ struct
       D.Refl con
     | S.IdElim (ghost, mot, refl, eq) ->
       let* veq = eval eq in
-      let* clmot = close_tp mot in
-      let* clrefl = close_tm refl in
       let* ghost = eval_ghost ghost in
+      let* env = read_local in
+      let clmot = D.TpClo (mot, env) in
+      let clrefl = D.Clo (refl, env) in
       lift_cmp @@ do_id_elim ~ghost clmot clrefl veq
     | S.GoalRet tm ->
       let+ con = eval tm in
