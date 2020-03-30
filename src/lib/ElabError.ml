@@ -43,10 +43,11 @@ let pp fmt =
       "Expected @[<hv>%a =@;%a@]"
       (S.pp_tp ppenv) tp0
       (S.pp_tp ppenv) tp1
-  | ExpectedConnective (conn, _) ->
+  | ExpectedConnective (conn, ppenv, tp) ->
     Fmt.fprintf fmt
-      "Head connective mismatch, expected %a"
+      "Head connective mismatch, expected %a but got %a"
       pp_connective conn
+      (S.pp_tp ppenv) tp
   | ExpectedSynthesizableTerm _ ->
     Fmt.fprintf fmt
       "Expected synthesizable term"

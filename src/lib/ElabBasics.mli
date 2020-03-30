@@ -2,7 +2,8 @@ module CS := ConcreteSyntax
 module D := Domain
 module S := Syntax
 
-open CoolBasis.Bwd
+open CoolBasis
+open Bwd
 
 include module type of Monads.ElabM
 
@@ -33,3 +34,7 @@ val equate : D.tp -> D.con -> D.con -> unit m
 val dest_pi : D.tp -> (D.tp * D.tp_clo) m
 val dest_sg : D.tp -> (D.tp * D.tp_clo) m
 val dest_id : D.tp -> (D.tp * D.con * D.con) m
+
+val with_pp : (Pp.env -> 'a m) -> 'a m
+
+val expected_connective : ElabError.connective -> D.tp -> 'a m

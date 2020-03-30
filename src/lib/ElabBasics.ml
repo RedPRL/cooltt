@@ -82,26 +82,36 @@ let equate_tp tp tp' =
     let* ttp' = lift_qu @@ Nbe.quote_tp tp' in
     elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp')
 
+
+let with_pp k =
+  let* env = read in
+  k @@ Env.pp_env env
+
+let expected_connective conn tp =
+  with_pp @@ fun ppenv ->
+  let* ttp = lift_qu @@ Nbe.quote_tp tp in
+  elab_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
+
 let dest_pi =
   function
   | D.Pi (base, fam) ->
     ret (base, fam)
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Pi, tp)
+    expected_connective `Pi tp
 
 let dest_sg =
   function
   | D.Sg (base, fam) ->
     ret (base, fam)
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Sg, tp)
+    expected_connective `Sg tp
 
 let dest_id =
   function
   | D.Id (tp, l, r) ->
     ret (tp, l, r)
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Id, tp)
+    expected_connective `Id tp
 
 let abstract nm tp k =
   push_var nm tp @@

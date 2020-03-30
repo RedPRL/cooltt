@@ -119,7 +119,7 @@ struct
       let+ tm = tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
     | tp, _, _ ->
-      EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
+      EM.expected_connective `Sub tp
 
   let elim (tac : T.syn_tac) : T.syn_tac =
     let* tm, subtp = tac in
@@ -127,7 +127,7 @@ struct
     | D.Sub (tp, _, _) ->
       EM.ret (S.SubOut tm, tp)
     | tp ->
-      EM.elab_err @@ Err.ExpectedConnective (`Sub, tp)
+      EM.expected_connective `Sub tp
 end
 
 module Dim =
@@ -141,16 +141,14 @@ struct
     | D.TpDim ->
       EM.ret S.Dim0
     | tp ->
-      Format.eprintf "bad: %a" D.pp_tp tp;
-      EM.elab_err @@ Err.ExpectedConnective (`Dim, tp)
+      EM.expected_connective `Dim tp
 
   let dim1 : T.chk_tac =
     function
     | D.TpDim ->
       EM.ret S.Dim1
     | tp ->
-      Format.eprintf "bad: %a" D.pp_tp tp;
-      EM.elab_err @@ Err.ExpectedConnective (`Dim, tp)
+      EM.expected_connective `Dim tp
 
   let literal : int -> T.chk_tac =
     function
@@ -167,6 +165,9 @@ struct
     T.Tp.make_virtual @@
     EM.ret S.TpCof
 
+  let expected_cof =
+    EM.expected_connective `Cof
+
   let eq tac0 tac1 =
     function
     | D.TpCof ->
@@ -174,8 +175,7 @@ struct
       and+ r1 = tac1 D.TpDim in
       S.Cof (Cof.Eq (r0, r1))
     | tp ->
-      Format.eprintf "bad: %a" D.pp_tp tp;
-      EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+      expected_cof tp
 
   let join tac0 tac1 =
     function
@@ -184,7 +184,7 @@ struct
       and+ phi1 = tac1 D.TpCof in
       S.Cof (Cof.Join (phi0, phi1))
     | tp ->
-      EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+      expected_cof tp
 
   let meet tac0 tac1 =
     function
@@ -193,14 +193,13 @@ struct
       and+ phi1 = tac1 D.TpCof in
       S.Cof (Cof.Meet (phi0, phi1))
     | tp ->
-      EM.elab_err @@ Err.ExpectedConnective (`Cof, tp)
+      expected_cof tp
 
   let assert_true vphi =
     EM.lift_cmp @@ CmpM.test_sequent [] vphi |>> function
     | true -> EM.ret ()
     | false ->
-      let* env = EM.read in
-      let ppenv = Env.pp_env env in
+      EM.with_pp @@ fun ppenv ->
       let* tphi = EM.lift_qu @@ Nbe.quote_cof vphi in
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
@@ -256,13 +255,12 @@ struct
         EM.lift_cmp @@ CmpM.test_sequent [] phi |>> function
         | true -> EM.ret S.Prf
         | false ->
-          let* env = EM.read in
-          let ppenv = Env.pp_env env in
+          EM.with_pp @@ fun ppenv ->
           let* tphi = EM.lift_qu @@ Nbe.quote_cof phi in
           EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
       end
     | tp, _, _ ->
-      EM.elab_err @@ Err.ExpectedConnective (`Prf, tp)
+      EM.expected_connective `Prf tp
 end
 
 module Univ =
@@ -281,7 +279,7 @@ struct
     function
     | D.Univ -> m D.Univ
     | tp ->
-      EM.elab_err @@ Err.ExpectedConnective (`Univ, tp)
+      EM.expected_connective `Univ tp
 
   let nat : T.chk_tac =
     univ_tac @@ fun _ -> EM.ret S.CodeNat
@@ -331,7 +329,7 @@ struct
       and+ t = EM.lift_qu @@ Nbe.quote_con tp l in
       S.Refl t
     | tp ->
-      EM.elab_err @@ Err.ExpectedConnective (`Id, tp)
+      EM.expected_connective `Id tp
 
   let elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_case_refl) tac_scrut : T.syn_tac =
     let* ghost = EM.current_ghost in
@@ -374,7 +372,7 @@ struct
       let+ tm = tac_body (fib, phi, D.un_lam @@ D.compose (D.Lam (D.apply_to var)) @@ D.Lam phi_clo) in
       S.Lam tm
     | tp, _, _ ->
-      EM.elab_err @@ Err.ExpectedConnective (`Pi, tp)
+      EM.expected_connective `Pi tp
 
   let apply tac_fun tac_arg : T.syn_tac =
     let* tfun, tp = tac_fun in
@@ -408,7 +406,7 @@ struct
       in
       S.Pair (tfst, tsnd)
     | tp , _, _ ->
-      EM.elab_err @@ Err.ExpectedConnective (`Sg, tp)
+      EM.expected_connective `Sg tp
 
   let pi1 tac : T.syn_tac =
     let* tpair, tp = tac in
@@ -435,7 +433,7 @@ struct
   let assert_nat =
     function
     | D.Nat -> EM.ret ()
-    | tp -> EM.elab_err @@ Err.ExpectedConnective (`Nat, tp)
+    | tp -> EM.expected_connective `Nat tp
 
   let literal n : T.chk_tac =
     fun tp ->
@@ -585,17 +583,16 @@ struct
         in
         Nat.elim (nm_x, mot) tac_zero tac_suc scrut
       | _ ->
-        let* env = EM.read in
+        EM.with_pp @@ fun ppenv ->
         let* tp = EM.lift_qu @@ Nbe.quote_tp ind_tp in
-        EM.elab_err @@ Err.CannotEliminate (Env.pp_env env, tp)
+        EM.elab_err @@ Err.CannotEliminate (ppenv, tp)
 
     let assert_simple_inductive =
       function
       | D.Nat ->
         EM.ret ()
       | tp ->
-        let* env = EM.read in
-        let ppenv = Env.pp_env env in
+        EM.with_pp @@ fun ppenv ->
         let* tp = EM.lift_qu @@ Nbe.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
