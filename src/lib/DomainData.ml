@@ -70,13 +70,11 @@ and frm =
   | KAp of tp * con
   | KFst
   | KSnd
-  | KNatElim of ghost option * tp_clo * con * tm_clo
-  | KIdElim of ghost option * tp_clo * tm_clo * tp * con * con
+  | KNatElim of tp_clo * con * tm_clo
+  | KIdElim of tp_clo * tm_clo * tp * con * con
   | KGoalProj
 
 (** destructors: exotic semantic operations that don't exist in syntax; these are meant to fail on things in improper form, rather than become neutral. *)
 and dst =
   | DCodePiSplit
   | DCodeSgSplit
-
-and ghost = string bwd * (tp * con) list

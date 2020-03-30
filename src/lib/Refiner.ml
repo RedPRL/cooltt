@@ -333,7 +333,6 @@ struct
 
   let elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_case_refl) tac_scrut : T.syn_tac =
     EM.push_problem "elim" @@
-    let* ghost = EM.current_ghost in
     let* tscrut, idtp = tac_scrut in
     let* tp, l, r = EM.dest_id idtp in
     let* tmot =
@@ -351,7 +350,7 @@ struct
       let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
       EM.lift_ev @@ EvM.append [l; r; vscrut] @@ Nbe.eval_tp tmot
     in
-    S.IdElim (ghost, tmot, t_refl_case, tscrut), fib
+    S.IdElim (tmot, t_refl_case, tscrut), fib
 end
 
 
@@ -449,7 +448,6 @@ struct
 
   let elim (nm_mot, tac_mot) tac_case_zero (nm_x, nm_ih, tac_case_suc) tac_scrut : T.syn_tac =
     EM.push_problem "elim" @@
-    let* ghost = EM.current_ghost in
     let* tscrut, nattp = tac_scrut in
     let* () = assert_nat nattp in
 
@@ -475,7 +473,7 @@ struct
       let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
       EM.lift_ev @@ EvM.append [vscrut] @@ Nbe.eval_tp tmot
     in
-    S.NatElim (ghost, tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
+    S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
 end
 
 

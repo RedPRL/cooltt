@@ -83,12 +83,12 @@ and syn_tm : S.t -> T.syn_tac =
     R.Sg.pi1 @@ syn_tm t
   | S.Snd t ->
     R.Sg.pi2 @@ syn_tm t
-  | S.IdElim (_, mot, case_refl, scrut) ->
+  | S.IdElim (mot, case_refl, scrut) ->
     R.Id.elim
       (None, None, None, chk_tp mot)
       (None, chk_tm case_refl)
       (syn_tm scrut)
-  | S.NatElim (_, mot, case_zero, case_suc, scrut) ->
+  | S.NatElim (mot, case_zero, case_suc, scrut) ->
     R.Nat.elim
       (None, chk_tp mot)
       (chk_tm case_zero)

@@ -77,11 +77,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       | Some n -> Fmt.fprintf fmt "%d" @@ n + 1
       | None -> Fmt.fprintf fmt "@[<hov1>(suc@ %a)@]" (pp env) tm
     end
-  | _, NatElim (Some ghost, _, _, _, scrut) ->
-    pp_ghost_ env mode fmt (ghost, scrut)
-  | _, IdElim (Some ghost, _, _, scrut) ->
-    pp_ghost_ env mode fmt (ghost, scrut)
-  | _, NatElim (None, mot, zero, suc, scrut) ->
+  | _, NatElim (mot, zero, suc, scrut) ->
     let x, envx = Pp.Env.bind env None in
     let y, envxy = Pp.Env.bind envx None in
     Fmt.fprintf fmt
@@ -93,7 +89,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       Uuseg_string.pp_utf_8 y
       (pp envxy) suc
       (pp env) scrut
-  | _, IdElim (_, mot, refl, scrut) ->
+  | _, IdElim (mot, refl, scrut) ->
     let x, envx = Pp.Env.bind env None in
     let y, envxy = Pp.Env.bind envx None in
     let z, envxyz = Pp.Env.bind envxy None in
@@ -167,22 +163,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "<CodeNat>"
 
 and pp env = pp_ env `Start
-
-and pp_ghost_ env mode fmt ((name, cells), scrut) =
-  let rec go_cells env fmt =
-    function
-    | [] -> pp env fmt scrut
-    | (_, tm) :: cells ->
-      Fmt.fprintf fmt "%a@ %a" (pp env) tm (go_cells env) cells
-  in
-  match mode with
-  | `Ap ->
-    Fmt.fprintf fmt "%a@ %a" pp_problem name (go_cells env) cells
-  | _ ->
-    Fmt.fprintf fmt "@[<hov1>(%a@ %a)@]" pp_problem name (go_cells env) cells
-
-and pp_ghost env =
-  pp_ghost_ env `Start
 
 and pp_problem fmt problem =
   let lbls = Bwd.to_list problem in

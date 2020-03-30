@@ -1,5 +1,3 @@
-open CoolBasis.Bwd
-
 type t =
   | Var of int
   | Global of Symbol.t
@@ -7,14 +5,14 @@ type t =
   | Ann of t * tp
   | Zero
   | Suc of t
-  | NatElim of ghost option * tp * t * t * t
+  | NatElim of tp * t * t * t
   | Lam of t
   | Ap of t * t
   | Pair of t * t
   | Fst of t
   | Snd of t
   | Refl of t
-  | IdElim of ghost option * tp * t * t
+  | IdElim of tp * t * t
   | GoalRet of t
   | GoalProj of t
   | Coe of t * t * t * t
@@ -47,7 +45,5 @@ and tp =
   | Sg of tp * tp
   | Id of tp * t * t
   | Nat
-
-and ghost = string bwd * (tp * t) list
 
 type env = tp list
