@@ -130,6 +130,12 @@ struct
     | `Done -> ret @@ `Reduce con
     | `Reduce con -> ret @@ `Reduce con
 
+  and plug_into sp con =
+    let* res = do_spine con sp in
+    whnf_con res |>> function
+    | `Done -> ret @@ `Reduce res
+    | `Reduce res -> ret @@ `Reduce res
+
   and whnf_cut cut : D.con whnf m =
     let hd, sp = cut in
     match hd with
@@ -139,45 +145,43 @@ struct
       begin
         test_sequent [] (Cof.eq r s) |>> function
         | true ->
-          reduce_to con
+          plug_into sp con
         | false ->
-          (* TODO, improve *)
-          reduce_to @<< do_rigid_coe abs r s con
+          plug_into sp @<< do_rigid_coe abs r s con
       end
     | D.HCom (cut, r, s, phi, bdy) ->
       begin
         Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
-          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+          plug_into sp @<< do_ap2 bdy (D.dim_to_con s) D.Prf
         | false ->
           whnf_cut cut |>> function
           | `Done ->
             ret `Done
           | `Reduce code ->
-            reduce_to @<< do_rigid_hcom code r s phi bdy
+            plug_into sp @<< do_rigid_hcom code r s phi bdy
       end
     | D.SubOut (cut, phi, clo) ->
       begin
         test_sequent [] phi |>> function
         | true ->
-          let+ con = inst_tm_clo clo [D.Prf] in
-          `Reduce con
+          plug_into sp @<< inst_tm_clo clo [D.Prf]
         | false ->
           whnf_cut cut |>> function
           | `Done ->
             ret `Done
           | `Reduce con ->
-            reduce_to @<< do_sub_out con
+            plug_into sp @<< do_sub_out con
       end
     | D.Split (tp, phi0, phi1, clo0, clo1) ->
       begin
         test_sequent [] phi0 |>> function
         | true ->
-          reduce_to @<< inst_tm_clo clo0 [D.Prf]
+          plug_into sp @<< inst_tm_clo clo0 [D.Prf]
         | false ->
           test_sequent [] phi1 |>> function
           | true ->
-            reduce_to @<< inst_tm_clo clo1 [D.Prf]
+            plug_into sp @<< inst_tm_clo clo1 [D.Prf]
           | false ->
             ret `Done
       end
@@ -718,10 +722,8 @@ module Quote : sig
   val equal_con : D.tp -> D.con -> D.con -> bool quote
   val quote_cut : D.cut -> S.t quote
   val equal_tp : D.tp -> D.tp -> bool quote
-  val equal_cut : D.cut -> D.cut -> bool quote
   val equate_con : D.tp -> D.con -> D.con -> unit quote
   val equate_tp : D.tp -> D.tp -> unit quote
-  val equate_cut : D.cut -> D.cut -> unit quote
 end =
 struct
   open QuM
