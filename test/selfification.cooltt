@@ -1,0 +1,9 @@
+def testing : {
+  (A : univ) (B : A -> univ) (p : dim -> (x : A) * B x)
+  ->
+  (i : dim) -> (x : sub A {0==0} {fst {p i}}) * B x
+} = {
+  \A B x => x
+}
+
+normalize testing
