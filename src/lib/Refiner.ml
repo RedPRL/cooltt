@@ -491,14 +491,14 @@ struct
     | `Unbound ->
       EM.elab_err @@ Err.UnboundVariable id
 
-  let variable ix =
+  let index ix =
     let+ tp = EM.get_local_tp ix in
     S.Var ix, tp
 
   let level lvl =
     let* env = EM.read in
     let ix = ElabEnv.size env - lvl - 1 in
-    variable ix
+    index ix
 
   let let_ tac_def (nm_x, tac_bdy) : T.bchk_tac =
     fun tp ->
@@ -607,7 +607,7 @@ struct
       let+ () = assert_simple_inductive base in
       let mot_tac : T.tp_tac =
         T.Tp.make @@
-        let* x, _ = Structural.variable 0 in
+        let* x, _ = Structural.index 0 in
         let* vx = EM.lift_ev @@ Nbe.eval x in
         let* vmot = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vx] in
         EM.lift_qu @@ Nbe.quote_tp vmot
@@ -616,7 +616,7 @@ struct
       T.chk_to_bchk @@
       T.syn_to_chk @@
       elim ([None], mot_tac) cases @@
-      Structural.variable 0
+      Structural.index 0
 
   end
 end
