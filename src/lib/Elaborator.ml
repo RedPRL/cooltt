@@ -118,15 +118,25 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, bchk_tm ctm in
     R.Cof.split branch_tacs
   | cs ->
-    T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
+    R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
+    match tp with
+    | D.Pi _ ->
+      let* env = EM.read in
+      EM.ret @@ R.Pi.intro None @@ bchk_tm @@ CS.Ap (cs, [Var (`System 0)])
+    | D.Sg _ ->
+      EM.ret @@ R.Sg.intro (bchk_tm @@ CS.Fst cs) (bchk_tm @@ CS.Snd cs)
+    | _ ->
+      EM.ret @@ T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
 
 
 and syn_tm_ : CS.t -> T.syn_tac =
   function
   | CS.Hole name ->
     R.Hole.unleash_syn_hole name `Rigid
-  | CS.Var id ->
+  | CS.Var (`User id) ->
     R.Structural.lookup_var id
+  | CS.Var (`System ix) ->
+    R.Structural.variable ix
   | CS.Ap (t, ts) ->
     R.Tactic.tac_multi_apply (syn_tm t) @@ List.map chk_tm ts
   | CS.Fst t ->

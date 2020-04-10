@@ -43,7 +43,7 @@ atomic:
   | LBR; term = term; RBR
     { term }
   | a = ATOM
-    { Var a }
+    { Var (`User a) }
   | ZERO
     { Lit 0 }
   | n = NUMERAL
