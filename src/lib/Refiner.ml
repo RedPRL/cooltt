@@ -402,7 +402,7 @@ struct
       let+ tsnd =
         let* vfst = EM.lift_ev @@ Nbe.eval tfst in
         let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst] in
-        tac_snd (fib, phi, D.un_lam @@ D.compose D.fst @@ D.Lam phi_clo)
+        tac_snd (fib, phi, D.un_lam @@ D.compose D.snd @@ D.Lam phi_clo)
       in
       S.Pair (tfst, tsnd)
     | tp , _, _ ->
