@@ -60,7 +60,7 @@ def funext : {
 
 def pairext : {
   (A : univ) (B : univ) (p : (x : A) * B) (q : (x : A) * B)
-  (h : (x : path A {fst p} {fst q}) * path A {snd p} {snd q})
+  (h : (x : path A {fst p} {fst q}) * path B {snd p} {snd q})
   -> path {\_ => (x : A) * B} p q
 } = {
   \A B p q h i =>
