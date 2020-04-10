@@ -51,7 +51,7 @@ def myrefl : {
 
 def funext : {
   (A : univ) (B : univ) (f : (x : A) -> B) (g : (x : A) -> B)
-  (h : (x : A) -> path {\_ => A} {f x} {g f})
+  (h : (x : A) -> path {\_ => B} {f x} {g x})
   -> path {\_ => (x : A) -> B} f g
 } = {
   \A B f g h i x =>
