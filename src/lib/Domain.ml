@@ -49,11 +49,52 @@ let rec cof_to_con =
   | Cof.Cof (Cof.Meet (phi0, phi1)) -> Cof (Cof.Meet (cof_to_con phi0, cof_to_con phi1))
   | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []; unfold = None}
 
-let rec pp_con : con Pp.printer =
+let rec pp_cut : cut Pp.printer =
   fun fmt ->
   function
-  | Cut _ ->
-    Format.fprintf fmt "<cut>"
+  | hd, sp ->
+    Format.fprintf fmt "%a <: %a"
+      pp_hd hd
+      pp_sp sp
+
+and pp_hd : hd Pp.printer =
+  fun fmt ->
+  function
+  | Global sym ->
+    Format.fprintf fmt "global[%a]" Symbol.pp sym
+  | Var lvl ->
+    Format.fprintf fmt "var[%i]" lvl
+  | Split (tp, phi, psi, clo_phi, clo_psi) ->
+    Format.fprintf fmt "[%a => %a | %a => %a]" pp_cof phi pp_clo clo_phi pp_cof psi pp_clo clo_psi
+  | SubOut (cut, phi, clo) ->
+    Format.fprintf fmt "sub/out[(%a), %a, %a]" pp_cut cut pp_cof phi pp_clo clo
+  | _ ->
+    Format.fprintf fmt "<hd>"
+
+and pp_sp : frm list Pp.printer =
+  fun fmt sp ->
+  let comma fmt () = Format.fprintf fmt ", " in
+  Format.pp_print_list ~pp_sep:comma pp_frame fmt sp
+
+and pp_frame : frm Pp.printer =
+   fun fmt ->
+   function
+   | KAp _ -> Format.fprintf fmt "<ap>"
+   | _ -> Format.fprintf fmt "<frm>"
+
+and pp_cof : cof Pp.printer =
+  fun fmt _ ->
+  Format.fprintf fmt "<cof>"
+
+and pp_clo : tm_clo Pp.printer =
+  fun fmt _ ->
+  Format.fprintf fmt "<clo>"
+
+and pp_con : con Pp.printer =
+  fun fmt ->
+  function
+  | Cut {cut} ->
+    Format.fprintf fmt "cut[%a]" pp_cut cut
   | Zero ->
     Format.fprintf fmt "zero"
   | Suc con ->

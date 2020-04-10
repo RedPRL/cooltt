@@ -19,3 +19,4 @@ val snd : con
 
 val pp_tp : tp Pp.printer
 val pp_con : con Pp.printer
+val pp_cut : cut Pp.printer
