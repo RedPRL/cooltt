@@ -1,0 +1,71 @@
+-- Rules of the game: feel free to choose notations that are easier to parse,
+-- and adjust this file accordingly. If this file has typos, please fix them ;-)
+
+-- We want to add a path type to the source language; this will involve
+-- touching many parts of the codebase. The path types of the top-level language
+-- should be like:
+--
+--      A : I -> U
+--      a : el(A(0))
+--      b : el(A(1))
+--     ------------------
+--      path A a b : U
+--
+--
+-- These differ from the core-language path types, which have the following structure:
+--
+--      A : I -> U
+--      a : (i : I) (_ : [i=0\/i=1]) -> el(A(i))
+--     ------------------------------------------
+--      path A a : U
+--
+-- What will be needed is:
+--   1. Top-level syntax and parsing for the source language path type code (see ConcreteSyntax and Grammar)
+--   2. Refinement rule for forming the path type code (see Refiner)
+--   3. Elaboration rule for transforming the concrete syntax tree into calls to the Refiner (see Elaborator)
+--   4. Maybe other random stuff along the way, we'll see ;-). I expect some tricky issues with the elaboration
+--      of application interacting with the cubical subtype (which is silent in the source language); I can help with that.
+--
+-- Many of these aspects will follow a pattern similar to other connectives. To implement the refinement rules, you will
+-- need to understand the meaning of el(path(A,a)) in the core language -- how this unfolds to a combination of the
+-- the dependent product, the interval, and the cubical subtypes.
+--
+-- Succeeding in these tasks will depend on trying to do it, getting stuck, seeking help & getting unstuck, and resuming.
+-- I think it will be essential to dive in without a full understanding of all the subtleties, and just deal with them
+-- as they come up (by getting help from Jon and Carlo).
+
+
+def formation : {
+  (A : dim -> univ) (a : A 0) (b : A 1) -> univ
+} = {
+  \A a b =>
+  path A a b
+}
+
+def myrefl : {
+  (A : univ) (a : A) -> path A a a
+} = {
+  \A a i => a
+}
+
+
+def funext : {
+  (A : univ) (B : univ) (f : (x : A) -> B) (g : (x : A) -> B)
+  (h : (x : A) -> path {\_ => A} {f x} {g f})
+  -> path {\_ => (x : A) -> B} f g
+} = {
+  \A B f g h i x =>
+  h x i
+}
+
+def pairext : {
+  (A : univ) (B : univ) (p : (x : A) * B) (q : (x : A) * B)
+  (h : (x : path A {fst p} {fst q}) * path A {snd p} {snd q})
+  -> path {\_ => (x : A) * B} p q
+} = {
+  \A B p q h i =>
+  [ {fst h} i
+  , {snd h} i
+  ]
+}
+
