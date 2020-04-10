@@ -23,8 +23,7 @@
 --   1. Top-level syntax and parsing for the source language path type code (see ConcreteSyntax and Grammar)
 --   2. Refinement rule for forming the path type code (see Refiner)
 --   3. Elaboration rule for transforming the concrete syntax tree into calls to the Refiner (see Elaborator)
---   4. Maybe other random stuff along the way, we'll see ;-). I expect some tricky issues with the elaboration
---      of application interacting with the cubical subtype (which is silent in the source language); I can help with that.
+--   4. Maybe other random stuff along the way, we'll see ;-).
 --
 -- Many of these aspects will follow a pattern similar to other connectives. To implement the refinement rules, you will
 -- need to understand the meaning of el(path(A,a)) in the core language -- how this unfolds to a combination of the
