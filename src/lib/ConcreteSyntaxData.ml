@@ -7,7 +7,7 @@ and bindern = BN of {names : ident list; body : t}
 and cell = Cell of {name : ident; tp : t}
 
 and t =
-  | Var of [`User of ident | `System of int]
+  | Var of [`User of ident | `Level of int]
   | Let of t * binder
   | Ann of {term : t; tp : t}
   | Nat

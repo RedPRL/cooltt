@@ -122,7 +122,8 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     match tp with
     | D.Pi _ ->
       let* env = EM.read in
-      EM.ret @@ R.Pi.intro None @@ bchk_tm @@ CS.Ap (cs, [Var (`System 0)])
+      let lvl = ElabEnv.size env in
+      EM.ret @@ R.Pi.intro None @@ bchk_tm @@ CS.Ap (cs, [Var (`Level lvl)])
     | D.Sg _ ->
       EM.ret @@ R.Sg.intro (bchk_tm @@ CS.Fst cs) (bchk_tm @@ CS.Snd cs)
     | _ ->
@@ -135,8 +136,8 @@ and syn_tm_ : CS.t -> T.syn_tac =
     R.Hole.unleash_syn_hole name `Rigid
   | CS.Var (`User id) ->
     R.Structural.lookup_var id
-  | CS.Var (`System ix) ->
-    R.Structural.variable ix
+  | CS.Var (`Level lvl) ->
+    R.Structural.level lvl
   | CS.Ap (t, ts) ->
     R.Tactic.tac_multi_apply (syn_tm t) @@ List.map chk_tm ts
   | CS.Fst t ->

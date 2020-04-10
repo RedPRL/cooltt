@@ -495,6 +495,11 @@ struct
     let+ tp = EM.get_local_tp ix in
     S.Var ix, tp
 
+  let level lvl =
+    let* env = EM.read in
+    let ix = ElabEnv.size env - lvl - 1 in
+    variable ix
+
   let let_ tac_def (nm_x, tac_bdy) : T.bchk_tac =
     fun tp ->
     let* tdef, tp_def = tac_def in
