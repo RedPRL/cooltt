@@ -1154,7 +1154,7 @@ struct
     | _, D.Abort, _ -> ret ()
     | _, _, D.Abort -> ret ()
     | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _}, _
-    | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), []} ->
+    | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _} ->
       under_cof (Cof.join phi0 phi1) @@
       equate_con tp con0 con1
     | D.Pi (base, fam), _, _ ->
