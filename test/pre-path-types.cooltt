@@ -1,7 +1,7 @@
 -- This file proves that the internals of cooltt work well enough to get
 -- path-types.cooltt up and running without getting owned by bugs.
 
--- In this fail, the tests for the path type are rewritten in terms of the primitives that the path-type decodes to:
+-- In this file, the tests for the path type are rewritten in terms of the primitives that the path-type decodes to:
 -- the dependent product over the interval, and the cubical subtypes.
 
 def myrefl : {
