@@ -51,12 +51,14 @@ let rec pp_cof pp_v pp env fmt =
       (pp env) x
       (pp env) y
   | Cof (Join (phi, psi)) ->
-    Format.fprintf fmt "(%a) ∨ (%a)"
+    Format.fprintf fmt "(%a) %a (%a)"
       (pp_cof pp_v pp env) phi
+      Uuseg_string.pp_utf_8 "∨"
       (pp_cof pp_v pp env) psi
   | Cof (Meet (phi, psi)) ->
-    Format.fprintf fmt "(%a) ∧ (%a)"
+    Format.fprintf fmt "(%a) %a (%a)"
       (pp_cof pp_v pp env) phi
+      Uuseg_string.pp_utf_8 "∧"
       (pp_cof pp_v pp env) psi
   | Cof Bot ->
     Format.fprintf fmt "false"
