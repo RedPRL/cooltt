@@ -12,6 +12,7 @@
 %token TIMES FST SND
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
+%token PATH (* other path-related forms will go here *)
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
 %token EOF
@@ -120,6 +121,9 @@ term:
     { Join (phi, psi) }
   | phi = atomic MEET psi = atomic
     { Meet (phi, psi) }
+
+  | PATH; tp = atomic; left = atomic; right = atomic (* made this look like ID *)
+    { Path (tp, left, right) }
 
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR

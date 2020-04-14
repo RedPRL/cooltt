@@ -36,6 +36,7 @@ and t =
   | Meet of t * t
   | Prf of t
   | CofSplit of (t * t) list
+  | Path of t * t * t
 [@@deriving show]
 
 and case = pat * t
