@@ -80,6 +80,12 @@ module Id : sig
     -> syn_tac
 end
 
+module Path : sig
+  val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
+  (* val intro :  *)
+  (* val elim :  *)
+end
+
 module Nat : sig
   val formation : tp_tac
   val literal : int -> chk_tac

@@ -37,6 +37,8 @@ and t =
   | Prf of t
   | CofSplit of (t * t) list
   | Path of t * t * t
+  | PathLam of binder * t (* todo/iev: this one really seems like it should be a binder *)
+  | PathAp of t * t
 [@@deriving show]
 
 and case = pat * t

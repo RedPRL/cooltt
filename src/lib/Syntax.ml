@@ -1,6 +1,8 @@
 open CoolBasis open Bwd
 include SyntaxData
 
+exception Todo
+
 let rec condense =
   function
   | Zero -> Some 0
@@ -161,6 +163,9 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "<CodeSg>"
   | _, CodeNat ->
     Fmt.fprintf fmt "<CodeNat>"
+  | _, PathLam (x , m) -> raise Todo
+  | _, PathAp (m, r) -> raise Todo
+
 
 and pp env = pp_ env `Start
 
@@ -220,6 +225,8 @@ and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer =
     Format.fprintf fmt "nat"
   | _, TpVar i ->
     Format.fprintf fmt "(tpvar %i)" i
+  | _, Path (tp, a, b)-> raise Todo 
+
 
 and pp_tp env = pp_tp_ env `Start
 

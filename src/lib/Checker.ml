@@ -35,6 +35,8 @@ let rec chk_tp : S.tp -> T.tp_tac =
     R.Prf.formation (chk_tm phi)
   | S.TpCof ->
     R.Cof.formation
+  | S.Path (tp, a, b) ->
+    R.Path.formation (chk_tp tp) (chk_tm a) (chk_tm b)
   | S.TpVar _ ->
     failwith "Not expected"
 
@@ -69,6 +71,8 @@ and chk_tm : S.t -> T.chk_tac =
     R.Univ.sg (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
   | S.CodePi (base, fam) ->
     R.Univ.pi (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
+  | S.PathAp (m, r) -> raise Todo
+  | S.PathLam (x, m) -> raise Todo
   | t ->
     T.syn_to_chk @@ syn_tm t
 
@@ -98,3 +102,4 @@ and syn_tm : S.t -> T.syn_tac =
     T.chk_to_syn (chk_tm t) (chk_tp tp)
   | t ->
     EM.elab_err @@ Err.ExpectedSynthesizableTerm t
+  (* todo/iev: unsure if i should add cases for pathap and pathlam here *)

@@ -353,6 +353,41 @@ struct
     S.IdElim (tmot, t_refl_case, tscrut), fib
 end
 
+module Path =
+struct
+  exception Todo1
+  exception Todo2
+  exception Todo3
+
+  (*
+    A type
+    x,x=0 |- a : A
+    x,x=1 |- b : A
+    ------------------------------------
+    path x.A a b type
+   *)
+  let formation (tac_tp : T.tp_tac) (tac0 : T.chk_tac) (tac1 : T.chk_tac) : T.tp_tac =
+    T.Tp.make @@ 
+    let* tp = raise Todo1 in 
+    let* a = raise Todo1 in 
+    let* b = raise Todo1 in 
+    raise Todo1
+
+  (*
+    x |- M : A[ x = 0 -> a v x = 1 -> b ]
+    -------------------------------------
+    <x>M : path (x.A) a b
+  *)
+  let intro = raise Todo2
+
+  (*
+    r : I
+    M : path x.A a b
+    --------------------------------------
+    ap(M,r) : A<r/x>[x = 0 -> a v x = 1 -> b]
+   *)
+  let elim = raise Todo3
+end
 
 module Pi =
 struct

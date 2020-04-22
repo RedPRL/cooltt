@@ -122,8 +122,11 @@ term:
   | phi = atomic MEET psi = atomic
     { Meet (phi, psi) }
 
-  | PATH; tp = atomic; left = atomic; right = atomic (* made this look like ID *)
-    { Path (tp, left, right) }
+  (* made this look like ID kind of *)
+  | PATH; tp = atomic; left = atomic; right = atomic 
+    { Path (tp, left, right) 
+
+  (* todo/iev: add pathlam, pathap forms here following syntax from carlo's thesis after talking to jon *)
 
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR

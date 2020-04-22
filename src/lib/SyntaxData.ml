@@ -27,10 +27,13 @@ type t =
   | CofAbort
   | Prf
 
-  | CodePath of t * t
+  | CodePath of t * t (* todo/iev: is this going to be deprecated? or was it kind of done in advance?*)
   | CodePi of t * t
   | CodeSg of t * t
   | CodeNat
+
+  | PathLam of t * t (*todo/iev: this is very certainly a bad name, but i need an intro form to match Carlo's <x>M *)
+  | PathAp of t * t (* todo/iev: my thought here is to match Carlo's iapp form, as in the elim rule for paths *)
 
 and tp =
   | Univ
@@ -45,5 +48,6 @@ and tp =
   | Sg of tp * tp
   | Id of tp * t * t
   | Nat
+  | Path of tp * t * t (*todo/iev: not quite sure i really understand why this should be in tp not t, given the relative flatness of coresyntaxdata.t*)
 
 type env = tp list
