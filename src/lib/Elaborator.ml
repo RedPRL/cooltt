@@ -54,8 +54,8 @@ let rec chk_tp : CS.t -> T.tp_tac =
     R.Prf.formation @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) ->
     R.Sub.formation (chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
-  | CS.Path (tp, a, b) -> (* todo/iev: check with jon; just pattern matching here *)
-    R.Path.formation (chk_tp tp) (chk_tm a) (chk_tm b)
+  (* | CS.Path (tp, a, b) -> (* todo/iev: check with jon; just pattern matching here *)
+    R.Path.formation (chk_tp tp) (chk_tm a) (chk_tm b) *)
   | tm ->
     Refiner.Univ.el_formation @@ chk_tm tm
 

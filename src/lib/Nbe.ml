@@ -550,14 +550,6 @@ struct
       D.TpPrf phi
     | S.TpVar ix ->
       get_local_tp ix
-    | S.Path (tp, a, b) -> (* *)
-      let* vtp = eval_tp tp in 
-      let* va = eval a in
-      let* vb = eval b in 
-      raise Todo       
-      (* todo/iev: naïvely I want this to be something like D.Path(vtp, va, vb),
-      except jon's comment in path-types.cooltt sugguests that they might get
-      interpreted into existing semantic objects, which would mean not extending D*)
 
   and eval =
     function
@@ -712,9 +704,6 @@ struct
 
     | S.CodeNat ->
       ret D.CodeNat
-    
-    | S.PathAp (m , r) -> raise Todo
-    | S.PathLam (x , m) -> raise Todo
 
   and eval_dim tr =
     let* con = eval tr in
