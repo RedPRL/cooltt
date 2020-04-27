@@ -123,6 +123,9 @@ let sub_in mtm =
   let+ tm = mtm in
   S.SubIn tm
 
+let univ : _ m =
+  ret @@ S.Univ
+
 let pi mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
