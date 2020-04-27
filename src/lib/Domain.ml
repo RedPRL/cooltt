@@ -3,33 +3,6 @@ open CoolBasis
 
 module S = Syntax
 
-let pp_tp fmt =
-  function
-  | Pi _ ->
-    Format.fprintf fmt "<pi>"
-  | Sg _ ->
-    Format.fprintf fmt "<sg>"
-  | Sub _ ->
-    Format.fprintf fmt "<sub>"
-  | TpPrf _ ->
-    Format.fprintf fmt "<prf>"
-  | TpCof ->
-    Format.fprintf fmt "<cof>"
-  | TpDim ->
-    Format.fprintf fmt "<dim>"
-  | Univ ->
-    Format.fprintf fmt "<univ>"
-  | Nat ->
-    Format.fprintf fmt "<nat>"
-  | TpAbort ->
-    Format.fprintf fmt "<abort>"
-  | El _ ->
-    Format.fprintf fmt "<el>"
-  | GoalTp _ ->
-    Format.fprintf fmt "<goal-tp>"
-  | Id _ ->
-    Format.fprintf fmt "<id>"
-
 
 let push frm (hd, sp) =
   hd, sp @ [frm]
@@ -112,8 +85,8 @@ and pp_cof : cof Pp.printer =
   Format.fprintf fmt "<cof>"
 
 and pp_clo : tm_clo Pp.printer =
-  fun fmt _ ->
-  Format.fprintf fmt "<clo>"
+  fun fmt (Clo (tm, env)) ->
+  Format.fprintf fmt "clo[<tm> ; <env>]"
 
 and pp_con : con Pp.printer =
   fun fmt ->
@@ -135,8 +108,36 @@ and pp_con : con Pp.printer =
   | GoalRet con ->
     Format.fprintf fmt "goal-ret[%a]" pp_con con
   | Lam clo ->
-    Format.fprintf fmt "<lam>"
+    Format.fprintf fmt "lam[%a]" pp_clo clo
   | Abort ->
     Format.fprintf fmt "<abort>"
   | _ ->
     Format.fprintf fmt "<don't know how to print>"
+
+and pp_tp fmt =
+  function
+  | Pi _ ->
+    Format.fprintf fmt "<pi>"
+  | Sg _ ->
+    Format.fprintf fmt "<sg>"
+  | Sub _ ->
+    Format.fprintf fmt "<sub>"
+  | TpPrf _ ->
+    Format.fprintf fmt "<prf>"
+  | TpCof ->
+    Format.fprintf fmt "<cof>"
+  | TpDim ->
+    Format.fprintf fmt "<dim>"
+  | Univ ->
+    Format.fprintf fmt "<univ>"
+  | Nat ->
+    Format.fprintf fmt "<nat>"
+  | TpAbort ->
+    Format.fprintf fmt "<abort>"
+  | El cut ->
+    Format.fprintf fmt "el[%a]" pp_cut cut
+  | GoalTp _ ->
+    Format.fprintf fmt "<goal-tp>"
+  | Id _ ->
+    Format.fprintf fmt "<id>"
+

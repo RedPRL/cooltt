@@ -863,7 +863,7 @@ struct
       S.CodePath (tfam, tbdry)
 
     | _ ->
-      Format.eprintf "bad: %a@." D.pp_con con;
+      Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
 
   and quote_tp (tp : D.tp) =
