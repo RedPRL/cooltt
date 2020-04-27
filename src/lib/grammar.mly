@@ -123,8 +123,8 @@ term:
     { Meet (phi, psi) }
 
   (* made this look like ID kind of *)
-  | PATH; tp = atomic; left = atomic; right = atomic 
-    { Path (tp, left, right) 
+  | PATH; tp = atomic; left = atomic; right = atomic
+    { Path (tp, left, right) }
 
   (* todo/iev: add pathlam, pathap forms here following syntax from carlo's thesis after talking to jon *)
 
