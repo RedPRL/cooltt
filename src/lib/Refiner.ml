@@ -367,10 +367,10 @@ struct
     path x.A a b type
    *)
   let formation (tac_tp : T.tp_tac) (tac0 : T.chk_tac) (tac1 : T.chk_tac) : T.tp_tac =
-    T.Tp.make @@ 
-    let* tp = raise Todo1 in 
-    let* a = raise Todo1 in 
-    let* b = raise Todo1 in 
+    T.Tp.make @@
+    let* tp = raise Todo1 in
+    let* a = raise Todo1 in
+    let* b = raise Todo1 in
     raise Todo1
 
   (*
@@ -378,7 +378,7 @@ struct
     -------------------------------------
     <x>M : path (x.A) a b
   *)
-  let intro = raise Todo2
+  let intro _ = raise Todo2
 
   (*
     r : I
@@ -386,7 +386,7 @@ struct
     --------------------------------------
     ap(M,r) : A<r/x>[x = 0 -> a v x = 1 -> b]
    *)
-  let elim = raise Todo3
+  let elim _ = raise Todo3
 end
 
 module Pi =
