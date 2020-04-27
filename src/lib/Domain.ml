@@ -3,8 +3,33 @@ open CoolBasis
 
 module S = Syntax
 
-let pp_tp fmt _ =
-  Format.fprintf fmt "<tp>"
+let pp_tp fmt =
+  function
+  | Pi _ ->
+    Format.fprintf fmt "<pi>"
+  | Sg _ ->
+    Format.fprintf fmt "<sg>"
+  | Sub _ ->
+    Format.fprintf fmt "<sub>"
+  | TpPrf _ ->
+    Format.fprintf fmt "<prf>"
+  | TpCof ->
+    Format.fprintf fmt "<cof>"
+  | TpDim ->
+    Format.fprintf fmt "<dim>"
+  | Univ ->
+    Format.fprintf fmt "<univ>"
+  | Nat ->
+    Format.fprintf fmt "<nat>"
+  | TpAbort ->
+    Format.fprintf fmt "<abort>"
+  | El _ ->
+    Format.fprintf fmt "<el>"
+  | GoalTp _ ->
+    Format.fprintf fmt "<goal-tp>"
+  | Id _ ->
+    Format.fprintf fmt "<id>"
+
 
 let push frm (hd, sp) =
   hd, sp @ [frm]
