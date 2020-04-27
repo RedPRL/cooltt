@@ -163,7 +163,7 @@ let join mphi mpsi =
 
 let tp_dim = ret S.TpDim
 let dim0 = ret S.Dim0
-let dim1 = ret S.Dim0
+let dim1 = ret S.Dim1
 
 let boundary mr =
   join (eq mr dim0) (eq mr dim1)
