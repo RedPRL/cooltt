@@ -363,7 +363,7 @@ struct
       QQ.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
-      TB.ap bdry [i]
+      TB.ap bdry [i; prf]
 
     | _ ->
       CmpM.throw @@ NbeFailed "do_el failed"
