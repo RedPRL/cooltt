@@ -38,8 +38,10 @@ def formation : {
   (A : dim -> univ) (a : A 0) (b : A 1) -> univ
 } = {
   \A a b =>  -- normal lambda form
-  path A a b  -- this is the new form for paths 
+  path A a b  -- this is the new form for paths
 }
+
+normalize formation
 
 def myrefl : {
   (A : univ) (a : A) -> path {\_ => A} a a -- also existing lambda form i think, other things quantify over dim with this notation
@@ -47,6 +49,7 @@ def myrefl : {
   \A a i => a
 }
 
+normalize myrefl
 
 def funext : {
   (A : univ) (B : univ) (f : (x : A) -> B) (g : (x : A) -> B)
@@ -56,6 +59,8 @@ def funext : {
   \A B f g h i x =>
   h x i
 }
+
+normalize funext
 
 def pairext : {
   (A : univ) (B : univ) (p : (x : A) * B) (q : (x : A) * B)
@@ -68,3 +73,4 @@ def pairext : {
   ]
 }
 
+normalize pairext
