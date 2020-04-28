@@ -98,4 +98,3 @@ and syn_tm : S.t -> T.syn_tac =
     T.chk_to_syn (chk_tm t) (chk_tp tp)
   | t ->
     EM.elab_err @@ Err.ExpectedSynthesizableTerm t
-  (* todo/iev: unsure if i should add cases for pathap and pathlam here *)

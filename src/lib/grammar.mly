@@ -122,7 +122,6 @@ term:
   | phi = atomic MEET psi = atomic
     { Meet (phi, psi) }
 
-  (* todo/iev made this look like ID kind of *)
   | PATH; tp = atomic; left = atomic; right = atomic 
     { Path (tp, left, right) }
 
