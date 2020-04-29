@@ -33,7 +33,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | `Lam, tm ->
     Fmt.fprintf fmt "%s@ %a" "]" (pp env) tm
   | _, (Lam _ as tm) ->
-    Fmt.fprintf fmt "@[<hov1>(lam %s%a)@]" "[" (pp_ env `Lam) (Lam tm)
+    Fmt.fprintf fmt "@[<hov1>(lam %s%a)@]" "[" (pp_ env `Lam) tm
   | _, Var i ->
     pp_var env fmt i
   | _, Global sym ->
