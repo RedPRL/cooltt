@@ -363,12 +363,12 @@ struct
       let+ fam = EM.push_var nm vbase @@ T.Tp.run tac_fam in
       S.Pi (base, fam)
 
-  let intro name (tac_body : T.bchk_tac) : T.bchk_tac =
+  let intro name (tac_body : T.var -> T.bchk_tac) : T.bchk_tac =
     function
     | D.Pi (base, fam), phi, phi_clo ->
-      EM.abstract name base @@ fun var ->
-      let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [var] in
-      let+ tm = tac_body (fib, phi, D.un_lam @@ D.compose (D.Lam (D.apply_to var)) @@ D.Lam phi_clo) in
+      T.abstract base name @@ fun var ->
+      let* fib = EM.lift_cmp @@ Nbe.inst_tp_clo fam [T.Var.con var] in
+      let+ tm = tac_body var (fib, phi, D.un_lam @@ D.compose (D.Lam (D.apply_to (T.Var.con var))) @@ D.Lam phi_clo) in
       S.Lam tm
     | tp, _, _ ->
       EM.expected_connective `Pi tp
@@ -530,7 +530,7 @@ struct
     match names with
     | [] -> tac_body
     | name :: names ->
-      tac_lam (Some name) @@
+      tac_lam (Some name) @@ fun _ ->
       tac_multi_lam names tac_body
 
   let rec tac_multi_apply tac_fun =
@@ -611,11 +611,10 @@ struct
         let* vmot = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vx] in
         EM.lift_qu @@ Nbe.quote_tp vmot
       in
-      Pi.intro None @@
+      Pi.intro None @@ fun x ->
       T.chk_to_bchk @@
       T.syn_to_chk @@
       elim ([None], mot_tac) cases @@
-      Structural.index 0
-
+      T.Var.syn x
   end
 end

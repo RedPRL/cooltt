@@ -53,7 +53,7 @@ end
 
 module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : CS.ident option -> bchk_tac -> bchk_tac
+  val intro : CS.ident option -> (var -> bchk_tac) -> bchk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
 end
 

@@ -59,16 +59,16 @@ and chk_tm : S.t -> T.chk_tac =
   | S.Let (def, bdy) ->
     T.bchk_to_chk @@ R.Structural.let_ (syn_tm def) (None, T.chk_to_bchk @@ chk_tm bdy)
   | S.Lam bdy ->
-    T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm bdy
+    T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     T.bchk_to_chk @@ R.Sg.intro (T.chk_to_bchk @@ chk_tm t0) (T.chk_to_bchk @@ chk_tm t1)
   | S.CodePath (fam, bound) -> raise Todo
   | S.CodeNat ->
     R.Univ.nat
   | S.CodeSg (base, fam) ->
-    R.Univ.sg (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
+    R.Univ.sg (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm fam)
   | S.CodePi (base, fam) ->
-    R.Univ.pi (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
+    R.Univ.pi (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm fam)
   | t ->
     T.syn_to_chk @@ syn_tm t
 
