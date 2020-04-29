@@ -606,7 +606,7 @@ struct
       let+ () = assert_simple_inductive base in
       let mot_tac : T.tp_tac =
         T.Tp.make @@
-        let* x, _ = Structural.index 0 in
+        let x = S.Var 0 in
         let* vx = EM.lift_ev @@ Nbe.eval x in
         let* vmot = EM.lift_cmp @@ Nbe.inst_tp_clo fam [vx] in
         EM.lift_qu @@ Nbe.quote_tp vmot
