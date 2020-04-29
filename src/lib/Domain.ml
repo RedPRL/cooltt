@@ -101,8 +101,12 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
   | Prf ->
     Format.fprintf fmt "*"
-  | Cof _ ->
-    Format.fprintf fmt "<cof>"
+  | Cof (Cof.Join (phi, psi)) ->
+    Format.fprintf fmt "join[%a,%a]" pp_con phi pp_con psi
+  | Cof (Cof.Meet (phi, psi)) ->
+    Format.fprintf fmt "meet[%a,%a]" pp_con phi pp_con psi
+  | Cof (Cof.Eq (r, s)) ->
+    Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
   | Refl _ ->
     Format.fprintf fmt "refl"
   | GoalRet con ->
@@ -111,6 +115,10 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "lam[%a]" pp_clo clo
   | Abort ->
     Format.fprintf fmt "<abort>"
+  | DimCon0 ->
+    Format.fprintf fmt "dim0"
+  | DimCon1 ->
+    Format.fprintf fmt "dim1"
   | _ ->
     Format.fprintf fmt "<don't know how to print>"
 
