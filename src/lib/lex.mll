@@ -38,7 +38,8 @@ let keywords =
     ("dim", DIM);
     ("cof", COF);
     ("sub", SUB);
-    ("path", PATH)
+    ("path", PATH);
+    ("coe", COE)
   ]
 }
 

@@ -2,21 +2,21 @@ def coe/fun : {
   (A : (i : dim) -> univ) (B : (i: dim) -> univ)
   (coe/A : (r : dim) (x : A r) (i : dim) -> sub {A i} {i==r} x)
   (coe/B : (r : dim) (x : B r) (i : dim) -> sub {B i} {i==r} x)
-  (r : dim) (f : (_ : A r) -> B r) (i : dim) -> 
+  (r : dim) (f : (_ : A r) -> B r) (i : dim) ->
   sub {(_ : A i) -> B i} {i==r} f
 } = {
- \A B coe/A coe/B r f i x => 
+ \A B coe/A coe/B r f i x =>
  coe/B r {f {coe/A i x r}} i
 }
 
 def com/fun : {
-  (A : dim -> univ) 
-  (B : dim -> univ) 
+  (A : dim -> univ)
+  (B : dim -> univ)
   (com/A : (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) -> A i) (i : dim) -> sub {A i} {{i==r} \/ phi} {p i _})
   (com/B : (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) -> B i) (i : dim) -> sub {B i} {{i==r} \/ phi} {p i _})
   (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) (_ : A i) -> B i) (i : dim) -> sub {(_ : A i) -> B i} {{i==r} \/ phi} {p i _}
 } = {
-  \A B com/A com/B r phi p r' x => 
+  \A B com/A com/B r phi p r' x =>
   com/B r phi {\j _ => p j _ {com/A r' {1==0} {\_ _ => x} j}} r'
 }
 
