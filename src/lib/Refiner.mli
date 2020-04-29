@@ -34,7 +34,7 @@ module Cof : sig
   val join : chk_tac -> chk_tac -> chk_tac
   val meet : chk_tac -> chk_tac -> chk_tac
 
-  val split : (chk_tac * bchk_tac) list -> bchk_tac
+  val split : (chk_tac * (var -> bchk_tac)) list -> bchk_tac
 end
 
 module Prf : sig

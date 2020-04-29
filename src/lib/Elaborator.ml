@@ -119,7 +119,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Meet (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.meet (chk_tm c0) (chk_tm c1)
   | CS.CofSplit splits ->
-    let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, bchk_tm ctm in
+    let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
     R.Cof.split branch_tacs
   | CS.Path (tp, a, b) ->
     raise Todo (* todo/iev: i don't know what this function is really doing! do i need to case Path or just let it fall to the default? *)

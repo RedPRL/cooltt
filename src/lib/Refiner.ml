@@ -203,42 +203,89 @@ struct
       let* tphi = EM.lift_qu @@ Nbe.quote_cof vphi in
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
-  let split branch_tacs : T.bchk_tac =
-    let rec go (tp, psi, psi_clo) branches =
-      match branches with
-      | [] ->
-        EM.ret (Cof.bot, S.CofAbort)
-      | (tac_phi, tac_tm) :: branches ->
-        let* tphi = tac_phi D.TpCof in
-        let* vphi = EM.lift_ev @@ Nbe.eval_cof tphi in
-        let* ttp = EM.lift_qu @@ Nbe.quote_tp tp in
-        let* tm =
-          EM.push_var None (D.TpPrf vphi) @@
-          tac_tm (tp, psi, psi_clo)
-        in
-        let psi' = Cof.join vphi psi in
-        let* tpsi' = EM.lift_qu @@ Nbe.quote_cof psi' in
-        let* phi_rest, rest =
-          let* env = EM.lift_ev @@ EvM.read_local in
-          let phi_clo = D.Clo (tm, env) in
-          let* psi'_fn =
-            EM.lift_cmp @@ Nbe.quasiquote_tm @@
-            QQ.foreign_tp tp @@ fun tp ->
-            QQ.foreign (D.cof_to_con vphi) @@ fun phi ->
-            QQ.foreign (D.cof_to_con psi') @@ fun psi' ->
-            QQ.foreign (D.Lam phi_clo) @@ fun phi_fn ->
-            QQ.foreign (D.Lam psi_clo) @@ fun psi_fn ->
-            QQ.term @@ TB.lam @@ fun prf -> TB.cof_split tp phi (fun prf -> TB.ap phi_fn [prf]) psi' (fun prf -> TB.ap psi_fn [prf])
-          in
-          EM.push_var None (D.TpPrf psi') @@
-          go (tp, psi', D.un_lam psi'_fn) branches
-        in
-        let+ tphi_rest = EM.lift_qu @@ Nbe.quote_cof phi_rest in
-        Cof.join vphi phi_rest, S.CofSplit (ttp, tphi, tphi_rest, tm, rest)
-    in
+
+  type branch_tac = T.chk_tac * (T.var -> T.bchk_tac)
+
+  let rec njoin : D.cof list -> D.cof =
+     function
+     | [] -> Cof.bot
+     | phi :: phis -> Cof.join phi @@ njoin phis
+
+  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.bchk_tac) list) m =
+    match branches with
+    | [] -> EM.ret ([], [])
+    | (tac_phi, tac_tm) :: branches ->
+      let* tphi = tac_phi D.TpCof in
+      let* vphi = EM.lift_ev @@ Nbe.eval_cof tphi in
+      let+ phis, tacs = gather_cofibrations branches in
+      (vphi :: phis), tac_tm :: tacs
+
+  let split0 : T.bchk_tac =
+    fun _ ->
+    let* _ = assert_true Cof.bot in
+    EM.ret S.CofAbort
+
+  let split1 (phi : D.cof) (tac : T.var -> T.bchk_tac) : T.bchk_tac =
     fun goal ->
-      let* phi, tree = go goal branch_tacs in
-      EM.ret tree
+    let* _ = assert_true phi in
+    tac (T.Var.prf phi) goal
+
+  let split2 (phi0 : D.cof) (tac0 : T.var -> T.bchk_tac) (phi1 : D.cof) (tac1 : T.var -> T.bchk_tac) : T.bchk_tac =
+    fun (tp, psi, psi_clo) ->
+    let* ttp = EM.lift_qu @@ Nbe.quote_tp tp in
+    let* _ = assert_true @@ Cof.join phi0 phi1 in
+    let* tm0 =
+      T.abstract (D.TpPrf phi0) None @@ fun prf ->
+      tac0 prf (tp, psi, psi_clo)
+    in
+    let* tm1 =
+      T.abstract (D.TpPrf phi1) None @@ fun prf ->
+      let psi' = Cof.join phi0 psi in
+      let* phi0_fn = EM.lift_ev @@ Nbe.eval @@ S.Lam tm0 in
+      let psi_fn = D.Lam psi_clo in
+      let* psi'_fn =
+        EM.lift_cmp @@ Nbe.quasiquote_tm @@
+        QQ.foreign_tp tp @@ fun tp ->
+        QQ.foreign (D.cof_to_con phi0) @@ fun phi0 ->
+        QQ.foreign (D.cof_to_con psi) @@ fun psi ->
+        QQ.foreign phi0_fn @@ fun phi0_fn ->
+        QQ.foreign psi_fn @@ fun psi_fn ->
+        QQ.term @@ TB.lam @@ fun prf ->
+        TB.cof_split tp phi0 (fun prf -> TB.ap phi0_fn [prf]) psi (fun prf -> TB.ap psi_fn [prf])
+      in
+      tac1 prf (tp, psi', D.un_lam psi'_fn)
+    in
+    let* tphi0 = EM.lift_qu @@ Nbe.quote_cof phi0 in
+    let* tphi1 = EM.lift_qu @@ Nbe.quote_cof phi1 in
+    EM.ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
+
+
+
+  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.bchk_tac) list) m =
+    match branches with
+    | [] -> EM.ret ([], [])
+    | (tac_phi, tac_tm) :: branches ->
+      let* tphi = tac_phi D.TpCof in
+      let* vphi = EM.lift_ev @@ Nbe.eval_cof tphi in
+      let+ phis, tacs = gather_cofibrations branches in
+      (vphi :: phis), tac_tm :: tacs
+
+  let split (branches : branch_tac list) : T.bchk_tac =
+    fun goal ->
+    let* phis, tacs = gather_cofibrations branches in
+    let disj_phi = njoin phis in
+    let* _ = assert_true disj_phi in
+    let rec go phis (tacs : (T.var -> T.bchk_tac) list) : T.bchk_tac =
+      match phis, tacs with
+      | [phi], [tac] ->
+        split1 phi tac
+      | phi :: phis, tac :: tacs ->
+        split2 phi tac (njoin phis) (fun _ -> go phis tacs)
+      | [], [] ->
+        split0
+      | _ -> failwith "internal error"
+    in
+    go phis tacs goal
 end
 
 module Prf =
