@@ -1,14 +1,14 @@
 def formation : {
   (A : dim -> univ) (a : A 0) (b : A 1) -> univ
 } = {
-  \A a b =>  -- normal lambda form
-  path A a b  -- this is the new form for paths
+  \A a b =>
+  path A a b
 }
 
 normalize formation
 
 def myrefl : {
-  (A : univ) (a : A) -> path {\_ => A} a a -- also existing lambda form i think, other things quantify over dim with this notation
+  (A : univ) (a : A) -> path {\_ => A} a a
 } = {
   \A a i => a
 }
