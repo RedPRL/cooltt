@@ -2,27 +2,27 @@ module D = Domain
 module S = Syntax
 module St = ElabState
 open CoolBasis
-open Bwd 
+open Bwd
 open BwdNotation
 
-module CmpL = 
+module CmpL =
 struct
-  type local = 
-    {state : St.t; 
+  type local =
+    {state : St.t;
      cof_env : CofEnv.env}
 end
 
 module EvL =
 struct
-  type local = 
+  type local =
     {state : St.t;
-     cof_env : CofEnv.env; 
+     cof_env : CofEnv.env;
      env : D.env}
 end
 
-module QuL = 
+module QuL =
 struct
-  type local = 
+  type local =
     {state : St.t;
      cof_env : CofEnv.env;
      veil : Veil.t;
@@ -35,14 +35,21 @@ struct
   module M = Monad.MonadReaderResult (CmpL)
   open Monad.Notation (M)
 
-  let lift_ev env m CmpL.{state; cof_env} = 
+  let lift_ev env m CmpL.{state; cof_env} =
     m EvL.{state; cof_env; env}
 
   let test_sequent cx phi =
-    let+ {cof_env} = M.read in 
-    CofEnv.test_sequent cof_env cx phi 
+    let+ {cof_env} = M.read in
+    CofEnv.test_sequent cof_env cx phi
 
-  include M 
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m ->
+    fun st ->
+    match CofEnv.status st.cof_env with
+    | `Consistent -> m st
+    | `Inconsistent -> M.ret abort st
+
+  include M
   include CmpL
 end
 
@@ -55,28 +62,28 @@ struct
   open Monad.Notation (M)
 
   let read_global =
-    let+ {state} = M.read in 
+    let+ {state} = M.read in
     state
 
   let read_local =
-    let+ {env} = M.read in 
+    let+ {env} = M.read in
     env
 
-  let append cells = 
+  let append cells =
     M.scope @@ fun local ->
-    {local with env = local.env <>< cells}
-
-  let close_tp tp : _ m =
-    let+ env = read_local in 
-    D.Clo {bdy = tp; env}
-
-  let close_tm t : _ m = 
-    let+ env = read_local in 
-    D.Clo {bdy = t; env}
+    {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
     fun {state; cof_env} ->
     m {state; cof_env}
+
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m ->
+    fun st ->
+    match CofEnv.status st.cof_env with
+    | `Consistent -> m st
+    | `Inconsistent -> M.ret abort st
+
 
   include EvL
   include M
@@ -91,14 +98,14 @@ struct
   open Monad.Notation (M)
 
   let read_global =
-    let+ {state} = M.read in 
+    let+ {state} = M.read in
     state
 
   let read_local =
-    let+ {size} = M.read in 
+    let+ {size} = M.read in
     size
 
-  let read_veil = 
+  let read_veil =
     let+ {veil} = M.read in
     veil
 
@@ -107,29 +114,29 @@ struct
     {local with size = i + local.size}
 
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
-    fun abort m -> 
+    fun abort m ->
     fun st ->
-    match CofEnv.status st.cof_env with 
+    match CofEnv.status st.cof_env with
     | `Consistent -> m st
     | `Inconsistent -> M.ret abort st
 
-  let lift_cmp (m : 'a compute) : 'a m =   
+  let lift_cmp (m : 'a compute) : 'a m =
     fun {state; cof_env} ->
-    m {state; cof_env} 
+    m {state; cof_env}
 
   let restrict phi m =
     let* {cof_env} = M.read in
-    let cof_env = CofEnv.assume cof_env phi in 
-    match CofEnv.status cof_env with 
-    | `Consistent -> 
+    let cof_env = CofEnv.assume cof_env phi in
+    match CofEnv.status cof_env with
+    | `Consistent ->
       M.scope (fun local -> {local with cof_env}) @@
       let+ x = m in
       `Ret x
-    | `Inconsistent -> 
+    | `Inconsistent ->
       M.ret `Abort
 
   let bind_cof_proof phi m =
-    restrict phi @@ 
+    restrict phi @@
     binder 1 m
 
   include QuL
@@ -139,40 +146,49 @@ end
 type 'a quote = 'a QuM.m
 
 
-module ElabM = 
+module ElabM =
 struct
   module Env = ElabEnv
   module M = Monad.MonadReaderStateResult (struct type global = St.t type local = Env.t end)
   include M
 
   let globally m =
-    m |> scope @@ fun env -> 
+    m |> scope @@ fun env ->
     Env.set_veil (Env.get_veil env) Env.init
 
-  let emit pp a : unit m = 
-    fun (st, _env) -> 
-    let () = Format.fprintf Format.std_formatter "%a@." pp a in 
+  let emit pp a : unit m =
+    fun (st, _env) ->
+    let () = Format.fprintf Format.std_formatter "%a@." pp a in
     Ok (), st
 
-  let veil v = 
+  let veil v =
     M.scope @@ fun env ->
     Env.set_veil v env
 
-  let lift_qu (m : 'a quote) : 'a m = 
+  let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
-    match QuM.run {state; cof_env = Env.cof_env env; veil = Env.get_veil env; size = Env.size env} m with 
+    match QuM.run {state; cof_env = Env.cof_env env; veil = Env.get_veil env; size = Env.size env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
-  let lift_ev (m : 'a evaluate) : 'a m = 
+  let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->
-    match EvM.run {state; cof_env = Env.cof_env env; env = Env.sem_env env} m with 
+    match EvM.run {state; cof_env = Env.cof_env env; env = Env.sem_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
-  let lift_cmp (m : 'a compute) : 'a m = 
+  let lift_cmp (m : 'a compute) : 'a m =
     fun (state, env) ->
     match CmpM.run {state; cof_env = Env.cof_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
+
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m ->
+    fun (state, env) ->
+    match CofEnv.status (Env.cof_env env) with
+    | `Consistent -> m (state, env)
+    | `Inconsistent -> M.ret abort (state, env)
+
+
 end

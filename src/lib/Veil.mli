@@ -4,7 +4,7 @@ open CoolBasis
    Transparent: visible to conversion, visible to quote *)
 type policy = [`Translucent | `Transparent]
 
-type t 
+type t
 
 val const : policy -> t
 val unfold : Symbol.t list -> t -> t

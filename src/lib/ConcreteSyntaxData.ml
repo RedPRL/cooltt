@@ -7,7 +7,7 @@ and bindern = BN of {names : ident list; body : t}
 and cell = Cell of {name : ident; tp : t}
 
 and t =
-  | Var of ident
+  | Var of [`User of ident | `Level of int]
   | Let of t * binder
   | Ann of {term : t; tp : t}
   | Nat
@@ -28,7 +28,7 @@ and t =
   | Underscore
   | Unfold of ident list * t
   | Elim of {mot : bindern; cases : case list; scrut : t}
-  | LamElim of case list 
+  | LamElim of case list
   | Dim
   | Cof
   | CofEq of t * t
@@ -36,6 +36,7 @@ and t =
   | Meet of t * t
   | Prf of t
   | CofSplit of (t * t) list
+  | Path of t * t * t
 [@@deriving show]
 
 and case = pat * t

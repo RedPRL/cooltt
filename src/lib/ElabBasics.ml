@@ -6,44 +6,43 @@ module Env = ElabEnv
 module Err = ElabError
 
 open CoolBasis
-open Bwd
 include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)
 
 let elab_err err = raise @@ Err.ElabError err
 
-let push_var id tp : 'a m -> 'a m = 
+let push_var id tp : 'a m -> 'a m =
   scope @@ fun env ->
-  let con = D.mk_var tp @@ Env.size env in 
+  let con = D.mk_var tp @@ Env.size env in
   Env.append_con id con tp env
 
-let push_def id tp con : 'a m -> 'a m = 
+let push_def id tp con : 'a m -> 'a m =
   scope @@ fun env ->
-  let tp' = D.Sub (tp, Cof.top, D.ConstClo con) in
+  let tp' = D.Sub (tp, Cof.top, D.const_tm_clo con) in
   let con' = D.SubIn con in
   Env.append_con id con' tp' env
 
-let resolve id = 
+let resolve id =
   let* env = read in
   match Env.resolve_local id env with
   | Some ix -> ret @@ `Local ix
-  | None -> 
+  | None ->
     let* st = get in
     match St.resolve_global id st with
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
-let add_global id tp con = 
+let add_global id tp con =
   let* st = get in
   let sym, st' = St.add_global id tp con st in
-  let* () = set st' in 
+  let* () = set st' in
   ret sym
 
-let add_flex_global tp = 
+let add_flex_global tp =
   let* st = get in
-  let sym, st' = St.add_flex_global tp st in 
-  let* () = set st' in 
+  let sym, st' = St.add_flex_global tp st in
+  let* () = set st' in
   ret sym
 
 let get_global sym : (D.tp * D.con) m =
@@ -68,7 +67,7 @@ let get_local ix =
 let equate tp l r =
   let* env = read in
   let* res = lift_qu @@ Nbe.equal_con tp l r in
-  if res then ret () else 
+  if res then ret () else
     let* ttp = lift_qu @@ Nbe.quote_tp tp in
     let* tl = lift_qu @@ Nbe.quote_con tp l in
     let* tr = lift_qu @@ Nbe.quote_con tp r in
@@ -76,32 +75,42 @@ let equate tp l r =
 
 let equate_tp tp tp' =
   let* env = read in
-  let* res = lift_qu @@ Nbe.equal_tp tp tp' in 
-  if res then ret () else 
+  let* res = lift_qu @@ Nbe.equal_tp tp tp' in
+  if res then ret () else
     let* ttp = lift_qu @@ Nbe.quote_tp tp in
     let* ttp' = lift_qu @@ Nbe.quote_tp tp' in
     elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp')
 
-let dest_pi = 
-  function
-  | D.Tp (D.Pi (base, fam)) -> 
-    ret (base, fam)
-  | tp -> 
-    elab_err @@ Err.ExpectedConnective (`Pi, tp)
 
-let dest_sg = 
+let with_pp k =
+  let* env = read in
+  k @@ Env.pp_env env
+
+let expected_connective conn tp =
+  with_pp @@ fun ppenv ->
+  let* ttp = lift_qu @@ Nbe.quote_tp tp in
+  elab_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
+
+let dest_pi =
   function
-  | D.Tp (D.Sg (base, fam)) -> 
+  | D.Pi (base, fam) ->
     ret (base, fam)
-  | tp -> 
-    elab_err @@ Err.ExpectedConnective (`Sg, tp)
+  | tp ->
+    expected_connective `Pi tp
+
+let dest_sg =
+  function
+  | D.Sg (base, fam) ->
+    ret (base, fam)
+  | tp ->
+    expected_connective `Sg tp
 
 let dest_id =
   function
-  | D.Tp (D.Id (tp, l, r)) ->
+  | D.Id (tp, l, r) ->
     ret (tp, l, r)
   | tp ->
-    elab_err @@ Err.ExpectedConnective (`Id, tp)
+    expected_connective `Id tp
 
 let abstract nm tp k =
   push_var nm tp @@
@@ -119,27 +128,11 @@ let define nm tp con k =
   let* x = lift_cmp @@ Nbe.do_sub_out x in
   k x
 
-let problem = 
+let problem =
   let+ env = read in
   Env.problem env
 
-let push_problem lbl = 
-  scope @@ 
+let push_problem lbl =
+  scope @@
   Env.push_problem lbl
 
-let current_ghost : S.ghost option m =
-  let* env = read in 
-  let rec go_locals = 
-    function
-    | Emp -> ret []
-    | Snoc (cells, cell) ->
-      let* cells = go_locals cells in
-      let tp, con = Env.Cell.contents cell in 
-      let* ttp = lift_qu @@ Nbe.quote_tp tp in
-      let* tm = lift_qu @@ Nbe.quote_con tp con in
-      ret @@ cells @ [ttp, tm]
-  in
-  let+ cells = go_locals @@ Env.locals env in
-  match Env.problem env with
-  | Emp -> None
-  | problem -> Some (problem, cells)

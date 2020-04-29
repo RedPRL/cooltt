@@ -8,7 +8,7 @@ open BwdNotation
 
 module Cell =
 struct
-  type 'a t = 
+  type 'a t =
     {contents : 'a;
      name : string option}
 
@@ -19,7 +19,7 @@ end
 
 type cell = (D.tp * D.con) Cell.t
 
-type t = 
+type t =
   {resolver : Symbol.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
@@ -29,7 +29,7 @@ type t =
 
 let locals env = env.locals
 
-let init = 
+let init =
   {resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
@@ -39,12 +39,12 @@ let init =
 
 let size env = Bwd.length env.locals
 
-let get_local_tp ix env = 
+let get_local_tp ix env =
   let cell = Bwd.nth env.locals ix in
-  let tp, _ = Cell.contents cell in 
+  let tp, _ = Cell.contents cell in
   tp
 
-let get_local ix env = 
+let get_local ix env =
   let cell = Bwd.nth env.locals ix in
   let _, con = Cell.contents cell in
   con
@@ -66,19 +66,21 @@ let resolve_local key env =
 
 
 let append_con name con tp env =
-  {env with 
+  {env with
    pp = snd @@ Pp.Env.bind env.pp name;
    locals = env.locals <>< [{contents = tp, con; name}];
    cof_env =
-     match tp with 
+     match tp with
      | D.TpPrf phi -> CofEnv.assume env.cof_env phi
      | _ -> env.cof_env
   }
 
 let sem_env (env : t) : D.env =
-  env.locals |> Bwd.filter_map @@ fun cell ->
-  let _, con = Cell.contents cell in
-  Some con
+  {tpenv = Emp;
+   conenv =
+     env.locals |> Bwd.filter_map @@ fun cell ->
+     let _, con = Cell.contents cell in
+     Some con}
 
 let pp_env env = env.pp
 
@@ -89,6 +91,6 @@ let set_veil v env = {env with veil = v}
 
 let problem env = env.problem
 
-let push_problem lbl env = 
+let push_problem lbl env =
   {env with
    problem = env.problem #< lbl}

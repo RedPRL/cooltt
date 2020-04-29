@@ -1,13 +1,13 @@
 open CoolBasis
 
-type ('r, 'a) cof_f = 
+type ('r, 'a) cof_f =
   | Eq of 'r * 'r
-  | Join of 'a * 'a 
+  | Join of 'a * 'a
   | Meet of 'a * 'a
-  | Bot 
+  | Bot
   | Top
 
-type ('r, 'v) cof = 
+type ('r, 'v) cof =
   | Cof of ('r, ('r, 'v) cof) cof_f
   | Var of 'v
 
@@ -21,8 +21,8 @@ val top : ('a, 'v) cof
 
 val reduce : ('a, 'v) cof -> ('a, 'v) cof
 
-val pp_cof 
-  : (Pp.env -> 'v Pp.printer) 
-  -> (Pp.env -> 'a Pp.printer) 
-  -> Pp.env 
+val pp_cof
+  : (Pp.env -> 'v Pp.printer)
+  -> (Pp.env -> 'a Pp.printer)
+  -> Pp.env
   -> ('a, 'v) cof Pp.printer

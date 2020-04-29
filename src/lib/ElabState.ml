@@ -1,27 +1,27 @@
 module D = Domain
 module StringMap = Map.Make (String)
 
-type t = 
+type t =
   {resolver : Symbol.t StringMap.t;
    flexity : [`Flex | `Rigid] SymbolMap.t;
    globals : (D.tp * D.con) SymbolMap.t}
 
-let init = 
+let init =
   {resolver = StringMap.empty;
    flexity = SymbolMap.empty;
    globals = SymbolMap.empty}
 
-let add_global ident tp oel st = 
+let add_global ident tp oel st =
   let sym = Symbol.named_opt ident in
-  let con = 
+  let con =
     match oel with
     | Some con -> con
     | None -> D.Cut {tp; cut = D.Global sym, []; unfold = None}
   in
-  sym, 
-  {resolver = 
+  sym,
+  {resolver =
      begin
-       match ident with 
+       match ident with
        | Some ident -> StringMap.add ident sym st.resolver
        | None -> st.resolver
      end;
@@ -31,8 +31,8 @@ let add_global ident tp oel st =
 let add_flex_global tp st =
   let sym = Symbol.fresh () in
   let con = D.Cut {tp; cut = D.Global sym, []; unfold = None} in
-  sym, 
-  {st with 
+  sym,
+  {st with
    flexity = SymbolMap.add sym `Flex st.flexity;
    globals = SymbolMap.add sym (tp, con) st.globals}
 

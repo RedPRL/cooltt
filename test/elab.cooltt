@@ -5,11 +5,7 @@ def boundary-test : (i : dim) (_ : [{i==0} \/ {i==1}]) -> nat = {
    ]
 }
 
-def subtype-test : (i : dim) -> sub nat {{i==0} \/ {i==1}} [i==0 => 4 | i==1 => 5] = {
-  \i => [i==0 => 4 | i==1 => 5]
-}
 
-normalize subtype-test
 normalize boundary-test
 
 def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
@@ -52,7 +48,8 @@ def hole-in-type : {
 
 
 def pi-code-test : univ = (x : nat) -> nat
-def id-code-test : univ = (x : nat) * Id nat x x
+
+def foo : pi-code-test =
+  \x => x
 
 normalize pi-code-test
-normalize id-code-test

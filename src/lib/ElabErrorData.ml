@@ -5,12 +5,25 @@ open CoolBasis
 
 module Data =
 struct
+
+  type connective =
+    [ `Pi
+    | `Sg
+    | `Id
+    | `Nat
+    | `Univ
+    | `Dim
+    | `Cof
+    | `Sub
+    | `Prf
+    ]
+
   type t =
     | UnboundVariable of CS.ident
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp
     | InvalidTypeExpression of CS.t
-    | ExpectedConnective of [`Pi | `Sg | `Id | `Nat | `Univ | `Dim | `Cof | `Sub | `Prf] * D.tp
+    | ExpectedConnective of connective * Pp.env * S.tp
     | ExpectedSynthesizableTerm of S.t
     | MalformedCase
     | CannotEliminate of Pp.env * S.tp

@@ -12,6 +12,7 @@
 %token TIMES FST SND
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
+%token PATH (* other path-related forms will go here *)
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
 %token EOF
@@ -43,7 +44,7 @@ atomic:
   | LBR; term = term; RBR
     { term }
   | a = ATOM
-    { Var a }
+    { Var (`User a) }
   | ZERO
     { Lit 0 }
   | n = NUMERAL
@@ -52,17 +53,17 @@ atomic:
     { Nat }
   | REFL
     { Refl }
-  | UNIV 
+  | UNIV
     { Univ }
   | name = HOLE_NAME
     { Hole name }
-  | UNDERSCORE 
+  | UNDERSCORE
     { Underscore }
-  | DIM 
+  | DIM
     { Dim }
-  | COF 
+  | COF
     { Cof }
-    
+
   | LSQ t = bracketed RSQ
     { t }
 
@@ -73,15 +74,15 @@ bracketed:
     { CofSplit cases }
   | PIPE cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = term 
+  | t = term
     { Prf t }
 
 term:
-  | f = atomic 
+  | f = atomic
     { f }
   | f = atomic; args = nonempty_list(atomic)
-    { Ap (f, args) } 
-  | UNFOLD; names = nonempty_list(name); IN; body = term; 
+    { Ap (f, args) }
+  | UNFOLD; names = nonempty_list(name); IN; body = term;
     { Unfold (names, body) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
     { Let (Ann {term = def; tp}, B {name; body}) }
@@ -95,9 +96,9 @@ term:
     { Id (tp, left, right) }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
-  | LAM; ELIM; cases = cases 
+  | LAM; ELIM; cases = cases
     { LamElim cases }
-  | ELIM; scrut = term; AT; mot = motive; cases = cases 
+  | ELIM; scrut = term; AT; mot = motive; cases = cases
     { Elim {mot; cases; scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
@@ -109,9 +110,9 @@ term:
     { Sg ([Cell {name = "_"; tp = dom}], cod) }
   | SUB tp = atomic phi = atomic tm = atomic
     { Sub (tp, phi, tm) }
-  | FST; t = term 
+  | FST; t = term
     { Fst t }
-  | SND; t = term 
+  | SND; t = term
     { Snd t }
 
   | r = atomic EEQUALS s = atomic
@@ -121,16 +122,19 @@ term:
   | phi = atomic MEET psi = atomic
     { Meet (phi, psi) }
 
+  | PATH; tp = atomic; left = atomic; right = atomic 
+    { Path (tp, left, right) }
+
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR
     { BN {names; body} }
 
 cases:
-  | LSQ option(PIPE) cases = separated_list(PIPE, case) RSQ 
+  | LSQ option(PIPE) cases = separated_list(PIPE, case) RSQ
     { cases }
 
-case: 
-  | p = pat RRIGHT_ARROW t = term 
+case:
+  | p = pat RRIGHT_ARROW t = term
     { p, t }
 
 cof_case:
@@ -140,22 +144,22 @@ cof_case:
 pat_lbl:
   | REFL
     { "refl" }
-  | ZERO 
+  | ZERO
     { "zero" }
-  | SUC 
+  | SUC
     { "suc" }
-  | lbl = ATOM 
+  | lbl = ATOM
     { lbl }
-  
+
 
 pat:
   | lbl = pat_lbl args = list(pat_arg)
-   { Pat {lbl; args} } 
+   { Pat {lbl; args} }
 
 pat_arg:
   | ident = name
     { `Simple (Some ident) }
-  | LBR i0 = name RRIGHT_ARROW i1 = name RBR 
+  | LBR i0 = name RRIGHT_ARROW i1 = name RBR
     { `Inductive (Some i0, Some i1) }
 
 tele_cell:
