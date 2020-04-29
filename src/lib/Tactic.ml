@@ -41,12 +41,34 @@ struct
     | Virtual tac -> Virtual (f tac)
 end
 
+module Var =
+struct
+  type tac = {tp : D.tp; con : D.con}
 
+  let prf phi = {tp = D.TpPrf phi; con = D.Prf}
+  let con {tp; con} = con
+
+  let syn {tp; con} =
+    let+ tm = EM.lift_qu @@ Nbe.quote_con tp con in
+    tm, tp
+end
+
+type var = Var.tac
 type tp_tac = Tp.tac
 
 type chk_tac = D.tp -> S.t EM.m
 type bchk_tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
 type syn_tac = (S.t * D.tp) EM.m
+
+let abstract : D.tp -> string option -> (var -> 'a EM.m) -> 'a EM.m =
+  fun tp name kont ->
+  EM.abstract name tp @@ fun (con : D.con) ->
+  kont @@ {tp; con}
+
+let let_ tp con name (kont : var -> 'a EM.m) =
+  EM.define name tp con @@ fun var ->
+  kont @@ {tp; con}
+
 
 let bchk_to_chk : bchk_tac -> chk_tac =
   fun btac tp ->

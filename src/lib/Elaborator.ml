@@ -95,7 +95,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Suc c ->
     T.chk_to_bchk @@ R.Nat.suc (chk_tm c)
   | CS.Let (c, B bdy) ->
-    R.Structural.let_ (syn_tm c) (Some bdy.name, bchk_tm bdy.body)
+    R.Structural.let_ (syn_tm c) (Some bdy.name, fun _ -> bchk_tm bdy.body)
   | CS.Unfold (idents, c) ->
     fun goal ->
       unfold idents @@ bchk_tm c goal
@@ -104,11 +104,11 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Pi (cells, body) ->
     let tac (CS.Cell cell) =  Some cell.name, chk_tm cell.tp in
     let tacs = cells |> List.map tac in
-    let quant base (nm, fam) = R.Univ.pi base (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk fam) in
+    let quant base (nm, fam) = R.Univ.pi base (T.bchk_to_chk @@ R.Pi.intro None @@ fun var -> T.chk_to_bchk (fam var)) in
     T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
-    let quant base (nm, fam) = R.Univ.sg base (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk fam) in
+    let quant base (nm, fam) = R.Univ.sg base (T.bchk_to_chk @@ R.Pi.intro None @@ fun var -> T.chk_to_bchk (fam var)) in
     T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.CofEq (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
@@ -117,7 +117,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Meet (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.meet (chk_tm c0) (chk_tm c1)
   | CS.CofSplit splits ->
-    let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, bchk_tm ctm in
+    let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
     R.Cof.split branch_tacs
   | CS.Path (tp, a, b) -> (*todo/iev*)
     R.Pi.intro (raise Todo) (raise Todo)
@@ -127,7 +127,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     | D.Pi _ ->
       let* env = EM.read in
       let lvl = ElabEnv.size env in
-      EM.ret @@ R.Pi.intro None @@ bchk_tm @@ CS.Ap (cs, [Var (`Level lvl)])
+      EM.ret @@ R.Pi.intro None @@ fun _ -> bchk_tm @@ CS.Ap (cs, [Var (`Level lvl)])
     | D.Sg _ ->
       EM.ret @@ R.Sg.intro (bchk_tm @@ CS.Fst cs) (bchk_tm @@ CS.Snd cs)
     | _ ->

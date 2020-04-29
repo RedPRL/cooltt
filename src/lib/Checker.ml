@@ -14,9 +14,9 @@ exception Todo
 let rec chk_tp : S.tp -> T.tp_tac =
   function
   | S.Pi (base, fam) ->
-    R.Pi.formation (chk_tp base) (None, chk_tp fam)
+    R.Pi.formation (chk_tp base) (None, fun _ -> chk_tp fam)
   | S.Sg (base, fam) ->
-    R.Sg.formation (chk_tp base) (None, chk_tp fam)
+    R.Sg.formation (chk_tp base) (None, fun _ -> chk_tp fam)
   | S.Id (tp, l, r) ->
     R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
   | S.Nat ->
@@ -57,18 +57,18 @@ and chk_tm : S.t -> T.chk_tac =
   | S.Suc t ->
     R.Nat.suc (chk_tm t)
   | S.Let (def, bdy) ->
-    T.bchk_to_chk @@ R.Structural.let_ (syn_tm def) (None, T.chk_to_bchk @@ chk_tm bdy)
+    T.bchk_to_chk @@ R.Structural.let_ (syn_tm def) (None, fun _ -> T.chk_to_bchk @@ chk_tm bdy)
   | S.Lam bdy ->
-    T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm bdy
+    T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     T.bchk_to_chk @@ R.Sg.intro (T.chk_to_bchk @@ chk_tm t0) (T.chk_to_bchk @@ chk_tm t1)
   | S.CodePath (fam, bound) -> raise Todo
   | S.CodeNat ->
     R.Univ.nat
   | S.CodeSg (base, fam) ->
-    R.Univ.sg (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
+    R.Univ.sg (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm fam)
   | S.CodePi (base, fam) ->
-    R.Univ.pi (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ T.chk_to_bchk @@ chk_tm fam)
+    R.Univ.pi (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm fam)
   | t ->
     T.syn_to_chk @@ syn_tm t
 

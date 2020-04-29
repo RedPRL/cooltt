@@ -33,7 +33,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | `Lam, tm ->
     Fmt.fprintf fmt "%s@ %a" "]" (pp env) tm
   | _, (Lam _ as tm) ->
-    Fmt.fprintf fmt "@[<hov1>(lam %s%a)@]" "[" (pp_ env `Lam) (Lam tm)
+    Fmt.fprintf fmt "@[<hov1>(lam %s%a)@]" "[" (pp_ env `Lam) tm
   | _, Var i ->
     pp_var env fmt i
   | _, Global sym ->
@@ -146,15 +146,17 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "[]"
   | _, CofSplit (_, phi0, phi1, tm0, tm1) ->
     let _, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "@[<hov1>(split@ [%a %a]@ [%a %a])@]"
+    Fmt.fprintf fmt "@[<hv1>(split@ @[<hov>@[<hv1>[%a@ %a]@]@ @[<hv1>[%a@ %a]@]@])@]"
       (pp env) phi0
       (pp envx) tm0
       (pp env) phi1
       (pp envx) tm1
   | _, Prf ->
     Fmt.fprintf fmt "*"
-  | _, CodePath _ ->
-    Fmt.fprintf fmt "<CodePath>"
+  | _, CodePath (fam, bdry) ->
+    Fmt.fprintf fmt "@[<hov1>(path@ @[<hov>%a@ %a@])@]"
+      (pp env) fam
+      (pp env) bdry
   | _, CodePi _ ->
     Fmt.fprintf fmt "<CodePi>"
   | _, CodeSg _ ->
@@ -221,6 +223,7 @@ and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer =
     Format.fprintf fmt "nat"
   | _, TpVar i ->
     Format.fprintf fmt "(tpvar %i)" i
+
 
 and pp_tp env = pp_tp_ env `Start
 

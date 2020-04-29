@@ -66,6 +66,7 @@ struct
     function
     | D.DimCon0 -> ret D.Dim0
     | D.DimCon1 -> ret D.Dim1
+    | D.Abort -> ret D.Dim0
     | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
@@ -294,6 +295,7 @@ struct
     do_ap fa b
 
   and do_ap f a =
+    CmpM.abort_if_inconsistent D.Abort @@
     match f with
     | D.Abort -> ret D.Abort
 
@@ -312,6 +314,7 @@ struct
       throw @@ NbeFailed "Not a function in do_ap"
 
   and do_destruct dst a =
+    CmpM.abort_if_inconsistent D.Abort @@
     match dst, a with
     | D.DCodePiSplit, D.CodePi (base, fam)
     | D.DCodeSgSplit, D.CodeSg (base, fam) ->
@@ -320,6 +323,7 @@ struct
       throw @@ NbeFailed "Invalid destructor application"
 
   and do_sub_out v =
+    CmpM.abort_if_inconsistent D.Abort @@
     match v with
     | D.Abort -> ret D.Abort
     | D.SubIn con ->
@@ -329,8 +333,9 @@ struct
     | _ ->
       throw @@ NbeFailed "do_sub_out"
 
-  and do_el =
-    function
+  and do_el v =
+    CmpM.abort_if_inconsistent D.TpAbort @@
+    match v with
     | D.Cut {cut; unfold = None} ->
       ret @@ D.El cut
 
@@ -365,7 +370,10 @@ struct
       TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
       TB.ap bdry [i; prf]
 
-    | _ ->
+    | D.Abort ->
+      ret @@ D.TpAbort
+
+    | con ->
       CmpM.throw @@ NbeFailed "do_el failed"
 
   and do_coe r s (abs : D.con) con =
@@ -374,6 +382,7 @@ struct
     | _ -> do_rigid_coe abs r s con
 
   and do_rigid_coe (line : D.con) r s con =
+    CmpM.abort_if_inconsistent D.Abort @@
     let i = D.DimProbe (Symbol.fresh ()) in
     let rec go peek =
       match peek with
@@ -412,6 +421,7 @@ struct
 
 
   and do_rigid_hcom code r s phi (bdy : D.con) =
+    CmpM.abort_if_inconsistent D.Abort @@
     match code with
     | D.CodePi (base, fam) ->
       quasiquote_tm @@

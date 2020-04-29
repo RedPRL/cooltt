@@ -8,7 +8,7 @@ module CS := ConcreteSyntax
 
 open Tactic
 
-type ('a, 'b) quantifier = 'a -> CS.ident option * 'b -> 'b
+type ('a, 'b) quantifier = 'a -> CS.ident option * (var -> 'b) -> 'b
 
 
 module Hole : sig
@@ -34,7 +34,7 @@ module Cof : sig
   val join : chk_tac -> chk_tac -> chk_tac
   val meet : chk_tac -> chk_tac -> chk_tac
 
-  val split : (chk_tac * bchk_tac) list -> bchk_tac
+  val split : (chk_tac * (var -> bchk_tac)) list -> bchk_tac
 end
 
 module Prf : sig
@@ -48,12 +48,13 @@ module Univ : sig
   val pi : chk_tac -> chk_tac -> chk_tac
   val sg : chk_tac -> chk_tac -> chk_tac
   val path : chk_tac -> chk_tac -> chk_tac
+  val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
   val el_formation : chk_tac -> tp_tac
 end
 
 module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : CS.ident option -> bchk_tac -> bchk_tac
+  val intro : CS.ident option -> (var -> bchk_tac) -> bchk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
 end
 
@@ -93,9 +94,8 @@ module Nat : sig
 end
 
 module Structural : sig
-  val let_ : syn_tac -> CS.ident option * bchk_tac -> bchk_tac
+  val let_ : syn_tac -> CS.ident option * (var -> bchk_tac) -> bchk_tac
   val lookup_var : CS.ident -> syn_tac
-  val index : int -> syn_tac
   val level : int -> syn_tac
 end
 
