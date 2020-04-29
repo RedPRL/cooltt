@@ -308,7 +308,7 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
-  let path _ _ : T.chk_tac =
+  let path (tac_fam : T.chk_tac) (tac_mem : T.chk_tac) : T.chk_tac =
     raise Todo
 end
 

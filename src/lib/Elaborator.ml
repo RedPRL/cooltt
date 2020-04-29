@@ -119,8 +119,8 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.CofSplit splits ->
     let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, bchk_tm ctm in
     R.Cof.split branch_tacs
-  | CS.Path (tp, a, b) ->
-    raise Todo (* todo/iev: i don't know what this function is really doing! do i need to case Path or just let it fall to the default? *)
+  | CS.Path (tp, a, b) -> (*todo/iev*)
+    R.Pi.intro (raise Todo) (raise Todo)
   | cs ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
     match tp with
