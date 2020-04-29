@@ -492,7 +492,6 @@ struct
     let* bdry = tac_bdry bdry_tp in
     EM.ret @@ S.CodePath(fam, bdry)
 
-  (* TODO: the derived rule *)
   let path_with_endpoints (tac_fam : T.chk_tac) (tac_a : T.bchk_tac) (tac_b : T.bchk_tac) : T.chk_tac =
     path tac_fam @@ 
     T.bchk_to_chk @@ 
@@ -501,7 +500,6 @@ struct
     Cof.split [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
                (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 end
-
 
 
 module Structural =

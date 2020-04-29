@@ -119,8 +119,8 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.CofSplit splits ->
     let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
     R.Cof.split branch_tacs
-  | CS.Path (tp, a, b) -> (*todo/iev*)
-    R.Pi.intro (raise Todo) (raise Todo)
+  | CS.Path (tp, a, b) -> 
+    T.chk_to_bchk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
   | cs ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
     match tp with
