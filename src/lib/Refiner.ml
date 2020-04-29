@@ -471,34 +471,35 @@ struct
   let path (tac_fam : T.chk_tac) (tac_bdry : T.chk_tac) : T.chk_tac =
     univ_tac @@ fun univ ->
     let* piuniv =
-        EM.lift_cmp @@
-        Nbe.quasiquote_tp @@
-        QQ.foreign_tp univ @@ fun univ ->
-        QQ.term @@
-        TB.pi TB.tp_dim @@ fun i ->
-        univ
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.foreign_tp univ @@ fun univ ->
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      univ
     in
     let* fam = tac_fam piuniv in (* build a term at the type and call the tactic on that type *)
-    let* vfam = EM.lift_ev (Nbe.eval fam) in 
+    let* vfam = EM.lift_ev (Nbe.eval fam) in
     let* bdry_tp =
-        EM.lift_cmp @@
-        Nbe.quasiquote_tp @@
-        QQ.foreign_tp univ @@ fun univ ->
-        QQ.foreign vfam @@ fun fam ->
-        QQ.term @@
-        TB.pi TB.tp_dim @@ fun i ->
-        TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
-        TB.el @@ TB.ap fam [i] in
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.foreign_tp univ @@ fun univ ->
+      QQ.foreign vfam @@ fun fam ->
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+      TB.el @@ TB.ap fam [i] in
     let* bdry = tac_bdry bdry_tp in
     EM.ret @@ S.CodePath(fam, bdry)
 
   let path_with_endpoints (tac_fam : T.chk_tac) (tac_a : T.bchk_tac) (tac_b : T.bchk_tac) : T.chk_tac =
-    path tac_fam @@ 
-    T.bchk_to_chk @@ 
+    path tac_fam @@
+    T.bchk_to_chk @@
     Pi.intro None @@ fun i ->
     Pi.intro None @@ fun pf ->
-    Cof.split [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
-               (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
+    Cof.split
+      [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
+       (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 end
 
 
