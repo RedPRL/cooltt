@@ -18,6 +18,8 @@ module CmpM : sig
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val test_sequent : D.cof list -> D.cof -> bool m
+
+  val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end
 
 (** The "evaluation" monad; like the computation monad but keeps a variable environment. *)
@@ -31,6 +33,8 @@ module EvM : sig
   val read_local : D.env m
 
   val append : D.con list -> 'a m -> 'a m
+
+  val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end
 
 
@@ -70,4 +74,6 @@ module ElabM : sig
 
   val globally : 'a m -> 'a m
   val emit : (Format.formatter -> 'a -> unit) -> 'a -> unit m
+
+  val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end

@@ -42,6 +42,13 @@ struct
     let+ {cof_env} = M.read in
     CofEnv.test_sequent cof_env cx phi
 
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m ->
+    fun st ->
+    match CofEnv.status st.cof_env with
+    | `Consistent -> m st
+    | `Inconsistent -> M.ret abort st
+
   include M
   include CmpL
 end
@@ -69,6 +76,14 @@ struct
   let lift_cmp (m : 'a compute) : 'a M.m =
     fun {state; cof_env} ->
     m {state; cof_env}
+
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m ->
+    fun st ->
+    match CofEnv.status st.cof_env with
+    | `Consistent -> m st
+    | `Inconsistent -> M.ret abort st
+
 
   include EvL
   include M
@@ -167,4 +182,13 @@ struct
     match CmpM.run {state; cof_env = Env.cof_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
+
+  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+    fun abort m ->
+    fun (state, env) ->
+    match CofEnv.status (Env.cof_env env) with
+    | `Consistent -> m (state, env)
+    | `Inconsistent -> M.ret abort (state, env)
+
+
 end
