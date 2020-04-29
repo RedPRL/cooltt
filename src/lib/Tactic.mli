@@ -38,6 +38,7 @@ type tp_tac = Tp.tac
 type var = Var.tac
 
 val abstract : D.tp -> string option -> (var -> 'a EM.m) -> 'a EM.m
+val let_ : D.tp -> D.con -> string option -> (var -> 'a EM.m) -> 'a EM.m
 
 (** Converts a boundary-checking tactic to a checking tactic by change of base. *)
 val bchk_to_chk : bchk_tac -> chk_tac

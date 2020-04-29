@@ -15,7 +15,7 @@ open Monads
 open Monad.Notation (EM)
 open Bwd
 
-type ('a, 'b) quantifier = 'a -> CS.ident option * 'b -> 'b
+type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
 
 let rec int_to_term =
   function
@@ -263,54 +263,6 @@ struct
       EM.expected_connective `Prf tp
 end
 
-module Univ =
-struct
-  let formation : T.tp_tac =
-    T.Tp.make @@
-    EM.ret S.Univ
-
-  let el_formation tac =
-    T.Tp.make @@
-    let+ tm = tac D.Univ in
-    S.El tm
-
-  let univ_tac : T.chk_tac -> T.chk_tac =
-    fun m ->
-    function
-    | D.Univ -> m D.Univ
-    | tp ->
-      EM.expected_connective `Univ tp
-
-  let nat : T.chk_tac =
-    univ_tac @@ fun _ -> EM.ret S.CodeNat
-
-  let quantifier tac_base tac_fam =
-    fun univ ->
-    let* base = tac_base univ in
-    let* vbase = EM.lift_ev @@ Nbe.eval base in
-    let* famtp =
-      EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.foreign vbase @@ fun base ->
-      QQ.foreign_tp univ @@ fun univ ->
-      QQ.term @@ TB.pi (TB.el base) @@ fun _ -> univ
-    in
-    let+ fam = tac_fam famtp in
-    base, fam
-
-  let pi tac_base tac_fam : T.chk_tac =
-    univ_tac @@ fun univ ->
-    let+ tp, fam = quantifier tac_base tac_fam univ in
-    S.CodePi (tp, fam)
-
-  let sg tac_base tac_fam : T.chk_tac =
-    univ_tac @@ fun univ ->
-    let+ tp, fam = quantifier tac_base tac_fam univ in
-    S.CodeSg (tp, fam)
-
-  let path _ _ : T.chk_tac =
-    raise Todo
-end
 
 module Id =
 struct
@@ -360,7 +312,7 @@ struct
       T.Tp.make @@
       let* base = T.Tp.run_virtual tac_base in
       let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
-      let+ fam = EM.push_var nm vbase @@ T.Tp.run tac_fam in
+      let+ fam = T.abstract vbase nm @@ fun var -> T.Tp.run @@ tac_fam var in
       S.Pi (base, fam)
 
   let intro name (tac_body : T.var -> T.bchk_tac) : T.bchk_tac =
@@ -391,7 +343,7 @@ struct
       T.Tp.make @@
       let* base = T.Tp.run tac_base in
       let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
-      let+ fam = EM.push_var nm vbase @@ T.Tp.run tac_fam in
+      let+ fam = T.abstract vbase nm @@ fun var -> T.Tp.run @@ tac_fam var in
       S.Sg (base, fam)
 
   let intro (tac_fst : T.bchk_tac) (tac_snd : T.bchk_tac) : T.bchk_tac =
@@ -420,6 +372,89 @@ struct
       EM.lift_cmp @@ Nbe.inst_tp_clo fam [vfst]
     in
     S.Snd tpair, fib
+end
+
+
+
+module Univ =
+struct
+  let formation : T.tp_tac =
+    T.Tp.make @@
+    EM.ret S.Univ
+
+  let el_formation tac =
+    T.Tp.make @@
+    let+ tm = tac D.Univ in
+    S.El tm
+
+  let univ_tac : T.chk_tac -> T.chk_tac =
+    fun m ->
+    function
+    | D.Univ -> m D.Univ
+    | tp ->
+      EM.expected_connective `Univ tp
+
+  let nat : T.chk_tac =
+    univ_tac @@ fun _ -> EM.ret S.CodeNat
+
+  let quantifier tac_base tac_fam =
+    fun univ ->
+    let* base = tac_base univ in
+    let* vbase = EM.lift_ev @@ Nbe.eval base in
+    let* famtp =
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.foreign vbase @@ fun base ->
+      QQ.foreign_tp univ @@ fun univ ->
+      QQ.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+    in
+    let+ fam = tac_fam famtp in
+    base, fam
+
+  let pi tac_base tac_fam : T.chk_tac =
+    univ_tac @@ fun univ ->
+    let+ tp, fam = quantifier tac_base tac_fam univ in
+    S.CodePi (tp, fam)
+
+  let sg tac_base tac_fam : T.chk_tac =
+    univ_tac @@ fun univ ->
+    let+ tp, fam = quantifier tac_base tac_fam univ in
+    S.CodeSg (tp, fam)
+
+end
+
+
+
+module Structural =
+struct
+  let lookup_var id : T.syn_tac =
+    let* res = EM.resolve id in
+    match res with
+    | `Local ix ->
+      let+ tp = EM.get_local_tp ix in
+      S.Var ix, tp
+    | `Global sym ->
+      let+ tp, _ = EM.get_global sym in
+      S.Global sym, tp
+    | `Unbound ->
+      EM.elab_err @@ Err.UnboundVariable id
+
+  let index ix =
+    let+ tp = EM.get_local_tp ix in
+    S.Var ix, tp
+
+  let level lvl =
+    let* env = EM.read in
+    let ix = ElabEnv.size env - lvl - 1 in
+    index ix
+
+  let let_ tac_def (nm_x, (tac_bdy : T.var -> T.bchk_tac)) : T.bchk_tac =
+    fun tp ->
+    let* tdef, tp_def = tac_def in
+    let* vdef = EM.lift_ev @@ Nbe.eval tdef in
+    T.let_ tp_def vdef nm_x @@ fun x ->
+    let+ tbdy = tac_bdy x tp in
+    S.Let (tdef, tbdy)
 end
 
 
@@ -476,37 +511,6 @@ struct
 end
 
 
-module Structural =
-struct
-  let lookup_var id : T.syn_tac =
-    let* res = EM.resolve id in
-    match res with
-    | `Local ix ->
-      let+ tp = EM.get_local_tp ix in
-      S.Var ix, tp
-    | `Global sym ->
-      let+ tp, _ = EM.get_global sym in
-      S.Global sym, tp
-    | `Unbound ->
-      EM.elab_err @@ Err.UnboundVariable id
-
-  let index ix =
-    let+ tp = EM.get_local_tp ix in
-    S.Var ix, tp
-
-  let level lvl =
-    let* env = EM.read in
-    let ix = ElabEnv.size env - lvl - 1 in
-    index ix
-
-  let let_ tac_def (nm_x, tac_bdy) : T.bchk_tac =
-    fun tp ->
-    let* tdef, tp_def = tac_def in
-    let* vdef = EM.lift_ev @@ Nbe.eval tdef in
-    EM.define nm_x tp_def vdef @@ fun _ ->
-    let+ tbdy = tac_bdy tp in
-    S.Let (tdef, tbdy)
-end
 
 module Tactic =
 struct
@@ -539,11 +543,11 @@ struct
     | tac :: tacs ->
       tac_multi_apply (Pi.apply tac_fun tac) tacs
 
-  let rec tac_nary_quantifier quant cells body =
+  let rec tac_nary_quantifier (quant : ('a, 'b) quantifier) cells body =
     match cells with
     | [] -> body
     | (nm, tac) :: cells ->
-      quant tac (nm, tac_nary_quantifier quant cells body)
+      quant tac (nm, fun _ -> tac_nary_quantifier quant cells body)
 
   module Elim =
   struct
