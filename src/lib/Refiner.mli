@@ -48,7 +48,7 @@ module Univ : sig
   val pi : chk_tac -> chk_tac -> chk_tac
   val sg : chk_tac -> chk_tac -> chk_tac
   val path : chk_tac -> chk_tac -> chk_tac
-  val path_with_endpoints : chk_tac -> chk_tac -> chk_tac -> chk_tac
+  val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
   val el_formation : chk_tac -> tp_tac
 end
 
