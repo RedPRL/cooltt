@@ -468,14 +468,36 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
-  (* TODO: the primitive rule *)
-  let path _ _ : T.chk_tac =
-    raise Todo
+  (* tac_fam makes something like i -> univ
+
+   *)
+  let path (tac_fam : T.chk_tac) (tac_bdry : T.chk_tac) : T.chk_tac =
+    univ_tac @@ fun univ ->
+    let* piuniv =
+        EM.lift_cmp @@
+        Nbe.quasiquote_tp @@
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        univ
+    in
+    let* fam = tac_fam piuniv in
+    let* vfam = EM.lift_ev (Nbe.eval fam) in 
+    let* bdry_tp =
+        EM.lift_cmp @@
+        Nbe.quasiquote_tp @@
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.foreign vfam @@ fun fam ->
+        QQ.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+        TB.el @@ TB.ap fam [i] in
+    let* bdry = tac_bdry bdry_tp in
+    EM.ret (S.CodePath(fam, bdry))
 
   (* TODO: the derived rule *)
   let path_with_endpoints _ _ _ : T.chk_tac =
     raise Todo
-
 end
 
 
