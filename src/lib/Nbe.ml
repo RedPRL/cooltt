@@ -857,7 +857,15 @@ struct
    *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
    * *)
     | univ, D.CodePath (fam, bdry) -> (* check *)
-      let* tfam = quote_con univ fam in
+      let* piuniv =
+        lift_cmp @@
+        quasiquote_tp @@
+        QQ.foreign_tp univ @@ fun univ ->
+        QQ.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        univ
+       in
+      let* tfam = quote_con piuniv fam in
       (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
       let* bdry_tp =
         lift_cmp @@
