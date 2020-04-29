@@ -468,6 +468,14 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
+  (* TODO: the primitive rule *)
+  let path _ _ : T.chk_tac =
+    raise Todo
+
+  (* TODO: the derived rule *)
+  let path_with_endpoints _ _ _ : T.chk_tac =
+    raise Todo
+
 end
 
 
