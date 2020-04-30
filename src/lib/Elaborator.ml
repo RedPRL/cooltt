@@ -104,11 +104,11 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Pi (cells, body) ->
     let tac (CS.Cell cell) =  Some cell.name, chk_tm cell.tp in
     let tacs = cells |> List.map tac in
-    let quant base (nm, fam) = R.Univ.pi base (T.bchk_to_chk @@ R.Pi.intro None @@ fun var -> T.chk_to_bchk (fam var)) in
+    let quant base (nm, fam) = R.Univ.pi base (T.bchk_to_chk @@ R.Pi.intro nm @@ fun var -> T.chk_to_bchk (fam var)) in
     T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
-    let quant base (nm, fam) = R.Univ.sg base (T.bchk_to_chk @@ R.Pi.intro None @@ fun var -> T.chk_to_bchk (fam var)) in
+    let quant base (nm, fam) = R.Univ.sg base (T.bchk_to_chk @@ R.Pi.intro nm @@ fun var -> T.chk_to_bchk (fam var)) in
     T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.CofEq (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
