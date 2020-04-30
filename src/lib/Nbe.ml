@@ -422,8 +422,8 @@ struct
         QQ.foreign (D.dim_to_con r) @@ fun r ->
         QQ.foreign (D.dim_to_con s) @@ fun s ->
         QQ.foreign con @@ fun bdy ->
-        let base_line = TB.fst split_line in
-        let fam_line = TB.snd split_line in
+        let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+        let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
         QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
       | D.CodePath _ ->
         raise Todo
