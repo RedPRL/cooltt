@@ -15,6 +15,34 @@ let rec condense =
 
 module Fmt = Format
 
+let rec dump fmt tm =
+  match tm with
+  | CodePi _ -> Format.fprintf fmt "<pi>"
+  | CodePath _ -> Format.fprintf fmt "<?>"
+  | CodeSg _ -> Format.fprintf fmt "<?>"
+  | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
+  | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
+  | Pair (tm0, tm1) -> Format.fprintf fmt "pair[%a, %a]" dump tm0 dump tm1
+  | Var i -> Format.fprintf fmt "var[%i]" i
+  | Lam _ -> Format.fprintf fmt "<lam>"
+  | Ap (tm0, tm1) -> Format.fprintf fmt "ap[%a, %a]" dump tm0 dump tm1
+  | GoalRet _ -> Format.fprintf fmt "<goal-ret>"
+  | GoalProj _ -> Format.fprintf fmt "<goal-proj>"
+  | Coe _ -> Format.fprintf fmt "<coe>"
+  | HCom _ -> Format.fprintf fmt "<hcom>"
+  | Com _ -> Format.fprintf fmt "<com>"
+  | IdElim _ -> Format.fprintf fmt "<id-elim>"
+  | SubIn _ -> Format.fprintf fmt "<sub/in>"
+  | SubOut _ -> Format.fprintf fmt "<sub/out>"
+  | Cof _ -> Format.fprintf fmt "<cof>"
+  | CofSplit _ -> Format.fprintf fmt "<cof/split>"
+  | Refl _ -> Format.fprintf fmt "<refl>"
+  | Zero -> Format.fprintf fmt "<zero>"
+  | Suc _ -> Format.fprintf fmt "<suc>"
+  | Dim0 -> Format.fprintf fmt "<dim0>"
+  | Dim1 -> Format.fprintf fmt "<dim1>"
+  | _ -> Format.fprintf fmt "<??>"
+
 let pp_var env fmt ix =
   Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
 

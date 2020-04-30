@@ -19,7 +19,7 @@ module rec Compute :
 sig
   type 'a whnf = [`Done | `Reduce of 'a]
   val whnf_con : D.con -> D.con whnf compute
-  val whnf_cut : D.cut -> D.con whnf compute
+  val whnf_cut : ?caller:string -> D.cut -> D.con whnf compute
   val whnf_tp : D.tp -> D.tp whnf compute
 
   val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
@@ -38,7 +38,7 @@ sig
   val do_el : D.con -> D.tp compute
   val force_lazy_con : D.lazy_con -> D.con compute
 
-  val do_rigid_coe : D.con -> D.dim -> D.dim -> D.con -> D.con compute
+  val do_rigid_coe : ?caller:string -> D.con -> D.dim -> D.dim -> D.con -> D.con compute
   val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
 
   val con_to_dim : D.con -> D.dim compute
@@ -68,6 +68,7 @@ struct
     | D.DimCon1 -> ret D.Dim1
     | D.Abort -> ret D.Dim0
     | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
+    | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
@@ -124,7 +125,7 @@ struct
       reduce_to @<< force_lazy_con lcon
 
     | D.Cut {unfold = None; cut} ->
-      whnf_cut cut
+      whnf_cut ~caller:"whnf_con" cut
 
   and reduce_to con =
     whnf_con con |>> function
@@ -137,7 +138,8 @@ struct
     | `Done -> ret @@ `Reduce res
     | `Reduce res -> ret @@ `Reduce res
 
-  and whnf_cut cut : D.con whnf m =
+  and whnf_cut ?(caller = "unknown") cut : D.con whnf m =
+    (* Format.eprintf "whnf_cut[%s]@." caller; *)
     let hd, sp = cut in
     match hd with
     | D.Global _ | D.Var _ ->
@@ -148,7 +150,13 @@ struct
         | true ->
           plug_into sp con
         | false ->
-          plug_into sp @<< do_rigid_coe abs r s con
+          begin
+            should_do_rigid_coe abs r s con |>> function
+            | `Done -> ret `Done
+            | `Refresh ->
+              plug_into sp @<<
+              do_rigid_coe ~caller:"whnf_cut" abs r s con
+          end
       end
     | D.HCom (cut, r, s, phi, bdy) ->
       begin
@@ -156,7 +164,7 @@ struct
         | true ->
           plug_into sp @<< do_ap2 bdy (D.dim_to_con s) D.Prf
         | false ->
-          whnf_cut cut |>> function
+          whnf_cut ~caller cut |>> function
           | `Done ->
             ret `Done
           | `Reduce code ->
@@ -168,7 +176,7 @@ struct
         | true ->
           plug_into sp @<< inst_tm_clo clo [D.Prf]
         | false ->
-          whnf_cut cut |>> function
+          whnf_cut ~caller cut |>> function
           | `Done ->
             ret `Done
           | `Reduce con ->
@@ -192,7 +200,7 @@ struct
     function
     | D.El cut ->
       begin
-        whnf_cut cut |>> function
+        whnf_cut ~caller:"whnf_tp" cut |>> function
         | `Done -> ret `Done
         | `Reduce con ->
           let+ tp = do_el con  in
@@ -379,11 +387,24 @@ struct
   and do_coe r s (abs : D.con) con =
     test_sequent [] (Cof.eq r s) |>> function
     | true -> ret con
-    | _ -> do_rigid_coe abs r s con
+    | _ -> do_rigid_coe ~caller:"do_coe" abs r s con
 
-  and do_rigid_coe (line : D.con) r s con =
+
+  and should_do_rigid_coe line r s con =
+    let i = D.DimProbe (Symbol.named "should_do_rigid_coe") in
+    let rec go peek =
+      match peek with
+      | D.CodePi _ | D.CodeSg _ | D.CodePath _ ->
+        ret `Refresh
+      | _ ->
+        ret `Done
+    in
+    go @<< do_ap line (D.dim_to_con i)
+
+  and do_rigid_coe ?(caller = "unknown") (line : D.con) r s con =
+    (* Format.eprintf "coe[%s] %a@." caller D.pp_con line; *)
     CmpM.abort_if_inconsistent D.Abort @@
-    let i = D.DimProbe (Symbol.fresh ()) in
+    let i = D.DimProbe (Symbol.named "do_rigid_coe") in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
@@ -633,7 +654,7 @@ struct
           ret con
         | false ->
           let* coe_abs = eval tpcode in
-          lift_cmp @@ do_rigid_coe coe_abs r s con
+          lift_cmp @@ do_rigid_coe ~caller:"eval" coe_abs r s con
       end
     | S.HCom (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
@@ -1262,8 +1283,8 @@ struct
     | D.Split (tp, phi0, phi1, _, _), _
     | _, D.Split (tp, phi0, phi1, _, _) ->
       under_cof (Cof.join phi0 phi1) @@
-      let* con0 = contractum_or (D.Cut {tp; cut = cut0; unfold = None}) <@> lift_cmp @@ whnf_cut cut0 in
-      let* con1 = contractum_or (D.Cut {tp; cut = cut1; unfold = None}) <@> lift_cmp @@ whnf_cut cut1 in
+      let* con0 = contractum_or (D.Cut {tp; cut = cut0; unfold = None}) <@> lift_cmp @@ whnf_cut ~caller:"equate_cut/0" cut0 in
+      let* con1 = contractum_or (D.Cut {tp; cut = cut1; unfold = None}) <@> lift_cmp @@ whnf_cut ~caller:"equate_cut/1" cut1 in
       equate_con tp con0 con1
     | _ ->
       let* () = equate_hd hd0 hd1 in
