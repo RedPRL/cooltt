@@ -119,7 +119,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.CofSplit splits ->
     let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
     R.Cof.split branch_tacs
-  | CS.Path (tp, a, b) -> 
+  | CS.Path (tp, a, b) ->
     T.chk_to_bchk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
   | cs ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
@@ -158,6 +158,8 @@ and syn_tm_ : CS.t -> T.syn_tac =
     T.chk_to_syn (chk_tm term) (chk_tp tp)
   | CS.Unfold (idents, c) ->
     unfold idents @@ syn_tm c
+  | CS.Coe (tp, src, trg, body) ->
+    R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
   | cs ->
     failwith @@ "TODO : " ^ CS.show cs
 

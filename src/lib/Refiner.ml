@@ -207,9 +207,9 @@ struct
   type branch_tac = T.chk_tac * (T.var -> T.bchk_tac)
 
   let rec njoin : D.cof list -> D.cof =
-     function
-     | [] -> Cof.bot
-     | phi :: phis -> Cof.join phi @@ njoin phis
+    function
+    | [] -> Cof.bot
+    | phi :: phis -> Cof.join phi @@ njoin phis
 
   let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.bchk_tac) list) m =
     match branches with
@@ -478,7 +478,7 @@ struct
       TB.pi TB.tp_dim @@ fun i ->
       univ
     in
-    let* fam = tac_fam piuniv in (* build a term at the type and call the tactic on that type *)
+    let* fam = tac_fam piuniv in
     let* vfam = EM.lift_ev (Nbe.eval fam) in
     let* bdry_tp =
       EM.lift_cmp @@
@@ -488,9 +488,10 @@ struct
       QQ.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
-      TB.el @@ TB.ap fam [i] in
+      TB.el @@ TB.ap fam [i]
+    in
     let* bdry = tac_bdry bdry_tp in
-    EM.ret @@ S.CodePath(fam, bdry)
+    EM.ret @@ S.CodePath (fam, bdry)
 
   let path_with_endpoints (tac_fam : T.chk_tac) (tac_a : T.bchk_tac) (tac_b : T.bchk_tac) : T.chk_tac =
     path tac_fam @@
@@ -500,6 +501,22 @@ struct
     Cof.split
       [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
+
+  let coe tac_fam tac_src tac_trg tac_body : T.syn_tac =
+    let* piuniv =
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.univ
+    in
+    let* fam = tac_fam piuniv in
+    let* src = tac_src D.TpDim in
+    let* trg = tac_trg D.TpDim in
+    let* fam_src = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, src))) in
+    let* body = tac_body fam_src in
+    let* fam_trg = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, trg))) in
+    EM.ret (S.Coe (fam, src, trg, body), fam_trg)
 end
 
 
