@@ -20,11 +20,11 @@ end
 
 module Notation (M : S) : Notation with type 'a m = 'a M.m
 
-module Util (M : S) : sig 
+module Util (M : S) : sig
   val commute_list : 'a M.m list -> 'a list M.m
 end
 
-module type MonadReaderResult = sig 
+module type MonadReaderResult = sig
   include S
   type local
   val read : local m
@@ -36,7 +36,7 @@ module type MonadReaderResult = sig
   val successful : unit m -> bool m
 end
 
-module type MonadReaderStateResult = sig 
+module type MonadReaderStateResult = sig
   include S
   type global
   type local
@@ -52,14 +52,14 @@ module type MonadReaderStateResult = sig
   val successful : unit m -> bool m
 end
 
-module MonadReaderResult (X : sig type local end) : sig 
+module MonadReaderResult (X : sig type local end) : sig
   include MonadReaderResult
     with type 'a m = X.local -> ('a, exn) result
     with type local := X.local
 end
 
 module MonadReaderStateResult (X : sig type global type local end) : sig
-  include MonadReaderStateResult 
+  include MonadReaderStateResult
     with type 'a m = X.global * X.local -> ('a, exn) result * X.global
     with type global := X.global
     with type local := X.local

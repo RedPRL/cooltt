@@ -13,6 +13,7 @@
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
 %token PATH (* other path-related forms will go here *)
+%token COE
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
 %token EOF
@@ -122,8 +123,11 @@ term:
   | phi = atomic MEET psi = atomic
     { Meet (phi, psi) }
 
-  | PATH; tp = atomic; left = atomic; right = atomic 
+  | PATH; tp = atomic; left = atomic; right = atomic
     { Path (tp, left, right) }
+
+  | COE; tp = atomic; src = atomic; trg = atomic; body = atomic
+    { Coe (tp, src, trg, body) }
 
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR

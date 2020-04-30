@@ -86,7 +86,7 @@ and pp_cof : cof Pp.printer =
 
 and pp_clo : tm_clo Pp.printer =
   fun fmt (Clo (tm, env)) ->
-  Format.fprintf fmt "clo[<tm> ; <env>]"
+  Format.fprintf fmt "clo[%a ; <env>]" S.dump tm
 
 and pp_con : con Pp.printer =
   fun fmt ->

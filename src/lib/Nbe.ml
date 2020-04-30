@@ -68,6 +68,7 @@ struct
     | D.DimCon1 -> ret D.Dim1
     | D.Abort -> ret D.Dim0
     | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
+    | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
@@ -148,7 +149,13 @@ struct
         | true ->
           plug_into sp con
         | false ->
-          plug_into sp @<< do_rigid_coe abs r s con
+          begin
+            should_do_rigid_coe abs r s con |>> function
+            | `Done -> ret `Done
+            | `Refresh ->
+              plug_into sp @<<
+              do_rigid_coe abs r s con
+          end
       end
     | D.HCom (cut, r, s, phi, bdy) ->
       begin
@@ -381,9 +388,21 @@ struct
     | true -> ret con
     | _ -> do_rigid_coe abs r s con
 
+
+  and should_do_rigid_coe line r s con =
+    let i = D.DimProbe (Symbol.named "should_do_rigid_coe") in
+    let rec go peek =
+      match peek with
+      | D.CodePi _ | D.CodeSg _ | D.CodePath _ ->
+        ret `Refresh
+      | _ ->
+        ret `Done
+    in
+    go @<< do_ap line (D.dim_to_con i)
+
   and do_rigid_coe (line : D.con) r s con =
     CmpM.abort_if_inconsistent D.Abort @@
-    let i = D.DimProbe (Symbol.fresh ()) in
+    let i = D.DimProbe (Symbol.named "do_rigid_coe") in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
@@ -393,8 +412,8 @@ struct
         QQ.foreign (D.dim_to_con r) @@ fun r ->
         QQ.foreign (D.dim_to_con s) @@ fun s ->
         QQ.foreign con @@ fun bdy ->
-        let base_line = TB.fst split_line in
-        let fam_line = TB.snd split_line in
+        let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+        let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
         QQ.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
       | D.CodeSg _ ->
         let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
@@ -403,8 +422,8 @@ struct
         QQ.foreign (D.dim_to_con r) @@ fun r ->
         QQ.foreign (D.dim_to_con s) @@ fun s ->
         QQ.foreign con @@ fun bdy ->
-        let base_line = TB.fst split_line in
-        let fam_line = TB.snd split_line in
+        let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+        let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
         QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
       | D.CodePath _ ->
         raise Todo

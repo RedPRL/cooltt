@@ -104,11 +104,11 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Pi (cells, body) ->
     let tac (CS.Cell cell) =  Some cell.name, chk_tm cell.tp in
     let tacs = cells |> List.map tac in
-    let quant base (nm, fam) = R.Univ.pi base (T.bchk_to_chk @@ R.Pi.intro None @@ fun var -> T.chk_to_bchk (fam var)) in
+    let quant base (nm, fam) = R.Univ.pi base (T.bchk_to_chk @@ R.Pi.intro nm @@ fun var -> T.chk_to_bchk (fam var)) in
     T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tm cell.tp in
-    let quant base (nm, fam) = R.Univ.sg base (T.bchk_to_chk @@ R.Pi.intro None @@ fun var -> T.chk_to_bchk (fam var)) in
+    let quant base (nm, fam) = R.Univ.sg base (T.bchk_to_chk @@ R.Pi.intro nm @@ fun var -> T.chk_to_bchk (fam var)) in
     T.chk_to_bchk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.CofEq (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
@@ -119,7 +119,7 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.CofSplit splits ->
     let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
     R.Cof.split branch_tacs
-  | CS.Path (tp, a, b) -> 
+  | CS.Path (tp, a, b) ->
     T.chk_to_bchk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
   | cs ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
@@ -158,6 +158,8 @@ and syn_tm_ : CS.t -> T.syn_tac =
     T.chk_to_syn (chk_tm term) (chk_tp tp)
   | CS.Unfold (idents, c) ->
     unfold idents @@ syn_tm c
+  | CS.Coe (tp, src, trg, body) ->
+    R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
   | cs ->
     failwith @@ "TODO : " ^ CS.show cs
 
