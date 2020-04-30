@@ -45,7 +45,7 @@ def coe/prod : {
   (A : dim -> univ) (B : (i : dim) -> {A i} -> univ)
   (r : dim) (r' : dim)
   (p : (x : A r) * B r x) ->
-  sub {(x : A r') * B r' x} {0==0} {[coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]}
+  sub {(x : A r') * B r' x} {0==0} [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
 } = {
   \A B r r' p =>
   coe {\i => (x : A i) * B i x} r r' p
