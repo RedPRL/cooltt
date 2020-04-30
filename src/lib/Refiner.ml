@@ -513,21 +513,22 @@ struct
     let* fam = tac_fam piuniv in
     let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
-    let* fam_src = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, src))) in
-    let* body = tac_body fam_src in
-    let* fam_trg = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, trg))) in
-    EM.ret (S.Coe (fam, src, trg, body), fam_trg)
+    let* fam_src = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, src)) in
+    let+ body = tac_body fam_src
+    and+ fam_trg = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, trg)) in
+    S.Coe (fam, src, trg, body), fam_trg
 
   let hcom tac_ty tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* ty = tac_ty D.Univ in
-    let* src : S.t = tac_src D.TpDim in
+    let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
-    let* cof : S.t = tac_cof D.TpCof in
-    let* vsrc = EM.lift_ev (Nbe.eval src) in
-    let* vcof = EM.lift_ev (Nbe.eval_cof cof) in
-    let* velty = EM.lift_ev (Nbe.eval_tp @@ S.El ty) in
+    let* cof = tac_cof D.TpCof in
+    let* vsrc = EM.lift_ev @@ Nbe.eval src in
+    let* vcof = EM.lift_ev @@ Nbe.eval_cof cof in
+    let* velty = EM.lift_ev @@ Nbe.eval_tp @@ S.El ty in
     (* (i : dim) -> (_ : [i=src \/ cof] -> A) *)
-    let* argtype =
+    let+ tm =
+      tac_tm @<<
       EM.lift_cmp @@
       Nbe.quasiquote_tp @@
       QQ.foreign_tp velty @@ fun velty ->
@@ -538,8 +539,7 @@ struct
       TB.pi (TB.tp_prf (TB.join (TB.eq i src) cof)) @@ fun _ ->
       velty
     in
-    let* tm = tac_tm argtype in
-    EM.ret (S.HCom (ty, src, trg, cof, tm), velty)
+    S.HCom (ty, src, trg, cof, tm), velty
 end
 
 
