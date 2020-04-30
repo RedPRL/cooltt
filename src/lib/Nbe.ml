@@ -40,6 +40,7 @@ sig
 
   val do_rigid_coe : D.con -> D.dim -> D.dim -> D.con -> D.con compute
   val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
+  val do_rigid_com : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
 
   val con_to_dim : D.con -> D.dim compute
   val con_to_cof : D.con -> D.cof compute
@@ -667,8 +668,19 @@ struct
           let* bdy = eval tm in
           lift_cmp @@ do_rigid_hcom vtpcode r s phi bdy
       end
-    | S.Com _ ->
-      raise Todo
+    | S.Com (tpcode, tr, ts, tphi, tm) ->
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in
+      let* phi = eval_cof tphi in
+      begin
+        CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
+        | true ->
+          append [D.dim_to_con s] @@ eval tm
+        | false ->
+          let* bdy = eval tm in
+          let* vtpcode = eval tpcode in
+          lift_cmp @@ do_rigid_com vtpcode r s phi bdy
+      end
     | S.SubOut tm ->
       let* con = eval tm in
       lift_cmp @@ Compute.do_sub_out con
