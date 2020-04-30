@@ -1,4 +1,4 @@
-def coe/fun : {
+def mycoe/fun : {
   (A : (i : dim) -> univ) (B : (i: dim) -> univ)
   (coe/A : (r : dim) (x : A r) (i : dim) -> sub {A i} {i==r} x)
   (coe/B : (r : dim) (x : B r) (i : dim) -> sub {B i} {i==r} x)
@@ -9,7 +9,7 @@ def coe/fun : {
  coe/B r {f {coe/A i x r}} i
 }
 
-def com/fun : {
+def mycom/fun : {
   (A : dim -> univ)
   (B : dim -> univ)
   (com/A : (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) -> A i) (i : dim) -> sub {A i} {{i==r} \/ phi} {p i _})
@@ -20,4 +20,21 @@ def com/fun : {
   com/B r phi {\j _ => p j _ {com/A r' {1==0} {\_ _ => x} j}} r'
 }
 
-normalize com/fun
+normalize mycom/fun
+
+def coe/intro : {
+  (A : dim -> univ) (r : dim) (r' : dim) (x : A r) ->
+  sub {A r'} {r==r'} x
+} = {
+ \A r r' x => coe A r r' x
+}
+
+def coe/fun : {
+  (A : dim -> univ) (B : dim -> univ)
+  (r : dim) (r' : dim)
+  (f : (_ : A r) -> B r) ->
+  sub {(_ : A r') -> B r'} {r==r'} f
+} = {
+ \A B r r' f =>
+ coe {\i => (_ : A i) -> B i} r r' f
+}
