@@ -48,7 +48,7 @@ struct
         t' := Diff (k, ov', t)
       | _ ->
         raise Fatal
-  
+
   let size t =
     reroot t;
     match !t with

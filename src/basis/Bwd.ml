@@ -77,7 +77,7 @@ struct
     function
     | Emp -> Emp
     | Snoc (xs, x) ->
-      match f x with 
+      match f x with
       | None -> filter_map f xs
       | Some fx -> Snoc (filter_map f xs, fx)
 

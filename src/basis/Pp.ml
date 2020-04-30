@@ -1,6 +1,6 @@
 type 'a printer = Format.formatter -> 'a -> unit
 
-open Bwd 
+open Bwd
 open BwdNotation
 
 module Env =
