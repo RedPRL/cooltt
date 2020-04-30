@@ -61,3 +61,5 @@ def hcom/intro : {
   \A r r' phi p =>
   hcom A r r' phi p
 }
+
+normalize hcom/intro
