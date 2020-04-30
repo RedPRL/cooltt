@@ -17,11 +17,6 @@ open Bwd
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
 
-let rec int_to_term =
-  function
-  | 0 -> S.Zero
-  | n -> S.Suc (int_to_term (n - 1))
-
 module Hole =
 struct
   let make_hole name flexity (tp, phi, clo) =
@@ -563,6 +558,11 @@ struct
     function
     | D.Nat -> EM.ret ()
     | tp -> EM.expected_connective `Nat tp
+
+  let rec int_to_term =
+    function
+    | 0 -> S.Zero
+    | n -> S.Suc (int_to_term (n - 1))
 
   let literal n : T.chk_tac =
     fun tp ->
