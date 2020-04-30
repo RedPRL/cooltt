@@ -160,6 +160,8 @@ and syn_tm_ : CS.t -> T.syn_tac =
     unfold idents @@ syn_tm c
   | CS.Coe (tp, src, trg, body) ->
     R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
+  | CS.HCom (tp, src, trg, cof, body) ->
+    R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm body)
   | cs ->
     failwith @@ "TODO : " ^ CS.show cs
 

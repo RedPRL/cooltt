@@ -517,6 +517,18 @@ struct
     let* body = tac_body fam_src in
     let* fam_trg = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, trg))) in
     EM.ret (S.Coe (fam, src, trg, body), fam_trg)
+
+  let hcom tac_ty tac_src tac_trg tac_cof tac_tm : T.syn_tac =
+    let* ty = tac_ty D.Univ in
+    let* src = tac_src D.TpDim in
+    let* trg = tac_trg D.TpDim in
+    let* cof = tac_cof D.TpCof in
+    let* argtype =
+      raise Todo
+    in
+    let* tm = tac_tm argtype in
+    let* el_ty = EM.lift_ev (Nbe.eval_tp @@ S.El ty) in
+    EM.ret (S.HCom (ty, src, trg, cof, tm), el_ty)
 end
 
 

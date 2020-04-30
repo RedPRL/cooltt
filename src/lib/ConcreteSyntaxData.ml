@@ -38,6 +38,7 @@ and t =
   | CofSplit of (t * t) list
   | Path of t * t * t
   | Coe of t * t * t * t
+  | HCom of t * t * t * t * t
 [@@deriving show]
 
 and case = pat * t
