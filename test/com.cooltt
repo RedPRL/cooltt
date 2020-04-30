@@ -72,3 +72,12 @@ def hcom/fun : {
 }
 
 normalize hcom/fun
+
+def com/intro : {
+  (A : dim -> univ) (r : dim) (r' : dim) (phi : cof)
+  (p : (i : dim) (_ : [{i==r} \/ phi]) -> A i) ->
+  sub {A r'} {{r==r'} \/ phi} {p r' _}
+} = {
+  \A r r' phi p =>
+  com A r r' phi p
+}

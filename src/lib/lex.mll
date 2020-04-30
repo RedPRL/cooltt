@@ -40,7 +40,8 @@ let keywords =
     ("sub", SUB);
     ("path", PATH);
     ("coe", COE);
-    ("hcom", HCOM)
+    ("hcom", HCOM);
+    ("com", COM)
   ]
 }
 
