@@ -139,7 +139,7 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
   | _, Ap (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hov1>(%a@ %a)@]" (pp_ env `Ap) tm0 (pp env) tm1
   | _, Pair (tm0, tm1) ->
-    Fmt.fprintf fmt "@[<hov1>(pair@ %a@ %a)@]" (pp env) tm0 (pp env) tm1
+    Fmt.fprintf fmt "@[<hov1>(pair@ @[<hv>%a@ %a@])@]" (pp env) tm0 (pp env) tm1
   | _, Refl tm ->
     Fmt.fprintf fmt "@[<hov1>(refl %a)@]" (pp env) tm
   | _, GoalRet tm ->
