@@ -520,15 +520,26 @@ struct
 
   let hcom tac_ty tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* ty = tac_ty D.Univ in
-    let* src = tac_src D.TpDim in
+    let* src : S.t = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
-    let* cof = tac_cof D.TpCof in
+    let* cof : S.t = tac_cof D.TpCof in
+    let* vsrc = EM.lift_ev (Nbe.eval src) in
+    let* vcof = EM.lift_ev (Nbe.eval_cof cof) in
+    let* velty = EM.lift_ev (Nbe.eval_tp @@ S.El ty) in
+    (* (i : dim) -> (_ : [i=src \/ cof] -> A) *)
     let* argtype =
-      raise Todo
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.foreign_tp velty @@ fun velty ->
+      QQ.foreign vsrc @@ fun src ->
+      QQ.foreign (D.cof_to_con vcof) @@ fun cof ->
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.join (TB.eq i src) cof)) @@ fun _ ->
+      velty
     in
     let* tm = tac_tm argtype in
-    let* el_ty = EM.lift_ev (Nbe.eval_tp @@ S.El ty) in
-    EM.ret (S.HCom (ty, src, trg, cof, tm), el_ty)
+    EM.ret (S.HCom (ty, src, trg, cof, tm), velty)
 end
 
 
