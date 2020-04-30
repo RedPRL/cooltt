@@ -1,0 +1,50 @@
+def + : nat -> nat -> nat = {
+  \elim [
+  | zero => \n => n
+  | suc {_ => ih} => \n => suc {ih n}
+  ]
+}
+
+def +-right-unit : (x : nat) -> path {\_ => nat} {+ x 0} x = {
+  \elim [
+  | zero =>
+    \_ => 0
+  | suc {y => ih} =>
+    \i => suc {ih i}
+  ]
+}
+
+def +-left-unit : (x : nat) -> path {\_ => nat} {+ 0 x} x = {
+  \x _ => x
+}
+
+def +-suc-r : (x : nat) (y : nat) -> path {\_ => nat} {+ x {suc y}} {suc {+ x y}} = {
+  \elim [
+  | zero =>
+    \x i => {suc x}
+  | suc {x => ih} =>
+    \y i => suc {ih y i}
+  ]
+}
+
+--
+-- def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
+--   \elim [
+--   | zero => +-right-unit
+--   | suc {y => ih} =>
+--     \z =>
+--     trans nat {+ z {suc y}} {suc {+ z y}} {suc {+ y z}}
+--       {+-suc-r z y}
+--       {cong nat nat {\w => suc w} {+ z y} {+ y z} {ih z}}
+--   ]
+-- }
+
+def +-assoc : {
+  (x : nat) (y : nat) (z : nat) ->
+  path {\_ => nat} {+ {+ x y} z} {+ x {+ y z}}
+} = {
+  \elim [
+  | zero => \y z i => {+ y z}
+  | suc {x => ih} => \y z i => {suc {ih y z i}}
+  ]
+}
