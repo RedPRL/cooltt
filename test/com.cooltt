@@ -40,3 +40,13 @@ def coe/fun : {
 }
 
 normalize coe/fun
+
+def coe/prod : {
+  (A : dim -> univ) (B : dim -> univ)
+  (r : dim) (r' : dim)
+  (p : {A r} * B r) ->
+  sub {{A r'} * B r'} {0==0} {[coe A r r' {fst p}, coe B r r' {snd p}]}
+} = {
+  \A B r r' p =>
+  coe {\i => {A i} * B i} r r' p
+}
