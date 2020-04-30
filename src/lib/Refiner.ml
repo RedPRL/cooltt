@@ -502,7 +502,7 @@ struct
       [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
-  let coe tac_fam tac_src tac_trg tac_body : T.syn_tac =
+  let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@
       Nbe.quasiquote_tp @@
@@ -514,9 +514,9 @@ struct
     let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
     let* fam_src = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, src)) in
-    let+ body = tac_body fam_src
+    let+ tm = tac_tm fam_src
     and+ fam_trg = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, trg)) in
-    S.Coe (fam, src, trg, body), fam_trg
+    S.Coe (fam, src, trg, tm), fam_trg
 
   let hcom tac_ty tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* ty = tac_ty D.Univ in
@@ -526,7 +526,7 @@ struct
     let* vsrc = EM.lift_ev @@ Nbe.eval src in
     let* vcof = EM.lift_ev @@ Nbe.eval_cof cof in
     let* velty = EM.lift_ev @@ Nbe.eval_tp @@ S.El ty in
-    (* (i : dim) -> (_ : [i=src \/ cof] -> A) *)
+    (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
     let+ tm =
       tac_tm @<<
       EM.lift_cmp @@
