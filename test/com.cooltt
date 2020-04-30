@@ -33,7 +33,7 @@ def coe/fun : {
   (A : dim -> univ) (B : dim -> univ)
   (r : dim) (r' : dim)
   (f : {A r} -> B r) ->
-  sub {{A r'} -> B r'} {r==r'} f
+  sub {{A r'} -> B r'} {0==0} {\x => coe B r r' {f {coe A r' r x}}}
 } = {
  \A B r r' f =>
  coe {\i => {A i} -> B i} r r' f
