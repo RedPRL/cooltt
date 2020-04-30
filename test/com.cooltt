@@ -38,3 +38,5 @@ def coe/fun : {
  \A B r r' f =>
  coe {\i => {A i} -> B i} r r' f
 }
+
+normalize coe/fun
