@@ -107,6 +107,9 @@ let snd m =
   let+ x = m in
   S.Snd x
 
+let cof_abort =
+  ret S.CofAbort
+
 let cof_split mtp mphi0 mtm0 mphi1 mtm1 =
   let+ tp = mtp
   and+ phi0 = mphi0
