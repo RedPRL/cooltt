@@ -239,20 +239,21 @@ struct
       tac0 prf (tp, psi, psi_clo)
     in
     let* tm1 =
-      T.abstract (D.TpPrf phi1) None @@ fun prf ->
-      let psi' = Cof.join phi0 psi in
       let* phi0_fn = EM.lift_ev @@ Nbe.eval @@ S.Lam tm0 in
       let psi_fn = D.Lam psi_clo in
+      let psi' = Cof.join phi0 psi in
       let* psi'_fn =
         EM.lift_cmp @@ Nbe.quasiquote_tm @@
         QQ.foreign_tp tp @@ fun tp ->
         QQ.foreign (D.cof_to_con phi0) @@ fun phi0 ->
         QQ.foreign (D.cof_to_con psi) @@ fun psi ->
-        QQ.foreign phi0_fn @@ fun phi0_fn ->
         QQ.foreign psi_fn @@ fun psi_fn ->
-        QQ.term @@ TB.lam @@ fun prf ->
+        QQ.foreign phi0_fn @@ fun phi0_fn ->
+        QQ.term @@
+        TB.lam @@ fun prf ->
         TB.cof_split tp phi0 (fun prf -> TB.ap phi0_fn [prf]) psi (fun prf -> TB.ap psi_fn [prf])
       in
+      T.abstract (D.TpPrf phi1) None @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
     in
     let* tphi0 = EM.lift_qu @@ Nbe.quote_cof phi0 in
