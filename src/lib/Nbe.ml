@@ -1255,23 +1255,6 @@ struct
     | _ ->
       throw @@ NbeFailed "unequal types"
 
-  and under_cof phi m =
-    let rec go cofs m =
-      QuM.abort_if_inconsistent () @@
-      match cofs with
-      | [] -> m
-      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
-        begin
-          QuM.restrict phi @@ go cofs m |>> fun _ -> ret ()
-        end
-      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
-        go (phi0 :: phi1 :: cofs) m
-      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
-        let* () = go (phi0 :: cofs) m in
-        go (phi1 :: cofs) m
-    in
-    go [phi] m
-
   (* Invariant: tp, con0, con1 not necessarily whnf *)
   and equate_con tp con0 con1 =
     QuM.abort_if_inconsistent () @@
@@ -1284,7 +1267,7 @@ struct
     | _, _, D.Abort -> ret ()
     | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _}, _
     | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _} ->
-      under_cof (Cof.join phi0 phi1) @@
+      QuM.left_invert_under_cof (Cof.join phi0 phi1) @@
       equate_con tp con0 con1
     | D.Pi (base, fam), _, _ ->
       bind_var () base @@ fun x ->
@@ -1305,7 +1288,7 @@ struct
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
     | D.Sub (tp, phi, _), _, _ ->
-      under_cof phi @@
+      QuM.left_invert_under_cof phi @@
       let* out0 = lift_cmp @@ do_sub_out con0 in
       let* out1 = lift_cmp @@ do_sub_out con1 in
       equate_con tp out0 out1
@@ -1376,7 +1359,7 @@ struct
     match hd0, hd1 with
     | D.Split (tp, phi0, phi1, _, _), _
     | _, D.Split (tp, phi0, phi1, _, _) ->
-      under_cof (Cof.join phi0 phi1) @@
+      QuM.left_invert_under_cof (Cof.join phi0 phi1) @@
       let* con0 = contractum_or (D.Cut {tp; cut = cut0; unfold = None}) <@> lift_cmp @@ whnf_cut cut0 in
       let* con1 = contractum_or (D.Cut {tp; cut = cut1; unfold = None}) <@> lift_cmp @@ whnf_cut cut1 in
       equate_con tp con0 con1
@@ -1490,10 +1473,10 @@ struct
     | hd, D.Split (tp, phi0, phi1, clo0, clo1)
     | D.Split (tp, phi0, phi1, clo0, clo1), hd ->
       let* () =
-        under_cof phi0 @@
+        QuM.left_invert_under_cof phi0 @@
         equate_con tp (D.Cut {tp; cut = hd,[]; unfold = None}) @<< lift_cmp @@ inst_tm_clo clo0 [D.Prf]
       in
-      under_cof phi1 @@
+      QuM.left_invert_under_cof phi1 @@
       equate_con tp (D.Cut {tp; cut = hd,[]; unfold = None}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
     | _ ->
       Format.eprintf "bad! equate_hd : %a / %a@." D.pp_hd hd0 D.pp_hd hd1;
@@ -1525,13 +1508,19 @@ struct
       ret ()
 
   let equal_tp tp0 tp1 : bool quote =
-    successful @@ equate_tp tp0 tp1
+    successful @@
+    QuM.left_invert_under_current_cof @@
+    equate_tp tp0 tp1
 
   let equal_cut cut0 cut1 =
-    successful @@ equate_cut cut0 cut1
+    successful @@
+    QuM.left_invert_under_current_cof @@
+    equate_cut cut0 cut1
 
   let equal_con tp con0 con1 =
-    successful @@ equate_con tp con0 con1
+    successful @@
+    QuM.left_invert_under_current_cof @@
+    equate_con tp con0 con1
 end
 
 include Eval

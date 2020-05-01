@@ -135,6 +135,29 @@ struct
     | `Inconsistent ->
       M.ret `Abort
 
+  let left_invert_under_cof phi m =
+    let rec go cofs m =
+      abort_if_inconsistent () @@
+      match cofs with
+      | [] -> m
+      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
+        begin
+          restrict phi @@ go cofs m |>> fun _ -> M.ret ()
+        end
+      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
+        go (phi0 :: phi1 :: cofs) m
+      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
+        let* () = go (phi0 :: cofs) m in
+        go (phi1 :: cofs) m
+    in
+    go [phi] m
+
+  let left_invert_under_current_cof m =
+    let* env = M.read in
+    left_invert_under_cof (CofEnv.unreduced_assumptions env.cof_env) m
+
+
+
   let bind_cof_proof phi m =
     restrict phi @@
     binder 1 m

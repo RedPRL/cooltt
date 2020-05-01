@@ -34,6 +34,9 @@ let status env = env.status
 let find_class classes r =
   try UF.find r classes with _ -> r
 
+let unreduced_assumptions env =
+  env.cof
+
 
 module Inversion :
 sig

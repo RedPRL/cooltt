@@ -56,6 +56,8 @@ module QuM : sig
 
   (* like bind_cof_proof, but doesn't increase the de bruijn index *)
   val restrict : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
+  val left_invert_under_cof : D.cof -> unit m -> unit m
+  val left_invert_under_current_cof : unit m -> unit m
 
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end

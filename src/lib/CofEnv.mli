@@ -12,6 +12,8 @@ val inconsistent : env
     even though it may not literally check 0=1. *)
 val status : env -> [`Consistent | `Inconsistent]
 
+val unreduced_assumptions : env -> D.cof
+
 (** Assumes the truth of a cofibration; if it can be decomposed eagerly (conjunction of equations),
     then it does so immediately. Otherwise, it is held "on deck" and repeatedly decomposed when testing
     sequents. *)
