@@ -1307,7 +1307,8 @@ struct
       equate_cof phi0 phi1
     | _, D.Cut {cut = cut0; unfold = None}, D.Cut {cut = cut1; unfold = None} ->
       equate_cut cut0 cut1
-
+    | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
+      equate_hcom (D.CodeNat, r0, s0, phi0, bdy0) (D.CodeNat, r1, s1, phi1, bdy1)
     | _, D.CodeNat, D.CodeNat ->
       ret ()
 
@@ -1442,20 +1443,27 @@ struct
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
     | D.HCom (cut0, r0, s0, phi0, bdy0), D.HCom (cut1, r1, s1, phi1, bdy1) ->
-      let* () = equate_cut cut0 cut1 in
-      let* () = equate_dim r0 r1 in
-      let* () = equate_dim s0 s1 in
-      let* () = equate_cof phi0 phi1 in
-      bind_var () D.TpDim @@ fun i ->
-      let* i_dim = lift_cmp @@ con_to_dim i in
-      bind_var () (D.TpPrf (Cof.join (Cof.eq i_dim r0) phi0)) @@ fun prf ->
-      let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
-      let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
-      equate_con (D.El cut0) con0 con1
+      let code0 = D.Cut {tp = D.Univ; cut = cut0; unfold = None} in
+      let code1 = D.Cut {tp = D.Univ; cut = cut1; unfold = None} in
+      equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1
     | _ ->
       throw @@ NbeFailed "Different heads"
+
+  and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
+    let* () = equate_con D.Univ code0 code1 in
+    let* () = equate_dim r0 r1 in
+    let* () = equate_dim s0 s1 in
+    let* () = equate_cof phi0 phi1 in
+    bind_var () D.TpDim @@ fun i ->
+    let* i_dim = lift_cmp @@ con_to_dim i in
+    bind_var () (D.TpPrf (Cof.join (Cof.eq i_dim r0) phi0)) @@ fun prf ->
+    let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
+    let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
+    let* tp = lift_cmp @@ do_el code0 in
+    equate_con tp con0 con1
+
 
   and equate_cof phi psi =
     let* () = approx_cof phi psi in
