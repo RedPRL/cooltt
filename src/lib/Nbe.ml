@@ -1490,14 +1490,6 @@ struct
       equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1
-    | hd, D.Split (tp, phi0, phi1, clo0, clo1)
-    | D.Split (tp, phi0, phi1, clo0, clo1), hd ->
-      let* () =
-        QuM.left_invert_under_cof phi0 @@
-        equate_con tp (D.Cut {tp; cut = hd,[]; unfold = None}) @<< lift_cmp @@ inst_tm_clo clo0 [D.Prf]
-      in
-      QuM.left_invert_under_cof phi1 @@
-      equate_con tp (D.Cut {tp; cut = hd,[]; unfold = None}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
     | _ ->
       Format.eprintf "bad! equate_hd : %a / %a@." D.pp_hd hd0 D.pp_hd hd1;
       throw @@ NbeFailed "Different heads"
