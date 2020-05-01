@@ -87,8 +87,6 @@ rule token = parse
     { TIMES }
   | ':'
     { COLON }
-  | "=="
-    { EEQUALS }
   | "/\\"
     { MEET }
   | "\\/"

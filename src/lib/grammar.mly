@@ -7,7 +7,7 @@
 %token <string option> HOLE_NAME
 %token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF
 %token LPR RPR LBR RBR LSQ RSQ
-%token EQUALS EEQUALS JOIN MEET
+%token EQUALS JOIN MEET
 %token UNIV
 %token TIMES FST SND
 %token LAM LET IN SUB
@@ -41,8 +41,13 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
+eq:
+  | r = atomic EQUALS s = atomic { CofEq (r, s) }
+
 atomic:
-  | LBR; term = term; RBR
+  | LBR term = term RBR
+    { term }
+  | LBR term = eq RBR
     { term }
   | a = ATOM
     { Var (`User a) }
@@ -116,8 +121,6 @@ term:
   | SND; t = term
     { Snd t }
 
-  | r = atomic EEQUALS s = atomic
-    { CofEq (r, s) }
   | phi = atomic JOIN psi = atomic
     { Join (phi, psi) }
   | phi = atomic MEET psi = atomic
@@ -144,6 +147,8 @@ case:
 cof_case:
   | phi = term RRIGHT_ARROW t = term
     { phi, t }
+  | e = eq RRIGHT_ARROW t = term
+    { e, t }
 
 pat_lbl:
   | REFL

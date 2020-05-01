@@ -1,9 +1,9 @@
 def mycoe/fun : {
   (A : (i : dim) -> univ) (B : (i: dim) -> univ)
-  (coe/A : (r : dim) (x : A r) (i : dim) -> sub {A i} {i==r} x)
-  (coe/B : (r : dim) (x : B r) (i : dim) -> sub {B i} {i==r} x)
+  (coe/A : (r : dim) (x : A r) (i : dim) -> sub {A i} {i=r} x)
+  (coe/B : (r : dim) (x : B r) (i : dim) -> sub {B i} {i=r} x)
   (r : dim) (f : (_ : A r) -> B r) (i : dim) ->
-  sub {(_ : A i) -> B i} {i==r} f
+  sub {(_ : A i) -> B i} {i=r} f
 } = {
  \A B coe/A coe/B r f i x =>
  coe/B r {f {coe/A i x r}} i
@@ -12,19 +12,19 @@ def mycoe/fun : {
 def mycom/fun : {
   (A : dim -> univ)
   (B : dim -> univ)
-  (com/A : (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) -> A i) (i : dim) -> sub {A i} {{i==r} \/ phi} {p i _})
-  (com/B : (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) -> B i) (i : dim) -> sub {B i} {{i==r} \/ phi} {p i _})
-  (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) (_ : A i) -> B i) (i : dim) -> sub {(_ : A i) -> B i} {{i==r} \/ phi} {p i _}
+  (com/A : (r : dim) (phi : cof) (p : (i : dim) (_ : [{i=r} \/ phi]) -> A i) (i : dim) -> sub {A i} {{i=r} \/ phi} {p i _})
+  (com/B : (r : dim) (phi : cof) (p : (i : dim) (_ : [{i=r} \/ phi]) -> B i) (i : dim) -> sub {B i} {{i=r} \/ phi} {p i _})
+  (r : dim) (phi : cof) (p : (i : dim) (_ : [{i=r} \/ phi]) (_ : A i) -> B i) (i : dim) -> sub {(_ : A i) -> B i} {{i=r} \/ phi} {p i _}
 } = {
   \A B com/A com/B r phi p r' x =>
-  com/B r phi {\j _ => p j _ {com/A r' {1==0} {\_ _ => x} j}} r'
+  com/B r phi {\j _ => p j _ {com/A r' {1=0} {\_ _ => x} j}} r'
 }
 
 normalize mycom/fun
 
 def coe/intro : {
   (A : dim -> univ) (r : dim) (r' : dim) (x : A r) ->
-  sub {A r'} {r==r'} x
+  sub {A r'} {r=r'} x
 } = {
  \A r r' x => coe A r r' x
 }
@@ -33,7 +33,7 @@ def coe/fun : {
   (A : dim -> univ) (B : (i : dim) -> {A i} -> univ)
   (r : dim) (r' : dim)
   (f : (x : A r) -> B r x) ->
-  sub {(x : A r') -> B r' x} {0==0} {\x => coe {\i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
+  sub {(x : A r') -> B r' x} {0=0} {\x => coe {\i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
 } = {
  \A B r r' f =>
  coe {\i => (x : A i) -> B i x} r r' f
@@ -45,7 +45,7 @@ def coe/prod : {
   (A : dim -> univ) (B : (i : dim) -> {A i} -> univ)
   (r : dim) (r' : dim)
   (p : (x : A r) * B r x) ->
-  sub {(x : A r') * B r' x} {0==0} [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
+  sub {(x : A r') * B r' x} {0=0} [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
 } = {
   \A B r r' p =>
   coe {\i => (x : A i) * B i x} r r' p
