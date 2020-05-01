@@ -30,7 +30,7 @@ def coe/intro : {
 }
 
 def coe/pi : {
-  (A : dim -> univ) (B : (i : dim) -> {A i} -> univ)
+  (A : dim -> univ) (B : (i : dim) -> A i -> univ)
   (r : dim) (r' : dim)
   (f : (x : A r) -> B r x) ->
   sub {(x : A r') -> B r' x} {0=0} {\x => coe {\i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
@@ -42,7 +42,7 @@ def coe/pi : {
 normalize coe/pi
 
 def coe/sigma : {
-  (A : dim -> univ) (B : (i : dim) -> {A i} -> univ)
+  (A : dim -> univ) (B : (i : dim) -> A i -> univ)
   (r : dim) (r' : dim)
   (p : (x : A r) * B r x) ->
   sub {(x : A r') * B r' x} {0=0} [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
