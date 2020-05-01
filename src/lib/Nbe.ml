@@ -866,6 +866,25 @@ struct
       let* var = top_var tp in
       m var
 
+  let bind_var_ tp m =
+    match tp with
+    | D.TpPrf phi ->
+      begin
+        begin
+          bind_cof_proof phi @@
+          let* var = top_var tp in
+          QuM.left_invert_under_cof phi @@
+          m var
+        end |>> function
+        | `Ret _ -> ret ()
+        | `Abort -> ret ()
+      end
+    | _ ->
+      binder 1 @@
+      let* var = top_var tp in
+      m var
+
+
 
   let rec quote_con (tp : D.tp) con : S.t m =
     QuM.abort_if_inconsistent S.CofAbort @@
@@ -1230,14 +1249,14 @@ struct
     | D.Pi (base0, fam0), D.Pi (base1, fam1)
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in
-      bind_var () base0 @@ fun x ->
+      bind_var_ base0 @@ fun x ->
       let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
       let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
       equate_tp fib0 fib1
     | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_cof phi0 phi1 in
-      bind_var () (D.TpPrf phi0) @@ fun prf ->
+      bind_var_ (D.TpPrf phi0) @@ fun prf ->
       let* con0 = lift_cmp @@ inst_tm_clo clo0 [prf] in
       let* con1 = lift_cmp @@ inst_tm_clo clo1 [prf] in
       equate_con tp0 con0 con1
@@ -1270,7 +1289,7 @@ struct
       QuM.left_invert_under_cof (Cof.join phi0 phi1) @@
       equate_con tp con0 con1
     | D.Pi (base, fam), _, _ ->
-      bind_var () base @@ fun x ->
+      bind_var_ base @@ fun x ->
       let* fib = lift_cmp @@ inst_tp_clo fam [x] in
       let* ap0 = lift_cmp @@ do_ap con0 x in
       let* ap1 = lift_cmp @@ do_ap con1 x in
@@ -1456,7 +1475,7 @@ struct
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
       let* () =
-        bind_var () D.TpDim @@ fun i ->
+        bind_var_ D.TpDim @@ fun i ->
         let* code0 = lift_cmp @@ do_ap abs0 i in
         let* code1 = lift_cmp @@ do_ap abs1 i in
         equate_con D.Univ code0 code1
@@ -1487,9 +1506,9 @@ struct
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
     let* () = equate_cof phi0 phi1 in
-    bind_var () D.TpDim @@ fun i ->
+    bind_var_ D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    bind_var () (D.TpPrf (Cof.join (Cof.eq i_dim r0) phi0)) @@ fun prf ->
+    bind_var_ (D.TpPrf (Cof.join (Cof.eq i_dim r0) phi0)) @@ fun prf ->
     let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
     let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
     let* tp = lift_cmp @@ do_el code0 in
