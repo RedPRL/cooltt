@@ -81,3 +81,14 @@ def com/intro : {
   \A r r' phi p =>
   com A r r' phi p
 }
+
+normalize com/intro
+
+def com/decomposition : {
+  (A : dim -> univ) (r : dim) (r' : dim) (phi : cof)
+  (p : (i : dim) (_ : [{i==r} \/ phi]) -> A i) ->
+  sub {A r'} {0==0} {hcom {A r'} r r' phi {\j _ => coe A j r' {p j _}}}
+} = {
+  \A r r' phi p =>
+  com A r r' phi p
+}
