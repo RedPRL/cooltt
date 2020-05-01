@@ -42,12 +42,18 @@ sign:
     { d :: s }
 
 eq:
-  | r = atomic EQUALS s = atomic { CofEq (r, s) }
+  | r = atomic EQUALS s = atomic
+    { CofEq (r, s) }
+
+cof:
+  | eq = eq { eq }
+  | phi = atomic_or_eq JOIN psi = atomic_or_eq
+    { Join (phi, psi) }
+  | phi = atomic_or_eq MEET psi = atomic_or_eq
+    { Meet (phi, psi) }
 
 atomic:
-  | LBR term = term RBR
-    { term }
-  | LBR term = eq RBR
+  | LBR term = term_or_cof RBR
     { term }
   | a = ATOM
     { Var (`User a) }
@@ -73,6 +79,10 @@ atomic:
   | LSQ t = bracketed RSQ
     { t }
 
+atomic_or_eq: t = atomic | t = eq {t}
+
+atomic_or_cof: t = atomic | t = cof {t}
+
 bracketed:
   | left = term COMMA right = term
     { Pair (left, right) }
@@ -80,7 +90,7 @@ bracketed:
     { CofSplit cases }
   | PIPE cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = term
+  | t = term_or_cof
     { Prf t }
 
 term:
@@ -121,11 +131,6 @@ term:
   | SND; t = term
     { Snd t }
 
-  | phi = atomic JOIN psi = atomic
-    { Join (phi, psi) }
-  | phi = atomic MEET psi = atomic
-    { Meet (phi, psi) }
-
   | PATH; tp = atomic; left = atomic; right = atomic
     { Path (tp, left, right) }
 
@@ -135,6 +140,8 @@ term:
     { HCom (tp, src, trg, phi, body) }
   | COM; fam = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
     { Com (fam, src, trg, phi, body) }
+
+term_or_cof: t = term | t = cof {t}
 
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR
@@ -149,10 +156,8 @@ case:
     { p, t }
 
 cof_case:
-  | phi = term RRIGHT_ARROW t = term
+  | phi = atomic_or_cof RRIGHT_ARROW t = term
     { phi, t }
-  | e = eq RRIGHT_ARROW t = term
-    { e, t }
 
 pat_lbl:
   | REFL
