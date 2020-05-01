@@ -2,20 +2,20 @@ def symm : {
   (A : univ) (p : dim -> A) (i : dim) -> A
 }= {
   \A p i =>
-  hcom A 0 1 {{i==0} \/ {i==1}} {\j _ =>
-    [ {j==0} \/ {i==1} => p 0
-    | i==0 => p j
+  hcom A 0 1 {i=0 \/ i=1} {\j _ =>
+    [ j=0 \/ i=1 => p 0
+    | i=0 => p j
     ]
   }
 }
 
 def trans : {
-  (A : univ) (p : dim -> A) (q : (i : dim) -> sub A {i==0} {p 1}) -> path {\_ => A} {p 0} {q 1}
+  (A : univ) (p : dim -> A) (q : (i : dim) -> sub A {i=0} {p 1}) -> path {\_ => A} {p 0} {q 1}
 } = {
   \A p q i =>
-  hcom A 0 1 {{i==0} \/ {i==1}} {\j _ =>
-    [ {j==0} \/ {i==0} => p i
-    | i==1 => q j
+  hcom A 0 1 {i=0 \/ i=1} {\j _ =>
+    [ j=0 \/ i=0 => p i
+    | i=1 => q j
     ]
   }
 }
