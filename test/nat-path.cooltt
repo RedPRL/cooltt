@@ -3,9 +3,8 @@ def symm : {
 }= {
   \A p i =>
   hcom A 0 1 {\j _ =>
-    [ j=0 => p 0
+    [ j=0 \/ i=1 => p 0
     | i=0 => p j
-    | i=1 => p 0
     ]
   }
 }
@@ -15,8 +14,7 @@ def trans : {
 } = {
   \A p q i =>
   hcom A 0 1 {\j _ =>
-    [ j=0 => p i
-    | i=0 => p i
+    [ j=0 \/ i=0 => p i
     | i=1 => q j
     ]
   }
