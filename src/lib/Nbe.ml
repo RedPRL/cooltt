@@ -40,6 +40,7 @@ sig
 
   val do_rigid_coe : D.con -> D.dim -> D.dim -> D.con -> D.con compute
   val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
+  val do_rigid_com : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
 
   val con_to_dim : D.con -> D.dim compute
   val con_to_cof : D.con -> D.cof compute
@@ -150,11 +151,12 @@ struct
           plug_into sp con
         | false ->
           begin
-            should_do_rigid_coe abs r s con |>> function
-            | `Done -> ret `Done
-            | `Refresh ->
-              plug_into sp @<<
-              do_rigid_coe abs r s con
+            let* dispatch = dispatch_rigid_coe abs r s con in
+            match dispatch with
+            | `Done ->
+              ret `Done
+            | `Reduce tag ->
+              plug_into sp @<< enact_rigid_coe abs r s con tag
           end
       end
     | D.HCom (cut, r, s, phi, bdy) ->
@@ -167,7 +169,14 @@ struct
           | `Done ->
             ret `Done
           | `Reduce code ->
-            plug_into sp @<< do_rigid_hcom code r s phi bdy
+            begin
+              let* dispatch = dispatch_rigid_hcom code r s phi bdy in
+              match dispatch with
+              | `Done _ ->
+                ret `Done
+              | `Reduce tag ->
+                plug_into sp @<< enact_rigid_hcom code r s phi bdy tag
+            end
       end
     | D.SubOut (cut, phi, clo) ->
       begin
@@ -389,60 +398,73 @@ struct
     | _ -> do_rigid_coe abs r s con
 
 
-  and should_do_rigid_coe line r s con =
-    let i = D.DimProbe (Symbol.named "should_do_rigid_coe") in
-    let rec go peek =
-      match peek with
-      | D.CodePi _ | D.CodeSg _ | D.CodePath _ ->
-        ret `Refresh
-      | _ ->
-        ret `Done
-    in
-    go @<< do_ap line (D.dim_to_con i)
-
-  and do_rigid_coe (line : D.con) r s con =
-    CmpM.abort_if_inconsistent D.Abort @@
+  and dispatch_rigid_coe line r s con =
     let i = D.DimProbe (Symbol.named "do_rigid_coe") in
     let rec go peek =
       match peek with
       | D.CodePi _ ->
-        let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
-        quasiquote_tm @@
-        QQ.foreign split_line @@ fun split_line ->
-        QQ.foreign (D.dim_to_con r) @@ fun r ->
-        QQ.foreign (D.dim_to_con s) @@ fun s ->
-        QQ.foreign con @@ fun bdy ->
-        let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
-        let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-        QQ.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
+        ret @@ `Reduce `CoePi
       | D.CodeSg _ ->
-        let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
-        quasiquote_tm @@
-        QQ.foreign split_line @@ fun split_line ->
-        QQ.foreign (D.dim_to_con r) @@ fun r ->
-        QQ.foreign (D.dim_to_con s) @@ fun s ->
-        QQ.foreign con @@ fun bdy ->
-        let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
-        let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-        QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
+        ret @@ `Reduce `CoeSg
       | D.CodePath _ ->
-        raise Todo
+        ret @@ `Reduce `CoePath
       | D.Cut {unfold = Some lcon} ->
         go @<< force_lazy_con lcon
       | D.Cut {cut; unfold = None} ->
-        let hd = D.Coe (line, r, s, con) in
-        let+ tp = do_el @<< do_ap line (D.dim_to_con s) in
-        D.Cut {tp; cut = hd, []; unfold = None}
+        ret `Done
       | _ ->
-        throw @@ NbeFailed "Invalid arguments to do_rigid_coe"
+        throw @@ NbeFailed "Invalid arguments to dispatch_rigid_coe"
     in
     go @<< do_ap line (D.dim_to_con i)
 
+  and dispatch_rigid_hcom code r s phi (bdy : D.con) =
+    let rec go code =
+      match code with
+      | D.CodePi (base, fam) ->
+        ret @@ `Reduce (`HComPi (base, fam))
+      | D.CodeSg (base, fam) ->
+        ret @@ `Reduce (`HComSg (base, fam))
+      | D.CodePath (fam, bdry) ->
+        ret @@ `Reduce (`HComPath (fam, bdry))
+      | D.Cut {unfold = Some lcon} ->
+        go @<< force_lazy_con lcon
+      | D.Cut {cut; unfold = None} ->
+        ret @@ `Done cut
+      | _ ->
+        throw @@ NbeFailed "Invalid arguments to dispatch_rigid_hcom"
+    in
+    go code
 
-  and do_rigid_hcom code r s phi (bdy : D.con) =
+  and enact_rigid_coe line r s con tag =
     CmpM.abort_if_inconsistent D.Abort @@
-    match code with
-    | D.CodePi (base, fam) ->
+    match tag with
+    | `CoePi ->
+      let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
+      quasiquote_tm @@
+      QQ.foreign split_line @@ fun split_line ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign con @@ fun bdy ->
+      let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+      let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
+      QQ.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
+    | `CoeSg ->
+      let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
+      quasiquote_tm @@
+      QQ.foreign split_line @@ fun split_line ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign con @@ fun bdy ->
+      let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+      let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
+      QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
+    | `CoePath ->
+      raise Todo
+
+  and enact_rigid_hcom code r s phi bdy tag =
+    CmpM.abort_if_inconsistent D.Abort @@
+    match tag with
+    | `HComPi (base, fam) ->
       quasiquote_tm @@
       QQ.foreign base @@ fun base ->
       QQ.foreign fam @@ fun fam ->
@@ -452,7 +474,7 @@ struct
       QQ.foreign bdy @@ fun bdy ->
       QQ.term @@
       TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
-    | D.CodeSg (base, fam) ->
+    | `HComSg (base, fam) ->
       quasiquote_tm @@
       QQ.foreign base @@ fun base ->
       QQ.foreign fam @@ fun fam ->
@@ -462,7 +484,7 @@ struct
       QQ.foreign bdy @@ fun bdy ->
       QQ.term @@
       TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
-    | D.CodePath (fam, bdry) ->
+    | `HComPath (fam, bdry) ->
       quasiquote_tm @@
       QQ.foreign fam @@ fun fam ->
       QQ.foreign bdry @@ fun bdry ->
@@ -472,15 +494,34 @@ struct
       QQ.foreign bdy @@ fun bdy ->
       QQ.term @@
       TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
-    | D.Cut {unfold = Some lcon} ->
-      let* code = force_lazy_con lcon in
-      do_rigid_hcom code r s phi bdy
-    | D.Cut {cut; unfold = None} ->
+    | `Done cut ->
       let tp = D.El cut in
       let hd = D.HCom (cut, r, s, phi, bdy) in
       ret @@ D.Cut {tp; cut = hd, []; unfold = None}
     | _ ->
       throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
+
+  and do_rigid_coe (line : D.con) r s con =
+    CmpM.abort_if_inconsistent D.Abort @@
+    let* tag = dispatch_rigid_coe line r s con in
+    match tag with
+    | `Done ->
+      let hd = D.Coe (line, r, s, con) in
+      let+ tp = do_el @<< do_ap line (D.dim_to_con s) in
+      D.Cut {tp; cut = hd, []; unfold = None}
+    | `Reduce tag ->
+      enact_rigid_coe line r s con tag
+
+  and do_rigid_hcom code r s phi (bdy : D.con) =
+    CmpM.abort_if_inconsistent D.Abort @@
+    let* tag = dispatch_rigid_hcom code r s phi bdy in
+    match tag with
+    | `Done cut ->
+      let tp = D.El cut in
+      let hd = D.HCom (cut, r, s, phi, bdy) in
+      ret @@ D.Cut {tp; cut = hd, []; unfold = None}
+    | `Reduce tag ->
+      enact_rigid_hcom code r s phi bdy tag
 
   and do_rigid_com (line : D.con) r s phi bdy =
     let* code_s = do_ap line (D.dim_to_con s) in
@@ -667,8 +708,19 @@ struct
           let* bdy = eval tm in
           lift_cmp @@ do_rigid_hcom vtpcode r s phi bdy
       end
-    | S.Com _ ->
-      raise Todo
+    | S.Com (tpcode, tr, ts, tphi, tm) ->
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in
+      let* phi = eval_cof tphi in
+      begin
+        CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
+        | true ->
+          append [D.dim_to_con s] @@ eval tm
+        | false ->
+          let* bdy = eval tm in
+          let* vtpcode = eval tpcode in
+          lift_cmp @@ do_rigid_com vtpcode r s phi bdy
+      end
     | S.SubOut tm ->
       let* con = eval tm in
       lift_cmp @@ Compute.do_sub_out con
