@@ -135,4 +135,3 @@ let problem =
 let push_problem lbl =
   scope @@
   Env.push_problem lbl
-

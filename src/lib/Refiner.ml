@@ -19,11 +19,17 @@ type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
 
 module Hole =
 struct
+  let norm : D.cof -> D.cof m =
+    fun phi ->
+      let* useless = EM.lift_cmp @@ CmpM.test_sequent [phi] Cof.bot in
+      EM.ret (if useless then Cof.bot else phi)
+
   let make_hole name flexity (tp, phi, clo) =
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
+        let* phi' = norm phi in
+        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
