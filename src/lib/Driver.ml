@@ -75,11 +75,6 @@ let rec execute_signature sign =
 
 let process_sign : CS.signature -> unit =
   fun sign ->
-  try
   EM.run_exn ElabState.init Env.init @@
   execute_signature sign
-  with
-  | exn ->
-    Printexc.print_backtrace stderr;
-    raise exn
 
