@@ -72,3 +72,14 @@ def +-assoc : {
   ]
 }
 
+def test : {
+  (p : dim -> nat) -> (i : dim) -> nat
+} = {
+  \p i =>
+  elim {symm nat p i} @ {_ => nat} [
+  | zero => zero
+  | suc {x => ih} => zero
+  ]
+}
+
+normalize test

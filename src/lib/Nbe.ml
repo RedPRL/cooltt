@@ -235,6 +235,19 @@ struct
       let+ fib = inst_tp_clo mot [n] in
       cut_frm ~tp:fib ~cut ~unfold @@
       D.KNatElim (mot, zero, suc)
+    | D.FHCom (`Nat, r, s, phi, bdy) ->
+      (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)
+      quasiquote_tm @@
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
+      QQ.foreign bdy @@ fun bdy ->
+      QQ.term @@
+      (*
+      let fam = TB.lam @@ fun i -> inst_tp_clo mot [D.FHCom (`Nat, r, i, phi, bdy)] in
+      let bdy' = TB.lam @@ fun i -> TB.lam @@ fun prf -> do_nat_elim mot zero suc (raise Todo) in
+      *)
+      TB.com (raise Todo) r s phi (raise Todo)
     | _ ->
       CmpM.throw @@ NbeFailed "Not a number"
 
