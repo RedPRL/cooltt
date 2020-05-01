@@ -20,6 +20,7 @@ sig
   type 'a whnf = [`Done | `Reduce of 'a]
   val whnf_con : D.con -> D.con whnf compute
   val whnf_cut : D.cut -> D.con whnf compute
+  val whnf_hd : D.hd -> D.con whnf compute
   val whnf_tp : D.tp -> D.tp whnf compute
 
   val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
@@ -145,16 +146,13 @@ struct
     | `Done -> ret @@ `Reduce res
     | `Reduce res -> ret @@ `Reduce res
 
-  and whnf_cut cut : D.con whnf m =
-    let hd, sp = cut in
+  and whnf_hd hd =
     match hd with
-    | D.Global _ | D.Var _ ->
-      ret `Done
+    | D.Global _ | D.Var _ -> ret `Done
     | D.Coe (abs, r, s, con) ->
       begin
         test_sequent [] (Cof.eq r s) |>> function
-        | true ->
-          plug_into sp con
+        | true -> reduce_to con
         | false ->
           begin
             let* dispatch = dispatch_rigid_coe abs r s con in
@@ -162,14 +160,14 @@ struct
             | `Done ->
               ret `Done
             | `Reduce tag ->
-              plug_into sp @<< enact_rigid_coe abs r s con tag
+              reduce_to @<< enact_rigid_coe abs r s con tag
           end
       end
     | D.HCom (cut, r, s, phi, bdy) ->
       begin
         Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
-          plug_into sp @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
         | false ->
           whnf_cut cut |>> function
           | `Done ->
@@ -181,34 +179,40 @@ struct
               | `Done _ ->
                 ret `Done
               | `Reduce tag ->
-                plug_into sp @<< enact_rigid_hcom code r s phi bdy tag
+                reduce_to @<< enact_rigid_hcom code r s phi bdy tag
             end
       end
     | D.SubOut (cut, phi, clo) ->
       begin
         test_sequent [] phi |>> function
         | true ->
-          plug_into sp @<< inst_tm_clo clo [D.Prf]
+          reduce_to @<< inst_tm_clo clo [D.Prf]
         | false ->
           whnf_cut cut |>> function
           | `Done ->
             ret `Done
           | `Reduce con ->
-            plug_into sp @<< do_sub_out con
+            reduce_to @<< do_sub_out con
       end
     | D.Split (tp, phi0, phi1, clo0, clo1) ->
       begin
         test_sequent [] phi0 |>> function
         | true ->
-          plug_into sp @<< inst_tm_clo clo0 [D.Prf]
+          reduce_to @<< inst_tm_clo clo0 [D.Prf]
         | false ->
           test_sequent [] phi1 |>> function
           | true ->
-            plug_into sp @<< inst_tm_clo clo1 [D.Prf]
+            reduce_to @<< inst_tm_clo clo1 [D.Prf]
           | false ->
             ret `Done
       end
 
+  and whnf_cut cut : D.con whnf m =
+    let hd, sp = cut in
+    whnf_hd hd |>>
+    function
+    | `Done -> ret `Done
+    | `Reduce con -> plug_into sp con
 
   and whnf_tp =
     function
@@ -1253,6 +1257,7 @@ struct
 
   and under_cof phi m =
     let rec go cofs m =
+      QuM.abort_if_inconsistent () @@
       match cofs with
       | [] -> m
       | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
@@ -1358,10 +1363,14 @@ struct
       equate_con bdry_tp bdry0 bdry1
 
     | _ ->
+      Format.eprintf "bad! equate_con!@.";
       throw @@ NbeFailed "unequal values"
 
   (* Invariant: cut0, cut1 are whnf *)
   and equate_cut cut0 cut1 =
+    QuM.abort_if_inconsistent () @@
+    let* () = assert_done_cut cut0 in
+    let* () = assert_done_cut cut1 in
     let hd0, sp0 = cut0 in
     let hd1, sp1 = cut1 in
     match hd0, hd1 with
@@ -1383,6 +1392,7 @@ struct
       let* () = equate_frm k0 k1 in
       equate_spine sp0 sp1
     | _ ->
+      Format.eprintf "bad! equate_spine!.";
       throw @@ NbeFailed "Spine length mismatch"
 
   (* Invariant: k0, k1 are whnf *)
@@ -1432,10 +1442,26 @@ struct
     | (D.KGoalProj, D.KGoalProj) ->
       ret ()
     | _ ->
+      Format.eprintf "bad! equate_frame!@.";
       throw @@ NbeFailed "Mismatched frames"
+
+  and assert_done_hd hd =
+    let* w = lift_cmp @@ whnf_hd hd in
+    match w with
+    | `Done -> ret ()
+    | _ -> failwith "internal error: assert_done_hd failed"
+
+  and assert_done_cut cut =
+    let* w = lift_cmp @@ whnf_cut cut in
+    match w with
+    | `Done -> ret ()
+    | _ -> failwith "internal error: assert_done_cut failed"
 
   (* Invariant: hd0, hd1 are whnf *)
   and equate_hd hd0 hd1 =
+    QuM.abort_if_inconsistent () @@
+    let* () = assert_done_hd hd0 in
+    let* () = assert_done_hd hd1 in
     match hd0, hd1 with
     | D.Global sym0, D.Global sym1 ->
       if Symbol.equal sym0 sym1 then ret () else
@@ -1461,7 +1487,16 @@ struct
       equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1
+    | hd, D.Split (tp, phi0, phi1, clo0, clo1)
+    | D.Split (tp, phi0, phi1, clo0, clo1), hd ->
+      let* () =
+        under_cof phi0 @@
+        equate_con tp (D.Cut {tp; cut = hd,[]; unfold = None}) @<< lift_cmp @@ inst_tm_clo clo0 [D.Prf]
+      in
+      under_cof phi1 @@
+      equate_con tp (D.Cut {tp; cut = hd,[]; unfold = None}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
     | _ ->
+      Format.eprintf "bad! equate_hd : %a / %a@." D.pp_hd hd0 D.pp_hd hd1;
       throw @@ NbeFailed "Different heads"
 
   and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =

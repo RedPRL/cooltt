@@ -164,6 +164,11 @@ let join mphi mpsi =
   and+ psi = mpsi in
   S.Cof (Cof.Join (phi, psi))
 
+let meet mphi mpsi =
+  let+ phi = mphi
+  and+ psi = mpsi in
+  S.Cof (Cof.Meet (phi, psi))
+
 let tp_dim = ret S.TpDim
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1

@@ -121,6 +121,8 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     R.Cof.split branch_tacs
   | CS.Path (tp, a, b) ->
     T.chk_to_bchk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
+  | CS.AutoHCom (tp, r, s, bdy) ->
+    R.Univ.auto_hcom (chk_tm tp) (chk_tm r) (chk_tm s) (chk_tm bdy)
   | cs ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
     match tp with
