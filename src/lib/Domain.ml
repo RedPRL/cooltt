@@ -77,12 +77,12 @@ and pp_sp : frm list Pp.printer =
 and pp_frame : frm Pp.printer =
    fun fmt ->
    function
-   | KAp _ -> Format.fprintf fmt "<ap>"
+   | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
    | _ -> Format.fprintf fmt "<frm>"
 
 and pp_cof : cof Pp.printer =
-  fun fmt _ ->
-  Format.fprintf fmt "<cof>"
+  fun fmt cof ->
+  pp_con fmt @@ cof_to_con cof
 
 and pp_clo : tm_clo Pp.printer =
   fun fmt (Clo (tm, env)) ->
@@ -107,6 +107,10 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "meet[%a,%a]" pp_con phi pp_con psi
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
+  | Cof Cof.Top ->
+    Format.fprintf fmt "top"
+  | Cof bot ->
+    Format.fprintf fmt "bot"
   | Refl _ ->
     Format.fprintf fmt "refl"
   | GoalRet con ->
