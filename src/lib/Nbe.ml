@@ -866,26 +866,6 @@ struct
       let* var = top_var tp in
       m var
 
-  let bind_var_ tp m =
-    match tp with
-    | D.TpPrf phi ->
-      begin
-        begin
-          bind_cof_proof phi @@
-          let* var = top_var tp in
-          QuM.left_invert_under_cof phi @@
-          m var
-        end |>> function
-        | `Ret _ -> ret ()
-        | `Abort -> ret ()
-      end
-    | _ ->
-      binder 1 @@
-      let* var = top_var tp in
-      m var
-
-
-
   let rec quote_con (tp : D.tp) con : S.t m =
     QuM.abort_if_inconsistent S.CofAbort @@
     match tp, con with
@@ -1235,6 +1215,27 @@ struct
     function
     | `Done -> x
     | `Reduce y -> y
+
+
+
+  let bind_var_ tp m =
+    match tp with
+    | D.TpPrf phi ->
+      begin
+        begin
+          bind_cof_proof phi @@
+          let* var = top_var tp in
+          QuM.left_invert_under_cof phi @@
+          m var
+        end |>> function
+        | `Ret _ -> ret ()
+        | `Abort -> ret ()
+      end
+    | _ ->
+      binder 1 @@
+      let* var = top_var tp in
+      m var
+
 
   (* Invariant: tp0 and tp1 not necessarily whnf *)
   let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
