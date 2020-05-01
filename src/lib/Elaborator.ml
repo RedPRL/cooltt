@@ -25,8 +25,23 @@ let rec unfold idents k =
     | _ ->
       unfold idents k
 
-let rec chk_tp : CS.t -> T.tp_tac =
+let whnf_chk tac =
+  fun goal ->
+  EM.lift_cmp @@ Nbe.whnf_tp goal |>>
   function
+  | `Done -> tac goal
+  | `Reduce goal -> tac goal
+
+let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
+  fun (tp, psi, clo) ->
+  EM.lift_cmp @@ Nbe.whnf_tp tp |>>
+  function
+  | `Done -> tac (tp, psi, clo)
+  | `Reduce tp -> tac (tp, psi, clo)
+
+let rec chk_tp : CS.t -> T.tp_tac =
+  fun cs ->
+  match cs with
   | CS.Hole name ->
     R.Hole.unleash_tp_hole name `Rigid
   | CS.Underscore ->
@@ -64,6 +79,7 @@ and chk_tm : CS.t -> T.chk_tac =
 
 and bchk_tm : CS.t -> T.bchk_tac =
   fun cs ->
+  whnf_bchk @@
   R.Tactic.bmatch_goal @@ function
   | D.Sub _, _, _ ->
     EM.ret @@ R.Sub.intro (bchk_tm cs)

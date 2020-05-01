@@ -97,3 +97,4 @@ let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
   let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
   let+ tm = tac_tm vtp in
   tm, vtp
+

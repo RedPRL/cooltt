@@ -83,4 +83,3 @@ def test : {
   ]
 }
 
-normalize test

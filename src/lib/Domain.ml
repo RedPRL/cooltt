@@ -8,7 +8,7 @@ let push frm (hd, sp) =
   hd, sp @ [frm]
 
 let mk_var tp lvl =
-  Cut {tp; cut = Var lvl, []; unfold = None}
+  Cut {tp; cut = Var lvl, []}
 
 let const_tm_clo con =
   Clo (S.Var 1, {tpenv = Emp; conenv = Snoc (Emp, con)})
@@ -33,10 +33,10 @@ let dim_to_con =
   | Dim0 -> DimCon0
   | Dim1 -> DimCon1
   | DimVar lvl ->
-    Cut {tp = TpDim; cut = Var lvl, []; unfold = None}
+    Cut {tp = TpDim; cut = Var lvl, []}
   | DimProbe sym ->
     (* hmmm *)
-    Cut {tp = TpDim; cut = Global sym, []; unfold = None}
+    Cut {tp = TpDim; cut = Global sym, []}
 
 let rec cof_to_con =
   function
@@ -45,7 +45,7 @@ let rec cof_to_con =
   | Cof.Cof Cof.Top -> Cof Cof.Top
   | Cof.Cof (Cof.Join (phi0, phi1)) -> Cof (Cof.Join (cof_to_con phi0, cof_to_con phi1))
   | Cof.Cof (Cof.Meet (phi0, phi1)) -> Cof (Cof.Meet (cof_to_con phi0, cof_to_con phi1))
-  | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []; unfold = None}
+  | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
 
 let rec pp_cut : cut Pp.printer =
   fun fmt ->
