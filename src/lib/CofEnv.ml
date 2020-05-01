@@ -112,8 +112,6 @@ let rec assume env phi =
   | `Inconsistent -> env
   | `Consistent ->
     let phi = Cof.reduce phi in
-    (* If the new assumption is stronger than what's on deck, throw the latter away *)
-    let env = if test_sequent env [phi] env.cof then {env with cof = Cof.top} else env in
     match phi with
     | Cof.Var v ->
       {env with true_vars = VarSet.add v env.true_vars}
