@@ -158,8 +158,12 @@ and syn_tm_ : CS.t -> T.syn_tac =
     T.chk_to_syn (chk_tm term) (chk_tp tp)
   | CS.Unfold (idents, c) ->
     unfold idents @@ syn_tm c
-  | CS.Coe (tp, src, trg, body) ->
-    R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
+  | CS.Coe (fam, src, trg, tm) ->
+    R.Univ.coe (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm tm)
+  | CS.HCom (tp, src, trg, cof, tm) ->
+    R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+  | CS.Com (fam, src, trg, cof, tm) ->
+    R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
   | cs ->
     failwith @@ "TODO : " ^ CS.show cs
 
