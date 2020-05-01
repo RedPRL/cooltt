@@ -38,6 +38,8 @@ and con =
   | CodeSg of con * con
   | CodeNat
 
+  | FHCom of [`Nat] * dim * dim * cof * con
+
   | Destruct of dst
 
 and tp =

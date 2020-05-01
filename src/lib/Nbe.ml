@@ -121,12 +121,18 @@ struct
     | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat
     | D.Destruct _ ->
       ret `Done
-
     | D.Cut {unfold = Some lcon} ->
       reduce_to @<< force_lazy_con lcon
-
     | D.Cut {unfold = None; cut} ->
       whnf_cut cut
+    | D.FHCom (`Nat, r, s, phi, bdy) ->
+      begin
+        Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
+        | true ->
+          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+        | false ->
+          ret `Done
+      end
 
   and reduce_to con =
     whnf_con con |>> function
@@ -408,6 +414,8 @@ struct
         ret @@ `Reduce `CoeSg
       | D.CodePath _ ->
         ret @@ `Reduce `CoePath
+      | D.CodeNat ->
+        ret @@ `Reduce `CoeNat
       | D.Cut {unfold = Some lcon} ->
         go @<< force_lazy_con lcon
       | D.Cut {cut; unfold = None} ->
@@ -426,6 +434,8 @@ struct
         ret @@ `Reduce (`HComSg (base, fam))
       | D.CodePath (fam, bdry) ->
         ret @@ `Reduce (`HComPath (fam, bdry))
+      | D.CodeNat ->
+        ret @@ `Reduce `HComNat
       | D.Cut {unfold = Some lcon} ->
         go @<< force_lazy_con lcon
       | D.Cut {cut; unfold = None} ->
@@ -460,6 +470,9 @@ struct
       QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
     | `CoePath ->
       raise Todo
+    | `CoeNat ->
+      ret con
+
 
   and enact_rigid_hcom code r s phi bdy tag =
     CmpM.abort_if_inconsistent D.Abort @@
@@ -494,12 +507,12 @@ struct
       QQ.foreign bdy @@ fun bdy ->
       QQ.term @@
       TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
+    | `HComNat ->
+      ret @@ D.FHCom (`Nat, r, s, phi, bdy)
     | `Done cut ->
       let tp = D.El cut in
       let hd = D.HCom (cut, r, s, phi, bdy) in
       ret @@ D.Cut {tp; cut = hd, []; unfold = None}
-    | _ ->
-      throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
 
   and do_rigid_coe (line : D.con) r s con =
     CmpM.abort_if_inconsistent D.Abort @@
@@ -592,7 +605,7 @@ struct
     | S.Sg (base, fam) ->
       let+ env = read_local
       and+ vbase = eval_tp base in
-      D.Sg (vbase, D.TpClo (fam, env))
+     D.Sg (vbase, D.TpClo (fam, env))
     | S.Id (tp, left, right) ->
       let+ vtp = eval_tp tp
       and+ vl = eval left
@@ -951,9 +964,35 @@ struct
       let+ tbdry = quote_con bdry_tp bdry in
       S.CodePath (tfam, tbdry)
 
+    | _, D.FHCom (`Nat, r, s, phi, bdy) ->
+      quote_hcom D.CodeNat r s phi bdy
+
     | _ ->
       Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
+
+  and quote_hcom code r s phi bdy =
+    let* tcode = quote_con D.Univ code in
+    let* tp = lift_cmp @@ do_el code in
+    let* tr = quote_dim r in
+    let* ts = quote_dim s in
+    let* tphi = quote_cof phi in
+    let+ tbdy =
+      let+ tm =
+        bind_var S.CofAbort D.TpDim @@ fun i ->
+        begin
+          let* i_dim = lift_cmp @@ con_to_dim i in
+          bind_cof_proof (Cof.join (Cof.eq r i_dim) phi) @@
+          let* body = lift_cmp @@ do_ap2 bdy i D.Prf in
+          quote_con D.Nat body
+        end |>> function
+        | `Ret tm -> ret tm
+        | `Abort -> ret S.CofAbort
+      in
+      S.Lam (S.Lam tm)
+    in
+    S.HCom (tcode, tr, ts, tphi, tbdy)
+
 
   and quote_tp (tp : D.tp) =
     match tp with
@@ -1031,25 +1070,8 @@ struct
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
     | D.HCom (cut, r, s, phi, bdy) ->
-      let* tpcode = quote_cut cut in
-      let* tr = quote_dim r in
-      let* ts = quote_dim s in
-      let* tphi = quote_cof phi in
-      let+ tbdy =
-        let+ tm =
-          bind_var S.CofAbort D.TpDim @@ fun i ->
-          begin
-            let* i_dim = lift_cmp @@ con_to_dim i in
-            bind_cof_proof (Cof.join (Cof.eq r i_dim) phi) @@
-            let* body = lift_cmp @@ do_ap2 bdy i D.Prf in
-            quote_con (D.El cut) body
-          end |>> function
-          | `Ret tm -> ret tm
-          | `Abort -> ret S.CofAbort
-        in
-        S.Lam (S.Lam tm)
-      in
-      S.HCom (tpcode, tr, ts, tphi, tbdy)
+      let code = D.Cut {cut; tp = D.Univ; unfold = None} in
+      quote_hcom code r s phi bdy
     | D.SubOut (cut, phi, clo) ->
       let+ tm = quote_cut cut in
       S.SubOut tm
@@ -1091,7 +1113,6 @@ struct
         let+ tr = quote_con D.TpDim @@ D.dim_to_con r
         and+ ts = quote_con D.TpDim @@ D.dim_to_con s in
         S.Cof (Cof.Eq (tr, ts))
-
       | Cof.Join (phi, psi) ->
         let+ tphi = quote_cof phi
         and+ tpsi = quote_cof psi in
