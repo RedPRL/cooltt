@@ -1018,13 +1018,15 @@ struct
       let* tm1 = branch_body phi1 clo1 in
       ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
-  and quote_dim =
-    function
+  (* stolen from quote_cof;we should replace those and other uses with calls to this, if this is the right thing *) 
+  and quote_dim d = quote_con D.TpDim @@ D.dim_to_con d 
+    (* this logis is right but ends up not being called because which variables are dimensions is lost;; todo/iev *)
+    (* function
     | D.Dim0 -> ret S.Dim0
     | D.Dim1 -> ret S.Dim1
-    | D.DimVar lvl ->
-      let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.Cof (Cof.Eq (D.Dim0, D.DimVar lvl))) in 
-      let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.Cof (Cof.Eq (D.Dim1, D.DimVar lvl))) in 
+    | D.DimVar lvl -> 
+      let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim0) in 
+      let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) in 
       (* check to if the ctx can prove that the variable in question is either 0
       or 1 before quoting just the level *)
       if eq0 then ret S.Dim0
@@ -1033,7 +1035,7 @@ struct
         let+ ix = quote_var lvl in
         S.Var ix
     | D.DimProbe _ ->
-      failwith "DimProbe should not be quoted!"
+      failwith "DimProbe should not be quoted!" *)
 
   and quote_cof =
     function
