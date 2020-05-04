@@ -1023,8 +1023,10 @@ struct
     | D.Dim0 -> ret S.Dim0
     | D.Dim1 -> ret S.Dim1
     | D.DimVar lvl ->
-      let* eq0 = lift_cmp @@ CmpM.test_sequent [Cof.Cof (Cof.Eq(D.Dim0, D.DimVar(lvl)))] Cof.top in 
-      let* eq1 = lift_cmp @@ CmpM.test_sequent [Cof.Cof (Cof.Eq(D.Dim1, D.DimVar(lvl)))] Cof.top in 
+      let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.Cof (Cof.Eq (D.Dim0, D.DimVar lvl))) in 
+      let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.Cof (Cof.Eq (D.Dim1, D.DimVar lvl))) in 
+      (* check to if the ctx can prove that the variable in question is either 0
+      or 1 before quoting just the level *)
       if eq0 then ret S.Dim0
       else if eq1 then ret S.Dim1
       else 
