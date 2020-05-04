@@ -883,7 +883,7 @@ struct
         QQ.term @@
         TB.pi TB.tp_dim @@ fun i ->
         univ
-       in
+      in
       let* tfam = quote_con piuniv fam in
       (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
       let* bdry_tp =
@@ -1023,8 +1023,13 @@ struct
     | D.Dim0 -> ret S.Dim0
     | D.Dim1 -> ret S.Dim1
     | D.DimVar lvl ->
-      let+ ix = quote_var lvl in
-      S.Var ix
+      let* eq0 = lift_cmp @@ CmpM.test_sequent [Cof.Cof (Cof.Eq(D.Dim0, D.DimVar(lvl)))] Cof.top in 
+      let* eq1 = lift_cmp @@ CmpM.test_sequent [Cof.Cof (Cof.Eq(D.Dim1, D.DimVar(lvl)))] Cof.top in 
+      if eq0 then ret S.Dim0
+      else if eq1 then ret S.Dim1
+      else 
+        let+ ix = quote_var lvl in
+        S.Var ix
     | D.DimProbe _ ->
       failwith "DimProbe should not be quoted!"
 
