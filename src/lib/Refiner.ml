@@ -520,10 +520,8 @@ struct
     let* fam_trg = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, trg))) in
     EM.ret (S.Coe (fam, src, trg, body), fam_trg)
 
-  (* todo/iev : chk_tac or syn_tac? *)
-  (* univ_tac @@ fun _ -> EM.ret @@ S.Cof (Cof.Top) *)
-  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.Univ)
-  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.Univ)
+  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.TpCof)
+  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.TpCof)
 end
 
 
