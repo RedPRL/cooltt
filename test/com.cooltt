@@ -17,7 +17,7 @@ def mycom/fun : {
   (r : dim) (phi : cof) (p : (i : dim) (_ : [{i==r} \/ phi]) (_ : A i) -> B i) (i : dim) -> sub {(_ : A i) -> B i} {{i==r} \/ phi} {p i _}
 } = {
   \A B com/A com/B r phi p r' x =>
-  com/B r phi {\j _ => p j _ {com/A r' {1==0} {\_ _ => x} j}} r'
+  com/B r phi {\j _ => p j _ {com/A r' {#f} {\_ _ => x} j}} r'
 }
 
 normalize mycom/fun
@@ -33,7 +33,7 @@ def coe/fun : {
   (A : dim -> univ) (B : (i : dim) -> {A i} -> univ)
   (r : dim) (r' : dim)
   (f : (x : A r) -> B r x) ->
-  sub {(x : A r') -> B r' x} {0==0} {\x => coe {\i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
+  sub {(x : A r') -> B r' x} {#t} {\x => coe {\i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
 } = {
  \A B r r' f =>
  coe {\i => (x : A i) -> B i x} r r' f
@@ -45,7 +45,7 @@ def coe/prod : {
   (A : dim -> univ) (B : (i : dim) -> {A i} -> univ)
   (r : dim) (r' : dim)
   (p : (x : A r) * B r x) ->
-  sub {(x : A r') * B r' x} {0==0} [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
+  sub {(x : A r') * B r' x} {#t} [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
 } = {
   \A B r r' p =>
   coe {\i => (x : A i) * B i x} r r' p

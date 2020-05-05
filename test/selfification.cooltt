@@ -1,6 +1,6 @@
 def testing : {
   (Z : univ) (A : univ) (B : A -> univ) (p : Z -> (x : A) * B x) ->
-  (z : Z) -> (x : sub A {tt} {fst {p z}}) * B x
+  (z : Z) -> (x : sub A {#t} {fst {p z}}) * B x
 } = {
   \_ _ _ p => p
 }
