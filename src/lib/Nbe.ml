@@ -844,7 +844,6 @@ struct
       (* for dimension variables, check to see if we can prove them to be
          the same as 0 or 1 and return those instead if so. *)
       let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim0) in
-
       if eq0 then ret S.Dim0
       else
         let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) in
