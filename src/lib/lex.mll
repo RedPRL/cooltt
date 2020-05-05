@@ -40,8 +40,8 @@ let keywords =
     ("sub", SUB);
     ("path", PATH);
     ("coe", COE);
-    ("tt", TOPC);
-    ("ff", BOTC)
+    ("#tt", TOPC);
+    ("#ff", BOTC)
   ]
 }
 
