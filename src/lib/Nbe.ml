@@ -858,11 +858,12 @@ struct
           quote_cut (hd, sp)
       end
     | D.Pi (base, fam), con ->
-      bind_var S.CofAbort base @@ fun arg ->
-      let* arg = top_var base in
-      let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
-      let* ap = lift_cmp @@ do_ap con arg in
-      let+ body = quote_con fib ap in
+      let+ body =
+        bind_var S.CofAbort base @@ fun arg ->
+        let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
+        let* ap = lift_cmp @@ do_ap con arg in
+        quote_con fib ap
+      in
       S.Lam body
     | D.Sg (base, fam), _ ->
       let* fst = lift_cmp @@ do_fst con in
