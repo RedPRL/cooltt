@@ -789,6 +789,15 @@ struct
     QuM.abort_if_inconsistent S.CofAbort @@
     match tp, con with
     | _, D.Abort -> ret S.CofAbort
+    | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
+      let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim0) in
+      let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) in
+      if eq0 then ret S.Dim0
+      else if eq1 then ret S.Dim1
+      else
+        let+ ix = quote_var lvl in
+        S.Var ix
+
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
         match hd, unfold with
@@ -1018,24 +1027,7 @@ struct
       let* tm1 = branch_body phi1 clo1 in
       ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
-  (* stolen from quote_cof;we should replace those and other uses with calls to this, if this is the right thing *)
   and quote_dim d = quote_con D.TpDim @@ D.dim_to_con d
-  (* this logis is right but ends up not being called because which variables are dimensions is lost;; todo/iev *)
-  (* function
-     | D.Dim0 -> ret S.Dim0
-     | D.Dim1 -> ret S.Dim1
-     | D.DimVar lvl ->
-     let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim0) in
-     let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) in
-     (* check to if the ctx can prove that the variable in question is either 0
-     or 1 before quoting just the level *)
-     if eq0 then ret S.Dim0
-     else if eq1 then ret S.Dim1
-     else
-      let+ ix = quote_var lvl in
-      S.Var ix
-     | D.DimProbe _ ->
-     failwith "DimProbe should not be quoted!" *)
 
   and quote_cof =
     function
