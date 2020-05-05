@@ -1148,8 +1148,7 @@ struct
         bind_var (S.El S.CofAbort) tp @@ fun y ->
         bind_var (S.El S.CofAbort) (D.Id (tp, x, y)) @@ fun z -> (* used to be left/right instead of x/y, I think that was a bug *)
         let* mot_xyz = lift_cmp @@ inst_tp_clo mot [x; y; z] in
-        let+ tmot = quote_tp mot_xyz in
-        tmot
+        quote_tp mot_xyz
       in
       let+ trefl_case =
         bind_var S.CofAbort tp @@ fun x ->
@@ -1282,7 +1281,7 @@ struct
       approx_cof Cof.top @@ Cof.eq r0 r1
     | D.TpCof, _, _ ->
       let* phi0 = lift_cmp @@ con_to_cof con0 in
-      let* phi1 = lift_cmp @@ con_to_cof con0 in
+      let* phi1 = lift_cmp @@ con_to_cof con1 in
       equate_cof phi0 phi1
     | _, D.Cut {cut = cut0; unfold = None}, D.Cut {cut = cut1; unfold = None} ->
       equate_cut cut0 cut1
@@ -1293,7 +1292,6 @@ struct
     | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
     | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
       let* _ = equate_con univ base0 base1 in
-      let* el_base = lift_cmp @@ do_el base0 in
       let* fam_tp =
         lift_cmp @@
         quasiquote_tp @@
