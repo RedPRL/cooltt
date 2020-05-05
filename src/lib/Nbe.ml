@@ -784,12 +784,13 @@ struct
       let* var = top_var tp in
       m var
 
-
   let rec quote_con (tp : D.tp) con : S.t m =
     QuM.abort_if_inconsistent S.CofAbort @@
     match tp, con with
     | _, D.Abort -> ret S.CofAbort
     | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
+      (* for dimension variables, check to see if we can prove them to be
+         the same as 0 or 1 and return those instead if so. *)
       let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim0) in
       let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) in
       if eq0 then ret S.Dim0
@@ -797,7 +798,6 @@ struct
       else
         let+ ix = quote_var lvl in
         S.Var ix
-
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
         match hd, unfold with
