@@ -51,6 +51,8 @@ module Univ : sig
   val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
   val el_formation : chk_tac -> tp_tac
   val coe : chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
+  val topc : syn_tac
+  val botc : syn_tac
 end
 
 module Pi : sig

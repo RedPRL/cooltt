@@ -39,7 +39,9 @@ let keywords =
     ("cof", COF);
     ("sub", SUB);
     ("path", PATH);
-    ("coe", COE)
+    ("coe", COE);
+    ("tt", TOPC);
+    ("ff", BOTC)
   ]
 }
 

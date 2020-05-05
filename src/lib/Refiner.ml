@@ -7,6 +7,7 @@ module EM = ElabBasics
 module T = Tactic
 module QQ = Quasiquote
 module TB = TermBuilder
+module Cof_tl = Cof (* this lets us access Cof after it gets shadowed below *)
 
 exception Todo
 
@@ -518,6 +519,11 @@ struct
     let* body = tac_body fam_src in
     let* fam_trg = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, trg))) in
     EM.ret (S.Coe (fam, src, trg, body), fam_trg)
+
+  (* todo/iev : chk_tac or syn_tac? *)
+  (* univ_tac @@ fun _ -> EM.ret @@ S.Cof (Cof.Top) *)
+  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.Univ)
+  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.Univ)
 end
 
 

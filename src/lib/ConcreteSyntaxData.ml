@@ -38,6 +38,8 @@ and t =
   | CofSplit of (t * t) list
   | Path of t * t * t
   | Coe of t * t * t * t
+  | TopC
+  | BotC
 [@@deriving show]
 
 and case = pat * t

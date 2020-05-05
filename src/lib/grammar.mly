@@ -17,6 +17,7 @@
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
 %token EOF
+%token TOPC BOTC
 
 %start <ConcreteSyntax.signature> sign
 %%
@@ -64,6 +65,10 @@ atomic:
     { Dim }
   | COF
     { Cof }
+  | TOPC
+    { TopC }
+  | BOTC
+    { BotC }
 
   | LSQ t = bracketed RSQ
     { t }
