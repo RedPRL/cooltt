@@ -12,7 +12,7 @@
 %token TIMES FST SND
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
-%token PATH (* other path-related forms will go here *)
+%token PATH
 %token COE
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
