@@ -159,6 +159,10 @@ and syn_tm_ : CS.t -> T.syn_tac =
     unfold idents @@ syn_tm c
   | CS.Coe (tp, src, trg, body) ->
     R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
+  | CS.HCom (tp, src, trg, cof, tm) ->
+    R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+  | CS.Com (fam, src, trg, cof, tm) ->
+    R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
   | CS.TopC -> R.Univ.topc
   | CS.BotC -> R.Univ.botc
   | cs ->

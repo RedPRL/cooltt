@@ -39,7 +39,9 @@ let keywords =
     ("cof", COF);
     ("sub", SUB);
     ("path", PATH);
-    ("coe", COE)
+    ("coe", COE);
+    ("hcom", HCOM);
+    ("com", COM)
   ]
 }
 
@@ -87,8 +89,6 @@ rule token = parse
     { TIMES }
   | ':'
     { COLON }
-  | "=="
-    { EEQUALS }
   | "/\\"
     { MEET }
   | "\\/"

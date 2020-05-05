@@ -1,7 +1,7 @@
-def boundary-test : (i : dim) (_ : [{i==0} \/ {i==1}]) -> nat = {
+def boundary-test : (i : dim) (_ : [i=0 \/ i=1]) -> nat = {
   \i _ =>
-   [ i==1 => 5
-   | i==0 => 19
+   [ i=1 => 5
+   | i=0 => 19
    ]
 }
 

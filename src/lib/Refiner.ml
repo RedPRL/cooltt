@@ -504,7 +504,10 @@ struct
       [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
-  let coe tac_fam tac_src tac_trg tac_body : T.syn_tac =
+  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.TpCof)
+  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.TpCof)
+
+  let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@
       Nbe.quasiquote_tp @@
@@ -515,13 +518,64 @@ struct
     let* fam = tac_fam piuniv in
     let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
-    let* fam_src = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, src))) in
-    let* body = tac_body fam_src in
-    let* fam_trg = EM.lift_ev (Nbe.eval_tp @@ S.El (S.Ap (fam, trg))) in
-    EM.ret (S.Coe (fam, src, trg, body), fam_trg)
+    let* fam_src = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, src)) in
+    let+ tm = tac_tm fam_src
+    and+ fam_trg = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, trg)) in
+    S.Coe (fam, src, trg, tm), fam_trg
 
-  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.TpCof)
-  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.TpCof)
+  let hcom tac_ty tac_src tac_trg tac_cof tac_tm : T.syn_tac =
+    let* ty = tac_ty D.Univ in
+    let* src = tac_src D.TpDim in
+    let* trg = tac_trg D.TpDim in
+    let* cof = tac_cof D.TpCof in
+    let* vsrc = EM.lift_ev @@ Nbe.eval src in
+    let* vcof = EM.lift_ev @@ Nbe.eval_cof cof in
+    let* velty = EM.lift_ev @@ Nbe.eval_tp @@ S.El ty in
+    (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
+    let+ tm =
+      tac_tm @<<
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.foreign vsrc @@ fun src ->
+      QQ.foreign (D.cof_to_con vcof) @@ fun cof ->
+      QQ.foreign_tp velty @@ fun velty ->
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.join (TB.eq i src) cof)) @@ fun _ ->
+      velty
+    in
+    S.HCom (ty, src, trg, cof, tm), velty
+
+  let com tac_fam tac_src tac_trg tac_cof tac_tm : T.syn_tac =
+    let* piuniv =
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.univ
+    in
+    let* fam = tac_fam piuniv in
+    let* src = tac_src D.TpDim in
+    let* trg = tac_trg D.TpDim in
+    let* cof = tac_cof D.TpCof in
+    let* vfam = EM.lift_ev @@ Nbe.eval fam in
+    let* vsrc = EM.lift_ev @@ Nbe.eval src in
+    let* vcof = EM.lift_ev @@ Nbe.eval_cof cof in
+    (* (i : dim) -> (_ : [i=src \/ cof]) -> A i *)
+    let+ tm =
+      tac_tm @<<
+      EM.lift_cmp @@
+      Nbe.quasiquote_tp @@
+      QQ.foreign vfam @@ fun vfam ->
+      QQ.foreign vsrc @@ fun src ->
+      QQ.foreign (D.cof_to_con vcof) @@ fun cof ->
+      QQ.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.join (TB.eq i src) cof)) @@ fun _ ->
+      TB.el @@ TB.ap vfam [i]
+    and+ vfam_trg = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, trg)) in
+    S.Com (fam, src, trg, cof, tm), vfam_trg
+
 end
 
 

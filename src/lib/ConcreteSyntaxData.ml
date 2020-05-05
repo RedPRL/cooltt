@@ -40,6 +40,8 @@ and t =
   | Coe of t * t * t * t
   | TopC
   | BotC
+  | HCom of t * t * t * t * t
+  | Com of t * t * t * t * t
 [@@deriving show]
 
 and case = pat * t

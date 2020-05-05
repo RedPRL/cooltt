@@ -7,13 +7,13 @@
 %token <string option> HOLE_NAME
 %token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF
 %token LPR RPR LBR RBR LSQ RSQ
-%token EQUALS EEQUALS JOIN MEET
+%token EQUALS JOIN MEET
 %token UNIV
 %token TIMES FST SND
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
 %token PATH
-%token COE
+%token COE COM HCOM
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
 %token EOF
@@ -42,8 +42,19 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
+eq:
+  | r = atomic EQUALS s = atomic
+    { CofEq (r, s) }
+
+cof:
+  | eq = eq { eq }
+  | phi = atomic_or_eq JOIN psi = atomic_or_eq
+    { Join (phi, psi) }
+  | phi = atomic_or_eq MEET psi = atomic_or_eq
+    { Meet (phi, psi) }
+
 atomic:
-  | LBR; term = term; RBR
+  | LBR term = term_or_cof RBR
     { term }
   | a = ATOM
     { Var (`User a) }
@@ -73,6 +84,10 @@ atomic:
   | LSQ t = bracketed RSQ
     { t }
 
+atomic_or_eq: t = atomic | t = eq {t}
+
+atomic_or_cof: t = atomic | t = cof {t}
+
 bracketed:
   | left = term COMMA right = term
     { Pair (left, right) }
@@ -80,14 +95,18 @@ bracketed:
     { CofSplit cases }
   | PIPE cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = term
+  | t = term_or_cof
     { Prf t }
 
-term:
-  | f = atomic
-    { f }
+ap:
   | f = atomic; args = nonempty_list(atomic)
     { Ap (f, args) }
+
+atomic_or_ap : t = atomic | t = ap {t}
+
+term:
+  | t = atomic_or_ap
+    { t }
   | UNFOLD; names = nonempty_list(name); IN; body = term;
     { Unfold (names, body) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
@@ -110,9 +129,9 @@ term:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
-  | dom = atomic RIGHT_ARROW; cod = term
+  | dom = atomic_or_ap RIGHT_ARROW cod = term
     { Pi ([Cell {name = "_"; tp = dom}], cod) }
-  | dom = atomic; TIMES; cod = term
+  | dom = atomic_or_ap TIMES cod = term
     { Sg ([Cell {name = "_"; tp = dom}], cod) }
   | SUB tp = atomic phi = atomic tm = atomic
     { Sub (tp, phi, tm) }
@@ -121,18 +140,17 @@ term:
   | SND; t = term
     { Snd t }
 
-  | r = atomic EEQUALS s = atomic
-    { CofEq (r, s) }
-  | phi = atomic JOIN psi = atomic
-    { Join (phi, psi) }
-  | phi = atomic MEET psi = atomic
-    { Meet (phi, psi) }
-
   | PATH; tp = atomic; left = atomic; right = atomic
     { Path (tp, left, right) }
 
-  | COE; tp = atomic; src = atomic; trg = atomic; body = atomic
-    { Coe (tp, src, trg, body) }
+  | COE; fam = atomic; src = atomic; trg = atomic; body = atomic
+    { Coe (fam, src, trg, body) }
+  | HCOM; tp = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
+    { HCom (tp, src, trg, phi, body) }
+  | COM; fam = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
+    { Com (fam, src, trg, phi, body) }
+
+term_or_cof: t = term | t = cof {t}
 
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR
@@ -147,7 +165,7 @@ case:
     { p, t }
 
 cof_case:
-  | phi = term RRIGHT_ARROW t = term
+  | phi = atomic_or_cof RRIGHT_ARROW t = term
     { phi, t }
 
 pat_lbl:
