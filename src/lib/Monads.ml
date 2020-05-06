@@ -189,6 +189,4 @@ struct
     match CofEnv.status (Env.cof_env env) with
     | `Consistent -> m (state, env)
     | `Inconsistent -> M.ret abort (state, env)
-
-
 end

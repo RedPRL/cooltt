@@ -148,4 +148,3 @@ and pp_tp fmt =
     Format.fprintf fmt "<goal-tp>"
   | Id _ ->
     Format.fprintf fmt "<id>"
-

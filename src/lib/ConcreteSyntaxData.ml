@@ -38,6 +38,8 @@ and t =
   | CofSplit of (t * t) list
   | Path of t * t * t
   | Coe of t * t * t * t
+  | TopC
+  | BotC
   | HCom of t * t * t * t * t
   | Com of t * t * t * t * t
 [@@deriving show]

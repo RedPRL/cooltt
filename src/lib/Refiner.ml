@@ -7,6 +7,7 @@ module EM = ElabBasics
 module T = Tactic
 module QQ = Quasiquote
 module TB = TermBuilder
+module Cof_tl = Cof (* this lets us access Cof after it gets shadowed below *)
 
 exception Todo
 
@@ -17,18 +18,19 @@ open Bwd
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
 
-let rec int_to_term =
-  function
-  | 0 -> S.Zero
-  | n -> S.Suc (int_to_term (n - 1))
-
 module Hole =
 struct
+  let norm : D.cof -> D.cof m =
+    fun phi ->
+      let* useless = EM.lift_cmp @@ CmpM.test_sequent [phi] Cof.bot in
+      EM.ret (if useless then Cof.bot else phi)
+
   let make_hole name flexity (tp, phi, clo) =
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
+        let* phi' = norm phi in
+        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
@@ -502,6 +504,9 @@ struct
       [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
+  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.TpCof)
+  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.TpCof)
+
   let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@
@@ -570,6 +575,7 @@ struct
       TB.el @@ TB.ap vfam [i]
     and+ vfam_trg = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
+
 end
 
 
@@ -616,6 +622,11 @@ struct
     function
     | D.Nat -> EM.ret ()
     | tp -> EM.expected_connective `Nat tp
+
+  let rec int_to_term =
+    function
+    | 0 -> S.Zero
+    | n -> S.Suc (int_to_term (n - 1))
 
   let literal n : T.chk_tac =
     fun tp ->

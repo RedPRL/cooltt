@@ -120,6 +120,10 @@ rule token = parse
     { AT }
   | "--"
     { comment lexbuf }
+  | "#t"
+    { TOPC }
+  | "#f"
+    { BOTC }
   | line_ending
     { new_line lexbuf; token lexbuf }
   | whitespace

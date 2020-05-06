@@ -53,6 +53,8 @@ module Univ : sig
   val coe : chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
+  val topc : syn_tac
+  val botc : syn_tac
 end
 
 module Pi : sig

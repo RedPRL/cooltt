@@ -836,11 +836,23 @@ struct
       let* var = top_var tp in
       m var
 
-
   let rec quote_con (tp : D.tp) con : S.t m =
     QuM.abort_if_inconsistent S.CofAbort @@
     match tp, con with
     | _, D.Abort -> ret S.CofAbort
+    | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
+      (* for dimension variables, check to see if we can prove them to be
+         the same as 0 or 1 and return those instead if so. *)
+      begin
+        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim0 |>> function
+        | true -> ret S.Dim0
+        | false ->
+          lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) |>> function
+          | true -> ret S.Dim1
+          | false ->
+            let+ ix = quote_var lvl in
+            S.Var ix
+      end
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
         match hd, unfold with
@@ -936,7 +948,7 @@ struct
         QQ.term @@
         TB.pi TB.tp_dim @@ fun i ->
         univ
-       in
+      in
       let* tfam = quote_con piuniv fam in
       (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
       let* bdry_tp =
@@ -1071,15 +1083,7 @@ struct
       let* tm1 = branch_body phi1 clo1 in
       ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
-  and quote_dim =
-    function
-    | D.Dim0 -> ret S.Dim0
-    | D.Dim1 -> ret S.Dim1
-    | D.DimVar lvl ->
-      let+ ix = quote_var lvl in
-      S.Var ix
-    | D.DimProbe _ ->
-      failwith "DimProbe should not be quoted!"
+  and quote_dim d = quote_con D.TpDim @@ D.dim_to_con d
 
   and quote_cof =
     function
@@ -1089,8 +1093,8 @@ struct
     | Cof.Cof phi ->
       match phi with
       | Cof.Eq (r, s) ->
-        let+ tr = quote_con D.TpDim @@ D.dim_to_con r
-        and+ ts = quote_con D.TpDim @@ D.dim_to_con s in
+        let+ tr = quote_dim r
+        and+ ts = quote_dim s in
         S.Cof (Cof.Eq (tr, ts))
 
       | Cof.Join (phi, psi) ->
