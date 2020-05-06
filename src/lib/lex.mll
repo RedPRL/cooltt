@@ -91,6 +91,8 @@ rule token = parse
     { COLON }
   | "𝕀"
     { DIM }
+  | "𝔽"
+    { COF }
   | "∧"
     { MEET }
   | "/\\"
