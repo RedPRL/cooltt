@@ -29,9 +29,9 @@ syn keyword coolttDecl def let normalize quit
 
 syn match   coolttSymb '=>\|[|,*×:=λ_@𝕀𝔽∧∨→]\|->\|#t\|#f'
 syn match   coolttSymb '\\/\|/\\\|\\'
-"syn match   redttSymb '[#@`|^*×:,.∙✓□=∂→λ𝕀]\|->'
 
 syn region  coolttComm excludenl start="\k\@1<!--" end="$" contains=coolttTodo
+syn region  coolttBlockComm start="/-" end="-/" nextgroup=coolttKeyw contains=coolttBlockComm,coolttTodo
 syn keyword coolttTodo contained TODO
 
 hi def link coolttParenErr Error
@@ -43,5 +43,6 @@ hi def link coolttKeyw Identifier
 hi def link coolttDecl Statement
 hi def link coolttSymb Identifier
 hi def link coolttComm Comment
+hi def link coolttBlockComm Comment
 
 let b:current_syntax = "cooltt"

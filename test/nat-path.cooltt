@@ -27,17 +27,18 @@ def +-suc-r : (x : nat) (y : nat) → path {\_ => nat} {+ x {suc y}} {suc {+ x y
   ]
 }
 
---
--- def +-comm : (x : nat) (y : nat) → Id nat {+ y x} {+ x y} = {
---   \elim [
---   | zero => +-right-unit
---   | suc {y => ih} =>
---     \z =>
---     trans nat {+ z {suc y}} {suc {+ z y}} {suc {+ y z}}
---       {+-suc-r z y}
---       {cong nat nat {\w => suc w} {+ z y} {+ y z} {ih z}}
---   ]
--- }
+/-
+def +-comm : (x : nat) (y : nat) → Id nat {+ y x} {+ x y} = {
+  \elim [
+  | zero => +-right-unit
+  | suc {y => ih} =>
+    \z =>
+    trans nat {+ z {suc y}} {suc {+ z y}} {suc {+ y z}}
+      {+-suc-r z y}
+      {cong nat nat {\w => suc w} {+ z y} {+ y z} {ih z}}
+  ]
+}
+-/
 
 def +-assoc : {
   (x : nat) (y : nat) (z : nat) →

@@ -1,3 +1,5 @@
+-- See also pre-path-types.cooltt.
+
 def formation : {
   (A : 𝕀 → univ) (a : A 0) (b : A 1) → univ
 } = {
