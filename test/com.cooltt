@@ -64,7 +64,7 @@ def coe/path : {
   coe {\i => Path A bdry} r s m
 }
 
--- normalize coe/path
+normalize coe/path
 
 def hcom/intro : {
   (A : univ) (r : dim) (r' : dim) (φ : cof)
