@@ -1,5 +1,5 @@
 def formation : {
-  (A : dim -> univ) (a : A 0) (b : A 1) -> univ
+  (A : 𝕀 -> univ) (a : A 0) (b : A 1) -> univ
 } = {
   \A a b =>
   path A a b

@@ -94,7 +94,7 @@ def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
   ]
 }
 
-def +-right-unit/cubical : (x : nat) (i : dim) -> sub nat {i=0 \/ i=1} [i=0 => {+ x 0} | i=1 => x] = {
+def +-right-unit/cubical : (x : nat) (i : 𝕀) -> sub nat {i=0 ∨ i=1} [i=0 => {+ x 0} | i=1 => x] = {
   \elim [
   | zero => \i => 0
   | suc {x => ih} => \i => suc {ih i}

@@ -1,4 +1,4 @@
-def boundary-test : (i : dim) (_ : [i=0 \/ i=1]) -> nat = {
+def boundary-test : (i : 𝕀) (_ : [i=0 ∨ i=1]) -> nat = {
   \i _ =>
    [ i=1 => 5
    | i=0 => 19
@@ -8,7 +8,7 @@ def boundary-test : (i : dim) (_ : [i=0 \/ i=1]) -> nat = {
 
 normalize boundary-test
 
-def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
+def reflexivity : (A : univ) (a : A) (i : 𝕀) -> A = {
   \A a _ => a
 }
 

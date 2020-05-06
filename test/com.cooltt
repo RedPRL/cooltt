@@ -1,8 +1,8 @@
 def mycoe/fun : {
-  (A : (i : dim) -> univ) (B : (i: dim) -> univ)
-  (coe/A : (r : dim) (x : A r) (i : dim) -> sub {A i} {i=r} x)
-  (coe/B : (r : dim) (x : B r) (i : dim) -> sub {B i} {i=r} x)
-  (r : dim) (f : (_ : A r) -> B r) (i : dim) ->
+  (A : (i : 𝕀) -> univ) (B : (i: 𝕀) -> univ)
+  (coe/A : (r : 𝕀) (x : A r) (i : 𝕀) -> sub {A i} {i=r} x)
+  (coe/B : (r : 𝕀) (x : B r) (i : 𝕀) -> sub {B i} {i=r} x)
+  (r : 𝕀) (f : (_ : A r) -> B r) (i : 𝕀) ->
   sub {(_ : A i) -> B i} {i=r} f
 } = {
  \A B coe/A coe/B r f i x =>
@@ -10,11 +10,11 @@ def mycoe/fun : {
 }
 
 def mycom/fun : {
-  (A : dim -> univ)
-  (B : dim -> univ)
-  (com/A : (r : dim) (φ : cof) (p : (i : dim) (_ : [i=r \/ φ]) -> A i) (i : dim) -> sub {A i} {i=r \/ φ} {p i _})
-  (com/B : (r : dim) (φ : cof) (p : (i : dim) (_ : [i=r \/ φ]) -> B i) (i : dim) -> sub {B i} {i=r \/ φ} {p i _})
-  (r : dim) (φ : cof) (p : (i : dim) (_ : [i=r \/ φ]) (_ : A i) -> B i) (i : dim) -> sub {(_ : A i) -> B i} {i=r \/ φ} {p i _}
+  (A : 𝕀 -> univ)
+  (B : 𝕀 -> univ)
+  (com/A : (r : 𝕀) (φ : cof) (p : (i : 𝕀) (_ : [i=r ∨ φ]) -> A i) (i : 𝕀) -> sub {A i} {i=r ∨ φ} {p i _})
+  (com/B : (r : 𝕀) (φ : cof) (p : (i : 𝕀) (_ : [i=r ∨ φ]) -> B i) (i : 𝕀) -> sub {B i} {i=r ∨ φ} {p i _})
+  (r : 𝕀) (φ : cof) (p : (i : 𝕀) (_ : [i=r ∨ φ]) (_ : A i) -> B i) (i : 𝕀) -> sub {(_ : A i) -> B i} {i=r ∨ φ} {p i _}
 } = {
   \A B com/A com/B r φ p r' x =>
   com/B r φ {\j _ => p j _ {com/A r' #f {\_ _ => x} j}} r'
@@ -23,15 +23,15 @@ def mycom/fun : {
 normalize mycom/fun
 
 def coe/intro : {
-  (A : dim -> univ) (r : dim) (r' : dim) (x : A r) ->
+  (A : 𝕀 -> univ) (r : 𝕀) (r' : 𝕀) (x : A r) ->
   sub {A r'} {r=r'} x
 } = {
  \A r r' x => coe A r r' x
 }
 
 def coe/pi : {
-  (A : dim -> univ) (B : (i : dim) -> A i -> univ)
-  (r : dim) (r' : dim)
+  (A : 𝕀 -> univ) (B : (i : 𝕀) -> A i -> univ)
+  (r : 𝕀) (r' : 𝕀)
   (f : (x : A r) -> B r x) ->
   sub {(x : A r') -> B r' x} #t {\x => coe {\i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
 } = {
@@ -42,8 +42,8 @@ def coe/pi : {
 normalize coe/pi
 
 def coe/sigma : {
-  (A : dim -> univ) (B : (i : dim) -> A i -> univ)
-  (r : dim) (r' : dim)
+  (A : 𝕀 -> univ) (B : (i : 𝕀) -> A i -> univ)
+  (r : 𝕀) (r' : 𝕀)
   (p : (x : A r) * B r x) ->
   sub {(x : A r') * B r' x} #t [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
 } = {
@@ -54,17 +54,17 @@ def coe/sigma : {
 normalize coe/sigma
 
 def hcom/intro : {
-  (A : univ) (r : dim) (r' : dim) (φ : cof)
-  (p : (i : dim) (_ : [i=r \/ φ]) -> A) ->
-  sub A {r=r' \/ φ} {p r' _}
+  (A : univ) (r : 𝕀) (r' : 𝕀) (φ : cof)
+  (p : (i : 𝕀) (_ : [i=r ∨ φ]) -> A) ->
+  sub A {r=r' ∨ φ} {p r' _}
 } = {
   \A r r' φ p =>
   hcom A r r' φ p
 }
 
 def hcom/fun : {
-  (A : univ) (B : univ) (r : dim) (r' : dim) (φ : cof)
-  (p : (i : dim) (_ : [i=r \/ φ]) -> A -> B) ->
+  (A : univ) (B : univ) (r : 𝕀) (r' : 𝕀) (φ : cof)
+  (p : (i : 𝕀) (_ : [i=r ∨ φ]) -> A -> B) ->
   sub {A -> B} {0=0} {\x => hcom B r r' φ {\j _ => p j _ x}}
 } = {
   \A B r r' φ p =>
@@ -74,9 +74,9 @@ def hcom/fun : {
 normalize hcom/fun
 
 def com/intro : {
-  (A : dim -> univ) (r : dim) (r' : dim) (φ : cof)
-  (p : (i : dim) (_ : [i=r \/ φ]) -> A i) ->
-  sub {A r'} {r=r' \/ φ} {p r' _}
+  (A : 𝕀 -> univ) (r : 𝕀) (r' : 𝕀) (φ : cof)
+  (p : (i : 𝕀) (_ : [i=r ∨ φ]) -> A i) ->
+  sub {A r'} {r=r' ∨ φ} {p r' _}
 } = {
   \A r r' φ p =>
   com A r r' φ p
@@ -85,8 +85,8 @@ def com/intro : {
 normalize com/intro
 
 def com/decomposition : {
-  (A : dim -> univ) (r : dim) (r' : dim) (φ : cof)
-  (p : (i : dim) (_ : [i=r \/ φ]) -> A i) ->
+  (A : 𝕀 -> univ) (r : 𝕀) (r' : 𝕀) (φ : cof)
+  (p : (i : 𝕀) (_ : [i=r ∨ φ]) -> A i) ->
   sub {A r'} #t {hcom {A r'} r r' φ {\j _ => coe A j r' {p j _}}}
 } = {
   \A r r' φ p =>

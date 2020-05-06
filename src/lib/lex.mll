@@ -89,8 +89,14 @@ rule token = parse
     { TIMES }
   | ':'
     { COLON }
+  | "𝕀"
+    { DIM }
+  | "∧"
+    { MEET }
   | "/\\"
     { MEET }
+  | "∨"
+    { JOIN }
   | "\\/"
     { JOIN }
   | "="
