@@ -223,9 +223,12 @@ struct
       ~(s : S.t m)                 (* r' : I *)
       ~(bdy : S.t m)               (* M : A r *)
                                    (* ------------------------ *)
-    : S.t                          (* A  r' [ r = r -> M *)
+    : S.t m                        (* A  r' [ r = r -> M *)
     =
-    com (raise Todo) (raise Todo) (raise Todo) (raise Todo)
+    lam @@ fun x ->
+      com (lam @@ fun y -> fam_line) r s
+        (raise Todo) (* phi, so a cofibration of some kind *)
+        (raise Todo) (* body *)
 
 
   (*
