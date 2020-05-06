@@ -225,7 +225,7 @@ struct
                                    (* ------------------------ *)
     : S.t                          (* A  r' [ r = r -> M *)
     =
-    raise Todo
+    com (raise Todo) (raise Todo) (raise Todo) (raise Todo)
 
 
   (*
