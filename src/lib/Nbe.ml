@@ -843,14 +843,16 @@ struct
     | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
       (* for dimension variables, check to see if we can prove them to be
          the same as 0 or 1 and return those instead if so. *)
-      let* eq0 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim0) in
-      if eq0 then ret S.Dim0
-      else
-        let* eq1 = lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) in
-        if eq1 then ret S.Dim1
-        else
-          let+ ix = quote_var lvl in
-          S.Var ix
+      begin
+        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim0 |>> function
+        | true -> ret S.Dim0
+        | false ->
+          lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) |>> function
+          | true -> ret S.Dim1
+          | false ->
+            let+ ix = quote_var lvl in
+            S.Var ix
+      end
     | _, D.Cut {cut = (hd, sp); unfold; tp} ->
       begin
         match hd, unfold with
