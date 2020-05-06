@@ -44,11 +44,11 @@ normalize coe/pi
 def coe/sigma : {
   (A : 𝕀 → univ) (B : (i : 𝕀) → A i → univ)
   (r : 𝕀) (r' : 𝕀)
-  (p : (x : A r) * B r x) →
-  sub {(x : A r') * B r' x} #t [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
+  (p : (x : A r) × B r x) →
+  sub {(x : A r') × B r' x} #t [coe A r r' {fst p}, coe {\i => B i {coe A r i {fst p}}} r r' {snd p}]
 } = {
   \A B r r' p =>
-  coe {\i => (x : A i) * B i x} r r' p
+  coe {\i => (x : A i) × B i x} r r' p
 }
 
 normalize coe/sigma

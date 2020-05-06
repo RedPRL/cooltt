@@ -21,11 +21,11 @@ def funext : {
 }
 
 def pairext : {
-  (A : univ) (B : univ) (p : (x : A) * B) (q : (x : A) * B)
+  (A : univ) (B : univ) (p : (x : A) × B) (q : (x : A) × B)
   (h :
-     (x : (i : 𝕀) → sub A {i=0 ∨ i=1} [i=0 => fst p | i=1 => fst q]) *
+     (x : (i : 𝕀) → sub A {i=0 ∨ i=1} [i=0 => fst p | i=1 => fst q]) ×
      (i : 𝕀) → sub B {i=0 ∨ i=1} [i=0 => snd p | i=1 => snd q])
-  → (i : 𝕀) → sub {(x : A) * B} {i=0 ∨ i=1} [i=0 => p | i=1 => q]
+  → (i : 𝕀) → sub {(x : A) × B} {i=0 ∨ i=1} [i=0 => p | i=1 => q]
 } = {
   \A B p q h i =>
   [ {fst h} i

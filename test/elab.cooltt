@@ -12,7 +12,7 @@ def reflexivity : (A : univ) (a : A) (i : 𝕀) → A = {
   \A a _ => a
 }
 
-def foo : (x : nat) → (y : nat) * Id nat x y = {
+def foo : (x : nat) → (y : nat) × Id nat x y = {
   \x =>
   [x, ?hole1]
 }

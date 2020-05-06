@@ -29,9 +29,9 @@ def funext : {
 normalize funext
 
 def pairext : {
-  (A : univ) (B : univ) (p : (x : A) * B) (q : (x : A) * B)
-  (h : (x : path {\_ => A} {fst p} {fst q}) * path {\_ => B} {snd p} {snd q})
-  → path {\_ => (x : A) * B} p q
+  (A : univ) (B : univ) (p : (x : A) × B) (q : (x : A) × B)
+  (h : (x : path {\_ => A} {fst p} {fst q}) × path {\_ => B} {snd p} {snd q})
+  → path {\_ => (x : A) × B} p q
 } = {
   \A B p q h i =>
   [ {fst h} i
