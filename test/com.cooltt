@@ -58,7 +58,7 @@ def coe/path : {
   (r : dim) (s : dim)
   (bdry : ?)
   (m : A r)
-  -> sub {A s} {r = s} [m]
+  -> sub {A s} {r = s} [?]
 } = {
   \A B r s bdry m =>
   coe {\i => Path A bdry} r s m
