@@ -1,6 +1,6 @@
 def symm : {
   (A : univ) (x : A) (y : A) (p : Id A x y)
-  -> Id A y x
+  → Id A y x
 } = {
   \A x y p =>
   elim p @ {u v _ => Id A v u} [
@@ -11,10 +11,10 @@ def symm : {
 def trans : {
   (A : univ) (x : A) (y : A) (z : A)
   (p : Id A x y) (q : Id A y z)
-  -> Id A x z
+  → Id A x z
 } = {
   \A x y z p =>
-  elim p @ {u v _ => (q : Id A v z) -> Id A u z} [
+  elim p @ {u v _ => (q : Id A v z) → Id A u z} [
   | refl => \q => q
   ]
 }
@@ -22,7 +22,7 @@ def trans : {
 def trans-assoc : {
   (A : univ) (s : A) (t : A) (u : A) (v : A)
   (p : Id A s t) (q : Id A t u) (r : Id A u v)
-  -> Id
+  → Id
       {Id A s v}
       {trans A s u v {trans A s t u p q} r}
       {trans A s t v p {trans A t u v q r}}
@@ -30,7 +30,7 @@ def trans-assoc : {
   \A s t u v p =>
   elim p @ {s t p =>
     (q : Id A t u) (r : Id A u v)
-    -> Id
+    → Id
         {Id A s v}
         {trans A s u v {trans A s t u p q} r}
         {trans A s t v p {trans A t u v q r}}
@@ -41,14 +41,14 @@ def trans-assoc : {
 
 def trans-left-unit : {
   (A : univ) (x : A) (y : A) (p : Id A x y)
-  -> Id {Id A x y} {trans A x x y refl p} p
+  → Id {Id A x y} {trans A x x y refl p} p
 } = {
   \A x y p => refl
 }
 
 def trans-right-unit : {
   (A : univ) (x : A) (y : A) (p : Id A x y)
-  -> Id {Id A x y} {trans A x y y p refl} p
+  → Id {Id A x y} {trans A x y y p refl} p
 } = {
   \A x y p =>
   elim p @ {x y p => Id {Id A x y} {trans A x y y p refl} p} [
@@ -58,7 +58,7 @@ def trans-right-unit : {
 
 def trans-symm-refl : {
   (A : univ) (x : A) (y : A) (p : Id A x y)
-  -> Id {Id A x x} {trans A x y x p {symm A x y p}} refl
+  → Id {Id A x x} {trans A x y x p {symm A x y p}} refl
 } = {
   \A x y p =>
   elim p @ {x y p =>
@@ -69,9 +69,9 @@ def trans-symm-refl : {
 }
 
 def cong : {
-  (A : univ) (B : univ) (f : A -> B)
+  (A : univ) (B : univ) (f : A → B)
   (x : A) (y : A) (p : Id A x y)
-  -> Id B {f x} {f y}
+  → Id B {f x} {f y}
 } = {
   \A B f x y p =>
   elim p @ {u v _ => Id B {f u} {f v}} [
@@ -79,14 +79,14 @@ def cong : {
   ]
 }
 
-def + : nat -> nat -> nat = {
+def + : nat → nat → nat = {
   \elim [
   | zero => \n => n
   | suc {_ => ih} => \n => suc {ih n} 
   ]
 }
 
-def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
+def +-right-unit : (x : nat) → Id nat {+ x 0} x = {
   \elim [
   | zero => refl
   | suc {y => ih} =>
@@ -94,19 +94,19 @@ def +-right-unit : (x : nat) -> Id nat {+ x 0} x = {
   ]
 }
 
-def +-right-unit/cubical : (x : nat) (i : 𝕀) -> sub nat {i=0 ∨ i=1} [i=0 => {+ x 0} | i=1 => x] = {
+def +-right-unit/cubical : (x : nat) (i : 𝕀) → sub nat {i=0 ∨ i=1} [i=0 => {+ x 0} | i=1 => x] = {
   \elim [
   | zero => \i => 0
   | suc {x => ih} => \i => suc {ih i}
   ]
 }
 
-def +-left-unit : (x : nat) -> Id nat {+ 0 x} x = {
+def +-left-unit : (x : nat) → Id nat {+ 0 x} x = {
   \_ =>
   refl
 }
 
-def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
+def +-suc-r : (x : nat) (y : nat) → Id nat {+ x {suc y}} {suc {+ x y}} = {
   \elim [
   | zero =>
     \_ => refl
@@ -116,7 +116,7 @@ def +-suc-r : (x : nat) (y : nat) -> Id nat {+ x {suc y}} {suc {+ x y}} = {
   ]
 }
 
-def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
+def +-comm : (x : nat) (y : nat) → Id nat {+ y x} {+ x y} = {
   \elim [
   | zero => +-right-unit
   | suc {y => ih} =>
@@ -128,7 +128,7 @@ def +-comm : (x : nat) (y : nat) -> Id nat {+ y x} {+ x y} = {
 }
 
 def +-assoc : {
-  (x : nat) (y : nat) (z : nat) ->
+  (x : nat) (y : nat) (z : nat) →
   Id nat {+ {+ x y} z} {+ x {+ y z}}
 } = {
   \elim [

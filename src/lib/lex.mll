@@ -35,7 +35,10 @@ let keywords =
     ("normalize", NORMALIZE);
     ("quit", QUIT);
     ("univ", UNIV);
+    ("→", RIGHT_ARROW);
+    ("𝕀", DIM);
     ("dim", DIM);
+    ("𝔽", COF);
     ("cof", COF);
     ("sub", SUB);
     ("path", PATH);
@@ -89,10 +92,6 @@ rule token = parse
     { TIMES }
   | ':'
     { COLON }
-  | "𝕀"
-    { DIM }
-  | "𝔽"
-    { COF }
   | "∧"
     { MEET }
   | "/\\"

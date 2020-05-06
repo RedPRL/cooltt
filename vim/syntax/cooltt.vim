@@ -27,7 +27,7 @@ syn keyword coolttKeyw cof sub path coe hcom com
 
 syn keyword coolttDecl def let normalize quit
 
-syn match   coolttSymb '=>\|[|,*×:=λ_@𝕀𝔽∧∨]\|->\|#t\|#f'
+syn match   coolttSymb '=>\|[|,*×:=λ_@𝕀𝔽∧∨→]\|->\|#t\|#f'
 syn match   coolttSymb '\\/\|/\\\|\\'
 "syn match   redttSymb '[#@`|^*×:,.∙✓□=∂→λ𝕀]\|->'
 
