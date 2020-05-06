@@ -65,7 +65,7 @@ def hcom/intro : {
 def hcom/fun : {
   (A : univ) (B : univ) (r : 𝕀) (r' : 𝕀) (φ : 𝔽)
   (p : (i : 𝕀) (_ : [i=r ∨ φ]) → A → B) →
-  sub {A → B} {0=0} {\x => hcom B r r' φ {\j _ => p j _ x}}
+  sub {A → B} #t {\x => hcom B r r' φ {\j _ => p j _ x}}
 } = {
   \A B r r' φ p =>
   hcom {A → B} r r' φ p

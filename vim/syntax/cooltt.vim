@@ -31,7 +31,7 @@ syn match   coolttSymb '=>\|[|,*×:=λ_@𝕀𝔽∧∨→]\|->\|#t\|#f'
 syn match   coolttSymb '\\/\|/\\\|\\'
 
 syn region  coolttComm excludenl start="\k\@1<!--" end="$" contains=coolttTodo
-syn region  coolttBlockComm start="/-" end="-/" nextgroup=coolttKeyw contains=coolttBlockComm,coolttTodo
+syn region  coolttBlockComm start="\k\@1<!/-" end="-/" nextgroup=coolttKeyw contains=coolttBlockComm,coolttTodo
 syn keyword coolttTodo contained TODO
 
 hi def link coolttParenErr Error
