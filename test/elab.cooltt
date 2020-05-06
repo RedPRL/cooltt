@@ -1,4 +1,4 @@
-def boundary-test : (i : dim) (_ : [i=0 \/ i=1]) -> nat = {
+def boundary-test : (i : 𝕀) (_ : [i=0 ∨ i=1]) → nat = {
   \i _ =>
    [ i=1 => 5
    | i=0 => 19
@@ -8,16 +8,16 @@ def boundary-test : (i : dim) (_ : [i=0 \/ i=1]) -> nat = {
 
 normalize boundary-test
 
-def reflexivity : (A : univ) (a : A) (i : dim) -> A = {
+def reflexivity : (A : univ) (a : A) (i : 𝕀) → A = {
   \A a _ => a
 }
 
-def foo : (x : nat) -> (y : nat) * Id nat x y = {
+def foo : (x : nat) → (y : nat) × Id nat x y = {
   \x =>
   [x, ?hole1]
 }
 
-def sym : (A : univ) (x : A) (y : A) (p : Id A x y) -> Id A y x = {
+def sym : (A : univ) (x : A) (y : A) (p : Id A x y) → Id A y x = {
   \A x y p =>
   elim p @ {u v _ => Id A v u} [
   | refl => refl
@@ -27,10 +27,10 @@ def sym : (A : univ) (x : A) (y : A) (p : Id A x y) -> Id A y x = {
 def trans : {
   (A : univ) (x : A) (y : A) (z : A)
   (p : Id A x y) (q : Id A y z)
-  -> Id A x z
+  → Id A x z
 } = {
   \A x y z p =>
-  elim p @ {u v _ => (q : Id A v z) -> Id A u z} [
+  elim p @ {u v _ => (q : Id A v z) → Id A u z} [
   | refl => \q => q
   ]
 }
@@ -41,13 +41,13 @@ normalize trans
 def hole-in-type : {
   (x : nat) (y : nat) (z : nat)
   (p : Id nat x y) (q : Id nat y z)
-  -> ?tyhole
+  → ?tyhole
 } = {
   \y z => ?tmhole
 }
 
 
-def pi-code-test : univ = (x : nat) -> nat
+def pi-code-test : univ = (x : nat) → nat
 
 def foo : pi-code-test =
   \x => x
