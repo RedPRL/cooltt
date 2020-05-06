@@ -217,8 +217,16 @@ struct
 
   exception Todo
 
-  let coe_path ~fam_line ~bdry_line ~r ~s ~bdy =
+  let coe_path ~(fam_line : S.t m) (* A : I -> U *)
+      ~(bdry_line : S.t m)         (* \y.Path fam bdry ??*)
+      ~(r : S.t m)                 (* r : I *)
+      ~(s : S.t m)                 (* r' : I *)
+      ~(bdy : S.t m)               (* M : A r *)
+                                   (* ------------------------ *)
+    : S.t                          (* A  r' [ r = r -> M *)
+    =
     raise Todo
+
 
   (*
    * fam : I -> U
