@@ -227,12 +227,13 @@ struct
     =
     lam @@ fun j ->
     sub_in @@
-    com (lam @@ fun i -> ap fam_line [i; j]) r s (boundary j) @@
+    let_ (boundary j) @@ fun d_j ->
+    com (lam @@ fun i -> ap fam_line [i; j]) r s d_j @@
     lam @@ fun i ->
     lam @@ fun _ ->
       cof_split
       (el @@ ap fam_line [i; j])
-      (boundary j) (fun q -> ap bdry_line [i; j; q])
+      d_j (fun q -> ap bdry_line [i; j; q])
       (eq i r)     (fun q -> sub_out @@ ap bdy [j])
 
   (*
