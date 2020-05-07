@@ -226,6 +226,7 @@ struct
     : S.t m                        (* path (A r') (bdrl_line r' 0) (bdry_line r' 1) *)
     =
     lam @@ fun j ->
+    sub_in @@
     com (lam @@ fun i -> ap fam_line [i;j])
       r
       s
@@ -235,7 +236,7 @@ struct
         cof_split
          (el @@ ap fam_line [i; j])
          (boundary j)  (fun q -> ap bdry_line [i; j; q])
-         (eq i r)      (fun q -> ap bdy [j])
+         (eq i r)      (fun q -> sub_out @@ ap bdy [j])
       )
 
 
