@@ -62,8 +62,7 @@ and chk_tm : S.t -> T.chk_tac =
     T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm bdy
   | S.Pair (t0, t1) ->
     T.bchk_to_chk @@ R.Sg.intro (T.chk_to_bchk @@ chk_tm t0) (T.chk_to_bchk @@ chk_tm t1)
-  | S.CodePath (fam, bound) ->
-    R.Univ.path (chk_tm fam) (chk_tm bound) (* todo/iev: jon?*)
+  | S.CodePath (fam, bound) -> raise Todo
   | S.CodeNat ->
     R.Univ.nat
   | S.CodeSg (base, fam) ->
