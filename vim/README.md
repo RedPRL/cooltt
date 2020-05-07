@@ -4,15 +4,16 @@
 can be typed easily in the Vim mode using the `digraph` feature; alternatively,
 there are ASCII equivalents.
 
-| Char | Digraph   | ASCII |
-|------|-----------|-------|
-| 𝕀    | `C-k II`  | `dim` |
-| 𝔽    | `C-k FF`  | `cof` |
-| ∧    | `C-k AN`  | `/\`  |
-| ∨    | `C-k OR`  | `\/`  |
-| λ    | `C-k *l`  | `\`   |
-| ×    | `C-k *X`  | `*`   |
-| →    | `C-k ->`  | `->`  |
+| Char | Digraph   | ASCII      |
+|------|-----------|------------|
+| 𝕀    | `C-k II`  | `dim`      |
+| 𝔽    | `C-k FF`  | `cof`      |
+| ∂    | `C-k dP`  | `boundary` |
+| ∧    | `C-k AN`  | `/\`       |
+| ∨    | `C-k OR`  | `\/`       |
+| λ    | `C-k *l`  | `\`        |
+| ×    | `C-k *X`  | `*`        |
+| →    | `C-k ->`  | `->`       |
 
 ## Setup
 

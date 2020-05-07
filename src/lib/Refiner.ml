@@ -197,6 +197,8 @@ struct
     | tp ->
       expected_cof tp
 
+  let boundary tac = join (eq tac Dim.dim0) (eq tac Dim.dim1)
+
   let assert_true vphi =
     EM.lift_cmp @@ CmpM.test_sequent [] vphi |>> function
     | true -> EM.ret ()

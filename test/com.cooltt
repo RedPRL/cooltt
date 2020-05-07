@@ -62,7 +62,7 @@ def coe/path : {
   (m : path {A r} {a r} {b r})
   -> sub {path {A r'} {a r'} {b r'}} #t
      {\j =>
-       com {\i => A i j} r r' {j=0 ∨ j=1}
+       com {\i => A i j} r r' {∂ j}
          {\i p => [j=0 => a i | j=1 => b i | i=r => m j]}}
 } = {
   \A r r' a b m =>
