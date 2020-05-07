@@ -228,8 +228,8 @@ struct
     lam @@ fun x ->
     sub_in @@
     com (lam @@ fun y -> fam_line) r s
-      (bdry_line) (* phi; this will be "x = e -> y.Ne", which has to be the bdry *)
-      (sub_out (ap bdy [x])) (* body *)
+      (bdry_line)                   (* phi; this will be "x = e -> y.Ne", which has to be the bdry *)
+      (sub_out (ap bdy [x]))        (* body *)
 
 
   (*
