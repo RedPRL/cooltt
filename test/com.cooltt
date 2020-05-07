@@ -54,24 +54,18 @@ def coe/sigma : {
 normalize coe/sigma
 
 def coe/path : {
-  (A : dim -> dim -> univ)
-  (r : dim)
-  (r' : dim)
-  (a : (i : dim) -> A i 0)
-  (b : (i : dim) -> A i 1)
+  (A : 𝕀 -> 𝕀 -> univ)
+  (r : 𝕀)
+  (r' : 𝕀)
+  (a : (i : 𝕀) -> A i 0)
+  (b : (i : 𝕀) -> A i 1)
   (m : path {A r} {a r} {b r})
   -> sub {path {A r'} {a r'} {b r'}} #t
      {\j =>
-      com {\i => A i j} r r'
-          {j=0 \/ j=1}
-	  {\i p => [j=0 => a i | j=1 => b i | i=r => ? ]}}
+       com {\i => A i j} r r' {j=0 ∨ j=1}
+         {\i p => [j=0 => a i | j=1 => b i | i=r => ?]}}
 } = {
   \A r r' a b m =>
-  -- i : dim
-  -- (A i) : dim -> univ
-  -- a i : (A i) 0
-  -- b i : (A i) 1
-  -- A r : dim -> univ
   coe {\i => path {A i} {a i} {b i}} r r' m
 }
 
