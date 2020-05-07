@@ -226,9 +226,10 @@ struct
     : S.t m                        (* A  r' [ r = r -> M *)
     =
     lam @@ fun x ->
-      com (lam @@ fun y -> fam_line) r s
-        (raise Todo) (* phi, so a cofibration of some kind *)
-        (raise Todo) (* body *)
+    sub_in @@
+    com (lam @@ fun y -> fam_line) r s
+      (bdry_line) (* phi; this will be "x = e -> y.Ne", which has to be the bdry *)
+      (sub_out (ap bdy [x])) (* body *)
 
 
   (*

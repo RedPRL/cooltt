@@ -53,15 +53,21 @@ def coe/sigma : {
 
 normalize coe/sigma
 
+-- -> sub {path A {bdry 0} {bdry 1}} #t {path ? {B s {bdry 0}} {B s {bdry 1}}}
+-- "sub A #t M" is "the type of terms that are equal to M in A"
+
 def coe/path : {
-  (A : dim -> univ) (B : (i : dim) -> A i -> univ)
-  (r : dim) (s : dim)
-  (bdry : ?)
-  (m : A r)
-  -> sub {A s} {r = s} [?]
+  (A : dim -> univ)
+  (r : dim)
+  (s : dim)
+  (bdry : (i : dim) -> A i)
+  (n0 : ?)
+  (n1 : ?)
+  (M : path {A r} n0 n1)
+  -> sub {path {A s} n0 n1} #t {path {?} {?} {?}}
 } = {
-  \A B r s bdry m =>
-  coe {\i => Path A bdry} r s m
+  ?
+  --coe {\i => path ? ?} r s m
 }
 
 normalize coe/path
