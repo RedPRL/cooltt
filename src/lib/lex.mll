@@ -35,7 +35,10 @@ let keywords =
     ("normalize", NORMALIZE);
     ("quit", QUIT);
     ("univ", UNIV);
+    ("→", RIGHT_ARROW);
+    ("𝕀", DIM);
     ("dim", DIM);
+    ("𝔽", COF);
     ("cof", COF);
     ("sub", SUB);
     ("path", PATH);
@@ -65,8 +68,10 @@ let atom = atom_initial atom_subsequent*
 rule token = parse
   | number
     { (NUMERAL (int_of_string (Lexing.lexeme lexbuf))) }
-  | ';'
-    {comment lexbuf}
+  | "--"
+    { line_comment token lexbuf }
+  | "/-"
+    { block_comment token lexbuf }
   | '('
     { LPR }
   | ')'
@@ -89,8 +94,12 @@ rule token = parse
     { TIMES }
   | ':'
     { COLON }
+  | "∧"
+    { MEET }
   | "/\\"
     { MEET }
+  | "∨"
+    { JOIN }
   | "\\/"
     { JOIN }
   | "="
@@ -118,8 +127,6 @@ rule token = parse
     { HOLE_NAME None }
   | "@"
     { AT }
-  | "--"
-    { comment lexbuf }
   | "#t"
     { TOPC }
   | "#f"
@@ -138,8 +145,19 @@ rule token = parse
     }
   | _
     { Printf.eprintf "Unexpected char: %s" (lexeme lexbuf); token lexbuf }
-and comment = parse
+
+and line_comment kont = parse
   | line_ending
-    { new_line lexbuf; token lexbuf }
+    { new_line lexbuf; kont lexbuf }
   | _
-    { comment lexbuf }
+    { line_comment kont lexbuf }
+
+and block_comment kont = parse
+  | "/-"
+    { block_comment (block_comment kont) lexbuf }
+  | "-/"
+    { kont lexbuf }
+  | line_ending
+    { new_line lexbuf; block_comment kont lexbuf }
+  | _
+    { block_comment kont lexbuf }

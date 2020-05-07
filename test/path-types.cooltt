@@ -1,5 +1,7 @@
+-- See also pre-path-types.cooltt.
+
 def formation : {
-  (A : dim -> univ) (a : A 0) (b : A 1) -> univ
+  (A : 𝕀 → univ) (a : A 0) (b : A 1) → univ
 } = {
   \A a b =>
   path A a b
@@ -8,7 +10,7 @@ def formation : {
 normalize formation
 
 def myrefl : {
-  (A : univ) (a : A) -> path {\_ => A} a a
+  (A : univ) (a : A) → path {\_ => A} a a
 } = {
   \A a i => a
 }
@@ -16,9 +18,9 @@ def myrefl : {
 normalize myrefl
 
 def funext : {
-  (A : univ) (B : univ) (f : (x : A) -> B) (g : (x : A) -> B)
-  (h : (x : A) -> path {\_ => B} {f x} {g x})
-  -> path {\_ => (x : A) -> B} f g
+  (A : univ) (B : univ) (f : (x : A) → B) (g : (x : A) → B)
+  (h : (x : A) → path {\_ => B} {f x} {g x})
+  → path {\_ => (x : A) → B} f g
 } = {
   \A B f g h i x =>
   h x i
@@ -27,9 +29,9 @@ def funext : {
 normalize funext
 
 def pairext : {
-  (A : univ) (B : univ) (p : (x : A) * B) (q : (x : A) * B)
-  (h : (x : path {\_ => A} {fst p} {fst q}) * path {\_ => B} {snd p} {snd q})
-  -> path {\_ => (x : A) * B} p q
+  (A : univ) (B : univ) (p : (x : A) × B) (q : (x : A) × B)
+  (h : (x : path {\_ => A} {fst p} {fst q}) × path {\_ => B} {snd p} {snd q})
+  → path {\_ => (x : A) × B} p q
 } = {
   \A B p q h i =>
   [ {fst h} i
