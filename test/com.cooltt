@@ -60,7 +60,7 @@ def coe/path : {
   (a : (i : dim) -> A i 0)
   (b : (i : dim) -> A i 1)
   (m : path {A r} {a r} {b r})
-  -> sub {path {A r'} {a r'} {b r'}} #t {?}
+  -> path {A r'} {a r'} {b r'} -- sub {path {A r'} {a r'} {b r'}} #t {?}
 } = {
   \A r r' a b m =>
   -- i : dim
@@ -71,7 +71,7 @@ def coe/path : {
   coe {\i => path {A i} {a i} {b i}} r r' m
 }
 
-normalize coe/path
+-- normalize coe/path
 
 def hcom/intro : {
   (A : univ) (r : dim) (r' : dim) (φ : cof)

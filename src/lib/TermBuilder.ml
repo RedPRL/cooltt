@@ -217,19 +217,26 @@ struct
 
   exception Todo
 
-  let coe_path ~(fam_line : S.t m) (* A : I -> U *)
-      ~(bdry_line : S.t m)         (* \y.Path fam bdry ??*)
+  let coe_path ~(fam_line : S.t m) (* A : I -> I -> U *)
+      ~(bdry_line : S.t m)         (* a&b together; i:I j:I -> [_ : j=0 v j=1] -> A i j *)
       ~(r : S.t m)                 (* r : I *)
-      ~(s : S.t m)                 (* r' : I *)
-      ~(bdy : S.t m)               (* M : A r *)
+      ~(s : S.t m)                 (* s/r' : I *)
+      ~(bdy : S.t m)               (* m : path (A r) (bdrl_line r 0) (bdry_line r 1) *)
                                    (* ------------------------ *)
-    : S.t m                        (* A  r' [ r = r -> M *)
+    : S.t m                        (* path (A r') (bdrl_line r' 0) (bdry_line r' 1) *)
     =
-    lam @@ fun x ->
-    sub_in @@
-    com (lam @@ fun y -> fam_line) r s
-      (bdry_line)                   (* phi; this will be "x = e -> y.Ne", which has to be the bdry *)
-      (sub_out (ap bdy [x]))        (* body *)
+    lam @@ fun j ->
+    com (lam @@ fun i -> ap fam_line [i;j])
+      r
+      s
+      (boundary j) (* cofibration j = 0 v j = 1*)
+      (lam @@ fun i ->
+       lam @@ fun pf ->
+        cof_split
+         (el @@ ap fam_line [i; j])
+         (boundary j)  (fun q -> ap bdry_line [i; j; q])
+         (eq i r)      (fun q -> ap bdy [j])
+      )
 
 
   (*
