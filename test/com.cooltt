@@ -60,7 +60,11 @@ def coe/path : {
   (a : (i : dim) -> A i 0)
   (b : (i : dim) -> A i 1)
   (m : path {A r} {a r} {b r})
-  -> path {A r'} {a r'} {b r'} -- sub {path {A r'} {a r'} {b r'}} #t {?}
+  -> sub {path {A r'} {a r'} {b r'}} #t
+     {\j =>
+      com {\i => A i j} r r'
+          {j=0 \/ j=1}
+	  {\i p => [j=0 => a i | j=1 => b i | i=r => ? ]}}
 } = {
   \A r r' a b m =>
   -- i : dim
