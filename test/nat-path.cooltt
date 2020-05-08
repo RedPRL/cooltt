@@ -67,8 +67,8 @@ def +-assoc : {
   path {\_ => nat} {+ {+ x y} z} {+ x {+ y z}}
 } = {
   \elim [
-  | zero => \y z i => {+ y z}
-  | suc {x => ih} => \y z i => {suc {ih y z i}}
+  | zero => \y z i => + y z
+  | suc {x => ih} => \y z i => suc {ih y z i}
   ]
 }
 
