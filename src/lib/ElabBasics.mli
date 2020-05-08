@@ -27,7 +27,6 @@ val equate : D.tp -> D.con -> D.con -> unit m
 
 val dest_pi : D.tp -> (D.tp * D.tp_clo) m
 val dest_sg : D.tp -> (D.tp * D.tp_clo) m
-val dest_id : D.tp -> (D.tp * D.con * D.con) m
 
 val with_pp : (Pp.env -> 'a m) -> 'a m
 

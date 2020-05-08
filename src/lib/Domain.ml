@@ -111,8 +111,6 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "top"
   | Cof bot ->
     Format.fprintf fmt "bot"
-  | Refl _ ->
-    Format.fprintf fmt "refl"
   | GoalRet con ->
     Format.fprintf fmt "goal-ret[%a]" pp_con con
   | Lam clo ->
@@ -150,5 +148,3 @@ and pp_tp fmt =
     Format.fprintf fmt "el[%a]" pp_cut cut
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"
-  | Id _ ->
-    Format.fprintf fmt "<id>"

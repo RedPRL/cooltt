@@ -53,8 +53,6 @@ let rec chk_tp : CS.t -> T.tp_tac =
   | CS.Sg (cells, body) ->
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
     R.Tactic.tac_nary_quantifier R.Sg.formation tacs @@ chk_tp body
-  | CS.Id (tp, l, r) ->
-    R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
   | CS.Nat ->
     R.Nat.formation
   | CS.Univ ->
@@ -93,8 +91,6 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
   | CS.Underscore ->
     R.Prf.intro
   (* R.Hole.unleash_hole None `Flex *)
-  | CS.Refl ->
-    T.chk_to_bchk @@ R.Id.intro
   | CS.Lit n ->
     begin
       T.chk_to_bchk @@

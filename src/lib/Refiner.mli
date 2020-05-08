@@ -79,16 +79,6 @@ module Sub : sig
   val elim : syn_tac -> syn_tac
 end
 
-module Id : sig
-  val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
-  val intro : chk_tac
-  val elim
-    : (CS.ident option * CS.ident option * CS.ident option * tp_tac)
-    -> (CS.ident option * chk_tac)
-    -> syn_tac
-    -> syn_tac
-end
-
 module Nat : sig
   val formation : tp_tac
   val literal : int -> chk_tac

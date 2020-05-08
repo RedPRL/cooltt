@@ -94,13 +94,6 @@ let dest_sg =
   | tp ->
     expected_connective `Sg tp
 
-let dest_id =
-  function
-  | D.Id (tp, l, r) ->
-    ret (tp, l, r)
-  | tp ->
-    expected_connective `Id tp
-
 let abstract nm tp k =
   let rho env =
     let con = D.mk_var tp @@ Env.size env in

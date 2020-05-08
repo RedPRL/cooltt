@@ -21,8 +21,6 @@ and t =
   | Pair of t * t
   | Fst of t
   | Snd of t
-  | Id of t * t * t
-  | Refl
   | Univ
   | Hole of ident option
   | Underscore
