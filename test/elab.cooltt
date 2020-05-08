@@ -11,40 +11,6 @@ def reflexivity : (A : univ) (a : A) (i : 𝕀) → A = {
   \A a _ => a
 }
 
-def foo : (x : nat) → (y : nat) × Id nat x y = {
-  \x =>
-  [x, ?hole1]
-}
-
-def sym : (A : univ) (x : A) (y : A) (p : Id A x y) → Id A y x = {
-  \A x y p =>
-  elim p @ {u v _ => Id A v u} [
-  | refl => refl
-  ]
-}
-
-def trans : {
-  (A : univ) (x : A) (y : A) (z : A)
-  (p : Id A x y) (q : Id A y z)
-  → Id A x z
-} = {
-  \A x y z p =>
-  elim p @ {u v _ => (q : Id A v z) → Id A u z} [
-  | refl => \q => q
-  ]
-}
-
-normalize sym
-normalize trans
-
-def hole-in-type : {
-  (x : nat) (y : nat) (z : nat)
-  (p : Id nat x y) (q : Id nat y z)
-  → ?tyhole
-} = {
-  \y z => ?tmhole
-}
-
 
 def pi-code-test : univ = (x : nat) → nat
 
@@ -63,3 +29,16 @@ def simple-let : {
 }
 
 normalize simple-let
+
+
+def hole-in-type : {
+  (x : nat) (y : nat) (z : nat)
+  → ?tyhole
+} = {
+  \y z => ?tmhole
+}
+
+def foo : (x : nat) → (y : nat) × path {\i => nat} x y = {
+  \x =>
+  [x, ?hole1]
+}

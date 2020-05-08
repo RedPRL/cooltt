@@ -316,48 +316,6 @@ struct
       EM.expected_connective `Prf tp
 end
 
-
-module Id =
-struct
-  let formation (tac_tp : T.tp_tac) (tac0 : T.chk_tac) (tac1 : T.chk_tac) : T.tp_tac =
-    T.Tp.make @@
-    let* tp = T.Tp.run tac_tp in
-    let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
-    let+ tm0 = tac0 vtp
-    and+ tm1 = tac1 vtp in
-    S.Id (tp, tm0, tm1)
-
-  let intro : T.chk_tac =
-    function
-    | D.Id (tp, l, r) ->
-      let+ () = EM.equate tp l r
-      and+ t = EM.lift_qu @@ Nbe.quote_con tp l in
-      S.Refl t
-    | tp ->
-      EM.expected_connective `Id tp
-
-  let elim (nm_x0, nm_x1, nm_p, tac_mot) (nm_x, tac_case_refl) tac_scrut : T.syn_tac =
-    EM.push_problem "elim" @@
-    let* tscrut, idtp = tac_scrut in
-    let* tp, l, r = EM.dest_id idtp in
-    let* tmot =
-      EM.abstract nm_x0 tp @@ fun x0 ->
-      EM.abstract nm_x1 tp @@ fun x1 ->
-      EM.abstract nm_p (D.Id (tp, x0, x1)) @@ fun _ ->
-      T.Tp.run tac_mot
-    in
-    let* t_refl_case =
-      EM.abstract nm_x tp @@ fun x ->
-      tac_case_refl @<<
-      EM.lift_ev @@ EvM.append [x; D.Refl x] @@ Nbe.eval_tp tmot
-    in
-    let+ fib =
-      let* vscrut = EM.lift_ev @@ Nbe.eval tscrut in
-      EM.lift_ev @@ EvM.append [l; r; vscrut] @@ Nbe.eval_tp tmot
-    in
-    S.IdElim (tmot, t_refl_case, tscrut), fib
-end
-
 module Pi =
 struct
   let formation : (T.tp_tac, T.tp_tac) quantifier =
@@ -772,15 +730,6 @@ struct
       let* tscrut, ind_tp = scrut in
       let scrut = EM.ret (tscrut, ind_tp) in
       match ind_tp, mot with
-      | D.Id (_, _, _), ([nm_u; nm_v; nm_p], mot) ->
-        let* tac_refl =
-          match find_case "refl" cases with
-          | Some ([`Simple nm_w], tac) -> EM.ret (nm_w, tac)
-          | Some ([], tac) -> EM.ret (None, tac)
-          | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret (None, T.bchk_to_chk @@ Hole.unleash_hole (Some "refl") `Rigid)
-        in
-        Id.elim (nm_u, nm_v, nm_p, mot) tac_refl scrut
       | D.Nat, ([nm_x], mot) ->
         let* tac_zero =
           match find_case "zero" cases with

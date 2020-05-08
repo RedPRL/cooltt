@@ -11,8 +11,6 @@ type t =
   | Pair of t * t
   | Fst of t
   | Snd of t
-  | Refl of t
-  | IdElim of tp * t * t
   | GoalRet of t
   | GoalProj of t
   | Coe of t * t * t * t
@@ -43,7 +41,6 @@ and tp =
   | Sub of tp * t * t
   | Pi of tp * tp
   | Sg of tp * tp
-  | Id of tp * t * t
   | Nat
 
 type env = tp list

@@ -31,12 +31,10 @@ let rec dump fmt tm =
   | Coe _ -> Format.fprintf fmt "<coe>"
   | HCom _ -> Format.fprintf fmt "<hcom>"
   | Com _ -> Format.fprintf fmt "<com>"
-  | IdElim _ -> Format.fprintf fmt "<id-elim>"
   | SubIn _ -> Format.fprintf fmt "<sub/in>"
   | SubOut _ -> Format.fprintf fmt "<sub/out>"
   | Cof _ -> Format.fprintf fmt "<cof>"
   | CofSplit _ -> Format.fprintf fmt "<cof/split>"
-  | Refl _ -> Format.fprintf fmt "<refl>"
   | Zero -> Format.fprintf fmt "<zero>"
   | Suc _ -> Format.fprintf fmt "<suc>"
   | Dim0 -> Format.fprintf fmt "<dim0>"
@@ -117,19 +115,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
       Uuseg_string.pp_utf_8 y
       (pp envxy) suc
       (pp env) scrut
-  | _, IdElim (mot, refl, scrut) ->
-    let x, envx = Pp.Env.bind env None in
-    let y, envxy = Pp.Env.bind envx None in
-    let z, envxyz = Pp.Env.bind envxy None in
-    Fmt.fprintf fmt
-      "@[<hov1>(id.elim@ [%a %a %a] %a@ @[<hov1>(refl@ [%a] %a)@]@ %a@]"
-      Uuseg_string.pp_utf_8 x
-      Uuseg_string.pp_utf_8 y
-      Uuseg_string.pp_utf_8 z
-      (pp_tp envxyz) mot
-      Uuseg_string.pp_utf_8 x
-      (pp envx) refl
-      (pp env) scrut
   | _, Fst tm ->
     Fmt.fprintf fmt "@[<hov1>(fst@ %a)@]" (pp env) tm
   | _, Snd tm ->
@@ -140,8 +125,6 @@ let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
     Fmt.fprintf fmt "@[<hov1>(%a@ %a)@]" (pp_ env `Ap) tm0 (pp env) tm1
   | _, Pair (tm0, tm1) ->
     Fmt.fprintf fmt "@[<hov1>(pair@ @[<hv>%a@ %a@])@]" (pp env) tm0 (pp env) tm1
-  | _, Refl tm ->
-    Fmt.fprintf fmt "@[<hov1>(refl %a)@]" (pp env) tm
   | _, GoalRet tm ->
     Fmt.fprintf fmt "@[<hov1>(goal-ret %a)@]" (pp env) tm
   | _, GoalProj tm ->
@@ -242,11 +225,6 @@ and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer =
   | _, TpPrf phi->
     Format.fprintf fmt "@[<hov1>(prf@ %a)@]"
       (pp env) phi
-  | _, Id (tp, tm0, tm1) ->
-    Format.fprintf fmt "@[<hov1>(id@ @[<hv>%a@ %a@ %a@])@]"
-      (pp_tp env) tp
-      (pp env) tm0
-      (pp env) tm1
   | _, Nat ->
     Format.fprintf fmt "nat"
   | _, TpVar i ->
@@ -297,4 +275,3 @@ let pp_sequent ~names : tp Pp.printer =
     (pp_sequent_inner ~names Pp.Env.emp) tp
 
 type env = tp list
-
