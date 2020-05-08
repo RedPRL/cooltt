@@ -1,5 +1,5 @@
 def symm : {
-  (A : univ) (p : dim -> A) -> path {\_ => A} {p 1} {p 0}
+  (A : univ) (p : 𝕀 → A) → path {\_ => A} {p 1} {p 0}
 }= {
   \A p i =>
   hcom A 0 1 {\j _ =>
@@ -10,7 +10,7 @@ def symm : {
 }
 
 def trans : {
-  (A : univ) (p : dim -> A) (q : (i : dim) -> sub A {i=0} {p 1}) -> path {\_ => A} {p 0} {q 1}
+  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {\_ => A} {p 0} {q 1}
 } = {
   \A p q i =>
   hcom A 0 1 {\j _ =>
@@ -73,7 +73,7 @@ def +-assoc : {
 }
 
 def test : {
-  (p : dim -> nat) -> (i : dim) -> nat
+  (p : 𝕀 → nat) → (i : 𝕀) → nat
 } = {
   \p i =>
   elim {symm nat p i} @ {_ => nat} [
