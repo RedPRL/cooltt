@@ -111,11 +111,6 @@ let abstract nm tp k =
   let* x = get_local 0 in
   k x
 
-let abstract_dim nm k =
-  push_var nm D.TpDim @@
-  let* x = get_local 0 in
-  k x
-
 let problem =
   let+ env = read in
   Env.problem env
