@@ -13,7 +13,7 @@ def trans/filler : {
   (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
 } = {
   \A p q j i =>
-  hcom A 0 j {\j _ =>
+  hcom A 0 j {∂ i} {\j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
@@ -31,22 +31,23 @@ def new-trans : {
 def trans : {
   (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {\_ => A} {p 0} {q 1}
 } = {
-  \A p q i =>
-  hcom A 0 1 {\j _ =>
-    [ j=0 \/ i=0 => p i
-    | i=1 => q j
-    ]
-  }
+  λ A p q i => trans/filler A p q 1 i
 }
 
-/-
+
 def J : {
   (A : univ) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → univ) →
   {C {λ _ => p 0}} → C p
 } = {
-  λ A p C d => coe {λ i => C {λ j => hcom A 0 j {λ i _ => p i}}} 0 1 d
+  λ A p C d =>
+  coe {λ i =>
+    C {λ j =>
+      hcom A 0 j {∂ i} {\k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}
+    }
+  } 0 1 d
 }
 
+/-
 def trans-assoc : {
   (A : univ) (s : A) (t : A) (u : A) (v : A)
   (p : path {λ _ => A} s t) (q : path {λ _ => A} t u) (r : path {λ _ => A} u v) →
