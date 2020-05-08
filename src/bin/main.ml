@@ -20,9 +20,9 @@ let main input =
   | Nbe.NbeFailed s ->
     Format.eprintf "Internal error (Failed to normalize): %s\n" s;
     1
-  | ElabError.ElabError e ->
+  | ElabError.ElabError (err, _loc) ->
     Format.eprintf "@[<v2>Elaboration error:@;@[<hv>%a@]@]@."
-      ElabError.pp e;
+      ElabError.pp err;
     1
 
 let input_file =

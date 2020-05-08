@@ -1,3 +1,4 @@
+module CS := ConcreteSyntax
 module S := Syntax
 module D := Domain
 module EM := ElabBasics
@@ -23,7 +24,28 @@ sig
   val run_virtual : tac -> S.tp EM.m
 
   val map : (S.tp EM.m -> S.tp EM.m) -> tac -> tac
+
+  val update_location : CS.location -> tac -> tac
 end
+
+module Chk :
+sig
+  type tac = chk_tac
+  val update_location : CS.location -> tac -> tac
+end
+
+module BChk :
+sig
+  type tac = bchk_tac
+  val update_location : CS.location -> tac -> tac
+end
+
+module Syn :
+sig
+  type tac = syn_tac
+  val update_location : CS.location -> tac -> tac
+end
+
 
 module Var :
 sig

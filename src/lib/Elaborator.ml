@@ -41,6 +41,7 @@ let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
 
 let rec chk_tp : CS.con -> T.tp_tac =
   fun con ->
+  T.Tp.update_location con.info @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_tp_hole name `Rigid
@@ -73,21 +74,22 @@ let rec chk_tp : CS.con -> T.tp_tac =
     Refiner.Univ.el_formation @@ chk_tm con
 
 and chk_tm : CS.con -> T.chk_tac =
-  fun cs ->
-  T.bchk_to_chk @@ bchk_tm cs
+  fun con ->
+  T.bchk_to_chk @@ bchk_tm con
 
 
 and bchk_tm : CS.con -> T.bchk_tac =
-  fun cs ->
+  fun con ->
   whnf_bchk @@
   R.Tactic.bmatch_goal @@ function
   | D.Sub _, _, _ ->
-    EM.ret @@ R.Sub.intro (bchk_tm cs)
+    EM.ret @@ R.Sub.intro (bchk_tm con)
   | _ ->
-    EM.ret @@ bchk_tm_ cs
+    EM.ret @@ bchk_tm_ con
 
 and bchk_tm_ : CS.con -> T.bchk_tac =
   fun con ->
+  T.BChk.update_location con.info @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
@@ -156,6 +158,7 @@ and bchk_tm_ : CS.con -> T.bchk_tac =
 
 and syn_tm_ : CS.con -> T.syn_tac =
   function con ->
+  T.Syn.update_location con.info @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_syn_hole name `Rigid
@@ -187,7 +190,7 @@ and syn_tm_ : CS.con -> T.syn_tac =
     R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
   | CS.TopC -> R.Univ.topc
   | CS.BotC -> R.Univ.botc
-  | cs ->
+  | _ ->
     failwith @@ "TODO : " ^ CS.show_con con
 
 and syn_tm : CS.con -> T.syn_tac =

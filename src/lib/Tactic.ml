@@ -14,6 +14,7 @@ module Tp : sig
   val run : tac -> S.tp EM.m
   val run_virtual : tac -> S.tp EM.m
   val map : (S.tp EM.m -> S.tp EM.m) -> tac -> tac
+  val update_location : ConcreteSyntax.location -> tac -> tac
 end
 =
 struct
@@ -39,6 +40,30 @@ struct
     function
     | General tac -> General (f tac)
     | Virtual tac -> Virtual (f tac)
+
+  let update_location loc =
+    map @@ EM.update_location loc
+end
+
+module Chk =
+struct
+  type tac = D.tp -> S.t EM.m
+  let update_location loc tac tp =
+    EM.update_location loc @@ tac tp
+end
+
+module BChk =
+struct
+  type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
+  let update_location loc tac goal =
+    EM.update_location loc @@ tac goal
+end
+
+module Syn =
+struct
+  type tac = (S.t * D.tp) EM.m
+  let update_location loc =
+    EM.update_location loc
 end
 
 module Var =
@@ -56,9 +81,9 @@ end
 type var = Var.tac
 type tp_tac = Tp.tac
 
-type chk_tac = D.tp -> S.t EM.m
-type bchk_tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
-type syn_tac = (S.t * D.tp) EM.m
+type chk_tac = Chk.tac
+type bchk_tac = BChk.tac
+type syn_tac = Syn.tac
 
 let abstract : D.tp -> string option -> (var -> 'a EM.m) -> 'a EM.m =
   fun tp name kont ->
