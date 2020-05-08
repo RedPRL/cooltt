@@ -711,13 +711,13 @@ struct
       let* s = eval_dim ts in
       let* phi = eval_cof tphi in
       let* vtpcode = eval tpcode in
+      let* vbdy = eval tm in
       begin
         CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
         | true ->
-          append [D.dim_to_con s] @@ eval tm
+          lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
         | false ->
-          let* bdy = eval tm in
-          lift_cmp @@ do_rigid_hcom vtpcode r s phi bdy
+          lift_cmp @@ do_rigid_hcom vtpcode r s phi vbdy
       end
     | S.Com (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
