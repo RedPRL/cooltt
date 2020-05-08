@@ -195,20 +195,8 @@ struct
 
   let emit loc pp a : unit m =
     fun (st, _env) ->
-    match loc with
-    | None ->
-      let () = Format.fprintf Format.std_formatter "%a@." pp a in
-      Ok (), st
-    | Some (start_pos, end_pos) ->
-      let open Lexing in
-      Format.fprintf Format.std_formatter "@.@.@[<v>%a:%i.%i-%i.%i:@,  @[%a@]@]@.@."
-        Uuseg_string.pp_utf_8 start_pos.pos_fname
-        start_pos.pos_lnum
-        (start_pos.pos_cnum - start_pos.pos_bol)
-        end_pos.pos_lnum
-        (end_pos.pos_cnum - end_pos.pos_bol)
-        pp a;
-      Ok (), st
+    Log.pp_message ~loc ~lvl:`Info pp Format.std_formatter a;
+    Ok (), st
 
   let veil v =
     M.scope @@ fun env ->
