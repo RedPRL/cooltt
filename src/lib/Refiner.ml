@@ -7,7 +7,7 @@ module EM = ElabBasics
 module T = Tactic
 module QQ = Quasiquote
 module TB = TermBuilder
-module Cof_tl = Cof (* this lets us access Cof after it gets shadowed below *)
+module Cofibration = Cof (* this lets us access Cof after it gets shadowed below *)
 
 exception Todo
 
@@ -507,8 +507,8 @@ struct
       [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
-  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.TpCof)
-  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.TpCof)
+  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Top), D.TpCof)
+  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Bot), D.TpCof)
 
   let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
@@ -610,7 +610,7 @@ struct
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Nbe.eval tdef in
     let* tbdy =
-      T.abstract (D.Sub (tp_def, Cof_tl.top, D.const_tm_clo vdef)) nm_x @@ fun var ->
+      T.abstract (D.Sub (tp_def, Cofibration.top, D.const_tm_clo vdef)) nm_x @@ fun var ->
       tac_bdy var goal
     in
     EM.ret @@ S.Let (S.SubIn tdef, tbdy)
