@@ -52,3 +52,14 @@ def foo : pi-code-test =
   \x => x
 
 normalize pi-code-test
+
+
+def simple-let : {
+  (A : univ) (a : A) -> A
+} = {
+  \A a =>
+  let b : A = a in
+  b
+}
+
+normalize simple
