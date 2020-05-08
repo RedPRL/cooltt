@@ -35,7 +35,7 @@ struct
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
         let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
-        and+ fam = EM.push_var name ctp @@ go_tp cells in
+        and+ fam = EM.abstract name ctp @@ fun _ -> go_tp cells in
         S.Pi (base, fam)
     in
 
@@ -93,14 +93,15 @@ end
 
 module Sub =
 struct
-  let formation (tac_base : T.tp_tac) (tac_phi : T.chk_tac) (tac_tm : T.chk_tac) : T.tp_tac =
+  let formation (tac_base : T.tp_tac) (tac_phi : T.chk_tac) (tac_tm : T.var -> T.chk_tac) : T.tp_tac =
     T.Tp.make @@
     let* base = T.Tp.run tac_base in
     let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
     let* phi = tac_phi D.TpCof in
     let+ tm =
       let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
-      EM.push_var None (D.TpPrf vphi) @@ tac_tm vbase
+      T.abstract (D.TpPrf vphi) None @@ fun prf ->
+      tac_tm prf vbase
     in
     S.Sub (base, phi, tm)
 

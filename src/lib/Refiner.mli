@@ -67,12 +67,13 @@ end
 module Sg : sig
   val formation : (tp_tac, tp_tac) quantifier
   val intro : bchk_tac -> bchk_tac -> bchk_tac
+
   val pi1 : syn_tac -> syn_tac
   val pi2 : syn_tac -> syn_tac
 end
 
 module Sub : sig
-  val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
+  val formation : tp_tac -> chk_tac -> (var -> chk_tac) -> tp_tac
   val intro : bchk_tac -> bchk_tac
   val elim : syn_tac -> syn_tac
 end
