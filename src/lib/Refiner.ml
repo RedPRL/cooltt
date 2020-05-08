@@ -58,7 +58,7 @@ struct
     let* sym =
       let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
       let* () =
-        () |> EM.emit @@ fun fmt () ->
+        () |> EM.emit (ElabEnv.location env) @@ fun fmt () ->
         Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~names) tp
       in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
