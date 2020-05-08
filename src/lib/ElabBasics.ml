@@ -12,11 +12,6 @@ open Monad.Notation (Monads.ElabM)
 
 let elab_err err = raise @@ Err.ElabError err
 
-let push_var id tp : 'a m -> 'a m =
-  scope @@ fun env ->
-  let con = D.mk_var tp @@ Env.size env in
-  Env.append_con id con tp env
-
 let resolve id =
   let* env = read in
   match Env.resolve_local id env with
@@ -107,9 +102,12 @@ let dest_id =
     expected_connective `Id tp
 
 let abstract nm tp k =
-  push_var nm tp @@
-  let* x = get_local 0 in
-  k x
+  let rho env =
+    let con = D.mk_var tp @@ Env.size env in
+    Env.append_con nm con tp env
+  in
+  scope rho @@
+  k @<< get_local 0
 
 let problem =
   let+ env = read in

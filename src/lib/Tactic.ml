@@ -77,8 +77,8 @@ let chk_to_bchk : chk_tac -> bchk_tac =
   let* tm = tac tp in
   let* con = EM.lift_ev @@ Nbe.eval tm in
   let* () =
-    EM.push_var None (D.TpPrf phi) @@
-    EM.equate tp con @<< EM.lift_cmp @@ Nbe.inst_tm_clo pclo [D.Prf]
+    abstract (D.TpPrf phi) None @@ fun prf ->
+    EM.equate tp con @<< EM.lift_cmp @@ Nbe.inst_tm_clo pclo [Var.con prf]
   in
   EM.ret tm
 
