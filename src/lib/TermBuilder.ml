@@ -107,6 +107,9 @@ let snd m =
   let+ x = m in
   S.Snd x
 
+let cof_abort =
+  ret S.CofAbort
+
 let cof_split mtp mphi0 mtm0 mphi1 mtm1 =
   let+ tp = mtp
   and+ phi0 = mphi0
@@ -160,6 +163,11 @@ let join mphi mpsi =
   let+ phi = mphi
   and+ psi = mpsi in
   S.Cof (Cof.Join (phi, psi))
+
+let meet mphi mpsi =
+  let+ phi = mphi
+  and+ psi = mpsi in
+  S.Cof (Cof.Meet (phi, psi))
 
 let tp_dim = ret S.TpDim
 let dim0 = ret S.Dim0

@@ -9,6 +9,7 @@ module CmpL =
 struct
   type local =
     {state : St.t;
+     veil : Veil.t;
      cof_env : CofEnv.env}
 end
 
@@ -16,6 +17,7 @@ module EvL =
 struct
   type local =
     {state : St.t;
+     veil : Veil.t;
      cof_env : CofEnv.env;
      env : D.env}
 end
@@ -35,8 +37,16 @@ struct
   module M = Monad.MonadReaderResult (CmpL)
   open Monad.Notation (M)
 
-  let lift_ev env m CmpL.{state; cof_env} =
-    m EvL.{state; cof_env; env}
+  let read_global =
+    let+ {state} = M.read in
+    state
+
+  let lift_ev env m CmpL.{state; cof_env; veil} =
+    m EvL.{state; cof_env; veil; env}
+
+  let read_veil =
+    let+ {veil} = M.read in
+    veil
 
   let test_sequent cx phi =
     let+ {cof_env} = M.read in
@@ -69,13 +79,17 @@ struct
     let+ {env} = M.read in
     env
 
+  let read_veil =
+    let+ {veil} = M.read in
+    veil
+
   let append cells =
     M.scope @@ fun local ->
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
-    fun {state; cof_env} ->
-    m {state; cof_env}
+    fun {state; cof_env; veil} ->
+    m {state; cof_env; veil}
 
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
@@ -121,8 +135,8 @@ struct
     | `Inconsistent -> M.ret abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun {state; cof_env} ->
-    m {state; cof_env}
+    fun {state; veil; cof_env} ->
+    m {state; veil; cof_env}
 
   let restrict phi m =
     let* {cof_env} = M.read in
@@ -134,6 +148,29 @@ struct
       `Ret x
     | `Inconsistent ->
       M.ret `Abort
+
+  let left_invert_under_cof phi m =
+    let rec go cofs m =
+      abort_if_inconsistent () @@
+      match cofs with
+      | [] -> m
+      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
+        begin
+          restrict phi @@ go cofs m |>> fun _ -> M.ret ()
+        end
+      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
+        go (phi0 :: phi1 :: cofs) m
+      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
+        let* () = go (phi0 :: cofs) m in
+        go (phi1 :: cofs) m
+    in
+    go [phi] m
+
+  let left_invert_under_current_cof m =
+    let* env = M.read in
+    left_invert_under_cof (CofEnv.unreduced_assumptions env.cof_env) m
+
+
 
   let bind_cof_proof phi m =
     restrict phi @@
@@ -173,13 +210,13 @@ struct
 
   let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->
-    match EvM.run {state; cof_env = Env.cof_env env; env = Env.sem_env env} m with
+    match EvM.run {state; veil = Env.get_veil env; cof_env = Env.cof_env env; env = Env.sem_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun (state, env) ->
-    match CmpM.run {state; cof_env = Env.cof_env env} m with
+    match CmpM.run {state; veil = Env.get_veil env; cof_env = Env.cof_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 

@@ -16,6 +16,8 @@ module CmpM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a compute
 
+  val read_veil : Veil.t m
+  val read_global : ElabState.t m
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val test_sequent : D.cof list -> D.cof -> bool m
 
@@ -29,6 +31,7 @@ module EvM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
+  val read_veil : Veil.t m
   val read_global : ElabState.t m
   val read_local : D.env m
 
@@ -56,6 +59,8 @@ module QuM : sig
 
   (* like bind_cof_proof, but doesn't increase the de bruijn index *)
   val restrict : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
+  val left_invert_under_cof : D.cof -> unit m -> unit m
+  val left_invert_under_current_cof : unit m -> unit m
 
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end

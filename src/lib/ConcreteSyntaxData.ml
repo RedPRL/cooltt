@@ -42,6 +42,7 @@ and t =
   | TopC
   | BotC
   | HCom of t * t * t * t * t
+  | AutoHCom of t * t * t * t
   | Com of t * t * t * t * t
 [@@deriving show]
 

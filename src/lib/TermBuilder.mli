@@ -26,6 +26,7 @@ val fst : t m -> t m
 val snd : t m -> t m
 
 val cof_split : tp m -> t m -> t b -> t m -> t b -> t m
+val cof_abort : t m
 val sub_out : t m -> t m
 val sub_in : t m -> t m
 
@@ -42,6 +43,7 @@ val dim0 : t m
 val dim1 : t m
 val eq : t m -> t m -> t m
 val join : t m -> t m -> t m
+val meet : t m -> t m -> t m
 val boundary : t m -> t m
 
 module Kan : sig

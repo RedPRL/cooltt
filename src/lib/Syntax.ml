@@ -264,11 +264,10 @@ let pp_sequent_goal env fmt tp  =
       (pp_tp env) tp
   | GoalTp (olbl, Sub (tp, phi, tm)) ->
     let lbl = match olbl with Some lbl -> lbl | None -> "" in
-    let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a : %a => %a]@]"
+    let x, envx = Pp.Env.bind env (Some "_") in
+    Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp
-      Uuseg_string.pp_utf_8 x
       (pp env) phi
       (pp envx) tm
   | GoalTp (olbl, tp) ->

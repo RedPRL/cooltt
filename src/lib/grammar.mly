@@ -149,6 +149,8 @@ term:
     { Coe (fam, src, trg, body) }
   | HCOM; tp = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
     { HCom (tp, src, trg, phi, body) }
+  | HCOM; tp = atomic; src = atomic; trg = atomic; body = atomic
+    { AutoHCom (tp, src, trg, body) }
   | COM; fam = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
     { Com (fam, src, trg, phi, body) }
 

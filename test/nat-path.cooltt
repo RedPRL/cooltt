@@ -1,3 +1,29 @@
+def symm : {
+  (A : univ) (p : 𝕀 → A) → path {\_ => A} {p 1} {p 0}
+}= {
+  \A p i =>
+  hcom A 0 1 {\j _ =>
+    [ j=0 \/ i=1 => p 0
+    | i=0 => p j
+    ]
+  }
+}
+
+def trans : {
+  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {\_ => A} {p 0} {q 1}
+} = {
+  \A p q i =>
+  hcom A 0 1 {\j _ =>
+    [ j=0 \/ i=0 => p i
+    | i=1 => q j
+    ]
+  }
+}
+
+
+normalize trans
+normalize symm
+
 def + : nat → nat → nat = {
   \elim [
   | zero => \n => n
@@ -27,25 +53,32 @@ def +-suc-r : (x : nat) (y : nat) → path {\_ => nat} {+ x {suc y}} {suc {+ x y
   ]
 }
 
-/-
-def +-comm : (x : nat) (y : nat) → Id nat {+ y x} {+ x y} = {
+def +-comm : (x : nat) (y : nat) → path {\_ => nat} {+ y x} {+ x y} = {
   \elim [
   | zero => +-right-unit
   | suc {y => ih} =>
     \z =>
-    trans nat {+ z {suc y}} {suc {+ z y}} {suc {+ y z}}
-      {+-suc-r z y}
-      {cong nat nat {\w => suc w} {+ z y} {+ y z} {ih z}}
+    trans nat {+-suc-r z y} {\j => suc {ih z j}}
   ]
 }
--/
 
 def +-assoc : {
   (x : nat) (y : nat) (z : nat) →
   path {\_ => nat} {+ {+ x y} z} {+ x {+ y z}}
 } = {
   \elim [
-  | zero => \y z i => {+ y z}
-  | suc {x => ih} => \y z i => {suc {ih y z i}}
+  | zero => \y z i => + y z
+  | suc {x => ih} => \y z i => suc {ih y z i}
   ]
 }
+
+def test : {
+  (p : 𝕀 → nat) → (i : 𝕀) → nat
+} = {
+  \p i =>
+  elim {symm nat p i} @ {_ => nat} [
+  | zero => zero
+  | suc {x => ih} => zero
+  ]
+}
+

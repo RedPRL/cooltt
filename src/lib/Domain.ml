@@ -8,7 +8,7 @@ let push frm (hd, sp) =
   hd, sp @ [frm]
 
 let mk_var tp lvl =
-  Cut {tp; cut = Var lvl, []; unfold = None}
+  Cut {tp; cut = Var lvl, []}
 
 let const_tm_clo con =
   Clo (S.Var 1, {tpenv = Emp; conenv = Snoc (Emp, con)})
@@ -33,10 +33,10 @@ let dim_to_con =
   | Dim0 -> DimCon0
   | Dim1 -> DimCon1
   | DimVar lvl ->
-    Cut {tp = TpDim; cut = Var lvl, []; unfold = None}
+    Cut {tp = TpDim; cut = Var lvl, []}
   | DimProbe sym ->
     (* hmmm *)
-    Cut {tp = TpDim; cut = Global sym, []; unfold = None}
+    Cut {tp = TpDim; cut = Global sym, []}
 
 let rec cof_to_con =
   function
@@ -45,7 +45,7 @@ let rec cof_to_con =
   | Cof.Cof Cof.Top -> Cof Cof.Top
   | Cof.Cof (Cof.Join (phi0, phi1)) -> Cof (Cof.Join (cof_to_con phi0, cof_to_con phi1))
   | Cof.Cof (Cof.Meet (phi0, phi1)) -> Cof (Cof.Meet (cof_to_con phi0, cof_to_con phi1))
-  | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []; unfold = None}
+  | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
 
 let rec pp_cut : cut Pp.printer =
   fun fmt ->
@@ -77,12 +77,12 @@ and pp_sp : frm list Pp.printer =
 and pp_frame : frm Pp.printer =
    fun fmt ->
    function
-   | KAp _ -> Format.fprintf fmt "<ap>"
+   | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
    | _ -> Format.fprintf fmt "<frm>"
 
 and pp_cof : cof Pp.printer =
-  fun fmt _ ->
-  Format.fprintf fmt "<cof>"
+  fun fmt cof ->
+  pp_con fmt @@ cof_to_con cof
 
 and pp_clo : tm_clo Pp.printer =
   fun fmt (Clo (tm, env)) ->
@@ -107,6 +107,10 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "meet[%a,%a]" pp_con phi pp_con psi
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
+  | Cof Cof.Top ->
+    Format.fprintf fmt "top"
+  | Cof bot ->
+    Format.fprintf fmt "bot"
   | Refl _ ->
     Format.fprintf fmt "refl"
   | GoalRet con ->

@@ -5,6 +5,12 @@ module Env = ElabEnv
 module Err = ElabError
 open CoolBasis
 
+
+let _ =
+  Printexc.record_backtrace true;
+  ()
+
+
 type message =
   | NormalizedTerm of S.t * S.t
 
@@ -47,9 +53,10 @@ let execute_decl =
     let+ _sym = EM.add_global (Some name) vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
+    EM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Elaborator.syn_tm term in
     let* vtm = EM.lift_ev @@ Nbe.eval tm in
-    let* tm' = EM.veil (Veil.const `Transparent) @@ EM.lift_qu @@ Nbe.quote_con vtp vtm in
+    let* tm' = EM.lift_qu @@ Nbe.quote_con vtp vtm in
     let+ () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in
     `Continue
   | CS.Quit ->
@@ -71,3 +78,4 @@ let process_sign : CS.signature -> unit =
   fun sign ->
   EM.run_exn ElabState.init Env.init @@
   execute_signature sign
+

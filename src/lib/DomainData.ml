@@ -20,7 +20,7 @@ and tm_clo =
 
 and con =
   | Lam of tm_clo
-  | Cut of {tp : tp; cut : cut; unfold : lazy_con option}
+  | Cut of {tp : tp; cut : cut}
   | Zero
   | Suc of con
   | Pair of con * con
@@ -37,6 +37,8 @@ and con =
   | CodePi of con * con
   | CodeSg of con * con
   | CodeNat
+
+  | FHCom of [`Nat] * dim * dim * cof * con
 
   | Destruct of dst
 

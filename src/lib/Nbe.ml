@@ -20,6 +20,7 @@ sig
   type 'a whnf = [`Done | `Reduce of 'a]
   val whnf_con : D.con -> D.con whnf compute
   val whnf_cut : D.cut -> D.con whnf compute
+  val whnf_hd : D.hd -> D.con whnf compute
   val whnf_tp : D.tp -> D.tp whnf compute
 
   val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
@@ -121,12 +122,16 @@ struct
     | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat
     | D.Destruct _ ->
       ret `Done
-
-    | D.Cut {unfold = Some lcon} ->
-      reduce_to @<< force_lazy_con lcon
-
-    | D.Cut {unfold = None; cut} ->
+    | D.Cut {cut} ->
       whnf_cut cut
+    | D.FHCom (`Nat, r, s, phi, bdy) ->
+      begin
+        Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
+        | true ->
+          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+        | false ->
+          ret `Done
+      end
 
   and reduce_to con =
     whnf_con con |>> function
@@ -139,16 +144,22 @@ struct
     | `Done -> ret @@ `Reduce res
     | `Reduce res -> ret @@ `Reduce res
 
-  and whnf_cut cut : D.con whnf m =
-    let hd, sp = cut in
+  and whnf_hd hd =
     match hd with
-    | D.Global _ | D.Var _ ->
-      ret `Done
+    | D.Global sym ->
+      let* st = CmpM.read_global in
+      begin
+        match ElabState.get_global sym st with
+        | tp, con ->
+          reduce_to con
+        | exception _ ->
+          ret `Done
+      end
+    | D.Var _ -> ret `Done
     | D.Coe (abs, r, s, con) ->
       begin
         test_sequent [] (Cof.eq r s) |>> function
-        | true ->
-          plug_into sp con
+        | true -> reduce_to con
         | false ->
           begin
             let* dispatch = dispatch_rigid_coe abs r s con in
@@ -156,14 +167,14 @@ struct
             | `Done ->
               ret `Done
             | `Reduce tag ->
-              plug_into sp @<< enact_rigid_coe abs r s con tag
+              reduce_to @<< enact_rigid_coe abs r s con tag
           end
       end
     | D.HCom (cut, r, s, phi, bdy) ->
       begin
         Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
-          plug_into sp @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
         | false ->
           whnf_cut cut |>> function
           | `Done ->
@@ -175,34 +186,40 @@ struct
               | `Done _ ->
                 ret `Done
               | `Reduce tag ->
-                plug_into sp @<< enact_rigid_hcom code r s phi bdy tag
+                reduce_to @<< enact_rigid_hcom code r s phi bdy tag
             end
       end
     | D.SubOut (cut, phi, clo) ->
       begin
         test_sequent [] phi |>> function
         | true ->
-          plug_into sp @<< inst_tm_clo clo [D.Prf]
+          reduce_to @<< inst_tm_clo clo [D.Prf]
         | false ->
           whnf_cut cut |>> function
           | `Done ->
             ret `Done
           | `Reduce con ->
-            plug_into sp @<< do_sub_out con
+            reduce_to @<< do_sub_out con
       end
     | D.Split (tp, phi0, phi1, clo0, clo1) ->
       begin
         test_sequent [] phi0 |>> function
         | true ->
-          plug_into sp @<< inst_tm_clo clo0 [D.Prf]
+          reduce_to @<< inst_tm_clo clo0 [D.Prf]
         | false ->
           test_sequent [] phi1 |>> function
           | true ->
-            plug_into sp @<< inst_tm_clo clo1 [D.Prf]
+            reduce_to @<< inst_tm_clo clo1 [D.Prf]
           | false ->
             ret `Done
       end
 
+  and whnf_cut cut : D.con whnf m =
+    let hd, sp = cut in
+    whnf_hd hd |>>
+    function
+    | `Done -> ret `Done
+    | `Reduce con -> plug_into sp con
 
   and whnf_tp =
     function
@@ -225,34 +242,40 @@ struct
     | D.Suc n ->
       let* v = do_nat_elim mot zero suc n in
       inst_tm_clo suc [n; v]
-    | D.Cut {cut; unfold} ->
+    | D.Cut {cut} ->
       let+ fib = inst_tp_clo mot [n] in
-      cut_frm ~tp:fib ~cut ~unfold @@
+      cut_frm ~tp:fib ~cut @@
       D.KNatElim (mot, zero, suc)
+    | D.FHCom (`Nat, r, s, phi, bdy) ->
+      (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)
+      quasiquote_tm @@
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
+      QQ.foreign bdy @@ fun bdy ->
+      QQ.term @@
+      (*
+      let fam = TB.lam @@ fun i -> inst_tp_clo mot [D.FHCom (`Nat, r, i, phi, bdy)] in
+      let bdy' = TB.lam @@ fun i -> TB.lam @@ fun prf -> do_nat_elim mot zero suc (raise Todo) in
+      *)
+      TB.com (raise Todo) r s phi (raise Todo)
     | _ ->
+      Format.eprintf "bad: %a@." D.pp_con n;
       CmpM.throw @@ NbeFailed "Not a number"
 
   and do_id_elim mot refl eq =
     match eq with
     | D.Abort -> ret D.Abort
     | D.Refl t -> inst_tm_clo refl [t]
-    | D.Cut {tp = D.Id (tp, con0, con1); cut; unfold} ->
+    | D.Cut {tp = D.Id (tp, con0, con1); cut} ->
       let+ fib = inst_tp_clo mot [con0; con1; eq] in
-      cut_frm ~tp:fib ~cut ~unfold @@
+      cut_frm ~tp:fib ~cut @@
       D.KIdElim (mot, refl, tp, con0, con1)
     | _ ->
       CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
-  and cut_frm ~tp ~cut ~unfold frm =
-    let unfold =
-      unfold |> Option.map @@
-      function
-      | `Done con ->
-        `Do (con, [frm])
-      | `Do (con, spine) ->
-        `Do (con, spine @ [frm])
-    in
-    D.Cut {tp; cut = D.push frm cut; unfold}
+  and cut_frm ~tp ~cut frm =
+    D.Cut {tp; cut = D.push frm cut}
 
   and inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute =
     fun clo xs ->
@@ -272,8 +295,8 @@ struct
     function
     | D.Abort -> ret D.Abort
     | D.GoalRet con -> ret con
-    | D.Cut {tp = D.GoalTp (_, tp); cut; unfold} ->
-      ret @@ cut_frm ~tp ~cut ~unfold D.KGoalProj
+    | D.Cut {tp = D.GoalTp (_, tp); cut} ->
+      ret @@ cut_frm ~tp ~cut D.KGoalProj
     | _ ->
       CmpM.throw @@ NbeFailed "do_goal_proj"
 
@@ -284,8 +307,8 @@ struct
     | D.Pair (con0, _) ->
       ret con0
 
-    | D.Cut {tp = D.Sg (base, _); cut; unfold} ->
-      ret @@ cut_frm ~tp:base ~cut ~unfold D.KFst
+    | D.Cut {tp = D.Sg (base, _); cut} ->
+      ret @@ cut_frm ~tp:base ~cut D.KFst
 
     | _ ->
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
@@ -297,10 +320,10 @@ struct
     | D.Pair (_, con1) ->
       ret con1
 
-    | D.Cut {tp = D.Sg (_, fam); cut; unfold} ->
+    | D.Cut {tp = D.Sg (_, fam); cut} ->
       let* fst = do_fst con in
       let+ fib = inst_tp_clo fam [fst] in
-      cut_frm ~tp:fib ~cut ~unfold D.KSnd
+      cut_frm ~tp:fib ~cut D.KSnd
 
     | _ ->
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
@@ -321,9 +344,9 @@ struct
     | D.Destruct dst ->
       do_destruct dst a
 
-    | D.Cut {tp = D.Pi (base, fam); cut; unfold} ->
+    | D.Cut {tp = D.Pi (base, fam); cut} ->
       let+ fib = inst_tp_clo fam [a] in
-      cut_frm ~tp:fib ~cut ~unfold @@ D.KAp (base, a)
+      cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
 
     | _ ->
       Format.eprintf "Bad: %a@." D.pp_con f;
@@ -346,19 +369,16 @@ struct
     | D.Abort -> ret D.Abort
     | D.SubIn con ->
       ret con
-    | D.Cut {tp = D.Sub (tp, phi, clo); cut; unfold} ->
-      ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []; unfold = None} (* unfold ?? *)
+    | D.Cut {tp = D.Sub (tp, phi, clo); cut} ->
+      ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []}
     | _ ->
       throw @@ NbeFailed "do_sub_out"
 
   and do_el v =
     CmpM.abort_if_inconsistent D.TpAbort @@
     match v with
-    | D.Cut {cut; unfold = None} ->
+    | D.Cut {cut} ->
       ret @@ D.El cut
-
-    | D.Cut {unfold = Some lcon} ->
-      do_el @<< force_lazy_con lcon
 
     | D.CodeNat ->
       ret D.Nat
@@ -410,9 +430,9 @@ struct
         ret @@ `Reduce `CoeSg
       | D.CodePath _ ->
         ret @@ `Reduce `CoePath
-      | D.Cut {unfold = Some lcon} ->
-        go @<< force_lazy_con lcon
-      | D.Cut {cut; unfold = None} ->
+      | D.CodeNat ->
+        ret @@ `Reduce `CoeNat
+      | D.Cut {cut} ->
         ret `Done
       | _ ->
         throw @@ NbeFailed "Invalid arguments to dispatch_rigid_coe"
@@ -428,9 +448,9 @@ struct
         ret @@ `Reduce (`HComSg (base, fam))
       | D.CodePath (fam, bdry) ->
         ret @@ `Reduce (`HComPath (fam, bdry))
-      | D.Cut {unfold = Some lcon} ->
-        go @<< force_lazy_con lcon
-      | D.Cut {cut; unfold = None} ->
+      | D.CodeNat ->
+        ret @@ `Reduce `HComNat
+      | D.Cut {cut} ->
         ret @@ `Done cut
       | _ ->
         throw @@ NbeFailed "Invalid arguments to dispatch_rigid_hcom"
@@ -440,6 +460,8 @@ struct
   and enact_rigid_coe line r s con tag =
     CmpM.abort_if_inconsistent D.Abort @@
     match tag with
+    | `CoeNat ->
+      ret con
     | `CoePi ->
       let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
       quasiquote_tm @@
@@ -504,12 +526,12 @@ struct
       QQ.foreign bdy @@ fun bdy ->
       QQ.term @@
       TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
+    | `HComNat ->
+      ret @@ D.FHCom (`Nat, r, s, phi, bdy)
     | `Done cut ->
       let tp = D.El cut in
       let hd = D.HCom (cut, r, s, phi, bdy) in
-      ret @@ D.Cut {tp; cut = hd, []; unfold = None}
-    | _ ->
-      throw @@ NbeFailed "Invalid arguments to do_rigid_hcom"
+      ret @@ D.Cut {tp; cut = hd, []}
 
   and do_rigid_coe (line : D.con) r s con =
     CmpM.abort_if_inconsistent D.Abort @@
@@ -518,7 +540,7 @@ struct
     | `Done ->
       let hd = D.Coe (line, r, s, con) in
       let+ tp = do_el @<< do_ap line (D.dim_to_con s) in
-      D.Cut {tp; cut = hd, []; unfold = None}
+      D.Cut {tp; cut = hd, []}
     | `Reduce tag ->
       enact_rigid_coe line r s con tag
 
@@ -529,7 +551,7 @@ struct
     | `Done cut ->
       let tp = D.El cut in
       let hd = D.HCom (cut, r, s, phi, bdy) in
-      ret @@ D.Cut {tp; cut = hd, []; unfold = None}
+      ret @@ D.Cut {tp; cut = hd, []}
     | `Reduce tag ->
       enact_rigid_hcom code r s phi bdy tag
 
@@ -602,7 +624,7 @@ struct
     | S.Sg (base, fam) ->
       let+ env = read_local
       and+ vbase = eval_tp base in
-      D.Sg (vbase, D.TpClo (fam, env))
+     D.Sg (vbase, D.TpClo (fam, env))
     | S.Id (tp, left, right) ->
       let+ vtp = eval_tp tp
       and+ vl = eval left
@@ -642,8 +664,14 @@ struct
       end
     | S.Global sym ->
       let* st = EvM.read_global in
+      let* veil = EvM.read_veil in
       let tp, con = ElabState.get_global sym st in
-      ret @@ D.Cut {tp; cut = (D.Global sym, []); unfold = Some (`Done con)}
+      begin
+        match Veil.policy sym veil with
+        | `Transparent -> ret con
+        | _ ->
+          ret @@ D.Cut {tp; cut = (D.Global sym, [])}
+    end
     | S.Let (def, body) ->
       let* vdef = eval def in
       append [vdef] @@ eval body
@@ -766,7 +794,7 @@ struct
         let pclo0 = D.Clo (tm0, env) in
         let pclo1 = D.Clo (tm1, env) in
         let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
-        D.Cut {tp; cut = hd, []; unfold = None}
+        D.Cut {tp; cut = hd, []}
       in
       begin
         lift_cmp @@ whnf_con con |>> function
@@ -863,22 +891,8 @@ struct
             let+ ix = quote_var lvl in
             S.Var ix
       end
-    | _, D.Cut {cut = (hd, sp); unfold; tp} ->
-      begin
-        match hd, unfold with
-        | D.Global sym, Some lcon ->
-          let* veil = read_veil in
-          begin
-            match Veil.policy sym veil with
-            | `Transparent ->
-              quote_con tp @<<
-              lift_cmp @@ force_lazy_con lcon
-            | _ ->
-              quote_cut (hd, sp)
-          end
-        | _ ->
-          quote_cut (hd, sp)
-      end
+    | _, D.Cut {cut = (hd, sp); tp} ->
+      quote_cut (hd, sp)
     | D.Pi (base, fam), con ->
       let+ body =
         bind_var S.CofAbort base @@ fun arg ->
@@ -974,9 +988,35 @@ struct
       let+ tbdry = quote_con bdry_tp bdry in
       S.CodePath (tfam, tbdry)
 
+    | _, D.FHCom (`Nat, r, s, phi, bdy) ->
+      quote_hcom D.CodeNat r s phi bdy
+
     | _ ->
       Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
       throw @@ NbeFailed "ill-typed quotation problem"
+
+  and quote_hcom code r s phi bdy =
+    let* tcode = quote_con D.Univ code in
+    let* tp = lift_cmp @@ do_el code in
+    let* tr = quote_dim r in
+    let* ts = quote_dim s in
+    let* tphi = quote_cof phi in
+    let+ tbdy =
+      let+ tm =
+        bind_var S.CofAbort D.TpDim @@ fun i ->
+        begin
+          let* i_dim = lift_cmp @@ con_to_dim i in
+          bind_cof_proof (Cof.join (Cof.eq r i_dim) phi) @@
+          let* body = lift_cmp @@ do_ap2 bdy i D.Prf in
+          quote_con D.Nat body
+        end |>> function
+        | `Ret tm -> ret tm
+        | `Abort -> ret S.CofAbort
+      in
+      S.Lam (S.Lam tm)
+    in
+    S.HCom (tcode, tr, ts, tphi, tbdy)
+
 
   and quote_tp (tp : D.tp) =
     match tp with
@@ -1054,25 +1094,8 @@ struct
       let+ tm = quote_con tp_r con in
       S.Coe (tpcode, tr, ts, tm)
     | D.HCom (cut, r, s, phi, bdy) ->
-      let* tpcode = quote_cut cut in
-      let* tr = quote_dim r in
-      let* ts = quote_dim s in
-      let* tphi = quote_cof phi in
-      let+ tbdy =
-        let+ tm =
-          bind_var S.CofAbort D.TpDim @@ fun i ->
-          begin
-            let* i_dim = lift_cmp @@ con_to_dim i in
-            bind_cof_proof (Cof.join (Cof.eq r i_dim) phi) @@
-            let* body = lift_cmp @@ do_ap2 bdy i D.Prf in
-            quote_con (D.El cut) body
-          end |>> function
-          | `Ret tm -> ret tm
-          | `Abort -> ret S.CofAbort
-        in
-        S.Lam (S.Lam tm)
-      in
-      S.HCom (tpcode, tr, ts, tphi, tbdy)
+      let code = D.Cut {cut; tp = D.Univ} in
+      quote_hcom code r s phi bdy
     | D.SubOut (cut, phi, clo) ->
       let+ tm = quote_cut cut in
       S.SubOut tm
@@ -1106,7 +1129,6 @@ struct
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
         S.Cof (Cof.Eq (tr, ts))
-
       | Cof.Join (phi, psi) ->
         let+ tphi = quote_cof phi
         and+ tpsi = quote_cof psi in
@@ -1193,6 +1215,27 @@ struct
     | `Done -> x
     | `Reduce y -> y
 
+
+
+  let bind_var_ tp m =
+    match tp with
+    | D.TpPrf phi ->
+      begin
+        begin
+          bind_cof_proof phi @@
+          let* var = top_var tp in
+          QuM.left_invert_under_cof phi @@
+          m var
+        end |>> function
+        | `Ret _ -> ret ()
+        | `Abort -> ret ()
+      end
+    | _ ->
+      binder 1 @@
+      let* var = top_var tp in
+      m var
+
+
   (* Invariant: tp0 and tp1 not necessarily whnf *)
   let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     QuM.abort_if_inconsistent () @@
@@ -1206,14 +1249,14 @@ struct
     | D.Pi (base0, fam0), D.Pi (base1, fam1)
     | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
       let* () = equate_tp base0 base1 in
-      bind_var () base0 @@ fun x ->
+      bind_var_ base0 @@ fun x ->
       let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
       let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
       equate_tp fib0 fib1
     | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
       let* () = equate_tp tp0 tp1 in
       let* () = equate_cof phi0 phi1 in
-      bind_var () (D.TpPrf phi0) @@ fun prf ->
+      bind_var_ (D.TpPrf phi0) @@ fun prf ->
       let* con0 = lift_cmp @@ inst_tm_clo clo0 [prf] in
       let* con1 = lift_cmp @@ inst_tm_clo clo1 [prf] in
       equate_con tp0 con0 con1
@@ -1231,22 +1274,6 @@ struct
     | _ ->
       throw @@ NbeFailed "unequal types"
 
-  and under_cof phi m =
-    let rec go cofs m =
-      match cofs with
-      | [] -> m
-      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
-        begin
-          QuM.restrict phi @@ go cofs m |>> fun _ -> ret ()
-        end
-      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
-        go (phi0 :: phi1 :: cofs) m
-      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
-        let* () = go (phi0 :: cofs) m in
-        go (phi1 :: cofs) m
-    in
-    go [phi] m
-
   (* Invariant: tp, con0, con1 not necessarily whnf *)
   and equate_con tp con0 con1 =
     QuM.abort_if_inconsistent () @@
@@ -1259,10 +1286,10 @@ struct
     | _, _, D.Abort -> ret ()
     | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _}, _
     | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _} ->
-      under_cof (Cof.join phi0 phi1) @@
+      QuM.left_invert_under_cof (Cof.join phi0 phi1) @@
       equate_con tp con0 con1
     | D.Pi (base, fam), _, _ ->
-      bind_var () base @@ fun x ->
+      bind_var_ base @@ fun x ->
       let* fib = lift_cmp @@ inst_tp_clo fam [x] in
       let* ap0 = lift_cmp @@ do_ap con0 x in
       let* ap1 = lift_cmp @@ do_ap con1 x in
@@ -1280,7 +1307,7 @@ struct
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
     | D.Sub (tp, phi, _), _, _ ->
-      under_cof phi @@
+      QuM.left_invert_under_cof phi @@
       let* out0 = lift_cmp @@ do_sub_out con0 in
       let* out1 = lift_cmp @@ do_sub_out con1 in
       equate_con tp out0 out1
@@ -1298,9 +1325,10 @@ struct
       let* phi0 = lift_cmp @@ con_to_cof con0 in
       let* phi1 = lift_cmp @@ con_to_cof con1 in
       equate_cof phi0 phi1
-    | _, D.Cut {cut = cut0; unfold = None}, D.Cut {cut = cut1; unfold = None} ->
+    | _, D.Cut {cut = cut0}, D.Cut {cut = cut1} ->
       equate_cut cut0 cut1
-
+    | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
+      equate_hcom (D.CodeNat, r0, s0, phi0, bdy0) (D.CodeNat, r1, s1, phi1, bdy1)
     | _, D.CodeNat, D.CodeNat ->
       ret ()
 
@@ -1336,18 +1364,22 @@ struct
       equate_con bdry_tp bdry0 bdry1
 
     | _ ->
+      Format.eprintf "bad! equate_con!@.";
       throw @@ NbeFailed "unequal values"
 
   (* Invariant: cut0, cut1 are whnf *)
   and equate_cut cut0 cut1 =
+    QuM.abort_if_inconsistent () @@
+    let* () = assert_done_cut cut0 in
+    let* () = assert_done_cut cut1 in
     let hd0, sp0 = cut0 in
     let hd1, sp1 = cut1 in
     match hd0, hd1 with
     | D.Split (tp, phi0, phi1, _, _), _
     | _, D.Split (tp, phi0, phi1, _, _) ->
-      under_cof (Cof.join phi0 phi1) @@
-      let* con0 = contractum_or (D.Cut {tp; cut = cut0; unfold = None}) <@> lift_cmp @@ whnf_cut cut0 in
-      let* con1 = contractum_or (D.Cut {tp; cut = cut1; unfold = None}) <@> lift_cmp @@ whnf_cut cut1 in
+      QuM.left_invert_under_cof (Cof.join phi0 phi1) @@
+      let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut cut0 in
+      let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut cut1 in
       equate_con tp con0 con1
     | _ ->
       let* () = equate_hd hd0 hd1 in
@@ -1361,6 +1393,7 @@ struct
       let* () = equate_frm k0 k1 in
       equate_spine sp0 sp1
     | _ ->
+      Format.eprintf "bad! equate_spine!.";
       throw @@ NbeFailed "Spine length mismatch"
 
   (* Invariant: k0, k1 are whnf *)
@@ -1410,10 +1443,26 @@ struct
     | (D.KGoalProj, D.KGoalProj) ->
       ret ()
     | _ ->
+      Format.eprintf "bad! equate_frame!@.";
       throw @@ NbeFailed "Mismatched frames"
+
+  and assert_done_hd hd =
+    let* w = lift_cmp @@ whnf_hd hd in
+    match w with
+    | `Done -> ret ()
+    | _ -> failwith "internal error: assert_done_hd failed"
+
+  and assert_done_cut cut =
+    let* w = lift_cmp @@ whnf_cut cut in
+    match w with
+    | `Done -> ret ()
+    | _ -> failwith "internal error: assert_done_cut failed"
 
   (* Invariant: hd0, hd1 are whnf *)
   and equate_hd hd0 hd1 =
+    QuM.abort_if_inconsistent () @@
+    let* () = assert_done_hd hd0 in
+    let* () = assert_done_hd hd1 in
     match hd0, hd1 with
     | D.Global sym0, D.Global sym1 ->
       if Symbol.equal sym0 sym1 then ret () else
@@ -1425,7 +1474,7 @@ struct
       let* () = equate_dim r0 r1 in
       let* () = equate_dim s0 s1 in
       let* () =
-        bind_var () D.TpDim @@ fun i ->
+        bind_var_ D.TpDim @@ fun i ->
         let* code0 = lift_cmp @@ do_ap abs0 i in
         let* code1 = lift_cmp @@ do_ap abs1 i in
         equate_con D.Univ code0 code1
@@ -1434,20 +1483,36 @@ struct
       let* tp = lift_cmp @@ do_el code in
       equate_con tp con0 con1
     | D.HCom (cut0, r0, s0, phi0, bdy0), D.HCom (cut1, r1, s1, phi1, bdy1) ->
-      let* () = equate_cut cut0 cut1 in
-      let* () = equate_dim r0 r1 in
-      let* () = equate_dim s0 s1 in
-      let* () = equate_cof phi0 phi1 in
-      bind_var () D.TpDim @@ fun i ->
-      let* i_dim = lift_cmp @@ con_to_dim i in
-      bind_var () (D.TpPrf (Cof.join (Cof.eq i_dim r0) phi0)) @@ fun prf ->
-      let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
-      let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
-      equate_con (D.El cut0) con0 con1
+      let code0 = D.Cut {tp = D.Univ; cut = cut0} in
+      let code1 = D.Cut {tp = D.Univ; cut = cut1} in
+      equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
     | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
       equate_cut cut0 cut1
+    | hd, D.Split (tp, phi0, phi1, clo0, clo1)
+    | D.Split (tp, phi0, phi1, clo0, clo1), hd ->
+      let* () =
+        QuM.left_invert_under_cof phi0 @@
+        equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo0 [D.Prf]
+      in
+      QuM.left_invert_under_cof phi1 @@
+      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
     | _ ->
+      Format.eprintf "bad! equate_hd : %a / %a@." D.pp_hd hd0 D.pp_hd hd1;
       throw @@ NbeFailed "Different heads"
+
+  and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
+    let* () = equate_con D.Univ code0 code1 in
+    let* () = equate_dim r0 r1 in
+    let* () = equate_dim s0 s1 in
+    let* () = equate_cof phi0 phi1 in
+    bind_var_ D.TpDim @@ fun i ->
+    let* i_dim = lift_cmp @@ con_to_dim i in
+    bind_var_ (D.TpPrf (Cof.join (Cof.eq i_dim r0) phi0)) @@ fun prf ->
+    let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
+    let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
+    let* tp = lift_cmp @@ do_el code0 in
+    equate_con tp con0 con1
+
 
   and equate_cof phi psi =
     let* () = approx_cof phi psi in
@@ -1461,13 +1526,19 @@ struct
       ret ()
 
   let equal_tp tp0 tp1 : bool quote =
-    successful @@ equate_tp tp0 tp1
+    successful @@
+    QuM.left_invert_under_current_cof @@
+    equate_tp tp0 tp1
 
   let equal_cut cut0 cut1 =
-    successful @@ equate_cut cut0 cut1
+    successful @@
+    QuM.left_invert_under_current_cof @@
+    equate_cut cut0 cut1
 
   let equal_con tp con0 con1 =
-    successful @@ equate_con tp con0 con1
+    successful @@
+    QuM.left_invert_under_current_cof @@
+    equate_con tp con0 con1
 end
 
 include Eval
