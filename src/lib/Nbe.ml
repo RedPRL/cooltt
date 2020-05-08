@@ -1252,7 +1252,6 @@ struct
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
     | D.Sub (tp, phi, _), _, _ ->
-      QuM.left_invert_under_cof phi @@
       let* out0 = lift_cmp @@ do_sub_out con0 in
       let* out1 = lift_cmp @@ do_sub_out con1 in
       equate_con tp out0 out1
