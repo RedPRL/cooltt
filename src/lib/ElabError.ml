@@ -54,7 +54,7 @@ let pp fmt =
   | InvalidTypeExpression cs ->
     Fmt.fprintf fmt
       "Invalid type expression: %a"
-      CS.pp cs
+      CS.pp_con cs
   | MalformedCase ->
     Fmt.fprintf fmt "Malformed case"
   | CannotEliminate (ppenv, tp) ->

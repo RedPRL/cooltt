@@ -1,5 +1,9 @@
 %{
   open ConcreteSyntax
+
+  let locate loc node =
+    {node; info = Some loc}
+
 %}
 
 %token <int> NUMERAL
@@ -20,7 +24,16 @@
 %token TOPC BOTC
 
 %start <ConcreteSyntax.signature> sign
+%type <con_> atomic atomic_or_ap ap eq cof term term_or_cof bracketed
+%type <pat> pat
+%type <pat * con> case
+%type <cell> tele_cell
 %%
+
+
+located(X):
+  | e = X
+    { locate $loc e }
 
 name:
   | s = ATOM
@@ -29,11 +42,11 @@ name:
     { "_" }
 
 decl:
-  | DEF; nm = name; COLON; tp = term; EQUALS; body = term
+  | DEF; nm = name; COLON; tp = located(term); EQUALS; body = located(term)
     { Def {name = nm; def = body; tp} }
   | QUIT
     { Quit }
-  | NORMALIZE; tm = term
+  | NORMALIZE; tm = located(term)
     { NormalizeTerm tm }
 
 sign:
@@ -43,16 +56,17 @@ sign:
     { d :: s }
 
 eq:
-  | r = atomic EQUALS s = atomic
+  | r = located(atomic) EQUALS s = located(atomic)
     { CofEq (r, s) }
 
 cof:
-  | eq = eq { eq }
-  | BOUNDARY term = term
+  | eq = eq
+    { eq }
+  | BOUNDARY term = located(term)
     { CofBoundary term }
-  | phi = atomic_or_eq JOIN psi = atomic_or_eq
+  | phi = located(atomic_or_eq) JOIN psi = located(atomic_or_eq)
     { Join (phi, psi) }
-  | phi = atomic_or_eq MEET psi = atomic_or_eq
+  | phi = located(atomic_or_eq) MEET psi = located(atomic_or_eq)
     { Meet (phi, psi) }
 
 atomic:
@@ -91,17 +105,17 @@ atomic_or_eq: t = atomic | t = eq {t}
 atomic_or_cof: t = atomic | t = cof {t}
 
 bracketed:
-  | left = term COMMA right = term
+  | left = located(term) COMMA right = located(term)
     { Pair (left, right) }
   | cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
   | PIPE cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = term_or_cof
+  | t = located(term_or_cof)
     { Prf t }
 
 ap:
-  | f = atomic; args = nonempty_list(atomic)
+  | f = located(atomic); args = nonempty_list(located(atomic))
     { Ap (f, args) }
 
 atomic_or_ap : t = atomic | t = ap {t}
@@ -109,55 +123,55 @@ atomic_or_ap : t = atomic | t = ap {t}
 term:
   | t = atomic_or_ap
     { t }
-  | UNFOLD; names = nonempty_list(name); IN; body = term;
+  | UNFOLD; names = nonempty_list(name); IN; body = located(term);
     { Unfold (names, body) }
-  | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
-    { Let (Ann {term = def; tp}, B {name; body}) }
-  | LET; name = name; EQUALS; def = term; IN; body = term
+  | LET; name = name; COLON; tp = located(term); EQUALS; def = located(term); IN; body = located(term)
+    { Let ({node = Ann {term = def; tp}; info = def.info}, B {name; body}) }
+  | LET; name = name; EQUALS; def = located(term); IN; body = located(term)
     { Let (def, B {name; body}) }
-  | LPR t = term; AT; tp = term RPR
+  | LPR t = located(term); AT; tp = located(term) RPR
     { Ann {term = t; tp} }
-  | SUC; t = term
+  | SUC; t = located(term)
     { Suc t }
-  | ID; tp = atomic; left = atomic; right = atomic
+  | ID; tp = located(atomic); left = located(atomic); right = located(atomic)
     { Id (tp, left, right) }
-  | LAM; names = list(name); RRIGHT_ARROW; body = term
+  | LAM; names = list(name); RRIGHT_ARROW; body = located(term)
     { Lam (BN {names; body}) }
   | LAM; ELIM; cases = cases
     { LamElim cases }
-  | ELIM; scrut = term; AT; mot = motive; cases = cases
+  | ELIM; scrut = located(term); AT; mot = motive; cases = cases
     { Elim {mot; cases; scrut}}
-  | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
+  | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = located(term)
     { Pi (tele, cod) }
-  | tele = nonempty_list(tele_cell); TIMES; cod = term
+  | tele = nonempty_list(tele_cell); TIMES; cod = located(term)
     { Sg (tele, cod) }
-  | dom = atomic_or_ap RIGHT_ARROW cod = term
+  | dom = located(atomic_or_ap) RIGHT_ARROW cod = located(term)
     { Pi ([Cell {name = "_"; tp = dom}], cod) }
-  | dom = atomic_or_ap TIMES cod = term
+  | dom = located(atomic_or_ap) TIMES cod = located(term)
     { Sg ([Cell {name = "_"; tp = dom}], cod) }
-  | SUB tp = atomic phi = atomic tm = atomic
+  | SUB tp = located(atomic) phi = located(atomic) tm = located(atomic)
     { Sub (tp, phi, tm) }
-  | FST; t = term
+  | FST; t = located(term)
     { Fst t }
-  | SND; t = term
+  | SND; t = located(term)
     { Snd t }
 
-  | PATH; tp = atomic; left = atomic; right = atomic
+  | PATH; tp = located(atomic); left = located(atomic); right = located(atomic)
     { Path (tp, left, right) }
 
-  | COE; fam = atomic; src = atomic; trg = atomic; body = atomic
+  | COE; fam = located(atomic); src = located(atomic); trg = located(atomic); body = located(atomic)
     { Coe (fam, src, trg, body) }
-  | HCOM; tp = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
+  | HCOM; tp = located(atomic); src = located(atomic); trg = located(atomic); phi = located(atomic); body = located(atomic)
     { HCom (tp, src, trg, phi, body) }
-  | HCOM; tp = atomic; src = atomic; trg = atomic; body = atomic
+  | HCOM; tp = located(atomic); src = located(atomic); trg = located(atomic); body = located(atomic)
     { AutoHCom (tp, src, trg, body) }
-  | COM; fam = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
+  | COM; fam = located(atomic); src = located(atomic); trg = located(atomic); phi = located(atomic); body = located(atomic)
     { Com (fam, src, trg, phi, body) }
 
 term_or_cof: t = term | t = cof {t}
 
 motive:
-  | LBR names = list(name) RRIGHT_ARROW body = term RBR
+  | LBR names = list(name) RRIGHT_ARROW body = located(term) RBR
     { BN {names; body} }
 
 cases:
@@ -165,11 +179,11 @@ cases:
     { cases }
 
 case:
-  | p = pat RRIGHT_ARROW t = term
+  | p = pat RRIGHT_ARROW t = located(term)
     { p, t }
 
 cof_case:
-  | phi = atomic_or_cof RRIGHT_ARROW t = term
+  | phi = located(atomic_or_cof) RRIGHT_ARROW t = located(term)
     { phi, t }
 
 pat_lbl:
@@ -194,5 +208,5 @@ pat_arg:
     { `Inductive (Some i0, Some i1) }
 
 tele_cell:
-  | LPR name = name; COLON tp = term; RPR
+  | LPR name = name; COLON tp = located(term); RPR
     { Cell {name; tp} }

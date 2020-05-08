@@ -18,9 +18,14 @@ open Bwd
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
 
-module Hole =
+module Hole : sig
+  val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> T.bchk_tac
+  val unleash_tp_hole : CS.ident option -> [`Flex | `Rigid] -> T.tp_tac
+  val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> T.syn_tac
+end =
 struct
-  let norm : D.cof -> D.cof m =
+  (* To give a more intuitive readout *)
+  let normalize_cof : D.cof -> D.cof m =
     fun phi ->
       let* useless = EM.lift_cmp @@ CmpM.test_sequent [phi] Cof.bot in
       EM.ret (if useless then Cof.bot else phi)
@@ -29,7 +34,7 @@ struct
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        let* phi' = norm phi in
+        let* phi' = normalize_cof phi in
         EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in

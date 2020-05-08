@@ -39,9 +39,9 @@ let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
   | `Done -> tac (tp, psi, clo)
   | `Reduce tp -> tac (tp, psi, clo)
 
-let rec chk_tp : CS.t -> T.tp_tac =
-  fun cs ->
-  match cs with
+let rec chk_tp : CS.con -> T.tp_tac =
+  fun con ->
+  match con.node with
   | CS.Hole name ->
     R.Hole.unleash_tp_hole name `Rigid
   | CS.Underscore ->
@@ -69,15 +69,15 @@ let rec chk_tp : CS.t -> T.tp_tac =
     R.Prf.formation @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) ->
     R.Sub.formation (chk_tp ctp) (chk_tm cphi) (fun _ -> chk_tm ctm)
-  | tm ->
-    Refiner.Univ.el_formation @@ chk_tm tm
+  | _ ->
+    Refiner.Univ.el_formation @@ chk_tm con
 
-and chk_tm : CS.t -> T.chk_tac =
+and chk_tm : CS.con -> T.chk_tac =
   fun cs ->
   T.bchk_to_chk @@ bchk_tm cs
 
 
-and bchk_tm : CS.t -> T.bchk_tac =
+and bchk_tm : CS.con -> T.bchk_tac =
   fun cs ->
   whnf_bchk @@
   R.Tactic.bmatch_goal @@ function
@@ -86,8 +86,9 @@ and bchk_tm : CS.t -> T.bchk_tac =
   | _ ->
     EM.ret @@ bchk_tm_ cs
 
-and bchk_tm_ : CS.t -> T.bchk_tac =
-  function
+and bchk_tm_ : CS.con -> T.bchk_tac =
+  fun con ->
+  match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
   | CS.Underscore ->
@@ -141,20 +142,21 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     T.chk_to_bchk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
   | CS.AutoHCom (tp, r, s, bdy) ->
     R.Univ.auto_hcom (chk_tm tp) (chk_tm r) (chk_tm s) (chk_tm bdy)
-  | cs ->
+  | _ ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
     match tp with
     | D.Pi _ ->
       let* env = EM.read in
       let lvl = ElabEnv.size env in
-      EM.ret @@ R.Pi.intro None @@ fun _ -> bchk_tm @@ CS.Ap (cs, [Var (`Level lvl)])
+      EM.ret @@ R.Pi.intro None @@ fun _ -> bchk_tm @@ CS.{node = CS.Ap (con, [CS.{node = Var (`Level lvl); info = None}]); info = None}
     | D.Sg _ ->
-      EM.ret @@ R.Sg.intro (bchk_tm @@ CS.Fst cs) (bchk_tm @@ CS.Snd cs)
+      EM.ret @@ R.Sg.intro (bchk_tm @@ CS.{node = CS.Fst con; info = None}) (bchk_tm @@ CS.{node = CS.Snd con; info = None})
     | _ ->
-      EM.ret @@ T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
+      EM.ret @@ T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm con
 
-and syn_tm_ : CS.t -> T.syn_tac =
-  function
+and syn_tm_ : CS.con -> T.syn_tac =
+  function con ->
+  match con.node with
   | CS.Hole name ->
     R.Hole.unleash_syn_hole name `Rigid
   | CS.Var (`User id) ->
@@ -186,9 +188,9 @@ and syn_tm_ : CS.t -> T.syn_tac =
   | CS.TopC -> R.Univ.topc
   | CS.BotC -> R.Univ.botc
   | cs ->
-    failwith @@ "TODO : " ^ CS.show cs
+    failwith @@ "TODO : " ^ CS.show_con con
 
-and syn_tm : CS.t -> T.syn_tac =
+and syn_tm : CS.con -> T.syn_tac =
   fun c ->
   let* tm, tp = syn_tm_ c in
   match tp with
