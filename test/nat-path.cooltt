@@ -52,45 +52,37 @@ def trans-assoc : {
 }
 -/
 
--- def trans-left-unit : {
---   (A : univ) (x : A) (y : A) (p : Id A x y)
---   → Id {Id A x y} {trans A x x y refl p} p
--- } = {
---   λ A x y p => refl
--- }
+/-
+def trans-left-unit : {
+  (A : univ) (p : 𝕀 → A)
+  → path {λ _ => path {λ _ => A} {p 0} {p 1}} {trans A {λ _ => p 0} p} p
+} = {
+  λ A p => ?
+}
+-/
 
--- def trans-right-unit : {
---   (A : univ) (x : A) (y : A) (p : Id A x y)
---   → Id {Id A x y} {trans A x y y p refl} p
--- } = {
---   λ A x y p =>
---   elim p @ {x y p => Id {Id A x y} {trans A x y y p refl} p} [
---   | refl => refl
---   ]
--- }
+def trans-right-unit : {
+  (A : univ) (p : 𝕀 → A)
+  → path {λ _ => path {λ _ => A} {p 0} {p 1}} p {trans A p {λ _ => p 1}}
+} = {
+  λ A p => trans/filler A p {λ _ => p 1}
+}
 
--- def trans-symm-refl : {
---   (A : univ) (x : A) (y : A) (p : Id A x y)
---   → Id {Id A x x} {trans A x y x p {symm A x y p}} refl
--- } = {
---   λ A x y p =>
---   elim p @ {x y p =>
---     Id {Id A x x} {trans A x y x p {symm A x y p}} refl
---   } [
---   | refl => refl
---   ]
--- }
+/-
+def trans-symm-refl : {
+  (A : univ) (p : 𝕀 → A)
+  → path {λ _ => path {λ _ => A} {p 0} {p 0}} {trans A p {symm A p}} {λ _ => p 0}
+} = {
+  λ A p => ?
+}
+-/
 
--- def cong : {
---   (A : univ) (B : univ) (f : A → B)
---   (x : A) (y : A) (p : Id A x y)
---   → Id B {f x} {f y}
--- } = {
---   λ A B f x y p =>
---   elim p @ {u v _ => Id B {f u} {f v}} [
---   | refl => refl
---   ]
--- }
+def cong : {
+  (A : univ) (B : univ) (f : A → B) (p : 𝕀 → A) →
+  path {λ _ => B} {f {p 0}} {f {p 1}}
+} = {
+  λ A B f p i => f {p i}
+}
 
 def + : nat → nat → nat = {
   λ elim [
