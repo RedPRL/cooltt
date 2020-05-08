@@ -149,9 +149,9 @@ struct
       let* st = CmpM.read_global in
       begin
         match ElabState.get_global sym st with
-        | tp, con ->
+        | tp, Some con ->
           reduce_to con
-        | exception _ ->
+        | _, None | exception _ ->
           ret `Done
       end
     | D.Var _ -> ret `Done
@@ -647,10 +647,10 @@ struct
     | S.Global sym ->
       let* st = EvM.read_global in
       let* veil = EvM.read_veil in
-      let tp, con = ElabState.get_global sym st in
+      let tp, ocon = ElabState.get_global sym st in
       begin
-        match Veil.policy sym veil with
-        | `Transparent -> ret con
+        match ocon, Veil.policy sym veil with
+        | Some con, `Transparent -> ret con
         | _ ->
           ret @@ D.Cut {tp; cut = (D.Global sym, [])}
     end
