@@ -9,6 +9,25 @@ def symm : {
   }
 }
 
+def trans/filler : {
+  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
+} = {
+  \A p q j i =>
+  hcom A 0 j {\j _ =>
+    [ j=0 ∨ i=0 => p i
+    | i=1 => q j
+    ]
+  }
+}
+
+/-
+def new-trans : {
+  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {\_ => A} {p 0} {q 1}
+} = {
+  λ A p q i => trans/filler A p q 1 i
+}
+-/
+
 def trans : {
   (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {\_ => A} {p 0} {q 1}
 } = {
@@ -20,25 +39,25 @@ def trans : {
   }
 }
 
--- def trans-assoc : {
---   (A : univ) (s : A) (t : A) (u : A) (v : A)
---   (p : Id A s t) (q : Id A t u) (r : Id A u v)
---   → Id
---       {Id A s v}
---       {trans A s u v {trans A s t u p q} r}
---       {trans A s t v p {trans A t u v q r}}
--- } = {
---   \A s t u v p =>
---   elim p @ {s t p =>
---     (q : Id A t u) (r : Id A u v)
---     → Id
---         {Id A s v}
---         {trans A s u v {trans A s t u p q} r}
---         {trans A s t v p {trans A t u v q r}}
---   } [
---   | refl => \q r => refl
---   ]
--- }
+/-
+def J : {
+  (A : univ) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → univ) →
+  {C {λ _ => p 0}} → C p
+} = {
+  λ A p C d => coe {λ i => C {λ j => hcom A 0 j {λ i _ => p i}}} 0 1 d
+}
+
+def trans-assoc : {
+  (A : univ) (s : A) (t : A) (u : A) (v : A)
+  (p : path {λ _ => A} s t) (q : path {λ _ => A} t u) (r : path {λ _ => A} u v) →
+    path
+      {λ _ => path {λ _ => A} s v}
+      {trans A {trans A p q} r}
+      {trans A p {trans A q r}}
+} = {
+  \A s t u v p q r i j => hcom A 0 j {λ k _ => ?}
+}
+-/
 
 -- def trans-left-unit : {
 --   (A : univ) (x : A) (y : A) (p : Id A x y)
@@ -79,9 +98,6 @@ def trans : {
 --   | refl => refl
 --   ]
 -- }
-
-normalize trans
-normalize symm
 
 def + : nat → nat → nat = {
   \elim [
