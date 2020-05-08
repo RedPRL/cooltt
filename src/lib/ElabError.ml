@@ -17,8 +17,6 @@ let pp_connective fmt =
     Format.fprintf fmt "pi"
   | `Sg ->
     Format.fprintf fmt "sg"
-  | `Id ->
-    Format.fprintf fmt "id"
   | `Univ ->
     Format.fprintf fmt "univ"
   | `Nat ->

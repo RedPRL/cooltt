@@ -9,7 +9,6 @@ struct
   type connective =
     [ `Pi
     | `Sg
-    | `Id
     | `Nat
     | `Univ
     | `Dim
