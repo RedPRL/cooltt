@@ -217,8 +217,24 @@ struct
 
   exception Todo
 
-  let coe_path ~fam_line ~bdry_line ~r ~s ~bdy =
-    raise Todo
+  let coe_path ~(fam_line : S.t m) (* A : I -> I -> U *)
+      ~(bdry_line : S.t m)         (* a&b together; i:I j:I -> [_ : j=0 v j=1] -> A i j *)
+      ~(r : S.t m)                 (* r : I *)
+      ~(s : S.t m)                 (* s/r' : I *)
+      ~(bdy : S.t m)               (* m : path (A r) (bdry_line r 0) (bdry_line r 1) *)
+                                   (* ------------------------ *)
+    : S.t m                        (* path (A r') (bdry_line r' 0) (bdry_line r' 1) *)
+    =
+    lam @@ fun j ->
+    sub_in @@
+    let_ (boundary j) @@ fun d_j ->
+    com (lam @@ fun i -> ap fam_line [i; j]) r s d_j @@
+    lam @@ fun i ->
+    lam @@ fun _ ->
+      cof_split
+      (el @@ ap fam_line [i; j])
+      d_j (fun q -> ap bdry_line [i; j; q])
+      (eq i r)     (fun q -> sub_out @@ ap bdy [j])
 
   (*
    * fam : I -> U

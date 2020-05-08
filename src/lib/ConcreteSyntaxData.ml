@@ -34,6 +34,7 @@ and t =
   | CofEq of t * t
   | Join of t * t
   | Meet of t * t
+  | CofBoundary of t
   | Prf of t
   | CofSplit of (t * t) list
   | Path of t * t * t

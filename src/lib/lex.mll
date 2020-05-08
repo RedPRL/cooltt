@@ -40,6 +40,7 @@ let keywords =
     ("dim", DIM);
     ("𝔽", COF);
     ("cof", COF);
+    ("∂", BOUNDARY);
     ("sub", SUB);
     ("path", PATH);
     ("coe", COE);

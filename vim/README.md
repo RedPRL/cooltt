@@ -8,6 +8,7 @@ there are ASCII equivalents.
 |------|-----------|-------|
 | 𝕀    | `C-k II`  | `dim` |
 | 𝔽    | `C-k FF`  | `cof` |
+| ∂    | `C-k dP`  |       |
 | ∧    | `C-k AN`  | `/\`  |
 | ∨    | `C-k OR`  | `\/`  |
 | λ    | `C-k *l`  | `\`   |

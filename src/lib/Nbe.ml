@@ -335,6 +335,8 @@ struct
     | D.DCodePiSplit, D.CodePi (base, fam)
     | D.DCodeSgSplit, D.CodeSg (base, fam) ->
       ret @@ D.Pair (base, fam)
+    | D.DCodePathSplit, D.CodePath(fam, bdry) ->
+      ret @@ D.Pair (fam, bdry)
     | _ ->
       throw @@ NbeFailed "Invalid destructor application"
 
@@ -459,7 +461,15 @@ struct
       let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
       QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
     | `CoePath ->
-      raise Todo
+      let split_line = D.compose (D.Destruct D.DCodePathSplit) line in
+      quasiquote_tm @@
+      QQ.foreign split_line @@ fun split_line ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign con @@ fun bdy ->
+      let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+      let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
+      QQ.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
 
   and enact_rigid_hcom code r s phi bdy tag =
     CmpM.abort_if_inconsistent D.Abort @@

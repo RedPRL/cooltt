@@ -53,6 +53,24 @@ def coe/sigma : {
 
 normalize coe/sigma
 
+def coe/path : {
+  (A : 𝕀 -> 𝕀 -> univ)
+  (r : 𝕀)
+  (r' : 𝕀)
+  (a : (i : 𝕀) -> A i 0)
+  (b : (i : 𝕀) -> A i 1)
+  (m : path {A r} {a r} {b r})
+  -> sub {path {A r'} {a r'} {b r'}} #t
+     {\j =>
+       com {\i => A i j} r r' {∂ j}
+         {\i p => [j=0 => a i | j=1 => b i | i=r => m j]}}
+} = {
+  \A r r' a b m =>
+  coe {\i => path {A i} {a i} {b i}} r r' m
+}
+
+normalize coe/path
+
 def hcom/intro : {
   (A : univ) (r : 𝕀) (r' : 𝕀) (φ : 𝔽)
   (p : (i : 𝕀) (_ : [i=r ∨ φ]) → A) →

@@ -5,7 +5,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF
+%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token UNIV
@@ -48,6 +48,8 @@ eq:
 
 cof:
   | eq = eq { eq }
+  | BOUNDARY term = term
+    { CofBoundary term }
   | phi = atomic_or_eq JOIN psi = atomic_or_eq
     { Join (phi, psi) }
   | phi = atomic_or_eq MEET psi = atomic_or_eq

@@ -78,3 +78,4 @@ and frm =
 and dst =
   | DCodePiSplit
   | DCodeSgSplit
+  | DCodePathSplit
