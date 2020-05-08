@@ -29,3 +29,16 @@ def simple-let : {
 }
 
 normalize simple-let
+
+
+def hole-in-type : {
+  (x : nat) (y : nat) (z : nat)
+  → ?tyhole
+} = {
+  \y z => ?tmhole
+}
+
+def foo : (x : nat) → (y : nat) × path {\i => nat} x y = {
+  \x =>
+  [x, ?hole1]
+}
