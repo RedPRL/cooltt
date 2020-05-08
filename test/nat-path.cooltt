@@ -1,84 +1,143 @@
 def symm : {
-  (A : univ) (p : 𝕀 → A) → path {\_ => A} {p 1} {p 0}
+  (A : univ) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
 }= {
-  \A p i =>
-  hcom A 0 1 {\j _ =>
-    [ j=0 \/ i=1 => p 0
+  λ A p i =>
+  hcom A 0 1 {λ j _ =>
+    [ j=0 ∨ i=1 => p 0
     | i=0 => p j
     ]
   }
 }
 
-def trans : {
-  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {\_ => A} {p 0} {q 1}
+def trans/filler : {
+  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
 } = {
-  \A p q i =>
-  hcom A 0 1 {\j _ =>
-    [ j=0 \/ i=0 => p i
+  λ A p q j i =>
+  hcom A 0 j {∂ i} {λ j _ =>
+    [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
   }
 }
 
+def trans : {
+  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
+} = {
+  λ A p q => trans/filler A p q 1
+}
 
-normalize trans
-normalize symm
+
+def J : {
+  (A : univ) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → univ) →
+  {C {λ _ => p 0}} → C p
+} = {
+  λ A p C d =>
+  coe {λ i =>
+    C {λ j =>
+      hcom A 0 j {∂ i} {λ k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}
+    }
+  } 0 1 d
+}
+
+/-
+def trans-assoc : {
+  (A : univ) (s : A) (t : A) (u : A) (v : A)
+  (p : path {λ _ => A} s t) (q : path {λ _ => A} t u) (r : path {λ _ => A} u v) →
+    path
+      {λ _ => path {λ _ => A} s v}
+      {trans A {trans A p q} r}
+      {trans A p {trans A q r}}
+} = {
+  λ A s t u v p q r i j => hcom A 0 j {λ k _ => ?}
+}
+-/
+
+/-
+def trans-left-unit : {
+  (A : univ) (p : 𝕀 → A)
+  → path {λ _ => path {λ _ => A} {p 0} {p 1}} {trans A {λ _ => p 0} p} p
+} = {
+  λ A p => ?
+}
+-/
+
+def trans-right-unit : {
+  (A : univ) (p : 𝕀 → A)
+  → path {λ _ => path {λ _ => A} {p 0} {p 1}} p {trans A p {λ _ => p 1}}
+} = {
+  λ A p => trans/filler A p {λ _ => p 1}
+}
+
+/-
+def trans-symm-refl : {
+  (A : univ) (p : 𝕀 → A)
+  → path {λ _ => path {λ _ => A} {p 0} {p 0}} {trans A p {symm A p}} {λ _ => p 0}
+} = {
+  λ A p => ?
+}
+-/
+
+def cong : {
+  (A : univ) (B : univ) (f : A → B) (p : 𝕀 → A) →
+  path {λ _ => B} {f {p 0}} {f {p 1}}
+} = {
+  λ A B f p i => f {p i}
+}
 
 def + : nat → nat → nat = {
-  \elim [
-  | zero => \n => n
-  | suc {_ => ih} => \n => suc {ih n}
+  λ elim [
+  | zero => λ n => n
+  | suc {_ => ih} => λ n => suc {ih n}
   ]
 }
 
-def +-right-unit : (x : nat) → path {\_ => nat} {+ x 0} x = {
-  \elim [
+def +-right-unit : (x : nat) → path {λ _ => nat} {+ x 0} x = {
+  λ elim [
   | zero =>
-    \_ => 0
+    λ _ => 0
   | suc {y => ih} =>
-    \i => suc {ih i}
+    λ i => suc {ih i}
   ]
 }
 
-def +-left-unit : (x : nat) → path {\_ => nat} {+ 0 x} x = {
-  \x _ => x
+def +-left-unit : (x : nat) → path {λ _ => nat} {+ 0 x} x = {
+  λ x _ => x
 }
 
-def +-suc-r : (x : nat) (y : nat) → path {\_ => nat} {+ x {suc y}} {suc {+ x y}} = {
-  \elim [
+def +-suc-r : (x : nat) (y : nat) → path {λ _ => nat} {+ x {suc y}} {suc {+ x y}} = {
+  λ elim [
   | zero =>
-    \x i => {suc x}
+    λ x i => {suc x}
   | suc {x => ih} =>
-    \y i => suc {ih y i}
+    λ y i => suc {ih y i}
   ]
 }
 
-def +-comm : (x : nat) (y : nat) → path {\_ => nat} {+ y x} {+ x y} = {
-  \elim [
+def +-comm : (x : nat) (y : nat) → path {λ _ => nat} {+ y x} {+ x y} = {
+  λ elim [
   | zero => +-right-unit
   | suc {y => ih} =>
-    \z =>
-    trans nat {+-suc-r z y} {\j => suc {ih z j}}
+    λ z =>
+    trans nat {+-suc-r z y} {λ j => suc {ih z j}}
   ]
 }
 
 def +-assoc : {
   (x : nat) (y : nat) (z : nat) →
-  path {\_ => nat} {+ {+ x y} z} {+ x {+ y z}}
+  path {λ _ => nat} {+ {+ x y} z} {+ x {+ y z}}
 } = {
-  \elim [
-  | zero => \y z i => + y z
-  | suc {x => ih} => \y z i => suc {ih y z i}
+  λ elim [
+  | zero => λ y z i => + y z
+  | suc {x => ih} => λ y z i => suc {ih y z i}
   ]
 }
 
 def test : {
   (p : 𝕀 → nat) → (i : 𝕀) → nat
 } = {
-  \p i =>
+  λ p i =>
   elim {symm nat p i} @ {_ => nat} [
   | zero => zero
   | suc {x => ih} => zero
   ]
 }
-

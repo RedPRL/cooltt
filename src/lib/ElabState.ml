@@ -4,20 +4,15 @@ module StringMap = Map.Make (String)
 type t =
   {resolver : Symbol.t StringMap.t;
    flexity : [`Flex | `Rigid] SymbolMap.t;
-   globals : (D.tp * D.con) SymbolMap.t}
+   globals : (D.tp * D.con option) SymbolMap.t}
 
 let init =
   {resolver = StringMap.empty;
    flexity = SymbolMap.empty;
    globals = SymbolMap.empty}
 
-let add_global ident tp oel st =
+let add_global ident tp ocon st =
   let sym = Symbol.named_opt ident in
-  let con =
-    match oel with
-    | Some con -> con
-    | None -> D.Cut {tp; cut = D.Global sym, []}
-  in
   sym,
   {resolver =
      begin
@@ -26,15 +21,14 @@ let add_global ident tp oel st =
        | None -> st.resolver
      end;
    flexity = SymbolMap.add sym `Rigid st.flexity;
-   globals = SymbolMap.add sym (tp, con) st.globals}
+   globals = SymbolMap.add sym (tp, ocon) st.globals}
 
 let add_flex_global tp st =
   let sym = Symbol.fresh () in
-  let con = D.Cut {tp; cut = D.Global sym, []} in
   sym,
   {st with
    flexity = SymbolMap.add sym `Flex st.flexity;
-   globals = SymbolMap.add sym (tp, con) st.globals}
+   globals = SymbolMap.add sym (tp, None) st.globals}
 
 let resolve_global ident st =
   StringMap.find_opt ident st.resolver

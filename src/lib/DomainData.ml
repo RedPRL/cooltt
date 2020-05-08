@@ -24,7 +24,6 @@ and con =
   | Zero
   | Suc of con
   | Pair of con * con
-  | Refl of con
   | GoalRet of con
   | Abort
   | SubIn of con
@@ -52,7 +51,6 @@ and tp =
   | TpPrf of cof
   | Pi of tp * tp_clo
   | Sg of tp * tp_clo
-  | Id : tp * con * con -> tp
   | Nat
   | TpAbort
 
@@ -73,7 +71,6 @@ and frm =
   | KFst
   | KSnd
   | KNatElim of tp_clo * con * tm_clo
-  | KIdElim of tp_clo * tm_clo * tp * con * con
   | KGoalProj
 
 (** destructors: exotic semantic operations that don't exist in syntax; these are meant to fail on things in improper form, rather than become neutral. *)

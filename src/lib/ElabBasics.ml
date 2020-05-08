@@ -36,7 +36,7 @@ let add_flex_global tp =
   let* () = set st' in
   ret sym
 
-let get_global sym : (D.tp * D.con) m =
+let get_global sym : (D.tp * D.con option) m =
   let* st = get in
   match St.get_global sym st with
   | tp, con -> ret (tp, con)
@@ -95,13 +95,6 @@ let dest_sg =
     ret (base, fam)
   | tp ->
     expected_connective `Sg tp
-
-let dest_id =
-  function
-  | D.Id (tp, l, r) ->
-    ret (tp, l, r)
-  | tp ->
-    expected_connective `Id tp
 
 let abstract nm tp k =
   let rho env =

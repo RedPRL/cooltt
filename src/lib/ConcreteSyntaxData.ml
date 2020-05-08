@@ -42,8 +42,6 @@ and con_ =
   | Pair of con * con
   | Fst of con
   | Snd of con
-  | Id of con * con * con
-  | Refl
   | Univ
   | Hole of ident option
   | Underscore

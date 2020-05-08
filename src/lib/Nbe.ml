@@ -32,7 +32,6 @@ sig
   val do_ap : D.con -> D.con -> D.con compute
   val do_ap2 : D.con -> D.con -> D.con -> D.con compute
   val do_sub_out : D.con -> D.con compute
-  val do_id_elim : D.tp_clo -> D.tm_clo -> D.con -> D.con compute
   val do_goal_proj : D.con -> D.con compute
   val do_frm : D.con -> D.frm -> D.con compute
   val do_spine : D.con -> D.frm list -> D.con compute
@@ -117,7 +116,7 @@ struct
 
   let rec whnf_con : D.con -> D.con whnf m =
     function
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.Refl _ | D.GoalRet _ | D.Abort | D.SubIn _
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _
     | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
     | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat
     | D.Destruct _ ->
@@ -150,9 +149,9 @@ struct
       let* st = CmpM.read_global in
       begin
         match ElabState.get_global sym st with
-        | tp, con ->
+        | tp, Some con ->
           reduce_to con
-        | exception _ ->
+        | _, None | exception _ ->
           ret `Done
       end
     | D.Var _ -> ret `Done
@@ -262,17 +261,6 @@ struct
     | _ ->
       Format.eprintf "bad: %a@." D.pp_con n;
       CmpM.throw @@ NbeFailed "Not a number"
-
-  and do_id_elim mot refl eq =
-    match eq with
-    | D.Abort -> ret D.Abort
-    | D.Refl t -> inst_tm_clo refl [t]
-    | D.Cut {tp = D.Id (tp, con0, con1); cut} ->
-      let+ fib = inst_tp_clo mot [con0; con1; eq] in
-      cut_frm ~tp:fib ~cut @@
-      D.KIdElim (mot, refl, tp, con0, con1)
-    | _ ->
-      CmpM.throw @@ NbeFailed "Not a refl or neutral in do_id_elim"
 
   and cut_frm ~tp ~cut frm =
     D.Cut {tp; cut = D.push frm cut}
@@ -580,7 +568,6 @@ struct
     | D.KFst -> do_fst con
     | D.KSnd -> do_snd con
     | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
-    | D.KIdElim (mot, case_refl, _, _, _) -> do_id_elim mot case_refl con
     | D.KGoalProj -> do_goal_proj con
 
   and do_spine con =
@@ -625,11 +612,6 @@ struct
       let+ env = read_local
       and+ vbase = eval_tp base in
      D.Sg (vbase, D.TpClo (fam, env))
-    | S.Id (tp, left, right) ->
-      let+ vtp = eval_tp tp
-      and+ vl = eval left
-      and+ vr = eval right in
-      D.Id (vtp, vl, vr)
     | S.Univ ->
       ret D.Univ
     | S.El tm ->
@@ -665,10 +647,10 @@ struct
     | S.Global sym ->
       let* st = EvM.read_global in
       let* veil = EvM.read_veil in
-      let tp, con = ElabState.get_global sym st in
+      let tp, ocon = ElabState.get_global sym st in
       begin
-        match Veil.policy sym veil with
-        | `Transparent -> ret con
+        match ocon, Veil.policy sym veil with
+        | Some con, `Transparent -> ret con
         | _ ->
           ret @@ D.Cut {tp; cut = (D.Global sym, [])}
     end
@@ -706,15 +688,6 @@ struct
     | S.Snd t ->
       let* con = eval t in
       lift_cmp @@ do_snd con
-    | S.Refl t ->
-      let+ con = eval t in
-      D.Refl con
-    | S.IdElim (mot, refl, eq) ->
-      let* veq = eval eq in
-      let* env = read_local in
-      let clmot = D.TpClo (mot, env) in
-      let clrefl = D.Clo (refl, env) in
-      lift_cmp @@ do_id_elim clmot clrefl veq
     | S.GoalRet tm ->
       let+ con = eval tm in
       D.GoalRet con
@@ -738,13 +711,13 @@ struct
       let* s = eval_dim ts in
       let* phi = eval_cof tphi in
       let* vtpcode = eval tpcode in
+      let* vbdy = eval tm in
       begin
         CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
         | true ->
-          append [D.dim_to_con s] @@ eval tm
+          lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
         | false ->
-          let* bdy = eval tm in
-          lift_cmp @@ do_rigid_hcom vtpcode r s phi bdy
+          lift_cmp @@ do_rigid_hcom vtpcode r s phi vbdy
       end
     | S.Com (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
@@ -919,10 +892,6 @@ struct
     | _, D.Suc n ->
       let+ tn = quote_con D.Nat n in
       S.Suc tn
-    | D.Id (tp, _, _), D.Refl con ->
-      let+ t = quote_con tp con in
-      S.Refl t
-
     | D.TpDim, D.DimCon0 ->
       ret @@ S.Dim0
     | D.TpDim, D.DimCon1 ->
@@ -1036,11 +1005,6 @@ struct
         quote_tp @<< lift_cmp @@ inst_tp_clo fam [var]
       in
       S.Sg (tbase, tfam)
-    | D.Id (tp, left, right) ->
-      let+ ttp = quote_tp tp
-      and+ tleft = quote_con tp left
-      and+ tright = quote_con tp right in
-      S.Id (ttp, tleft, tright)
     | D.Univ ->
       ret S.Univ
     | D.El cut ->
@@ -1179,21 +1143,6 @@ struct
         quote_con mot_suc_x suc_case_x
       in
       S.NatElim (tmot, tzero_case, tsuc_case, tm)
-    | D.KIdElim (mot, refl_case, tp, left, right) ->
-      let* tmot =
-        bind_var (S.El S.CofAbort) tp @@ fun x ->
-        bind_var (S.El S.CofAbort) tp @@ fun y ->
-        bind_var (S.El S.CofAbort) (D.Id (tp, x, y)) @@ fun z -> (* used to be left/right instead of x/y, I think that was a bug *)
-        let* mot_xyz = lift_cmp @@ inst_tp_clo mot [x; y; z] in
-        quote_tp mot_xyz
-      in
-      let+ trefl_case =
-        bind_var S.CofAbort tp @@ fun x ->
-        let* mot_refl_x = lift_cmp @@ inst_tp_clo mot [x; x; D.Refl x] in
-        let* refl_case_x = lift_cmp @@ inst_tm_clo refl_case [x] in
-        quote_con mot_refl_x refl_case_x
-      in
-      S.IdElim (tmot, trefl_case, tm)
     | D.KFst ->
       ret @@ S.Fst tm
     | D.KSnd ->
@@ -1260,10 +1209,6 @@ struct
       let* con0 = lift_cmp @@ inst_tm_clo clo0 [prf] in
       let* con1 = lift_cmp @@ inst_tm_clo clo1 [prf] in
       equate_con tp0 con0 con1
-    | D.Id (tp0, l0, r0), D.Id (tp1, l1, r1) ->
-      let* () = equate_tp tp0 tp1 in
-      let* () = equate_con tp0 l0 l1 in
-      equate_con tp0 r0 r1
     | D.Nat, D.Nat
     | D.Univ, D.Univ ->
       ret ()
@@ -1307,12 +1252,9 @@ struct
       let* con1 = lift_cmp @@ do_goal_proj con1 in
       equate_con tp con0 con1
     | D.Sub (tp, phi, _), _, _ ->
-      QuM.left_invert_under_cof phi @@
       let* out0 = lift_cmp @@ do_sub_out con0 in
       let* out1 = lift_cmp @@ do_sub_out con1 in
       equate_con tp out0 out1
-    | D.Id (tp, _, _), D.Refl x, D.Refl y ->
-      equate_con tp x y
     | _, D.Zero, D.Zero ->
       ret ()
     | _, D.Suc con0, D.Suc con1 ->
@@ -1423,23 +1365,6 @@ struct
       let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
       let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
       equate_con fib_sucx con0 con1
-    | D.KIdElim (mot0, refl_case0, tp0, left0, right0), D.KIdElim (mot1, refl_case1, tp1, left1, right1) ->
-      let* () = equate_tp tp0 tp1 in
-      let* () = equate_con tp0 left0 left1 in
-      let* () = equate_con tp0 right0 right1 in
-      let* () =
-        bind_var () tp0 @@ fun l ->
-        bind_var () tp0 @@ fun r ->
-        bind_var () (D.Id (tp0, l, r)) @@ fun p ->
-        let* fib0 = lift_cmp @@ inst_tp_clo mot0 [l; r; p] in
-        let* fib1 = lift_cmp @@ inst_tp_clo mot1 [l; r; p] in
-        equate_tp fib0 fib1
-      in
-      bind_var () tp0 @@ fun x ->
-      let* fib_reflx = lift_cmp @@ inst_tp_clo mot0 [x; x; D.Refl x] in
-      let* con0 = lift_cmp @@ inst_tm_clo refl_case0 [x] in
-      let* con1 = lift_cmp @@ inst_tm_clo refl_case1 [x] in
-      equate_con fib_reflx con0 con1
     | (D.KGoalProj, D.KGoalProj) ->
       ret ()
     | _ ->

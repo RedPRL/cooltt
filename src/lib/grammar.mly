@@ -19,7 +19,7 @@
 %token PATH
 %token COE COM HCOM
 %token QUIT NORMALIZE DEF
-%token ID REFL ELIM
+%token ELIM
 %token EOF
 %token TOPC BOTC
 
@@ -82,8 +82,6 @@ plain_atomic:
     { Lit n }
   | NAT
     { Nat }
-  | REFL
-    { Refl }
   | UNIV
     { Univ }
   | name = HOLE_NAME
@@ -135,8 +133,6 @@ plain_term:
     { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
-  | ID; tp = atomic; left = atomic; right = atomic
-    { Id (tp, left, right) }
   | LAM; names = list(name); RRIGHT_ARROW; body = term
     { Lam (BN {names; body}) }
   | LAM; ELIM; cases = cases
@@ -189,8 +185,6 @@ cof_case:
     { phi, t }
 
 pat_lbl:
-  | REFL
-    { "refl" }
   | ZERO
     { "zero" }
   | SUC

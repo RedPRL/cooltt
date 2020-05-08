@@ -17,8 +17,6 @@ let rec chk_tp : S.tp -> T.tp_tac =
     R.Pi.formation (chk_tp base) (None, fun _ -> chk_tp fam)
   | S.Sg (base, fam) ->
     R.Sg.formation (chk_tp base) (None, fun _ -> chk_tp fam)
-  | S.Id (tp, l, r) ->
-    R.Id.formation (chk_tp tp) (chk_tm l) (chk_tm r)
   | S.Nat ->
     R.Nat.formation
   | S.Univ ->
@@ -50,8 +48,6 @@ if the input is ill-typed, throw an error.
 *)
 and chk_tm : S.t -> T.chk_tac =
   function
-  | S.Refl _ ->
-    R.Id.intro
   | S.Zero ->
     R.Nat.literal 0
   | S.Suc t ->
@@ -83,11 +79,6 @@ and syn_tm : S.t -> T.syn_tac =
     R.Sg.pi1 @@ syn_tm t
   | S.Snd t ->
     R.Sg.pi2 @@ syn_tm t
-  | S.IdElim (mot, case_refl, scrut) ->
-    R.Id.elim
-      (None, None, None, chk_tp mot)
-      (None, chk_tm case_refl)
-      (syn_tm scrut)
   | S.NatElim (mot, case_zero, case_suc, scrut) ->
     R.Nat.elim
       (None, chk_tp mot)

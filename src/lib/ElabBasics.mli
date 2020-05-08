@@ -19,7 +19,7 @@ val add_global : CS.ident option -> D.tp -> D.con option -> Symbol.t m
 val add_flex_global : D.tp -> Symbol.t m
 
 val resolve : CS.ident -> [`Local of int | `Global of Symbol.t | `Unbound] m
-val get_global : Symbol.t -> (D.tp * D.con) m
+val get_global : Symbol.t -> (D.tp * D.con option) m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 
@@ -28,7 +28,6 @@ val equate : D.tp -> D.con -> D.con -> unit m
 
 val dest_pi : D.tp -> (D.tp * D.tp_clo) m
 val dest_sg : D.tp -> (D.tp * D.tp_clo) m
-val dest_id : D.tp -> (D.tp * D.con * D.con) m
 
 val with_pp : (Pp.env -> 'a m) -> 'a m
 
