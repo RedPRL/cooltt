@@ -82,7 +82,7 @@ struct
 
   let unleash_syn_hole name flexity : T.syn_tac =
     let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
-    let+ tm = T.bchk_to_chk (unleash_hole name flexity) @@ D.El tpcut in
+    let+ tm = T.Chk.bchk (unleash_hole name flexity) @@ D.El tpcut in
     tm, D.El tpcut
 end
 
@@ -464,12 +464,12 @@ struct
 
   let path_with_endpoints (tac_fam : T.chk_tac) (tac_a : T.bchk_tac) (tac_b : T.bchk_tac) : T.chk_tac =
     path tac_fam @@
-    T.bchk_to_chk @@
+    T.Chk.bchk @@
     Pi.intro None @@ fun i ->
     Pi.intro None @@ fun pf ->
     Cof.split
-      [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
-       (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
+      [(Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
+       (Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
   let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Top), D.TpCof)
   let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Bot), D.TpCof)
@@ -740,14 +740,14 @@ struct
           match find_case "zero" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ T.bchk_to_chk @@ Hole.unleash_hole (Some "zero") `Rigid
+          | None -> EM.ret @@ T.Chk.bchk @@ Hole.unleash_hole (Some "zero") `Rigid
         in
         let* tac_suc =
           match find_case "suc" cases with
           | Some ([`Simple nm_z], tac) -> EM.ret (nm_z, None, tac)
           | Some ([`Inductive (nm_z, nm_ih)], tac) -> EM.ret (nm_z, nm_ih, tac)
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ (None, None, T.bchk_to_chk @@ Hole.unleash_hole (Some "suc") `Rigid)
+          | None -> EM.ret @@ (None, None, T.Chk.bchk @@ Hole.unleash_hole (Some "suc") `Rigid)
         in
         Nat.elim (nm_x, mot) tac_zero tac_suc scrut
       | _ ->
@@ -776,8 +776,7 @@ struct
         EM.lift_qu @@ Nbe.quote_tp vmot
       in
       Pi.intro None @@ fun x ->
-      T.chk_to_bchk @@
-      T.syn_to_chk @@
+      T.BChk.syn @@
       elim ([None], mot_tac) cases @@
       T.Var.syn x
   end
