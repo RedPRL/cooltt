@@ -20,6 +20,65 @@ def trans : {
   }
 }
 
+-- def trans-assoc : {
+--   (A : univ) (s : A) (t : A) (u : A) (v : A)
+--   (p : Id A s t) (q : Id A t u) (r : Id A u v)
+--   → Id
+--       {Id A s v}
+--       {trans A s u v {trans A s t u p q} r}
+--       {trans A s t v p {trans A t u v q r}}
+-- } = {
+--   \A s t u v p =>
+--   elim p @ {s t p =>
+--     (q : Id A t u) (r : Id A u v)
+--     → Id
+--         {Id A s v}
+--         {trans A s u v {trans A s t u p q} r}
+--         {trans A s t v p {trans A t u v q r}}
+--   } [
+--   | refl => \q r => refl
+--   ]
+-- }
+
+-- def trans-left-unit : {
+--   (A : univ) (x : A) (y : A) (p : Id A x y)
+--   → Id {Id A x y} {trans A x x y refl p} p
+-- } = {
+--   \A x y p => refl
+-- }
+
+-- def trans-right-unit : {
+--   (A : univ) (x : A) (y : A) (p : Id A x y)
+--   → Id {Id A x y} {trans A x y y p refl} p
+-- } = {
+--   \A x y p =>
+--   elim p @ {x y p => Id {Id A x y} {trans A x y y p refl} p} [
+--   | refl => refl
+--   ]
+-- }
+
+-- def trans-symm-refl : {
+--   (A : univ) (x : A) (y : A) (p : Id A x y)
+--   → Id {Id A x x} {trans A x y x p {symm A x y p}} refl
+-- } = {
+--   \A x y p =>
+--   elim p @ {x y p =>
+--     Id {Id A x x} {trans A x y x p {symm A x y p}} refl
+--   } [
+--   | refl => refl
+--   ]
+-- }
+
+-- def cong : {
+--   (A : univ) (B : univ) (f : A → B)
+--   (x : A) (y : A) (p : Id A x y)
+--   → Id B {f x} {f y}
+-- } = {
+--   \A B f x y p =>
+--   elim p @ {u v _ => Id B {f u} {f v}} [
+--   | refl => refl
+--   ]
+-- }
 
 normalize trans
 normalize symm
@@ -81,4 +140,3 @@ def test : {
   | suc {x => ih} => zero
   ]
 }
-
