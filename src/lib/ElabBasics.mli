@@ -13,11 +13,9 @@ val problem : string bwd m
 val elab_err : ElabError.t -> 'a m
 
 val push_var : CS.ident option -> D.tp -> 'a m -> 'a m
-val push_def : CS.ident option -> D.tp -> D.con -> 'a m -> 'a m
 
 val abstract : CS.ident option -> D.tp -> (D.con -> 'a m) -> 'a m
 val abstract_dim : CS.ident option -> (D.con -> 'a m) -> 'a m
-val define : CS.ident option -> D.tp -> D.con -> (D.con -> 'a m) -> 'a m
 
 val add_global : CS.ident option -> D.tp -> D.con option -> Symbol.t m
 val add_flex_global : D.tp -> Symbol.t m

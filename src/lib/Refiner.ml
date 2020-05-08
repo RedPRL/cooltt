@@ -605,12 +605,15 @@ struct
     index ix
 
   let let_ tac_def (nm_x, (tac_bdy : T.var -> T.bchk_tac)) : T.bchk_tac =
-    fun tp ->
+    fun goal ->
     let* tdef, tp_def = tac_def in
+    EM.with_pp @@ fun ppenv ->
     let* vdef = EM.lift_ev @@ Nbe.eval tdef in
-    T.let_ tp_def vdef nm_x @@ fun x ->
-    let+ tbdy = tac_bdy x tp in
-    S.Let (tdef, tbdy)
+    let* tbdy =
+      T.abstract (D.Sub (tp_def, Cof_tl.top, D.const_tm_clo vdef)) nm_x @@ fun var ->
+      tac_bdy var goal
+    in
+    EM.ret @@ S.Let (S.SubIn tdef, tbdy)
 end
 
 

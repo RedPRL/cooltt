@@ -65,10 +65,6 @@ let abstract : D.tp -> string option -> (var -> 'a EM.m) -> 'a EM.m =
   EM.abstract name tp @@ fun (con : D.con) ->
   kont @@ {tp; con}
 
-let let_ tp con name (kont : var -> 'a EM.m) =
-  EM.define name tp con @@ fun var ->
-  kont @@ {tp; con}
-
 
 let bchk_to_chk : bchk_tac -> chk_tac =
   fun btac tp ->

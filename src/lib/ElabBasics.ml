@@ -17,12 +17,6 @@ let push_var id tp : 'a m -> 'a m =
   let con = D.mk_var tp @@ Env.size env in
   Env.append_con id con tp env
 
-let push_def id tp con : 'a m -> 'a m =
-  scope @@ fun env ->
-  let tp' = D.Sub (tp, Cof.top, D.const_tm_clo con) in
-  let con' = D.SubIn con in
-  Env.append_con id con' tp' env
-
 let resolve id =
   let* env = read in
   match Env.resolve_local id env with
@@ -120,12 +114,6 @@ let abstract nm tp k =
 let abstract_dim nm k =
   push_var nm D.TpDim @@
   let* x = get_local 0 in
-  k x
-
-let define nm tp con k =
-  push_def nm tp con @@
-  let* x = get_local 0 in
-  let* x = lift_cmp @@ Nbe.do_sub_out x in
   k x
 
 let problem =
