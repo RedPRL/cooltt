@@ -7,7 +7,7 @@ module EM = ElabBasics
 module T = Tactic
 module QQ = Quasiquote
 module TB = TermBuilder
-module Cof_tl = Cof (* this lets us access Cof after it gets shadowed below *)
+module Cofibration = Cof (* this lets us access Cof after it gets shadowed below *)
 
 exception Todo
 
@@ -35,7 +35,7 @@ struct
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
         let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
-        and+ fam = EM.push_var name ctp @@ go_tp cells in
+        and+ fam = EM.abstract name ctp @@ fun _ -> go_tp cells in
         S.Pi (base, fam)
     in
 
@@ -93,14 +93,15 @@ end
 
 module Sub =
 struct
-  let formation (tac_base : T.tp_tac) (tac_phi : T.chk_tac) (tac_tm : T.chk_tac) : T.tp_tac =
+  let formation (tac_base : T.tp_tac) (tac_phi : T.chk_tac) (tac_tm : T.var -> T.chk_tac) : T.tp_tac =
     T.Tp.make @@
     let* base = T.Tp.run tac_base in
     let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
     let* phi = tac_phi D.TpCof in
     let+ tm =
       let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
-      EM.push_var None (D.TpPrf vphi) @@ tac_tm vbase
+      T.abstract (D.TpPrf vphi) None @@ fun prf ->
+      tac_tm prf vbase
     in
     S.Sub (base, phi, tm)
 
@@ -506,8 +507,8 @@ struct
       [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
-  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Top), D.TpCof)
-  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cof_tl.Bot), D.TpCof)
+  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Top), D.TpCof)
+  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Bot), D.TpCof)
 
   let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
@@ -605,12 +606,14 @@ struct
     index ix
 
   let let_ tac_def (nm_x, (tac_bdy : T.var -> T.bchk_tac)) : T.bchk_tac =
-    fun tp ->
+    fun goal ->
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Nbe.eval tdef in
-    T.let_ tp_def vdef nm_x @@ fun x ->
-    let+ tbdy = tac_bdy x tp in
-    S.Let (tdef, tbdy)
+    let* tbdy =
+      T.abstract (D.Sub (tp_def, Cofibration.top, D.const_tm_clo vdef)) nm_x @@ fun var ->
+      tac_bdy var goal
+    in
+    EM.ret @@ S.Let (S.SubIn tdef, tbdy)
 end
 
 

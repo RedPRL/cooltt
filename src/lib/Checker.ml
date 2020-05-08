@@ -28,7 +28,7 @@ let rec chk_tp : S.tp -> T.tp_tac =
   | S.GoalTp (lbl, tp) ->
     R.Goal.formation lbl @@ chk_tp tp
   | S.Sub (base, phi, tm) ->
-    R.Sub.formation (chk_tp base) (chk_tm phi) (chk_tm tm)
+    R.Sub.formation (chk_tp base) (chk_tm phi) (fun _ -> chk_tm tm)
   | S.TpDim ->
     T.Tp.make @@ EM.ret S.TpDim
   | S.TpPrf phi ->
