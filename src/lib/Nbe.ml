@@ -358,6 +358,8 @@ struct
     | D.DCodePiSplit, D.CodePi (base, fam)
     | D.DCodeSgSplit, D.CodeSg (base, fam) ->
       ret @@ D.Pair (base, fam)
+    | D.DCodePathSplit, D.CodePath(fam, bdry) ->
+      ret @@ D.Pair (fam, bdry)
     | _ ->
       throw @@ NbeFailed "Invalid destructor application"
 
@@ -458,6 +460,8 @@ struct
   and enact_rigid_coe line r s con tag =
     CmpM.abort_if_inconsistent D.Abort @@
     match tag with
+    | `CoeNat ->
+      ret con
     | `CoePi ->
       let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
       quasiquote_tm @@
@@ -479,10 +483,15 @@ struct
       let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
       QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
     | `CoePath ->
-      raise Todo
-    | `CoeNat ->
-      ret con
-
+      let split_line = D.compose (D.Destruct D.DCodePathSplit) line in
+      quasiquote_tm @@
+      QQ.foreign split_line @@ fun split_line ->
+      QQ.foreign (D.dim_to_con r) @@ fun r ->
+      QQ.foreign (D.dim_to_con s) @@ fun s ->
+      QQ.foreign con @@ fun bdy ->
+      let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+      let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
+      QQ.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
 
   and enact_rigid_hcom code r s phi bdy tag =
     CmpM.abort_if_inconsistent D.Abort @@
@@ -869,14 +878,28 @@ struct
     QuM.abort_if_inconsistent S.CofAbort @@
     match tp, con with
     | _, D.Abort -> ret S.CofAbort
+    | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
+      (* for dimension variables, check to see if we can prove them to be
+         the same as 0 or 1 and return those instead if so. *)
+      begin
+        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim0 |>> function
+        | true -> ret S.Dim0
+        | false ->
+          lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) |>> function
+          | true -> ret S.Dim1
+          | false ->
+            let+ ix = quote_var lvl in
+            S.Var ix
+      end
     | _, D.Cut {cut = (hd, sp); tp} ->
       quote_cut (hd, sp)
     | D.Pi (base, fam), con ->
-      bind_var S.CofAbort base @@ fun arg ->
-      let* arg = top_var base in
-      let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
-      let* ap = lift_cmp @@ do_ap con arg in
-      let+ body = quote_con fib ap in
+      let+ body =
+        bind_var S.CofAbort base @@ fun arg ->
+        let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
+        let* ap = lift_cmp @@ do_ap con arg in
+        quote_con fib ap
+      in
       S.Lam body
     | D.Sg (base, fam), _ ->
       let* fst = lift_cmp @@ do_fst con in
@@ -949,7 +972,7 @@ struct
         QQ.term @@
         TB.pi TB.tp_dim @@ fun i ->
         univ
-       in
+      in
       let* tfam = quote_con piuniv fam in
       (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
       let* bdry_tp =
@@ -1093,15 +1116,7 @@ struct
       let* tm1 = branch_body phi1 clo1 in
       ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
-  and quote_dim =
-    function
-    | D.Dim0 -> ret S.Dim0
-    | D.Dim1 -> ret S.Dim1
-    | D.DimVar lvl ->
-      let+ ix = quote_var lvl in
-      S.Var ix
-    | D.DimProbe _ ->
-      failwith "DimProbe should not be quoted!"
+  and quote_dim d = quote_con D.TpDim @@ D.dim_to_con d
 
   and quote_cof =
     function
@@ -1111,8 +1126,8 @@ struct
     | Cof.Cof phi ->
       match phi with
       | Cof.Eq (r, s) ->
-        let+ tr = quote_con D.TpDim @@ D.dim_to_con r
-        and+ ts = quote_con D.TpDim @@ D.dim_to_con s in
+        let+ tr = quote_dim r
+        and+ ts = quote_dim s in
         S.Cof (Cof.Eq (tr, ts))
       | Cof.Join (phi, psi) ->
         let+ tphi = quote_cof phi
@@ -1170,8 +1185,7 @@ struct
         bind_var (S.El S.CofAbort) tp @@ fun y ->
         bind_var (S.El S.CofAbort) (D.Id (tp, x, y)) @@ fun z -> (* used to be left/right instead of x/y, I think that was a bug *)
         let* mot_xyz = lift_cmp @@ inst_tp_clo mot [x; y; z] in
-        let+ tmot = quote_tp mot_xyz in
-        tmot
+        quote_tp mot_xyz
       in
       let+ trefl_case =
         bind_var S.CofAbort tp @@ fun x ->
@@ -1309,7 +1323,7 @@ struct
       approx_cof Cof.top @@ Cof.eq r0 r1
     | D.TpCof, _, _ ->
       let* phi0 = lift_cmp @@ con_to_cof con0 in
-      let* phi1 = lift_cmp @@ con_to_cof con0 in
+      let* phi1 = lift_cmp @@ con_to_cof con1 in
       equate_cof phi0 phi1
     | _, D.Cut {cut = cut0}, D.Cut {cut = cut1} ->
       equate_cut cut0 cut1
@@ -1321,7 +1335,6 @@ struct
     | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
     | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
       let* _ = equate_con univ base0 base1 in
-      let* el_base = lift_cmp @@ do_el base0 in
       let* fam_tp =
         lift_cmp @@
         quasiquote_tp @@

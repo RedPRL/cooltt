@@ -7,6 +7,7 @@ module EM = ElabBasics
 module T = Tactic
 module QQ = Quasiquote
 module TB = TermBuilder
+module Cofibration = Cof (* this lets us access Cof after it gets shadowed below *)
 
 exception Todo
 
@@ -17,23 +18,24 @@ open Bwd
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
 
-let rec int_to_term =
-  function
-  | 0 -> S.Zero
-  | n -> S.Suc (int_to_term (n - 1))
-
 module Hole =
 struct
+  let norm : D.cof -> D.cof m =
+    fun phi ->
+      let* useless = EM.lift_cmp @@ CmpM.test_sequent [phi] Cof.bot in
+      EM.ret (if useless then Cof.bot else phi)
+
   let make_hole name flexity (tp, phi, clo) =
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
+        let* phi' = norm phi in
+        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
         let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
-        and+ fam = EM.push_var name ctp @@ go_tp cells in
+        and+ fam = EM.abstract name ctp @@ fun _ -> go_tp cells in
         S.Pi (base, fam)
     in
 
@@ -91,14 +93,15 @@ end
 
 module Sub =
 struct
-  let formation (tac_base : T.tp_tac) (tac_phi : T.chk_tac) (tac_tm : T.chk_tac) : T.tp_tac =
+  let formation (tac_base : T.tp_tac) (tac_phi : T.chk_tac) (tac_tm : T.var -> T.chk_tac) : T.tp_tac =
     T.Tp.make @@
     let* base = T.Tp.run tac_base in
     let* vbase = EM.lift_ev @@ Nbe.eval_tp base in
     let* phi = tac_phi D.TpCof in
     let+ tm =
       let* vphi = EM.lift_ev @@ Nbe.eval_cof phi in
-      EM.push_var None (D.TpPrf vphi) @@ tac_tm vbase
+      T.abstract (D.TpPrf vphi) None @@ fun prf ->
+      tac_tm prf vbase
     in
     S.Sub (base, phi, tm)
 
@@ -194,6 +197,8 @@ struct
       S.Cof (Cof.Meet (phi0, phi1))
     | tp ->
       expected_cof tp
+
+  let boundary tac = join (eq tac Dim.dim0) (eq tac Dim.dim1)
 
   let assert_true vphi =
     EM.lift_cmp @@ CmpM.test_sequent [] vphi |>> function
@@ -503,6 +508,9 @@ struct
       [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
+  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Top), D.TpCof)
+  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Bot), D.TpCof)
+
   let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@
@@ -612,6 +620,7 @@ struct
       TB.el @@ TB.ap vfam [i]
     and+ vfam_trg = EM.lift_ev @@ Nbe.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
+
 end
 
 
@@ -639,12 +648,14 @@ struct
     index ix
 
   let let_ tac_def (nm_x, (tac_bdy : T.var -> T.bchk_tac)) : T.bchk_tac =
-    fun tp ->
+    fun goal ->
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Nbe.eval tdef in
-    T.let_ tp_def vdef nm_x @@ fun x ->
-    let+ tbdy = tac_bdy x tp in
-    S.Let (tdef, tbdy)
+    let* tbdy =
+      T.abstract (D.Sub (tp_def, Cofibration.top, D.const_tm_clo vdef)) nm_x @@ fun var ->
+      tac_bdy var goal
+    in
+    EM.ret @@ S.Let (S.SubIn tdef, tbdy)
 end
 
 
@@ -658,6 +669,11 @@ struct
     function
     | D.Nat -> EM.ret ()
     | tp -> EM.expected_connective `Nat tp
+
+  let rec int_to_term =
+    function
+    | 0 -> S.Zero
+    | n -> S.Suc (int_to_term (n - 1))
 
   let literal n : T.chk_tac =
     fun tp ->

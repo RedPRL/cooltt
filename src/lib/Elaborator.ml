@@ -68,7 +68,7 @@ let rec chk_tp : CS.t -> T.tp_tac =
   | CS.Prf phi ->
     R.Prf.formation @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) ->
-    R.Sub.formation (chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
+    R.Sub.formation (chk_tp ctp) (chk_tm cphi) (fun _ -> chk_tm ctm)
   | tm ->
     Refiner.Univ.el_formation @@ chk_tm tm
 
@@ -132,6 +132,8 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
     T.chk_to_bchk @@ R.Cof.join (chk_tm c0) (chk_tm c1)
   | CS.Meet (c0, c1) ->
     T.chk_to_bchk @@ R.Cof.meet (chk_tm c0) (chk_tm c1)
+  | CS.CofBoundary c ->
+    T.chk_to_bchk @@ R.Cof.boundary (chk_tm c)
   | CS.CofSplit splits ->
     let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
     R.Cof.split branch_tacs
@@ -150,7 +152,6 @@ and bchk_tm_ : CS.t -> T.bchk_tac =
       EM.ret @@ R.Sg.intro (bchk_tm @@ CS.Fst cs) (bchk_tm @@ CS.Snd cs)
     | _ ->
       EM.ret @@ T.chk_to_bchk @@ T.syn_to_chk @@ syn_tm cs
-
 
 and syn_tm_ : CS.t -> T.syn_tac =
   function
@@ -176,12 +177,14 @@ and syn_tm_ : CS.t -> T.syn_tac =
     T.chk_to_syn (chk_tm term) (chk_tp tp)
   | CS.Unfold (idents, c) ->
     unfold idents @@ syn_tm c
-  | CS.Coe (fam, src, trg, tm) ->
-    R.Univ.coe (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm tm)
+  | CS.Coe (tp, src, trg, body) ->
+    R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
   | CS.HCom (tp, src, trg, cof, tm) ->
     R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
   | CS.Com (fam, src, trg, cof, tm) ->
     R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+  | CS.TopC -> R.Univ.topc
+  | CS.BotC -> R.Univ.botc
   | cs ->
     failwith @@ "TODO : " ^ CS.show cs
 

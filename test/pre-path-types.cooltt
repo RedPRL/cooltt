@@ -1,31 +1,31 @@
--- This file proves that the internals of cooltt work well enough to get
--- path-types.cooltt up and running without getting owned by bugs.
-
--- In this file, the tests for the path type are rewritten in terms of the primitives that the path-type decodes to:
--- the dependent product over the interval, and the cubical subtypes.
+/-
+  In this file, the tests for the path type are rewritten in terms of the
+  primitives that the path-type decodes to: the dependent product over the
+  interval, and the cubical subtypes.
+-/
 
 def myrefl : {
-  (A : univ) (a : A) -> (i : dim) -> sub A {i=0 \/ i=1} [i=0 => a | i=1 => a]
+  (A : univ) (a : A) → (i : 𝕀) → sub A {∂ i} [i=0 => a | i=1 => a]
 } = {
   \A a i => a
 }
 
 
 def funext : {
-  (A : univ) (B : univ) (f : (x : A) -> B) (g : (x : A) -> B)
-  (h : (x : A) (i : dim) -> sub B {i=0\/i=1} [i=0 => f x | i=1 => g x])
-  -> (i : dim) -> sub {(x : A) -> B} {i=0\/i=1} [i=0 => f | i=1 => g]
+  (A : univ) (B : univ) (f : (x : A) → B) (g : (x : A) → B)
+  (h : (x : A) (i : 𝕀) → sub B {∂ i} [i=0 => f x | i=1 => g x])
+  → (i : 𝕀) → sub {(x : A) → B} {∂ i} [i=0 => f | i=1 => g]
 } = {
   \A B f g h i x =>
   h x i
 }
 
 def pairext : {
-  (A : univ) (B : univ) (p : (x : A) * B) (q : (x : A) * B)
+  (A : univ) (B : univ) (p : (x : A) × B) (q : (x : A) × B)
   (h :
-     (x : (i : dim) -> sub A {i=0\/i=1} [i=0 => fst p | i=1 => fst q]) *
-     (i : dim) -> sub B {i=0\/i=1} [i=0 => snd p | i=1 => snd q])
-  -> (i : dim) -> sub {(x : A) * B} {i=0\/i=1} [i=0 => p | i=1 => q]
+     (x : (i : 𝕀) → sub A {∂ i} [i=0 => fst p | i=1 => fst q]) ×
+     (i : 𝕀) → sub B {∂ i} [i=0 => snd p | i=1 => snd q])
+  → (i : 𝕀) → sub {(x : A) × B} {∂ i} [i=0 => p | i=1 => q]
 } = {
   \A B p q h i =>
   [ {fst h} i

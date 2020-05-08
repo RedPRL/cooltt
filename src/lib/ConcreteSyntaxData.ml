@@ -34,10 +34,13 @@ and t =
   | CofEq of t * t
   | Join of t * t
   | Meet of t * t
+  | CofBoundary of t
   | Prf of t
   | CofSplit of (t * t) list
   | Path of t * t * t
   | Coe of t * t * t * t
+  | TopC
+  | BotC
   | HCom of t * t * t * t * t
   | AutoHCom of t * t * t * t
   | Com of t * t * t * t * t

@@ -33,6 +33,7 @@ module Cof : sig
   val eq : chk_tac -> chk_tac -> chk_tac
   val join : chk_tac -> chk_tac -> chk_tac
   val meet : chk_tac -> chk_tac -> chk_tac
+  val boundary : chk_tac -> chk_tac
 
   val split : (chk_tac * (var -> bchk_tac)) list -> bchk_tac
 end
@@ -54,6 +55,8 @@ module Univ : sig
   val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val auto_hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> bchk_tac
   val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
+  val topc : syn_tac
+  val botc : syn_tac
 end
 
 module Pi : sig
@@ -65,12 +68,13 @@ end
 module Sg : sig
   val formation : (tp_tac, tp_tac) quantifier
   val intro : bchk_tac -> bchk_tac -> bchk_tac
+
   val pi1 : syn_tac -> syn_tac
   val pi2 : syn_tac -> syn_tac
 end
 
 module Sub : sig
-  val formation : tp_tac -> chk_tac -> chk_tac -> tp_tac
+  val formation : tp_tac -> chk_tac -> (var -> chk_tac) -> tp_tac
   val intro : bchk_tac -> bchk_tac
   val elim : syn_tac -> syn_tac
 end

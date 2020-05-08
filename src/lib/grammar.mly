@@ -5,18 +5,19 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF
+%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token UNIV
 %token TIMES FST SND
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
-%token PATH (* other path-related forms will go here *)
-%token COE HCOM COM
+%token PATH
+%token COE COM HCOM
 %token QUIT NORMALIZE DEF
 %token ID REFL ELIM
 %token EOF
+%token TOPC BOTC
 
 %start <ConcreteSyntax.signature> sign
 %%
@@ -47,6 +48,8 @@ eq:
 
 cof:
   | eq = eq { eq }
+  | BOUNDARY term = term
+    { CofBoundary term }
   | phi = atomic_or_eq JOIN psi = atomic_or_eq
     { Join (phi, psi) }
   | phi = atomic_or_eq MEET psi = atomic_or_eq
@@ -75,6 +78,10 @@ atomic:
     { Dim }
   | COF
     { Cof }
+  | TOPC
+    { TopC }
+  | BOTC
+    { BotC }
 
   | LSQ t = bracketed RSQ
     { t }
@@ -93,11 +100,15 @@ bracketed:
   | t = term_or_cof
     { Prf t }
 
-term:
-  | f = atomic
-    { f }
+ap:
   | f = atomic; args = nonempty_list(atomic)
     { Ap (f, args) }
+
+atomic_or_ap : t = atomic | t = ap {t}
+
+term:
+  | t = atomic_or_ap
+    { t }
   | UNFOLD; names = nonempty_list(name); IN; body = term;
     { Unfold (names, body) }
   | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
@@ -120,9 +131,9 @@ term:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
-  | dom = atomic RIGHT_ARROW; cod = term
+  | dom = atomic_or_ap RIGHT_ARROW cod = term
     { Pi ([Cell {name = "_"; tp = dom}], cod) }
-  | dom = atomic; TIMES; cod = term
+  | dom = atomic_or_ap TIMES cod = term
     { Sg ([Cell {name = "_"; tp = dom}], cod) }
   | SUB tp = atomic phi = atomic tm = atomic
     { Sub (tp, phi, tm) }
