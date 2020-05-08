@@ -1,9 +1,9 @@
 def symm : {
-  (A : univ) (p : 𝕀 → A) → path {\_ => A} {p 1} {p 0}
+  (A : univ) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
 }= {
-  \A p i =>
-  hcom A 0 1 {\j _ =>
-    [ j=0 \/ i=1 => p 0
+  λ A p i =>
+  hcom A 0 1 {λ j _ =>
+    [ j=0 λ / i=1 => p 0
     | i=0 => p j
     ]
   }
@@ -12,8 +12,8 @@ def symm : {
 def trans/filler : {
   (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
 } = {
-  \A p q j i =>
-  hcom A 0 j {∂ i} {\j _ =>
+  λ A p q j i =>
+  hcom A 0 j {∂ i} {λ j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
@@ -21,9 +21,9 @@ def trans/filler : {
 }
 
 def trans : {
-  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {\_ => A} {p 0} {q 1}
+  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
 } = {
-  λ A p q i => trans/filler A p q 1 i
+  λ A p q i => trans/filler A p q 1
 }
 
 
@@ -34,7 +34,7 @@ def J : {
   λ A p C d =>
   coe {λ i =>
     C {λ j =>
-      hcom A 0 j {∂ i} {\k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}
+      hcom A 0 j {∂ i} {λ k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}
     }
   } 0 1 d
 }
@@ -48,7 +48,7 @@ def trans-assoc : {
       {trans A {trans A p q} r}
       {trans A p {trans A q r}}
 } = {
-  \A s t u v p q r i j => hcom A 0 j {λ k _ => ?}
+  λ A s t u v p q r i j => hcom A 0 j {λ k _ => ?}
 }
 -/
 
@@ -56,14 +56,14 @@ def trans-assoc : {
 --   (A : univ) (x : A) (y : A) (p : Id A x y)
 --   → Id {Id A x y} {trans A x x y refl p} p
 -- } = {
---   \A x y p => refl
+--   λ A x y p => refl
 -- }
 
 -- def trans-right-unit : {
 --   (A : univ) (x : A) (y : A) (p : Id A x y)
 --   → Id {Id A x y} {trans A x y y p refl} p
 -- } = {
---   \A x y p =>
+--   λ A x y p =>
 --   elim p @ {x y p => Id {Id A x y} {trans A x y y p refl} p} [
 --   | refl => refl
 --   ]
@@ -73,7 +73,7 @@ def trans-assoc : {
 --   (A : univ) (x : A) (y : A) (p : Id A x y)
 --   → Id {Id A x x} {trans A x y x p {symm A x y p}} refl
 -- } = {
---   \A x y p =>
+--   λ A x y p =>
 --   elim p @ {x y p =>
 --     Id {Id A x x} {trans A x y x p {symm A x y p}} refl
 --   } [
@@ -86,64 +86,64 @@ def trans-assoc : {
 --   (x : A) (y : A) (p : Id A x y)
 --   → Id B {f x} {f y}
 -- } = {
---   \A B f x y p =>
+--   λ A B f x y p =>
 --   elim p @ {u v _ => Id B {f u} {f v}} [
 --   | refl => refl
 --   ]
 -- }
 
 def + : nat → nat → nat = {
-  \elim [
-  | zero => \n => n
-  | suc {_ => ih} => \n => suc {ih n}
+  λ elim [
+  | zero => λ n => n
+  | suc {_ => ih} => λ n => suc {ih n}
   ]
 }
 
-def +-right-unit : (x : nat) → path {\_ => nat} {+ x 0} x = {
-  \elim [
+def +-right-unit : (x : nat) → path {λ _ => nat} {+ x 0} x = {
+  λ elim [
   | zero =>
-    \_ => 0
+    λ _ => 0
   | suc {y => ih} =>
-    \i => suc {ih i}
+    λ i => suc {ih i}
   ]
 }
 
-def +-left-unit : (x : nat) → path {\_ => nat} {+ 0 x} x = {
-  \x _ => x
+def +-left-unit : (x : nat) → path {λ _ => nat} {+ 0 x} x = {
+  λ x _ => x
 }
 
-def +-suc-r : (x : nat) (y : nat) → path {\_ => nat} {+ x {suc y}} {suc {+ x y}} = {
-  \elim [
+def +-suc-r : (x : nat) (y : nat) → path {λ _ => nat} {+ x {suc y}} {suc {+ x y}} = {
+  λ elim [
   | zero =>
-    \x i => {suc x}
+    λ x i => {suc x}
   | suc {x => ih} =>
-    \y i => suc {ih y i}
+    λ y i => suc {ih y i}
   ]
 }
 
-def +-comm : (x : nat) (y : nat) → path {\_ => nat} {+ y x} {+ x y} = {
-  \elim [
+def +-comm : (x : nat) (y : nat) → path {λ _ => nat} {+ y x} {+ x y} = {
+  λ elim [
   | zero => +-right-unit
   | suc {y => ih} =>
-    \z =>
-    trans nat {+-suc-r z y} {\j => suc {ih z j}}
+    λ z =>
+    trans nat {+-suc-r z y} {λ j => suc {ih z j}}
   ]
 }
 
 def +-assoc : {
   (x : nat) (y : nat) (z : nat) →
-  path {\_ => nat} {+ {+ x y} z} {+ x {+ y z}}
+  path {λ _ => nat} {+ {+ x y} z} {+ x {+ y z}}
 } = {
-  \elim [
-  | zero => \y z i => + y z
-  | suc {x => ih} => \y z i => suc {ih y z i}
+  λ elim [
+  | zero => λ y z i => + y z
+  | suc {x => ih} => λ y z i => suc {ih y z i}
   ]
 }
 
 def test : {
   (p : 𝕀 → nat) → (i : 𝕀) → nat
 } = {
-  \p i =>
+  λ p i =>
   elim {symm nat p i} @ {_ => nat} [
   | zero => zero
   | suc {x => ih} => zero
