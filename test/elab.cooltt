@@ -62,4 +62,4 @@ def simple-let : {
   b
 }
 
-normalize simple
+normalize simple-let
