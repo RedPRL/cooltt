@@ -42,6 +42,3 @@ def foo : (x : nat) → (y : nat) × path {\i => nat} x y = {
   \x =>
   [x, ?hole1]
 }
-
--- this  raises stack overflow for some reason
--- def f : ? = zero
