@@ -33,7 +33,7 @@ module type MonadReaderResult = sig
   val run_exn : local -> 'a m -> 'a
   val throw : exn -> 'a m
 
-  val successful : unit m -> bool m
+  val trap : 'a m -> ('a, exn) result m
 end
 
 module type MonadReaderStateResult = sig
@@ -49,7 +49,7 @@ module type MonadReaderStateResult = sig
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a
   val throw : exn -> 'a m
-  val successful : unit m -> bool m
+  val trap : 'a m -> ('a, exn) result m
 end
 
 module MonadReaderResult (X : sig type local end) : sig

@@ -30,13 +30,13 @@ let pp fmt =
   function
   | UnboundVariable id ->
     Fmt.fprintf fmt "Unbound variable %a" Uuseg_string.pp_utf_8 id
-  | ExpectedEqual (ppenv, tp, tm0, tm1) ->
+  | ExpectedEqual (ppenv, tp, tm0, tm1, _) ->
     Fmt.fprintf fmt
       "Expected @[<hv>%a =@;%a@;: %a@]"
       (S.pp ppenv) tm0
       (S.pp ppenv) tm1
       (S.pp_tp ppenv) tp
-  | ExpectedEqualTypes (ppenv, tp0, tp1) ->
+  | ExpectedEqualTypes (ppenv, tp0, tp1, _) ->
     Fmt.fprintf fmt
       "Expected @[<hv>%a =@;%a@]"
       (S.pp_tp ppenv) tp0

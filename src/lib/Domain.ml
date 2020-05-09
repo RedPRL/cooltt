@@ -53,7 +53,7 @@ let rec pp_cut : cut Pp.printer =
   | hd, sp ->
     Format.fprintf fmt "%a <: %a"
       pp_hd hd
-      pp_sp sp
+      pp_spine sp
 
 and pp_hd : hd Pp.printer =
   fun fmt ->
@@ -69,7 +69,7 @@ and pp_hd : hd Pp.printer =
   | _ ->
     Format.fprintf fmt "<hd>"
 
-and pp_sp : frm list Pp.printer =
+and pp_spine : frm list Pp.printer =
   fun fmt sp ->
   let comma fmt () = Format.fprintf fmt ", " in
   Format.pp_print_list ~pp_sep:comma pp_frame fmt sp
@@ -83,6 +83,10 @@ and pp_frame : frm Pp.printer =
 and pp_cof : cof Pp.printer =
   fun fmt cof ->
   pp_con fmt @@ cof_to_con cof
+
+and pp_dim : dim Pp.printer =
+  fun fmt r ->
+  pp_con fmt @@ dim_to_con r
 
 and pp_clo : tm_clo Pp.printer =
   fun fmt (Clo (tm, env)) ->

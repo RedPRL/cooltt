@@ -16,8 +16,10 @@ val var : 'v -> ('a, 'v) cof
 val eq : 'a -> 'a -> ('a, 'v) cof
 val join : ('a, 'v) cof -> ('a, 'v) cof -> ('a, 'v) cof
 val meet : ('a, 'v) cof -> ('a, 'v) cof -> ('a, 'v) cof
+val nmeet : ('a, 'v) cof list -> ('a, 'v) cof
 val bot : ('a, 'v) cof
 val top : ('a, 'v) cof
+
 
 val reduce : ('a, 'v) cof -> ('a, 'v) cof
 

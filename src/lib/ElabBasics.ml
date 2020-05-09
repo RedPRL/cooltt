@@ -4,7 +4,7 @@ module S = Syntax
 module St = ElabState
 module Env = ElabEnv
 module Err = ElabError
-module Qu = Quote 
+module Qu = Quote
 module Conv = Conversion
 
 open CoolBasis
@@ -57,20 +57,24 @@ let get_local ix =
 
 let equate tp l r =
   let* env = read in
-  let* res = lift_qu @@ Conv.equal_con tp l r in
-  if res then ret () else
+  lift_qu @@ Conv.equal_con tp l r |>>
+  function
+  | `Ok -> ret ()
+  | `Err err ->
     let* ttp = lift_qu @@ Qu.quote_tp tp in
     let* tl = lift_qu @@ Qu.quote_con tp l in
     let* tr = lift_qu @@ Qu.quote_con tp r in
-    elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr)
+    elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
 
 let equate_tp tp tp' =
   let* env = read in
-  let* res = lift_qu @@ Conv.equal_tp tp tp' in
-  if res then ret () else
+  lift_qu @@ Conv.equal_tp tp tp' |>>
+  function
+  | `Ok -> ret ()
+  | `Err err ->
     let* ttp = lift_qu @@ Qu.quote_tp tp in
     let* ttp' = lift_qu @@ Qu.quote_tp tp' in
-    elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp')
+    elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp', err)
 
 
 let with_pp k =

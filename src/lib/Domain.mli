@@ -17,8 +17,11 @@ val fst : con
 val snd : con
 
 
+val pp_dim : dim Pp.printer
 val pp_cof : cof Pp.printer
 val pp_tp : tp Pp.printer
 val pp_con : con Pp.printer
 val pp_cut : cut Pp.printer
 val pp_hd : hd Pp.printer
+val pp_frame : frm Pp.printer
+val pp_spine : frm list Pp.printer

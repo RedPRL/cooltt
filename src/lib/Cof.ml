@@ -33,6 +33,15 @@ let meet phi psi =
   | phi, Cof Bot -> bot
   | phi, psi -> Cof (Meet (phi, psi))
 
+
+let rec nmeet =
+  function
+  | [] ->
+    Cof Top
+  | phi :: phis ->
+    meet phi @@ nmeet phis
+
+
 let rec reduce =
   function
   | Cof Top -> top

@@ -8,7 +8,16 @@ exception Todo
 open CoolBasis
 open Monads
 
-exception NbeFailed of string
+module Error =
+struct
+  type t = IllTypedQuotationProblem of D.tp * D.con
+  let pp fmt =
+    function
+    | IllTypedQuotationProblem (tp, con) ->
+      Format.fprintf fmt "Ill-typed quotation problem %a : %a" D.pp_con con D.pp_tp tp
+end
+
+exception QuotationError of Error.t
 
 open QuM
 open Monad.Notation (QuM)
@@ -149,8 +158,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     quote_hcom D.CodeNat r s phi bdy
 
   | _ ->
-    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
-    throw @@ NbeFailed "ill-typed quotation problem"
+    throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
 and quote_hcom code r s phi bdy =
   let* tcode = quote_con D.Univ code in

@@ -8,7 +8,38 @@ exception Todo
 open CoolBasis
 open Monads
 
-exception NbeFailed of string
+
+module Error =
+struct
+  type t =
+    | ExpectedDimEq of D.dim * D.dim
+    | ExpectedSequentTrue of D.cof list * D.cof
+    | ExpectedTypeEq of D.tp * D.tp
+    | ExpectedConEq of D.tp * D.con * D.con
+    | ExpectedFrmEq of D.frm * D.frm
+    | SpineLengthMismatch of D.frm list * D.frm list
+    | HeadMismatch of D.hd * D.hd
+
+  let pp : t Pp.printer =
+    fun fmt ->
+    function
+    | ExpectedDimEq (r,s) ->
+      Format.fprintf fmt "Expected %a = %a : dim" D.pp_dim r D.pp_dim s
+    | ExpectedSequentTrue (phis, psi) ->
+      Format.fprintf fmt "Expected @[%a |- @[%a@]@] true" D.pp_cof (Cof.nmeet phis) D.pp_cof psi
+    | ExpectedTypeEq (tp0, tp1) ->
+      Format.fprintf fmt "Expected %a = %a type" D.pp_tp tp0 D.pp_tp tp1
+    | ExpectedConEq (tp, con0, con1) ->
+      Format.fprintf fmt "Expected %a = %a : %a" D.pp_con con0 D.pp_con con1 D.pp_tp tp
+    | ExpectedFrmEq (frm0, frm1) ->
+      Format.fprintf fmt "Expected %a = %a" D.pp_frame frm0 D.pp_frame frm1
+    | SpineLengthMismatch (sp0, sp1) ->
+      Format.fprintf fmt "Spine length mismatch between %a and %a" D.pp_spine sp0 D.pp_spine sp1
+    | HeadMismatch (hd0, hd1) ->
+      Format.fprintf fmt "Head mismatch between %a and %a" D.pp_hd hd0 D.pp_hd hd1
+end
+
+exception ConversionError of Error.t
 
 module Splice = Splice
 module TB = TermBuilder
@@ -22,10 +53,15 @@ let top_var tp =
   let+ n = read_local in
   D.mk_var tp @@ n - 1
 
+let conv_err err =
+  throw @@ ConversionError err
+
 let equate_dim r s =
   CmpM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
-  | true -> ret ()
-  | false -> throw @@ NbeFailed "Expected dimensions to be equal"
+  | true ->
+    ret ()
+  | false ->
+    conv_err @@ ExpectedDimEq (r, s)
 
 let contractum_or x =
   function
@@ -39,7 +75,7 @@ let bind_var_ tp m =
       begin
         bind_cof_proof phi @@
         let* var = top_var tp in
-        QuM.left_invert_under_cof phi @@
+        QuM.left_invert_under_cof phi @@ (* TODO: SEE IF WE ACTUALLY NEED THIS LINE, I THINK WE DONT *)
         m var
       end |>> function
       | `Ret _ -> ret ()
@@ -100,7 +136,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.El cut0, D.El cut1 ->
     equate_cut cut0 cut1
   | _ ->
-    throw @@ NbeFailed "unequal types"
+    conv_err @@ ExpectedTypeEq (tp0, tp1)
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
@@ -189,8 +225,7 @@ and equate_con tp con0 con1 =
     equate_con bdry_tp bdry0 bdry1
 
   | _ ->
-    Format.eprintf "bad! equate_con!@.";
-    throw @@ NbeFailed "unequal values"
+    conv_err @@ ExpectedConEq (tp, con0, con1)
 
 (* Invariant: cut0, cut1 are whnf *)
 and equate_cut cut0 cut1 =
@@ -212,14 +247,19 @@ and equate_cut cut0 cut1 =
 
 (* Invariant: sp0, sp1 are whnf *)
 and equate_spine sp0 sp1 =
-  match sp0, sp1 with
-  | [], [] -> ret ()
-  | k0 :: sp0, k1 :: sp1 ->
-    let* () = equate_frm k0 k1 in
-    equate_spine sp0 sp1
-  | _ ->
-    Format.eprintf "bad! equate_spine!.";
-    throw @@ NbeFailed "Spine length mismatch"
+  let exception Mismatch in
+  let rec go sp0 sp1 =
+    match sp0, sp1 with
+    | [], [] -> ret ()
+    | k0 :: sp0, k1 :: sp1 ->
+      let* () = equate_frm k0 k1 in
+      go sp0 sp1
+    | _ ->
+      raise Mismatch
+  in
+  try go sp0 sp1 with
+  | Mismatch ->
+    conv_err @@ Error.SpineLengthMismatch (sp0, sp1)
 
 (* Invariant: k0, k1 are whnf *)
 and equate_frm k0 k1 =
@@ -251,8 +291,7 @@ and equate_frm k0 k1 =
   | (D.KGoalProj, D.KGoalProj) ->
     ret ()
   | _ ->
-    Format.eprintf "bad! equate_frame!@.";
-    throw @@ NbeFailed "Mismatched frames"
+    conv_err @@ ExpectedFrmEq (k0, k1)
 
 and assert_done_hd hd =
   let* w = lift_cmp @@ whnf_hd hd in
@@ -272,12 +311,8 @@ and equate_hd hd0 hd1 =
   let* () = assert_done_hd hd0 in
   let* () = assert_done_hd hd1 in
   match hd0, hd1 with
-  | D.Global sym0, D.Global sym1 ->
-    if Symbol.equal sym0 sym1 then ret () else
-      throw @@ NbeFailed "Different head symbols"
-  | D.Var lvl0, D.Var lvl1 ->
-    if lvl0 = lvl1 then ret () else
-      throw @@ NbeFailed "Different head variables"
+  | D.Global sym0, D.Global sym1 when Symbol.equal sym0 sym1 -> ret ()
+  | D.Var lvl0, D.Var lvl1 when lvl0 = lvl1 -> ret ()
   | D.Coe (abs0, r0, s0, con0), D.Coe (abs1, r1, s1, con1) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
@@ -305,8 +340,7 @@ and equate_hd hd0 hd1 =
     QuM.left_invert_under_cof phi1 @@
     equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
   | _ ->
-    Format.eprintf "bad! equate_hd : %a / %a@." D.pp_hd hd0 D.pp_hd hd1;
-    throw @@ NbeFailed "Different heads"
+    conv_err @@ HeadMismatch (hd0, hd1)
 
 and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   let* () = equate_con D.Univ code0 code1 in
@@ -329,21 +363,39 @@ and equate_cof phi psi =
 and approx_cof phi psi =
   CmpM.test_sequent [phi] psi |> lift_cmp |>> function
   | false ->
-    throw @@ NbeFailed "Invalid cofibration sequent"
+    conv_err @@ ExpectedSequentTrue ([phi], psi)
   | true ->
     ret ()
 
-let equal_tp tp0 tp1 : bool quote =
-  successful @@
-  QuM.left_invert_under_current_cof @@
-  equate_tp tp0 tp1
+let equal_tp tp0 tp1 : [`Ok | `Err of Error.t] quote =
+  trap
+    begin
+      QuM.left_invert_under_current_cof @@
+      equate_tp tp0 tp1
+    end |>>
+  function
+  | Error (ConversionError err) -> ret @@ `Err err
+  | Error exn -> throw exn
+  | Ok _ -> ret `Ok
 
 let equal_cut cut0 cut1 =
-  successful @@
-  QuM.left_invert_under_current_cof @@
-  equate_cut cut0 cut1
+  trap
+    begin
+      QuM.left_invert_under_current_cof @@
+      equate_cut cut0 cut1
+    end |>>
+  function
+  | Error (ConversionError err) -> ret @@ `Err err
+  | Error exn -> throw exn
+  | Ok _ -> ret `Ok
 
 let equal_con tp con0 con1 =
-  successful @@
-  QuM.left_invert_under_current_cof @@
-  equate_con tp con0 con1
+  trap
+    begin
+      QuM.left_invert_under_current_cof @@
+      equate_con tp con0 con1
+    end |>>
+  function
+  | Error (ConversionError err) -> ret @@ `Err err
+  | Error exn -> throw exn
+  | Ok _ -> ret `Ok
