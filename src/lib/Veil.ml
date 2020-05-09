@@ -1,3 +1,5 @@
+open CoolBasis 
+
 type policy = [`Translucent | `Transparent]
 [@@deriving show]
 
