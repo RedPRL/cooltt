@@ -4,6 +4,7 @@ module D = Domain
 module Env = ElabEnv
 module Err = ElabError
 module Sem = Semantics
+module Qu = Quote
 open CoolBasis
 
 
@@ -57,7 +58,7 @@ let execute_decl =
     EM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Elaborator.syn_tm term in
     let* vtm = EM.lift_ev @@ Sem.eval tm in
-    let* tm' = EM.lift_qu @@ Nbe.quote_con vtp vtm in
+    let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
     let+ () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in
     `Continue
   | CS.Quit ->

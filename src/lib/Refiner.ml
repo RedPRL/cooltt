@@ -8,6 +8,7 @@ module T = Tactic
 module Splice = Splice
 module TB = TermBuilder
 module Sem = Semantics
+module Qu = Quote
 module Cofibration = Cof (* this lets us access Cof after it gets shadowed below *)
 
 exception Todo
@@ -31,11 +32,11 @@ struct
       function
       | [] ->
         let* phi' = norm phi in
-        EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
+        EM.lift_qu @@ Qu.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
-        let+ base = EM.lift_qu @@ Nbe.quote_tp ctp
+        let+ base = EM.lift_qu @@ Qu.quote_tp ctp
         and+ fam = EM.abstract name ctp @@ fun _ -> go_tp cells in
         S.Pi (base, fam)
     in
@@ -69,12 +70,12 @@ struct
   let unleash_hole name flexity : T.bchk_tac =
     fun (tp, phi, clo) ->
     let* cut = make_hole name flexity (tp, phi, clo) in
-    EM.lift_qu @@ Nbe.quote_cut cut
+    EM.lift_qu @@ Qu.quote_cut cut
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
     let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
-    EM.lift_qu @@ Nbe.quote_tp @@ D.El cut
+    EM.lift_qu @@ Qu.quote_tp @@ D.El cut
 
   let unleash_syn_hole name flexity : T.syn_tac =
     let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
@@ -206,7 +207,7 @@ struct
     | true -> EM.ret ()
     | false ->
       EM.with_pp @@ fun ppenv ->
-      let* tphi = EM.lift_qu @@ Nbe.quote_cof vphi in
+      let* tphi = EM.lift_qu @@ Qu.quote_cof vphi in
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
 
@@ -238,7 +239,7 @@ struct
 
   let split2 (phi0 : D.cof) (tac0 : T.var -> T.bchk_tac) (phi1 : D.cof) (tac1 : T.var -> T.bchk_tac) : T.bchk_tac =
     fun (tp, psi, psi_clo) ->
-    let* ttp = EM.lift_qu @@ Nbe.quote_tp tp in
+    let* ttp = EM.lift_qu @@ Qu.quote_tp tp in
     let* _ = assert_true @@ Cof.join phi0 phi1 in
     let* tm0 =
       T.abstract (D.TpPrf phi0) None @@ fun prf ->
@@ -262,8 +263,8 @@ struct
       T.abstract (D.TpPrf phi1) None @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
     in
-    let* tphi0 = EM.lift_qu @@ Nbe.quote_cof phi0 in
-    let* tphi1 = EM.lift_qu @@ Nbe.quote_cof phi1 in
+    let* tphi0 = EM.lift_qu @@ Qu.quote_cof phi0 in
+    let* tphi1 = EM.lift_qu @@ Qu.quote_cof phi1 in
     EM.ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
 
@@ -310,7 +311,7 @@ struct
         | true -> EM.ret S.Prf
         | false ->
           EM.with_pp @@ fun ppenv ->
-          let* tphi = EM.lift_qu @@ Nbe.quote_cof phi in
+          let* tphi = EM.lift_qu @@ Qu.quote_cof phi in
           EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
       end
     | tp, _, _ ->
@@ -515,7 +516,7 @@ struct
     let* code = tac_code D.Univ in
     let* elcode = EM.lift_ev @@ Sem.eval_tp @@ S.El code in
     let* () = EM.equate_tp vtp elcode in
-    let* psi = EM.lift_qu @@ Nbe.quote_cof vpsi in
+    let* psi = EM.lift_qu @@ Qu.quote_cof vpsi in
     let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
     let* vsrc = EM.lift_ev @@ Sem.eval src in
@@ -546,7 +547,7 @@ struct
     in
     let* tm' =
       let* bdy_tp  = hcom_bdy_tp vtp vsrc vpsi in
-      EM.lift_qu @@ Nbe.quote_con bdy_tp vtm'
+      EM.lift_qu @@ Qu.quote_con bdy_tp vtm'
     in
     EM.ret @@ S.HCom (code, src, trg, psi, tm')
 
@@ -748,7 +749,7 @@ struct
         Nat.elim (nm_x, mot) tac_zero tac_suc scrut
       | _ ->
         EM.with_pp @@ fun ppenv ->
-        let* tp = EM.lift_qu @@ Nbe.quote_tp ind_tp in
+        let* tp = EM.lift_qu @@ Qu.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (ppenv, tp)
 
     let assert_simple_inductive =
@@ -757,7 +758,7 @@ struct
         EM.ret ()
       | tp ->
         EM.with_pp @@ fun ppenv ->
-        let* tp = EM.lift_qu @@ Nbe.quote_tp tp in
+        let* tp = EM.lift_qu @@ Qu.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
     let lam_elim cases : T.bchk_tac =
@@ -769,7 +770,7 @@ struct
         let x = S.Var 0 in
         let* vx = EM.lift_ev @@ Sem.eval x in
         let* vmot = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx] in
-        EM.lift_qu @@ Nbe.quote_tp vmot
+        EM.lift_qu @@ Qu.quote_tp vmot
       in
       Pi.intro None @@ fun x ->
       T.chk_to_bchk @@

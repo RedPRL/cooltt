@@ -2,6 +2,7 @@ module S = Syntax
 module D = Domain
 module EM = ElabBasics
 module Sem = Semantics
+module Qu = Quote
 
 open CoolBasis
 open Monad.Notation (EM)
@@ -50,7 +51,7 @@ struct
   let con {tp; con} = con
 
   let syn {tp; con} =
-    let+ tm = EM.lift_qu @@ Nbe.quote_con tp con in
+    let+ tm = EM.lift_qu @@ Qu.quote_con tp con in
     tm, tp
 end
 

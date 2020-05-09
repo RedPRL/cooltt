@@ -17,9 +17,6 @@ let main input =
   | Load.Parse_error s ->
     Format.eprintf "Frontend error: %s" s;
     1
-  | Nbe.NbeFailed s ->
-    Format.eprintf "Internal error (Failed to normalize): %s\n" s;
-    1
   | ElabError.ElabError e ->
     Format.eprintf "@[<v2>Elaboration error:@;@[<hv>%a@]@]@."
       ElabError.pp e;
