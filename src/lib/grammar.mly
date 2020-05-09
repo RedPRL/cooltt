@@ -42,20 +42,22 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-eq:
-  | r = atomic EQUALS s = atomic
-    { CofEq (r, s) }
-
-cof:
-  | eq = eq { eq }
+atomic_cof:
   | BOUNDARY term = term
     { CofBoundary term }
-  | phi = atomic_or_eq JOIN psi = atomic_or_eq
+  | r = atomic_term EQUALS s = atomic_term
+    { CofEq (r, s) }
+
+atomic_in_cof: t = atomic_term | t = atomic_cof {t}
+
+cof:
+  | c = atomic_cof { c }
+  | phi = atomic_in_cof JOIN psi = atomic_in_cof
     { Join (phi, psi) }
-  | phi = atomic_or_eq MEET psi = atomic_or_eq
+  | phi = atomic_in_cof MEET psi = atomic_in_cof
     { Meet (phi, psi) }
 
-atomic:
+atomic_term:
   | LBR term = term_or_cof RBR
     { term }
   | a = ATOM
@@ -84,9 +86,7 @@ atomic:
   | LSQ t = bracketed RSQ
     { t }
 
-atomic_or_eq: t = atomic | t = eq {t}
-
-atomic_or_cof: t = atomic | t = cof {t}
+atomic_term_or_cof: t = atomic_term | t = cof {t}
 
 bracketed:
   | left = term COMMA right = term
@@ -98,14 +98,13 @@ bracketed:
   | t = term_or_cof
     { Prf t }
 
-ap:
-  | f = atomic; args = nonempty_list(atomic)
+app_term:
+  | t = atomic_term { t }
+  | f = atomic_term; args = nonempty_list(atomic_term)
     { Ap (f, args) }
 
-atomic_or_ap : t = atomic | t = ap {t}
-
 term:
-  | t = atomic_or_ap
+  | t = app_term
     { t }
   | UNFOLD; names = nonempty_list(name); IN; body = term;
     { Unfold (names, body) }
@@ -127,27 +126,27 @@ term:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
-  | dom = atomic_or_ap RIGHT_ARROW cod = term
+  | dom = app_term RIGHT_ARROW cod = term
     { Pi ([Cell {name = "_"; tp = dom}], cod) }
-  | dom = atomic_or_ap TIMES cod = term
+  | dom = app_term TIMES cod = term
     { Sg ([Cell {name = "_"; tp = dom}], cod) }
-  | SUB tp = atomic phi = atomic tm = atomic
+  | SUB tp = atomic_term phi = atomic_term tm = atomic_term
     { Sub (tp, phi, tm) }
   | FST; t = term
     { Fst t }
   | SND; t = term
     { Snd t }
 
-  | PATH; tp = atomic; left = atomic; right = atomic
+  | PATH; tp = atomic_term; left = atomic_term; right = atomic_term
     { Path (tp, left, right) }
 
-  | COE; fam = atomic; src = atomic; trg = atomic; body = atomic
+  | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
-  | HCOM; tp = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
+  | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { HCom (tp, src, trg, phi, body) }
-  | HCOM; tp = atomic; src = atomic; trg = atomic; body = atomic
+  | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { AutoHCom (tp, src, trg, body) }
-  | COM; fam = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
+  | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
 
 term_or_cof: t = term | t = cof {t}
@@ -165,7 +164,7 @@ case:
     { p, t }
 
 cof_case:
-  | phi = atomic_or_cof RRIGHT_ARROW t = term
+  | phi = atomic_term_or_cof RRIGHT_ARROW t = term
     { phi, t }
 
 pat_lbl:
