@@ -107,9 +107,7 @@ plain_atomic_or_cof: t = plain_atomic | t = cof {t}
 bracketed:
   | left = term COMMA right = term
     { Pair (left, right) }
-  | cases = separated_list(PIPE, cof_case)
-    { CofSplit cases }
-  | PIPE cases = separated_list(PIPE, cof_case)
+  | ioption(PIPE) cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
   | t = located(plain_term_or_cof)
     { Prf t }
