@@ -1,5 +1,17 @@
 %{
   open ConcreteSyntax
+
+  let rec build_join : t list -> t =
+    function
+    | [] -> BotC
+    | [x] -> x
+    | (x :: l) -> Join (x, build_join l)
+
+  let rec build_meet : t list -> t =
+    function
+    | [] -> TopC
+    | [x] -> x
+    | (x :: l) -> Meet (x, build_meet l)
 %}
 
 %token <int> NUMERAL
@@ -42,23 +54,26 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-atomic_cof:
+atomic_cof_except_var:
   | BOUNDARY term = term
     { CofBoundary term }
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
 
-atomic_in_cof: t = atomic_term | t = atomic_cof {t}
+atomic_in_cof: t = atomic_term | t = atomic_cof_except_var {t}
 
-cof:
-  | c = atomic_cof { c }
-  | phi = atomic_in_cof JOIN psi = atomic_in_cof
-    { Join (phi, psi) }
-  | phi = atomic_in_cof MEET psi = atomic_in_cof
-    { Meet (phi, psi) }
+cof_except_var:
+  | c = atomic_cof_except_var { c }
+  | phi = atomic_in_cof JOIN psis = separated_nonempty_list(JOIN, atomic_in_cof)
+    { build_join (phi :: psis) }
+  | phi = atomic_in_cof MEET psis = separated_nonempty_list(MEET, atomic_in_cof)
+    { build_meet (phi :: psis) }
+
+cof_or_atomic_term: t = atomic_term | t = cof_except_var {t}
+cof_or_term: t = term | t = cof_except_var {t}
 
 atomic_term:
-  | LBR term = term_or_cof RBR
+  | LBR term = cof_or_term RBR
     { term }
   | a = ATOM
     { Var (`User a) }
@@ -86,8 +101,6 @@ atomic_term:
   | LSQ t = bracketed RSQ
     { t }
 
-atomic_term_or_cof: t = atomic_term | t = cof {t}
-
 bracketed:
   | left = term COMMA right = term
     { Pair (left, right) }
@@ -95,7 +108,7 @@ bracketed:
     { CofSplit cases }
   | PIPE cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = term_or_cof
+  | t = cof_or_term
     { Prf t }
 
 app_term:
@@ -149,8 +162,6 @@ term:
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
 
-term_or_cof: t = term | t = cof {t}
-
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR
     { BN {names; body} }
@@ -164,7 +175,7 @@ case:
     { p, t }
 
 cof_case:
-  | phi = atomic_term_or_cof RRIGHT_ARROW t = term
+  | phi = cof_or_atomic_term RRIGHT_ARROW t = term
     { phi, t }
 
 pat_lbl:
