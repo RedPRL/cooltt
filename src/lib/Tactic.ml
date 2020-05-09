@@ -1,6 +1,7 @@
 module S = Syntax
 module D = Domain
 module EM = ElabBasics
+module Sem = Semantics
 
 open CoolBasis
 open Monad.Notation (EM)
@@ -75,10 +76,10 @@ let bchk_to_chk : bchk_tac -> chk_tac =
 let chk_to_bchk : chk_tac -> bchk_tac =
   fun tac (tp, phi, pclo) ->
   let* tm = tac tp in
-  let* con = EM.lift_ev @@ Nbe.eval tm in
+  let* con = EM.lift_ev @@ Sem.eval tm in
   let* () =
     abstract (D.TpPrf phi) None @@ fun prf ->
-    EM.equate tp con @<< EM.lift_cmp @@ Nbe.inst_tm_clo pclo [Var.con prf]
+    EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo pclo [Var.con prf]
   in
   EM.ret tm
 
@@ -90,7 +91,7 @@ let syn_to_chk (tac : syn_tac) : chk_tac =
 
 let chk_to_syn (tac_tm : chk_tac) (tac_tp : tp_tac) : syn_tac =
   let* tp = Tp.run tac_tp in
-  let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
+  let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
   let+ tm = tac_tm vtp in
   tm, vtp
 

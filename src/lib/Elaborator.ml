@@ -6,6 +6,7 @@ module Err = ElabError
 module EM = ElabBasics
 module R = Refiner
 module T = Tactic
+module Sem = Semantics
 
 open CoolBasis
 open Monad.Notation (EM)
@@ -27,14 +28,14 @@ let rec unfold idents k =
 
 let whnf_chk tac =
   fun goal ->
-  EM.lift_cmp @@ Nbe.whnf_tp goal |>>
+  EM.lift_cmp @@ Sem.whnf_tp goal |>>
   function
   | `Done -> tac goal
   | `Reduce goal -> tac goal
 
 let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
   fun (tp, psi, clo) ->
-  EM.lift_cmp @@ Nbe.whnf_tp tp |>>
+  EM.lift_cmp @@ Sem.whnf_tp tp |>>
   function
   | `Done -> tac (tp, psi, clo)
   | `Reduce tp -> tac (tp, psi, clo)

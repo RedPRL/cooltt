@@ -3,6 +3,7 @@ module S = Syntax
 module D = Domain
 module Env = ElabEnv
 module Err = ElabError
+module Sem = Semantics
 open CoolBasis
 
 
@@ -37,12 +38,12 @@ let elaborate_typed_term name tp tm =
     EM.push_problem "tp" @@
     Tactic.Tp.run @@ Elaborator.chk_tp tp
   in
-  let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
+  let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
   let* tm =
     EM.push_problem "tm" @@
     Elaborator.chk_tm tm vtp
   in
-  let+ vtm = EM.lift_ev @@ Nbe.eval tm in
+  let+ vtm = EM.lift_ev @@ Sem.eval tm in
   tp, vtp, tm, vtm
 
 let execute_decl =
@@ -55,7 +56,7 @@ let execute_decl =
   | CS.NormalizeTerm term ->
     EM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Elaborator.syn_tm term in
-    let* vtm = EM.lift_ev @@ Nbe.eval tm in
+    let* vtm = EM.lift_ev @@ Sem.eval tm in
     let* tm' = EM.lift_qu @@ Nbe.quote_con vtp vtm in
     let+ () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in
     `Continue
