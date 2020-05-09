@@ -1,17 +1,5 @@
 %{
   open ConcreteSyntax
-
-  let rec build_join : t list -> t =
-    function
-    | [] -> BotC
-    | [x] -> x
-    | (x :: l) -> Join (x, build_join l)
-
-  let rec build_meet : t list -> t =
-    function
-    | [] -> TopC
-    | [x] -> x
-    | (x :: l) -> Meet (x, build_meet l)
 %}
 
 %token <int> NUMERAL
@@ -54,26 +42,21 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-atomic_cof_except_var:
-  | BOUNDARY term = term
-    { CofBoundary term }
-  | r = atomic_term EQUALS s = atomic_term
+eq:
+  | r = atomic EQUALS s = atomic
     { CofEq (r, s) }
 
-atomic_in_cof: t = atomic_term | t = atomic_cof_except_var {t}
+cof:
+  | eq = eq { eq }
+  | BOUNDARY term = term
+    { CofBoundary term }
+  | phi = atomic_or_eq JOIN psi = atomic_or_eq
+    { Join (phi, psi) }
+  | phi = atomic_or_eq MEET psi = atomic_or_eq
+    { Meet (phi, psi) }
 
-cof_except_var:
-  | c = atomic_cof_except_var { c }
-  | phi = atomic_in_cof JOIN psis = separated_nonempty_list(JOIN, atomic_in_cof)
-    { build_join (phi :: psis) }
-  | phi = atomic_in_cof MEET psis = separated_nonempty_list(MEET, atomic_in_cof)
-    { build_meet (phi :: psis) }
-
-cof_or_atomic_term: t = atomic_term | t = cof_except_var {t}
-cof_or_term: t = term | t = cof_except_var {t}
-
-atomic_term:
-  | LBR term = cof_or_term RBR
+atomic:
+  | LBR term = term_or_cof RBR
     { term }
   | a = ATOM
     { Var (`User a) }
@@ -101,6 +84,10 @@ atomic_term:
   | LSQ t = bracketed RSQ
     { t }
 
+atomic_or_eq: t = atomic | t = eq {t}
+
+atomic_or_cof: t = atomic | t = cof {t}
+
 bracketed:
   | left = term COMMA right = term
     { Pair (left, right) }
@@ -108,16 +95,17 @@ bracketed:
     { CofSplit cases }
   | PIPE cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = cof_or_term
+  | t = term_or_cof
     { Prf t }
 
-app_term:
-  | t = atomic_term { t }
-  | f = atomic_term; args = nonempty_list(atomic_term)
+ap:
+  | f = atomic; args = nonempty_list(atomic)
     { Ap (f, args) }
 
+atomic_or_ap : t = atomic | t = ap {t}
+
 term:
-  | t = app_term
+  | t = atomic_or_ap
     { t }
   | UNFOLD; names = nonempty_list(name); IN; body = term;
     { Unfold (names, body) }
@@ -139,28 +127,30 @@ term:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
-  | dom = app_term RIGHT_ARROW cod = term
+  | dom = atomic_or_ap RIGHT_ARROW cod = term
     { Pi ([Cell {name = "_"; tp = dom}], cod) }
-  | dom = app_term TIMES cod = term
+  | dom = atomic_or_ap TIMES cod = term
     { Sg ([Cell {name = "_"; tp = dom}], cod) }
-  | SUB tp = atomic_term phi = atomic_term tm = atomic_term
+  | SUB tp = atomic phi = atomic tm = atomic
     { Sub (tp, phi, tm) }
   | FST; t = term
     { Fst t }
   | SND; t = term
     { Snd t }
 
-  | PATH; tp = atomic_term; left = atomic_term; right = atomic_term
+  | PATH; tp = atomic; left = atomic; right = atomic
     { Path (tp, left, right) }
 
-  | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
+  | COE; fam = atomic; src = atomic; trg = atomic; body = atomic
     { Coe (fam, src, trg, body) }
-  | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
+  | HCOM; tp = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
     { HCom (tp, src, trg, phi, body) }
-  | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
+  | HCOM; tp = atomic; src = atomic; trg = atomic; body = atomic
     { AutoHCom (tp, src, trg, body) }
-  | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
+  | COM; fam = atomic; src = atomic; trg = atomic; phi = atomic; body = atomic
     { Com (fam, src, trg, phi, body) }
+
+term_or_cof: t = term | t = cof {t}
 
 motive:
   | LBR names = list(name) RRIGHT_ARROW body = term RBR
@@ -175,7 +165,7 @@ case:
     { p, t }
 
 cof_case:
-  | phi = cof_or_atomic_term RRIGHT_ARROW t = term
+  | phi = atomic_or_cof RRIGHT_ARROW t = term
     { phi, t }
 
 pat_lbl:
