@@ -5,7 +5,7 @@ module Env = ElabEnv
 module Err = ElabError
 module EM = ElabBasics
 module T = Tactic
-module QQ = Quasiquote
+module Splice = Splice
 module TB = TermBuilder
 module Cofibration = Cof (* this lets us access Cof after it gets shadowed below *)
 
@@ -110,13 +110,13 @@ struct
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub ->
       let phi = Cof.join phi_a phi_sub in
       let* partial =
-        EM.lift_cmp @@ Nbe.quasiquote_tm @@
-        QQ.foreign_tp tp_a @@ fun tp_a ->
-        QQ.foreign (D.cof_to_con phi_a) @@ fun phi_a ->
-        QQ.foreign (D.cof_to_con phi_sub) @@ fun phi_sub ->
-        QQ.foreign (D.Lam clo_a) @@ fun fn_a ->
-        QQ.foreign (D.Lam clo_sub) @@ fun fn_sub ->
-        QQ.term @@ TB.lam @@ fun prf ->
+        EM.lift_cmp @@ Nbe.splice_tm @@
+        Splice.foreign_tp tp_a @@ fun tp_a ->
+        Splice.foreign (D.cof_to_con phi_a) @@ fun phi_a ->
+        Splice.foreign (D.cof_to_con phi_sub) @@ fun phi_sub ->
+        Splice.foreign (D.Lam clo_a) @@ fun fn_a ->
+        Splice.foreign (D.Lam clo_sub) @@ fun fn_sub ->
+        Splice.term @@ TB.lam @@ fun prf ->
         TB.cof_split tp_a phi_a (fun prf -> TB.ap fn_a [prf]) phi_sub (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])
       in
       let+ tm = tac (tp_a, phi, D.un_lam partial) in
@@ -248,13 +248,13 @@ struct
       let psi_fn = D.Lam psi_clo in
       let psi' = Cof.join phi0 psi in
       let* psi'_fn =
-        EM.lift_cmp @@ Nbe.quasiquote_tm @@
-        QQ.foreign_tp tp @@ fun tp ->
-        QQ.foreign (D.cof_to_con phi0) @@ fun phi0 ->
-        QQ.foreign (D.cof_to_con psi) @@ fun psi ->
-        QQ.foreign psi_fn @@ fun psi_fn ->
-        QQ.foreign phi0_fn @@ fun phi0_fn ->
-        QQ.term @@
+        EM.lift_cmp @@ Nbe.splice_tm @@
+        Splice.foreign_tp tp @@ fun tp ->
+        Splice.foreign (D.cof_to_con phi0) @@ fun phi0 ->
+        Splice.foreign (D.cof_to_con psi) @@ fun psi ->
+        Splice.foreign psi_fn @@ fun psi_fn ->
+        Splice.foreign phi0_fn @@ fun phi0_fn ->
+        Splice.term @@
         TB.lam @@ fun prf ->
         TB.cof_split tp phi0 (fun prf -> TB.ap phi0_fn [prf]) psi (fun prf -> TB.ap psi_fn [prf])
       in
@@ -414,10 +414,10 @@ struct
     let* vbase = EM.lift_ev @@ Nbe.eval base in
     let* famtp =
       EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.foreign vbase @@ fun base ->
-      QQ.foreign_tp univ @@ fun univ ->
-      QQ.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+      Nbe.splice_tp @@
+      Splice.foreign vbase @@ fun base ->
+      Splice.foreign_tp univ @@ fun univ ->
+      Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
     in
     let+ fam = tac_fam famtp in
     base, fam
@@ -436,9 +436,9 @@ struct
     univ_tac @@ fun univ ->
     let* piuniv =
       EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.foreign_tp univ @@ fun univ ->
-      QQ.term @@
+      Nbe.splice_tp @@
+      Splice.foreign_tp univ @@ fun univ ->
+      Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       univ
     in
@@ -446,10 +446,10 @@ struct
     let* vfam = EM.lift_ev (Nbe.eval fam) in
     let* bdry_tp =
       EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.foreign_tp univ @@ fun univ ->
-      QQ.foreign vfam @@ fun fam ->
-      QQ.term @@
+      Nbe.splice_tp @@
+      Splice.foreign_tp univ @@ fun univ ->
+      Splice.foreign vfam @@ fun fam ->
+      Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
       TB.el @@ TB.ap fam [i]
@@ -472,8 +472,8 @@ struct
   let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.term @@
+      Nbe.splice_tp @@
+      Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.univ
     in
@@ -488,11 +488,11 @@ struct
 
   let hcom_bdy_tp tp r phi =
     EM.lift_cmp @@
-    Nbe.quasiquote_tp @@
-    QQ.foreign r @@ fun src ->
-    QQ.foreign (D.cof_to_con phi) @@ fun cof ->
-    QQ.foreign_tp tp @@ fun vtp ->
-    QQ.term @@
+    Nbe.splice_tp @@
+    Splice.foreign r @@ fun src ->
+    Splice.foreign (D.cof_to_con phi) @@ fun cof ->
+    Splice.foreign_tp tp @@ fun vtp ->
+    Splice.term @@
     TB.pi TB.tp_dim @@ fun i ->
     TB.pi (TB.tp_prf (TB.join (TB.eq i src) cof)) @@ fun _ ->
     vtp
@@ -522,22 +522,22 @@ struct
     let* tm =
       tac_tm @<<
       EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.foreign vsrc @@ fun src ->
-      QQ.foreign vtrg @@ fun trg ->
-      QQ.foreign (D.Lam clo) @@ fun pel ->
-      QQ.foreign (D.cof_to_con vpsi) @@ fun cof ->
-      QQ.foreign_tp vtp @@ fun tp ->
-      QQ.term @@
+      Nbe.splice_tp @@
+      Splice.foreign vsrc @@ fun src ->
+      Splice.foreign vtrg @@ fun trg ->
+      Splice.foreign (D.Lam clo) @@ fun pel ->
+      Splice.foreign (D.cof_to_con vpsi) @@ fun cof ->
+      Splice.foreign_tp vtp @@ fun tp ->
+      Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join (TB.eq i src) cof)) @@ fun _ ->
       TB.sub tp (TB.meet (TB.eq i trg) cof) @@ fun prf -> TB.ap pel [prf]
     in
     let* vtm = EM.lift_ev @@ Nbe.eval tm in
     let* vtm' =
-      EM.lift_cmp @@ Nbe.quasiquote_tm @@
-      QQ.foreign vtm @@ fun tm ->
-      QQ.term @@
+      EM.lift_cmp @@ Nbe.splice_tm @@
+      Splice.foreign vtm @@ fun tm ->
+      Splice.term @@
       TB.lam @@ fun i ->
       TB.lam @@ fun prf ->
       TB.sub_out @@
@@ -552,8 +552,8 @@ struct
   let com tac_fam tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.term @@
+      Nbe.splice_tp @@
+      Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.univ
     in
@@ -568,11 +568,11 @@ struct
     let+ tm =
       tac_tm @<<
       EM.lift_cmp @@
-      Nbe.quasiquote_tp @@
-      QQ.foreign vfam @@ fun vfam ->
-      QQ.foreign vsrc @@ fun src ->
-      QQ.foreign (D.cof_to_con vcof) @@ fun cof ->
-      QQ.term @@
+      Nbe.splice_tp @@
+      Splice.foreign vfam @@ fun vfam ->
+      Splice.foreign vsrc @@ fun src ->
+      Splice.foreign (D.cof_to_con vcof) @@ fun cof ->
+      Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join (TB.eq i src) cof)) @@ fun _ ->
       TB.el @@ TB.ap vfam [i]

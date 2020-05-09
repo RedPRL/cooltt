@@ -1,7 +1,7 @@
 module D := Domain
 module S := Syntax
 module St := ElabState
-module QQ := Quasiquote
+module Splice := Splice
 
 exception NbeFailed of string
 
@@ -34,5 +34,5 @@ val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute
 
 
-val quasiquote_tm : S.t QQ.builder -> D.con compute
-val quasiquote_tp : S.tp QQ.builder -> D.tp compute
+val splice_tm : S.t Splice.t -> D.con compute
+val splice_tp : S.tp Splice.t -> D.tp compute

@@ -11,7 +11,7 @@ open Monads
 
 exception NbeFailed of string
 
-module QQ = Quasiquote
+module Splice = Splice
 module TB = TermBuilder
 
 
@@ -46,20 +46,20 @@ sig
   val con_to_cof : D.con -> D.cof compute
   val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof compute
 
-  val quasiquote_tm : S.t QQ.builder -> D.con compute
-  val quasiquote_tp : S.tp QQ.builder -> D.tp compute
+  val splice_tm : S.t Splice.t -> D.con compute
+  val splice_tp : S.tp Splice.t -> D.tp compute
 end =
 struct
   open CmpM
   open Eval
   open Monad.Notation (CmpM)
 
-  let quasiquote_tm builder =
-    let env, tm = QQ.compile builder in
+  let splice_tm t =
+    let env, tm = Splice.compile t in
     lift_ev env @@ eval tm
 
-  let quasiquote_tp builder =
-    let env, tp = QQ.compile builder in
+  let splice_tp t =
+    let env, tp = Splice.compile t in
     lift_ev env @@ eval_tp tp
 
 
@@ -247,12 +247,12 @@ struct
       D.KNatElim (mot, zero, suc)
     | D.FHCom (`Nat, r, s, phi, bdy) ->
       (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)
-      quasiquote_tm @@
-      QQ.foreign (D.dim_to_con r) @@ fun r ->
-      QQ.foreign (D.dim_to_con s) @@ fun s ->
-      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
-      QQ.foreign bdy @@ fun bdy ->
-      QQ.term @@
+      splice_tm @@
+      Splice.foreign (D.dim_to_con r) @@ fun r ->
+      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
       (*
       let fam = TB.lam @@ fun i -> inst_tp_clo mot [D.FHCom (`Nat, r, i, phi, bdy)] in
       let bdy' = TB.lam @@ fun i -> TB.lam @@ fun prf -> do_nat_elim mot zero suc (raise Todo) in
@@ -372,26 +372,26 @@ struct
       ret D.Nat
 
     | D.CodePi (base, fam) ->
-      quasiquote_tp @@
-      QQ.foreign base @@ fun base ->
-      QQ.foreign fam @@ fun fam ->
-      QQ.term @@
+      splice_tp @@
+      Splice.foreign base @@ fun base ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.term @@
       TB.pi (TB.el base) @@ fun x ->
       TB.el @@ TB.ap fam [x]
 
     | D.CodeSg (base, fam) ->
-      quasiquote_tp @@
-      QQ.foreign base @@ fun base ->
-      QQ.foreign fam @@ fun fam ->
-      QQ.term @@
+      splice_tp @@
+      Splice.foreign base @@ fun base ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.term @@
       TB.sg (TB.el base) @@ fun x ->
       TB.el @@ TB.ap fam [x]
 
     | D.CodePath (fam, bdry) ->
-      quasiquote_tp @@
-      QQ.foreign fam @@ fun fam ->
-      QQ.foreign bdry @@ fun bdry ->
-      QQ.term @@
+      splice_tp @@
+      Splice.foreign fam @@ fun fam ->
+      Splice.foreign bdry @@ fun bdry ->
+      Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
       TB.ap bdry [i; prf]
@@ -452,67 +452,67 @@ struct
       ret con
     | `CoePi ->
       let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
-      quasiquote_tm @@
-      QQ.foreign split_line @@ fun split_line ->
-      QQ.foreign (D.dim_to_con r) @@ fun r ->
-      QQ.foreign (D.dim_to_con s) @@ fun s ->
-      QQ.foreign con @@ fun bdy ->
+      splice_tm @@
+      Splice.foreign split_line @@ fun split_line ->
+      Splice.foreign (D.dim_to_con r) @@ fun r ->
+      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign con @@ fun bdy ->
       let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
       let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-      QQ.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
+      Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
     | `CoeSg ->
       let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
-      quasiquote_tm @@
-      QQ.foreign split_line @@ fun split_line ->
-      QQ.foreign (D.dim_to_con r) @@ fun r ->
-      QQ.foreign (D.dim_to_con s) @@ fun s ->
-      QQ.foreign con @@ fun bdy ->
+      splice_tm @@
+      Splice.foreign split_line @@ fun split_line ->
+      Splice.foreign (D.dim_to_con r) @@ fun r ->
+      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign con @@ fun bdy ->
       let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
       let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-      QQ.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
+      Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
     | `CoePath ->
       let split_line = D.compose (D.Destruct D.DCodePathSplit) line in
-      quasiquote_tm @@
-      QQ.foreign split_line @@ fun split_line ->
-      QQ.foreign (D.dim_to_con r) @@ fun r ->
-      QQ.foreign (D.dim_to_con s) @@ fun s ->
-      QQ.foreign con @@ fun bdy ->
+      splice_tm @@
+      Splice.foreign split_line @@ fun split_line ->
+      Splice.foreign (D.dim_to_con r) @@ fun r ->
+      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign con @@ fun bdy ->
       let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
       let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-      QQ.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
+      Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
 
   and enact_rigid_hcom code r s phi bdy tag =
     CmpM.abort_if_inconsistent D.Abort @@
     match tag with
     | `HComPi (base, fam) ->
-      quasiquote_tm @@
-      QQ.foreign base @@ fun base ->
-      QQ.foreign fam @@ fun fam ->
-      QQ.foreign (D.dim_to_con r) @@ fun r ->
-      QQ.foreign (D.dim_to_con s) @@ fun s ->
-      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
-      QQ.foreign bdy @@ fun bdy ->
-      QQ.term @@
+      splice_tm @@
+      Splice.foreign base @@ fun base ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.foreign (D.dim_to_con r) @@ fun r ->
+      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
       TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
     | `HComSg (base, fam) ->
-      quasiquote_tm @@
-      QQ.foreign base @@ fun base ->
-      QQ.foreign fam @@ fun fam ->
-      QQ.foreign (D.dim_to_con r) @@ fun r ->
-      QQ.foreign (D.dim_to_con s) @@ fun s ->
-      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
-      QQ.foreign bdy @@ fun bdy ->
-      QQ.term @@
+      splice_tm @@
+      Splice.foreign base @@ fun base ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.foreign (D.dim_to_con r) @@ fun r ->
+      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
       TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
     | `HComPath (fam, bdry) ->
-      quasiquote_tm @@
-      QQ.foreign fam @@ fun fam ->
-      QQ.foreign bdry @@ fun bdry ->
-      QQ.foreign (D.dim_to_con r) @@ fun r ->
-      QQ.foreign (D.dim_to_con s) @@ fun s ->
-      QQ.foreign (D.cof_to_con phi) @@ fun phi ->
-      QQ.foreign bdy @@ fun bdy ->
-      QQ.term @@
+      splice_tm @@
+      Splice.foreign fam @@ fun fam ->
+      Splice.foreign bdry @@ fun bdry ->
+      Splice.foreign (D.dim_to_con r) @@ fun r ->
+      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
       TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
     | `HComNat ->
       ret @@ D.FHCom (`Nat, r, s, phi, bdy)
@@ -546,11 +546,11 @@ struct
   and do_rigid_com (line : D.con) r s phi bdy =
     let* code_s = do_ap line (D.dim_to_con s) in
     do_rigid_hcom code_s r s phi @<<
-    quasiquote_tm @@
-    QQ.foreign (D.dim_to_con s) @@ fun s ->
-    QQ.foreign line @@ fun line ->
-    QQ.foreign bdy @@ fun bdy ->
-    QQ.term @@
+    splice_tm @@
+    Splice.foreign (D.dim_to_con s) @@ fun s ->
+    Splice.foreign line @@ fun line ->
+    Splice.foreign bdy @@ fun bdy ->
+    Splice.term @@
     TB.lam @@ fun i ->
     TB.lam @@ fun prf ->
     TB.coe line i s @@
@@ -936,9 +936,9 @@ struct
     | univ, D.CodePath (fam, bdry) -> (* check *)
       let* piuniv =
         lift_cmp @@
-        quasiquote_tp @@
-        QQ.foreign_tp univ @@ fun univ ->
-        QQ.term @@
+        splice_tp @@
+        Splice.foreign_tp univ @@ fun univ ->
+        Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         univ
       in
@@ -946,10 +946,10 @@ struct
       (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
       let* bdry_tp =
         lift_cmp @@
-        quasiquote_tp @@
-        QQ.foreign_tp univ @@ fun univ ->
-        QQ.foreign fam @@ fun fam ->
-        QQ.term @@
+        splice_tp @@
+        Splice.foreign_tp univ @@ fun univ ->
+        Splice.foreign fam @@ fun fam ->
+        Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
         TB.el @@ TB.ap fam [i]
@@ -1279,25 +1279,25 @@ struct
       let* _ = equate_con univ base0 base1 in
       let* fam_tp =
         lift_cmp @@
-        quasiquote_tp @@
-        QQ.foreign base0 @@ fun base ->
-        QQ.foreign_tp univ @@ fun univ ->
-        QQ.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+        splice_tp @@
+        Splice.foreign base0 @@ fun base ->
+        Splice.foreign_tp univ @@ fun univ ->
+        Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
       in
       equate_con fam_tp fam0 fam1
 
     | univ, D.CodePath (fam0, bdry0), D.CodePath (fam1, bdry1) ->
       let* famtp =
         lift_cmp @@
-        quasiquote_tp @@
-        QQ.foreign_tp univ @@ fun univ ->
-        QQ.term @@ TB.pi TB.tp_dim @@ fun _ -> univ
+        splice_tp @@
+        Splice.foreign_tp univ @@ fun univ ->
+        Splice.term @@ TB.pi TB.tp_dim @@ fun _ -> univ
       in
       let* _ = equate_con famtp fam0 fam1 in
       let* bdry_tp =
-        lift_cmp @@ quasiquote_tp @@
-        QQ.foreign fam0 @@ fun fam ->
-        QQ.term @@
+        lift_cmp @@ splice_tp @@
+        Splice.foreign fam0 @@ fun fam ->
+        Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         let phi = TB.boundary i in
         TB.pi (TB.tp_prf phi) @@ fun prf ->
