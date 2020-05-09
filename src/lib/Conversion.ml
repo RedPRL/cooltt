@@ -68,42 +68,6 @@ let contractum_or x =
   | `Done -> x
   | `Reduce y -> y
 
-let bind_var_ tp m =
-  match tp with
-  | D.TpPrf phi ->
-    begin
-      begin
-        bind_cof_proof phi @@
-        let* var = top_var tp in
-        QuM.left_invert_under_cof phi @@ (* TODO: SEE IF WE ACTUALLY NEED THIS LINE, I THINK WE DONT *)
-        m var
-      end |>> function
-      | `Ret _ -> ret ()
-      | `Abort -> ret ()
-    end
-  | _ ->
-    binder 1 @@
-    let* var = top_var tp in
-    m var
-
-let bind_var abort tp m =
-  match tp with
-  | D.TpPrf phi ->
-    begin
-      begin
-        bind_cof_proof phi @@
-        let* var = top_var tp in
-        m var
-      end |>> function
-      | `Ret tm -> ret tm
-      | `Abort -> ret abort
-    end
-  | _ ->
-    binder 1 @@
-    let* var = top_var tp in
-    m var
-
-
 (* Invariant: tp0 and tp1 not necessarily whnf *)
 let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   QuM.abort_if_inconsistent () @@
@@ -272,7 +236,7 @@ and equate_frm k0 k1 =
     equate_con tp0 con0 con1
   | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
     let* fibx =
-      bind_var D.TpAbort D.Nat @@ fun var ->
+      bind_var ~abort:D.TpAbort D.Nat @@ fun var ->
       let* fib0 = lift_cmp @@ inst_tp_clo mot0 [var] in
       let* fib1 = lift_cmp @@ inst_tp_clo mot1 [var] in
       let+ () = equate_tp fib0 fib1  in
@@ -282,8 +246,8 @@ and equate_frm k0 k1 =
       let* fib = lift_cmp @@ inst_tp_clo mot0 [D.Zero] in
       equate_con fib zero_case0 zero_case1
     in
-    bind_var () D.Nat @@ fun x ->
-    bind_var () fibx @@ fun ih ->
+    bind_var ~abort:() D.Nat @@ fun x ->
+    bind_var ~abort:() fibx @@ fun ih ->
     let* fib_sucx = lift_cmp @@ inst_tp_clo mot0 [D.Suc x] in
     let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
     let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in

@@ -170,11 +170,32 @@ struct
     let* env = M.read in
     left_invert_under_cof (CofEnv.unreduced_assumptions env.cof_env) m
 
-
-
   let bind_cof_proof phi m =
     restrict phi @@
     binder 1 m
+
+  let top_var tp =
+    let+ n = read_local in
+    D.mk_var tp @@ n - 1
+
+  let bind_var ~abort tp m =
+    match tp with
+    | D.TpPrf phi ->
+      begin
+        begin
+          bind_cof_proof phi @@
+          let* var = top_var tp in
+          m var
+        end |>> function
+        | `Ret tm -> M.ret tm
+        | `Abort -> M.ret abort
+      end
+    | _ ->
+      binder 1 @@
+      let* var = top_var tp in
+      m var
+
+  let bind_var_ = bind_var ~abort:() 
 
   include QuL
   include M

@@ -27,23 +27,6 @@ let top_var tp =
   let+ n = read_local in
   D.mk_var tp @@ n - 1
 
-let bind_var abort tp m =
-  match tp with
-  | D.TpPrf phi ->
-    begin
-      begin
-        bind_cof_proof phi @@
-        let* var = top_var tp in
-        m var
-      end |>> function
-      | `Ret tm -> ret tm
-      | `Abort -> ret abort
-    end
-  | _ ->
-    binder 1 @@
-    let* var = top_var tp in
-    m var
-
 let rec quote_con (tp : D.tp) con : S.t m =
   QuM.abort_if_inconsistent S.CofAbort @@
   match tp, con with
@@ -65,7 +48,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     quote_cut (hd, sp)
   | D.Pi (base, fam), con ->
     let+ body =
-      bind_var S.CofAbort base @@ fun arg ->
+      bind_var ~abort:S.CofAbort base @@ fun arg ->
       let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
       let* ap = lift_cmp @@ do_ap con arg in
       quote_con fib ap
@@ -107,7 +90,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ tfam =
       let* tpbase = lift_cmp @@ do_el base in
       let+ bdy =
-        bind_var S.CofAbort tpbase @@ fun var ->
+        bind_var ~abort:S.CofAbort tpbase @@ fun var ->
         quote_con univ @<<
         lift_cmp @@ do_ap fam var
       in
@@ -119,7 +102,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ tfam =
       let* tpbase = lift_cmp @@ do_el base in
       let+ bdy =
-        bind_var S.CofAbort tpbase @@ fun var ->
+        bind_var ~abort:S.CofAbort tpbase @@ fun var ->
         quote_con univ @<<
         lift_cmp @@ do_ap fam var
       in
@@ -168,15 +151,11 @@ and quote_hcom code r s phi bdy =
   let* tphi = quote_cof phi in
   let+ tbdy =
     let+ tm =
-      bind_var S.CofAbort D.TpDim @@ fun i ->
-      begin
+      bind_var ~abort:S.CofAbort D.TpDim @@ fun i ->
         let* i_dim = lift_cmp @@ con_to_dim i in
-        bind_cof_proof (Cof.join (Cof.eq r i_dim) phi) @@
-        let* body = lift_cmp @@ do_ap2 bdy i D.Prf in
+        bind_var ~abort:S.CofAbort (D.TpPrf (Cof.join (Cof.eq r i_dim) phi)) @@ fun prf ->
+        let* body = lift_cmp @@ do_ap2 bdy i prf in
         quote_con D.Nat body
-      end |>> function
-      | `Ret tm -> ret tm
-      | `Abort -> ret S.CofAbort
     in
     S.Lam (S.Lam tm)
   in
@@ -190,14 +169,14 @@ and quote_tp (tp : D.tp) =
   | D.Pi (base, fam) ->
     let* tbase = quote_tp base in
     let+ tfam =
-      bind_var (S.El S.CofAbort) base @@ fun var ->
+      bind_var ~abort:(S.El S.CofAbort) base @@ fun var ->
       quote_tp @<< lift_cmp @@ inst_tp_clo fam [var]
     in
     S.Pi (tbase, tfam)
   | D.Sg (base, fam) ->
     let* tbase = quote_tp base in
     let+ tfam =
-      bind_var (S.El S.CofAbort) base @@ fun var ->
+      bind_var ~abort:(S.El S.CofAbort) base @@ fun var ->
       quote_tp @<< lift_cmp @@ inst_tp_clo fam [var]
     in
     S.Sg (tbase, tfam)
@@ -213,13 +192,9 @@ and quote_tp (tp : D.tp) =
     let* ttp = quote_tp tp in
     let+ tphi = quote_cof phi
     and+ tm =
-      begin
-        bind_cof_proof phi @@
-        let* body = lift_cmp @@ inst_tm_clo cl [D.Prf] in
+        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        let* body = lift_cmp @@ inst_tm_clo cl [prf] in
         quote_con tp body
-      end |>> function
-      | `Ret tm -> ret tm
-      | `Abort -> ret S.CofAbort
     in
     S.Sub (ttp, tphi, tm)
   | D.TpDim ->
@@ -241,7 +216,7 @@ and quote_hd =
   | D.Coe (abs, r, s, con) ->
     let* tpcode =
       let+ bdy =
-        bind_var S.CofAbort D.TpDim @@ fun i ->
+        bind_var ~abort:S.CofAbort D.TpDim @@ fun i ->
         let* code = lift_cmp @@ do_ap abs i in
         quote_con D.Univ code
       in
@@ -262,13 +237,11 @@ and quote_hd =
   | D.Split (tp, phi0, phi1, clo0, clo1) ->
     let branch_body phi clo =
       begin
-        bind_cof_proof phi @@
-        let* body = lift_cmp @@ inst_tm_clo clo [D.Prf] in
+        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        let* body = lift_cmp @@ inst_tm_clo clo [prf] in
         quote_con tp body
-      end |>> function
-      | `Ret tm -> ret tm
-      | `Abort -> ret S.CofAbort
-    in
+      end 
+          in
     let* ttp = quote_tp tp in
     let* tphi0 = quote_cof phi0 in
     let* tphi1 = quote_cof phi1 in
@@ -321,19 +294,19 @@ and quote_frm tm =
   function
   | D.KNatElim (mot, zero_case, suc_case) ->
     let* mot_x =
-      bind_var D.TpAbort D.Nat @@ fun x ->
+      bind_var ~abort:D.TpAbort D.Nat @@ fun x ->
       lift_cmp @@ inst_tp_clo mot [x]
     in
     let* tmot =
-      bind_var (S.El S.CofAbort) D.Nat @@ fun _ ->
+      bind_var ~abort:(S.El S.CofAbort) D.Nat @@ fun _ ->
       quote_tp mot_x
     in
     let+ tzero_case =
       let* mot_zero = lift_cmp @@ inst_tp_clo mot [D.Zero] in
       quote_con mot_zero zero_case
     and+ tsuc_case =
-      bind_var S.CofAbort D.Nat @@ fun x ->
-      bind_var S.CofAbort mot_x @@ fun ih ->
+      bind_var ~abort:S.CofAbort D.Nat @@ fun x ->
+      bind_var ~abort:S.CofAbort mot_x @@ fun ih ->
       let* mot_suc_x = lift_cmp @@ inst_tp_clo mot [D.Suc x] in
       let* suc_case_x = lift_cmp @@ inst_tm_clo suc_case [x; ih] in
       quote_con mot_suc_x suc_case_x
