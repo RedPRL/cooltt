@@ -1,12 +1,12 @@
 opam-version: "2.0"
 name: "cooltt"
 version: "0.0"
-maintainer: "Daniel Gratzer <gratzer@cs.au.dk>"
-authors: ["Daniel Gratzer" "Jonathan Sterling"]
-homepage: "https://github.com/jozefg/cooltt"
-bug-reports: "https://github.com/jozefg/cooltt/issues"
-dev-repo: "git+https://github.com/jozefg/cooltt.git"
-synopsis: "Experimental implementation of Modal Dependent Type Theory"
+maintainer: "Jonathan Sterling <jmsterli@cs.cmu.edu>"
+authors: ["The RedPRL Development Team"]
+homepage: "https://github.com/RedPRL/cooltt"
+bug-reports: "https://github.com/RedPRL/cooltt/issues"
+dev-repo: "git+https://github.com/RedPRL/cooltt.git"
+synopsis: "Experimental implementation of Cartesian cubical type theory"
 license: "MIT"
 depends: [
   "dune"  {build}
