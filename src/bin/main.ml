@@ -17,9 +17,8 @@ let main input =
   | Load.Parse_error s ->
     Format.eprintf "Frontend error: %s" s;
     1
-  | ElabError.ElabError e ->
-    Format.eprintf "@[<v2>Elaboration error:@;@[<hv>%a@]@]@."
-      ElabError.pp e;
+  | ElabError.ElabError (err, loc) ->
+    Log.pp_message ~loc ~lvl:`Error ElabError.pp Format.err_formatter err;
     1
 
 let input_file =

@@ -52,7 +52,7 @@ let pp fmt =
   | InvalidTypeExpression cs ->
     Fmt.fprintf fmt
       "Invalid type expression: %a"
-      CS.pp cs
+      CS.pp_con cs
   | MalformedCase ->
     Fmt.fprintf fmt "Malformed case"
   | CannotEliminate (ppenv, tp) ->
@@ -74,12 +74,12 @@ let pp fmt =
     Fmt.fprintf fmt "Virtual type (dim, cof, etc.) cannot appear in this position"
 
 
-exception ElabError of t
+exception ElabError of t * CS.location
 
 let _ =
   PpExn.install_printer @@ fun fmt ->
   function
-  | ElabError err ->
+  | ElabError (err, _loc) ->
     pp fmt err
   | _ ->
     raise PpExn.Unrecognized

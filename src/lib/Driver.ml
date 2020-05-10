@@ -59,7 +59,7 @@ let execute_decl =
     let* tm, vtp = Elaborator.syn_tm term in
     let* vtm = EM.lift_ev @@ Sem.eval tm in
     let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
-    let+ () = EM.emit pp_message @@ NormalizedTerm (tm, tm') in
+    let+ () = EM.emit term.info pp_message @@ NormalizedTerm (tm, tm') in
     `Continue
   | CS.Quit ->
     EM.ret `Quit
