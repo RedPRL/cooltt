@@ -237,31 +237,36 @@ and quote_hd =
     let* tm1 = branch_body phi1 clo1 in
     ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
-and quote_dim d = quote_con D.TpDim @@ D.dim_to_con d
+and quote_dim d =
+  quote_con D.TpDim @@
+  D.dim_to_con d
 
-and quote_cof =
-  function
-  | Cof.Var lvl ->
-    let+ ix = quote_var lvl in
-    S.Var ix
-  | Cof.Cof phi ->
-    match phi with
-    | Cof.Eq (r, s) ->
-      let+ tr = quote_dim r
-      and+ ts = quote_dim s in
-      S.Cof (Cof.Eq (tr, ts))
-    | Cof.Join (phi, psi) ->
-      let+ tphi = quote_cof phi
-      and+ tpsi = quote_cof psi in
-      S.Cof (Cof.Join (tphi, tpsi))
-    | Cof.Meet (phi, psi) ->
-      let+ tphi = quote_cof phi
-      and+ tpsi = quote_cof psi in
-      S.Cof (Cof.Meet (tphi, tpsi))
-    | Cof.Bot ->
-      ret @@ S.Cof Cof.Bot
-    | Cof.Top ->
-      ret @@ S.Cof Cof.Top
+and quote_cof phi =
+  let rec go =
+    function
+    | Cof.Var lvl ->
+      let+ ix = quote_var lvl in
+      S.Var ix
+    | Cof.Cof phi ->
+      match phi with
+      | Cof.Eq (r, s) ->
+        let+ tr = quote_dim r
+        and+ ts = quote_dim s in
+        S.Cof (Cof.Eq (tr, ts))
+      | Cof.Join (phi, psi) ->
+        let+ tphi = go phi
+        and+ tpsi = go psi in
+        S.Cof (Cof.Join (tphi, tpsi))
+      | Cof.Meet (phi, psi) ->
+        let+ tphi = go phi
+        and+ tpsi = go psi in
+        S.Cof (Cof.Meet (tphi, tpsi))
+      | Cof.Bot ->
+        ret @@ S.Cof Cof.Bot
+      | Cof.Top ->
+        ret @@ S.Cof Cof.Top
+  in
+  go @<< lift_cmp @@ Sem.normalize_cof phi
 
 and quote_var lvl =
   let+ n = read_local in

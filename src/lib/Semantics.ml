@@ -23,6 +23,8 @@ sig
   val whnf_hd : D.hd -> D.con whnf compute
   val whnf_tp : D.tp -> D.tp whnf compute
 
+  val normalize_cof : D.cof -> D.cof compute
+
   val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
   val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute
 
@@ -53,6 +55,38 @@ struct
   open CmpM
   open Eval
   open Monad.Notation (CmpM)
+
+  let tri_test_cof phi =
+    test_sequent [] phi |>>
+    function
+    | true -> ret `True
+    | false ->
+      test_sequent [phi] Cof.bot |>>
+      function
+      | true -> ret `False
+      | false -> ret `Indet
+
+  let rec normalize_cof phi =
+    match phi with
+    | Cof.Cof (Cof.Eq _) | Cof.Var _ ->
+      begin
+        tri_test_cof phi |>>
+        function
+        | `True -> ret Cof.top
+        | `False -> ret Cof.bot
+        | `Indet -> ret phi
+      end
+    | Cof.Cof (Cof.Join (phi0, phi1)) ->
+      let* phi0 = normalize_cof phi0 in
+      let* phi1 = normalize_cof phi1 in
+      ret @@ Cof.join phi0 phi1
+    | Cof.Cof (Cof.Meet (phi0, phi1)) ->
+      let* phi0 = normalize_cof phi0 in
+      let* phi1 = normalize_cof phi1 in
+      ret @@ Cof.meet phi0 phi1
+    | Cof.Cof (Cof.Bot | Cof.Top) ->
+      ret phi
+
 
   let splice_tm t =
     let env, tm = Splice.compile t in
@@ -806,5 +840,5 @@ struct
     lift_cmp @@ con_to_cof vphi
 end
 
-include Compute 
+include Compute
 include Eval

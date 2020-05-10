@@ -13,6 +13,8 @@ val whnf_cut : D.cut -> D.con whnf compute
 val whnf_hd : D.hd -> D.con whnf compute
 val whnf_tp : D.tp -> D.tp whnf compute
 
+val normalize_cof : D.cof -> D.cof compute
+
 val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute
 

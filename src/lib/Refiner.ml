@@ -26,18 +26,11 @@ module Hole : sig
   val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> T.syn_tac
 end =
 struct
-  (* To give a more intuitive readout *)
-  let normalize_cof : D.cof -> D.cof m =
-    fun phi ->
-      let* useless = EM.lift_cmp @@ CmpM.test_sequent [phi] Cof.bot in
-      EM.ret (if useless then Cof.bot else phi)
-
   let make_hole name flexity (tp, phi, clo) : D.cut m =
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        let* phi' = normalize_cof phi in
-        EM.lift_qu @@ Qu.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
+        EM.lift_qu @@ Qu.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let name = Env.Cell.name cell in
