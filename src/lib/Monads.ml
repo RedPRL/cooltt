@@ -195,7 +195,7 @@ struct
       let* var = top_var tp in
       m var
 
-  let bind_var_ = bind_var ~abort:() 
+  let bind_var_ = bind_var ~abort:()
 
   include QuL
   include M
