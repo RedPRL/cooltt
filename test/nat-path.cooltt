@@ -128,7 +128,7 @@ def +-assoc : {
 } = {
   λ elim [
   | zero => λ y z i => + y z
-  | suc {x => ih} => λ y z i => suc {ih y z i}
+  | suc {x => ih} => λ y z i => ?
   ]
 }
 

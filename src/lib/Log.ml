@@ -18,7 +18,7 @@ let pp_message ~loc ~lvl pp fmt data =
   | None ->
     pp fmt data
   | Some span ->
-    Format.fprintf fmt "@.@.@[<v>%a [%a]:@,  @[%a@]@]@.@."
-      LexingUtil.pp_span span 
+    Format.fprintf fmt "@.@.@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
+      LexingUtil.pp_span span
       pp_lvl lvl
       pp data
