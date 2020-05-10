@@ -7,7 +7,7 @@ homepage: "https://github.com/RedPRL/cooltt"
 bug-reports: "https://github.com/RedPRL/cooltt/issues"
 dev-repo: "git+https://github.com/RedPRL/cooltt.git"
 synopsis: "Experimental implementation of Cartesian cubical type theory"
-license: "MIT"
+license: "Apache-2.0"
 depends: [
   "dune"  {build}
   "ppx_deriving" {>= "4.4.1"}
