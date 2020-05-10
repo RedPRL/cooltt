@@ -27,7 +27,7 @@ struct
       let* useless = EM.lift_cmp @@ CmpM.test_sequent [phi] Cof.bot in
       EM.ret (if useless then Cof.bot else phi)
 
-  let make_hole name flexity (tp, phi, clo) =
+  let make_hole name flexity (tp, phi, clo) : D.cut m =
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->

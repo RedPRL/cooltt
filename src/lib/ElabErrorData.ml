@@ -30,4 +30,5 @@ struct
     | ExpectedDimensionLiteral of int
     | ExpectedTrue of Pp.env * S.t
     | VirtualType
+
 end

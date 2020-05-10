@@ -11,7 +11,7 @@ module Cell : sig
   val name : 'a t -> string option
 end
 
-type cell =  (D.tp * D.con) Cell.t
+type cell = (D.tp * D.con) Cell.t
 
 
 type t
