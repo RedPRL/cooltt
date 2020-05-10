@@ -2,7 +2,7 @@ open CoolBasis
 
 type level = [`Info | `Error | `Warn]
 
-type location = ConcreteSyntax.location
+type location = LexingUtil.span option
 
 val pp_message
   : loc:location

@@ -25,8 +25,8 @@ val cof_env : t -> CofEnv.env
 val get_veil : t -> Veil.t
 val problem : t -> string bwd
 
-val location : t -> CS.location
-val set_location : CS.location -> t -> t
+val location : t -> LexingUtil.span option
+val set_location : LexingUtil.span option -> t -> t
 
 
 val append_con : string option -> D.con -> D.tp -> t -> t

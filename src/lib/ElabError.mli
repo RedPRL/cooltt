@@ -1,5 +1,6 @@
-include module type of ElabErrorData.Data
+open CoolBasis
 
+include module type of ElabErrorData.Data
 val pp : Format.formatter -> t -> unit
 
-exception ElabError of t * ConcreteSyntax.location
+exception ElabError of t * LexingUtil.span option

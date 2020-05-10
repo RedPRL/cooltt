@@ -76,7 +76,7 @@ module ElabM : sig
   val veil : Veil.t -> 'a m -> 'a m
 
   val globally : 'a m -> 'a m
-  val emit : ConcreteSyntax.location -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
+  val emit : LexingUtil.span option -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
 
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end

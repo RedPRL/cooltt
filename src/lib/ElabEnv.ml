@@ -27,7 +27,7 @@ type t =
    cof_env : CofEnv.env;
    locals : cell bwd;
    problem : string bwd;
-   location : CS.location}
+   location : LexingUtil.span option}
 
 let locals env = env.locals
 
@@ -41,7 +41,10 @@ let init =
    location = None}
 
 let location env = env.location
-let set_location loc env = {env with location = loc}
+let set_location loc env =
+  match loc with 
+  | Some _ -> {env with location = loc}
+  | _ -> env
 
 let size env = Bwd.length env.locals
 

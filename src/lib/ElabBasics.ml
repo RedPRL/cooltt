@@ -118,5 +118,5 @@ let push_problem lbl =
   scope @@
   Env.push_problem lbl
 
-let update_location loc =
+let update_span loc =
   scope @@ Env.set_location loc

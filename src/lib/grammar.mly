@@ -1,8 +1,8 @@
 %{
   open ConcreteSyntax
 
-  let locate loc node =
-    {node; info = Some loc}
+  let locate (start, stop) node =
+    {node; info = Some {start; stop}}
 
 %}
 

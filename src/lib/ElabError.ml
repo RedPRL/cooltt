@@ -74,7 +74,7 @@ let pp fmt =
     Fmt.fprintf fmt "Virtual type (dim, cof, etc.) cannot appear in this position"
 
 
-exception ElabError of t * CS.location
+exception ElabError of t * LexingUtil.span option
 
 let _ =
   PpExn.install_printer @@ fun fmt ->

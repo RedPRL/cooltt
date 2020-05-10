@@ -42,7 +42,7 @@ let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
 
 let rec chk_tp : CS.con -> T.tp_tac =
   fun con ->
-  T.Tp.update_location con.info @@
+  T.Tp.update_span con.info @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_tp_hole name `Rigid
@@ -88,7 +88,7 @@ and bchk_tm : CS.con -> T.bchk_tac =
 
 and bchk_tm_ : CS.con -> T.bchk_tac =
   fun con ->
-  T.BChk.update_location con.info @@
+  T.BChk.update_span con.info @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
@@ -155,7 +155,7 @@ and bchk_tm_ : CS.con -> T.bchk_tac =
 
 and syn_tm_ : CS.con -> T.syn_tac =
   function con ->
-  T.Syn.update_location con.info @@
+  T.Syn.update_span con.info @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_syn_hole name `Rigid

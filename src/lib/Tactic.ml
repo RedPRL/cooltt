@@ -10,7 +10,7 @@ open Monad.Notation (EM)
 module type Tactic =
 sig
   type tac
-  val update_location : ConcreteSyntax.location -> tac -> tac
+  val update_span : LexingUtil.span option -> tac -> tac
 end
 
 module Tp : sig
@@ -48,8 +48,8 @@ struct
     | General tac -> General (f tac)
     | Virtual tac -> Virtual (f tac)
 
-  let update_location loc =
-    map @@ EM.update_location loc
+  let update_span loc =
+    map @@ EM.update_span loc
 end
 
 module Var =
@@ -76,8 +76,8 @@ module rec Chk : sig
 end =
 struct
   type tac = D.tp -> S.t EM.m
-  let update_location loc tac tp =
-    EM.update_location loc @@ tac tp
+  let update_span loc tac tp =
+    EM.update_span loc @@ tac tp
 
   let bchk : BChk.tac -> tac =
     fun btac tp ->
@@ -98,8 +98,8 @@ and BChk : sig
 end =
 struct
   type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
-  let update_location loc tac goal =
-    EM.update_location loc @@ tac goal
+  let update_span loc tac goal =
+    EM.update_span loc @@ tac goal
 
   let chk : Chk.tac -> tac =
     fun tac (tp, phi, pclo) ->
@@ -122,8 +122,8 @@ and Syn : sig
 end =
 struct
   type tac = (S.t * D.tp) EM.m
-  let update_location loc =
-    EM.update_location loc
+  let update_span loc =
+    EM.update_span loc
 
   let ann (tac_tm : Chk.tac) (tac_tp : Tp.tac) : tac =
     let* tp = Tp.run tac_tp in

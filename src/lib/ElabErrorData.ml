@@ -5,7 +5,6 @@ open CoolBasis
 
 module Data =
 struct
-
   type connective =
     [ `Pi
     | `Sg

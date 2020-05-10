@@ -1,3 +1,4 @@
+open CoolBasis
 module CS := ConcreteSyntax
 module S := Syntax
 module D := Domain
@@ -10,7 +11,7 @@ type syn_tac = (S.t * D.tp) EM.m
 module type Tactic =
 sig
   type tac
-  val update_location : CS.location -> tac -> tac
+  val update_span : LexingUtil.span option -> tac -> tac
 end
 
 (* general types *)

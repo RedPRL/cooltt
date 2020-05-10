@@ -1,21 +1,17 @@
-type location = (Lexing.position * Lexing.position) option
+open CoolBasis 
 
-let pp_location fmt =
+type info = LexingUtil.span option
+
+let pp_info fmt =
   function
   | None -> Format.fprintf fmt "Unknown location"
-  | Some (start_pos, end_pos) ->
-    let open Lexing in
-    Format.fprintf fmt "%a:%i.%i-%i.%i"
-      Uuseg_string.pp_utf_8 start_pos.pos_fname
-      start_pos.pos_lnum
-      (start_pos.pos_cnum - start_pos.pos_bol)
-      end_pos.pos_lnum
-      (end_pos.pos_cnum - end_pos.pos_bol)
+  | Some span ->
+    LexingUtil.pp_span fmt span
 
 
 type 'a node =
   {node : 'a;
-   info : location}
+   info : info}
 
 [@@deriving show]
 
