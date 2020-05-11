@@ -109,7 +109,7 @@ struct
   let intro (tac : T.bchk_tac) : T.bchk_tac =
     function
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub ->
-      let phi = Cof.join2 phi_a phi_sub in
+      let phi = Cof.join [phi_a; phi_sub] in
       let* partial =
         EM.lift_cmp @@ Sem.splice_tm @@
         Splice.foreign_tp tp_a @@ fun tp_a ->
@@ -188,7 +188,6 @@ struct
       S.Cof (Cof.Join phis)
     | tp ->
       expected_cof tp
-  let join2 tac0 tac1 = join [tac0; tac1]
 
   let meet tacs =
     function
@@ -197,9 +196,8 @@ struct
       S.Cof (Cof.Meet phis)
     | tp ->
       expected_cof tp
-  let meet2 tac0 tac1 = meet [tac0; tac1]
 
-  let boundary tac = join2 (eq tac Dim.dim0) (eq tac Dim.dim1)
+  let boundary tac = join [eq tac Dim.dim0; eq tac Dim.dim1]
 
   let assert_true vphi =
     EM.lift_cmp @@ CmpM.test_sequent [] vphi |>> function
@@ -234,7 +232,7 @@ struct
   let split2 (phi0 : D.cof) (tac0 : T.var -> T.bchk_tac) (phi1 : D.cof) (tac1 : T.var -> T.bchk_tac) : T.bchk_tac =
     fun (tp, psi, psi_clo) ->
     let* ttp = EM.lift_qu @@ Qu.quote_tp tp in
-    let* _ = assert_true @@ Cof.join2 phi0 phi1 in
+    let* _ = assert_true @@ Cof.join [phi0; phi1] in
     let* tm0 =
       T.abstract (D.TpPrf phi0) None @@ fun prf ->
       tac0 prf (tp, psi, psi_clo)
@@ -242,7 +240,7 @@ struct
     let* tm1 =
       let* phi0_fn = EM.lift_ev @@ Sem.eval @@ S.Lam tm0 in
       let psi_fn = D.Lam psi_clo in
-      let psi' = Cof.join2 phi0 psi in
+      let psi' = Cof.join [phi0; psi] in
       let* psi'_fn =
         EM.lift_cmp @@ Sem.splice_tm @@
         Splice.foreign_tp tp @@ fun tp ->
@@ -490,7 +488,7 @@ struct
     Splice.foreign_tp tp @@ fun vtp ->
     Splice.term @@
     TB.pi TB.tp_dim @@ fun i ->
-    TB.pi (TB.tp_prf (TB.join2 (TB.eq i src) cof)) @@ fun _ ->
+    TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
     vtp
 
   let hcom tac_code tac_src tac_trg tac_cof tac_tm : T.syn_tac =
@@ -526,8 +524,8 @@ struct
       Splice.foreign_tp vtp @@ fun tp ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.join2 (TB.eq i src) cof)) @@ fun _ ->
-      TB.sub tp (TB.meet2 (TB.eq i trg) cof) @@ fun prf -> TB.ap pel [prf]
+      TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
+      TB.sub tp (TB.meet [TB.eq i trg; cof]) @@ fun prf -> TB.ap pel [prf]
     in
     let* vtm = EM.lift_ev @@ Sem.eval tm in
     let* vtm' =
@@ -570,7 +568,7 @@ struct
       Splice.foreign (D.cof_to_con vcof) @@ fun cof ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.join2 (TB.eq i src) cof)) @@ fun _ ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
       TB.el @@ TB.ap vfam [i]
     and+ vfam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
