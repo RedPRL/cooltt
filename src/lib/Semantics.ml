@@ -275,9 +275,9 @@ struct
     | D.FHCom (`Nat, r, s, phi, bdy) ->
       (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)
       splice_tm @@
-      Splice.foreign (D.dim_to_con r) @@ fun r ->
-      Splice.foreign (D.dim_to_con s) @@ fun s ->
-      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
+      Splice.foreign_cof phi @@ fun phi ->
       Splice.foreign bdy @@ fun bdy ->
       Splice.term @@
       (*
@@ -481,8 +481,8 @@ struct
       let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
       splice_tm @@
       Splice.foreign split_line @@ fun split_line ->
-      Splice.foreign (D.dim_to_con r) @@ fun r ->
-      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
       Splice.foreign con @@ fun bdy ->
       let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
       let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
@@ -491,8 +491,8 @@ struct
       let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
       splice_tm @@
       Splice.foreign split_line @@ fun split_line ->
-      Splice.foreign (D.dim_to_con r) @@ fun r ->
-      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
       Splice.foreign con @@ fun bdy ->
       let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
       let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
@@ -501,8 +501,8 @@ struct
       let split_line = D.compose (D.Destruct D.DCodePathSplit) line in
       splice_tm @@
       Splice.foreign split_line @@ fun split_line ->
-      Splice.foreign (D.dim_to_con r) @@ fun r ->
-      Splice.foreign (D.dim_to_con s) @@ fun s ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
       Splice.foreign con @@ fun bdy ->
       let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
       let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
@@ -515,9 +515,9 @@ struct
       splice_tm @@
       Splice.foreign base @@ fun base ->
       Splice.foreign fam @@ fun fam ->
-      Splice.foreign (D.dim_to_con r) @@ fun r ->
-      Splice.foreign (D.dim_to_con s) @@ fun s ->
-      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
+      Splice.foreign_cof phi @@ fun phi ->
       Splice.foreign bdy @@ fun bdy ->
       Splice.term @@
       TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
@@ -525,9 +525,9 @@ struct
       splice_tm @@
       Splice.foreign base @@ fun base ->
       Splice.foreign fam @@ fun fam ->
-      Splice.foreign (D.dim_to_con r) @@ fun r ->
-      Splice.foreign (D.dim_to_con s) @@ fun s ->
-      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
+      Splice.foreign_cof phi @@ fun phi ->
       Splice.foreign bdy @@ fun bdy ->
       Splice.term @@
       TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
@@ -535,9 +535,9 @@ struct
       splice_tm @@
       Splice.foreign fam @@ fun fam ->
       Splice.foreign bdry @@ fun bdry ->
-      Splice.foreign (D.dim_to_con r) @@ fun r ->
-      Splice.foreign (D.dim_to_con s) @@ fun s ->
-      Splice.foreign (D.cof_to_con phi) @@ fun phi ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
+      Splice.foreign_cof phi @@ fun phi ->
       Splice.foreign bdy @@ fun bdy ->
       Splice.term @@
       TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
@@ -574,7 +574,7 @@ struct
     let* code_s = do_ap line (D.dim_to_con s) in
     do_rigid_hcom code_s r s phi @<<
     splice_tm @@
-    Splice.foreign (D.dim_to_con s) @@ fun s ->
+    Splice.foreign_dim s @@ fun s ->
     Splice.foreign line @@ fun line ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
