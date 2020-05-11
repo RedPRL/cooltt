@@ -155,7 +155,7 @@ struct
       abort_if_inconsistent () @@
       match cofs with
       | [] -> m
-      | (Cof.Var _ | Cof.Cof (Cof.Meet [] | Cof.Join [] | Cof.Eq _)) as phi :: cofs ->
+      | (Cof.Var _ | Cof.Cof (Cof.Eq _)) as phi :: cofs ->
         begin
           restrict phi @@ go cofs m |>> fun _ -> M.ret ()
         end

@@ -95,9 +95,8 @@ let test env phi =
     Inversion.left local [env.cof] phi
 
 let test_sequent (env : env) cx phi =
-  let psi = Cof.meet cx in
   let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
-  Inversion.left local [env.cof; psi] phi
+  Inversion.left local (env.cof :: cx) phi
 
 let rec assume env phi =
   match env.status with
