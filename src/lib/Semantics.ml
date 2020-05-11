@@ -449,8 +449,8 @@ and whnf_tp =
 
 and do_nat_elim (mot : D.tp_clo) zero suc n : D.con CM.m =
   let open CM in
+  abort_if_inconsistent D.Abort @@
   match n with
-  | D.Abort -> ret D.Abort
   | D.Zero ->
     ret zero
   | D.Suc n ->
@@ -494,10 +494,10 @@ and inst_tm_clo : D.tm_clo -> D.con list -> D.con CM.m =
     CM.lift_ev {env with conenv = env.conenv <>< xs} @@
     eval bdy
 
-and do_goal_proj =
+and do_goal_proj con =
   let open CM in
-  function
-  | D.Abort -> ret D.Abort
+  abort_if_inconsistent D.Abort @@
+  match con with
   | D.GoalRet con -> ret con
   | D.Cut {tp = D.GoalTp (_, tp); cut} ->
     ret @@ cut_frm ~tp ~cut D.KGoalProj
@@ -506,8 +506,8 @@ and do_goal_proj =
 
 and do_fst con : D.con CM.m =
   let open CM in
+  abort_if_inconsistent D.Abort @@
   match con with
-  | D.Abort -> ret D.Abort
   | D.Pair (con0, _) -> ret con0
   | D.Cut {tp = D.Sg (base, _); cut} ->
     ret @@ cut_frm ~tp:base ~cut D.KFst
@@ -516,8 +516,8 @@ and do_fst con : D.con CM.m =
 
 and do_snd con : D.con CM.m =
   let open CM in
+  abort_if_inconsistent D.Abort @@
   match con with
-  | D.Abort -> ret D.Abort
   | D.Pair (_, con1) -> ret con1
   | D.Cut {tp = D.Sg (_, fam); cut} ->
     let* fst = do_fst con in
@@ -536,8 +536,6 @@ and do_ap f a =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match f with
-  | D.Abort -> ret D.Abort
-
   | D.Lam clo ->
     inst_tm_clo clo [a]
 
@@ -568,7 +566,6 @@ and do_sub_out v =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match v with
-  | D.Abort -> ret D.Abort
   | D.SubIn con ->
     ret con
   | D.Cut {tp = D.Sub (tp, phi, clo); cut} ->
@@ -611,9 +608,6 @@ and unfold_el : D.con -> D.tp CM.m =
     TB.pi TB.tp_dim @@ fun i ->
     TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
     TB.ap bdry [i; prf]
-
-  | D.Abort ->
-    ret @@ D.TpAbort
 
   | con ->
     CM.throw @@ NbeFailed "unfold_el failed"
