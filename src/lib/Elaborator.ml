@@ -80,6 +80,7 @@ and bchk_tm : CS.con -> T.bchk_tac =
   fun con ->
   T.BChk.update_span con.info @@
   R.Tactic.intro_implicit_connectives @@
+  whnf_bchk @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
