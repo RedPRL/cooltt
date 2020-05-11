@@ -113,10 +113,10 @@ struct
       let* partial =
         EM.lift_cmp @@ Sem.splice_tm @@
         Splice.foreign_tp tp_a @@ fun tp_a ->
-        Splice.foreign (D.cof_to_con phi_a) @@ fun phi_a ->
-        Splice.foreign (D.cof_to_con phi_sub) @@ fun phi_sub ->
-        Splice.foreign (D.Lam clo_a) @@ fun fn_a ->
-        Splice.foreign (D.Lam clo_sub) @@ fun fn_sub ->
+        Splice.foreign_cof phi_a @@ fun phi_a ->
+        Splice.foreign_cof phi_sub @@ fun phi_sub ->
+        Splice.foreign_clo clo_a @@ fun fn_a ->
+        Splice.foreign_clo clo_sub @@ fun fn_sub ->
         Splice.term @@ TB.lam @@ fun prf ->
         TB.cof_split tp_a phi_a (fun prf -> TB.ap fn_a [prf]) phi_sub (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])
       in
@@ -237,15 +237,15 @@ struct
       T.abstract (D.TpPrf phi0) None @@ fun prf ->
       tac0 prf (tp, psi, psi_clo)
     in
-    let* tm1 =
+    let+ tm1 =
       let* phi0_fn = EM.lift_ev @@ Sem.eval @@ S.Lam tm0 in
       let psi_fn = D.Lam psi_clo in
       let psi' = Cof.join [phi0; psi] in
       let* psi'_fn =
         EM.lift_cmp @@ Sem.splice_tm @@
         Splice.foreign_tp tp @@ fun tp ->
-        Splice.foreign (D.cof_to_con phi0) @@ fun phi0 ->
-        Splice.foreign (D.cof_to_con psi) @@ fun psi ->
+        Splice.foreign_cof phi0 @@ fun phi0 ->
+        Splice.foreign_cof psi @@ fun psi ->
         Splice.foreign psi_fn @@ fun psi_fn ->
         Splice.foreign phi0_fn @@ fun phi0_fn ->
         Splice.term @@
@@ -254,10 +254,9 @@ struct
       in
       T.abstract (D.TpPrf phi1) None @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
-    in
-    let* tphi0 = EM.lift_qu @@ Qu.quote_cof phi0 in
-    let* tphi1 = EM.lift_qu @@ Qu.quote_cof phi1 in
-    EM.ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
+    and+ tphi0 = EM.lift_qu @@ Qu.quote_cof phi0
+    and+ tphi1 = EM.lift_qu @@ Qu.quote_cof phi1 in
+    S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
 
 
 
@@ -484,7 +483,7 @@ struct
     EM.lift_cmp @@
     Sem.splice_tp @@
     Splice.foreign r @@ fun src ->
-    Splice.foreign (D.cof_to_con phi) @@ fun cof ->
+    Splice.foreign_cof phi @@ fun cof ->
     Splice.foreign_tp tp @@ fun vtp ->
     Splice.term @@
     TB.pi TB.tp_dim @@ fun i ->
@@ -519,8 +518,8 @@ struct
       Sem.splice_tp @@
       Splice.foreign vsrc @@ fun src ->
       Splice.foreign vtrg @@ fun trg ->
-      Splice.foreign (D.Lam clo) @@ fun pel ->
-      Splice.foreign (D.cof_to_con vpsi) @@ fun cof ->
+      Splice.foreign_clo clo @@ fun pel ->
+      Splice.foreign_cof vpsi @@ fun cof ->
       Splice.foreign_tp vtp @@ fun tp ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
@@ -565,7 +564,7 @@ struct
       Sem.splice_tp @@
       Splice.foreign vfam @@ fun vfam ->
       Splice.foreign vsrc @@ fun src ->
-      Splice.foreign (D.cof_to_con vcof) @@ fun cof ->
+      Splice.foreign_cof vcof @@ fun cof ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->

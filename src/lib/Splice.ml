@@ -13,6 +13,10 @@ let foreign con k : _ t =
   let var = TB.lvl @@ Bwd.length env.conenv in
   k var env'
 
+let foreign_cof phi = foreign @@ D.cof_to_con phi
+let foreign_dim r = foreign @@ D.dim_to_con r
+let foreign_clo clo = foreign @@ D.Lam clo
+
 let foreign_tp tp k : _ t =
   fun env ->
   let env' = {env with tpenv = env.tpenv <>< [tp]} in
