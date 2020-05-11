@@ -26,9 +26,9 @@
 %start <ConcreteSyntax.signature> sign
 %type <con_>
   ap_or_plain_atomic_term
-  plain_atomic_cof_except_var
+  plain_atomic_cof_except_atomic_term
   plain_atomic_in_cof
-  plain_cof_except_var
+  plain_cof_except_atomic_term
   plain_atomic_term
   plain_cof_or_atomic_term
   plain_cof_or_term
@@ -66,24 +66,24 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-plain_atomic_cof_except_var:
+plain_atomic_cof_except_atomic_term:
   | BOUNDARY t = term
     { CofBoundary t }
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
 
-plain_atomic_in_cof: t = plain_atomic_term | t = plain_atomic_cof_except_var {t}
+plain_atomic_in_cof: t = plain_atomic_term | t = plain_atomic_cof_except_atomic_term {t}
 
-plain_cof_except_var:
-  | c = plain_atomic_cof_except_var
+plain_cof_except_atomic_term:
+  | c = plain_atomic_cof_except_atomic_term
     { c }
   | phi = located(plain_atomic_in_cof) JOIN psis = separated_nonempty_list(JOIN, located(plain_atomic_in_cof))
     { Join (phi :: psis) }
   | phi = located(plain_atomic_in_cof) MEET psis = separated_nonempty_list(MEET, located(plain_atomic_in_cof))
     { Meet (phi :: psis) }
 
-plain_cof_or_atomic_term: t = plain_atomic_term | t = plain_cof_except_var {t}
-plain_cof_or_term: t = plain_term | t = plain_cof_except_var {t}
+plain_cof_or_atomic_term: t = plain_atomic_term | t = plain_cof_except_atomic_term {t}
+plain_cof_or_term: t = plain_term | t = plain_cof_except_atomic_term {t}
 
 plain_atomic_term:
   | LBR t = plain_cof_or_term RBR
