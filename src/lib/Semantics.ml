@@ -230,7 +230,7 @@ and eval =
     let* vtpcode = eval tpcode in
     let* vbdy = eval tm in
     begin
-      CM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
+      CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
       | true ->
         lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
       | false ->
@@ -241,7 +241,7 @@ and eval =
     let* s = eval_dim ts in
     let* phi = eval_cof tphi in
     begin
-      CM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
+      CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
       | true ->
         append [D.dim_to_con s] @@ eval tm
       | false ->
@@ -334,7 +334,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
     whnf_cut cut
   | D.FHCom (`Nat, r, s, phi, bdy) ->
     begin
-      Cof.join2 (Cof.eq r s) phi |> test_sequent [] |>> function
+      Cof.join [Cof.eq r s; phi] |> test_sequent [] |>> function
       | true ->
         reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
       | false ->
@@ -383,7 +383,7 @@ and whnf_hd hd =
     end
   | D.HCom (cut, r, s, phi, bdy) ->
     begin
-      Cof.join2 (Cof.eq r s) phi |> test_sequent [] |>> function
+      Cof.join [Cof.eq r s; phi] |> test_sequent [] |>> function
       | true ->
         reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
       | false ->

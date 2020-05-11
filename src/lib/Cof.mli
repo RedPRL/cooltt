@@ -10,8 +10,6 @@ type ('r, 'v) cof =
 
 val var : 'v -> ('a, 'v) cof
 val eq : 'a -> 'a -> ('a, 'v) cof
-val join2 : ('a, 'v) cof -> ('a, 'v) cof -> ('a, 'v) cof
-val meet2 : ('a, 'v) cof -> ('a, 'v) cof -> ('a, 'v) cof
 val join : ('a, 'v) cof list -> ('a, 'v) cof
 val meet : ('a, 'v) cof list -> ('a, 'v) cof
 val bot : ('a, 'v) cof

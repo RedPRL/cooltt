@@ -114,7 +114,7 @@ and equate_con tp con0 con1 =
   | _, _, D.Abort -> ret ()
   | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _}, _
   | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _} ->
-    QuM.left_invert_under_cof (Cof.join2 phi0 phi1) @@
+    QuM.left_invert_under_cof (Cof.join [phi0; phi1]) @@
     equate_con tp con0 con1
   | D.Pi (base, fam), _, _ ->
     bind_var_ base @@ fun x ->
@@ -201,7 +201,7 @@ and equate_cut cut0 cut1 =
   match hd0, hd1 with
   | D.Split (tp, phi0, phi1, _, _), _
   | _, D.Split (tp, phi0, phi1, _, _) ->
-    QuM.left_invert_under_cof (Cof.join2 phi0 phi1) @@
+    QuM.left_invert_under_cof (Cof.join [phi0; phi1]) @@
     let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut cut0 in
     let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut cut1 in
     equate_con tp con0 con1
@@ -313,7 +313,7 @@ and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   let* () = equate_cof phi0 phi1 in
   bind_var_ D.TpDim @@ fun i ->
   let* i_dim = lift_cmp @@ con_to_dim i in
-  bind_var_ (D.TpPrf (Cof.join2 (Cof.eq i_dim r0) phi0)) @@ fun prf ->
+  bind_var_ (D.TpPrf (Cof.join [Cof.eq i_dim r0; phi0])) @@ fun prf ->
   let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
   let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
   let* tp = lift_cmp @@ unfold_el code0 in
