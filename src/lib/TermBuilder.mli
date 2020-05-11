@@ -43,9 +43,7 @@ val dim0 : t m
 val dim1 : t m
 val eq : t m -> t m -> t m
 val join : t m list -> t m
-val join2 : t m -> t m -> t m
 val meet : t m list -> t m
-val meet2 : t m -> t m -> t m
 val boundary : t m -> t m
 
 module Kan : sig

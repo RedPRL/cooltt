@@ -113,7 +113,7 @@ let rec assume env phi =
         List.fold_left assume env phis
       | Cof.Join _ ->
         if test_sequent env [Cof.Cof phi] Cof.bot then inconsistent else
-          {env with cof = Cof.meet2 env.cof @@ Cof.Cof phi}
+          {env with cof = Cof.meet [env.cof; Cof.Cof phi]}
       | Cof.Eq (r, s) ->
         let classes = UF.union r s env.classes in
         if UF.find D.Dim0 classes = UF.find D.Dim1 classes then

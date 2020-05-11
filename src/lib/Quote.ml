@@ -151,7 +151,7 @@ and quote_hcom code r s phi bdy =
   let+ tbdy =
     QTB.lam D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    QTB.lam (D.TpPrf (Cof.join2 (Cof.eq r i_dim) phi)) @@ fun prf ->
+    QTB.lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     quote_con D.Nat body
   in
