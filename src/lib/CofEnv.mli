@@ -10,7 +10,7 @@ val inconsistent : env
 
 (** Returns whether the environment is inconsistent. This is guaranteed to return the correct answer,
     even though it may not literally check 0=1. *)
-val status : env -> [`Consistent | `Inconsistent]
+val status : env -> [`Consistent of D.cof | `Inconsistent]
 
 val unreduced_assumptions : env -> D.cof
 

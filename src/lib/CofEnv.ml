@@ -8,10 +8,7 @@ type env =
   { classes : D.dim UF.t;
     (** equivalence classes of dimensions *)
 
-    cof : D.cof;
-    (** a cofibration which is assumed true, but has not been eliminated yet *)
-
-    status : [`Consistent | `Inconsistent];
+    status : [`Consistent of D.cof | `Inconsistent];
     (** a cache which must be maintained *)
 
     true_vars : VarSet.t
@@ -20,12 +17,10 @@ type env =
 let init () =
   {classes = UF.init ~size:100;
    true_vars = VarSet.empty;
-   cof = Cof.top;
-   status = `Consistent}
+   status = `Consistent Cof.top}
 
 let inconsistent =
   {classes = UF.init ~size:0;
-   cof = Cof.bot;
    true_vars = VarSet.empty;
    status = `Inconsistent}
 
@@ -35,7 +30,9 @@ let find_class classes r =
   try UF.find r classes with _ -> r
 
 let unreduced_assumptions env =
-  env.cof
+  match env.status with
+  | `Consistent cof -> cof
+  | `Inconsistent -> Cof.bot
 
 
 module Inversion :
@@ -86,22 +83,20 @@ struct
       left local (psis @ cx) phi
 end
 
-let test env phi =
+let test_sequent (env : env) cx phi =
   match env.status with
   | `Inconsistent ->
     true
-  | `Consistent ->
+  | `Consistent cof ->
     let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
-    Inversion.left local [env.cof] phi
+    Inversion.left local (cof :: cx) phi
 
-let test_sequent (env : env) cx phi =
-  let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
-  Inversion.left local (env.cof :: cx) phi
+let test env phi = test_sequent env [] phi
 
 let rec assume env phi =
   match env.status with
   | `Inconsistent -> env
-  | `Consistent ->
+  | `Consistent cof ->
     let phi = Cof.reduce phi in
     match phi with
     | Cof.Var v ->
@@ -112,7 +107,7 @@ let rec assume env phi =
         List.fold_left assume env phis
       | Cof.Join _ ->
         if test_sequent env [Cof.Cof phi] Cof.bot then inconsistent else
-          {env with cof = Cof.meet [env.cof; Cof.Cof phi]}
+          {env with status = `Consistent (Cof.meet [cof; Cof.Cof phi])}
       | Cof.Eq (r, s) ->
         let classes = UF.union r s env.classes in
         if UF.find D.Dim0 classes = UF.find D.Dim1 classes then

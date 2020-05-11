@@ -56,7 +56,7 @@ struct
     fun abort m ->
     fun st ->
     match CofEnv.status st.cof_env with
-    | `Consistent -> m st
+    | `Consistent _ -> m st
     | `Inconsistent -> M.ret abort st
 
   include M
@@ -95,7 +95,7 @@ struct
     fun abort m ->
     fun st ->
     match CofEnv.status st.cof_env with
-    | `Consistent -> m st
+    | `Consistent _ -> m st
     | `Inconsistent -> M.ret abort st
 
 
@@ -132,7 +132,7 @@ struct
     fun abort m ->
     fun st ->
     match CofEnv.status st.cof_env with
-    | `Consistent -> m st
+    | `Consistent _ -> m st
     | `Inconsistent -> M.ret abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
@@ -143,7 +143,7 @@ struct
     let* {cof_env} = M.read in
     let cof_env = CofEnv.assume cof_env phi in
     match CofEnv.status cof_env with
-    | `Consistent ->
+    | `Consistent _ ->
       M.scope (fun local -> {local with cof_env}) @@
       let+ x = m in
       `Ret x
@@ -245,6 +245,6 @@ struct
     fun abort m ->
     fun (state, env) ->
     match CofEnv.status (Env.cof_env env) with
-    | `Consistent -> m (state, env)
+    | `Consistent _ -> m (state, env)
     | `Inconsistent -> M.ret abort (state, env)
 end
