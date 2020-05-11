@@ -469,9 +469,9 @@ struct
     let* fam = tac_fam piuniv in
     let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
-    let* fam_src = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, src)) in
+    let* fam_src = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl (S.Ap (fam, src)) in
     let+ tm = tac_tm fam_src
-    and+ fam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
+    and+ fam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl (S.Ap (fam, trg)) in
     S.Coe (fam, src, trg, tm), fam_trg
 
 
@@ -493,7 +493,7 @@ struct
     let* cof = tac_cof D.TpCof in
     let* vsrc = EM.lift_ev @@ Sem.eval src in
     let* vcof = EM.lift_ev @@ Sem.eval_cof cof in
-    let* vtp = EM.lift_ev @@ Sem.eval_tp @@ S.El code in
+    let* vtp = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl code in
     (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
     let+ tm = tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
     S.HCom (code, src, trg, cof, tm), vtp
@@ -501,7 +501,7 @@ struct
   let auto_hcom tac_code tac_src tac_trg tac_tm : T.bchk_tac =
     fun (vtp, vpsi, clo) ->
     let* code = tac_code D.Univ in
-    let* elcode = EM.lift_ev @@ Sem.eval_tp @@ S.El code in
+    let* elcode = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl code in
     let* () = EM.equate_tp vtp elcode in
     let* psi = EM.lift_qu @@ Qu.quote_cof vpsi in
     let* src = tac_src D.TpDim in
@@ -565,7 +565,7 @@ struct
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
       TB.el @@ TB.ap vfam [i]
-    and+ vfam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
+    and+ vfam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
 end
 
@@ -699,16 +699,34 @@ struct
 
   let bmatch_goal = match_goal
 
-  let rec tac_lam name tac_body : T.bchk_tac =
+  let elim_implicit_connectives : T.syn_tac -> T.syn_tac =
+    fun tac ->
+    let rec go (tm, tp) =
+      match tp with
+      | D.Sub (tp, _, _) ->
+        go (S.SubOut tm, tp)
+      | D.El code ->
+        let* tp = EM.lift_cmp @@ Sem.unfold_el code in
+        go (S.ElOut tm, tp)
+      | _ ->
+        EM.ret (tm, tp)
+    in
+    go @<< tac
+
+  let rec intro_implicit_connectives : T.bchk_tac -> T.bchk_tac =
+    fun tac ->
     match_goal @@ function
-    | D.Pi _, _, _ ->
-      EM.ret @@ Pi.intro name tac_body
     | D.Sub _, _, _ ->
-      EM.ret @@ Sub.intro @@ tac_lam name tac_body
+      EM.ret @@ Sub.intro @@ intro_implicit_connectives tac
     | D.El _, _, _ ->
-      EM.ret @@ El.intro @@ tac_lam name tac_body
+      EM.ret @@ El.intro @@ intro_implicit_connectives tac
     | _ ->
-      EM.throw @@ Invalid_argument "tac_lam cannot be called on this goal"
+      EM.ret tac
+
+
+
+  let rec tac_lam name tac_body : T.bchk_tac =
+    intro_implicit_connectives @@ Pi.intro name tac_body
 
   let rec tac_multi_lam names tac_body =
     match names with
@@ -721,7 +739,7 @@ struct
     function
     | [] -> tac_fun
     | tac :: tacs ->
-      tac_multi_apply (Pi.apply tac_fun tac) tacs
+      tac_multi_apply (elim_implicit_connectives @@ Pi.apply tac_fun tac) tacs
 
   let rec tac_nary_quantifier (quant : ('a, 'b) quantifier) cells body =
     match cells with

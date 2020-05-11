@@ -106,6 +106,9 @@ module Tactic : sig
   val tac_multi_lam : CS.ident list -> bchk_tac -> bchk_tac
   val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
 
+  val intro_implicit_connectives : bchk_tac -> bchk_tac
+  val elim_implicit_connectives : syn_tac -> syn_tac
+
   val tac_nary_quantifier : ('a, 'b) quantifier -> (CS.ident option * 'a) list -> 'b -> 'b
 
   val match_goal : (D.tp -> chk_tac EM.m) -> chk_tac

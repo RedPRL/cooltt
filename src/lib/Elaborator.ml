@@ -76,21 +76,10 @@ and chk_tm : CS.con -> T.chk_tac =
   fun con ->
   T.Chk.bchk @@ bchk_tm con
 
-
 and bchk_tm : CS.con -> T.bchk_tac =
   fun con ->
-  whnf_bchk @@
-  R.Tactic.bmatch_goal @@ function
-  | D.Sub _, _, _ ->
-    EM.ret @@ R.Sub.intro (bchk_tm con)
-  | D.El _, _, _ ->
-    EM.ret @@ R.El.intro (bchk_tm con)
-  | _ ->
-    EM.ret @@ bchk_tm_ con
-
-and bchk_tm_ : CS.con -> T.bchk_tac =
-  fun con ->
   T.BChk.update_span con.info @@
+  R.Tactic.intro_implicit_connectives @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
@@ -155,9 +144,10 @@ and bchk_tm_ : CS.con -> T.bchk_tac =
     | _ ->
       EM.ret @@ T.BChk.syn @@ syn_tm con
 
-and syn_tm_ : CS.con -> T.syn_tac =
+and syn_tm : CS.con -> T.syn_tac =
   function con ->
   T.Syn.update_span con.info @@
+  R.Tactic.elim_implicit_connectives @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_syn_hole name `Rigid
@@ -191,18 +181,6 @@ and syn_tm_ : CS.con -> T.syn_tac =
   | CS.BotC -> R.Univ.botc
   | _ ->
     failwith @@ "TODO : " ^ CS.show_con con
-
-and syn_tm : CS.con -> T.syn_tac =
-  fun c ->
-  let* tm, tp = syn_tm_ c in
-  match tp with
-  | D.Sub (tp, _, _) ->
-    EM.ret (S.SubOut tm, tp)
-  | D.El con ->
-    let* tp = EM.lift_cmp @@ Sem.unfold_el con in
-    EM.ret (S.ElOut tm, tp)
-  | _ ->
-    EM.ret (tm, tp)
 
 and chk_cases cases =
   List.map chk_case cases

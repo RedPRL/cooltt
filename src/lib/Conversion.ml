@@ -259,7 +259,9 @@ and equate_frm k0 k1 =
     let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
     let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
     equate_con fib_sucx con0 con1
-  | (D.KGoalProj, D.KGoalProj) ->
+  | D.KGoalProj, D.KGoalProj ->
+    ret ()
+  | D.KElOut, D.KElOut ->
     ret ()
   | _ ->
     conv_err @@ ExpectedFrmEq (k0, k1)

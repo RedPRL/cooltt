@@ -195,7 +195,7 @@ and pp_tp env fmt tp =
       (pp_tp envx) fam
   | Sub (tp, phi, tm) ->
     let x, envx = Pp.Env.bind env @@ Some "_" in
-    Format.fprintf fmt "@[sub %a %a@,%a@]"
+    Format.fprintf fmt "@[sub %a %a@ %a@]"
       (pp_atomic_tp env) tp
       (pp_atomic env) phi
       (pp_atomic envx) tm
