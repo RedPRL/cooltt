@@ -372,8 +372,8 @@ and whnf_hd hd =
       | true -> reduce_to con
       | false ->
         begin
-          let* dispatch = dispatch_rigid_coe abs r s con in
-          match dispatch with
+          dispatch_rigid_coe abs r s con |>>
+          function
           | `Done ->
             ret `Done
           | `Reduce tag ->
@@ -391,8 +391,8 @@ and whnf_hd hd =
           ret `Done
         | `Reduce code ->
           begin
-            let* dispatch = dispatch_rigid_hcom code r s phi bdy in
-            match dispatch with
+            dispatch_rigid_hcom code r s phi bdy |>>
+            function
             | `Done _ ->
               ret `Done
             | `Reduce tag ->
