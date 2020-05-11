@@ -53,20 +53,20 @@ and chk_tm : S.t -> T.chk_tac =
   | S.Suc t ->
     R.Nat.suc (chk_tm t)
   | S.Let (def, bdy) ->
-    T.Chk.bchk @@ R.Structural.let_ (syn_tm def) (None, fun _ -> T.BChk.chk @@ chk_tm bdy)
+    T.bchk_to_chk @@ R.Structural.let_ (syn_tm def) (None, fun _ -> T.chk_to_bchk @@ chk_tm bdy)
   | S.Lam bdy ->
-    T.Chk.bchk @@ R.Pi.intro None @@ fun _ -> T.BChk.chk @@ chk_tm bdy
+    T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm bdy
   | S.Pair (t0, t1) ->
-    T.Chk.bchk @@ R.Sg.intro (T.BChk.chk @@ chk_tm t0) (T.BChk.chk @@ chk_tm t1)
+    T.bchk_to_chk @@ R.Sg.intro (T.chk_to_bchk @@ chk_tm t0) (T.chk_to_bchk @@ chk_tm t1)
   | S.CodePath (fam, bound) -> raise Todo
   | S.CodeNat ->
     R.Univ.nat
   | S.CodeSg (base, fam) ->
-    R.Univ.sg (chk_tm base) (T.Chk.bchk @@ R.Pi.intro None @@ fun _ -> T.BChk.chk @@ chk_tm fam)
+    R.Univ.sg (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm fam)
   | S.CodePi (base, fam) ->
-    R.Univ.pi (chk_tm base) (T.Chk.bchk @@ R.Pi.intro None @@ fun _ -> T.BChk.chk @@ chk_tm fam)
+    R.Univ.pi (chk_tm base) (T.bchk_to_chk @@ R.Pi.intro None @@ fun _ -> T.chk_to_bchk @@ chk_tm fam)
   | t ->
-    T.Chk.syn @@ syn_tm t
+    T.syn_to_chk @@ syn_tm t
 
 and syn_tm : S.t -> T.syn_tac =
   function
@@ -86,6 +86,6 @@ and syn_tm : S.t -> T.syn_tac =
       (None, None, chk_tm case_suc)
       (syn_tm scrut)
   | S.Ann (t, tp) ->
-    T.Syn.ann (chk_tm t) (chk_tp tp)
+    T.chk_to_syn (chk_tm t) (chk_tp tp)
   | t ->
     EM.elab_err @@ Err.ExpectedSynthesizableTerm t

@@ -1,7 +1,6 @@
 module StringMap = Map.Make (String)
 module D = Domain
 module S = Syntax
-module CS = ConcreteSyntax
 
 open CoolBasis
 open Bwd
@@ -26,8 +25,7 @@ type t =
    pp : Pp.env;
    cof_env : CofEnv.env;
    locals : cell bwd;
-   problem : string bwd;
-   location : CS.location}
+   problem : string bwd}
 
 let locals env = env.locals
 
@@ -37,11 +35,7 @@ let init =
    pp = Pp.Env.emp;
    cof_env = CofEnv.init ();
    locals = Emp;
-   problem = Emp;
-   location = None}
-
-let location env = env.location
-let set_location loc env = {env with location = loc}
+   problem = Emp}
 
 let size env = Bwd.length env.locals
 

@@ -10,9 +10,7 @@ include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)
 
-let elab_err err =
-  let* env = read in
-  raise @@ Err.ElabError (err, Env.location env)
+let elab_err err = raise @@ Err.ElabError err
 
 let resolve id =
   let* env = read in
@@ -111,6 +109,3 @@ let problem =
 let push_problem lbl =
   scope @@
   Env.push_problem lbl
-
-let update_location loc =
-  scope @@ Env.set_location loc

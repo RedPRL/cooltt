@@ -12,7 +12,6 @@ val problem : string bwd m
 
 val elab_err : ElabError.t -> 'a m
 
-val update_location : CS.location -> 'a m -> 'a m
 val abstract : CS.ident option -> D.tp -> (D.con -> 'a m) -> 'a m
 
 val add_global : CS.ident option -> D.tp -> D.con option -> Symbol.t m
