@@ -43,199 +43,228 @@ let rec dump fmt tm =
 
 let pp_var env fmt ix =
   Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
-
-let rec pp_ (env : Pp.env) (mode : [`Start | `Lam | `Ap]) fmt tm =
-  match mode, tm with
-  | `Lam, Lam ((Lam _) as tm) ->
-    let x, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "%a %a"
-      Uuseg_string.pp_utf_8 x
-      (pp_ envx `Lam) tm
-  | `Lam, Lam tm ->
-    let x, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "%a%a"
-      Uuseg_string.pp_utf_8 x
-      (pp_ envx `Lam) tm
-  | `Lam, tm ->
-    Fmt.fprintf fmt "%s@ %a" "]" (pp env) tm
-  | _, (Lam _ as tm) ->
-    Fmt.fprintf fmt "@[<hov1>(lam %s%a)@]" "[" (pp_ env `Lam) tm
-  | _, Var i ->
-    pp_var env fmt i
-  | _, Global sym ->
-    Symbol.pp fmt sym
-  | _, Let (tm, bnd) ->
-    let x, env' = Pp.Env.bind env None in
-    Fmt.fprintf fmt
-      "@[<hov1>(let@ @[<hov1>[%a %a]@]@ %a)@]"
-      Uuseg_string.pp_utf_8 x
-      (pp env) tm
-      (pp env') bnd
-  | _, Ann (tm, tp) ->
-    Fmt.fprintf fmt "@[<hov1>(: @[<hov>%a@ %a@])@]"
-      (pp_tp env) tp
-      (pp env) tm
-  | _, Coe (code, r, s, tm) ->
-    Fmt.fprintf fmt "@[<hov1>(coe@ %a@ %a@ %a@ %a)@]"
-      (pp env) code
-      (pp env) r
-      (pp env) s
-      (pp env) tm
-  | _, HCom (code, r, s, phi, tm) ->
-    Fmt.fprintf fmt "@[<hov1>(hcom@ %a@ %a %a@ %a@ %a)@]"
-      (pp env) code
-      (pp env) r
-      (pp env) s
-      (pp env) phi
-      (pp env) tm
-  | _, Com (code, r, s, phi, tm) ->
-    Fmt.fprintf fmt "@[<hov1>(com@ %a@ %a %a@ %a@ %a)@]"
-      (pp env) code
-      (pp env) r
-      (pp env) s
-      (pp env) phi
-      (pp env) tm
-  | _, Zero ->
-    Fmt.fprintf fmt "0"
-  | _, Suc tm ->
-    begin
-      match condense tm with
-      | Some n -> Fmt.fprintf fmt "%d" @@ n + 1
-      | None -> Fmt.fprintf fmt "@[<hov1>(suc@ %a)@]" (pp env) tm
-    end
-  | _, NatElim (mot, zero, suc, scrut) ->
-    let x, envx = Pp.Env.bind env None in
-    let y, envxy = Pp.Env.bind envx None in
-    Fmt.fprintf fmt
-      "@[<hov1>(nat.elim@ [%a] %a @[<hov1>(zero@ %a)@]@ @[<hov1>(suc@ [%a %a] %a)@]@ %a)@]"
-      Uuseg_string.pp_utf_8 x
-      (pp_tp envx) mot
-      (pp env) zero
-      Uuseg_string.pp_utf_8 x
-      Uuseg_string.pp_utf_8 y
-      (pp envxy) suc
-      (pp env) scrut
-  | _, Fst tm ->
-    Fmt.fprintf fmt "@[<hov1>(fst@ %a)@]" (pp env) tm
-  | _, Snd tm ->
-    Fmt.fprintf fmt "@[<hov1>(snd@ %a)@]" (pp env) tm
-  | `Ap, Ap (tm0, tm1) ->
-    Fmt.fprintf fmt "%a@ %a" (pp_ env `Ap) tm0 (pp env) tm1
-  | _, Ap (tm0, tm1) ->
-    Fmt.fprintf fmt "@[<hov1>(%a@ %a)@]" (pp_ env `Ap) tm0 (pp env) tm1
-  | _, Pair (tm0, tm1) ->
-    Fmt.fprintf fmt "@[<hov1>(pair@ @[<hv>%a@ %a@])@]" (pp env) tm0 (pp env) tm1
-  | _, GoalRet tm ->
-    Fmt.fprintf fmt "@[<hov1>(goal-ret %a)@]" (pp env) tm
-  | _, GoalProj tm ->
-    Fmt.fprintf fmt "@[<hov1>(goal-proj %a)@]" (pp env) tm
-  | _, SubIn tm ->
-    Fmt.fprintf fmt "@[<hov1>(sub/in@ %a)@]" (pp env) tm
-  | _, SubOut tm ->
-    Fmt.fprintf fmt "@[<hov1>(sub/out@ %a)@]" (pp env) tm
-  | _, Dim0 ->
-    Fmt.fprintf fmt "0"
-  | _, Dim1 ->
-    Fmt.fprintf fmt "1"
-  | _, Cof Cof.Bot ->
-    Fmt.fprintf fmt "false"
-  | _, Cof Cof.Top ->
-    Fmt.fprintf fmt "true"
-  | _, Cof (Cof.Join (phi, psi)) ->
-    Fmt.fprintf fmt "@[<hov1>(or %a %a)@]"
-      (pp env) phi
-      (pp env) psi
-  | _, Cof (Cof.Meet (phi, psi)) ->
-    Fmt.fprintf fmt "@[<hov1>(and %a %a)@]"
-      (pp env) phi
-      (pp env) psi
-  | _, Cof (Cof.Eq (r, s)) ->
-    Fmt.fprintf fmt "@[<hov1>(= %a %a)@]"
-      (pp env) r
-      (pp env) s
-  | _, CofAbort ->
-    Fmt.fprintf fmt "[]"
-  | _, CofSplit (_, phi0, phi1, tm0, tm1) ->
-    let _, envx = Pp.Env.bind env None in
-    Fmt.fprintf fmt "@[<hv1>(split@ @[<hov>@[<hv1>[%a@ %a]@]@ @[<hv1>[%a@ %a]@]@])@]"
-      (pp env) phi0
-      (pp envx) tm0
-      (pp env) phi1
-      (pp envx) tm1
-  | _, Prf ->
-    Fmt.fprintf fmt "*"
-  | _, CodePath (fam, bdry) ->
-    Fmt.fprintf fmt "@[<hov1>(path@ @[<hov>%a@ %a@])@]"
-      (pp env) fam
-      (pp env) bdry
-  | _, CodePi _ ->
-    Fmt.fprintf fmt "<CodePi>"
-  | _, CodeSg _ ->
-    Fmt.fprintf fmt "<CodeSg>"
-  | _, CodeNat ->
-    Fmt.fprintf fmt "<CodeNat>"
-
-
-and pp env = pp_ env `Start
-
 and pp_problem fmt problem =
   let lbls = Bwd.to_list problem in
   let dot fmt () = Fmt.fprintf fmt "." in
   Fmt.pp_print_list ~pp_sep:dot Uuseg_string.pp_utf_8 fmt lbls
 
 
-and pp_tp_ (env : Pp.env) (mode : _) : tp Pp.printer =
-  fun fmt tp ->
-  match mode, tp with
-  | `Pi, Pi (base, fam)
-  | `Sg, Sg (base, fam)->
+let pp_lsq fmt () = Format.fprintf fmt "["
+let pp_rsq fmt () = Format.fprintf fmt "]"
+
+let pp_list_group ~left ~right ~sep pp fmt xs =
+  Format.fprintf fmt "@[<hv0>%a %a@ %a@]"
+    left ()
+    (Format.pp_print_list ~pp_sep:sep pp) xs
+    right ()
+
+let pp_tuple =
+  let sep fmt () = Format.fprintf fmt "@ , " in
+  pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+
+let pp_braced pp fmt a =
+  Format.fprintf fmt "{%a}"
+    pp a
+
+let rec pp env fmt tm =
+  match tm with
+  | Lam _ ->
+    Format.fprintf fmt "@[%a %a@]"
+      Uuseg_string.pp_utf_8 "λ"
+      (pp_lambdas env) tm
+  | Ap _ ->
+    pp_applications env fmt tm
+  | Pair (tm0, tm1) ->
+    pp_tuple (pp env) fmt [tm0; tm1]
+  | CofAbort ->
+    Format.fprintf fmt "[]"
+  | CofSplit (_, phi0, phi1, tm0, tm1) ->
+    let sep fmt () = Format.fprintf fmt "@ | " in
+    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+      (pp_cof_split_branch env)
+      fmt
+      [phi0, tm0; phi1, tm1]
+  | HCom (code, r, s, phi, bdy) ->
+    Format.fprintf fmt "@[<hv2>hcom %a %a %a %a@ %a@]"
+      (pp_atomic env) code
+      (pp_atomic env) r
+      (pp_atomic env) s
+      (pp_atomic env) phi
+      (pp_atomic env) bdy
+  | Com (fam, r, s, phi, bdy) ->
+    Format.fprintf fmt "@[<hv2>com %a %a %a %a@ %a@]"
+      (pp_atomic env) fam
+      (pp_atomic env) r
+      (pp_atomic env) s
+      (pp_atomic env) phi
+      (pp_atomic env) bdy
+  | Coe (fam, r, s, bdy) ->
+    Format.fprintf fmt "@[<hv2>coe %a %a %a@ %a@]"
+      (pp_atomic env) fam
+      (pp_atomic env) r
+      (pp_atomic env) s
+      (pp_atomic env) bdy
+  | Var ix ->
+    pp_var env fmt ix
+  | Global sym ->
+    Symbol.pp fmt sym
+  | Cof (Cof.Eq (r, s)) ->
+    Format.fprintf fmt "%a = %a" (pp_atomic env) r (pp_atomic env) s
+  | Cof (Cof.Join []) ->
+    Format.fprintf fmt "#f"
+  | Cof (Cof.Join phis) ->
+    Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∨ ") (pp_atomic env) fmt phis
+  | Cof (Cof.Meet []) ->
+    Format.fprintf fmt "#t"
+  | Cof (Cof.Meet phis) ->
+    Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∧ ") (pp_atomic env) fmt phis
+  | Fst tm ->
+    Format.fprintf fmt "fst %a" (pp_atomic env) tm
+  | Snd tm ->
+    Format.fprintf fmt "snd %a" (pp_atomic env) tm
+  | Zero ->
+    Format.fprintf fmt "0"
+  | Suc tm ->
+    begin
+      match condense tm with
+      | Some n -> Format.fprintf fmt "%i" (n + 1)
+      | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
+    end
+  | CodeNat ->
+    Format.fprintf fmt "nat"
+  | NatElim (mot, zero, suc, tm) ->
     let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt "[%a : %a]@ %a"
+    let y, envxy = Pp.Env.bind envx None in
+    Format.fprintf fmt "@[<hv2>elim %a %s {%a => %a}@ @[<v>[ zero => %a@ | suc {%a => %a} => %a@ ]@]@]"
+      (pp_atomic env) tm
+      "@"
+      Uuseg_string.pp_utf_8 x
+      (pp_tp envx) mot
+      (pp env) zero
+      Uuseg_string.pp_utf_8 x
+      Uuseg_string.pp_utf_8 y
+      (pp envxy) suc
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+    pp env fmt tm
+  | CodePi (base, fam) ->
+    Format.fprintf fmt "@[%a %a %a@]"
+      Uuseg_string.pp_utf_8 "∏"
+      (pp_atomic env) base
+      (pp_atomic env) fam
+  | CodeSg (base, fam) ->
+    Format.fprintf fmt "@[%a %a %a@]"
+      Uuseg_string.pp_utf_8 "Σ"
+      (pp_atomic env) base
+      (pp_atomic env) fam
+  | CodePath (fam, bdry) ->
+    Format.fprintf fmt "@[prim-path %a %a@]"
+      (pp_atomic env) fam
+      (pp_atomic env) bdry
+  | Dim0 ->
+    Format.fprintf fmt "0"
+  | Dim1 ->
+    Format.fprintf fmt "1"
+  | Prf ->
+    Format.fprintf fmt "*"
+  | Ann (tm, _) ->
+    pp env fmt tm
+  | Let (tm, bdy) ->
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt "@[let %a = %a in@ %a@]"
+      Uuseg_string.pp_utf_8 x
+      (pp env) tm
+      (pp envx) bdy
+
+and pp_tp env fmt tp =
+  match tp with
+  | Pi (base, fam) ->
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt "(%a : %a) %a %a"
       Uuseg_string.pp_utf_8 x
       (pp_tp env) base
-      (pp_tp_ envx mode) fam
-  | (`Pi | `Sg), _->
-    Format.fprintf fmt "@]@ %a"
-      (pp_tp env) tp
-  | _, Pi _ ->
-    Format.fprintf fmt "@[<hv1>(->@ @[%a)@]" (pp_tp_ env `Pi) tp
-  | _, Sg _ ->
-    Format.fprintf fmt "@[<hv1>(*@ @[%a)@]" (pp_tp_ env `Sg) tp
-  | _, Univ ->
-    Format.fprintf fmt "univ"
-  | _, El tm ->
-    Fmt.fprintf fmt "@[<hov1>(el@ %a)@]" (pp env) tm
-  | _, Sub (tp, phi, t) ->
+      Uuseg_string.pp_utf_8 "→"
+      (pp_tp envx) fam
+  | Sg (base, fam) ->
     let x, envx = Pp.Env.bind env None in
-    Format.fprintf fmt
-      "@[<hv1>(sub@ %a@ %a@ %a)@]"
-      (pp_tp env) tp
-      (pp env) phi
-      (pp envx) t
-  | _, GoalTp (None, tp) ->
-    Fmt.fprintf fmt "@[<hov1>(goal@ _@ %a)@]" (pp_tp env) tp
-  | _, GoalTp (Some lbl, tp) ->
-    Fmt.fprintf fmt "@[<hov1>(goal@ ?%a@ %a)@]"
-      Uuseg_string.pp_utf_8 lbl
-      (pp_tp env) tp
-  | _, TpDim ->
-    Format.fprintf fmt "dim"
-  | _, TpCof ->
-    Format.fprintf fmt "cof"
-  | _, TpPrf phi->
-    Format.fprintf fmt "@[<hov1>(prf@ %a)@]"
-      (pp env) phi
-  | _, Nat ->
+    Format.fprintf fmt "(%a : %a) %a %a"
+      Uuseg_string.pp_utf_8 x
+      (pp_tp env) base
+      Uuseg_string.pp_utf_8 "×"
+      (pp_tp envx) fam
+  | Sub (tp, phi, tm) ->
+    let x, envx = Pp.Env.bind env @@ Some "_" in
+    Format.fprintf fmt "@[sub %a %a@,%a@]"
+      (pp_atomic_tp env) tp
+      (pp_atomic env) phi
+      (pp_atomic envx) tm
+  | TpDim ->
+    Format.fprintf fmt "𝕀"
+  | TpCof ->
+    Format.fprintf fmt "𝔽"
+  | Univ ->
+    Format.fprintf fmt "univ"
+  | Nat ->
     Format.fprintf fmt "nat"
-  | _, TpVar i ->
-    Format.fprintf fmt "(tpvar %i)" i
+  | El tm ->
+    pp env fmt tm
+  | TpVar ix ->
+    Format.fprintf fmt "#var[%i]" ix
+  | GoalTp (_, tp) ->
+    pp_tp env fmt tp
+  | TpPrf cof ->
+    Format.fprintf fmt "[%a]" (pp env) cof
+
+and pp_atomic_tp env fmt tp =
+  match tp with
+  | TpDim | TpCof | Nat | Univ ->
+    pp_tp env fmt tp
+  | _ ->
+    pp_braced (pp_tp env) fmt tp
+
+and pp_cof_split_branch env fmt (phi, tm) =
+  let x, envx = Pp.Env.bind env @@ Some "_" in
+  Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp envx) tm
+
+and pp_atomic env fmt tm =
+  match tm with
+  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat
+  | Zero | Prf ->
+    pp env fmt tm
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+    pp_atomic env fmt tm
+  | _ ->
+    pp_braced (pp env) fmt tm
+
+and pp_applications env fmt tm =
+  match tm with
+  | Ap (tm0, tm1) ->
+    Format.fprintf fmt "%a %a" (pp_applications env) tm0 (pp_atomic env) tm1
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+    pp_applications env fmt tm
+  | _ ->
+    pp env fmt tm
+
+and pp_lambdas env fmt tm =
+  match tm with
+  | Lam tm ->
+    let x, envx = Pp.Env.bind env None in
+    Format.fprintf fmt "%a %a"
+      Uuseg_string.pp_utf_8 x
+      (pp_lambdas envx) tm
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+    pp_lambdas env fmt tm
+  | _ ->
+    Format.fprintf fmt "=>@ @[%a@]"
+      (pp env) tm
 
 
-and pp_tp env = pp_tp_ env `Start
+
+
+
 
 let pp_sequent_goal env fmt tp  =
   match tp with
-  | GoalTp (olbl, Sub (tp, Cof Cof.Bot, _)) ->
+  | GoalTp (olbl, Sub (tp, Cof (Cof.Join []), _)) ->
     let lbl = match olbl with Some lbl -> lbl | None -> "" in
     Format.fprintf fmt "?%a : @[<hov>%a@]"
       Uuseg_string.pp_utf_8 lbl

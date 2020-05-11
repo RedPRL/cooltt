@@ -5,7 +5,6 @@ open CoolBasis
 
 module Data =
 struct
-
   type connective =
     [ `Pi
     | `Sg
@@ -19,9 +18,9 @@ struct
 
   type t =
     | UnboundVariable of CS.ident
-    | ExpectedEqual of Pp.env * S.tp * S.t * S.t
-    | ExpectedEqualTypes of Pp.env * S.tp * S.tp
-    | InvalidTypeExpression of CS.t
+    | ExpectedEqual of Pp.env * S.tp * S.t * S.t * Conversion.Error.t
+    | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
+    | InvalidTypeExpression of CS.con
     | ExpectedConnective of connective * Pp.env * S.tp
     | ExpectedSynthesizableTerm of S.t
     | MalformedCase
@@ -30,4 +29,5 @@ struct
     | ExpectedDimensionLiteral of int
     | ExpectedTrue of Pp.env * S.t
     | VirtualType
+
 end

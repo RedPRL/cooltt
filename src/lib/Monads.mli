@@ -54,11 +54,9 @@ module QuM : sig
 
   val binder : int -> 'a m -> 'a m
 
-
-  val bind_cof_proof : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
-
-  (* like bind_cof_proof, but doesn't increase the de bruijn index *)
-  val restrict : D.cof -> 'a m -> [`Ret of 'a | `Abort] m
+  val bind_var : abort:'a -> D.tp -> (D.con -> 'a m) -> 'a m
+  val bind_var_ : D.tp -> (D.con -> unit m ) -> unit m
+  
   val left_invert_under_cof : D.cof -> unit m -> unit m
   val left_invert_under_current_cof : unit m -> unit m
 
@@ -78,7 +76,7 @@ module ElabM : sig
   val veil : Veil.t -> 'a m -> 'a m
 
   val globally : 'a m -> 'a m
-  val emit : (Format.formatter -> 'a -> unit) -> 'a -> unit m
+  val emit : LexingUtil.span option -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
 
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end

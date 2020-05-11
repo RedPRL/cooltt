@@ -109,6 +109,7 @@ module QuM =
 struct
 
   module M = Monad.MonadReaderResult (QuL)
+  module MU = Monad.Util(M)
   open Monad.Notation (M)
 
   let read_global =
@@ -154,15 +155,14 @@ struct
       abort_if_inconsistent () @@
       match cofs with
       | [] -> m
-      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
+      | (Cof.Var _ | Cof.Cof (Cof.Meet [] | Cof.Join [] | Cof.Eq _)) as phi :: cofs ->
         begin
           restrict phi @@ go cofs m |>> fun _ -> M.ret ()
         end
-      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
-        go (phi0 :: phi1 :: cofs) m
-      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
-        let* () = go (phi0 :: cofs) m in
-        go (phi1 :: cofs) m
+      | Cof.Cof (Cof.Meet phis) :: cofs ->
+        go (phis @ cofs) m
+      | Cof.Cof (Cof.Join phis) :: cofs ->
+        MU.app (fun phi -> go (phi :: cofs) m) phis
     in
     go [phi] m
 
@@ -170,11 +170,32 @@ struct
     let* env = M.read in
     left_invert_under_cof (CofEnv.unreduced_assumptions env.cof_env) m
 
-
-
   let bind_cof_proof phi m =
     restrict phi @@
     binder 1 m
+
+  let top_var tp =
+    let+ n = read_local in
+    D.mk_var tp @@ n - 1
+
+  let bind_var ~abort tp m =
+    match tp with
+    | D.TpPrf phi ->
+      begin
+        begin
+          bind_cof_proof phi @@
+          let* var = top_var tp in
+          m var
+        end |>> function
+        | `Ret tm -> M.ret tm
+        | `Abort -> M.ret abort
+      end
+    | _ ->
+      binder 1 @@
+      let* var = top_var tp in
+      m var
+
+  let bind_var_ = bind_var ~abort:()
 
   include QuL
   include M
@@ -193,9 +214,9 @@ struct
     m |> scope @@ fun env ->
     Env.set_veil (Env.get_veil env) Env.init
 
-  let emit pp a : unit m =
+  let emit loc pp a : unit m =
     fun (st, _env) ->
-    let () = Format.fprintf Format.std_formatter "%a@." pp a in
+    Log.pp_message ~loc ~lvl:`Info pp Format.std_formatter a;
     Ok (), st
 
   let veil v =

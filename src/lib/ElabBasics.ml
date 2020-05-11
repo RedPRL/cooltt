@@ -4,13 +4,17 @@ module S = Syntax
 module St = ElabState
 module Env = ElabEnv
 module Err = ElabError
+module Qu = Quote
+module Conv = Conversion
 
 open CoolBasis
 include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)
 
-let elab_err err = raise @@ Err.ElabError err
+let elab_err err =
+  let* env = read in
+  raise @@ Err.ElabError (err, Env.location env)
 
 let resolve id =
   let* env = read in
@@ -55,20 +59,24 @@ let get_local ix =
 
 let equate tp l r =
   let* env = read in
-  let* res = lift_qu @@ Nbe.equal_con tp l r in
-  if res then ret () else
-    let* ttp = lift_qu @@ Nbe.quote_tp tp in
-    let* tl = lift_qu @@ Nbe.quote_con tp l in
-    let* tr = lift_qu @@ Nbe.quote_con tp r in
-    elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr)
+  lift_qu @@ Conv.equal_con tp l r |>>
+  function
+  | `Ok -> ret ()
+  | `Err err ->
+    let* ttp = lift_qu @@ Qu.quote_tp tp in
+    let* tl = lift_qu @@ Qu.quote_con tp l in
+    let* tr = lift_qu @@ Qu.quote_con tp r in
+    elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
 
 let equate_tp tp tp' =
   let* env = read in
-  let* res = lift_qu @@ Nbe.equal_tp tp tp' in
-  if res then ret () else
-    let* ttp = lift_qu @@ Nbe.quote_tp tp in
-    let* ttp' = lift_qu @@ Nbe.quote_tp tp' in
-    elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp')
+  lift_qu @@ Conv.equal_tp tp tp' |>>
+  function
+  | `Ok -> ret ()
+  | `Err err ->
+    let* ttp = lift_qu @@ Qu.quote_tp tp in
+    let* ttp' = lift_qu @@ Qu.quote_tp tp' in
+    elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp', err)
 
 
 let with_pp k =
@@ -77,7 +85,7 @@ let with_pp k =
 
 let expected_connective conn tp =
   with_pp @@ fun ppenv ->
-  let* ttp = lift_qu @@ Nbe.quote_tp tp in
+  let* ttp = lift_qu @@ Qu.quote_tp tp in
   elab_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
 
 let dest_pi =
@@ -109,3 +117,6 @@ let problem =
 let push_problem lbl =
   scope @@
   Env.push_problem lbl
+
+let update_span loc =
+  scope @@ Env.set_location loc

@@ -1,3 +1,5 @@
+open CoolBasis 
+
 type t =
   | Var of int
   | Global of Symbol.t

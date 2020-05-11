@@ -46,6 +46,17 @@ struct
       let+ x = m
       and+ xs = commute_list ms in
       x :: xs
+  let rec map f =
+    function
+    | [] -> M.ret []
+    | (x :: xs) ->
+      let+ y = f x
+      and+ ys = map f xs in
+      y :: ys
+  let rec app f =
+    function
+    | [] -> M.ret ()
+    | (x :: xs) -> let* () = f x in app f xs
 end
 
 module type MonadReaderResult = sig
@@ -56,7 +67,7 @@ module type MonadReaderResult = sig
   val run : local -> 'a m -> ('a, exn) result
   val run_exn : local -> 'a m -> 'a
   val throw : exn -> 'a m
-  val successful : unit m -> bool m
+  val trap : 'a m -> ('a, exn) result m
 end
 
 module type MonadReaderStateResult = sig
@@ -72,7 +83,7 @@ module type MonadReaderStateResult = sig
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a
   val throw : exn -> 'a m
-  val successful : unit m -> bool m
+  val trap : 'a m -> ('a, exn) result m
 end
 
 
@@ -90,11 +101,9 @@ struct
 
   let throw exn _ = Error exn
 
-  let successful (m : unit m) : bool m =
+  let trap (m : 'a m) : ('a, exn) result m =
     fun env ->
-    match m env with
-    | Ok _ -> Ok true
-    | Error _ -> Ok false
+    Ok (m env)
 
   let read env = Ok env
   let scope f m env = m @@ f env
@@ -122,11 +131,11 @@ struct
   let throw exn (st, _) = Error exn, st
 
 
-  let successful (m : unit m) : bool m =
-    fun env ->
-    match m env with
-    | Ok _, st -> Ok true, st
-    | Error _, st -> Ok false, st
+  let trap (m : 'a m) : ('a, exn) result m = 
+    fun env -> 
+    match m env with 
+    | Ok a, st -> Ok (Ok a), st 
+    | Error exn, st -> Ok (Error exn), st
 
   let read (st, env) = Ok env, st
 

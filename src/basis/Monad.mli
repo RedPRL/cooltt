@@ -22,6 +22,8 @@ module Notation (M : S) : Notation with type 'a m = 'a M.m
 
 module Util (M : S) : sig
   val commute_list : 'a M.m list -> 'a list M.m
+  val map : ('a -> 'b M.m) -> 'a list -> 'b list M.m
+  val app : ('a -> unit M.m) -> 'a list -> unit M.m
 end
 
 module type MonadReaderResult = sig
@@ -33,7 +35,7 @@ module type MonadReaderResult = sig
   val run_exn : local -> 'a m -> 'a
   val throw : exn -> 'a m
 
-  val successful : unit m -> bool m
+  val trap : 'a m -> ('a, exn) result m
 end
 
 module type MonadReaderStateResult = sig
@@ -49,7 +51,7 @@ module type MonadReaderStateResult = sig
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a
   val throw : exn -> 'a m
-  val successful : unit m -> bool m
+  val trap : 'a m -> ('a, exn) result m
 end
 
 module MonadReaderResult (X : sig type local end) : sig
