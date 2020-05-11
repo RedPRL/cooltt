@@ -98,23 +98,6 @@ and con_to_cof =
   | _ -> throw @@ NbeFailed "con_to_cof"
 
 
-let dest_pi_code con =
-  let open CM in
-  match con with
-  | D.CodePi (base, fam) ->
-    ret (base, fam)
-  | _ ->
-    throw @@ NbeFailed "Expected pi code"
-
-let dest_sg_code con =
-  let open CM in
-  match con with
-  | D.CodeSg (base, fam) ->
-    ret (base, fam)
-  | _ ->
-    throw @@ NbeFailed "Expected pi code"
-
-
 let rec eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
