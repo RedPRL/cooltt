@@ -296,8 +296,7 @@ and equate_hd hd0 hd1 =
       equate_con D.Univ code0 code1
     in
     let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
-    let* tp = lift_cmp @@ unfold_el code in
-    equate_con tp con0 con1
+    equate_con (D.El code) con0 con1
   | D.HCom (cut0, r0, s0, phi0, bdy0), D.HCom (cut1, r1, s1, phi1, bdy1) ->
     let code0 = D.Cut {tp = D.Univ; cut = cut0} in
     let code1 = D.Cut {tp = D.Univ; cut = cut1} in
@@ -325,8 +324,7 @@ and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   bind_var_ (D.TpPrf (Cof.join [Cof.eq i_dim r0; phi0])) @@ fun prf ->
   let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
   let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
-  let* tp = lift_cmp @@ unfold_el code0 in
-  equate_con tp con0 con1
+  equate_con (D.El code0) con0 con1
 
 
 and equate_cof phi psi =

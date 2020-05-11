@@ -585,6 +585,9 @@ and do_el_out con =
   | D.Cut {tp = D.El con; cut} ->
     let+ tp = unfold_el con in
     cut_frm ~tp ~cut D.KElOut
+  | D.Cut {tp; cut} ->
+    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
+    throw @@ NbeFailed "do_el_out"
   | _ ->
     Format.eprintf "bad: %a@." D.pp_con con;
     throw @@ NbeFailed "do_el_out"
@@ -760,8 +763,8 @@ and do_rigid_coe (line : D.con) r s con =
   match tag with
   | `Done ->
     let hd = D.Coe (line, r, s, con) in
-    let+ tp = unfold_el @<< do_ap line (D.dim_to_con s) in
-    D.Cut {tp; cut = hd, []}
+    let+ code = do_ap line (D.dim_to_con s) in
+    D.Cut {tp = D.El code; cut = hd, []}
   | `Reduce tag ->
     enact_rigid_coe line r s con tag
 

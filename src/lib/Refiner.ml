@@ -469,9 +469,9 @@ struct
     let* fam = tac_fam piuniv in
     let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
-    let* fam_src = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl (S.Ap (fam, src)) in
+    let* fam_src = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, src)) in
     let+ tm = tac_tm fam_src
-    and+ fam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl (S.Ap (fam, trg)) in
+    and+ fam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Coe (fam, src, trg, tm), fam_trg
 
 
@@ -493,7 +493,7 @@ struct
     let* cof = tac_cof D.TpCof in
     let* vsrc = EM.lift_ev @@ Sem.eval src in
     let* vcof = EM.lift_ev @@ Sem.eval_cof cof in
-    let* vtp = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl code in
+    let* vtp = EM.lift_ev @@ Sem.eval_tp @@ S.El code in
     (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
     let+ tm = tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
     S.HCom (code, src, trg, cof, tm), vtp
@@ -536,7 +536,7 @@ struct
       let* bdy_tp  = hcom_bdy_tp vtp vsrc vpsi in
       EM.lift_qu @@ Qu.quote_con bdy_tp vtm'
     in
-    EM.ret @@ S.HCom (code, src, trg, psi, tm')
+    EM.ret @@ S.ElIn (S.HCom (code, src, trg, psi, tm'))
 
   let com tac_fam tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* piuniv =
@@ -565,7 +565,7 @@ struct
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
       TB.el @@ TB.ap vfam [i]
-    and+ vfam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl (S.Ap (fam, trg)) in
+    and+ vfam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
 end
 
