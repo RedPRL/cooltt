@@ -93,7 +93,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodePi (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      let* tpbase = lift_cmp @@ do_el base in
+      let* tpbase = lift_cmp @@ unfold_el base in
       QTB.lam tpbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
@@ -102,7 +102,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodeSg (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      let* tpbase = lift_cmp @@ do_el base in
+      let* tpbase = lift_cmp @@ unfold_el base in
       QTB.lam tpbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
@@ -144,7 +144,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
 
 and quote_hcom code r s phi bdy =
   let* tcode = quote_con D.Univ code in
-  let* tp = lift_cmp @@ do_el code in
+  let* tp = lift_cmp @@ unfold_el code in
   let* tr = quote_dim r in
   let* ts = quote_dim s in
   let* tphi = quote_cof phi in
@@ -214,7 +214,7 @@ and quote_hd =
     let* tr = quote_dim r in
     let* ts = quote_dim s in
     let* tp_con_r = lift_cmp @@ do_ap abs @@ D.dim_to_con r in
-    let* tp_r = lift_cmp @@ do_el tp_con_r in
+    let* tp_r = lift_cmp @@ unfold_el tp_con_r in
     let+ tm = quote_con tp_r con in
     S.Coe (tpcode, tr, ts, tm)
   | D.HCom (cut, r, s, phi, bdy) ->

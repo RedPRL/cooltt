@@ -132,7 +132,7 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
     ret D.Univ
   | S.El tm ->
     let* con = eval tm in
-    lift_cmp @@ do_el con
+    lift_cmp @@ unfold_el con
   | S.GoalTp (lbl, tp) ->
     let+ tp = eval_tp tp in
     D.GoalTp (lbl, tp)
@@ -441,7 +441,7 @@ and whnf_tp =
       whnf_cut cut |>> function
       | `Done -> ret `Done
       | `Reduce con ->
-        let+ tp = do_el con  in
+        let+ tp = unfold_el con  in
         `Reduce tp
     end
   | tp ->
@@ -576,10 +576,11 @@ and do_sub_out v =
   | _ ->
     throw @@ NbeFailed "do_sub_out"
 
-and do_el v =
+and unfold_el : D.con -> D.tp CM.m =
   let open CM in
+  fun con ->
   abort_if_inconsistent D.TpAbort @@
-  match v with
+  match con with
   | D.Cut {cut} ->
     ret @@ D.El cut
 
@@ -615,7 +616,7 @@ and do_el v =
     ret @@ D.TpAbort
 
   | con ->
-    CM.throw @@ NbeFailed "do_el failed"
+    CM.throw @@ NbeFailed "unfold_el failed"
 
 and do_coe r s (abs : D.con) con =
   let open CM in
@@ -748,7 +749,7 @@ and do_rigid_coe (line : D.con) r s con =
   match tag with
   | `Done ->
     let hd = D.Coe (line, r, s, con) in
-    let+ tp = do_el @<< do_ap line (D.dim_to_con s) in
+    let+ tp = unfold_el @<< do_ap line (D.dim_to_con s) in
     D.Cut {tp; cut = hd, []}
   | `Reduce tag ->
     enact_rigid_coe line r s con tag
