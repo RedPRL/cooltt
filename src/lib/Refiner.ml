@@ -690,6 +690,113 @@ end
 
 
 
+module UnravelEl : sig
+  (* Invariant: [unravel tp] produces an element of the universe when [tp] is a well-formed type, if it returns. *)
+  val unravel_tp : D.tp -> T.chk_tac
+
+end =
+struct
+  let ret_code : D.con -> T.chk_tac =
+    fun code ->
+      function
+      | D.Univ ->
+        EM.lift_qu @@ Qu.quote_con D.Univ code
+      | tp ->
+        EM.expected_connective `Univ tp
+
+  let ret_tp : D.tp -> T.tp_tac =
+    fun tp ->
+    T.Tp.make @@
+    EM.lift_qu @@ Qu.quote_tp tp
+
+  (*    A type
+   *    -----------
+   *    unravel_tp A : univ
+   *)
+  let rec unravel_tp =
+    function
+    | D.El code ->
+      ret_code code
+    | D.Pi (base, fam) ->
+      Univ.pi (unravel_tp base) (unravel_fam ~base fam)
+    | D.Sg (base, fam) ->
+      Univ.pi (unravel_tp base) (unravel_fam ~base fam)
+    | _ -> failwith ""
+
+  (*
+   *     A type
+   *     M : A
+   *     ------------------------------
+   *     unravel_iso_fwd A M : el(unravel_tp A)
+   *)
+  and unravel_iso_fwd : D.tp -> T.chk_tac -> T.chk_tac =
+     fun tp tac ->
+     match tp with
+     | D.El _ ->
+       tac
+
+  (*
+   *     A type
+   *     x : A |- B(x) type
+   *     M : (x : A) -> B(x)
+   *     ------------------------------
+   *     unravel_iso_fwd A M : el(unravel_tp((x : A) -> B(x)))
+   *                     ... : el(∏(unravel_tp(A), λ x:unravel_tp(A). unravel_tp(B(bwd[A](x)))))
+   *)
+     | D.Pi (base, fam) as pitp ->
+       T.Chk.bchk @@ El.intro @@
+       (* (x : el(unravel_tp(A))) -> el(unravel_tp(B(bwd[A](x))) *)
+       Pi.intro None @@ fun x ->
+       let x' = unravel_iso_bwd base @@ T.Chk.syn @@ T.Var.syn x in
+       let tacx' : T.Syn.tac = Pi.apply (T.Syn.ann tac (ret_tp pitp)) x' in (* tacx' : B(bwd[A](x)) *)
+       T.BChk.chk @@ fun goal ->
+       let* tx' = x' base in
+       let* vx' = EM.lift_ev @@ Sem.eval tx' in
+       let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx'] in
+       unravel_iso_fwd fib (T.Chk.syn tacx') goal
+
+     | _ ->
+       failwith ""
+
+  (*
+   *     A type
+   *     M : el(unravel_tp A)
+   *     ------------------------------
+   *     unravel_iso_bwd A M : A
+   *)
+  and unravel_iso_bwd : D.tp -> T.chk_tac -> T.chk_tac =
+    fun tp tac ->
+    match tp with
+    | D.El _ -> tac
+
+    | D.Pi (base, fam) as pitp ->
+  (*
+   *     A type
+   *     x : A |- B(x) type
+   *
+   *       M : el(unravel_tp((x : A) -> B(x)))
+   *     ... : el(∏(unravel_tp(A), λ x:unravel_tp(A). unravel_tp(B(bwd[A](x)))))
+   *     ------------------------------
+   *     unravel_iso_bwd A M : (x : A) -> B(x)
+   *)
+      T.Chk.bchk @@
+      Pi.intro None @@ fun x -> (* x : A *)
+      let x' = unravel_iso_fwd base @@ T.Chk.syn @@ T.Var.syn x in (* x' : el(unravel_tp(A)) *)
+      let tac' = El.elim @@ T.Syn.ann tac @@ El.formation @@ unravel_tp pitp in
+      T.BChk.syn @@ Pi.apply tac' x'
+
+    | _ -> failwith ""
+
+  and unravel_fam : base:D.tp -> D.tp_clo -> T.chk_tac =
+    fun ~base fam ->
+    T.Chk.bchk @@ Pi.intro None @@ fun tac_var ->
+    T.BChk.chk @@ fun goal ->
+    let* x = unravel_iso_bwd base (T.Chk.syn (T.Var.syn tac_var)) base in
+    let* vx = EM.lift_ev @@ Sem.eval x in
+    let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx] in
+    unravel_tp fib goal
+end
+
 module Tactic =
 struct
   let match_goal tac =
