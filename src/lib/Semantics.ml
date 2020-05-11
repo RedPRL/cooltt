@@ -302,6 +302,9 @@ and eval : S.t -> D.con EvM.m =
     | S.CodeNat ->
       ret D.CodeNat
 
+    | S.CodeUniv ->
+      ret D.CodeUniv
+
 and eval_dim tr =
   let open EvM in
   let* con = eval tr in
@@ -320,7 +323,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
   match con with
   | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat
+  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
   | D.Destruct _ ->
     ret `Done
   | D.Cut {cut} ->
@@ -603,6 +606,9 @@ and unfold_el : D.con -> D.tp CM.m =
 
     | D.CodeNat ->
       ret D.Nat
+
+    | D.CodeUniv ->
+      ret D.Univ
 
     | D.CodePi (base, fam) ->
       splice_tp @@

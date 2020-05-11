@@ -34,6 +34,7 @@ type t =
   | CodePi of t * t
   | CodeSg of t * t
   | CodeNat
+  | CodeUniv
 
 and tp =
   | Univ

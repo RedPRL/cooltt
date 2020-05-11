@@ -45,6 +45,7 @@ end
 
 module Univ : sig
   val formation : tp_tac
+  val univ : chk_tac
   val nat : chk_tac
   val pi : chk_tac -> chk_tac -> chk_tac
   val sg : chk_tac -> chk_tac -> chk_tac

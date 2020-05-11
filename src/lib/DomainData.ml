@@ -37,6 +37,7 @@ and con =
   | CodePi of con * con
   | CodeSg of con * con
   | CodeNat
+  | CodeUniv
 
   | FHCom of [`Nat] * dim * dim * cof * con
 

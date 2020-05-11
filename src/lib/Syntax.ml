@@ -134,6 +134,8 @@ let rec pp env fmt tm =
     end
   | CodeNat ->
     Format.fprintf fmt "<nat>"
+  | CodeUniv ->
+    Format.fprintf fmt "<univ>"
   | NatElim (mot, zero, suc, tm) ->
     let x, envx = Pp.Env.bind env None in
     let y, envxy = Pp.Env.bind envx None in
@@ -231,7 +233,7 @@ and pp_cof_split_branch env fmt (phi, tm) =
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat
+  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeUniv
   | Zero | Prf ->
     pp env fmt tm
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->

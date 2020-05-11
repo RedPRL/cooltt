@@ -97,6 +97,9 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | _, D.CodeNat ->
     ret S.CodeNat
 
+  | _, D.CodeUniv ->
+    ret S.CodeUniv
+
   | univ, D.CodePi (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =

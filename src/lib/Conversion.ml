@@ -163,6 +163,8 @@ and equate_con tp con0 con1 =
     equate_hcom (D.CodeNat, r0, s0, phi0, bdy0) (D.CodeNat, r1, s1, phi1, bdy1)
   | _, D.CodeNat, D.CodeNat ->
     ret ()
+  | _, D.CodeUniv, D.CodeUniv ->
+    ret ()
 
   | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
   | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->

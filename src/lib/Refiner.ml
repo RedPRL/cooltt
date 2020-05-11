@@ -394,6 +394,11 @@ struct
     | tp ->
       EM.expected_connective `Univ tp
 
+  let univ : T.chk_tac =
+    univ_tac @@ fun _ ->
+    EM.ret S.CodeUniv
+
+
   let nat : T.chk_tac =
     univ_tac @@ fun _ -> EM.ret S.CodeNat
 
