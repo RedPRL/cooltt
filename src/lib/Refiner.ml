@@ -74,12 +74,13 @@ struct
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
     let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
-    EM.lift_qu @@ Qu.quote_tp @@ D.El cut
+    EM.lift_qu @@ Qu.quote_tp @@ D.El (D.Cut {tp = D.Univ; cut})
 
   let unleash_syn_hole name flexity : T.syn_tac =
-    let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
-    let+ tm = T.Chk.bchk (unleash_hole name flexity) @@ D.El tpcut in
-    tm, D.El tpcut
+    let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
+    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
+    let+ tm = T.Chk.bchk (unleash_hole name flexity) tp in
+    tm, tp
 end
 
 
@@ -386,11 +387,6 @@ struct
     T.Tp.make @@
     EM.ret S.Univ
 
-  let el_formation tac =
-    T.Tp.make @@
-    let+ tm = tac D.Univ in
-    S.El tm
-
   let univ_tac : T.chk_tac -> T.chk_tac =
     fun m ->
     function
@@ -571,7 +567,14 @@ struct
       TB.el @@ TB.ap vfam [i]
     and+ vfam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
+end
 
+module El =
+struct
+  let formation tac =
+    T.Tp.make @@
+    let+ tm = tac D.Univ in
+    S.El tm
 end
 
 

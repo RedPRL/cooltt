@@ -97,8 +97,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     ret ()
   | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
     equate_tp tp0 tp1
-  | D.El cut0, D.El cut1 ->
-    equate_cut cut0 cut1
+  | D.El con0, D.El con1 ->
+    equate_con D.Univ con0 con1
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
@@ -137,6 +137,11 @@ and equate_con tp con0 con1 =
   | D.Sub (tp, phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
+    equate_con tp out0 out1
+  | D.El code, _, _ ->
+    let* out0 = lift_cmp @@ do_el_out con0 in
+    let* out1 = lift_cmp @@ do_el_out con1 in
+    let* tp = lift_cmp @@ unfold_el code in
     equate_con tp out0 out1
   | _, D.Zero, D.Zero ->
     ret ()

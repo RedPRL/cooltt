@@ -70,7 +70,7 @@ let rec chk_tp : CS.con -> T.tp_tac =
   | CS.Sub (ctp, cphi, ctm) ->
     R.Sub.formation (chk_tp ctp) (chk_tm cphi) (fun _ -> chk_tm ctm)
   | _ ->
-    Refiner.Univ.el_formation @@ chk_tm con
+    Refiner.El.formation @@ chk_tm con
 
 and chk_tm : CS.con -> T.chk_tac =
   fun con ->

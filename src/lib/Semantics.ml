@@ -113,8 +113,8 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
-    let* con = eval tm in
-    lift_cmp @@ unfold_el con
+    let+ con = eval tm in
+    D.El con
   | S.GoalTp (lbl, tp) ->
     let+ tp = eval_tp tp in
     D.GoalTp (lbl, tp)
@@ -234,9 +234,15 @@ and eval =
   | S.SubOut tm ->
     let* con = eval tm in
     lift_cmp @@ do_sub_out con
-  | S.SubIn t ->
-    let+ con = eval t in
+  | S.SubIn tm ->
+    let+ con = eval tm in
     D.SubIn con
+  | S.ElOut tm ->
+    let* con = eval tm in
+    lift_cmp @@ do_el_out con
+  | S.ElIn tm ->
+    let+ con = eval tm in
+    D.ElIn con
   | S.Dim0 -> ret D.DimCon0
   | S.Dim1 -> ret D.DimCon1
   | S.Cof cof_f ->
@@ -307,7 +313,7 @@ and eval_cof tphi =
 and whnf_con : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _
+  | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
   | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat
   | D.Destruct _ ->
@@ -418,16 +424,7 @@ and whnf_cut cut : D.con whnf CM.m =
 and whnf_tp =
   let open CM in
   function
-  | D.El cut ->
-    begin
-      whnf_cut cut |>> function
-      | `Done -> ret `Done
-      | `Reduce con ->
-        let+ tp = unfold_el con  in
-        `Reduce tp
-    end
-  | tp ->
-    ret `Done
+  | tp -> ret `Done
 
 and do_nat_elim (mot : D.tp_clo) zero suc n : D.con CM.m =
   let open CM in
@@ -546,10 +543,10 @@ and do_destruct dst a =
   | _ ->
     throw @@ NbeFailed "Invalid destructor application"
 
-and do_sub_out v =
+and do_sub_out con =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match v with
+  match con with
   | D.SubIn con ->
     ret con
   | D.Cut {tp = D.Sub (tp, phi, clo); cut} ->
@@ -557,13 +554,25 @@ and do_sub_out v =
   | _ ->
     throw @@ NbeFailed "do_sub_out"
 
+and do_el_out con =
+  let open CM in
+  abort_if_inconsistent D.Abort @@
+  match con with
+  | D.ElIn con ->
+    ret con
+  | D.Cut {tp = D.El con; cut} ->
+    let+ tp = unfold_el con in
+    cut_frm ~tp ~cut D.KElOut
+  | _ ->
+    throw @@ NbeFailed "do_el_out"
+
 and unfold_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
   abort_if_inconsistent D.TpAbort @@
   match con with
-  | D.Cut {cut} ->
-    ret @@ D.El cut
+  | D.Cut _ ->
+    ret @@ D.El con
 
   | D.CodeNat ->
     ret D.Nat
@@ -716,7 +725,7 @@ and enact_rigid_hcom code r s phi bdy tag =
   | `HComNat ->
     ret @@ D.FHCom (`Nat, r, s, phi, bdy)
   | `Done cut ->
-    let tp = D.El cut in
+    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
     ret @@ D.Cut {tp; cut = hd, []}
 
@@ -738,7 +747,7 @@ and do_rigid_hcom code r s phi (bdy : D.con) =
   let* tag = dispatch_rigid_hcom code r s phi bdy in
   match tag with
   | `Done cut ->
-    let tp = D.El cut in
+    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
     ret @@ D.Cut {tp; cut = hd, []}
   | `Reduce tag ->
@@ -771,6 +780,7 @@ and do_frm con =
   | D.KSnd -> do_snd con
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KGoalProj -> do_goal_proj con
+  | D.KElOut -> do_el_out con
 
 and do_spine con =
   let open CM in

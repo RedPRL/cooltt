@@ -50,13 +50,16 @@ module Univ : sig
   val sg : chk_tac -> chk_tac -> chk_tac
   val path : chk_tac -> chk_tac -> chk_tac
   val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
-  val el_formation : chk_tac -> tp_tac
   val coe : chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val auto_hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> bchk_tac
   val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val topc : syn_tac
   val botc : syn_tac
+end
+
+module El : sig
+  val formation : chk_tac -> tp_tac
 end
 
 module Pi : sig

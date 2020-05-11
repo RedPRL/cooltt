@@ -1,4 +1,4 @@
-open CoolBasis 
+open CoolBasis
 
 type t =
   | Var of int
@@ -26,6 +26,9 @@ type t =
   | CofSplit of tp * t * t * t * t
   | CofAbort
   | Prf
+
+  | ElIn of t
+  | ElOut of t
 
   | CodePath of t * t
   | CodePi of t * t

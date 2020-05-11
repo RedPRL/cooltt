@@ -72,6 +72,13 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con tp out
     in
     S.SubIn tout
+  | D.El con, _ ->
+    let+ tout =
+      let* unfolded = lift_cmp @@ unfold_el con in
+      let* out = lift_cmp @@ do_el_out con in
+      quote_con unfolded out
+    in
+    S.ElIn tout
   | _, D.Zero ->
     ret S.Zero
   | _, D.Suc n ->
@@ -175,8 +182,8 @@ and quote_tp (tp : D.tp) =
     S.Sg (tbase, tfam)
   | D.Univ ->
     ret S.Univ
-  | D.El cut ->
-    let+ tm = quote_cut cut in
+  | D.El con ->
+    let+ tm = quote_con D.Univ con in
     S.El tm
   | D.GoalTp (lbl, tp) ->
     let+ tp = quote_tp tp in
@@ -309,4 +316,6 @@ and quote_frm tm =
     S.Ap (tm, targ)
   | D.KGoalProj ->
     ret @@ S.GoalProj tm
+  | D.KElOut ->
+    ret @@ S.ElOut tm
 

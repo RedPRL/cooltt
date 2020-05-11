@@ -142,7 +142,7 @@ and pp_tp fmt =
     Format.fprintf fmt "<nat>"
   | TpAbort ->
     Format.fprintf fmt "<abort>"
-  | El cut ->
-    Format.fprintf fmt "el[%a]" pp_cut cut
+  | El con ->
+    Format.fprintf fmt "el[%a]" pp_con con
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"
