@@ -109,6 +109,7 @@ module QuM =
 struct
 
   module M = Monad.MonadReaderResult (QuL)
+  module MU = Monad.Util(M)
   open Monad.Notation (M)
 
   let read_global =
@@ -154,15 +155,14 @@ struct
       abort_if_inconsistent () @@
       match cofs with
       | [] -> m
-      | (Cof.Var _ | Cof.Cof (Cof.Top | Cof.Bot | Cof.Eq _)) as phi :: cofs ->
+      | (Cof.Var _ | Cof.Cof (Cof.Meet [] | Cof.Join [] | Cof.Eq _)) as phi :: cofs ->
         begin
           restrict phi @@ go cofs m |>> fun _ -> M.ret ()
         end
-      | Cof.Cof (Cof.Meet (phi0, phi1)) :: cofs ->
-        go (phi0 :: phi1 :: cofs) m
-      | Cof.Cof (Cof.Join (phi0, phi1)) :: cofs ->
-        let* () = go (phi0 :: cofs) m in
-        go (phi1 :: cofs) m
+      | Cof.Cof (Cof.Meet phis) :: cofs ->
+        go (phis @ cofs) m
+      | Cof.Cof (Cof.Join phis) :: cofs ->
+        MU.app (fun phi -> go (phi :: cofs) m) phis
     in
     go [phi] m
 

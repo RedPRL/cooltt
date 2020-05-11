@@ -55,6 +55,7 @@ struct
   open CmpM
   open Eval
   open Monad.Notation (CmpM)
+  module MU = Monad.Util (CmpM)
 
   let tri_test_cof phi =
     test_sequent [] phi |>>
@@ -76,16 +77,12 @@ struct
         | `False -> ret Cof.bot
         | `Indet -> ret phi
       end
-    | Cof.Cof (Cof.Join (phi0, phi1)) ->
-      let* phi0 = normalize_cof phi0 in
-      let* phi1 = normalize_cof phi1 in
-      ret @@ Cof.join phi0 phi1
-    | Cof.Cof (Cof.Meet (phi0, phi1)) ->
-      let* phi0 = normalize_cof phi0 in
-      let* phi1 = normalize_cof phi1 in
-      ret @@ Cof.meet phi0 phi1
-    | Cof.Cof (Cof.Bot | Cof.Top) ->
-      ret phi
+    | Cof.Cof (Cof.Join phis) ->
+      let+ phis = MU.map normalize_cof phis in
+      Cof.join phis
+    | Cof.Cof (Cof.Meet phis) ->
+      let+ phis = MU.map normalize_cof phis in
+      Cof.meet phis
 
 
   let splice_tm t =
@@ -114,16 +111,12 @@ struct
       let+ r = con_to_dim r
       and+ s = con_to_dim s in
       Cof.eq r s
-    | Cof.Join (phi, psi) ->
-      let+ phi = con_to_cof phi
-      and+ psi = con_to_cof psi in
-      Cof.join phi psi
-    | Cof.Meet (phi, psi) ->
-      let+ phi = con_to_cof phi
-      and+ psi = con_to_cof psi in
-      Cof.meet phi psi
-    | Cof.Bot -> ret Cof.bot
-    | Cof.Top -> ret Cof.top
+    | Cof.Join phis ->
+      let+ phis = MU.map con_to_cof phis in
+      Cof.join phis
+    | Cof.Meet phis ->
+      let+ phis = MU.map con_to_cof phis in
+      Cof.meet phis
 
   and con_to_cof =
     function
@@ -159,7 +152,7 @@ struct
       whnf_cut cut
     | D.FHCom (`Nat, r, s, phi, bdy) ->
       begin
-        Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
+        Cof.join2 (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
           reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
         | false ->
@@ -205,7 +198,7 @@ struct
       end
     | D.HCom (cut, r, s, phi, bdy) ->
       begin
-        Cof.join (Cof.eq r s) phi |> test_sequent [] |>> function
+        Cof.join2 (Cof.eq r s) phi |> test_sequent [] |>> function
         | true ->
           reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
         | false ->
@@ -622,6 +615,7 @@ struct
   open EvM
   open Compute
   open Monad.Notation (EvM)
+  module MU = Monad.Util (EvM)
 
   let get_local i =
     let* env = EvM.read_local in
@@ -747,7 +741,7 @@ struct
       let* vtpcode = eval tpcode in
       let* vbdy = eval tm in
       begin
-        CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
+        CmpM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
         | true ->
           lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
         | false ->
@@ -758,7 +752,7 @@ struct
       let* s = eval_dim ts in
       let* phi = eval_cof tphi in
       begin
-        CmpM.test_sequent [] (Cof.join (Cof.eq r s) phi) |> lift_cmp |>> function
+        CmpM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
         | true ->
           append [D.dim_to_con s] @@ eval tm
         | false ->
@@ -781,16 +775,12 @@ struct
           let+ r = eval tr
           and+ s = eval ts in
           D.Cof (Cof.Eq (r, s))
-        | Cof.Top -> ret @@ D.Cof Cof.Top
-        | Cof.Bot -> ret @@ D.Cof Cof.Bot
-        | Cof.Join (tphi, tpsi) ->
-          let+ phi = eval tphi
-          and+ psi = eval tpsi in
-          D.Cof (Cof.Join (phi, psi))
-        | Cof.Meet (tphi, tpsi) ->
-          let+ phi = eval tphi
-          and+ psi = eval tpsi in
-          D.Cof (Cof.Meet (phi, psi))
+        | Cof.Join tphis ->
+          let+ phis = MU.map eval tphis in
+          D.Cof (Cof.Join phis)
+        | Cof.Meet tphis ->
+          let+ phis = MU.map eval tphis in
+          D.Cof (Cof.Meet phis)
       end
     | S.CofSplit (ttp, tphi0, tphi1, tm0, tm1) ->
       let* tp = eval_tp ttp in

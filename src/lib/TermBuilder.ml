@@ -48,6 +48,7 @@ end
 
 include M
 open Monad.Notation (M)
+module MU = Monad.Util (M)
 
 type 'a b = S.t m -> 'a m
 
@@ -159,22 +160,22 @@ let eq mr ms =
   and+ s = ms in
   S.Cof (Cof.Eq (r, s))
 
-let join mphi mpsi =
-  let+ phi = mphi
-  and+ psi = mpsi in
-  S.Cof (Cof.Join (phi, psi))
+let join mphis =
+  let+ phis = MU.commute_list mphis in
+  S.Cof (Cof.Join phis)
+let join2 mphi mpsi = join [mphi; mpsi]
 
-let meet mphi mpsi =
-  let+ phi = mphi
-  and+ psi = mpsi in
-  S.Cof (Cof.Meet (phi, psi))
+let meet mphis =
+  let+ phis = MU.commute_list mphis in
+  S.Cof (Cof.Meet phis)
+let meet2 mphi mpsi = meet [mphi; mpsi]
 
 let tp_dim = ret S.TpDim
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
 
 let boundary mr =
-  join (eq mr dim0) (eq mr dim1)
+  join2 (eq mr dim0) (eq mr dim1)
 
 
 module Kan =
@@ -267,11 +268,11 @@ struct
     sub_in @@
     let_ (boundary i) @@ fun d_i ->
     let_ (ap fam [i]) @@ fun fam_i ->
-    hcom fam_i r s (join phi d_i) @@
+    hcom fam_i r s (join2 phi d_i) @@
     lam @@ fun k ->
     lam @@ fun p ->
     cof_split
       (el fam_i)
-      d_i                 (fun q -> ap bdry [i; q])
-      (join phi (eq k r)) (fun q -> sub_out (ap bdy [k;q;i]))
+      d_i                  (fun q -> ap bdry [i; q])
+      (join2 phi (eq k r)) (fun q -> sub_out (ap bdy [k;q;i]))
 end

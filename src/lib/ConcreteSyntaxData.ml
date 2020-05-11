@@ -47,8 +47,8 @@ and con_ =
   | Dim
   | Cof
   | CofEq of con * con
-  | Join of con * con
-  | Meet of con * con
+  | Join of con list
+  | Meet of con list
   | CofBoundary of con
   | Prf of con
   | CofSplit of (con * con) list

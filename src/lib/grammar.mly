@@ -77,10 +77,10 @@ plain_atomic_in_cof: t = plain_atomic_term | t = plain_atomic_cof_except_var {t}
 plain_cof_except_var:
   | c = plain_atomic_cof_except_var
     { c }
-  | phi = located(plain_atomic_in_cof) JOIN psi = located(plain_atomic_in_cof)
-    { Join (phi, psi) }
-  | phi = located(plain_atomic_in_cof) MEET psi = located(plain_atomic_in_cof)
-    { Meet (phi, psi) }
+  | phi = located(plain_atomic_in_cof) JOIN psis = separated_nonempty_list(JOIN, located(plain_atomic_in_cof))
+    { Join (phi :: psis) }
+  | phi = located(plain_atomic_in_cof) MEET psis = separated_nonempty_list(MEET, located(plain_atomic_in_cof))
+    { Meet (phi :: psis) }
 
 plain_cof_or_atomic_term: t = plain_atomic_term | t = plain_cof_except_var {t}
 plain_cof_or_term: t = plain_term | t = plain_cof_except_var {t}

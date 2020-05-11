@@ -128,10 +128,10 @@ and bchk_tm_ : CS.con -> T.bchk_tac =
     T.BChk.chk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
   | CS.CofEq (c0, c1) ->
     T.BChk.chk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
-  | CS.Join (c0, c1) ->
-    T.BChk.chk @@ R.Cof.join (chk_tm c0) (chk_tm c1)
-  | CS.Meet (c0, c1) ->
-    T.BChk.chk @@ R.Cof.meet (chk_tm c0) (chk_tm c1)
+  | CS.Join cs ->
+    T.BChk.chk @@ R.Cof.join (List.map chk_tm cs)
+  | CS.Meet cs ->
+    T.BChk.chk @@ R.Cof.meet (List.map chk_tm cs)
   | CS.CofBoundary c ->
     T.BChk.chk @@ R.Cof.boundary (chk_tm c)
   | CS.CofSplit splits ->

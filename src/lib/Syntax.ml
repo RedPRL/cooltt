@@ -110,20 +110,14 @@ let rec pp env fmt tm =
     Symbol.pp fmt sym
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "%a = %a" (pp_atomic env) r (pp_atomic env) s
-  | Cof (Cof.Join (phi, psi)) ->
-    Format.fprintf fmt "%a %a %a"
-      (pp_atomic env) phi
-      Uuseg_string.pp_utf_8 "∨"
-      (pp_atomic env) psi
-  | Cof (Cof.Meet (phi, psi)) ->
-    Format.fprintf fmt "%a %a %a"
-      (pp_atomic env) phi
-      Uuseg_string.pp_utf_8 "∧"
-      (pp_atomic env) psi
-  | Cof Cof.Top ->
-    Format.fprintf fmt "#t"
-  | Cof Cof.Bot ->
+  | Cof (Cof.Join []) ->
     Format.fprintf fmt "#f"
+  | Cof (Cof.Join phis) ->
+    Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∨ ") (pp_atomic env) fmt phis
+  | Cof (Cof.Meet []) ->
+    Format.fprintf fmt "#t"
+  | Cof (Cof.Meet phis) ->
+    Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∧ ") (pp_atomic env) fmt phis
   | Fst tm ->
     Format.fprintf fmt "fst %a" (pp_atomic env) tm
   | Snd tm ->
@@ -233,7 +227,7 @@ and pp_cof_split_branch env fmt (phi, tm) =
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Top | Cof.Bot) | CodeNat
+  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat
   | Zero | Prf ->
     pp env fmt tm
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
@@ -270,7 +264,7 @@ and pp_lambdas env fmt tm =
 
 let pp_sequent_goal env fmt tp  =
   match tp with
-  | GoalTp (olbl, Sub (tp, Cof Cof.Bot, _)) ->
+  | GoalTp (olbl, Sub (tp, Cof (Cof.Join []), _)) ->
     let lbl = match olbl with Some lbl -> lbl | None -> "" in
     Format.fprintf fmt "?%a : @[<hov>%a@]"
       Uuseg_string.pp_utf_8 lbl

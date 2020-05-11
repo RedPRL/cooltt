@@ -31,8 +31,10 @@ end
 module Cof : sig
   val formation : tp_tac
   val eq : chk_tac -> chk_tac -> chk_tac
-  val join : chk_tac -> chk_tac -> chk_tac
-  val meet : chk_tac -> chk_tac -> chk_tac
+  val join : chk_tac list -> chk_tac
+  val join2 : chk_tac -> chk_tac -> chk_tac
+  val meet : chk_tac list -> chk_tac
+  val meet2 : chk_tac -> chk_tac -> chk_tac
   val boundary : chk_tac -> chk_tac
 
   val split : (chk_tac * (var -> bchk_tac)) list -> bchk_tac

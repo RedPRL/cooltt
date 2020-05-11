@@ -61,12 +61,8 @@ struct
           true
         | Cof.Eq (r, s) ->
           find_class local.classes r = find_class local.classes s
-        | Cof.Join (phi0, phi1) ->
-          if right local phi0 then true else right local phi1
-        | Cof.Meet (phi0, phi1) ->
-          if right local phi0 then right local phi1 else false
-        | Cof.Bot -> false
-        | Cof.Top -> true
+        | Cof.Join phis -> List.exists (right local) phis
+        | Cof.Meet phis -> List.for_all (right local) phis
       end
     | Cof.Var v ->
       VarSet.mem v local.true_vars
@@ -84,14 +80,10 @@ struct
     | Cof.Var v :: cx ->
       let local = {local with true_vars = VarSet.add v local.true_vars} in
       left local cx phi
-    | Cof.Cof (Cof.Join (psi0, psi1)) :: cx ->
-      if left local (psi0 :: cx) phi then left local (psi1 :: cx) phi else false
-    | Cof.Cof (Cof.Meet (psi0, psi1)) :: cx ->
-      left local (psi0 :: psi1 :: cx) phi
-    | Cof.Cof Cof.Top :: cx ->
-      left local cx phi
-    | Cof.Cof Cof.Bot :: cx ->
-      true
+    | Cof.Cof (Cof.Join psis) :: cx ->
+      List.for_all (fun psi -> left local (psi :: cx) phi) psis
+    | Cof.Cof (Cof.Meet psis) :: cx ->
+      left local (psis @ cx) phi
 end
 
 let test env phi =
@@ -103,7 +95,7 @@ let test env phi =
     Inversion.left local [env.cof] phi
 
 let test_sequent (env : env) cx phi =
-  let psi = List.fold_left Cof.meet Cof.top cx in
+  let psi = Cof.meet cx in
   let local = Inversion.{classes = env.classes; true_vars = env.true_vars} in
   Inversion.left local [env.cof; psi] phi
 
@@ -117,15 +109,11 @@ let rec assume env phi =
       {env with true_vars = VarSet.add v env.true_vars}
     | Cof.Cof phi ->
       match phi with
-      | Cof.Bot ->
-        inconsistent
-      | Cof.Top ->
-        env
-      | Cof.Meet (phi0, phi1) ->
-        assume (assume env phi0) phi1
+      | Cof.Meet phis ->
+        List.fold_left assume env phis
       | Cof.Join _ ->
         if test_sequent env [Cof.Cof phi] Cof.bot then inconsistent else
-          {env with cof = Cof.meet env.cof @@ Cof.Cof phi}
+          {env with cof = Cof.meet2 env.cof @@ Cof.Cof phi}
       | Cof.Eq (r, s) ->
         let classes = UF.union r s env.classes in
         if UF.find D.Dim0 classes = UF.find D.Dim1 classes then

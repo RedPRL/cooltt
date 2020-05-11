@@ -41,10 +41,8 @@ let dim_to_con =
 let rec cof_to_con =
   function
   | Cof.Cof (Cof.Eq (r, s)) -> Cof (Cof.Eq (dim_to_con r, dim_to_con s))
-  | Cof.Cof Cof.Bot -> Cof Cof.Bot
-  | Cof.Cof Cof.Top -> Cof Cof.Top
-  | Cof.Cof (Cof.Join (phi0, phi1)) -> Cof (Cof.Join (cof_to_con phi0, cof_to_con phi1))
-  | Cof.Cof (Cof.Meet (phi0, phi1)) -> Cof (Cof.Meet (cof_to_con phi0, cof_to_con phi1))
+  | Cof.Cof (Cof.Join phis) -> Cof (Cof.Join (List.map cof_to_con phis))
+  | Cof.Cof (Cof.Meet phis) -> Cof (Cof.Meet (List.map cof_to_con phis))
   | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
 
 let rec pp_cut : cut Pp.printer =
@@ -105,16 +103,12 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
   | Prf ->
     Format.fprintf fmt "*"
-  | Cof (Cof.Join (phi, psi)) ->
-    Format.fprintf fmt "join[%a,%a]" pp_con phi pp_con psi
-  | Cof (Cof.Meet (phi, psi)) ->
-    Format.fprintf fmt "meet[%a,%a]" pp_con phi pp_con psi
+  | Cof (Cof.Join phis) ->
+    Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
+  | Cof (Cof.Meet phis) ->
+    Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
-  | Cof Cof.Top ->
-    Format.fprintf fmt "top"
-  | Cof bot ->
-    Format.fprintf fmt "bot"
   | GoalRet con ->
     Format.fprintf fmt "goal-ret[%a]" pp_con con
   | Lam clo ->

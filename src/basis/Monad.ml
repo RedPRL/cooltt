@@ -46,6 +46,17 @@ struct
       let+ x = m
       and+ xs = commute_list ms in
       x :: xs
+  let rec map f =
+    function
+    | [] -> M.ret []
+    | (x :: xs) ->
+      let+ y = f x
+      and+ ys = map f xs in
+      y :: ys
+  let rec app f =
+    function
+    | [] -> M.ret ()
+    | (x :: xs) -> let* () = f x in app f xs
 end
 
 module type MonadReaderResult = sig

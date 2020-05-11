@@ -21,6 +21,7 @@ exception QuotationError of Error.t
 
 open QuM
 open Monad.Notation (QuM)
+module MU = Monad.Util (QuM)
 open Sem
 
 module QTB :
@@ -150,7 +151,7 @@ and quote_hcom code r s phi bdy =
   let+ tbdy =
     QTB.lam D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    QTB.lam (D.TpPrf (Cof.join (Cof.eq r i_dim) phi)) @@ fun prf ->
+    QTB.lam (D.TpPrf (Cof.join2 (Cof.eq r i_dim) phi)) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     quote_con D.Nat body
   in
@@ -253,18 +254,12 @@ and quote_cof phi =
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
         S.Cof (Cof.Eq (tr, ts))
-      | Cof.Join (phi, psi) ->
-        let+ tphi = go phi
-        and+ tpsi = go psi in
-        S.Cof (Cof.Join (tphi, tpsi))
-      | Cof.Meet (phi, psi) ->
-        let+ tphi = go phi
-        and+ tpsi = go psi in
-        S.Cof (Cof.Meet (tphi, tpsi))
-      | Cof.Bot ->
-        ret @@ S.Cof Cof.Bot
-      | Cof.Top ->
-        ret @@ S.Cof Cof.Top
+      | Cof.Join phis ->
+        let+ tphis = MU.map go phis in
+        S.Cof (Cof.Join tphis)
+      | Cof.Meet phis ->
+        let+ tphis = MU.map go phis in
+        S.Cof (Cof.Meet tphis)
   in
   go @<< lift_cmp @@ Sem.normalize_cof phi
 
