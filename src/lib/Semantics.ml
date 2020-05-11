@@ -6,7 +6,6 @@ exception Todo
 
 open CoolBasis
 open Bwd
-open BwdNotation
 
 exception NbeFailed of string
 
@@ -484,6 +483,7 @@ and inst_tp_clo : D.tp_clo -> D.con list -> D.tp CM.m =
   fun clo xs ->
   match clo with
   | TpClo (bdy, env) ->
+    let open BwdNotation in
     CM.lift_ev {env with conenv = env.conenv <>< xs} @@
     eval_tp bdy
 
@@ -491,6 +491,7 @@ and inst_tm_clo : D.tm_clo -> D.con list -> D.con CM.m =
   fun clo xs ->
   match clo with
   | D.Clo (bdy, env) ->
+    let open BwdNotation in
     CM.lift_ev {env with conenv = env.conenv <>< xs} @@
     eval bdy
 
