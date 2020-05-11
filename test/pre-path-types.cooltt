@@ -5,7 +5,7 @@
 -/
 
 def myrefl : {
-  (A : univ) (a : A) → (i : 𝕀) → sub A {∂ i} [i=0 => a | i=1 => a]
+  (A : univ) (a : A) → (i : 𝕀) → sub A {∂ i} [∂ i => a]
 } = {
   \A a i => a
 }

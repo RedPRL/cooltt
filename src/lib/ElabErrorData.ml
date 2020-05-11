@@ -21,7 +21,7 @@ struct
     | UnboundVariable of CS.ident
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp
-    | InvalidTypeExpression of CS.t
+    | InvalidTypeExpression of CS.con
     | ExpectedConnective of connective * Pp.env * S.tp
     | ExpectedSynthesizableTerm of S.t
     | MalformedCase

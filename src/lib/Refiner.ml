@@ -18,9 +18,14 @@ open Bwd
 
 type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
 
-module Hole =
+module Hole : sig
+  val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> T.bchk_tac
+  val unleash_tp_hole : CS.ident option -> [`Flex | `Rigid] -> T.tp_tac
+  val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> T.syn_tac
+end =
 struct
-  let norm : D.cof -> D.cof m =
+  (* To give a more intuitive readout *)
+  let normalize_cof : D.cof -> D.cof m =
     fun phi ->
       let* useless = EM.lift_cmp @@ CmpM.test_sequent [phi] Cof.bot in
       EM.ret (if useless then Cof.bot else phi)
@@ -29,7 +34,7 @@ struct
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        let* phi' = norm phi in
+        let* phi' = normalize_cof phi in
         EM.lift_qu @@ Nbe.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi', clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
@@ -53,7 +58,7 @@ struct
     let* sym =
       let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
       let* () =
-        () |> EM.emit @@ fun fmt () ->
+        () |> EM.emit (ElabEnv.location env) @@ fun fmt () ->
         Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~names) tp
       in
       let* vtp = EM.lift_ev @@ Nbe.eval_tp tp in
@@ -77,7 +82,7 @@ struct
 
   let unleash_syn_hole name flexity : T.syn_tac =
     let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
-    let+ tm = T.bchk_to_chk (unleash_hole name flexity) @@ D.El tpcut in
+    let+ tm = T.Chk.bchk (unleash_hole name flexity) @@ D.El tpcut in
     tm, D.El tpcut
 end
 
@@ -459,12 +464,12 @@ struct
 
   let path_with_endpoints (tac_fam : T.chk_tac) (tac_a : T.bchk_tac) (tac_b : T.bchk_tac) : T.chk_tac =
     path tac_fam @@
-    T.bchk_to_chk @@
+    T.Chk.bchk @@
     Pi.intro None @@ fun i ->
     Pi.intro None @@ fun pf ->
     Cof.split
-      [(Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
-       (Cof.eq (T.syn_to_chk (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
+      [(Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
+       (Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
   let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Top), D.TpCof)
   let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Bot), D.TpCof)
@@ -735,14 +740,14 @@ struct
           match find_case "zero" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ T.bchk_to_chk @@ Hole.unleash_hole (Some "zero") `Rigid
+          | None -> EM.ret @@ T.Chk.bchk @@ Hole.unleash_hole (Some "zero") `Rigid
         in
         let* tac_suc =
           match find_case "suc" cases with
           | Some ([`Simple nm_z], tac) -> EM.ret (nm_z, None, tac)
           | Some ([`Inductive (nm_z, nm_ih)], tac) -> EM.ret (nm_z, nm_ih, tac)
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ (None, None, T.bchk_to_chk @@ Hole.unleash_hole (Some "suc") `Rigid)
+          | None -> EM.ret @@ (None, None, T.Chk.bchk @@ Hole.unleash_hole (Some "suc") `Rigid)
         in
         Nat.elim (nm_x, mot) tac_zero tac_suc scrut
       | _ ->
@@ -771,8 +776,7 @@ struct
         EM.lift_qu @@ Nbe.quote_tp vmot
       in
       Pi.intro None @@ fun x ->
-      T.chk_to_bchk @@
-      T.syn_to_chk @@
+      T.BChk.syn @@
       elim ([None], mot_tac) cases @@
       T.Var.syn x
   end
