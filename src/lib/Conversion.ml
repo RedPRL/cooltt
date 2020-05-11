@@ -97,7 +97,9 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     ret ()
   | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
     equate_tp tp0 tp1
-  | D.El cut0, D.El cut1 ->
+  | D.El con0, D.El con1 ->
+    equate_con D.Univ con0 con1
+  | D.UnfoldEl cut0, D.UnfoldEl cut1 ->
     equate_cut cut0 cut1
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
@@ -137,6 +139,11 @@ and equate_con tp con0 con1 =
   | D.Sub (tp, phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
+    equate_con tp out0 out1
+  | D.El code, _, _ ->
+    let* out0 = lift_cmp @@ do_el_out con0 in
+    let* out1 = lift_cmp @@ do_el_out con1 in
+    let* tp = lift_cmp @@ unfold_el code in
     equate_con tp out0 out1
   | _, D.Zero, D.Zero ->
     ret ()
@@ -252,7 +259,9 @@ and equate_frm k0 k1 =
     let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
     let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
     equate_con fib_sucx con0 con1
-  | (D.KGoalProj, D.KGoalProj) ->
+  | D.KGoalProj, D.KGoalProj ->
+    ret ()
+  | D.KElOut, D.KElOut ->
     ret ()
   | _ ->
     conv_err @@ ExpectedFrmEq (k0, k1)
@@ -287,8 +296,7 @@ and equate_hd hd0 hd1 =
       equate_con D.Univ code0 code1
     in
     let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
-    let* tp = lift_cmp @@ unfold_el code in
-    equate_con tp con0 con1
+    equate_con (D.El code) con0 con1
   | D.HCom (cut0, r0, s0, phi0, bdy0), D.HCom (cut1, r1, s1, phi1, bdy1) ->
     let code0 = D.Cut {tp = D.Univ; cut = cut0} in
     let code1 = D.Cut {tp = D.Univ; cut = cut1} in
@@ -316,8 +324,7 @@ and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   bind_var_ (D.TpPrf (Cof.join [Cof.eq i_dim r0; phi0])) @@ fun prf ->
   let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
   let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
-  let* tp = lift_cmp @@ unfold_el code0 in
-  equate_con tp con0 con1
+  equate_con (D.El code0) con0 con1
 
 
 and equate_cof phi psi =

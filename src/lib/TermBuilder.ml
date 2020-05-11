@@ -52,6 +52,14 @@ module MU = Monad.Util (M)
 
 type 'a b = S.t m -> 'a m
 
+let el_in m : _ m =
+  let+ tm = m in
+  S.ElIn tm
+
+let el_out m : _ m =
+  let+ tm = m in
+  S.ElOut tm
+
 let lam mbdy : _ m =
   scope @@ fun var ->
   let+ bdy = mbdy var in
@@ -182,24 +190,29 @@ struct
   type hcom = r:S.t m -> s:S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
 
   let coe_pi ~base_line ~fam_line ~r ~s ~bdy : _ m =
+    el_in @@
     lam @@ fun arg ->
     let_ (lam @@ fun i -> coe base_line s i arg) @@ fun coe_base_line ->
     let fib_line = lam @@ fun i -> ap fam_line [i; ap coe_base_line [i]] in
     coe fib_line r s @@
-    ap bdy [ap coe_base_line [r]]
+    ap (el_out bdy) [ap coe_base_line [r]]
 
   let hcom_pi ~base ~fam ~r ~s ~phi ~bdy : _ m =
+    el_in @@
     lam @@ fun arg ->
     let tfib = ap fam [arg] in
     hcom tfib r s phi @@
     lam @@ fun i ->
     lam @@ fun prf ->
-    ap bdy [i; prf; arg]
+    ap (el_out (ap bdy [i; prf])) [arg]
 
   let coe_sg ~base_line ~fam_line ~r ~s ~bdy : _ m =
-    let fst_line = lam @@ fun i -> coe base_line r i @@ fst bdy in
+    let fst_line = lam @@ fun i -> coe base_line r i @@ fst @@ el_out bdy in
     let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
-    pair (ap fst_line [s]) (coe fib_line r s @@ snd bdy)
+    el_in @@
+    pair
+      (ap fst_line [s])
+      (coe fib_line r s @@ snd @@ el_out bdy)
 
   let hcom_sg ~base ~fam ~r ~s ~phi ~bdy : _ m =
     let p0_line =
@@ -207,7 +220,7 @@ struct
       hcom base r i phi @@
       lam @@ fun j ->
       lam @@ fun prf ->
-      fst @@ ap bdy [j; prf]
+      fst @@ el_out @@ ap bdy [j; prf]
     in
     let p0 = ap p0_line [s] in
     let fib_line =
@@ -218,8 +231,9 @@ struct
       com fib_line r s phi @@
       lam @@ fun i ->
       lam @@ fun prf ->
-      snd @@ ap bdy [i; prf]
+      snd @@ el_out @@ ap bdy [i; prf]
     in
+    el_in @@
     pair p0 p1
 
   exception Todo
@@ -229,19 +243,20 @@ struct
       ~(r : S.t m)                 (* r : I *)
       ~(s : S.t m)                 (* s/r' : I *)
       ~(bdy : S.t m)               (* m : path (A r) (bdry_line r 0) (bdry_line r 1) *)
-                                   (* ------------------------ *)
+    (* ------------------------ *)
     : S.t m                        (* path (A r') (bdry_line r' 0) (bdry_line r' 1) *)
     =
+    el_in @@
     lam @@ fun j ->
     sub_in @@
     let_ (boundary j) @@ fun d_j ->
     com (lam @@ fun i -> ap fam_line [i; j]) r s d_j @@
     lam @@ fun i ->
     lam @@ fun _ ->
-      cof_split
+    cof_split
       (el @@ ap fam_line [i; j])
       d_j (fun q -> ap bdry_line [i; j; q])
-      (eq i r)     (fun q -> sub_out @@ ap bdy [j])
+      (eq i r) (fun q -> sub_out @@ ap (el_out bdy) [j])
 
   (*
    * fam : I -> U
@@ -262,6 +277,7 @@ struct
      }
    *)
   let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy =
+    el_in @@
     lam @@ fun i ->
     sub_in @@
     let_ (boundary i) @@ fun d_i ->
@@ -271,6 +287,6 @@ struct
     lam @@ fun p ->
     cof_split
       (el fam_i)
-      d_i                  (fun q -> ap bdry [i; q])
-      (join [phi; eq k r]) (fun q -> sub_out (ap bdy [k;q;i]))
+      d_i (fun q -> ap bdry [i; q])
+      (join [phi; eq k r]) (fun q -> sub_out (ap (el_out (ap bdy [k;q])) [i]))
 end

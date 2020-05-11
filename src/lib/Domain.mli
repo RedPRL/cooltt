@@ -15,6 +15,7 @@ val apply_to : con -> tm_clo
 
 val fst : con
 val snd : con
+val el_out : con
 
 
 val pp_dim : dim Pp.printer

@@ -113,6 +113,9 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
+    let+ con = eval tm in
+    D.El con
+  | S.UnfoldEl tm ->
     let* con = eval tm in
     lift_cmp @@ unfold_el con
   | S.GoalTp (lbl, tp) ->
@@ -133,164 +136,171 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
   | S.TpVar ix ->
     get_local_tp ix
 
-and eval =
+and eval : S.t -> D.con EvM.m =
   let open EvM in
-  function
-  | S.Var i ->
-    let* con = get_local i in
-    begin
-      lift_cmp @@ whnf_con con |>> function
-      | `Done -> ret con
-      | `Reduce con -> ret con
-    end
-  | S.Global sym ->
-    let* st = EvM.read_global in
-    let* veil = EvM.read_veil in
-    let tp, ocon = ElabState.get_global sym st in
-    begin
-      match ocon, Veil.policy sym veil with
-      | Some con, `Transparent -> ret con
-      | _ ->
-        ret @@ D.Cut {tp; cut = (D.Global sym, [])}
-    end
-  | S.Let (def, body) ->
-    let* vdef = eval def in
-    append [vdef] @@ eval body
-  | S.Ann (term, _) ->
-    eval term
-  | S.Zero ->
-    ret D.Zero
-  | S.Suc t ->
-    let+ con = eval t in
-    D.Suc con
-  | S.NatElim (mot, zero, suc, n) ->
-    let* vzero = eval zero in
-    let* vn = eval n in
-    let* env = read_local in
-    let clmot = D.TpClo (mot, env) in
-    let clsuc = D.Clo (suc, env) in
-    lift_cmp @@ do_nat_elim clmot vzero clsuc vn
-  | S.Lam t ->
-    let+ env = read_local in
-    D.Lam (D.Clo (t, env))
-  | S.Ap (t0, t1) ->
-    let* con0 = eval t0 in
-    let* con1 = eval t1 in
-    lift_cmp @@ do_ap con0 con1
-  | S.Pair (t1, t2) ->
-    let+ el1 = eval t1
-    and+ el2 = eval t2 in
-    D.Pair (el1, el2)
-  | S.Fst t ->
-    let* con = eval t in
-    lift_cmp @@ do_fst con
-  | S.Snd t ->
-    let* con = eval t in
-    lift_cmp @@ do_snd con
-  | S.GoalRet tm ->
-    let+ con = eval tm in
-    D.GoalRet con
-  | S.GoalProj tm ->
-    let* con = eval tm in
-    lift_cmp @@ do_goal_proj con
-  | S.Coe (tpcode, tr, ts, tm) ->
-    let* r = eval_dim tr in
-    let* s = eval_dim ts in
-    let* con = eval tm in
-    begin
-      CM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
-      | true ->
-        ret con
-      | false ->
-        let* coe_abs = eval tpcode in
-        lift_cmp @@ do_rigid_coe coe_abs r s con
-    end
-  | S.HCom (tpcode, tr, ts, tphi, tm) ->
-    let* r = eval_dim tr in
-    let* s = eval_dim ts in
-    let* phi = eval_cof tphi in
-    let* vtpcode = eval tpcode in
-    let* vbdy = eval tm in
-    begin
-      CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
-      | true ->
-        lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
-      | false ->
-        lift_cmp @@ do_rigid_hcom vtpcode r s phi vbdy
-    end
-  | S.Com (tpcode, tr, ts, tphi, tm) ->
-    let* r = eval_dim tr in
-    let* s = eval_dim ts in
-    let* phi = eval_cof tphi in
-    begin
-      CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
-      | true ->
-        append [D.dim_to_con s] @@ eval tm
-      | false ->
-        let* bdy = eval tm in
-        let* vtpcode = eval tpcode in
-        lift_cmp @@ do_rigid_com vtpcode r s phi bdy
-    end
-  | S.SubOut tm ->
-    let* con = eval tm in
-    lift_cmp @@ do_sub_out con
-  | S.SubIn t ->
-    let+ con = eval t in
-    D.SubIn con
-  | S.Dim0 -> ret D.DimCon0
-  | S.Dim1 -> ret D.DimCon1
-  | S.Cof cof_f ->
-    begin
-      match cof_f with
-      | Cof.Eq (tr, ts) ->
-        let+ r = eval tr
-        and+ s = eval ts in
-        D.Cof (Cof.Eq (r, s))
-      | Cof.Join tphis ->
-        let+ phis = MU.map eval tphis in
-        D.Cof (Cof.Join phis)
-      | Cof.Meet tphis ->
-        let+ phis = MU.map eval tphis in
-        D.Cof (Cof.Meet phis)
-    end
-  | S.CofSplit (ttp, tphi0, tphi1, tm0, tm1) ->
-    let* tp = eval_tp ttp in
-    let* phi0 = eval_cof tphi0 in
-    let* phi1 = eval_cof tphi1 in
-    let* con =
+  fun tm ->
+    match tm with
+    | S.Var i ->
+      let* con = get_local i in
+      begin
+        lift_cmp @@ whnf_con con |>> function
+        | `Done -> ret con
+        | `Reduce con -> ret con
+      end
+    | S.Global sym ->
+      let* st = EvM.read_global in
+      let* veil = EvM.read_veil in
+      let tp, ocon = ElabState.get_global sym st in
+      begin
+        match ocon, Veil.policy sym veil with
+        | Some con, `Transparent -> ret con
+        | _ ->
+          ret @@ D.Cut {tp; cut = (D.Global sym, [])}
+      end
+    | S.Let (def, body) ->
+      let* vdef = eval def in
+      append [vdef] @@ eval body
+    | S.Ann (term, _) ->
+      eval term
+    | S.Zero ->
+      ret D.Zero
+    | S.Suc t ->
+      let+ con = eval t in
+      D.Suc con
+    | S.NatElim (mot, zero, suc, n) ->
+      let* vzero = eval zero in
+      let* vn = eval n in
+      let* env = read_local in
+      let clmot = D.TpClo (mot, env) in
+      let clsuc = D.Clo (suc, env) in
+      lift_cmp @@ do_nat_elim clmot vzero clsuc vn
+    | S.Lam t ->
       let+ env = read_local in
-      let pclo0 = D.Clo (tm0, env) in
-      let pclo1 = D.Clo (tm1, env) in
-      let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
-      D.Cut {tp; cut = hd, []}
-    in
-    begin
-      lift_cmp @@ whnf_con con |>> function
-      | `Done -> ret con
-      | `Reduce con -> ret con
-    end
-  | S.CofAbort ->
-    ret D.Abort
-  | S.Prf ->
-    ret D.Prf
+      D.Lam (D.Clo (t, env))
+    | S.Ap (t0, t1) ->
+      let* con0 = eval t0 in
+      let* con1 = eval t1 in
+      lift_cmp @@ do_ap con0 con1
+    | S.Pair (t1, t2) ->
+      let+ el1 = eval t1
+      and+ el2 = eval t2 in
+      D.Pair (el1, el2)
+    | S.Fst t ->
+      let* con = eval t in
+      lift_cmp @@ do_fst con
+    | S.Snd t ->
+      let* con = eval t in
+      lift_cmp @@ do_snd con
+    | S.GoalRet tm ->
+      let+ con = eval tm in
+      D.GoalRet con
+    | S.GoalProj tm ->
+      let* con = eval tm in
+      lift_cmp @@ do_goal_proj con
+    | S.Coe (tpcode, tr, ts, tm) ->
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in
+      let* con = eval tm in
+      begin
+        CM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
+        | true ->
+          ret con
+        | false ->
+          let* coe_abs = eval tpcode in
+          lift_cmp @@ do_rigid_coe coe_abs r s con
+      end
+    | S.HCom (tpcode, tr, ts, tphi, tm) ->
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in
+      let* phi = eval_cof tphi in
+      let* vtpcode = eval tpcode in
+      let* vbdy = eval tm in
+      begin
+        CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
+        | true ->
+          lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
+        | false ->
+          lift_cmp @@ do_rigid_hcom vtpcode r s phi vbdy
+      end
+    | S.Com (tpcode, tr, ts, tphi, tm) ->
+      let* r = eval_dim tr in
+      let* s = eval_dim ts in
+      let* phi = eval_cof tphi in
+      begin
+        CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
+        | true ->
+          append [D.dim_to_con s] @@ eval tm
+        | false ->
+          let* bdy = eval tm in
+          let* vtpcode = eval tpcode in
+          lift_cmp @@ do_rigid_com vtpcode r s phi bdy
+      end
+    | S.SubOut tm ->
+      let* con = eval tm in
+      lift_cmp @@ do_sub_out con
+    | S.SubIn tm ->
+      let+ con = eval tm in
+      D.SubIn con
+    | S.ElOut tm ->
+      let* con = eval tm in
+      lift_cmp @@ do_el_out con
+    | S.ElIn tm ->
+      let+ con = eval tm in
+      D.ElIn con
+    | S.Dim0 -> ret D.DimCon0
+    | S.Dim1 -> ret D.DimCon1
+    | S.Cof cof_f ->
+      begin
+        match cof_f with
+        | Cof.Eq (tr, ts) ->
+          let+ r = eval tr
+          and+ s = eval ts in
+          D.Cof (Cof.Eq (r, s))
+        | Cof.Join tphis ->
+          let+ phis = MU.map eval tphis in
+          D.Cof (Cof.Join phis)
+        | Cof.Meet tphis ->
+          let+ phis = MU.map eval tphis in
+          D.Cof (Cof.Meet phis)
+      end
+    | S.CofSplit (ttp, tphi0, tphi1, tm0, tm1) ->
+      let* tp = eval_tp ttp in
+      let* phi0 = eval_cof tphi0 in
+      let* phi1 = eval_cof tphi1 in
+      let* con =
+        let+ env = read_local in
+        let pclo0 = D.Clo (tm0, env) in
+        let pclo1 = D.Clo (tm1, env) in
+        let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
+        D.Cut {tp; cut = hd, []}
+      in
+      begin
+        lift_cmp @@ whnf_con con |>> function
+        | `Done -> ret con
+        | `Reduce con -> ret con
+      end
+    | S.CofAbort ->
+      ret D.Abort
+    | S.Prf ->
+      ret D.Prf
 
-  | S.CodePath (fam, bdry) ->
-    let* vfam = eval fam in
-    let* vbdry = eval bdry in
-    ret @@ D.CodePath (vfam, vbdry)
+    | S.CodePath (fam, bdry) ->
+      let* vfam = eval fam in
+      let* vbdry = eval bdry in
+      ret @@ D.CodePath (vfam, vbdry)
 
-  | S.CodePi (base, fam) ->
-    let+ vbase = eval base
-    and+ vfam = eval fam in
-    D.CodePi (vbase, vfam)
+    | S.CodePi (base, fam) ->
+      let+ vbase = eval base
+      and+ vfam = eval fam in
+      D.CodePi (vbase, vfam)
 
-  | S.CodeSg (base, fam) ->
-    let+ vbase = eval base
-    and+ vfam = eval fam in
-    D.CodeSg (vbase, vfam)
+    | S.CodeSg (base, fam) ->
+      let+ vbase = eval base
+      and+ vfam = eval fam in
+      D.CodeSg (vbase, vfam)
 
-  | S.CodeNat ->
-    ret D.CodeNat
+    | S.CodeNat ->
+      ret D.CodeNat
 
 and eval_dim tr =
   let open EvM in
@@ -306,8 +316,9 @@ and eval_cof tphi =
 
 and whnf_con : D.con -> D.con whnf CM.m =
   let open CM in
-  function
-  | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _
+  fun con ->
+  match con with
+  | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
   | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat
   | D.Destruct _ ->
@@ -418,12 +429,20 @@ and whnf_cut cut : D.con whnf CM.m =
 and whnf_tp =
   let open CM in
   function
-  | D.El cut ->
+  | D.El con ->
     begin
-      whnf_cut cut |>> function
+      whnf_con con |>>
+      function
+      | `Done -> ret `Done
+      | `Reduce con -> ret @@ `Reduce (D.El con)
+    end
+  | D.UnfoldEl cut ->
+    begin
+      whnf_cut cut |>>
+      function
       | `Done -> ret `Done
       | `Reduce con ->
-        let+ tp = unfold_el con  in
+        let+ tp = unfold_el con in
         `Reduce tp
     end
   | tp ->
@@ -546,10 +565,10 @@ and do_destruct dst a =
   | _ ->
     throw @@ NbeFailed "Invalid destructor application"
 
-and do_sub_out v =
+and do_sub_out con =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match v with
+  match con with
   | D.SubIn con ->
     ret con
   | D.Cut {tp = D.Sub (tp, phi, clo); cut} ->
@@ -557,44 +576,61 @@ and do_sub_out v =
   | _ ->
     throw @@ NbeFailed "do_sub_out"
 
+and do_el_out con =
+  let open CM in
+  abort_if_inconsistent D.Abort @@
+  match con with
+  | D.ElIn con ->
+    ret con
+  | D.Cut {tp = D.El con; cut} ->
+    let+ tp = unfold_el con in
+    cut_frm ~tp ~cut D.KElOut
+  | D.Cut {tp; cut} ->
+    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
+    throw @@ NbeFailed "do_el_out"
+  | _ ->
+    Format.eprintf "bad: %a@." D.pp_con con;
+    throw @@ NbeFailed "do_el_out"
+
 and unfold_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
-  abort_if_inconsistent D.TpAbort @@
-  match con with
-  | D.Cut {cut} ->
-    ret @@ D.El cut
+    abort_if_inconsistent D.TpAbort @@
+    match con with
 
-  | D.CodeNat ->
-    ret D.Nat
+    | D.Cut {cut} ->
+      ret @@ D.UnfoldEl cut
 
-  | D.CodePi (base, fam) ->
-    splice_tp @@
-    Splice.foreign base @@ fun base ->
-    Splice.foreign fam @@ fun fam ->
-    Splice.term @@
-    TB.pi (TB.el base) @@ fun x ->
-    TB.el @@ TB.ap fam [x]
+    | D.CodeNat ->
+      ret D.Nat
 
-  | D.CodeSg (base, fam) ->
-    splice_tp @@
-    Splice.foreign base @@ fun base ->
-    Splice.foreign fam @@ fun fam ->
-    Splice.term @@
-    TB.sg (TB.el base) @@ fun x ->
-    TB.el @@ TB.ap fam [x]
+    | D.CodePi (base, fam) ->
+      splice_tp @@
+      Splice.foreign base @@ fun base ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.term @@
+      TB.pi (TB.el base) @@ fun x ->
+      TB.el @@ TB.ap fam [x]
 
-  | D.CodePath (fam, bdry) ->
-    splice_tp @@
-    Splice.foreign fam @@ fun fam ->
-    Splice.foreign bdry @@ fun bdry ->
-    Splice.term @@
-    TB.pi TB.tp_dim @@ fun i ->
-    TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
-    TB.ap bdry [i; prf]
+    | D.CodeSg (base, fam) ->
+      splice_tp @@
+      Splice.foreign base @@ fun base ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.term @@
+      TB.sg (TB.el base) @@ fun x ->
+      TB.el @@ TB.ap fam [x]
 
-  | con ->
-    CM.throw @@ NbeFailed "unfold_el failed"
+    | D.CodePath (fam, bdry) ->
+      splice_tp @@
+      Splice.foreign fam @@ fun fam ->
+      Splice.foreign bdry @@ fun bdry ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
+      TB.ap bdry [i; prf]
+
+    | con ->
+      CM.throw @@ NbeFailed "unfold_el failed"
 
 and do_coe r s (abs : D.con) con =
   let open CM in
@@ -716,7 +752,7 @@ and enact_rigid_hcom code r s phi bdy tag =
   | `HComNat ->
     ret @@ D.FHCom (`Nat, r, s, phi, bdy)
   | `Done cut ->
-    let tp = D.El cut in
+    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
     ret @@ D.Cut {tp; cut = hd, []}
 
@@ -727,8 +763,8 @@ and do_rigid_coe (line : D.con) r s con =
   match tag with
   | `Done ->
     let hd = D.Coe (line, r, s, con) in
-    let+ tp = unfold_el @<< do_ap line (D.dim_to_con s) in
-    D.Cut {tp; cut = hd, []}
+    let+ code = do_ap line (D.dim_to_con s) in
+    D.Cut {tp = D.El code; cut = hd, []}
   | `Reduce tag ->
     enact_rigid_coe line r s con tag
 
@@ -738,7 +774,7 @@ and do_rigid_hcom code r s phi (bdy : D.con) =
   let* tag = dispatch_rigid_hcom code r s phi bdy in
   match tag with
   | `Done cut ->
-    let tp = D.El cut in
+    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
     ret @@ D.Cut {tp; cut = hd, []}
   | `Reduce tag ->
@@ -771,6 +807,7 @@ and do_frm con =
   | D.KSnd -> do_snd con
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KGoalProj -> do_goal_proj con
+  | D.KElOut -> do_el_out con
 
 and do_spine con =
   let open CM in

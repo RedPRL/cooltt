@@ -27,6 +27,7 @@ and con =
   | GoalRet of con
   | Abort
   | SubIn of con
+  | ElIn of con
   | DimCon0
   | DimCon1
   | Cof of (con, con) Cof.cof_f
@@ -44,7 +45,8 @@ and con =
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
-  | El of cut
+  | El of con
+  | UnfoldEl of cut
   | GoalTp of string option * tp
   | TpDim
   | TpCof
@@ -72,6 +74,7 @@ and frm =
   | KSnd
   | KNatElim of tp_clo * con * tm_clo
   | KGoalProj
+  | KElOut
 
 (** destructors: exotic semantic operations that don't exist in syntax; these are meant to fail on things in improper form, rather than become neutral. *)
 and dst =

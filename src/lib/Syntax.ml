@@ -33,6 +33,8 @@ let rec dump fmt tm =
   | Com _ -> Format.fprintf fmt "<com>"
   | SubIn _ -> Format.fprintf fmt "<sub/in>"
   | SubOut _ -> Format.fprintf fmt "<sub/out>"
+  | ElIn _ -> Format.fprintf fmt "<el/in>"
+  | ElOut _ -> Format.fprintf fmt "<el/out>"
   | Cof _ -> Format.fprintf fmt "<cof>"
   | CofSplit _ -> Format.fprintf fmt "<cof/split>"
   | Zero -> Format.fprintf fmt "<zero>"
@@ -131,7 +133,7 @@ let rec pp env fmt tm =
       | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
     end
   | CodeNat ->
-    Format.fprintf fmt "nat"
+    Format.fprintf fmt "<nat>"
   | NatElim (mot, zero, suc, tm) ->
     let x, envx = Pp.Env.bind env None in
     let y, envxy = Pp.Env.bind envx None in
@@ -144,7 +146,7 @@ let rec pp env fmt tm =
       Uuseg_string.pp_utf_8 x
       Uuseg_string.pp_utf_8 y
       (pp envxy) suc
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp env fmt tm
   | CodePi (base, fam) ->
     Format.fprintf fmt "@[%a %a %a@]"
@@ -193,7 +195,7 @@ and pp_tp env fmt tp =
       (pp_tp envx) fam
   | Sub (tp, phi, tm) ->
     let x, envx = Pp.Env.bind env @@ Some "_" in
-    Format.fprintf fmt "@[sub %a %a@,%a@]"
+    Format.fprintf fmt "@[sub %a %a@ %a@]"
       (pp_atomic_tp env) tp
       (pp_atomic env) phi
       (pp_atomic envx) tm
@@ -206,7 +208,9 @@ and pp_tp env fmt tp =
   | Nat ->
     Format.fprintf fmt "nat"
   | El tm ->
-    pp env fmt tm
+    Format.fprintf fmt "el %a" (pp_atomic env) tm
+  | UnfoldEl tm ->
+    Format.fprintf fmt "el! %a" (pp_atomic env) tm
   | TpVar ix ->
     Format.fprintf fmt "#var[%i]" ix
   | GoalTp (_, tp) ->
@@ -230,7 +234,7 @@ and pp_atomic env fmt tm =
   | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat
   | Zero | Prf ->
     pp env fmt tm
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp_atomic env fmt tm
   | _ ->
     pp_braced (pp env) fmt tm
@@ -239,7 +243,7 @@ and pp_applications env fmt tm =
   match tm with
   | Ap (tm0, tm1) ->
     Format.fprintf fmt "%a %a" (pp_applications env) tm0 (pp_atomic env) tm1
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp_applications env fmt tm
   | _ ->
     pp env fmt tm
@@ -251,7 +255,7 @@ and pp_lambdas env fmt tm =
     Format.fprintf fmt "%a %a"
       Uuseg_string.pp_utf_8 x
       (pp_lambdas envx) tm
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm ->
+  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp_lambdas env fmt tm
   | _ ->
     Format.fprintf fmt "=>@ @[%a@]"

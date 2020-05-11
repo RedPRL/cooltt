@@ -1,4 +1,4 @@
-open CoolBasis 
+open CoolBasis
 
 type t =
   | Var of int
@@ -27,6 +27,9 @@ type t =
   | CofAbort
   | Prf
 
+  | ElIn of t
+  | ElOut of t
+
   | CodePath of t * t
   | CodePi of t * t
   | CodeSg of t * t
@@ -35,6 +38,7 @@ type t =
 and tp =
   | Univ
   | El of t
+  | UnfoldEl of t
   | TpVar of int
   | GoalTp of string option * tp
   | TpDim
