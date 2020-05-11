@@ -15,6 +15,9 @@ module TB := TermBuilder
 
 type 'a t
 val foreign : D.con -> (S.t TB.m -> 'a t) -> 'a t
+val foreign_dim : D.dim -> (S.t TB.m -> 'a t) -> 'a t
+val foreign_cof : D.cof -> (S.t TB.m -> 'a t) -> 'a t
+val foreign_clo : D.tm_clo -> (S.t TB.m -> 'a t) -> 'a t
 val foreign_tp : D.tp -> (S.tp TB.m -> 'a t) -> 'a t
 val compile : 'a t -> D.env * 'a
 val term : 'a TB.m -> 'a t
