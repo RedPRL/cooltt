@@ -7,60 +7,60 @@ exception Todo
 open CoolBasis
 open Bwd
 open BwdNotation
-open Monads
 
 exception NbeFailed of string
 
 module Splice = Splice
 module TB = TermBuilder
 
+module CM = struct include Monads.CmpM include Monad.Notation (Monads.CmpM) module MU = Monad.Util (Monads.CmpM) end
+module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) module MU = Monad.Util (Monads.EvM) end
 
 module rec Compute :
 sig
   type 'a whnf = [`Done | `Reduce of 'a]
-  val whnf_con : D.con -> D.con whnf compute
-  val whnf_cut : D.cut -> D.con whnf compute
-  val whnf_hd : D.hd -> D.con whnf compute
-  val whnf_tp : D.tp -> D.tp whnf compute
+  val whnf_con : D.con -> D.con whnf CM.m
+  val whnf_cut : D.cut -> D.con whnf CM.m
+  val whnf_hd : D.hd -> D.con whnf CM.m
+  val whnf_tp : D.tp -> D.tp whnf CM.m
 
-  val normalize_cof : D.cof -> D.cof compute
+  val normalize_cof : D.cof -> D.cof CM.m
 
-  val inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute
-  val inst_tm_clo : D.tm_clo -> D.con list -> D.con compute
+  val inst_tp_clo : D.tp_clo -> D.con list -> D.tp CM.m
+  val inst_tm_clo : D.tm_clo -> D.con list -> D.con CM.m
 
-  val do_nat_elim : D.tp_clo -> D.con -> D.tm_clo -> D.con -> D.con compute
-  val do_fst : D.con -> D.con compute
-  val do_snd : D.con -> D.con compute
-  val do_ap : D.con -> D.con -> D.con compute
-  val do_ap2 : D.con -> D.con -> D.con -> D.con compute
-  val do_sub_out : D.con -> D.con compute
-  val do_goal_proj : D.con -> D.con compute
-  val do_frm : D.con -> D.frm -> D.con compute
-  val do_spine : D.con -> D.frm list -> D.con compute
-  val do_el : D.con -> D.tp compute
-  val force_lazy_con : D.lazy_con -> D.con compute
+  val do_nat_elim : D.tp_clo -> D.con -> D.tm_clo -> D.con -> D.con CM.m
+  val do_fst : D.con -> D.con CM.m
+  val do_snd : D.con -> D.con CM.m
+  val do_ap : D.con -> D.con -> D.con CM.m
+  val do_ap2 : D.con -> D.con -> D.con -> D.con CM.m
+  val do_sub_out : D.con -> D.con CM.m
+  val do_goal_proj : D.con -> D.con CM.m
+  val do_frm : D.con -> D.frm -> D.con CM.m
+  val do_spine : D.con -> D.frm list -> D.con CM.m
+  val do_el : D.con -> D.tp CM.m
+  val force_lazy_con : D.lazy_con -> D.con CM.m
 
-  val do_rigid_coe : D.con -> D.dim -> D.dim -> D.con -> D.con compute
-  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
-  val do_rigid_com : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con compute
+  val do_rigid_coe : D.con -> D.dim -> D.dim -> D.con -> D.con CM.m
+  val do_rigid_hcom : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con CM.m
+  val do_rigid_com : D.con -> D.dim -> D.dim -> D.cof -> D.con -> D.con CM.m
 
-  val con_to_dim : D.con -> D.dim compute
-  val con_to_cof : D.con -> D.cof compute
-  val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof compute
+  val con_to_dim : D.con -> D.dim CM.m
+  val con_to_cof : D.con -> D.cof CM.m
+  val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m
 
-  val splice_tm : S.t Splice.t -> D.con compute
-  val splice_tp : S.tp Splice.t -> D.tp compute
+  val splice_tm : S.t Splice.t -> D.con CM.m
+  val splice_tp : S.tp Splice.t -> D.tp CM.m
 end =
 struct
-  open CmpM
+
   open Eval
-  open Monad.Notation (CmpM)
-  module MU = Monad.Util (CmpM)
 
   let tri_test_cof phi =
+    let open CM in
     test_sequent [] phi |>>
     function
-    | true -> ret `True
+    | true -> CM.ret `True
     | false ->
       test_sequent [phi] Cof.bot |>>
       function
@@ -68,6 +68,7 @@ struct
       | false -> ret `Indet
 
   let rec normalize_cof phi =
+    let open CM in
     match phi with
     | Cof.Cof (Cof.Eq _) | Cof.Var _ ->
       begin
@@ -87,14 +88,15 @@ struct
 
   let splice_tm t =
     let env, tm = Splice.compile t in
-    lift_ev env @@ eval tm
+    CM.lift_ev env @@ eval tm
 
   let splice_tp t =
     let env, tp = Splice.compile t in
-    lift_ev env @@ eval_tp tp
+    CM.lift_ev env @@ eval_tp tp
 
 
   let con_to_dim =
+    let open CM in
     function
     | D.DimCon0 -> ret D.Dim0
     | D.DimCon1 -> ret D.Dim1
@@ -105,7 +107,8 @@ struct
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
 
-  let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof m =
+  let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
+    let open CM in
     function
     | Cof.Eq (r, s) ->
       let+ r = con_to_dim r
@@ -119,6 +122,7 @@ struct
       Cof.meet phis
 
   and con_to_cof =
+    let open CM in
     function
     | Cof cof -> cof_con_to_cof cof
     | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
@@ -126,6 +130,7 @@ struct
 
 
   let dest_pi_code con =
+    let open CM in
     match con with
     | D.CodePi (base, fam) ->
       ret (base, fam)
@@ -133,6 +138,7 @@ struct
       throw @@ NbeFailed "Expected pi code"
 
   let dest_sg_code con =
+    let open CM in
     match con with
     | D.CodeSg (base, fam) ->
       ret (base, fam)
@@ -141,7 +147,8 @@ struct
 
   type 'a whnf = [`Done | `Reduce of 'a]
 
-  let rec whnf_con : D.con -> D.con whnf m =
+  let rec whnf_con : D.con -> D.con whnf CM.m =
+    let open CM in
     function
     | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _
     | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
@@ -160,20 +167,23 @@ struct
       end
 
   and reduce_to con =
+    let open CM in
     whnf_con con |>> function
     | `Done -> ret @@ `Reduce con
     | `Reduce con -> ret @@ `Reduce con
 
   and plug_into sp con =
+    let open CM in
     let* res = do_spine con sp in
     whnf_con res |>> function
     | `Done -> ret @@ `Reduce res
     | `Reduce res -> ret @@ `Reduce res
 
   and whnf_hd hd =
+    let open CM in
     match hd with
     | D.Global sym ->
-      let* st = CmpM.read_global in
+      let* st = CM.read_global in
       begin
         match ElabState.get_global sym st with
         | tp, Some con ->
@@ -240,7 +250,8 @@ struct
             ret `Done
       end
 
-  and whnf_cut cut : D.con whnf m =
+  and whnf_cut cut : D.con whnf CM.m =
+    let open CM in
     let hd, sp = cut in
     whnf_hd hd |>>
     function
@@ -248,6 +259,7 @@ struct
     | `Reduce con -> plug_into sp con
 
   and whnf_tp =
+    let open CM in
     function
     | D.El cut ->
       begin
@@ -260,7 +272,8 @@ struct
     | tp ->
       ret `Done
 
-  and do_nat_elim (mot : D.tp_clo) zero suc n : D.con compute =
+  and do_nat_elim (mot : D.tp_clo) zero suc n : D.con CM.m =
+    let open CM in
     match n with
     | D.Abort -> ret D.Abort
     | D.Zero ->
@@ -287,69 +300,66 @@ struct
       TB.com (raise Todo) r s phi (raise Todo)
     | _ ->
       Format.eprintf "bad: %a@." D.pp_con n;
-      CmpM.throw @@ NbeFailed "Not a number"
+      CM.throw @@ NbeFailed "Not a number"
 
   and cut_frm ~tp ~cut frm =
     D.Cut {tp; cut = D.push frm cut}
 
-  and inst_tp_clo : D.tp_clo -> D.con list -> D.tp compute =
+  and inst_tp_clo : D.tp_clo -> D.con list -> D.tp CM.m =
     fun clo xs ->
     match clo with
     | TpClo (bdy, env) ->
-      lift_ev {env with conenv = env.conenv <>< xs} @@
+      CM.lift_ev {env with conenv = env.conenv <>< xs} @@
       eval_tp bdy
 
-  and inst_tm_clo : D.tm_clo -> D.con list -> D.con compute =
+  and inst_tm_clo : D.tm_clo -> D.con list -> D.con CM.m =
     fun clo xs ->
     match clo with
     | D.Clo (bdy, env) ->
-      lift_ev {env with conenv = env.conenv <>< xs} @@
+      CM.lift_ev {env with conenv = env.conenv <>< xs} @@
       eval bdy
 
   and do_goal_proj =
+    let open CM in
     function
     | D.Abort -> ret D.Abort
     | D.GoalRet con -> ret con
     | D.Cut {tp = D.GoalTp (_, tp); cut} ->
       ret @@ cut_frm ~tp ~cut D.KGoalProj
     | _ ->
-      CmpM.throw @@ NbeFailed "do_goal_proj"
+      CM.throw @@ NbeFailed "do_goal_proj"
 
-  and do_fst con : D.con compute =
+  and do_fst con : D.con CM.m =
+    let open CM in
     match con with
     | D.Abort -> ret D.Abort
-
-    | D.Pair (con0, _) ->
-      ret con0
-
+    | D.Pair (con0, _) -> ret con0
     | D.Cut {tp = D.Sg (base, _); cut} ->
       ret @@ cut_frm ~tp:base ~cut D.KFst
-
     | _ ->
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
 
-  and do_snd con : D.con compute =
+  and do_snd con : D.con CM.m =
+    let open CM in
     match con with
     | D.Abort -> ret D.Abort
-
-    | D.Pair (_, con1) ->
-      ret con1
-
+    | D.Pair (_, con1) -> ret con1
     | D.Cut {tp = D.Sg (_, fam); cut} ->
       let* fst = do_fst con in
       let+ fib = inst_tp_clo fam [fst] in
       cut_frm ~tp:fib ~cut D.KSnd
-
     | _ ->
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
 
 
   and do_ap2 f a b =
+    let open CM in
     let* fa = do_ap f a in
     do_ap fa b
 
   and do_ap f a =
-    CmpM.abort_if_inconsistent D.Abort @@
+    let open CM in
+    abort_if_inconsistent D.Abort @@
     match f with
     | D.Abort -> ret D.Abort
 
@@ -368,7 +378,8 @@ struct
       throw @@ NbeFailed "Not a function in do_ap"
 
   and do_destruct dst a =
-    CmpM.abort_if_inconsistent D.Abort @@
+    let open CM in
+    abort_if_inconsistent D.Abort @@
     match dst, a with
     | D.DCodePiSplit, D.CodePi (base, fam)
     | D.DCodeSgSplit, D.CodeSg (base, fam) ->
@@ -379,7 +390,8 @@ struct
       throw @@ NbeFailed "Invalid destructor application"
 
   and do_sub_out v =
-    CmpM.abort_if_inconsistent D.Abort @@
+    let open CM in
+    abort_if_inconsistent D.Abort @@
     match v with
     | D.Abort -> ret D.Abort
     | D.SubIn con ->
@@ -390,7 +402,8 @@ struct
       throw @@ NbeFailed "do_sub_out"
 
   and do_el v =
-    CmpM.abort_if_inconsistent D.TpAbort @@
+    let open CM in
+    abort_if_inconsistent D.TpAbort @@
     match v with
     | D.Cut {cut} ->
       ret @@ D.El cut
@@ -427,15 +440,17 @@ struct
       ret @@ D.TpAbort
 
     | con ->
-      CmpM.throw @@ NbeFailed "do_el failed"
+      CM.throw @@ NbeFailed "do_el failed"
 
   and do_coe r s (abs : D.con) con =
+    let open CM in
     test_sequent [] (Cof.eq r s) |>> function
     | true -> ret con
     | _ -> do_rigid_coe abs r s con
 
 
   and dispatch_rigid_coe line r s con =
+    let open CM in
     let i = D.DimProbe (Symbol.named "do_rigid_coe") in
     let rec go peek =
       match peek with
@@ -455,6 +470,7 @@ struct
     go @<< do_ap line (D.dim_to_con i)
 
   and dispatch_rigid_hcom code r s phi (bdy : D.con) =
+    let open CM in
     let rec go code =
       match code with
       | D.CodePi (base, fam) ->
@@ -473,7 +489,8 @@ struct
     go code
 
   and enact_rigid_coe line r s con tag =
-    CmpM.abort_if_inconsistent D.Abort @@
+    let open CM in
+    abort_if_inconsistent D.Abort @@
     match tag with
     | `CoeNat ->
       ret con
@@ -509,7 +526,8 @@ struct
       Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
 
   and enact_rigid_hcom code r s phi bdy tag =
-    CmpM.abort_if_inconsistent D.Abort @@
+    let open CM in
+    abort_if_inconsistent D.Abort @@
     match tag with
     | `HComPi (base, fam) ->
       splice_tm @@
@@ -549,7 +567,8 @@ struct
       ret @@ D.Cut {tp; cut = hd, []}
 
   and do_rigid_coe (line : D.con) r s con =
-    CmpM.abort_if_inconsistent D.Abort @@
+    let open CM in
+    CM.abort_if_inconsistent D.Abort @@
     let* tag = dispatch_rigid_coe line r s con in
     match tag with
     | `Done ->
@@ -560,7 +579,8 @@ struct
       enact_rigid_coe line r s con tag
 
   and do_rigid_hcom code r s phi (bdy : D.con) =
-    CmpM.abort_if_inconsistent D.Abort @@
+    let open CM in
+    CM.abort_if_inconsistent D.Abort @@
     let* tag = dispatch_rigid_hcom code r s phi bdy in
     match tag with
     | `Done cut ->
@@ -571,6 +591,7 @@ struct
       enact_rigid_hcom code r s phi bdy tag
 
   and do_rigid_com (line : D.con) r s phi bdy =
+    let open CM in
     let* code_s = do_ap line (D.dim_to_con s) in
     do_rigid_hcom code_s r s phi @<<
     splice_tm @@
@@ -583,9 +604,9 @@ struct
     TB.coe line i s @@
     TB.ap bdy [i; prf]
 
-  and force_lazy_con lcon : D.con m =
+  and force_lazy_con lcon : D.con CM.m =
     match lcon with
-    | `Done con -> ret con
+    | `Done con -> CM.ret con
     | `Do (con, spine) ->
       do_spine con spine
 
@@ -598,6 +619,7 @@ struct
     | D.KGoalProj -> do_goal_proj con
 
   and do_spine con =
+    let open CM in
     function
     | [] -> ret con
     | k :: sp ->
@@ -607,29 +629,29 @@ end
 
 and Eval :
 sig
-  val eval : S.t -> D.con evaluate
-  val eval_cof : S.t -> D.cof evaluate
-  val eval_tp : S.tp -> D.tp evaluate
+  val eval : S.t -> D.con EvM.m
+  val eval_cof : S.t -> D.cof EvM.m
+  val eval_tp : S.tp -> D.tp EvM.m
 end =
 struct
-  open EvM
   open Compute
-  open Monad.Notation (EvM)
-  module MU = Monad.Util (EvM)
 
   let get_local i =
+    let open EvM in
     let* env = EvM.read_local in
     match Bwd.nth env.conenv i with
     | v -> EvM.ret v
     | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
   let get_local_tp i =
+    let open EvM in
     let* env = EvM.read_local in
     match Bwd.nth env.tpenv i with
     | v -> EvM.ret v
     | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
   let rec eval_tp (tp : S.tp) =
+    let open EvM in
     match tp with
     | S.Nat -> ret D.Nat
     | S.Pi (base, fam) ->
@@ -664,6 +686,7 @@ struct
       get_local_tp ix
 
   and eval =
+    let open EvM in
     function
     | S.Var i ->
       let* con = get_local i in
@@ -727,7 +750,7 @@ struct
       let* s = eval_dim ts in
       let* con = eval tm in
       begin
-        CmpM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
+        CM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
         | true ->
           ret con
         | false ->
@@ -741,7 +764,7 @@ struct
       let* vtpcode = eval tpcode in
       let* vbdy = eval tm in
       begin
-        CmpM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
+        CM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
         | true ->
           lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
         | false ->
@@ -752,7 +775,7 @@ struct
       let* s = eval_dim ts in
       let* phi = eval_cof tphi in
       begin
-        CmpM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
+        CM.test_sequent [] (Cof.join2 (Cof.eq r s) phi) |> lift_cmp |>> function
         | true ->
           append [D.dim_to_con s] @@ eval tm
         | false ->
@@ -822,10 +845,12 @@ struct
       ret D.CodeNat
 
   and eval_dim tr =
+    let open EvM in
     let* con = eval tr in
     lift_cmp @@ con_to_dim con
 
   and eval_cof tphi =
+    let open EvM in
     let* vphi = eval tphi in
     lift_cmp @@ con_to_cof vphi
 end
