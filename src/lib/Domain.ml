@@ -26,6 +26,7 @@ let apply_to x =
 
 let fst = Lam (Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
 let snd = Lam (Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
+let el_out = Lam (Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
 
 let dim_to_con =
@@ -144,5 +145,7 @@ and pp_tp fmt =
     Format.fprintf fmt "<abort>"
   | El con ->
     Format.fprintf fmt "el[%a]" pp_con con
+  | UnfoldEl cut ->
+    Format.fprintf fmt "unfold-el[%a]" pp_cut cut
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"

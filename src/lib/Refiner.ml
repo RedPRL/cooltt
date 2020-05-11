@@ -575,6 +575,24 @@ struct
     T.Tp.make @@
     let+ tm = tac D.Univ in
     S.El tm
+
+  let dest_el tp =
+    match tp with
+    | D.El con ->
+      EM.lift_cmp @@ Sem.unfold_el con
+    | _ ->
+      EM.expected_connective `El tp
+
+  let intro tac =
+    fun (tp, phi, clo) ->
+    let* unfolded = dest_el tp in
+    let+ tm = tac (unfolded, phi, D.un_lam @@ D.compose D.el_out @@ D.Lam clo) in
+    S.ElIn tm
+
+  let elim tac =
+    let* tm, tp = tac in
+    let+ unfolded = dest_el tp in
+    S.ElOut tm, unfolded
 end
 
 
@@ -687,6 +705,8 @@ struct
       EM.ret @@ Pi.intro name tac_body
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ tac_lam name tac_body
+    | D.El _, _, _ ->
+      EM.ret @@ El.intro @@ tac_lam name tac_body
     | _ ->
       EM.throw @@ Invalid_argument "tac_lam cannot be called on this goal"
 

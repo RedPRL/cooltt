@@ -72,9 +72,9 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con tp out
     in
     S.SubIn tout
-  | D.El con, _ ->
+  | D.El code, _ ->
     let+ tout =
-      let* unfolded = lift_cmp @@ unfold_el con in
+      let* unfolded = lift_cmp @@ unfold_el code in
       let* out = lift_cmp @@ do_el_out con in
       quote_con unfolded out
     in
@@ -182,6 +182,9 @@ and quote_tp (tp : D.tp) =
     S.Sg (tbase, tfam)
   | D.Univ ->
     ret S.Univ
+  | D.UnfoldEl cut ->
+    let+ tm = quote_cut cut in
+    S.UnfoldEl tm
   | D.El con ->
     let+ tm = quote_con D.Univ con in
     S.El tm

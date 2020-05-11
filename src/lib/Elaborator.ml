@@ -83,6 +83,8 @@ and bchk_tm : CS.con -> T.bchk_tac =
   R.Tactic.bmatch_goal @@ function
   | D.Sub _, _, _ ->
     EM.ret @@ R.Sub.intro (bchk_tm con)
+  | D.El _, _, _ ->
+    EM.ret @@ R.El.intro (bchk_tm con)
   | _ ->
     EM.ret @@ bchk_tm_ con
 
@@ -196,6 +198,9 @@ and syn_tm : CS.con -> T.syn_tac =
   match tp with
   | D.Sub (tp, _, _) ->
     EM.ret (S.SubOut tm, tp)
+  | D.El con ->
+    let* tp = EM.lift_cmp @@ Sem.unfold_el con in
+    EM.ret (S.ElOut tm, tp)
   | _ ->
     EM.ret (tm, tp)
 

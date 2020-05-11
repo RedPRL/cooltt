@@ -60,6 +60,8 @@ end
 
 module El : sig
   val formation : chk_tac -> tp_tac
+  val intro : bchk_tac -> bchk_tac
+  val elim : syn_tac -> syn_tac
 end
 
 module Pi : sig

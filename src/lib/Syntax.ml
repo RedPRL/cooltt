@@ -133,7 +133,7 @@ let rec pp env fmt tm =
       | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
     end
   | CodeNat ->
-    Format.fprintf fmt "nat"
+    Format.fprintf fmt "<nat>"
   | NatElim (mot, zero, suc, tm) ->
     let x, envx = Pp.Env.bind env None in
     let y, envxy = Pp.Env.bind envx None in
@@ -208,7 +208,9 @@ and pp_tp env fmt tp =
   | Nat ->
     Format.fprintf fmt "nat"
   | El tm ->
-    pp env fmt tm
+    Format.fprintf fmt "el %a" (pp_atomic env) tm
+  | UnfoldEl tm ->
+    Format.fprintf fmt "el! %a" (pp_atomic env) tm
   | TpVar ix ->
     Format.fprintf fmt "#var[%i]" ix
   | GoalTp (_, tp) ->

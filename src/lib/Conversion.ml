@@ -99,6 +99,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     equate_tp tp0 tp1
   | D.El con0, D.El con1 ->
     equate_con D.Univ con0 con1
+  | D.UnfoldEl cut0, D.UnfoldEl cut1 ->
+    equate_cut cut0 cut1
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 

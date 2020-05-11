@@ -46,6 +46,7 @@ and tp =
   | Sub of tp * cof * tm_clo
   | Univ
   | El of con
+  | UnfoldEl of cut
   | GoalTp of string option * tp
   | TpDim
   | TpCof
