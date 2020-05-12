@@ -32,12 +32,10 @@ def J : {
   {C {λ _ => p 0}} → C p
 } = {
   λ A p C d =>
-  coe {λ i =>
-    C {λ j =>
-      hcom A 0 j {∂ i} {λ k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}
-    }
-  } 0 1 d
+  coe {λ i => C {hfill A 0 {∂ i} {λ k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}} 0 1 d
 }
+
+normalize J
 
 /-
 def trans-assoc : {

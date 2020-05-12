@@ -17,7 +17,7 @@
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
 %token PATH
-%token COE COM HCOM
+%token COE COM HCOM HFILL
 %token QUIT NORMALIZE DEF
 %token ELIM REC
 %token EOF
@@ -171,6 +171,8 @@ plain_term:
     { Coe (fam, src, trg, body) }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { HCom (tp, src, trg, phi, body) }
+  | HFILL; tp = atomic_term; src = atomic_term; phi = atomic_term; body = atomic_term
+    { HFill (tp, src, phi, body) }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { AutoHCom (tp, src, trg, body) }
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term

@@ -201,6 +201,12 @@ and bchk_tm : CS.con -> T.bchk_tac =
     T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
   | CS.AutoHCom (tp, r, s, bdy) ->
     R.Univ.auto_hcom (chk_tm tp) (chk_tm r) (chk_tm s) (chk_tm bdy)
+  | CS.HFill (tp, src, cof, tm) ->
+    R.Pi.intro None @@ fun i ->
+    R.Tactic.intro_implicit_connectives @@
+    T.BChk.syn @@
+    R.Tactic.elim_implicit_connectives @@
+    R.Univ.hcom (chk_tm tp) (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
   | _ ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
     match tp with

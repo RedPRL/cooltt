@@ -44,6 +44,7 @@ let keywords =
     ("path", PATH);
     ("coe", COE);
     ("hcom", HCOM);
+    ("hfill", HFILL);
     ("com", COM)
   ]
 }

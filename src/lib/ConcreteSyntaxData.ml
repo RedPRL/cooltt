@@ -58,6 +58,7 @@ and con_ =
   | TopC
   | BotC
   | HCom of con * con * con * con * con
+  | HFill of con * con * con * con
   | AutoHCom of con * con * con * con
   | Com of con * con * con * con * con
 [@@deriving show]
