@@ -1,3 +1,9 @@
+def path : {
+  (A : type) → A → A → type
+} = {
+  λ A x y => pathd {λ _ => A} x y
+}
+
 def symm/filler : {
   (A : type) (p : 𝕀 → A) → 𝕀 → 𝕀 → A
 }= {
@@ -10,7 +16,7 @@ def symm/filler : {
 }
 
 def symm : {
-  (A : type) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
+  (A : type) (p : 𝕀 → A) → path A {p 1} {p 0}
 }= {
   λ A p i => symm/filler A p i 1
 }
@@ -27,7 +33,7 @@ def trans/filler : {
 }
 
 def trans : {
-  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
+  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path A {p 0} {q 1}
 } = {
   λ A p q => trans/filler A p q 1
 }
@@ -45,7 +51,7 @@ normalize J
 
 def J/eq : {
   (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) →
-  (d : C {λ _ => p 0}) → path {λ _ => C {λ _ => p 0}} {J A {λ _ => p 0} C d} d
+  (d : C {λ _ => p 0}) → path {C {λ _ => p 0}} {J A {λ _ => p 0} C d} d
 } = {
   λ A p C d =>
   let square : 𝕀 → 𝕀 → A = λ i => hfill A 0 {∂ i} {λ _ _ => p 0} in
@@ -74,32 +80,16 @@ def trans-left-unit : {
 }
 -/
 
-/-
--- redtt version:
-def trans/unit/l (A : type) (p : 𝕀 → A) : path (path _ (p 0) (p 1)) p (trans _ (λ _ → p 0) p) =
-  λ k i →
-  comp 0 1 [
---| j=0 _ → p 0
-  | k=0 j →
-    comp 0 1 (p 0) [
-    | i=1 l → comp 0 j (p 0) [ l=0 → refl | l=1 → p ]
-    | j=0 | i=0 → refl
-    ]
-  | i=0 → refl
-  | i=1 → p
-  ]
--/
-
 def trans-right-unit : {
   (A : type) (p : 𝕀 → A)
-  → path {λ _ => path {λ _ => A} {p 0} {p 1}} p {trans A p {λ _ => p 1}}
+  → path {path A {p 0} {p 1}} p {trans A p {λ _ => p 1}}
 } = {
   λ A p => trans/filler A p {λ _ => p 1}
 }
 
 def trans-symm-refl : {
   (A : type) (p : 𝕀 → A)
-  → path {λ _ => path {λ _ => A} {p 0} {p 0}} {λ _ => p 0} {trans A p {symm A p}}
+  → path {path A {p 0} {p 0}} {λ _ => p 0} {trans A p {symm A p}}
 } = {
   λ A p k i =>
   hcom A 0 1 {k=0 ∨ ∂ i} {λ j _ =>
@@ -111,7 +101,7 @@ def trans-symm-refl : {
 
 def cong : {
   (A : type) (B : type) (f : A → B) (p : 𝕀 → A) →
-  path {λ _ => B} {f {p 0}} {f {p 1}}
+  path B {f {p 0}} {f {p 1}}
 } = {
   λ A B f p i => f {p i}
 }
@@ -123,7 +113,7 @@ def + : nat → nat → nat = {
   ]
 }
 
-def +-right-unit : (x : nat) → path {λ _ => nat} {+ x 0} x = {
+def +-right-unit : (x : nat) → path nat {+ x 0} x = {
   λ elim [
   | zero =>
     λ _ => 0
@@ -132,11 +122,11 @@ def +-right-unit : (x : nat) → path {λ _ => nat} {+ x 0} x = {
   ]
 }
 
-def +-left-unit : (x : nat) → path {λ _ => nat} {+ 0 x} x = {
+def +-left-unit : (x : nat) → path nat {+ 0 x} x = {
   λ x _ => x
 }
 
-def +-suc-r : (x : nat) (y : nat) → path {λ _ => nat} {+ x {suc y}} {suc {+ x y}} = {
+def +-suc-r : (x : nat) (y : nat) → path nat {+ x {suc y}} {suc {+ x y}} = {
   λ elim [
   | zero =>
     λ x i => {suc x}
@@ -145,7 +135,7 @@ def +-suc-r : (x : nat) (y : nat) → path {λ _ => nat} {+ x {suc y}} {suc {+ x
   ]
 }
 
-def +-comm : (x : nat) (y : nat) → path {λ _ => nat} {+ y x} {+ x y} = {
+def +-comm : (x : nat) (y : nat) → path nat {+ y x} {+ x y} = {
   λ elim [
   | zero => +-right-unit
   | suc {y => ih} =>
@@ -156,7 +146,7 @@ def +-comm : (x : nat) (y : nat) → path {λ _ => nat} {+ y x} {+ x y} = {
 
 def +-assoc : {
   (x : nat) (y : nat) (z : nat) →
-  path {λ _ => nat} {+ {+ x y} z} {+ x {+ y z}}
+  path nat {+ {+ x y} z} {+ x {+ y z}}
 } = {
   λ elim [
   | zero => λ y z i => + y z

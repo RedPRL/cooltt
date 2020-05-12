@@ -38,7 +38,7 @@ def hole-in-type : {
   \y z => ?tmhole
 }
 
-def foo : (x : nat) → (y : nat) × path {\i => nat} x y = {
+def foo : (x : nat) → (y : nat) × pathd {\i => nat} x y = {
   \x =>
   [x, ?hole1]
 }
