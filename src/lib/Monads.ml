@@ -55,7 +55,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.status st.cof_env with
+    match CofEnv.is_consistent st.cof_env with
     | `Consistent -> m st
     | `Inconsistent -> M.ret abort st
 
@@ -94,7 +94,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.status st.cof_env with
+    match CofEnv.is_consistent st.cof_env with
     | `Consistent -> m st
     | `Inconsistent -> M.ret abort st
 
@@ -109,7 +109,8 @@ module QuM =
 struct
 
   module M = Monad.MonadReaderResult (QuL)
-  module MU = Monad.Util(M)
+  module MU = Monad.Util (M)
+  module CM = CofEnv.M (M)
   open Monad.Notation (M)
 
   let read_global =
@@ -131,7 +132,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.status st.cof_env with
+    match CofEnv.is_consistent st.cof_env with
     | `Consistent -> m st
     | `Inconsistent -> M.ret abort st
 
@@ -139,40 +140,26 @@ struct
     fun {state; veil; cof_env} ->
     m {state; veil; cof_env}
 
+  let replace_env cof_env m =
+    M.scope (fun local -> {local with cof_env}) @@
+    abort_if_inconsistent `Abort @@
+    let+ x = m in
+    `Ret x
+
   let restrict phi m =
     let* {cof_env} = M.read in
-    let cof_env = CofEnv.assume cof_env phi in
-    match CofEnv.status cof_env with
-    | `Consistent ->
-      M.scope (fun local -> {local with cof_env}) @@
-      let+ x = m in
-      `Ret x
-    | `Inconsistent ->
-      M.ret `Abort
+    replace_env (CofEnv.assume cof_env phi) m
 
-  let left_invert_under_cof phi m =
-    let rec go cofs m =
-      abort_if_inconsistent () @@
-      match cofs with
-      | [] -> m
-      | (Cof.Var _ | Cof.Cof (Cof.Eq _)) as phi :: cofs ->
-        begin
-          restrict phi @@ go cofs m |>> fun _ -> M.ret ()
-        end
-      | Cof.Cof (Cof.Meet phis) :: cofs ->
-        go (phis @ cofs) m
-      | Cof.Cof (Cof.Join phis) :: cofs ->
-        MU.app (fun phi -> go (phi :: cofs) m) phis
-    in
-    go [phi] m
+  let left_invert_under_cofs phis m =
+    let* {cof_env} = M.read in
+    CM.left_inverse_under_cofs cof_env phis @@
+    fun cof_env ->
+    let+ _ = replace_env cof_env m in ()
 
-  let left_invert_under_current_cof m =
-    let* env = M.read in
-    left_invert_under_cof (CofEnv.unreduced_assumptions env.cof_env) m
+  let left_invert_under_current_cof m = left_invert_under_cofs [] m
 
   let bind_cof_proof phi m =
-    restrict phi @@
-    binder 1 m
+    restrict phi @@ binder 1 m
 
   let top_var tp =
     let+ n = read_local in
@@ -244,7 +231,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun (state, env) ->
-    match CofEnv.status (Env.cof_env env) with
+    match CofEnv.is_consistent (Env.cof_env env) with
     | `Consistent -> m (state, env)
     | `Inconsistent -> M.ret abort (state, env)
 end
