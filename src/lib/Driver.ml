@@ -21,7 +21,7 @@ let pp_message fmt =
   | NormalizedTerm (s, t) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
-      "Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@,"
+      "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
       (S.pp env) s
       (S.pp env) t
 
