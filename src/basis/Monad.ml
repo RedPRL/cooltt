@@ -53,10 +53,10 @@ struct
       let+ y = f x
       and+ ys = map f xs in
       y :: ys
-  let rec app f =
+  let rec iter f =
     function
     | [] -> M.ret ()
-    | (x :: xs) -> let* () = f x in app f xs
+    | (x :: xs) -> let* () = f x in iter f xs
 end
 
 module type MonadReaderResult = sig
