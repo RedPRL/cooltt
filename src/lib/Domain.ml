@@ -42,6 +42,15 @@ let rec cof_to_con =
   | Cof.Cof (Cof.Meet phis) -> Cof (Cof.Meet (List.map cof_to_con phis))
   | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
 
+let pp_lsq fmt () = Format.fprintf fmt "["
+let pp_rsq fmt () = Format.fprintf fmt "]"
+
+let pp_list_group ~left ~right ~sep pp fmt xs =
+  Format.fprintf fmt "@[<hv0>%a %a@ %a@]"
+    left ()
+    (Format.pp_print_list ~pp_sep:sep pp) xs
+    right ()
+
 let rec pp_cut : cut Pp.printer =
   fun fmt ->
   function
@@ -50,6 +59,9 @@ let rec pp_cut : cut Pp.printer =
       pp_hd hd
       pp_spine sp
 
+and pp_split_branch fmt (phi, clo_phi) =
+  Format.fprintf fmt "@[<hv>%a =>@ %a@]" pp_cof phi pp_clo clo_phi
+
 and pp_hd : hd Pp.printer =
   fun fmt ->
   function
@@ -57,8 +69,12 @@ and pp_hd : hd Pp.printer =
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl
-  | Split (tp, phi, psi, clo_phi, clo_psi) ->
-    Format.fprintf fmt "[%a => %a | %a => %a]" pp_cof phi pp_clo clo_phi pp_cof psi pp_clo clo_psi
+  | Split (tp, branches) ->
+    let sep fmt () = Format.fprintf fmt "@ | " in
+    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+      pp_split_branch
+      fmt
+      branches
   | SubOut (cut, phi, clo) ->
     Format.fprintf fmt "sub/out[(%a), %a, %a]" pp_cut cut pp_cof phi pp_clo clo
   | _ ->
