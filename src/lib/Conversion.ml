@@ -78,8 +78,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
-  | D.Pi (base0, fam0), D.Pi (base1, fam1)
-  | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
+  | D.Pi (base0, _, fam0), D.Pi (base1, _, fam1)
+  | D.Sg (base0, _, fam0), D.Sg (base1, _, fam1) ->
     let* () = equate_tp base0 base1 in
     bind_var_ base0 @@ fun x ->
     let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
@@ -118,13 +118,13 @@ and equate_con tp con0 con1 =
   | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _} ->
     QuM.left_invert_under_cofs [Cof.join [phi0; phi1]] @@
     equate_con tp con0 con1
-  | D.Pi (base, fam), _, _ ->
+  | D.Pi (base, _, fam), _, _ ->
     bind_var_ base @@ fun x ->
     let* fib = lift_cmp @@ inst_tp_clo fam x in
     let* ap0 = lift_cmp @@ do_ap con0 x in
     let* ap1 = lift_cmp @@ do_ap con1 x in
     equate_con fib ap0 ap1
-  | D.Sg (base, fam), _, _ ->
+  | D.Sg (base, _, fam), _, _ ->
     let* fst0 = lift_cmp @@ do_fst con0 in
     let* fst1 = lift_cmp @@ do_fst con1 in
     let* () = equate_con base fst0 fst1 in

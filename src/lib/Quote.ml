@@ -26,13 +26,13 @@ open Sem
 
 module QTB :
 sig
-  val lam : D.tp -> (D.con -> S.t m) -> S.t m
+  val lam : ?ident:Ident.t option -> D.tp -> (D.con -> S.t m) -> S.t m
 end =
 struct
-  let lam tp mbdy =
+  let lam ?(ident = None) tp mbdy =
     bind_var ~abort:S.CofAbort tp @@ fun arg ->
     let+ bdy = mbdy arg in
-    S.Lam bdy
+    S.Lam (ident, bdy)
 end
 
 let rec quote_con (tp : D.tp) con : S.t m =
@@ -52,26 +52,37 @@ let rec quote_con (tp : D.tp) con : S.t m =
           let+ ix = quote_var lvl in
           S.Var ix
     end
+
   | _, D.Cut {cut = (hd, sp); tp} ->
     quote_cut (hd, sp)
-  | D.Pi (base, fam), con ->
-    QTB.lam base @@ fun arg ->
+
+  | D.Pi (base, _, fam), D.Lam (ident, clo) ->
+    QTB.lam ~ident base @@ fun arg ->
+    let* fib = lift_cmp @@ inst_tp_clo fam arg in
+    let* ap = lift_cmp @@ inst_tm_clo clo arg in
+    quote_con fib ap
+
+  | D.Pi (base, ident, fam), con ->
+    QTB.lam ~ident base @@ fun arg ->
     let* fib = lift_cmp @@ inst_tp_clo fam arg in
     let* ap = lift_cmp @@ do_ap con arg in
     quote_con fib ap
-  | D.Sg (base, fam), _ ->
+
+  | D.Sg (base, _, fam), _ ->
     let* fst = lift_cmp @@ do_fst con in
     let* snd = lift_cmp @@ do_snd con in
     let* fib = lift_cmp @@ inst_tp_clo fam fst in
     let+ tfst = quote_con base fst
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
+
   | D.Sub (tp, phi, clo), _ ->
     let+ tout =
       let* out = lift_cmp @@ do_sub_out con in
       quote_con tp out
     in
     S.SubIn tout
+
   | D.El code, _ ->
     let+ tout =
       let* unfolded = lift_cmp @@ unfold_el code in
@@ -79,18 +90,24 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con unfolded out
     in
     S.ElIn tout
+
   | _, D.Zero ->
     ret S.Zero
+
   | _, D.Suc n ->
     let+ tn = quote_con D.Nat n in
     S.Suc tn
+
   | D.TpDim, D.DimCon0 ->
     ret @@ S.Dim0
+
   | D.TpDim, D.DimCon1 ->
     ret @@ S.Dim1
+
   | D.TpCof, D.Cof cof ->
     let* phi = lift_cmp @@ cof_con_to_cof cof in
     quote_cof phi
+
   | D.TpPrf _, _ ->
     ret S.Prf
 
@@ -108,6 +125,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
       lift_cmp @@ do_ap fam var
     in
     S.CodePi (tbase, tfam)
+
   | univ, D.CodeSg (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
@@ -181,14 +199,14 @@ and quote_tp (tp : D.tp) =
   match tp with
   | D.TpAbort -> ret @@ S.El S.CofAbort
   | D.Nat -> ret S.Nat
-  | D.Pi (base, fam) ->
+  | D.Pi (base, ident, fam) ->
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
-    S.Pi (tbase, tfam)
-  | D.Sg (base, fam) ->
+    S.Pi (tbase, ident, tfam)
+  | D.Sg (base, ident, fam) ->
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
-    S.Sg (tbase, tfam)
+    S.Sg (tbase, ident, tfam)
   | D.Univ ->
     ret S.Univ
   | D.UnfoldEl cut ->

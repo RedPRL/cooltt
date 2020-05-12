@@ -102,14 +102,14 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
   | S.Nat -> ret D.Nat
-  | S.Pi (base, fam) ->
+  | S.Pi (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Pi (vbase, D.TpClo (fam, env))
-  | S.Sg (base, fam) ->
+    D.Pi (vbase, ident, D.TpClo (fam, env))
+  | S.Sg (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Sg (vbase, D.TpClo (fam, env))
+    D.Sg (vbase, ident, D.TpClo (fam, env))
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -157,7 +157,7 @@ and eval : S.t -> D.con EvM.m =
         | _ ->
           ret @@ D.Cut {tp; cut = (D.Global sym, [])}
       end
-    | S.Let (def, body) ->
+    | S.Let (def, _, body) ->
       let* vdef = eval def in
       append [vdef] @@ eval body
     | S.Ann (term, _) ->
@@ -173,9 +173,9 @@ and eval : S.t -> D.con EvM.m =
       let* vn = eval n in
       let* vsuc = eval suc in
       lift_cmp @@ do_nat_elim vmot vzero vsuc vn
-    | S.Lam t ->
+    | S.Lam (ident, t) ->
       let+ env = read_local in
-      D.Lam (D.Clo (t, env))
+      D.Lam (ident, D.Clo (t, env))
     | S.Ap (t0, t1) ->
       let* con0 = eval t0 in
       let* con1 = eval t1 in
@@ -527,7 +527,7 @@ and do_fst con : D.con CM.m =
   abort_if_inconsistent D.Abort @@
   match con with
   | D.Pair (con0, _) -> ret con0
-  | D.Cut {tp = D.Sg (base, _); cut} ->
+  | D.Cut {tp = D.Sg (base, _, _); cut} ->
     ret @@ cut_frm ~tp:base ~cut D.KFst
   | _ ->
     throw @@ NbeFailed "Couldn't fst argument in do_fst"
@@ -537,7 +537,7 @@ and do_snd con : D.con CM.m =
   abort_if_inconsistent D.Abort @@
   match con with
   | D.Pair (_, con1) -> ret con1
-  | D.Cut {tp = D.Sg (_, fam); cut} ->
+  | D.Cut {tp = D.Sg (_, _, fam); cut} ->
     let* fst = do_fst con in
     let+ fib = inst_tp_clo fam fst in
     cut_frm ~tp:fib ~cut D.KSnd
@@ -554,13 +554,13 @@ and do_ap f a =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match f with
-  | D.Lam clo ->
+  | D.Lam (_, clo) ->
     inst_tm_clo clo a
 
   | D.Destruct dst ->
     do_destruct dst a
 
-  | D.Cut {tp = D.Pi (base, fam); cut} ->
+  | D.Cut {tp = D.Pi (base, _, fam); cut} ->
     let+ fib = inst_tp_clo fam a in
     cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
 

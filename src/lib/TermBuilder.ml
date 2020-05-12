@@ -63,7 +63,7 @@ let el_out m : _ m =
 let lam mbdy : _ m =
   scope @@ fun var ->
   let+ bdy = mbdy var in
-  S.Lam bdy
+  S.Lam (None, bdy)
 
 let rec ap m0 ms : _ m =
   match ms with
@@ -101,7 +101,7 @@ let com mline mr ms mphi mbdy =
 let let_ m k : _ m =
   let+ t = m
   and+ bdy = scope k in
-  S.Let (t, bdy)
+  S.Let (t, None, bdy)
 
 let pair m0 m1 =
   let+ x0 = m0
@@ -162,12 +162,12 @@ let suc m =
 let pi mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
-  S.Pi (base, fam)
+  S.Pi (base, None, fam)
 
 let sg mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
-  S.Sg (base, fam)
+  S.Sg (base, None, fam)
 
 let sub mbase mphi mbdry =
   let+ base = mbase

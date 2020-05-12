@@ -15,7 +15,7 @@ let foreign con k : _ t =
 
 let foreign_cof phi = foreign @@ D.cof_to_con phi
 let foreign_dim r = foreign @@ D.dim_to_con r
-let foreign_clo clo = foreign @@ D.Lam clo
+let foreign_clo clo = foreign @@ D.Lam (None, clo)
 
 let foreign_tp tp k : _ t =
   fun env ->

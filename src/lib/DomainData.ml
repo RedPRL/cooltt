@@ -28,7 +28,7 @@ and tm_clo =
   | Clo of S.t * env
 
 and con =
-  | Lam of tm_clo
+  | Lam of Ident.t option * tm_clo
   | Cut of {tp : tp; cut : cut}
   | Zero
   | Suc of con
@@ -61,8 +61,8 @@ and tp =
   | TpDim
   | TpCof
   | TpPrf of cof
-  | Pi of tp * tp_clo
-  | Sg of tp * tp_clo
+  | Pi of tp * Ident.t option * tp_clo
+  | Sg of tp * Ident.t option * tp_clo
   | Nat
   | TpAbort
 

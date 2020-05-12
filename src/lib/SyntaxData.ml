@@ -3,12 +3,12 @@ open CoolBasis
 type t =
   | Var of int
   | Global of Symbol.t
-  | Let of t * t
+  | Let of t * Ident.t option * t
   | Ann of t * tp
   | Zero
   | Suc of t
   | NatElim of t * t * t * t
-  | Lam of t
+  | Lam of Ident.t option * t
   | Ap of t * t
   | Pair of t * t
   | Fst of t
@@ -41,13 +41,13 @@ and tp =
   | El of t
   | UnfoldEl of t
   | TpVar of int
-  | GoalTp of string option * tp
+  | GoalTp of Ident.t option * tp
   | TpDim
   | TpCof
   | TpPrf of t
   | Sub of tp * t * t
-  | Pi of tp * tp
-  | Sg of tp * tp
+  | Pi of tp * Ident.t option * tp
+  | Sg of tp * Ident.t option * tp
   | Nat
 
 type env = tp list

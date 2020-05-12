@@ -37,7 +37,7 @@ struct
         let name = Env.Cell.name cell in
         let+ base = EM.lift_qu @@ Qu.quote_tp ctp
         and+ fam = EM.abstract name ctp @@ fun _ -> go_tp cells in
-        S.Pi (base, fam)
+        S.Pi (base, name, fam)
     in
 
     let rec go_tm cut : Env.cell bwd -> D.cut =
@@ -49,13 +49,12 @@ struct
     in
 
     let* env = EM.read in
-    let names = Pp.Env.names @@ Env.pp_env env in
     EM.globally @@
     let* sym =
       let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
       let* () =
         () |> EM.emit (ElabEnv.location env) @@ fun fmt () ->
-        Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~names) tp
+        Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." S.pp_sequent tp
       in
       let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
       match flexity with
@@ -239,8 +238,8 @@ struct
       tac0 prf (tp, psi, psi_clo)
     in
     let+ tm1 =
-      let* phi0_fn = EM.lift_ev @@ Sem.eval @@ S.Lam tm0 in
-      let psi_fn = D.Lam psi_clo in
+      let* phi0_fn = EM.lift_ev @@ Sem.eval @@ S.Lam (None, tm0) in
+      let psi_fn = D.Lam (None, psi_clo) in
       let psi' = Cof.join [phi0; psi] in
       let* psi'_fn =
         EM.lift_cmp @@ Sem.splice_tm @@
@@ -318,15 +317,15 @@ struct
       let* base = T.Tp.run_virtual tac_base in
       let* vbase = EM.lift_ev @@ Sem.eval_tp base in
       let+ fam = T.abstract vbase nm @@ fun var -> T.Tp.run @@ tac_fam var in
-      S.Pi (base, fam)
+      S.Pi (base, nm, fam)
 
   let intro name (tac_body : T.var -> T.bchk_tac) : T.bchk_tac =
     function
-    | D.Pi (base, fam), phi, phi_clo ->
+    | D.Pi (base, _, fam), phi, phi_clo ->
       T.abstract base name @@ fun var ->
       let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ T.Var.con var in
-      let+ tm = tac_body var (fib, phi, D.un_lam @@ D.compose (D.Lam (D.apply_to (T.Var.con var))) @@ D.Lam phi_clo) in
-      S.Lam tm
+      let+ tm = tac_body var (fib, phi, D.un_lam @@ D.compose (D.Lam (None, D.apply_to (T.Var.con var))) @@ D.Lam (None, phi_clo)) in
+      S.Lam (name, tm)
     | tp, _, _ ->
       EM.expected_connective `Pi tp
 
@@ -349,16 +348,16 @@ struct
       let* base = T.Tp.run tac_base in
       let* vbase = EM.lift_ev @@ Sem.eval_tp base in
       let+ fam = T.abstract vbase nm @@ fun var -> T.Tp.run @@ tac_fam var in
-      S.Sg (base, fam)
+      S.Sg (base, nm, fam)
 
   let intro (tac_fst : T.bchk_tac) (tac_snd : T.bchk_tac) : T.bchk_tac =
     function
-    | D.Sg (base, fam), phi, phi_clo ->
-      let* tfst = tac_fst (base, phi, D.un_lam @@ D.compose D.fst @@ D.Lam phi_clo) in
+    | D.Sg (base, _, fam), phi, phi_clo ->
+      let* tfst = tac_fst (base, phi, D.un_lam @@ D.compose D.fst @@ D.Lam (None, phi_clo)) in
       let+ tsnd =
         let* vfst = EM.lift_ev @@ Sem.eval tfst in
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam vfst in
-        tac_snd (fib, phi, D.un_lam @@ D.compose D.snd @@ D.Lam phi_clo)
+        tac_snd (fib, phi, D.un_lam @@ D.compose D.snd @@ D.Lam (None, phi_clo))
       in
       S.Pair (tfst, tsnd)
     | tp , _, _ ->
@@ -592,7 +591,7 @@ struct
   let intro tac =
     fun (tp, phi, clo) ->
     let* unfolded = dest_el tp in
-    let+ tm = tac (unfolded, phi, D.un_lam @@ D.compose D.el_out @@ D.Lam clo) in
+    let+ tm = tac (unfolded, phi, D.un_lam @@ D.compose D.el_out @@ D.Lam (None, clo)) in
     S.ElIn tm
 
   let elim tac =
@@ -637,7 +636,7 @@ struct
       T.abstract (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) nm_x @@ fun var ->
       tac_bdy var goal
     in
-    EM.ret @@ S.Let (S.SubIn tdef, tbdy)
+    EM.ret @@ S.Let (S.SubIn tdef, nm_x, tbdy)
 
   let let_syn tac_def nm_x (tac_bdy : T.var -> T.syn_tac) : T.syn_tac =
     let* tdef, tp_def = tac_def in
@@ -653,7 +652,7 @@ struct
       EM.ret (tbdy, tbdytp)
     in
     let* bdytp = EM.lift_ev @@ EvM.append [D.SubIn vdef] @@ Sem.eval_tp tbdytp in
-    EM.ret (S.Let (S.SubIn tdef, tbdy), bdytp)
+    EM.ret (S.Let (S.SubIn tdef, nm_x, tbdy), bdytp)
 end
 
 
@@ -749,9 +748,9 @@ struct
     function
     | D.El code ->
       ret_code code
-    | D.Pi (base, fam) ->
+    | D.Pi (base, _, fam) ->
       Univ.pi (unravel_tp base) (unravel_fam ~base fam)
-    | D.Sg (base, fam) ->
+    | D.Sg (base, _, fam) ->
       Univ.pi (unravel_tp base) (unravel_fam ~base fam)
     | _ -> failwith ""
 
@@ -775,7 +774,7 @@ struct
    *     unravel_iso_fwd A M : el(unravel_tp((x : A) -> B(x)))
    *                     ... : el(∏(unravel_tp(A), λ x:unravel_tp(A). unravel_tp(B(bwd[A](x)))))
    *)
-     | D.Pi (base, fam) as pitp ->
+     | D.Pi (base, _, fam) as pitp ->
        T.Chk.bchk @@ El.intro @@
        (* (x : el(unravel_tp(A))) -> el(unravel_tp(B(bwd[A](x))) *)
        Pi.intro None @@ fun x ->
@@ -801,7 +800,7 @@ struct
     match tp with
     | D.El _ -> tac
 
-    | D.Pi (base, fam) as pitp ->
+    | D.Pi (base, _, fam) as pitp ->
   (*
    *     A type
    *     x : A |- B(x) type

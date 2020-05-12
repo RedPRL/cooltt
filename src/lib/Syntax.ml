@@ -5,11 +5,8 @@ let rec condense =
   function
   | Zero -> Some 0
   | Suc t ->
-    begin
-      match condense t with
-      | Some n -> Some (n + 1)
-      | None -> None
-    end
+    Option.map (fun n -> n + 1) @@
+    condense t
   | _ -> None
 
 
@@ -167,8 +164,8 @@ let rec pp env fmt tm =
     Format.fprintf fmt "*"
   | Ann (tm, _) ->
     pp env fmt tm
-  | Let (tm, bdy) ->
-    let x, envx = Pp.Env.bind env None in
+  | Let (tm, ident, bdy) ->
+    let x, envx = Pp.Env.bind env ident in
     Format.fprintf fmt "@[let %a = %a in@ %a@]"
       Uuseg_string.pp_utf_8 x
       (pp env) tm
@@ -176,15 +173,15 @@ let rec pp env fmt tm =
 
 and pp_tp env fmt tp =
   match tp with
-  | Pi (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
+  | Pi (base, ident, fam) ->
+    let x, envx = Pp.Env.bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
       Uuseg_string.pp_utf_8 x
       (pp_tp env) base
       Uuseg_string.pp_utf_8 "→"
       (pp_tp envx) fam
-  | Sg (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
+  | Sg (base, ident, fam) ->
+    let x, envx = Pp.Env.bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
       Uuseg_string.pp_utf_8 x
       (pp_tp env) base
@@ -247,8 +244,8 @@ and pp_applications env fmt tm =
 
 and pp_lambdas env fmt tm =
   match tm with
-  | Lam tm ->
-    let x, envx = Pp.Env.bind env None in
+  | Lam (nm, tm) ->
+    let x, envx = Pp.Env.bind env nm in
     Format.fprintf fmt "%a %a"
       Uuseg_string.pp_utf_8 x
       (pp_lambdas envx) tm
@@ -286,22 +283,22 @@ let pp_sequent_goal env fmt tp  =
   | tp ->
     pp_tp env fmt tp
 
-let rec pp_sequent_inner ~names env fmt tp =
-  match names, tp with
-  | nm :: names, Pi (base, fam) ->
-    let x, envx = Pp.Env.bind env @@ Some nm in
+let rec pp_sequent_inner env fmt tp =
+  match tp with
+  | Pi (base, ident, fam) ->
+    let x, envx = Pp.Env.bind env ident in
     Fmt.fprintf fmt "%a : %a@;%a"
       Uuseg_string.pp_utf_8 x
       (pp_tp env) base
-      (pp_sequent_inner ~names envx) fam
-  | _, tp ->
+      (pp_sequent_inner envx) fam
+  | tp ->
     Format.fprintf fmt "|- @[<hov>%a@]"
       (pp_sequent_goal env)
       tp
 
-let pp_sequent ~names : tp Pp.printer =
+let pp_sequent : tp Pp.printer =
   fun fmt tp ->
   Format.fprintf fmt "@[<v>%a@]"
-    (pp_sequent_inner ~names Pp.Env.emp) tp
+    (pp_sequent_inner Pp.Env.emp) tp
 
 type env = tp list
