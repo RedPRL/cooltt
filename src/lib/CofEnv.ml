@@ -163,8 +163,8 @@ end
 module BoolSearchAll = Search (BoolSeqAll)
 
 let test_sequent env cx phi =
-  BoolSearchAll.left_invert env cx @@
-  fun env -> test env phi
+  BoolSearchAll.left_invert env cx @@ fun env ->
+  test env phi
 
 let assume env phi =
   match env with
