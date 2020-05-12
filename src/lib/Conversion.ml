@@ -244,7 +244,10 @@ and equate_frm k0 k1 =
     let* () = equate_tp tp0 tp1 in
     equate_con tp0 con0 con1
   | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
-    let mot_tp = D.Pi (D.Nat, D.const_tp_clo D.Univ) in
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.nat @@ fun _ -> TB.univ
+    in
     let* () = equate_con mot_tp mot0 mot1 in
     let* () =
       let* mot_zero = lift_cmp @@ do_ap mot0 D.Zero in

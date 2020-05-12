@@ -290,7 +290,10 @@ and quote_spine tm =
 and quote_frm tm =
   function
   | D.KNatElim (mot, zero_case, suc_case) ->
-    let mot_tp = D.Pi (D.Nat, D.const_tp_clo D.Univ) in
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.nat @@ fun _ -> TB.univ
+    in
     let* tmot = quote_con mot_tp mot in
     let* tzero_case =
       let* mot_zero = lift_cmp @@ do_ap mot D.Zero in

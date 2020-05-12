@@ -81,7 +81,7 @@ struct
 
   let bchk : BChk.tac -> tac =
     fun btac tp ->
-    let triv = D.const_tm_clo D.Abort in
+    let triv = D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp}) in
     btac (tp, Cof.bot, triv)
 
   let syn (tac : Syn.tac) : tac =

@@ -10,14 +10,6 @@ let push frm (hd, sp) =
 let mk_var tp lvl =
   Cut {tp; cut = Var lvl, []}
 
-let const_tm_clo con =
-  Clo (S.Var 1, {tpenv = Emp; conenv = Snoc (Emp, con)})
-  (* y, x |= y *)
-
-let const_tp_clo tp =
-  TpClo (S.TpVar 1, {tpenv = Snoc (Emp, tp); conenv = Emp})
-  (* y, x |= y *)
-
 let un_lam con =
   Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
   (* y, x |= y(x) *)

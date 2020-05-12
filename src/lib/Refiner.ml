@@ -73,11 +73,11 @@ struct
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
-    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
+    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
     EM.lift_qu @@ Qu.quote_tp @@ D.El (D.Cut {tp = D.Univ; cut})
 
   let unleash_syn_hole name flexity : T.syn_tac =
-    let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
+    let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let+ tm = T.Chk.bchk (unleash_hole name flexity) tp in
     tm, tp
@@ -629,7 +629,11 @@ struct
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Sem.eval tdef in
     let* tbdy =
-      T.abstract (D.Sub (tp_def, Cofibration.top, D.const_tm_clo vdef)) nm_x @@ fun var ->
+      let* const_vdef =
+        EM.lift_cmp @@ Sem.splice_tm @@ Splice.foreign vdef @@ fun vdef ->
+        Splice.term @@ TB.lam @@ fun _ -> vdef
+      in
+      T.abstract (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) nm_x @@ fun var ->
       tac_bdy var goal
     in
     EM.ret @@ S.Let (S.SubIn tdef, tbdy)
@@ -667,8 +671,11 @@ struct
     EM.push_problem "elim" @@
     let* tscrut, nattp = tac_scrut in
     let* () = assert_nat nattp in
-
-    let* tmot = tac_mot @@ D.Pi (D.Nat, D.const_tp_clo D.Univ) in
+    let* tmot =
+      tac_mot @<<
+      EM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.nat @@ fun _ -> TB.univ
+    in
     let* vmot = EM.lift_ev @@ Sem.eval tmot in
 
     let* tcase_zero =
