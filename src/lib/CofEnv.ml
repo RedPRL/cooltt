@@ -67,7 +67,7 @@ sig
   (** Checking whether the [env'] is inconsistent.
       Invariant: intput [env.classes] must be consistent;
       the inconsistency can only come from [env.unreduced_joins.] *)
-  val consistency' : env' -> bool
+  val is_consistent : env' -> bool
 end
 =
 struct
@@ -91,15 +91,15 @@ struct
           else
             pushes' {env with classes} phis
 
-  (** [consistency'] is almost a duplicate of the most general search. It exists because
+  (** [is_consistent] is almost a duplicate of the most general search. It exists because
     * (1) it's a clean way to avoid checking consistency within consistency and
     * (2) it's a clean way to avoid recursive modules. *)
-  let rec consistency' ({classes; true_vars; unreduced_joins} as env) =
+  let rec is_consistent ({classes; true_vars; unreduced_joins} as env) =
     match unreduced_joins with
     | [] -> true
     | psis :: unreduced_joins ->
       psis |> List.exists @@ fun psi ->
-      Option.fold ~none:false ~some:consistency' @@
+      Option.fold ~none:false ~some:is_consistent @@
       pushes' {env with unreduced_joins} [psi]
 end
 
@@ -121,7 +121,7 @@ struct
         match unreduced_joins with
         | [] -> cont {classes; true_vars}
         | psis :: unreduced_joins ->
-          if SearchHelper.consistency' env then
+          if SearchHelper.is_consistent env then
             psis |> M.seq @@ fun psi ->
             go @@ SearchHelper.pushes' {env with unreduced_joins} [psi]
           else
@@ -153,8 +153,15 @@ let rec test (local : reduced_env) : D.cof -> bool =
   | Cof.Var v ->
     VarSet.mem v local.true_vars
 
-module BoolSeqAll = struct type t = bool let vacuous = true let seq = List.for_all end
+module BoolSeqAll : SEQ with type t = bool =
+struct
+  type t = bool
+  let vacuous = true
+  let seq = List.for_all
+end
+
 module BoolSearchAll = Search (BoolSeqAll)
+
 let test_sequent env cx phi =
   BoolSearchAll.left_invert env cx @@
   fun env -> test env phi
@@ -168,7 +175,7 @@ let assume env phi =
     with
     | None -> `Inconsistent
     | Some env ->
-      if SearchHelper.consistency' env
+      if SearchHelper.is_consistent env
       then `Consistent env
       else `Inconsistent
 
