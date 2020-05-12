@@ -19,8 +19,12 @@ let parse_with_error lexbuf =
     let msg = Printf.sprintf "%s: syntax error.\n" location in
     raise (Parse_error msg)
 
-let load_file filename =
-  let ch = open_in filename in
+let load input =
+  let ch, filename =
+    match input with
+    | None -> stdin, "[stdin]"
+    | Some filename -> open_in filename, filename
+  in
   let lexbuf = Lexing.from_channel ch in
   lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = filename};
   let sign = parse_with_error lexbuf in

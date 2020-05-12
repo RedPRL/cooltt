@@ -1,7 +1,7 @@
 open Core
 open Cmdliner
 
-let execute input = Load.load_file input |> Driver.process_sign
+let execute input = Load.load input |> Driver.process_sign
 
 let main input =
   try
@@ -21,17 +21,16 @@ let main input =
     Log.pp_message ~loc ~lvl:`Error ElabError.pp Format.err_formatter err;
     1
 
-let input_file =
-  let doc = "File containing the program to type-Ann" in
-  Arg.(
-    required & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
+let opt_input_file =
+  let doc = "The file to typecheck. With no FILE, read standard input." in
+  Arg.(value & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
 
 let info =
-  let doc = "Elaborate and normalize terms in Martin-Lof Type Theory" in
-  let err_exit = Term.exit_info ~doc:"on an ill-formed types or terms." 1 in
+  let doc = "elaborate and normalize terms in Cartesian cubical type theory" in
+  let err_exit = Term.exit_info ~doc:"on ill-formed types or terms." 1 in
   Term.info "cooltt" ~version:"0.0" ~doc
     ~exits:(err_exit :: Term.default_exits)
 
 let () =
-  let t = Term.(const main $ input_file) in
+  let t = Term.(const main $ opt_input_file) in
   Term.exit_status @@ Term.eval (t, info)
