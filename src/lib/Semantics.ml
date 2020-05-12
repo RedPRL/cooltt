@@ -822,12 +822,6 @@ and do_rigid_com (line : D.con) r s phi bdy =
   TB.coe line i s @@
   TB.ap bdy [i; prf]
 
-and force_lazy_con lcon : D.con CM.m =
-  match lcon with
-  | `Done con -> CM.ret con
-  | `Do (con, spine) ->
-    do_spine con spine
-
 and do_frm con =
   function
   | D.KAp (_, con') -> do_ap con con'

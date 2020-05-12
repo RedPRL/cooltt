@@ -67,8 +67,6 @@ and hd =
 
 and cut = hd * frm list
 
-and lazy_con = [`Do of con * frm list | `Done of con]
-
 and frm =
   | KAp of tp * con
   | KFst
