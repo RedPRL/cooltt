@@ -64,7 +64,7 @@ sig
       Otherwise, [Some env] is returned and [env.classes] will be consistent. *)
   val pushes' : env' -> D.cof list -> env' option
 
-  (** Checking whether the [env'] is inconsistent.
+  (** Checking whether the [env'] is consistent.
       Invariant: intput [env.classes] must be consistent;
       the inconsistency can only come from [env.unreduced_joins.] *)
   val is_consistent : env' -> bool
