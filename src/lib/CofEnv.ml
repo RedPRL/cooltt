@@ -32,7 +32,7 @@ let init () =
 
 let inconsistent = `Inconsistent
 
-let is_consistent =
+let consistency =
   function
   | `Consistent _ -> `Consistent
   | `Inconsistent -> `Inconsistent
