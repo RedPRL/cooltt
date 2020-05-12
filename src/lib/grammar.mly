@@ -145,7 +145,7 @@ plain_term:
     { Lam (BN {names; body}) }
   | LAM; ELIM; cases = cases
     { LamElim cases }
-  | ELIM; scrut = term; AT; mot = motive; cases = cases
+  | ELIM; scrut = term; AT; mot = atomic_term; cases = cases
     { Elim {mot; cases; scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
@@ -173,10 +173,6 @@ plain_term:
     { AutoHCom (tp, src, trg, body) }
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
-
-motive:
-  | LBR names = list(name) RRIGHT_ARROW body = term RBR
-    { BN {names; body} }
 
 cases:
   | LSQ option(PIPE) cases = separated_list(PIPE, case) RSQ

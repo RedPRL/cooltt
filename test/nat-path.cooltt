@@ -136,7 +136,7 @@ def test : {
   (p : 𝕀 → nat) → (i : 𝕀) → nat
 } = {
   λ p i =>
-  elim {symm nat p i} @ {_ => nat} [
+  elim {symm nat p i} @ {λ _ => nat} [
   | zero => zero
   | suc {x => ih} => zero
   ]

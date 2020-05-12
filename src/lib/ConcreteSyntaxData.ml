@@ -42,7 +42,7 @@ and con_ =
   | Hole of ident option
   | Underscore
   | Unfold of ident list * con
-  | Elim of {mot : bindern; cases : case list; scrut : con}
+  | Elim of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
   | Dim
   | Cof

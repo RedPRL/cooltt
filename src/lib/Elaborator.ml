@@ -230,9 +230,9 @@ and syn_tm : CS.con -> T.syn_tac =
     R.Sg.pi1 @@ syn_tm t
   | CS.Snd t ->
     R.Sg.pi2 @@ syn_tm t
-  | CS.Elim {mot = BN {names = [x]; body = mot}; cases; scrut} ->
+  | CS.Elim {mot; cases; scrut} ->
     R.Tactic.Elim.elim
-      (T.Chk.bchk @@ R.Pi.intro (Some x) @@ fun _ -> bchk_tm mot)
+      (chk_tm mot)
       (chk_cases cases)
       (syn_tm scrut)
   | CS.Ann {term; tp} ->
