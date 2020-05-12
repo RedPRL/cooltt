@@ -127,7 +127,7 @@ struct
           else
             M.vacuous
     in
-    go (SearchHelper.pushes' env phis)
+    go @@ SearchHelper.pushes' env phis
 
   let left_invert env phis cont =
     match env with
