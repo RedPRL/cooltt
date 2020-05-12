@@ -104,7 +104,7 @@ struct
       List.exists search psis
 end
 
-module Search : functor (M : SEQ) ->
+module Search (M : SEQ) :
 sig
   (** Search all branches assuming more cofibrations. *)
   val left_invert : env -> D.cof list -> (reduced_env -> M.t) -> M.t
@@ -113,7 +113,6 @@ sig
       Invariant: [env.classes] must be consistent *)
   val left_invert' : env' -> D.cof list -> (reduced_env -> M.t) -> M.t
 end =
-functor (M : SEQ) ->
 struct
   let left_invert' env phis cont =
     let rec go =
