@@ -116,7 +116,7 @@ and equate_con tp con0 con1 =
   | _, _, D.Abort -> ret ()
   | _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _}, _
   | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _} ->
-    QuM.left_invert_under_cof (Cof.join [phi0; phi1]) @@
+    QuM.left_invert_under_cofs [Cof.join [phi0; phi1]] @@
     equate_con tp con0 con1
   | D.Pi (base, fam), _, _ ->
     bind_var_ base @@ fun x ->
@@ -208,7 +208,7 @@ and equate_cut cut0 cut1 =
   match hd0, hd1 with
   | D.Split (tp, phi0, phi1, _, _), _
   | _, D.Split (tp, phi0, phi1, _, _) ->
-    QuM.left_invert_under_cof (Cof.join [phi0; phi1]) @@
+    QuM.left_invert_under_cofs [Cof.join [phi0; phi1]] @@
     let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut cut0 in
     let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut cut1 in
     equate_con tp con0 con1
@@ -306,10 +306,10 @@ and equate_hd hd0 hd1 =
   | hd, D.Split (tp, phi0, phi1, clo0, clo1)
   | D.Split (tp, phi0, phi1, clo0, clo1), hd ->
     let* () =
-      QuM.left_invert_under_cof phi0 @@
+      QuM.left_invert_under_cofs [phi0] @@
       equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo0 [D.Prf]
     in
-    QuM.left_invert_under_cof phi1 @@
+    QuM.left_invert_under_cofs [phi1] @@
     equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)

@@ -23,7 +23,7 @@ module Notation (M : S) : Notation with type 'a m = 'a M.m
 module Util (M : S) : sig
   val commute_list : 'a M.m list -> 'a list M.m
   val map : ('a -> 'b M.m) -> 'a list -> 'b list M.m
-  val app : ('a -> unit M.m) -> 'a list -> unit M.m
+  val iter : ('a -> unit M.m) -> 'a list -> unit M.m
 end
 
 module type MonadReaderResult = sig
