@@ -1,4 +1,4 @@
 exception Parse_error of string
 
-(* Load and parse a file *)
-val load_file : string -> ConcreteSyntax.signature
+(* Load and parse a file or stdin *)
+val load : string option -> ConcreteSyntax.signature
