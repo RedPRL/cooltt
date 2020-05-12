@@ -51,7 +51,7 @@ sig
 
   (** The sequencing operator. Technically, we can demand [seq' : t list -> t] instead
     * and the current [seq f l] would be [seq' (map f l)]. However, [List.for_all] and
-    * [CoolBasis.Monad.Util.app] directly fit into this type. *)
+    * [CoolBasis.Monad.Util.iter] directly fit into this type. *)
   val seq : ('a -> t) -> 'a list -> t
 end
 
