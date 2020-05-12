@@ -142,4 +142,26 @@ def test : {
   ]
 }
 
+
+def test2 : {
+  (i : 𝕀) → nat
+} = {
+  λ i =>
+  rec {symm nat {\_ => zero} i} @ nat [
+  | zero => zero
+  | suc {x => ih} => zero
+  ]
+}
+
 normalize test
+
+-- You can "normalize" test2; observe how on the inside, there is some eliminator
+-- that ought to be computed away, but is blocked by a disjunction system.
+normalize test2
+
+-- The following illustrates that alghouth cooltt's quasi-normal forms aren't as fully
+-- reduced as they could be, it is of no consequence for definitional
+-- equivalence. That is, we don't bother pushing eliminators through all the
+-- branches of a disjunction split, but our equational theory acts as if we do.
+def test2' : sub {𝕀 → nat} #t {λ i => hcom nat 0 1 {∂ i} {λ _ _ => 0}} = test2
+
