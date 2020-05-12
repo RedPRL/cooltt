@@ -152,8 +152,8 @@ let assume env phi =
 (** Monadic interface *)
 module M (M : CoolBasis.Monad.S) :
 sig
-    (* Search all branches under one more cofibration *)
-    val left_inverse_under_cofs : env -> D.cof list -> (env -> unit M.m) -> unit M.m
+  (* Search all branches under one more cofibration *)
+  val left_inverse_under_cofs : env -> D.cof list -> (env -> unit M.m) -> unit M.m
 end
 =
 struct
