@@ -168,12 +168,11 @@ and eval : S.t -> D.con EvM.m =
       let+ con = eval t in
       D.Suc con
     | S.NatElim (mot, zero, suc, n) ->
+      let* vmot = eval mot in
       let* vzero = eval zero in
       let* vn = eval n in
-      let* env = read_local in
-      let clmot = D.TpClo (mot, env) in
-      let clsuc = D.Clo (suc, env) in
-      lift_cmp @@ do_nat_elim clmot vzero clsuc vn
+      let* vsuc = eval suc in
+      lift_cmp @@ do_nat_elim vmot vzero vsuc vn
     | S.Lam t ->
       let+ env = read_local in
       D.Lam (D.Clo (t, env))
@@ -451,7 +450,7 @@ and whnf_tp =
   | tp ->
     ret `Done
 
-and do_nat_elim (mot : D.tp_clo) zero suc n : D.con CM.m =
+and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match n with
@@ -459,10 +458,10 @@ and do_nat_elim (mot : D.tp_clo) zero suc n : D.con CM.m =
     ret zero
   | D.Suc n ->
     let* v = do_nat_elim mot zero suc n in
-    inst_tm_clo suc [n; v]
+    do_ap2 suc n v
   | D.Cut {cut} ->
-    let+ fib = inst_tp_clo mot [n] in
-    cut_frm ~tp:fib ~cut @@
+    let+ fib = do_ap mot n  in
+    cut_frm ~tp:(D.El fib) ~cut @@
     D.KNatElim (mot, zero, suc)
   | D.FHCom (`Nat, r, s, phi, bdy) ->
     (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)

@@ -7,7 +7,7 @@ type t =
   | Ann of t * tp
   | Zero
   | Suc of t
-  | NatElim of tp * t * t * t
+  | NatElim of t * t * t * t
   | Lam of t
   | Ap of t * t
   | Pair of t * t

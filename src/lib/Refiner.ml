@@ -663,34 +663,37 @@ struct
     let+ t = tac tp in
     S.Suc t
 
-  let elim (nm_mot, tac_mot) tac_case_zero (nm_x, nm_ih, tac_case_suc) tac_scrut : T.syn_tac =
+  let elim (tac_mot : T.chk_tac) (tac_case_zero : T.chk_tac) (tac_case_suc : T.chk_tac) tac_scrut : T.syn_tac =
     EM.push_problem "elim" @@
     let* tscrut, nattp = tac_scrut in
     let* () = assert_nat nattp in
 
-    let* tmot =
-      EM.abstract nm_mot nattp @@ fun _ ->
-      T.Tp.run tac_mot
-    in
+    let* tmot = tac_mot @@ D.Pi (D.Nat, D.const_tp_clo D.Univ) in
+    let* vmot = EM.lift_ev @@ Sem.eval tmot in
 
     let* tcase_zero =
-      tac_case_zero @<<
-      EM.lift_ev @@ EvM.append [D.Zero] @@ Sem.eval_tp tmot
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot D.Zero in
+      tac_case_zero @@ D.El code
     in
 
     let* tcase_suc =
-      EM.abstract nm_x nattp @@ fun x ->
-      let* fib_x = EM.lift_ev @@ EvM.append [x] @@ Sem.eval_tp tmot in
-      let* fib_suc_x = EM.lift_ev @@ EvM.append [D.Suc x] @@ Sem.eval_tp tmot in
-      EM.abstract nm_ih fib_x @@ fun _ ->
-      tac_case_suc fib_suc_x
+      let* suc_tp =
+        EM.lift_cmp @@ Sem.splice_tp @@
+        Splice.foreign vmot @@ fun mot ->
+        Splice.term @@
+        TB.pi TB.nat @@ fun x ->
+        TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+        TB.el @@ TB.ap mot [TB.suc x]
+      in
+      tac_case_suc suc_tp
     in
 
     let+ fib_scrut =
       let* vscrut = EM.lift_ev @@ Sem.eval tscrut in
-      EM.lift_ev @@ EvM.append [vscrut] @@ Sem.eval_tp tmot
+      EM.lift_cmp @@ Sem.do_ap vmot vscrut
     in
-    S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
+
+    S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), D.El fib_scrut
 end
 
 
@@ -872,12 +875,12 @@ struct
       | [] ->
         None
 
-    let elim (mot : CS.ident option list * T.tp_tac) (cases : case_tac list) (scrut : T.syn_tac) : T.syn_tac =
+    let elim (mot : T.chk_tac) (cases : case_tac list) (scrut : T.syn_tac) : T.syn_tac =
       let* tscrut, ind_tp = scrut in
       let scrut = EM.ret (tscrut, ind_tp) in
       match ind_tp, mot with
-      | D.Nat, ([nm_x], mot) ->
-        let* tac_zero =
+      | D.Nat, mot ->
+        let* tac_zero : T.chk_tac =
           match find_case "zero" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
@@ -885,12 +888,14 @@ struct
         in
         let* tac_suc =
           match find_case "suc" cases with
-          | Some ([`Simple nm_z], tac) -> EM.ret (nm_z, None, tac)
-          | Some ([`Inductive (nm_z, nm_ih)], tac) -> EM.ret (nm_z, nm_ih, tac)
+          | Some ([`Simple nm_z], tac) ->
+            EM.ret @@ Pi.intro nm_z @@ fun _ -> Pi.intro None @@ fun _ -> T.BChk.chk tac
+          | Some ([`Inductive (nm_z, nm_ih)], tac) ->
+            EM.ret @@ Pi.intro nm_z @@ fun _ -> Pi.intro nm_ih @@ fun _ -> T.BChk.chk tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ (None, None, T.Chk.bchk @@ Hole.unleash_hole (Some "suc") `Rigid)
+          | None -> EM.ret @@ Hole.unleash_hole (Some "suc") `Rigid
         in
-        Nat.elim (nm_x, mot) tac_zero tac_suc scrut
+        Nat.elim mot tac_zero (T.Chk.bchk tac_suc) scrut
       | _ ->
         EM.with_pp @@ fun ppenv ->
         let* tp = EM.lift_qu @@ Qu.quote_tp ind_tp in
@@ -908,17 +913,22 @@ struct
     let lam_elim cases : T.bchk_tac =
       match_goal @@ fun (tp, _, _) ->
       let* base, fam = EM.dest_pi tp in
-      let+ () = assert_simple_inductive base in
-      let mot_tac : T.tp_tac =
-        T.Tp.make @@
-        let x = S.Var 0 in
-        let* vx = EM.lift_ev @@ Sem.eval x in
-        let* vmot = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx] in
-        EM.lift_qu @@ Qu.quote_tp vmot
+      let mot_tac : T.chk_tac =
+        T.Chk.bchk @@
+        Pi.intro None @@ fun var ->
+        T.BChk.chk @@ fun goal ->
+        Format.eprintf "Before@.";
+        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [T.Var.con var] in
+        Format.eprintf "After@.";
+        match fib with
+        | D.El code ->
+          EM.lift_qu @@ Qu.quote_con D.Univ code
+        | _ -> failwith "lam_elim"
       in
+      EM.ret @@
       Pi.intro None @@ fun x ->
       T.BChk.syn @@
-      elim ([None], mot_tac) cases @@
-      T.Var.syn x
+      elim mot_tac cases @@
+      El.elim @@ T.Var.syn x
   end
 end

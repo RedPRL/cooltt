@@ -90,9 +90,9 @@ module Nat : sig
   val literal : int -> chk_tac
   val suc : chk_tac -> chk_tac
   val elim
-    : (CS.ident option * tp_tac)
+    : chk_tac
     -> chk_tac
-    -> (CS.ident option * CS.ident option * chk_tac)
+    -> chk_tac
     -> syn_tac
     -> syn_tac
 end
@@ -119,7 +119,7 @@ module Tactic : sig
     type case_tac = CS.pat * chk_tac
 
     val elim
-      : (CS.ident option list * tp_tac)
+      : chk_tac
       -> case_tac list
       -> syn_tac
       -> syn_tac

@@ -244,23 +244,21 @@ and equate_frm k0 k1 =
     let* () = equate_tp tp0 tp1 in
     equate_con tp0 con0 con1
   | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
-    let* fibx =
-      bind_var ~abort:D.TpAbort D.Nat @@ fun var ->
-      let* fib0 = lift_cmp @@ inst_tp_clo mot0 [var] in
-      let* fib1 = lift_cmp @@ inst_tp_clo mot1 [var] in
-      let+ () = equate_tp fib0 fib1  in
-      fib0
-    in
+    let mot_tp = D.Pi (D.Nat, D.const_tp_clo D.Univ) in
+    let* () = equate_con mot_tp mot0 mot1 in
     let* () =
-      let* fib = lift_cmp @@ inst_tp_clo mot0 [D.Zero] in
-      equate_con fib zero_case0 zero_case1
+      let* mot_zero = lift_cmp @@ do_ap mot0 D.Zero in
+      equate_con (D.El mot_zero) zero_case0 zero_case1
     in
-    bind_var ~abort:() D.Nat @@ fun x ->
-    bind_var ~abort:() fibx @@ fun ih ->
-    let* fib_sucx = lift_cmp @@ inst_tp_clo mot0 [D.Suc x] in
-    let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
-    let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
-    equate_con fib_sucx con0 con1
+    let* suc_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot0 @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.nat @@ fun x ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.el @@ TB.ap mot [TB.suc x]
+    in
+    equate_con suc_tp suc_case0 suc_case1
   | D.KGoalProj, D.KGoalProj ->
     ret ()
   | D.KElOut, D.KElOut ->

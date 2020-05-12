@@ -137,17 +137,12 @@ let rec pp env fmt tm =
   | CodeUniv ->
     Format.fprintf fmt "<univ>"
   | NatElim (mot, zero, suc, tm) ->
-    let x, envx = Pp.Env.bind env None in
-    let y, envxy = Pp.Env.bind envx None in
-    Format.fprintf fmt "@[<hv2>elim %a %s {%a => %a}@ @[<v>[ zero => %a@ | suc {%a => %a} => %a@ ]@]@]"
+    Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
       (pp_atomic env) tm
       "@"
-      Uuseg_string.pp_utf_8 x
-      (pp_tp envx) mot
+      (pp_atomic env) mot
       (pp env) zero
-      Uuseg_string.pp_utf_8 x
-      Uuseg_string.pp_utf_8 y
-      (pp envxy) suc
+      (pp env) suc
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp env fmt tm
   | CodePi (base, fam) ->

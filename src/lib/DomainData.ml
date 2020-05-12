@@ -73,7 +73,7 @@ and frm =
   | KAp of tp * con
   | KFst
   | KSnd
-  | KNatElim of tp_clo * con * tm_clo
+  | KNatElim of con * con * con
   | KGoalProj
   | KElOut
 

@@ -40,37 +40,103 @@ let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
   | `Done -> tac (tp, psi, clo)
   | `Reduce tp -> tac (tp, psi, clo)
 
-let rec chk_tp : CS.con -> T.tp_tac =
+
+module CoolTp :
+sig
+  include T.Tactic
+
+  val as_tp : tac -> T.Tp.tac
+  val pi : tac -> CS.ident option -> tac -> tac
+  val sg : tac -> CS.ident option -> tac -> tac
+  val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
+  val path : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
+  val nat : tac
+  val univ : tac
+  val dim : tac
+  val cof : tac
+  val prf : T.Chk.tac -> tac
+
+  val code : T.Chk.tac -> tac
+end =
+struct
+  type tac =
+    | Tp of T.Tp.tac
+    | Code of T.Chk.tac
+
+  let update_span span =
+    function
+    | Tp tac -> Tp (T.Tp.update_span span tac)
+    | Code tac -> Code (T.Chk.update_span span tac)
+
+  let as_tp =
+    function
+    | Tp tac -> tac
+    | Code tac -> R.El.formation tac
+
+  let pi (tac_base : tac) (nm : CS.ident option) (tac_fam : tac) : tac =
+    match tac_base, tac_fam with
+    | Code tac_base, Code tac_fam ->
+      let tac = R.Univ.pi tac_base @@ T.Chk.bchk @@ R.Pi.intro nm @@ fun _ -> T.BChk.chk tac_fam in
+      Code tac
+    | _ ->
+      let tac_base = as_tp tac_base in
+      let tac_fam = as_tp tac_fam in
+      let tac = R.Pi.formation tac_base (nm, fun _ -> tac_fam) in
+      Tp tac
+
+  let sg (tac_base : tac) (nm : CS.ident option) (tac_fam : tac) : tac =
+    match tac_base, tac_fam with
+    | Code tac_base, Code tac_fam ->
+      let tac = R.Univ.sg tac_base @@ T.Chk.bchk @@ R.Pi.intro nm @@ fun _ -> T.BChk.chk tac_fam in
+      Code tac
+    | _ ->
+      let tac_base = as_tp tac_base in
+      let tac_fam = as_tp tac_fam in
+      let tac = R.Sg.formation tac_base (nm, fun _ -> tac_fam) in
+      Tp tac
+
+  let sub tac_tp tac_phi tac_pel : tac =
+    let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
+    Tp tac
+
+  let path tac_tp tac_l tac_r =
+    let tac = R.Univ.path_with_endpoints tac_tp (T.BChk.chk tac_l) (T.BChk.chk tac_r) in
+    Code tac
+
+  let nat = Code R.Univ.nat
+  let univ = Code R.Univ.univ
+  let dim = Tp R.Dim.formation
+  let cof = Tp R.Cof.formation
+  let prf tac = Tp (R.Prf.formation tac)
+  let code tac = Code tac
+end
+
+let rec cool_chk_tp : CS.con -> CoolTp.tac =
+  fun con ->
+  CoolTp.update_span con.info @@
+  match con.node with
+  | CS.Pi ([], body) ->
+    cool_chk_tp body
+  | CS.Pi (CS.Cell cell :: cells, body) ->
+    CoolTp.pi (cool_chk_tp cell.tp) (Some cell.name) @@
+    cool_chk_tp {con with node = CS.Pi (cells, body)}
+  | CS.Sg ([], body) ->
+    cool_chk_tp body
+  | CS.Sg (CS.Cell cell :: cells, body) ->
+    CoolTp.sg (cool_chk_tp cell.tp) (Some cell.name) @@
+    cool_chk_tp {con with node = CS.Sg (cells, body)}
+  | CS.Dim -> CoolTp.dim
+  | CS.Cof -> CoolTp.cof
+  | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
+  | CS.Sub (ctp, cphi, ctm) -> CoolTp.sub (cool_chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
+  | CS.Path (tp, a, b) -> CoolTp.path (chk_tm tp) (chk_tm a) (chk_tm b)
+  | _ -> CoolTp.code @@ chk_tm con
+
+
+and chk_tp : CS.con -> T.tp_tac =
   fun con ->
   T.Tp.update_span con.info @@
-  match con.node with
-  | CS.Hole name ->
-    R.Hole.unleash_tp_hole name `Rigid
-  | CS.Underscore ->
-    R.Hole.unleash_tp_hole None `Flex
-  | CS.Pi (cells, body) ->
-    let tac (CS.Cell cell) = Some cell.name, chk_tp cell.tp in
-    let tacs = cells |> List.map tac in
-    R.Tactic.tac_nary_quantifier R.Pi.formation tacs @@ chk_tp body
-  | CS.Sg (cells, body) ->
-    let tacs = cells |> List.map @@ fun (CS.Cell cell) -> Some cell.name, chk_tp cell.tp in
-    R.Tactic.tac_nary_quantifier R.Sg.formation tacs @@ chk_tp body
-  | CS.Nat ->
-    R.Nat.formation
-  | CS.Univ ->
-    R.Univ.formation
-  | CS.Unfold (idents, c) ->
-    T.Tp.map (unfold idents) @@ chk_tp c
-  | CS.Dim ->
-    R.Dim.formation
-  | CS.Cof ->
-    R.Cof.formation
-  | CS.Prf phi ->
-    R.Prf.formation @@ chk_tm phi
-  | CS.Sub (ctp, cphi, ctm) ->
-    R.Sub.formation (chk_tp ctp) (chk_tm cphi) (fun _ -> chk_tm ctm)
-  | _ ->
-    Refiner.El.formation @@ chk_tm con
+  CoolTp.as_tp @@ cool_chk_tp con
 
 and chk_tm : CS.con -> T.chk_tac =
   fun con ->
@@ -164,10 +230,9 @@ and syn_tm : CS.con -> T.syn_tac =
     R.Sg.pi1 @@ syn_tm t
   | CS.Snd t ->
     R.Sg.pi2 @@ syn_tm t
-  | CS.Elim {mot = BN mot; cases; scrut} ->
-    let names = List.map (fun x -> Some x) mot.names in
+  | CS.Elim {mot = BN {names = [x]; body = mot}; cases; scrut} ->
     R.Tactic.Elim.elim
-      (names, chk_tp mot.body)
+      (T.Chk.bchk @@ R.Pi.intro (Some x) @@ fun _ -> bchk_tm mot)
       (chk_cases cases)
       (syn_tm scrut)
   | CS.Ann {term; tp} ->

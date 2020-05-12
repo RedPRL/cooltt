@@ -290,25 +290,22 @@ and quote_spine tm =
 and quote_frm tm =
   function
   | D.KNatElim (mot, zero_case, suc_case) ->
-    let* mot_x =
-      bind_var ~abort:D.TpAbort D.Nat @@ fun x ->
-      lift_cmp @@ inst_tp_clo mot [x]
+    let mot_tp = D.Pi (D.Nat, D.const_tp_clo D.Univ) in
+    let* tmot = quote_con mot_tp mot in
+    let* tzero_case =
+      let* mot_zero = lift_cmp @@ do_ap mot D.Zero in
+      quote_con (D.El mot_zero) zero_case
     in
-    let* tmot =
-      bind_var ~abort:(S.El S.CofAbort) D.Nat @@ fun _ ->
-      quote_tp mot_x
+    let* suc_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.nat @@ fun x ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.el @@ TB.ap mot [TB.suc x]
     in
-    let+ tzero_case =
-      let* mot_zero = lift_cmp @@ inst_tp_clo mot [D.Zero] in
-      quote_con mot_zero zero_case
-    and+ tsuc_case =
-      bind_var ~abort:S.CofAbort D.Nat @@ fun x ->
-      bind_var ~abort:S.CofAbort mot_x @@ fun ih ->
-      let* mot_suc_x = lift_cmp @@ inst_tp_clo mot [D.Suc x] in
-      let* suc_case_x = lift_cmp @@ inst_tm_clo suc_case [x; ih] in
-      quote_con mot_suc_x suc_case_x
-    in
-    S.NatElim (tmot, tzero_case, tsuc_case, tm)
+    let* tsuc_case = quote_con suc_tp suc_case in
+    ret @@ S.NatElim (tmot, tzero_case, tsuc_case, tm)
   | D.KFst ->
     ret @@ S.Fst tm
   | D.KSnd ->
