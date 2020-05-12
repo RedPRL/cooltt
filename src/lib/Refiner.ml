@@ -872,13 +872,6 @@ struct
   let rec tac_lam ident tac_body : T.bchk_tac =
     intro_implicit_connectives @@ Pi.intro ~ident tac_body
 
-  let rec tac_multi_lam names tac_body =
-    match names with
-    | [] -> tac_body
-    | name :: names ->
-      tac_lam name @@ fun _ ->
-      tac_multi_lam names tac_body
-
   let rec tac_multi_apply tac_fun =
     function
     | [] -> tac_fun

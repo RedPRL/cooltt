@@ -160,8 +160,14 @@ and bchk_tm : CS.con -> T.bchk_tac =
       | D.TpDim -> EM.ret @@ R.Dim.literal n
       | _ -> EM.ret @@ R.Nat.literal n
     end
-  | CS.Lam (BN bnd) ->
-    R.Tactic.tac_multi_lam bnd.names @@ bchk_tm bnd.body
+
+  | CS.Lam (BN {names = []; body}) ->
+    bchk_tm body
+
+  | CS.Lam (BN {names = nm :: names; body}) ->
+    R.Pi.intro ~ident:nm @@ fun _ ->
+    bchk_tm {con with node = CS.Lam (BN {names; body})}
+
   | CS.LamElim cases ->
     R.Tactic.Elim.lam_elim @@ chk_cases cases
   | CS.Pair (c0, c1) ->
