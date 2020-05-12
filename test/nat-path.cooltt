@@ -159,7 +159,7 @@ normalize test
 -- that ought to be computed away, but is blocked by a disjunction system.
 normalize test2
 
--- The following illustrates that alghouth cooltt's quasi-normal forms aren't as fully
+-- The following illustrates that although cooltt's quasi-normal forms aren't as fully
 -- reduced as they could be, it is of no consequence for definitional
 -- equivalence. That is, we don't bother pushing eliminators through all the
 -- branches of a disjunction split, but our equational theory acts as if we do.
