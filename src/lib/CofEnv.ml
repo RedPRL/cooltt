@@ -172,5 +172,5 @@ struct
 
   let left_invert_under_cofs env phis cont =
     S.left_invert env phis @@ fun {classes; true_vars} ->
-      cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
+    cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
 end
