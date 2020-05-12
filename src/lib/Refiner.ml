@@ -869,9 +869,6 @@ struct
 
 
 
-  let rec tac_lam ident tac_body : T.bchk_tac =
-    intro_implicit_connectives @@ Pi.intro ~ident tac_body
-
   let rec tac_multi_apply tac_fun =
     function
     | [] -> tac_fun
