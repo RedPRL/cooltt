@@ -259,8 +259,8 @@ and quote_hd =
   | D.SubOut (cut, phi, clo) ->
     let+ tm = quote_cut cut in
     S.SubOut tm
-  | D.Split (tp, phi0, phi1, clo0, clo1) ->
-    let branch_body phi clo =
+  | D.Split (tp, branches) ->
+    let branch_body (phi, clo) =
       begin
         bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
         let* body = lift_cmp @@ inst_tm_clo clo prf in
@@ -268,11 +268,9 @@ and quote_hd =
       end
     in
     let* ttp = quote_tp tp in
-    let* tphi0 = quote_cof phi0 in
-    let* tphi1 = quote_cof phi1 in
-    let* tm0 = branch_body phi0 clo0 in
-    let* tm1 = branch_body phi1 clo1 in
-    ret @@ S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
+    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
+    let* tms = MU.map branch_body branches in
+    ret @@ S.CofSplit (ttp, List.combine tphis tms)
 
 and quote_dim d =
   quote_con D.TpDim @@
@@ -347,4 +345,3 @@ and quote_frm tm =
     ret @@ S.GoalProj tm
   | D.KElOut ->
     ret @@ S.ElOut tm
-

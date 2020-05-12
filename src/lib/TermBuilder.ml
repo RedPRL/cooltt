@@ -119,13 +119,12 @@ let snd m =
 let cof_abort =
   ret S.CofAbort
 
-let cof_split mtp mphi0 mtm0 mphi1 mtm1 =
+let cof_split mtp mbranches =
+  let mphis, mtms = List.split mbranches in
   let+ tp = mtp
-  and+ phi0 = mphi0
-  and+ phi1 = mphi1
-  and+ tm0 = scope mtm0
-  and+ tm1 = scope mtm1 in
-  S.CofSplit (tp, phi0, phi1, tm0, tm1)
+  and+ phis = MU.commute_list mphis
+  and+ tms = MU.map scope mtms in
+  S.CofSplit (tp, List.combine phis tms)
 
 let sub_out mtm =
   let+ tm = mtm in
@@ -276,8 +275,9 @@ struct
     lam @@ fun _ ->
     cof_split
       (el @@ ap fam_line [i; j])
-      d_j (fun q -> ap bdry_line [i; j; q])
-      (eq i r) (fun q -> sub_out @@ ap (el_out bdy) [j])
+      [ d_j, (fun q -> ap bdry_line [i; j; q])
+      ; eq i r, (fun q -> sub_out @@ ap (el_out bdy) [j])
+      ]
 
   (*
    * fam : I -> U
@@ -308,6 +308,7 @@ struct
     lam @@ fun p ->
     cof_split
       (el fam_i)
-      d_i (fun q -> ap bdry [i; q])
-      (join [phi; eq k r]) (fun q -> sub_out (ap (el_out (ap bdy [k;q])) [i]))
+      [ d_i , (fun q -> ap bdry [i; q])
+      ; join [phi; eq k r] , (fun q -> sub_out (ap (el_out (ap bdy [k;q])) [i]))
+      ]
 end
