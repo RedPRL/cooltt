@@ -37,7 +37,8 @@ function! CheckBuffer(...)
   silent %d _
   wincmd p
 
-  let s:job = job_start(g:cooltt_path , {
+  let s:job = job_start(g:cooltt_path .
+    \' -w ' . s:EditWidth(), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
     \'out_io': 'buffer', 'out_name': 'cooltt', 'out_msg': 0,
@@ -57,6 +58,29 @@ function! s:InitBuffer()
   set syntax=cooltt
   set noswapfile
   nnoremap <buffer> <LocalLeader>l :call CheckFromOutputBuffer()<CR>
+endfunction
+
+function! s:EditWidth()
+  execute bufwinnr('cooltt') . 'wincmd w'
+
+  let l:width = winwidth(winnr())
+  if (has('linebreak') && (&number || &relativenumber))
+    let l:width -= &numberwidth
+  endif
+  if (has('folding'))
+    let l:width -= &foldcolumn
+  endif
+  if (has('signs'))
+    redir => l:signs
+    silent execute 'sign place buffer=' . bufnr('%')
+    redir END
+    if (&signcolumn == "yes" || len(split(l:signs, "\n")) > 2)
+      let l:width -= 2
+    endif
+  endif
+
+  wincmd p
+  return l:width
 endfunction
 
 function! s:CloseBuffer()
