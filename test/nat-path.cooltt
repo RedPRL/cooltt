@@ -2,7 +2,11 @@ def symm : {
   (A : type) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
 }= {
   λ A p i =>
-  ?
+  hcom A 0 1 {λ j _ =>
+    [ j=0 ∨ i=1 => p 0
+    | i=0 => p j
+    ]
+  }
 }
 
 def trans/filler : {
