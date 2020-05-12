@@ -44,7 +44,7 @@ sig
   (* The type of the result of the search. *)
   type t
 
-  (* The default value for vacuous cases. *)
+  (* The default value for vacuous cases. Should be the same as `seq id []`. *)
   val vacuous : t
 
   (* The sequencing operator. Technically, we can demand `seq' : t list -> t` instead
@@ -57,6 +57,7 @@ module rec Search : functor (M : SEQ) ->
 sig
   (* Search all branches assuming more cofibrations *)
   val left_invert : env -> D.cof list -> (reduced_env -> M.t) -> M.t
+
   (* Search all branches assuming more cofibrations *)
   val left_invert' : consistent_env -> D.cof list -> (reduced_env -> M.t) -> M.t
 end
@@ -169,6 +170,7 @@ struct
   module Seq = struct type t = unit M.m let vacuous = M.ret () let seq = MU.app end
   module S = Search (Seq)
 
-  let left_invert_under_cofs env phis cont = S.left_invert env phis @@
-    fun {classes; true_vars} -> cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
+  let left_invert_under_cofs env phis cont =
+    S.left_invert env phis @@ fun {classes; true_vars} ->
+      cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
 end
