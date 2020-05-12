@@ -5,11 +5,8 @@ let rec condense =
   function
   | Zero -> Some 0
   | Suc t ->
-    begin
-      match condense t with
-      | Some n -> Some (n + 1)
-      | None -> None
-    end
+    Option.map (fun n -> n + 1) @@
+    condense t
   | _ -> None
 
 
@@ -45,6 +42,7 @@ let rec dump fmt tm =
 
 let pp_var env fmt ix =
   Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
+
 and pp_problem fmt problem =
   let lbls = Bwd.to_list problem in
   let dot fmt () = Fmt.fprintf fmt "." in
@@ -67,6 +65,13 @@ let pp_tuple =
 let pp_braced pp fmt a =
   Format.fprintf fmt "{%a}"
     pp a
+
+let ppenv_bind env ident =
+  Pp.Env.bind env @@
+  match ident with
+  | `Anon -> None
+  | `User id -> Some id
+  | `Machine id -> Some id
 
 let rec pp env fmt tm =
   match tm with
@@ -134,18 +139,15 @@ let rec pp env fmt tm =
     end
   | CodeNat ->
     Format.fprintf fmt "<nat>"
+  | CodeUniv ->
+    Format.fprintf fmt "<type>"
   | NatElim (mot, zero, suc, tm) ->
-    let x, envx = Pp.Env.bind env None in
-    let y, envxy = Pp.Env.bind envx None in
-    Format.fprintf fmt "@[<hv2>elim %a %s {%a => %a}@ @[<v>[ zero => %a@ | suc {%a => %a} => %a@ ]@]@]"
+    Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
       (pp_atomic env) tm
       "@"
-      Uuseg_string.pp_utf_8 x
-      (pp_tp envx) mot
+      (pp_atomic env) mot
       (pp env) zero
-      Uuseg_string.pp_utf_8 x
-      Uuseg_string.pp_utf_8 y
-      (pp envxy) suc
+      (pp env) suc
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp env fmt tm
   | CodePi (base, fam) ->
@@ -170,8 +172,8 @@ let rec pp env fmt tm =
     Format.fprintf fmt "*"
   | Ann (tm, _) ->
     pp env fmt tm
-  | Let (tm, bdy) ->
-    let x, envx = Pp.Env.bind env None in
+  | Let (tm, ident, bdy) ->
+    let x, envx = ppenv_bind env ident in
     Format.fprintf fmt "@[let %a = %a in@ %a@]"
       Uuseg_string.pp_utf_8 x
       (pp env) tm
@@ -179,22 +181,22 @@ let rec pp env fmt tm =
 
 and pp_tp env fmt tp =
   match tp with
-  | Pi (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
+  | Pi (base, ident, fam) ->
+    let x, envx = ppenv_bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
       Uuseg_string.pp_utf_8 x
       (pp_tp env) base
       Uuseg_string.pp_utf_8 "→"
       (pp_tp envx) fam
-  | Sg (base, fam) ->
-    let x, envx = Pp.Env.bind env None in
+  | Sg (base, ident, fam) ->
+    let x, envx = ppenv_bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
       Uuseg_string.pp_utf_8 x
       (pp_tp env) base
       Uuseg_string.pp_utf_8 "×"
       (pp_tp envx) fam
   | Sub (tp, phi, tm) ->
-    let x, envx = Pp.Env.bind env @@ Some "_" in
+    let x, envx = ppenv_bind env `Anon in
     Format.fprintf fmt "@[sub %a %a@ %a@]"
       (pp_atomic_tp env) tp
       (pp_atomic env) phi
@@ -204,7 +206,7 @@ and pp_tp env fmt tp =
   | TpCof ->
     Format.fprintf fmt "𝔽"
   | Univ ->
-    Format.fprintf fmt "univ"
+    Format.fprintf fmt "type"
   | Nat ->
     Format.fprintf fmt "nat"
   | El tm ->
@@ -226,12 +228,12 @@ and pp_atomic_tp env fmt tp =
     pp_braced (pp_tp env) fmt tp
 
 and pp_cof_split_branch env fmt (phi, tm) =
-  let x, envx = Pp.Env.bind env @@ Some "_" in
+  let x, envx = ppenv_bind env `Anon in
   Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp envx) tm
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat
+  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeUniv
   | Zero | Prf ->
     pp env fmt tm
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
@@ -250,8 +252,8 @@ and pp_applications env fmt tm =
 
 and pp_lambdas env fmt tm =
   match tm with
-  | Lam tm ->
-    let x, envx = Pp.Env.bind env None in
+  | Lam (nm, tm) ->
+    let x, envx = ppenv_bind env nm in
     Format.fprintf fmt "%a %a"
       Uuseg_string.pp_utf_8 x
       (pp_lambdas envx) tm
@@ -289,22 +291,22 @@ let pp_sequent_goal env fmt tp  =
   | tp ->
     pp_tp env fmt tp
 
-let rec pp_sequent_inner ~names env fmt tp =
-  match names, tp with
-  | nm :: names, Pi (base, fam) ->
-    let x, envx = Pp.Env.bind env @@ Some nm in
+let rec pp_sequent_inner env fmt tp =
+  match tp with
+  | Pi (base, ident, fam) ->
+    let x, envx = ppenv_bind env ident in
     Fmt.fprintf fmt "%a : %a@;%a"
       Uuseg_string.pp_utf_8 x
       (pp_tp env) base
-      (pp_sequent_inner ~names envx) fam
-  | _, tp ->
+      (pp_sequent_inner envx) fam
+  | tp ->
     Format.fprintf fmt "|- @[<hov>%a@]"
       (pp_sequent_goal env)
       tp
 
-let pp_sequent ~names : tp Pp.printer =
+let pp_sequent : tp Pp.printer =
   fun fmt tp ->
   Format.fprintf fmt "@[<v>%a@]"
-    (pp_sequent_inner ~names Pp.Env.emp) tp
+    (pp_sequent_inner Pp.Env.emp) tp
 
 type env = tp list

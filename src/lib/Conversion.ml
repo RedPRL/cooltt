@@ -78,19 +78,19 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
-  | D.Pi (base0, fam0), D.Pi (base1, fam1)
-  | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
+  | D.Pi (base0, _, fam0), D.Pi (base1, _, fam1)
+  | D.Sg (base0, _, fam0), D.Sg (base1, _, fam1) ->
     let* () = equate_tp base0 base1 in
     bind_var_ base0 @@ fun x ->
-    let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
-    let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
+    let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
+    let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in
     bind_var_ (D.TpPrf phi0) @@ fun prf ->
-    let* con0 = lift_cmp @@ inst_tm_clo clo0 [prf] in
-    let* con1 = lift_cmp @@ inst_tm_clo clo1 [prf] in
+    let* con0 = lift_cmp @@ inst_tm_clo clo0 prf in
+    let* con1 = lift_cmp @@ inst_tm_clo clo1 prf in
     equate_con tp0 con0 con1
   | D.Nat, D.Nat
   | D.Univ, D.Univ ->
@@ -118,17 +118,17 @@ and equate_con tp con0 con1 =
   | _, _, D.Cut {cut = D.Split (_, phi0, phi1, _, _), _} ->
     QuM.left_invert_under_cofs [Cof.join [phi0; phi1]] @@
     equate_con tp con0 con1
-  | D.Pi (base, fam), _, _ ->
+  | D.Pi (base, _, fam), _, _ ->
     bind_var_ base @@ fun x ->
-    let* fib = lift_cmp @@ inst_tp_clo fam [x] in
+    let* fib = lift_cmp @@ inst_tp_clo fam x in
     let* ap0 = lift_cmp @@ do_ap con0 x in
     let* ap1 = lift_cmp @@ do_ap con1 x in
     equate_con fib ap0 ap1
-  | D.Sg (base, fam), _, _ ->
+  | D.Sg (base, _, fam), _, _ ->
     let* fst0 = lift_cmp @@ do_fst con0 in
     let* fst1 = lift_cmp @@ do_fst con1 in
     let* () = equate_con base fst0 fst1 in
-    let* fib = lift_cmp @@ inst_tp_clo fam [fst0] in
+    let* fib = lift_cmp @@ inst_tp_clo fam fst0 in
     let* snd0 = lift_cmp @@ do_snd con0 in
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
@@ -160,8 +160,19 @@ and equate_con tp con0 con1 =
   | _, D.Cut {cut = cut0}, D.Cut {cut = cut1} ->
     equate_cut cut0 cut1
   | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
-    equate_hcom (D.CodeNat, r0, s0, phi0, bdy0) (D.CodeNat, r1, s1, phi1, bdy1)
+    let fix_body bdy =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let* bdy0' = fix_body bdy0 in
+    let* bdy1' = fix_body bdy1 in
+    equate_hcom (D.CodeNat, r0, s0, phi0, bdy0') (D.CodeNat, r1, s1, phi1, bdy1')
   | _, D.CodeNat, D.CodeNat ->
+    ret ()
+  | _, D.CodeUniv, D.CodeUniv ->
     ret ()
 
   | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
@@ -242,23 +253,24 @@ and equate_frm k0 k1 =
     let* () = equate_tp tp0 tp1 in
     equate_con tp0 con0 con1
   | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
-    let* fibx =
-      bind_var ~abort:D.TpAbort D.Nat @@ fun var ->
-      let* fib0 = lift_cmp @@ inst_tp_clo mot0 [var] in
-      let* fib1 = lift_cmp @@ inst_tp_clo mot1 [var] in
-      let+ () = equate_tp fib0 fib1  in
-      fib0
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.nat @@ fun _ -> TB.univ
     in
+    let* () = equate_con mot_tp mot0 mot1 in
     let* () =
-      let* fib = lift_cmp @@ inst_tp_clo mot0 [D.Zero] in
-      equate_con fib zero_case0 zero_case1
+      let* mot_zero = lift_cmp @@ do_ap mot0 D.Zero in
+      equate_con (D.El mot_zero) zero_case0 zero_case1
     in
-    bind_var ~abort:() D.Nat @@ fun x ->
-    bind_var ~abort:() fibx @@ fun ih ->
-    let* fib_sucx = lift_cmp @@ inst_tp_clo mot0 [D.Suc x] in
-    let* con0 = lift_cmp @@ inst_tm_clo suc_case0 [x; ih] in
-    let* con1 = lift_cmp @@ inst_tm_clo suc_case1 [x; ih] in
-    equate_con fib_sucx con0 con1
+    let* suc_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot0 @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.nat @@ fun x ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.el @@ TB.ap mot [TB.suc x]
+    in
+    equate_con suc_tp suc_case0 suc_case1
   | D.KGoalProj, D.KGoalProj ->
     ret ()
   | D.KElOut, D.KElOut ->
@@ -307,10 +319,10 @@ and equate_hd hd0 hd1 =
   | D.Split (tp, phi0, phi1, clo0, clo1), hd ->
     let* () =
       QuM.left_invert_under_cofs [phi0] @@
-      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo0 [D.Prf]
+      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo0 D.Prf
     in
     QuM.left_invert_under_cofs [phi1] @@
-    equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
+    equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo1 D.Prf
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
 

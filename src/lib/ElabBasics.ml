@@ -90,14 +90,14 @@ let expected_connective conn tp =
 
 let dest_pi =
   function
-  | D.Pi (base, fam) ->
+  | D.Pi (base, _, fam) ->
     ret (base, fam)
   | tp ->
     expected_connective `Pi tp
 
 let dest_sg =
   function
-  | D.Sg (base, fam) ->
+  | D.Sg (base, _, fam) ->
     ret (base, fam)
   | tp ->
     expected_connective `Sg tp

@@ -31,7 +31,7 @@ let pp_connective fmt =
 let pp fmt =
   function
   | UnboundVariable id ->
-    Fmt.fprintf fmt "Unbound variable %a" Uuseg_string.pp_utf_8 id
+    Fmt.fprintf fmt "Unbound variable %a" Ident.pp id
   | ExpectedEqual (ppenv, tp, tm0, tm1, _) ->
     Fmt.fprintf fmt
       "Expected @[<hv>%a =@;%a@;: %a@]"

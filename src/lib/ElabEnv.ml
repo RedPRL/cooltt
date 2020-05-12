@@ -11,10 +11,10 @@ module Cell =
 struct
   type 'a t =
     {contents : 'a;
-     name : string option}
+     ident : Ident.t}
 
-  let make nm c = {contents = c; name = nm}
-  let name cell = cell.name
+  let make nm c = {contents = c; ident = nm}
+  let ident cell = cell.ident
   let contents cell = cell.contents
 end
 
@@ -42,7 +42,7 @@ let init =
 
 let location env = env.location
 let set_location loc env =
-  match loc with 
+  match loc with
   | Some _ -> {env with location = loc}
   | _ -> env
 
@@ -58,14 +58,14 @@ let get_local ix env =
   let _, con = Cell.contents cell in
   con
 
-let resolve_local key env =
+let resolve_local (ident : Ident.t) env =
   let exception E in
   let rec go i = function
     | Emp -> raise E
     | Snoc (xs, cell) ->
       begin
-        match Cell.name cell with
-        | Some x when x = key -> i
+        match ident, Cell.ident cell with
+        | `User y, `User x when x = y -> i
         | _ -> go (i + 1) xs
       end
   in
@@ -74,10 +74,16 @@ let resolve_local key env =
   | exception E -> None
 
 
-let append_con name con tp env =
+let append_con ident con tp env =
+  let pp_name =
+    match ident with
+    | `User nm -> Some nm
+    | `Machine nm -> Some nm
+    | `Anon -> None
+  in
   {env with
-   pp = snd @@ Pp.Env.bind env.pp name;
-   locals = env.locals <>< [{contents = tp, con; name}];
+   pp = snd @@ Pp.Env.bind env.pp pp_name;
+   locals = env.locals <>< [{contents = tp, con; ident}];
    cof_env =
      match tp with
      | D.TpPrf phi -> CofEnv.assume env.cof_env phi

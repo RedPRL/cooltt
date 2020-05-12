@@ -63,9 +63,9 @@ struct
     tm, tp
 end
 
-let abstract : D.tp -> string option -> (Var.tac -> 'a EM.m) -> 'a EM.m =
-  fun tp name kont ->
-  EM.abstract name tp @@ fun (con : D.con) ->
+let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a EM.m) -> 'a EM.m =
+  fun ?(ident = `Anon) tp kont ->
+  EM.abstract ident tp @@ fun (con : D.con) ->
   kont @@ {tp; con}
 
 
@@ -81,7 +81,7 @@ struct
 
   let bchk : BChk.tac -> tac =
     fun btac tp ->
-    let triv = D.const_tm_clo D.Abort in
+    let triv = D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp}) in
     btac (tp, Cof.bot, triv)
 
   let syn (tac : Syn.tac) : tac =
@@ -106,8 +106,8 @@ struct
     let* tm = tac tp in
     let* con = EM.lift_ev @@ Sem.eval tm in
     let* () =
-      abstract (D.TpPrf phi) None @@ fun prf ->
-      EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo pclo [Var.con prf]
+      abstract (D.TpPrf phi) @@ fun prf ->
+      EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo pclo @@ Var.con prf
     in
     EM.ret tm
 

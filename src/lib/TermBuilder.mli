@@ -15,25 +15,34 @@ val run : tplen:int -> conlen:int -> 'a m -> 'a
 val lvl : int -> t m
 val tplvl : int -> tp m
 
-val lam : t b -> t m
+val lam : ?ident:Ident.t -> t b -> t m
 val ap : t m -> t m list -> t m
 val coe : t m -> t m -> t m -> t m -> t m
 val hcom : t m -> t m -> t m -> t m -> t m -> t m
 val com : t m -> t m -> t m -> t m -> t m -> t m
-val let_ : t m -> t b -> t m
+val let_ : ?ident:Ident.t -> t m -> t b -> t m
 val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
+
+val zero : t m
+val suc : t m -> t m
 
 val cof_split : tp m -> t m -> t b -> t m -> t b -> t m
 val cof_abort : t m
 val sub_out : t m -> t m
 val sub_in : t m -> t m
 
-val univ : tp m
+val el_in : t m -> t m
+val el_out : t m -> t m
 
-val pi : tp m -> tp b -> tp m
-val sg : tp m -> tp b -> tp m
+val univ : tp m
+val nat : tp m
+val code_nat : t m
+val nat_elim : t m -> t m -> t m -> t m -> t m
+
+val pi : ?ident:Ident.t -> tp m -> tp b -> tp m
+val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m

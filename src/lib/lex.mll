@@ -28,11 +28,12 @@ let keywords =
     ("snd", SND);
     ("fun", LAM);
     ("elim", ELIM);
+    ("rec", REC);
     ("unfold", UNFOLD);
     ("def", DEF);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
-    ("univ", UNIV);
+    ("type", TYPE);
     ("→", RIGHT_ARROW);
     ("𝕀", DIM);
     ("dim", DIM);
@@ -43,6 +44,7 @@ let keywords =
     ("path", PATH);
     ("coe", COE);
     ("hcom", HCOM);
+    ("hfill", HFILL);
     ("com", COM)
   ]
 }
