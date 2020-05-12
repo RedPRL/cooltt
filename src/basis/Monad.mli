@@ -11,6 +11,7 @@ module type Notation = sig
   val (let*) : 'a m -> ('a -> 'b m) -> 'b m
   val (let+) : 'a m -> ('a -> 'b) -> 'b m
   val (and+) : 'a m -> 'b m -> ('a * 'b) m
+  val (and*) : 'a m -> 'b m -> ('a * 'b) m
 
   val (<@>) : ('a -> 'b) -> 'a m -> 'b m
   val (|>>) : 'a m -> ('a -> 'b m) -> 'b m
