@@ -60,44 +60,43 @@ sig
 
   (* Search all branches assuming more cofibrations *)
   val left_invert' : env' -> D.cof list -> (reduced_env -> M.t) -> M.t
-end
-  =
-  functor (M : SEQ) ->
-  struct
-    let left_invert' env phis cont =
-      let rec go ({classes; true_vars; unreduced_joins} as env) =
-        function
-        | [] ->
-          begin
-            match unreduced_joins with
-            | [] -> cont {classes; true_vars}
-            | (psis :: unreduced_joins) ->
-              M.seq (fun psi -> go {env with unreduced_joins} [psi]) psis
-          end
-        | (phi :: phis) ->
+end =
+functor (M : SEQ) ->
+struct
+  let left_invert' env phis cont =
+    let rec go ({classes; true_vars; unreduced_joins} as env) =
+      function
+      | [] ->
+        begin
+          match unreduced_joins with
+          | [] -> cont {classes; true_vars}
+          | (psis :: unreduced_joins) ->
+            M.seq (fun psi -> go {env with unreduced_joins} [psi]) psis
+        end
+      | (phi :: phis) ->
+        match phi with
+        | Cof.Var v ->
+          go {env with true_vars = VarSet.add v true_vars} phis
+        | Cof.Cof phi ->
           match phi with
-          | Cof.Var v ->
-            go {env with true_vars = VarSet.add v true_vars} phis
-          | Cof.Cof phi ->
-            match phi with
-            | Cof.Meet psis ->
-              go env (psis @ phis)
-            | Cof.Join psis ->
-              let env = {env with unreduced_joins = psis :: unreduced_joins} in
-              if Test.inconsistency env then M.vacuous else go env phis
-            | Cof.Eq (r, s) ->
-              let classes = UF.union r s classes in
-              if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
-                M.vacuous
-              else
-                go {env with classes} phis
-      in go env phis
+          | Cof.Meet psis ->
+            go env (psis @ phis)
+          | Cof.Join psis ->
+            let env = {env with unreduced_joins = psis :: unreduced_joins} in
+            if Test.inconsistency env then M.vacuous else go env phis
+          | Cof.Eq (r, s) ->
+            let classes = UF.union r s classes in
+            if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
+              M.vacuous
+            else
+              go {env with classes} phis
+    in go env phis
 
-    let left_invert env phis cont =
-      match env with
-      | `Inconsistent -> M.vacuous
-      | `Consistent env -> left_invert' env phis cont
-  end
+  let left_invert env phis cont =
+    match env with
+    | `Inconsistent -> M.vacuous
+    | `Consistent env -> left_invert' env phis cont
+end
 and Test :
 sig
   val inconsistency : env' -> bool
