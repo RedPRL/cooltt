@@ -23,7 +23,8 @@ type env' =
 
 type env = [ `Consistent of env' | `Inconsistent ]
 
-let init () = `Consistent
+let init () =
+  `Consistent
     {classes = UF.init ~size:100;
      true_vars = VarSet.empty;
      unreduced_joins = []}
@@ -155,7 +156,8 @@ let assume env phi =
               `Inconsistent
             else
               go {env with classes} phis
-    in go env [Cof.reduce phi] (* do we want Cof.reduce here? *)
+    in
+    go env [Cof.reduce phi] (* do we want Cof.reduce here? *)
 
 (** Monadic interface *)
 module M (M : CoolBasis.Monad.S) :
