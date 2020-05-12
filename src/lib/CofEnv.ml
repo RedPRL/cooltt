@@ -70,10 +70,10 @@ struct
         begin
           match unreduced_joins with
           | [] -> cont {classes; true_vars}
-          | (psis :: unreduced_joins) ->
+          | psis :: unreduced_joins ->
             M.seq (fun psi -> go {env with unreduced_joins} [psi]) psis
         end
-      | (phi :: phis) ->
+      | phi :: phis ->
         match phi with
         | Cof.Var v ->
           go {env with true_vars = VarSet.add v true_vars} phis
@@ -90,7 +90,8 @@ struct
               M.vacuous
             else
               go {env with classes} phis
-    in go env phis
+    in
+    go env phis
 
   let left_invert env phis cont =
     match env with
@@ -138,7 +139,7 @@ let assume env phi =
     let rec go ({classes; true_vars; unreduced_joins} as env) =
       function
       | [] -> if Test.inconsistency env then `Inconsistent else `Consistent env
-      | (phi :: phis) ->
+      | phi :: phis ->
         match phi with
         | Cof.Var v ->
           go {env with true_vars = VarSet.add v true_vars} phis
