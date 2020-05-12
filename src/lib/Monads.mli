@@ -56,8 +56,8 @@ module QuM : sig
 
   val bind_var : abort:'a -> D.tp -> (D.con -> 'a m) -> 'a m
   val bind_var_ : D.tp -> (D.con -> unit m ) -> unit m
-  
-  val left_invert_under_cof : D.cof -> unit m -> unit m
+
+  val left_invert_under_cofs : D.cof list -> unit m -> unit m
   val left_invert_under_current_cof : unit m -> unit m
 
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
