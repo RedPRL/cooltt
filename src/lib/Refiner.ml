@@ -924,9 +924,7 @@ struct
         T.Chk.bchk @@
         Pi.intro None @@ fun var ->
         T.BChk.chk @@ fun goal ->
-        Format.eprintf "Before@.";
-        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [T.Var.con var] in
-        Format.eprintf "After@.";
+        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [D.ElIn (T.Var.con var)] in
         match fib with
         | D.El code ->
           EM.lift_qu @@ Qu.quote_con D.Univ code

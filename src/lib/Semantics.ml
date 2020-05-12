@@ -755,7 +755,7 @@ and enact_rigid_hcom code r s phi bdy tag =
     Splice.term @@
     TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
   | `HComNat ->
-    ret @@ D.FHCom (`Nat, r, s, phi, bdy)
+    ret @@ D.ElIn (D.FHCom (`Nat, r, s, phi, bdy))
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
