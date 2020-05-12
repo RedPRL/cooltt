@@ -38,7 +38,7 @@ function! CheckBuffer(...)
   wincmd p
 
   let s:job = job_start(g:cooltt_path .
-    \' -w ' . s:EditWidth(), {
+    \' - -w ' . s:EditWidth(), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
     \'out_io': 'buffer', 'out_name': 'cooltt', 'out_msg': 0,

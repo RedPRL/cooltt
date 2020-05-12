@@ -28,8 +28,9 @@ let opt_width =
   Arg.(value & opt int default_width & info ["w"; "width"] ~doc)
 
 let opt_input_file =
-  let doc = "The file to typecheck. With no FILE, read standard input." in
-  Arg.(value & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
+  let doc = "The file to typecheck. When FILE is -, read standard input." in
+  let parse_dash = Term.(app @@ const @@ fun str -> if str = "-" then None else Some str) in
+  Arg.(parse_dash & required & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
 
 let info =
   let doc = "elaborate and normalize terms in Cartesian cubical type theory" in
