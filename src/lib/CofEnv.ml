@@ -115,8 +115,10 @@ struct
           true
         | Cof.Eq (r, s) ->
           find_class local.classes r = find_class local.classes s
-        | Cof.Join phis -> List.exists (right local) phis
-        | Cof.Meet phis -> List.for_all (right local) phis
+        | Cof.Join phis ->
+          List.exists (right local) phis
+        | Cof.Meet phis ->
+          List.for_all (right local) phis
       end
     | Cof.Var v ->
       VarSet.mem v local.true_vars
@@ -124,8 +126,13 @@ struct
   module Seq = struct type t = bool let vacuous = true let seq = List.for_all end
   module M = Search (Seq)
 
-  let sequent env cx phi = M.left_invert' env cx (fun env -> right env phi)
-  let inconsistency env = M.left_invert' env [] (fun _ -> false)
+  let sequent env cx phi =
+    M.left_invert' env cx @@
+    fun env -> right env phi
+
+  let inconsistency env =
+    M.left_invert' env [] @@
+    fun _ -> false
 end
 
 let test_sequent env cx phi =
