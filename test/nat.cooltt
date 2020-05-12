@@ -1,6 +1,0 @@
-def + : nat → nat → nat = {
-  \elim [
-  | zero => \n => n
-  | suc {_ => ih} => \n => suc {ih n}
-  ]
-}
