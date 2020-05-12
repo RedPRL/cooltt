@@ -1,12 +1,18 @@
-def symm : {
-  (A : type) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
+def symm/filler : {
+  (A : type) (p : 𝕀 → A) → 𝕀 → 𝕀 → A
 }= {
   λ A p i =>
-  hcom A 0 1 {λ j _ =>
+  hfill A 0 {∂ i} {λ j _ =>
     [ j=0 ∨ i=1 => p 0
     | i=0 => p j
     ]
   }
+}
+
+def symm : {
+  (A : type) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
+}= {
+  λ A p i => symm/filler A p i 1
 }
 
 def trans/filler : {
@@ -37,26 +43,51 @@ def J : {
 
 normalize J
 
-/-
-def trans-assoc : {
-  (A : type) (s : A) (t : A) (u : A) (v : A)
-  (p : path {λ _ => A} s t) (q : path {λ _ => A} t u) (r : path {λ _ => A} u v) →
-    path
-      {λ _ => path {λ _ => A} s v}
-      {trans A {trans A p q} r}
-      {trans A p {trans A q r}}
+def J/eq : {
+  (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) →
+  (d : C {λ _ => p 0}) → path {λ _ => C {λ _ => p 0}} {J A {λ _ => p 0} C d} d
 } = {
-  λ A s t u v p q r i j => hcom A 0 j {λ k _ => ?}
+  λ A p C d =>
+  let square : 𝕀 → 𝕀 → A = λ i => hfill A 0 {∂ i} {λ _ _ => p 0} in
+  λ k =>
+  let mot : 𝕀 → type =
+    λ i => C {hfill A 0 {∂ k ∨ ∂ i} {λ j _ => [k=0 => square i j | j=0 ∨ k=1 ∨ ∂ i => p 0]}}
+  in
+  com mot 0 1 {∂ k} {λ i _ => [k=0 => coe {λ j => C {square j}} 0 i d | k=1 ∨ i=0 => d]}
 }
--/
 
 /-
 def trans-left-unit : {
   (A : type) (p : 𝕀 → A)
   → path {λ _ => path {λ _ => A} {p 0} {p 1}} {trans A {λ _ => p 0} p} p
 } = {
-  λ A p => ?
+  λ A p k i =>
+  hcom A 0 1 {k=0 ∨ ∂ i} {λ j _ =>
+    [ j=0 ∨ ∂ i => [j=0 ∨ i=1 => p j | i=0 => p 0]
+    | k=0 => hcom A 0 1 {λ l _ =>
+        [ l=0 ∨ j=0 ∨ i=0 => p 0
+        | i=1 => hcom A 0 j {∂ l} {λ j _ => [ l=0 ∨ j=0 => p 0 | l=1 => p j ]}
+        ]
+      }
+    ]
+  }
 }
+-/
+
+/-
+-- redtt version:
+def trans/unit/l (A : type) (p : 𝕀 → A) : path (path _ (p 0) (p 1)) p (trans _ (λ _ → p 0) p) =
+  λ k i →
+  comp 0 1 [
+--| j=0 _ → p 0
+  | k=0 j →
+    comp 0 1 (p 0) [
+    | i=1 l → comp 0 j (p 0) [ l=0 → refl | l=1 → p ]
+    | j=0 | i=0 → refl
+    ]
+  | i=0 → refl
+  | i=1 → p
+  ]
 -/
 
 def trans-right-unit : {
@@ -66,14 +97,17 @@ def trans-right-unit : {
   λ A p => trans/filler A p {λ _ => p 1}
 }
 
-/-
 def trans-symm-refl : {
   (A : type) (p : 𝕀 → A)
-  → path {λ _ => path {λ _ => A} {p 0} {p 0}} {trans A p {symm A p}} {λ _ => p 0}
+  → path {λ _ => path {λ _ => A} {p 0} {p 0}} {λ _ => p 0} {trans A p {symm A p}}
 } = {
-  λ A p => ?
+  λ A p k i =>
+  hcom A 0 1 {k=0 ∨ ∂ i} {λ j _ =>
+    [ j=0 ∨ i=0 => p i
+    | k=0 ∨ i=1 => symm/filler A p j i
+    ]
+  }
 }
--/
 
 def cong : {
   (A : type) (B : type) (f : A → B) (p : 𝕀 → A) →
