@@ -10,6 +10,15 @@ type dim =
 
 type cof = (dim, int) Cof.cof
 
+
+(** Destructors: exotic semantic operations that don't exist in syntax; these
+  * are meant to fail on things in improper form, rather than become neutral. *)
+type dst =
+  | DCodePiSplit
+  | DCodeSgSplit
+  | DCodePathSplit
+
+
 type env = {tpenv : tp bwd; conenv: con bwd}
 
 and tp_clo =
@@ -74,9 +83,3 @@ and frm =
   | KNatElim of con * con * con
   | KGoalProj
   | KElOut
-
-(** destructors: exotic semantic operations that don't exist in syntax; these are meant to fail on things in improper form, rather than become neutral. *)
-and dst =
-  | DCodePiSplit
-  | DCodeSgSplit
-  | DCodePathSplit

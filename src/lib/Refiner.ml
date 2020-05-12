@@ -19,12 +19,12 @@ open Monad.Notation (EM)
 module MU = Monad.Util (EM)
 open Bwd
 
-type ('a, 'b) quantifier = 'a -> CS.ident option * (T.var -> 'b) -> 'b
+type ('a, 'b) quantifier = 'a -> Ident.t option * (T.var -> 'b) -> 'b
 
 module Hole : sig
-  val unleash_hole : CS.ident option -> [`Flex | `Rigid] -> T.bchk_tac
-  val unleash_tp_hole : CS.ident option -> [`Flex | `Rigid] -> T.tp_tac
-  val unleash_syn_hole : CS.ident option -> [`Flex | `Rigid] -> T.syn_tac
+  val unleash_hole : Ident.t option -> [`Flex | `Rigid] -> T.bchk_tac
+  val unleash_tp_hole : Ident.t option -> [`Flex | `Rigid] -> T.tp_tac
+  val unleash_syn_hole : Ident.t option -> [`Flex | `Rigid] -> T.syn_tac
 end =
 struct
   let make_hole name flexity (tp, phi, clo) : D.cut m =
@@ -890,7 +890,7 @@ struct
   struct
     type case_tac = CS.pat * T.chk_tac
 
-    let rec find_case (lbl : CS.ident) (cases : case_tac list) : (CS.pat_arg list * T.chk_tac) option =
+    let rec find_case (lbl : Ident.t) (cases : case_tac list) : (CS.pat_arg list * T.chk_tac) option =
       match cases with
       | (CS.Pat pat, tac) :: _ when pat.lbl = lbl ->
         Some (pat.args, tac)

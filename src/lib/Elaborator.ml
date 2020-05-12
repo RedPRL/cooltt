@@ -46,8 +46,8 @@ sig
   include T.Tactic
 
   val as_tp : tac -> T.Tp.tac
-  val pi : tac -> CS.ident option -> tac -> tac
-  val sg : tac -> CS.ident option -> tac -> tac
+  val pi : tac -> Ident.t option -> tac -> tac
+  val sg : tac -> Ident.t option -> tac -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val path : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -73,7 +73,7 @@ struct
     | Tp tac -> tac
     | Code tac -> R.El.formation tac
 
-  let pi (tac_base : tac) (nm : CS.ident option) (tac_fam : tac) : tac =
+  let pi (tac_base : tac) (nm : Ident.t option) (tac_fam : tac) : tac =
     match tac_base, tac_fam with
     | Code tac_base, Code tac_fam ->
       let tac = R.Univ.pi tac_base @@ T.Chk.bchk @@ R.Pi.intro nm @@ fun _ -> T.BChk.chk tac_fam in
@@ -84,7 +84,7 @@ struct
       let tac = R.Pi.formation tac_base (nm, fun _ -> tac_fam) in
       Tp tac
 
-  let sg (tac_base : tac) (nm : CS.ident option) (tac_fam : tac) : tac =
+  let sg (tac_base : tac) (nm : Ident.t option) (tac_fam : tac) : tac =
     match tac_base, tac_fam with
     | Code tac_base, Code tac_fam ->
       let tac = R.Univ.sg tac_base @@ T.Chk.bchk @@ R.Pi.intro nm @@ fun _ -> T.BChk.chk tac_fam in

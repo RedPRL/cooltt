@@ -18,7 +18,7 @@ struct
     ]
 
   type t =
-    | UnboundVariable of CS.ident
+    | UnboundVariable of Ident.t
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t * Conversion.Error.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | InvalidTypeExpression of CS.con

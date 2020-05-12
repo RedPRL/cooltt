@@ -16,15 +16,13 @@ type 'a node =
 [@@deriving show]
 
 
-type ident = string [@@deriving show]
+type binder = B of {name : Ident.t; body : con}
+and bindern = BN of {names : Ident.t list; body : con}
 
-type binder = B of {name : ident; body : con}
-and bindern = BN of {names : ident list; body : con}
-
-and cell = Cell of {name : ident; tp : con}
+and cell = Cell of {name : Ident.t; tp : con}
 and con = con_ node
 and con_ =
-  | Var of [`User of ident | `Level of int]
+  | Var of [`User of Ident.t | `Level of int]
   | Let of con * binder
   | Ann of {term : con; tp : con}
   | Nat
@@ -39,9 +37,9 @@ and con_ =
   | Fst of con
   | Snd of con
   | Type
-  | Hole of ident option
+  | Hole of Ident.t option
   | Underscore
-  | Unfold of ident list * con
+  | Unfold of Ident.t list * con
   | Elim of {mot : con; cases : case list; scrut : con}
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
@@ -66,14 +64,14 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and pat = Pat of {lbl : ident; args : pat_arg list}
+and pat = Pat of {lbl : Ident.t; args : pat_arg list}
 [@@deriving show]
 
-and pat_arg = [`Simple of ident option | `Inductive of ident option * ident option]
+and pat_arg = [`Simple of Ident.t option | `Inductive of Ident.t option * Ident.t option]
 [@@deriving show]
 
 type decl =
-  | Def of {name : ident; def : con; tp : con}
+  | Def of {name : Ident.t; def : con; tp : con}
   | NormalizeTerm of con
   | Quit
 
