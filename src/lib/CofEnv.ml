@@ -16,6 +16,7 @@ type env' =
     (** equivalence classes of dimensions from reduced cofibrations *)
 
     true_vars : VarSet.t;
+    (** set of cofibration variables assumed to be true *)
 
     unreduced_joins : D.cof list list;
     (** a stack of unreduced joins, each represented by a list of cofibrations *)
@@ -53,109 +54,118 @@ sig
   val seq : ('a -> t) -> 'a list -> t
 end
 
-module rec Search : functor (M : SEQ) ->
+module SearchHelper :
 sig
-  (* Search all branches assuming more cofibrations *)
+  (* Checking whether the env' is inconsistent.
+     Invariant: intput env.classes must be consistent;
+     the inconsistency can only come from env.unreduced_joins. *)
+  val consistency : env' -> bool
+
+  (* Assumes a list of cofibrations.
+     Invariant: input env.classes must be consistent.
+     Invariant: output env.classes (if not None) must be consistent. *)
+  val pushes : env' -> D.cof list -> env' option
+end
+=
+struct
+  let rec consistency' =
+    function
+    | None -> false
+    | Some ({classes; true_vars; unreduced_joins} as env) ->
+      match unreduced_joins with
+      | [] -> true
+      | (psis :: unreduced_joins) ->
+        List.exists (fun psi -> consistency' (pushes {env with unreduced_joins} [psi])) psis
+
+  and pushes ({classes; true_vars; unreduced_joins} as env) =
+    function
+    | [] -> Some env
+    | (phi :: phis) ->
+      match phi with
+      | Cof.Var v ->
+        pushes {env with true_vars = VarSet.add v true_vars} phis
+      | Cof.Cof phi ->
+        match phi with
+        | Cof.Meet psis ->
+          pushes env (psis @ phis)
+        | Cof.Join psis ->
+          pushes {env with unreduced_joins = psis :: unreduced_joins} phis
+        | Cof.Eq (r, s) ->
+          let classes = UF.union r s classes in
+          if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
+            None
+          else
+            pushes {env with classes} phis
+
+  let consistency env = consistency' (Some env)
+end
+
+module Search : functor (M : SEQ) ->
+sig
+  (* Search all branches assuming more cofibrations.
+     Invariant: env.classes must be consistent *)
   val left_invert : env -> D.cof list -> (reduced_env -> M.t) -> M.t
 
-  (* Search all branches assuming more cofibrations *)
+  (* Search all branches assuming more cofibrations
+     Invariant: env.classes must be consistent *)
   val left_invert' : env' -> D.cof list -> (reduced_env -> M.t) -> M.t
 end
   =
   functor (M : SEQ) ->
   struct
     let left_invert' env phis cont =
-      let rec go ({classes; true_vars; unreduced_joins} as env) =
+      let rec go =
         function
-        | [] ->
-          begin
-            match unreduced_joins with
-            | [] -> cont {classes; true_vars}
-            | (psis :: unreduced_joins) ->
-              M.seq (fun psi -> go {env with unreduced_joins} [psi]) psis
-          end
-        | (phi :: phis) ->
-          match phi with
-          | Cof.Var v ->
-            go {env with true_vars = VarSet.add v true_vars} phis
-          | Cof.Cof phi ->
-            match phi with
-            | Cof.Meet psis ->
-              go env (psis @ phis)
-            | Cof.Join psis ->
-              let env = {env with unreduced_joins = psis :: unreduced_joins} in
-              if Test.inconsistency env then M.vacuous else go env phis
-            | Cof.Eq (r, s) ->
-              let classes = UF.union r s classes in
-              if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
-                M.vacuous
-              else
-                go {env with classes} phis
-      in go env phis
+        | None -> M.vacuous
+        | Some ({classes; true_vars; unreduced_joins} as env) ->
+          match unreduced_joins with
+          | [] -> cont {classes; true_vars}
+          | (psis :: unreduced_joins) ->
+            if SearchHelper.consistency env then
+              M.seq (fun psi -> go (SearchHelper.pushes {env with unreduced_joins} [psi])) psis
+            else
+              M.vacuous
+      in go (SearchHelper.pushes env phis)
 
     let left_invert env phis cont =
       match env with
       | `Inconsistent -> M.vacuous
       | `Consistent env -> left_invert' env phis cont
   end
-and Test :
-sig
-  val inconsistency : env' -> bool
-  val sequent : env' -> D.cof list -> D.cof -> bool
-end =
-struct
-  (* Invariant: classes is consistent *)
-  let rec right (local : reduced_env) =
-    function
-    | Cof.Cof phi ->
-      begin
-        match phi with
-        | Cof.Eq (r, s) when r = s ->
-          true
-        | Cof.Eq (r, s) ->
-          find_class local.classes r = find_class local.classes s
-        | Cof.Join phis -> List.exists (right local) phis
-        | Cof.Meet phis -> List.for_all (right local) phis
-      end
-    | Cof.Var v ->
-      VarSet.mem v local.true_vars
 
-  module Seq = struct type t = bool let vacuous = true let seq = List.for_all end
-  module M = Search (Seq)
+(* Invariant: env.classes must be consistent. *)
+let rec test' (local : reduced_env) =
+  function
+  | Cof.Cof phi ->
+    begin
+      match phi with
+      | Cof.Eq (r, s) when r = s ->
+        true
+      | Cof.Eq (r, s) ->
+        find_class local.classes r = find_class local.classes s
+      | Cof.Join phis -> List.exists (test' local) phis
+      | Cof.Meet phis -> List.for_all (test' local) phis
+    end
+  | Cof.Var v ->
+    VarSet.mem v local.true_vars
 
-  let sequent env cx phi = M.left_invert' env cx (fun env -> right env phi)
-  let inconsistency env = M.left_invert' env [] (fun _ -> false)
-end
-
+module BoolSeqAll = struct type t = bool let vacuous = true let seq = List.for_all end
+module BoolSearchAll = Search (BoolSeqAll)
 let test_sequent env cx phi =
-  match env with
-  | `Inconsistent -> true
-  | `Consistent env -> Test.sequent env cx phi
+  BoolSearchAll.left_invert env cx (fun env -> test' env phi)
 
 let assume env phi =
   match env with
   | `Inconsistent -> env
   | `Consistent env ->
-    let rec go ({classes; true_vars; unreduced_joins} as env) =
-      function
-      | [] -> if Test.inconsistency env then `Inconsistent else `Consistent env
-      | (phi :: phis) ->
-        match phi with
-        | Cof.Var v ->
-          go {env with true_vars = VarSet.add v true_vars} phis
-        | Cof.Cof phi ->
-          match phi with
-          | Cof.Meet psis ->
-            go env (psis @ phis)
-          | Cof.Join psis ->
-            go {env with unreduced_joins = psis :: unreduced_joins} phis
-          | Cof.Eq (r, s) ->
-            let classes = UF.union r s classes in
-            if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
-              `Inconsistent
-            else
-              go {env with classes} phis
-    in go env [Cof.reduce phi] (* do we want Cof.reduce here? *)
+    match
+      SearchHelper.pushes env [Cof.reduce phi] (* do we want Cof.reduce here? *)
+    with
+    | None -> `Inconsistent
+    | Some env ->
+      if SearchHelper.consistency env
+      then `Consistent env
+      else `Inconsistent
 
 (** Monadic interface *)
 module M (M : CoolBasis.Monad.S) :
