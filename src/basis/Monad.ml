@@ -39,6 +39,7 @@ end
 module Util (M : S) =
 struct
   open Notation (M)
+
   let rec commute_list =
     function
     | [] -> M.ret []
@@ -46,6 +47,7 @@ struct
       let+ x = m
       and+ xs = commute_list ms in
       x :: xs
+
   let rec map f =
     function
     | [] -> M.ret []
@@ -53,6 +55,7 @@ struct
       let+ y = f x
       and+ ys = map f xs in
       y :: ys
+
   let rec iter f =
     function
     | [] -> M.ret ()
@@ -131,10 +134,10 @@ struct
   let throw exn (st, _) = Error exn, st
 
 
-  let trap (m : 'a m) : ('a, exn) result m = 
-    fun env -> 
-    match m env with 
-    | Ok a, st -> Ok (Ok a), st 
+  let trap (m : 'a m) : ('a, exn) result m =
+    fun env ->
+    match m env with
+    | Ok a, st -> Ok (Ok a), st
     | Error exn, st -> Ok (Error exn), st
 
   let read (st, env) = Ok env, st
