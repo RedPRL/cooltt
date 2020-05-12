@@ -18,7 +18,7 @@ type consistent_env =
     true_vars : VarSet.t;
 
     unreduced_joins : D.cof list list;
-    (** unreduced joins *)
+    (** a stack of unreduced joins, each represented by a list of cofibrations *)
   }
 
 type env = [ `Consistent of consistent_env | `Inconsistent ]
@@ -30,7 +30,7 @@ let init () = `Consistent
 
 let inconsistent = `Inconsistent
 
-let is_consistent =
+let already_inconsistent =
   function
   | `Consistent _ -> `Consistent
   | `Inconsistent -> `Inconsistent
