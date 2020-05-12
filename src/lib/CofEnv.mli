@@ -25,5 +25,5 @@ val test_sequent : env -> D.cof list -> D.cof -> bool
 module M (M : CoolBasis.Monad.S) :
 sig
     (* Search all branches induced by unreduced joins under additional cofibrations. *)
-    val left_inverse_under_cofs : env -> D.cof list -> (env -> unit M.m) -> unit M.m
+    val left_invert_under_cofs : env -> D.cof list -> (env -> unit M.m) -> unit M.m
 end

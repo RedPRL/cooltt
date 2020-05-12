@@ -152,7 +152,7 @@ struct
 
   let left_invert_under_cofs phis m =
     let* {cof_env} = M.read in
-    CM.left_inverse_under_cofs cof_env phis @@
+    CM.left_invert_under_cofs cof_env phis @@
     fun cof_env ->
     let+ _ = replace_env cof_env m in ()
 

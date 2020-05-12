@@ -48,14 +48,14 @@ end
 module rec Search : functor (M : SEQ) ->
 sig
   (* Search all branches assuming more cofibrations *)
-  val left_inverse : env -> D.cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert : env -> D.cof list -> (reduced_env -> M.t) -> M.t
   (* Search all branches assuming more cofibrations *)
-  val left_inverse' : consistent_env -> D.cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert' : consistent_env -> D.cof list -> (reduced_env -> M.t) -> M.t
 end
   =
   functor (M : SEQ) ->
   struct
-    let left_inverse' env phis cont =
+    let left_invert' env phis cont =
       let rec go ({classes; true_vars; unreduced_joins} as env) =
         function
         | [] ->
@@ -84,10 +84,10 @@ end
                 go {env with classes} phis
       in go env phis
 
-    let left_inverse env phis cont =
+    let left_invert env phis cont =
       match env with
       | `Inconsistent -> M.vacuous
-      | `Consistent env -> left_inverse' env phis cont
+      | `Consistent env -> left_invert' env phis cont
   end
 and Test :
 sig
@@ -114,7 +114,7 @@ struct
   module Seq = struct type t = bool let vacuous = true let seq = List.for_all end
   module M = Search (Seq)
 
-  let sequent env cx phi = M.left_inverse' env cx (fun env -> right env phi)
+  let sequent env cx phi = M.left_invert' env cx (fun env -> right env phi)
   let simple env phi = sequent env [] phi
 end
 
@@ -153,7 +153,7 @@ let assume env phi =
 module M (M : CoolBasis.Monad.S) :
 sig
   (* Search all branches under one more cofibration *)
-  val left_inverse_under_cofs : env -> D.cof list -> (env -> unit M.m) -> unit M.m
+  val left_invert_under_cofs : env -> D.cof list -> (env -> unit M.m) -> unit M.m
 end
 =
 struct
@@ -161,6 +161,6 @@ struct
   module Seq = struct type t = unit M.m let vacuous = M.ret () let seq = MU.app end
   module S = Search (Seq)
 
-  let left_inverse_under_cofs env phis cont = S.left_inverse env phis @@
+  let left_invert_under_cofs env phis cont = S.left_invert env phis @@
     fun {classes; true_vars} -> cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
 end
