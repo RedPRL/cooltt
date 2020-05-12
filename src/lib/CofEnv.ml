@@ -62,8 +62,8 @@ sig
 
       @return If the [env.classes] would be inconsistent, [None] is returned.
       Otherwise, [Some env] is returned and [env.classes] will be consistent. *)
-
   val pushes' : env' -> D.cof list -> env' option
+
   (** Checking whether the [env'] is inconsistent.
       Invariant: intput [env.classes] must be consistent;
       the inconsistency can only come from [env.unreduced_joins.] *)
