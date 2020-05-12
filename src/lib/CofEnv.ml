@@ -81,7 +81,7 @@ struct
         | Cof.Cof phi ->
           match phi with
           | Cof.Meet psis ->
-            go env (psis @ phis)
+            go env @@ psis @ phis
           | Cof.Join psis ->
             let env = {env with unreduced_joins = psis :: unreduced_joins} in
             if Test.inconsistency env then M.vacuous else go env phis
