@@ -55,7 +55,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.already_inconsistent st.cof_env with
+    match CofEnv.is_consistent st.cof_env with
     | `Consistent -> m st
     | `Inconsistent -> M.ret abort st
 
@@ -94,7 +94,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.already_inconsistent st.cof_env with
+    match CofEnv.is_consistent st.cof_env with
     | `Consistent -> m st
     | `Inconsistent -> M.ret abort st
 
@@ -132,7 +132,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.already_inconsistent st.cof_env with
+    match CofEnv.is_consistent st.cof_env with
     | `Consistent -> m st
     | `Inconsistent -> M.ret abort st
 
@@ -231,7 +231,7 @@ struct
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
     fun (state, env) ->
-    match CofEnv.already_inconsistent (Env.cof_env env) with
+    match CofEnv.is_consistent (Env.cof_env env) with
     | `Consistent -> m (state, env)
     | `Inconsistent -> M.ret abort (state, env)
 end

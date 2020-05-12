@@ -21,19 +21,14 @@ type consistent_env =
     (** a stack of unreduced joins, each represented by a list of cofibrations *)
   }
 
-type env = [ `Consistent of consistent_env | `Inconsistent ]
+type env = [ `PossiblyConsistent of consistent_env | `Inconsistent ]
 
-let init () = `Consistent
+let init () = `PossiblyConsistent
     {classes = UF.init ~size:100;
      true_vars = VarSet.empty;
      unreduced_joins = []}
 
 let inconsistent = `Inconsistent
-
-let already_inconsistent =
-  function
-  | `Consistent _ -> `Consistent
-  | `Inconsistent -> `Inconsistent
 
 let find_class classes r =
   try UF.find r classes with _ -> r
@@ -96,7 +91,7 @@ end
     let left_invert env phis cont =
       match env with
       | `Inconsistent -> M.vacuous
-      | `Consistent env -> left_invert' env phis cont
+      | `PossiblyConsistent env -> left_invert' env phis cont
   end
 and Test :
 sig
@@ -130,15 +125,20 @@ end
 let test_sequent env cx phi =
   match env with
   | `Inconsistent -> true
-  | `Consistent env -> Test.sequent env cx phi
+  | `PossiblyConsistent env -> Test.sequent env cx phi
+
+let is_consistent' env =
+  let module Seq = struct type t = bool let vacuous = false let seq = List.exists end in
+  let module S = Search (Seq) in
+  if S.left_invert env [] (fun _ -> true) then `Consistent else `Inconsistent
 
 let assume env phi =
   match env with
   | `Inconsistent -> env
-  | `Consistent env ->
+  | `PossiblyConsistent env ->
     let rec go env =
       function
-      | [] -> `Consistent env
+      | [] -> `PossiblyConsistent env
       | (phi :: phis) ->
         match phi with
         | Cof.Var v ->
@@ -172,5 +172,5 @@ struct
 
   let left_invert_under_cofs env phis cont =
     S.left_invert env phis @@ fun {classes; true_vars} ->
-    cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
+    cont @@ `PossiblyConsistent {classes; true_vars; unreduced_joins = []}
 end
