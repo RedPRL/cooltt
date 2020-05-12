@@ -263,15 +263,14 @@ and eval : S.t -> D.con EvM.m =
           let+ phis = MU.map eval tphis in
           D.Cof (Cof.Meet phis)
       end
-    | S.CofSplit (ttp, tphi0, tphi1, tm0, tm1) ->
+    | S.CofSplit (ttp, branches) ->
       let* tp = eval_tp ttp in
-      let* phi0 = eval_cof tphi0 in
-      let* phi1 = eval_cof tphi1 in
+      let tphis, tms = List.split branches in
+      let* phis = MU.map eval_cof tphis in
       let* con =
         let+ env = read_local in
-        let pclo0 = D.Clo (tm0, env) in
-        let pclo1 = D.Clo (tm1, env) in
-        let hd = D.Split (tp, phi0, phi1, pclo0, pclo1) in
+        let pclos = List.map (fun tm -> D.Clo (tm, env)) tms in
+        let hd = D.Split (tp, List.combine phis pclos) in
         D.Cut {tp; cut = hd, []}
       in
       begin
@@ -405,18 +404,18 @@ and whnf_hd hd =
         | `Reduce con ->
           reduce_to @<< do_sub_out con
     end
-  | D.Split (tp, phi0, phi1, clo0, clo1) ->
-    begin
-      test_sequent [] phi0 |>> function
-      | true ->
-        reduce_to @<< inst_tm_clo clo0 [D.Prf]
-      | false ->
-        test_sequent [] phi1 |>> function
+  | D.Split (tp, branches) ->
+    let rec go =
+      function
+      | [] -> ret `Done
+      | (phi, clo) :: branches ->
+        test_sequent [] phi |>> function
         | true ->
-          reduce_to @<< inst_tm_clo clo1 [D.Prf]
+          reduce_to @<< inst_tm_clo clo [D.Prf]
         | false ->
-          ret `Done
-    end
+          go branches
+    in
+    go branches
 
 and whnf_cut cut : D.con whnf CM.m =
   let open CM in
@@ -825,5 +824,3 @@ and splice_tm t =
 and splice_tp t =
   let env, tp = Splice.compile t in
   CM.lift_ev env @@ eval_tp tp
-
-

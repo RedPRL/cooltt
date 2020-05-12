@@ -119,7 +119,7 @@ struct
         Splice.foreign_clo clo_a @@ fun fn_a ->
         Splice.foreign_clo clo_sub @@ fun fn_sub ->
         Splice.term @@ TB.lam @@ fun prf ->
-        TB.cof_split tp_a phi_a (fun prf -> TB.ap fn_a [prf]) phi_sub (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])
+        TB.cof_split tp_a [phi_a, (fun prf -> TB.ap fn_a [prf]); phi_sub, (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])]
       in
       let+ tm = tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
@@ -251,13 +251,13 @@ struct
         Splice.foreign phi0_fn @@ fun phi0_fn ->
         Splice.term @@
         TB.lam @@ fun prf ->
-        TB.cof_split tp phi0 (fun prf -> TB.ap phi0_fn [prf]) psi (fun prf -> TB.ap psi_fn [prf])
+        TB.cof_split tp [phi0, (fun prf -> TB.ap phi0_fn [prf]); psi, (fun prf -> TB.ap psi_fn [prf])]
       in
       T.abstract (D.TpPrf phi1) None @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
     and+ tphi0 = EM.lift_qu @@ Qu.quote_cof phi0
     and+ tphi1 = EM.lift_qu @@ Qu.quote_cof phi1 in
-    S.CofSplit (ttp, tphi0, tphi1, tm0, tm1)
+    S.CofSplit (ttp, [tphi0, tm0; tphi1, tm1])
 
 
 

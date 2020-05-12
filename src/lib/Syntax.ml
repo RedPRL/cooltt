@@ -80,12 +80,12 @@ let rec pp env fmt tm =
     pp_tuple (pp env) fmt [tm0; tm1]
   | CofAbort ->
     Format.fprintf fmt "[]"
-  | CofSplit (_, phi0, phi1, tm0, tm1) ->
+  | CofSplit (_, branches) ->
     let sep fmt () = Format.fprintf fmt "@ | " in
     pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
       (pp_cof_split_branch env)
       fmt
-      [phi0, tm0; phi1, tm1]
+      branches
   | HCom (code, r, s, phi, bdy) ->
     Format.fprintf fmt "@[<hv2>hcom %a %a %a %a@ %a@]"
       (pp_atomic env) code

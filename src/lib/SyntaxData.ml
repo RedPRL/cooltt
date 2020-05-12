@@ -23,7 +23,7 @@ type t =
   | Dim0
   | Dim1
   | Cof of (t, t) Cof.cof_f
-  | CofSplit of tp * t * t * t * t
+  | CofSplit of tp * (t * t) list
   | CofAbort
   | Prf
 

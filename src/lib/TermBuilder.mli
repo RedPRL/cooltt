@@ -25,7 +25,7 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
-val cof_split : tp m -> t m -> t b -> t m -> t b -> t m
+val cof_split : tp m -> (t m * t b) list -> t m
 val cof_abort : t m
 val sub_out : t m -> t m
 val sub_in : t m -> t m

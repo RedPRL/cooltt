@@ -62,7 +62,7 @@ and hd =
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
   | SubOut of cut * cof * tm_clo
-  | Split of tp * cof * cof * tm_clo * tm_clo
+  | Split of tp * (cof * tm_clo) list
 
 and cut = hd * frm list
 
