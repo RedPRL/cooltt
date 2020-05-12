@@ -260,7 +260,7 @@ and quote_hd =
     let+ tm = quote_cut cut in
     S.SubOut tm
   | D.Split (tp, branches) ->
-    let branch_body (phi , clo) =
+    let branch_body (phi, clo) =
       begin
         bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
         let* body = lift_cmp @@ inst_tm_clo clo prf in
