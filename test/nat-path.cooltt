@@ -141,3 +141,5 @@ def test : {
   | suc {x => ih} => zero
   ]
 }
+
+normalize test

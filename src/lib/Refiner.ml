@@ -506,6 +506,7 @@ struct
   let auto_hcom tac_code tac_src tac_trg tac_tm : T.bchk_tac =
     fun (vtp, vpsi, clo) ->
     let* code = tac_code D.Univ in
+    let* vcode = EM.lift_ev @@ Sem.eval code in
     let* elcode = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl code in
     let* () = EM.equate_tp vtp elcode in
     let* psi = EM.lift_qu @@ Qu.quote_cof vpsi in
@@ -521,11 +522,11 @@ struct
       Splice.foreign vtrg @@ fun trg ->
       Splice.foreign_clo clo @@ fun pel ->
       Splice.foreign_cof vpsi @@ fun cof ->
-      Splice.foreign_tp vtp @@ fun tp ->
+      Splice.foreign vcode @@ fun code ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
-      TB.sub tp (TB.meet [TB.eq i trg; cof]) @@ fun prf -> TB.ap pel [prf]
+      TB.sub (TB.el code) (TB.meet [TB.eq i trg; cof]) @@ fun prf -> TB.el_in @@ TB.ap pel [prf]
     in
     let* vtm = EM.lift_ev @@ Sem.eval tm in
     let* vtm' =
@@ -538,7 +539,7 @@ struct
       TB.ap tm [i; prf]
     in
     let* tm' =
-      let* bdy_tp  = hcom_bdy_tp vtp vsrc vpsi in
+      let* bdy_tp = hcom_bdy_tp (D.El vcode) vsrc vpsi in
       EM.lift_qu @@ Qu.quote_con bdy_tp vtm'
     in
     EM.ret @@ S.ElOut (S.HCom (code, src, trg, psi, tm'))
