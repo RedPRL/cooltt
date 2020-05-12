@@ -152,6 +152,9 @@ let nat_elim mmot mzero msuc mscrut =
   S.NatElim (mot, zero, suc, scrut)
 
 
+let zero =
+  ret S.Zero
+
 let suc m =
   let+ x = m in
   S.Suc x

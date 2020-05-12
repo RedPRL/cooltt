@@ -464,8 +464,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
     cut_frm ~tp:(D.El fib) ~cut @@
     D.KNatElim (mot, zero, suc)
   | D.FHCom (`Nat, r, s, phi, bdy) ->
-    Format.eprintf "Doing FHCom@.";
-    (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)
+    (* bdy : (i : 𝕀) (_ : [_]) → nat *)
     splice_tm @@
     Splice.foreign mot @@ fun mot ->
     Splice.foreign_dim r @@ fun r ->
@@ -491,9 +490,9 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
       TB.lam @@ fun prf ->
       TB.nat_elim mot zero suc @@ TB.ap bdy [i; prf]
     in
-    TB.el_out @@ TB.com fam r s phi bdy'
+    TB.com fam r s phi bdy'
   | _ ->
-    Format.eprintf "bad: %a@." D.pp_con n;
+    Format.eprintf "bad nat-elim: %a@." D.pp_con n;
     CM.throw @@ NbeFailed "Not a number"
 
 and cut_frm ~tp ~cut frm =
@@ -607,7 +606,7 @@ and do_el_out con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ NbeFailed "do_el_out"
   | _ ->
-    Format.eprintf "bad: %a@." D.pp_con con;
+    Format.eprintf "bad el/out: %a@." D.pp_con con;
     throw @@ NbeFailed "do_el_out"
 
 and unfold_el : D.con -> D.tp CM.m =
@@ -771,6 +770,7 @@ and enact_rigid_hcom code r s phi bdy tag =
     Splice.term @@
     TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
   | `HComNat ->
+    (* bdy : (i : 𝕀) (_ : [...]) → el(<nat>) *)
     let* bdy' =
       splice_tm @@
       Splice.foreign bdy @@ fun bdy ->

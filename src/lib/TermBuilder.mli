@@ -25,6 +25,7 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
+val zero : t m
 val suc : t m -> t m
 
 val cof_split : tp m -> t m -> t b -> t m -> t b -> t m
