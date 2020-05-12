@@ -107,7 +107,7 @@ struct
     let* con = EM.lift_ev @@ Sem.eval tm in
     let* () =
       abstract (D.TpPrf phi) None @@ fun prf ->
-      EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo pclo [Var.con prf]
+      EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo pclo @@ Var.con prf
     in
     EM.ret tm
 

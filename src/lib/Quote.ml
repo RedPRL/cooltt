@@ -56,13 +56,13 @@ let rec quote_con (tp : D.tp) con : S.t m =
     quote_cut (hd, sp)
   | D.Pi (base, fam), con ->
     QTB.lam base @@ fun arg ->
-    let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
+    let* fib = lift_cmp @@ inst_tp_clo fam arg in
     let* ap = lift_cmp @@ do_ap con arg in
     quote_con fib ap
   | D.Sg (base, fam), _ ->
     let* fst = lift_cmp @@ do_fst con in
     let* snd = lift_cmp @@ do_snd con in
-    let* fib = lift_cmp @@ inst_tp_clo fam [fst] in
+    let* fib = lift_cmp @@ inst_tp_clo fam fst in
     let+ tfst = quote_con base fst
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
@@ -175,7 +175,7 @@ and quote_hcom code r s phi bdy =
 
 and quote_tp_clo base fam =
   bind_var ~abort:(S.El S.CofAbort) base @@ fun var ->
-  quote_tp @<< lift_cmp @@ inst_tp_clo fam [var]
+  quote_tp @<< lift_cmp @@ inst_tp_clo fam var
 
 and quote_tp (tp : D.tp) =
   match tp with
@@ -205,7 +205,7 @@ and quote_tp (tp : D.tp) =
     let+ tphi = quote_cof phi
     and+ tm =
       bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
-      let* body = lift_cmp @@ inst_tm_clo cl [prf] in
+      let* body = lift_cmp @@ inst_tm_clo cl prf in
       quote_con tp body
     in
     S.Sub (ttp, tphi, tm)
@@ -245,7 +245,7 @@ and quote_hd =
     let branch_body phi clo =
       begin
         bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
-        let* body = lift_cmp @@ inst_tm_clo clo [prf] in
+        let* body = lift_cmp @@ inst_tm_clo clo prf in
         quote_con tp body
       end
     in

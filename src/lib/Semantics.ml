@@ -399,7 +399,7 @@ and whnf_hd hd =
     begin
       test_sequent [] phi |>> function
       | true ->
-        reduce_to @<< inst_tm_clo clo [D.Prf]
+        reduce_to @<< inst_tm_clo clo D.Prf
       | false ->
         whnf_cut cut |>> function
         | `Done ->
@@ -411,11 +411,11 @@ and whnf_hd hd =
     begin
       test_sequent [] phi0 |>> function
       | true ->
-        reduce_to @<< inst_tm_clo clo0 [D.Prf]
+        reduce_to @<< inst_tm_clo clo0 D.Prf
       | false ->
         test_sequent [] phi1 |>> function
         | true ->
-          reduce_to @<< inst_tm_clo clo1 [D.Prf]
+          reduce_to @<< inst_tm_clo clo1 D.Prf
         | false ->
           ret `Done
     end
@@ -498,20 +498,18 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
 and cut_frm ~tp ~cut frm =
   D.Cut {tp; cut = D.push frm cut}
 
-and inst_tp_clo : D.tp_clo -> D.con list -> D.tp CM.m =
-  fun clo xs ->
+and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
+  fun clo x ->
   match clo with
   | TpClo (bdy, env) ->
-    let open BwdNotation in
-    CM.lift_ev {env with conenv = env.conenv <>< xs} @@
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval_tp bdy
 
-and inst_tm_clo : D.tm_clo -> D.con list -> D.con CM.m =
-  fun clo xs ->
+and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
+  fun clo x ->
   match clo with
   | D.Clo (bdy, env) ->
-    let open BwdNotation in
-    CM.lift_ev {env with conenv = env.conenv <>< xs} @@
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval bdy
 
 and do_goal_proj con =
@@ -541,7 +539,7 @@ and do_snd con : D.con CM.m =
   | D.Pair (_, con1) -> ret con1
   | D.Cut {tp = D.Sg (_, fam); cut} ->
     let* fst = do_fst con in
-    let+ fib = inst_tp_clo fam [fst] in
+    let+ fib = inst_tp_clo fam fst in
     cut_frm ~tp:fib ~cut D.KSnd
   | _ ->
     throw @@ NbeFailed ("Couldn't snd argument in do_snd")
@@ -557,13 +555,13 @@ and do_ap f a =
   abort_if_inconsistent D.Abort @@
   match f with
   | D.Lam clo ->
-    inst_tm_clo clo [a]
+    inst_tm_clo clo a
 
   | D.Destruct dst ->
     do_destruct dst a
 
   | D.Cut {tp = D.Pi (base, fam); cut} ->
-    let+ fib = inst_tp_clo fam [a] in
+    let+ fib = inst_tp_clo fam a in
     cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
 
   | _ ->

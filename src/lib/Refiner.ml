@@ -324,7 +324,7 @@ struct
     function
     | D.Pi (base, fam), phi, phi_clo ->
       T.abstract base name @@ fun var ->
-      let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [T.Var.con var] in
+      let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ T.Var.con var in
       let+ tm = tac_body var (fib, phi, D.un_lam @@ D.compose (D.Lam (D.apply_to (T.Var.con var))) @@ D.Lam phi_clo) in
       S.Lam tm
     | tp, _, _ ->
@@ -336,7 +336,7 @@ struct
     let* targ = tac_arg base in
     let+ fib =
       let* varg = EM.lift_ev @@ Sem.eval targ in
-      EM.lift_cmp @@ Sem.inst_tp_clo fam [varg]
+      EM.lift_cmp @@ Sem.inst_tp_clo fam varg
     in
     S.Ap (tfun, targ), fib
 end
@@ -357,7 +357,7 @@ struct
       let* tfst = tac_fst (base, phi, D.un_lam @@ D.compose D.fst @@ D.Lam phi_clo) in
       let+ tsnd =
         let* vfst = EM.lift_ev @@ Sem.eval tfst in
-        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [vfst] in
+        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam vfst in
         tac_snd (fib, phi, D.un_lam @@ D.compose D.snd @@ D.Lam phi_clo)
       in
       S.Pair (tfst, tsnd)
@@ -374,7 +374,7 @@ struct
     let+ fib =
       let* vfst = EM.lift_ev @@ Sem.eval @@ S.Fst tpair in
       let* _, fam = EM.dest_sg tp in
-      EM.lift_cmp @@ Sem.inst_tp_clo fam [vfst]
+      EM.lift_cmp @@ Sem.inst_tp_clo fam vfst
     in
     S.Snd tpair, fib
 end
@@ -784,7 +784,7 @@ struct
        T.BChk.chk @@ fun goal ->
        let* tx' = x' base in
        let* vx' = EM.lift_ev @@ Sem.eval tx' in
-       let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx'] in
+       let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam vx' in
        unravel_iso_fwd fib (T.Chk.syn tacx') goal
 
      | _ ->
@@ -825,7 +825,7 @@ struct
     T.BChk.chk @@ fun goal ->
     let* x = unravel_iso_bwd base (T.Chk.syn (T.Var.syn tac_var)) base in
     let* vx = EM.lift_ev @@ Sem.eval x in
-    let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx] in
+    let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam vx in
     unravel_tp fib goal
 end
 
@@ -941,7 +941,7 @@ struct
         T.Chk.bchk @@
         Pi.intro None @@ fun var ->
         T.BChk.chk @@ fun goal ->
-        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [D.ElIn (T.Var.con var)] in
+        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
         match fib with
         | D.El code ->
           EM.lift_qu @@ Qu.quote_con D.Univ code

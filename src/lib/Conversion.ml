@@ -82,15 +82,15 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.Sg (base0, fam0), D.Sg (base1, fam1) ->
     let* () = equate_tp base0 base1 in
     bind_var_ base0 @@ fun x ->
-    let* fib0 = lift_cmp @@ inst_tp_clo fam0 [x] in
-    let* fib1 = lift_cmp @@ inst_tp_clo fam1 [x] in
+    let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
+    let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in
     bind_var_ (D.TpPrf phi0) @@ fun prf ->
-    let* con0 = lift_cmp @@ inst_tm_clo clo0 [prf] in
-    let* con1 = lift_cmp @@ inst_tm_clo clo1 [prf] in
+    let* con0 = lift_cmp @@ inst_tm_clo clo0 prf in
+    let* con1 = lift_cmp @@ inst_tm_clo clo1 prf in
     equate_con tp0 con0 con1
   | D.Nat, D.Nat
   | D.Univ, D.Univ ->
@@ -120,7 +120,7 @@ and equate_con tp con0 con1 =
     equate_con tp con0 con1
   | D.Pi (base, fam), _, _ ->
     bind_var_ base @@ fun x ->
-    let* fib = lift_cmp @@ inst_tp_clo fam [x] in
+    let* fib = lift_cmp @@ inst_tp_clo fam x in
     let* ap0 = lift_cmp @@ do_ap con0 x in
     let* ap1 = lift_cmp @@ do_ap con1 x in
     equate_con fib ap0 ap1
@@ -128,7 +128,7 @@ and equate_con tp con0 con1 =
     let* fst0 = lift_cmp @@ do_fst con0 in
     let* fst1 = lift_cmp @@ do_fst con1 in
     let* () = equate_con base fst0 fst1 in
-    let* fib = lift_cmp @@ inst_tp_clo fam [fst0] in
+    let* fib = lift_cmp @@ inst_tp_clo fam fst0 in
     let* snd0 = lift_cmp @@ do_snd con0 in
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
@@ -319,10 +319,10 @@ and equate_hd hd0 hd1 =
   | D.Split (tp, phi0, phi1, clo0, clo1), hd ->
     let* () =
       QuM.left_invert_under_cofs [phi0] @@
-      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo0 [D.Prf]
+      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo0 D.Prf
     in
     QuM.left_invert_under_cofs [phi1] @@
-    equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo1 [D.Prf]
+    equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo1 D.Prf
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
 
