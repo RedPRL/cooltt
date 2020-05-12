@@ -1,4 +1,4 @@
-open CoolBasis 
+open CoolBasis
 
 type info = LexingUtil.span option
 
@@ -16,15 +16,14 @@ type 'a node =
 [@@deriving show]
 
 
-type ident = string [@@deriving show]
+type binder = B of {name : Ident.t; body : con}
+and bindern = BN of {names : Ident.t list; body : con}
 
-type binder = B of {name : ident; body : con}
-and bindern = BN of {names : ident list; body : con}
-
-and cell = Cell of {name : ident; tp : con}
+and cell = Cell of {name : Ident.t; tp : con}
 and con = con_ node
 and con_ =
-  | Var of [`User of ident | `Level of int]
+  | Var of Ident.t
+  | DeBruijnLevel of int
   | Let of con * binder
   | Ann of {term : con; tp : con}
   | Nat
@@ -38,11 +37,12 @@ and con_ =
   | Pair of con * con
   | Fst of con
   | Snd of con
-  | Univ
-  | Hole of ident option
+  | Type
+  | Hole of string option
   | Underscore
-  | Unfold of ident list * con
-  | Elim of {mot : bindern; cases : case list; scrut : con}
+  | Unfold of Ident.t list * con
+  | Elim of {mot : con; cases : case list; scrut : con}
+  | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
   | Dim
   | Cof
@@ -57,6 +57,7 @@ and con_ =
   | TopC
   | BotC
   | HCom of con * con * con * con * con
+  | HFill of con * con * con * con
   | AutoHCom of con * con * con * con
   | Com of con * con * con * con * con
 [@@deriving show]
@@ -64,14 +65,14 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and pat = Pat of {lbl : ident; args : pat_arg list}
+and pat = Pat of {lbl : string; args : pat_arg list}
 [@@deriving show]
 
-and pat_arg = [`Simple of ident option | `Inductive of ident option * ident option]
+and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 [@@deriving show]
 
 type decl =
-  | Def of {name : ident; def : con; tp : con}
+  | Def of {name : Ident.t; def : con; tp : con}
   | NormalizeTerm of con
   | Quit
 

@@ -1,5 +1,5 @@
 def symm : {
-  (A : univ) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
+  (A : type) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
 }= {
   λ A p i =>
   hcom A 0 1 {λ j _ =>
@@ -10,7 +10,7 @@ def symm : {
 }
 
 def trans/filler : {
-  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
+  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
 } = {
   λ A p q j i =>
   hcom A 0 j {∂ i} {λ j _ =>
@@ -21,27 +21,25 @@ def trans/filler : {
 }
 
 def trans : {
-  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
+  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
 } = {
   λ A p q => trans/filler A p q 1
 }
 
 
 def J : {
-  (A : univ) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → univ) →
+  (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) →
   {C {λ _ => p 0}} → C p
 } = {
   λ A p C d =>
-  coe {λ i =>
-    C {λ j =>
-      hcom A 0 j {∂ i} {λ k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}
-    }
-  } 0 1 d
+  coe {λ i => C {hfill A 0 {∂ i} {λ k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}} 0 1 d
 }
+
+normalize J
 
 /-
 def trans-assoc : {
-  (A : univ) (s : A) (t : A) (u : A) (v : A)
+  (A : type) (s : A) (t : A) (u : A) (v : A)
   (p : path {λ _ => A} s t) (q : path {λ _ => A} t u) (r : path {λ _ => A} u v) →
     path
       {λ _ => path {λ _ => A} s v}
@@ -54,7 +52,7 @@ def trans-assoc : {
 
 /-
 def trans-left-unit : {
-  (A : univ) (p : 𝕀 → A)
+  (A : type) (p : 𝕀 → A)
   → path {λ _ => path {λ _ => A} {p 0} {p 1}} {trans A {λ _ => p 0} p} p
 } = {
   λ A p => ?
@@ -62,7 +60,7 @@ def trans-left-unit : {
 -/
 
 def trans-right-unit : {
-  (A : univ) (p : 𝕀 → A)
+  (A : type) (p : 𝕀 → A)
   → path {λ _ => path {λ _ => A} {p 0} {p 1}} p {trans A p {λ _ => p 1}}
 } = {
   λ A p => trans/filler A p {λ _ => p 1}
@@ -70,7 +68,7 @@ def trans-right-unit : {
 
 /-
 def trans-symm-refl : {
-  (A : univ) (p : 𝕀 → A)
+  (A : type) (p : 𝕀 → A)
   → path {λ _ => path {λ _ => A} {p 0} {p 0}} {trans A p {symm A p}} {λ _ => p 0}
 } = {
   λ A p => ?
@@ -78,7 +76,7 @@ def trans-symm-refl : {
 -/
 
 def cong : {
-  (A : univ) (B : univ) (f : A → B) (p : 𝕀 → A) →
+  (A : type) (B : type) (f : A → B) (p : 𝕀 → A) →
   path {λ _ => B} {f {p 0}} {f {p 1}}
 } = {
   λ A B f p i => f {p i}
@@ -136,8 +134,32 @@ def test : {
   (p : 𝕀 → nat) → (i : 𝕀) → nat
 } = {
   λ p i =>
-  elim {symm nat p i} @ {_ => nat} [
+  rec {symm nat p i} @ nat [
   | zero => zero
   | suc {x => ih} => zero
   ]
 }
+
+
+def test2 : {
+  (i : 𝕀) → nat
+} = {
+  λ i =>
+  rec {symm nat {\_ => zero} i} @ nat [
+  | zero => zero
+  | suc {x => ih} => zero
+  ]
+}
+
+normalize test
+
+-- You can "normalize" test2; observe how on the inside, there is some eliminator
+-- that ought to be computed away, but is blocked by a disjunction system.
+normalize test2
+
+-- The following illustrates that although cooltt's quasi-normal forms aren't as fully
+-- reduced as they could be, it is of no consequence for definitional
+-- equivalence. That is, we don't bother pushing eliminators through all the
+-- branches of a disjunction split, but our equational theory acts as if we do.
+def test2' : sub {𝕀 → nat} #t {λ i => hcom nat 0 1 {∂ i} {λ _ _ => 0}} = test2
+

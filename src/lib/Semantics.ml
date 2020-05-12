@@ -102,14 +102,14 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
   | S.Nat -> ret D.Nat
-  | S.Pi (base, fam) ->
+  | S.Pi (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Pi (vbase, D.TpClo (fam, env))
-  | S.Sg (base, fam) ->
+    D.Pi (vbase, ident, D.TpClo (fam, env))
+  | S.Sg (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Sg (vbase, D.TpClo (fam, env))
+    D.Sg (vbase, ident, D.TpClo (fam, env))
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -157,7 +157,7 @@ and eval : S.t -> D.con EvM.m =
         | _ ->
           ret @@ D.Cut {tp; cut = (D.Global sym, [])}
       end
-    | S.Let (def, body) ->
+    | S.Let (def, _, body) ->
       let* vdef = eval def in
       append [vdef] @@ eval body
     | S.Ann (term, _) ->
@@ -168,15 +168,14 @@ and eval : S.t -> D.con EvM.m =
       let+ con = eval t in
       D.Suc con
     | S.NatElim (mot, zero, suc, n) ->
+      let* vmot = eval mot in
       let* vzero = eval zero in
       let* vn = eval n in
-      let* env = read_local in
-      let clmot = D.TpClo (mot, env) in
-      let clsuc = D.Clo (suc, env) in
-      lift_cmp @@ do_nat_elim clmot vzero clsuc vn
-    | S.Lam t ->
+      let* vsuc = eval suc in
+      lift_cmp @@ do_nat_elim vmot vzero vsuc vn
+    | S.Lam (ident, t) ->
       let+ env = read_local in
-      D.Lam (D.Clo (t, env))
+      D.Lam (ident, D.Clo (t, env))
     | S.Ap (t0, t1) ->
       let* con0 = eval t0 in
       let* con1 = eval t1 in
@@ -301,6 +300,9 @@ and eval : S.t -> D.con EvM.m =
     | S.CodeNat ->
       ret D.CodeNat
 
+    | S.CodeUniv ->
+      ret D.CodeUniv
+
 and eval_dim tr =
   let open EvM in
   let* con = eval tr in
@@ -319,7 +321,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
   match con with
   | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat
+  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
   | D.Destruct _ ->
     ret `Done
   | D.Cut {cut} ->
@@ -396,7 +398,7 @@ and whnf_hd hd =
     begin
       test_sequent [] phi |>> function
       | true ->
-        reduce_to @<< inst_tm_clo clo [D.Prf]
+        reduce_to @<< inst_tm_clo clo D.Prf
       | false ->
         whnf_cut cut |>> function
         | `Done ->
@@ -411,7 +413,7 @@ and whnf_hd hd =
       | (phi, clo) :: branches ->
         test_sequent [] phi |>> function
         | true ->
-          reduce_to @<< inst_tm_clo clo [D.Prf]
+          reduce_to @<< inst_tm_clo clo D.Prf
         | false ->
           go branches
     in
@@ -447,7 +449,7 @@ and whnf_tp =
   | tp ->
     ret `Done
 
-and do_nat_elim (mot : D.tp_clo) zero suc n : D.con CM.m =
+and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match n with
@@ -455,45 +457,58 @@ and do_nat_elim (mot : D.tp_clo) zero suc n : D.con CM.m =
     ret zero
   | D.Suc n ->
     let* v = do_nat_elim mot zero suc n in
-    inst_tm_clo suc [n; v]
+    do_ap2 suc n v
   | D.Cut {cut} ->
-    let+ fib = inst_tp_clo mot [n] in
-    cut_frm ~tp:fib ~cut @@
+    let+ fib = do_ap mot n  in
+    cut_frm ~tp:(D.El fib) ~cut @@
     D.KNatElim (mot, zero, suc)
   | D.FHCom (`Nat, r, s, phi, bdy) ->
-    (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)
+    (* bdy : (i : 𝕀) (_ : [_]) → nat *)
     splice_tm @@
+    Splice.foreign mot @@ fun mot ->
     Splice.foreign_dim r @@ fun r ->
     Splice.foreign_dim s @@ fun s ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
+    Splice.foreign zero @@ fun zero ->
+    Splice.foreign suc @@ fun suc ->
     Splice.term @@
-      (*
-      let fam = TB.lam @@ fun i -> inst_tp_clo mot [D.FHCom (`Nat, r, i, phi, bdy)] in
-      let bdy' = TB.lam @@ fun i -> TB.lam @@ fun prf -> do_nat_elim mot zero suc (raise Todo) in
-      *)
-    TB.com (raise Todo) r s phi (raise Todo)
+    let fam =
+      TB.lam @@ fun i ->
+      let fhcom =
+        TB.el_out @@
+        TB.hcom TB.code_nat r i phi @@
+        TB.lam @@ fun j ->
+        TB.lam @@ fun prf ->
+        TB.el_in @@ TB.ap bdy [j; prf]
+      in
+      TB.ap mot [fhcom]
+    in
+    let bdy' =
+      TB.lam @@ fun i ->
+      TB.lam @@ fun prf ->
+      TB.nat_elim mot zero suc @@ TB.ap bdy [i; prf]
+    in
+    TB.com fam r s phi bdy'
   | _ ->
-    Format.eprintf "bad: %a@." D.pp_con n;
+    Format.eprintf "bad nat-elim: %a@." D.pp_con n;
     CM.throw @@ NbeFailed "Not a number"
 
 and cut_frm ~tp ~cut frm =
   D.Cut {tp; cut = D.push frm cut}
 
-and inst_tp_clo : D.tp_clo -> D.con list -> D.tp CM.m =
-  fun clo xs ->
+and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
+  fun clo x ->
   match clo with
   | TpClo (bdy, env) ->
-    let open BwdNotation in
-    CM.lift_ev {env with conenv = env.conenv <>< xs} @@
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval_tp bdy
 
-and inst_tm_clo : D.tm_clo -> D.con list -> D.con CM.m =
-  fun clo xs ->
+and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
+  fun clo x ->
   match clo with
   | D.Clo (bdy, env) ->
-    let open BwdNotation in
-    CM.lift_ev {env with conenv = env.conenv <>< xs} @@
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval bdy
 
 and do_goal_proj con =
@@ -511,7 +526,7 @@ and do_fst con : D.con CM.m =
   abort_if_inconsistent D.Abort @@
   match con with
   | D.Pair (con0, _) -> ret con0
-  | D.Cut {tp = D.Sg (base, _); cut} ->
+  | D.Cut {tp = D.Sg (base, _, _); cut} ->
     ret @@ cut_frm ~tp:base ~cut D.KFst
   | _ ->
     throw @@ NbeFailed "Couldn't fst argument in do_fst"
@@ -521,9 +536,9 @@ and do_snd con : D.con CM.m =
   abort_if_inconsistent D.Abort @@
   match con with
   | D.Pair (_, con1) -> ret con1
-  | D.Cut {tp = D.Sg (_, fam); cut} ->
+  | D.Cut {tp = D.Sg (_, _, fam); cut} ->
     let* fst = do_fst con in
-    let+ fib = inst_tp_clo fam [fst] in
+    let+ fib = inst_tp_clo fam fst in
     cut_frm ~tp:fib ~cut D.KSnd
   | _ ->
     throw @@ NbeFailed ("Couldn't snd argument in do_snd")
@@ -538,14 +553,14 @@ and do_ap f a =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match f with
-  | D.Lam clo ->
-    inst_tm_clo clo [a]
+  | D.Lam (_, clo) ->
+    inst_tm_clo clo a
 
   | D.Destruct dst ->
     do_destruct dst a
 
-  | D.Cut {tp = D.Pi (base, fam); cut} ->
-    let+ fib = inst_tp_clo fam [a] in
+  | D.Cut {tp = D.Pi (base, _, fam); cut} ->
+    let+ fib = inst_tp_clo fam a in
     cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
 
   | _ ->
@@ -588,7 +603,7 @@ and do_el_out con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ NbeFailed "do_el_out"
   | _ ->
-    Format.eprintf "bad: %a@." D.pp_con con;
+    Format.eprintf "bad el/out: %a@." D.pp_con con;
     throw @@ NbeFailed "do_el_out"
 
 and unfold_el : D.con -> D.tp CM.m =
@@ -602,6 +617,9 @@ and unfold_el : D.con -> D.tp CM.m =
 
     | D.CodeNat ->
       ret D.Nat
+
+    | D.CodeUniv ->
+      ret D.Univ
 
     | D.CodePi (base, fam) ->
       splice_tp @@
@@ -749,7 +767,15 @@ and enact_rigid_hcom code r s phi bdy tag =
     Splice.term @@
     TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
   | `HComNat ->
-    ret @@ D.FHCom (`Nat, r, s, phi, bdy)
+    (* bdy : (i : 𝕀) (_ : [...]) → el(<nat>) *)
+    let* bdy' =
+      splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_out @@ TB.ap bdy [i; prf]
+    in
+    ret @@ D.ElIn (D.FHCom (`Nat, r, s, phi, bdy'))
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
@@ -792,12 +818,6 @@ and do_rigid_com (line : D.con) r s phi bdy =
   TB.lam @@ fun prf ->
   TB.coe line i s @@
   TB.ap bdy [i; prf]
-
-and force_lazy_con lcon : D.con CM.m =
-  match lcon with
-  | `Done con -> CM.ret con
-  | `Do (con, spine) ->
-    do_spine con spine
 
 and do_frm con =
   function

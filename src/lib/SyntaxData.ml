@@ -3,12 +3,12 @@ open CoolBasis
 type t =
   | Var of int
   | Global of Symbol.t
-  | Let of t * t
+  | Let of t * Ident.t * t
   | Ann of t * tp
   | Zero
   | Suc of t
-  | NatElim of tp * t * t * t
-  | Lam of t
+  | NatElim of t * t * t * t
+  | Lam of Ident.t * t
   | Ap of t * t
   | Pair of t * t
   | Fst of t
@@ -34,6 +34,7 @@ type t =
   | CodePi of t * t
   | CodeSg of t * t
   | CodeNat
+  | CodeUniv
 
 and tp =
   | Univ
@@ -45,8 +46,8 @@ and tp =
   | TpCof
   | TpPrf of t
   | Sub of tp * t * t
-  | Pi of tp * tp
-  | Sg of tp * tp
+  | Pi of tp * Ident.t * tp
+  | Sg of tp * Ident.t * tp
   | Nat
 
 type env = tp list

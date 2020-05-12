@@ -10,23 +10,19 @@ let push frm (hd, sp) =
 let mk_var tp lvl =
   Cut {tp; cut = Var lvl, []}
 
-let const_tm_clo con =
-  Clo (S.Var 1, {tpenv = Emp; conenv = Snoc (Emp, con)})
-  (* y, x |= y *)
-
 let un_lam con =
   Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
   (* y, x |= y(x) *)
 
 let compose f g =
-  Lam (Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
+  Lam (`Anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
 
 let apply_to x =
   Clo (S.Ap (S.Var 0, S.Var 1), {tpenv = Emp; conenv = Snoc (Emp, x)})
 
-let fst = Lam (Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
-let snd = Lam (Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
-let el_out = Lam (Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
+let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
+let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
+let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
 
 let dim_to_con =
@@ -128,7 +124,7 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
   | GoalRet con ->
     Format.fprintf fmt "goal-ret[%a]" pp_con con
-  | Lam clo ->
+  | Lam (_, clo) ->
     Format.fprintf fmt "lam[%a]" pp_clo clo
   | Abort ->
     Format.fprintf fmt "<abort>"
@@ -136,6 +132,14 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "dim0"
   | DimCon1 ->
     Format.fprintf fmt "dim1"
+  | ElIn con ->
+    Format.fprintf fmt "el/in[%a]" pp_con con
+  | CodeNat ->
+    Format.fprintf fmt "nat/code"
+  | SubIn _ ->
+    Format.fprintf fmt "<sub/in>"
+  | FHCom _ ->
+    Format.fprintf fmt "<fhcom>"
   | _ ->
     Format.fprintf fmt "<don't know how to print>"
 

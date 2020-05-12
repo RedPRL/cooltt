@@ -10,6 +10,15 @@ type dim =
 
 type cof = (dim, int) Cof.cof
 
+
+(** Destructors: exotic semantic operations that don't exist in syntax; these
+  * are meant to fail on things in improper form, rather than become neutral. *)
+type dst =
+  | DCodePiSplit
+  | DCodeSgSplit
+  | DCodePathSplit
+
+
 type env = {tpenv : tp bwd; conenv: con bwd}
 
 and tp_clo =
@@ -19,7 +28,7 @@ and tm_clo =
   | Clo of S.t * env
 
 and con =
-  | Lam of tm_clo
+  | Lam of Ident.t * tm_clo
   | Cut of {tp : tp; cut : cut}
   | Zero
   | Suc of con
@@ -37,6 +46,7 @@ and con =
   | CodePi of con * con
   | CodeSg of con * con
   | CodeNat
+  | CodeUniv
 
   | FHCom of [`Nat] * dim * dim * cof * con
 
@@ -51,8 +61,8 @@ and tp =
   | TpDim
   | TpCof
   | TpPrf of cof
-  | Pi of tp * tp_clo
-  | Sg of tp * tp_clo
+  | Pi of tp * Ident.t * tp_clo
+  | Sg of tp * Ident.t * tp_clo
   | Nat
   | TpAbort
 
@@ -66,18 +76,10 @@ and hd =
 
 and cut = hd * frm list
 
-and lazy_con = [`Do of con * frm list | `Done of con]
-
 and frm =
   | KAp of tp * con
   | KFst
   | KSnd
-  | KNatElim of tp_clo * con * tm_clo
+  | KNatElim of con * con * con
   | KGoalProj
   | KElOut
-
-(** destructors: exotic semantic operations that don't exist in syntax; these are meant to fail on things in improper form, rather than become neutral. *)
-and dst =
-  | DCodePiSplit
-  | DCodeSgSplit
-  | DCodePathSplit

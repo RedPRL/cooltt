@@ -60,10 +60,10 @@ let el_out m : _ m =
   let+ tm = m in
   S.ElOut tm
 
-let lam mbdy : _ m =
+let lam ?(ident = `Anon) mbdy : _ m =
   scope @@ fun var ->
   let+ bdy = mbdy var in
-  S.Lam bdy
+  S.Lam (ident, bdy)
 
 let rec ap m0 ms : _ m =
   match ms with
@@ -98,10 +98,10 @@ let com mline mr ms mphi mbdy =
   S.Com (line, r, s, phi, bdy)
 
 
-let let_ m k : _ m =
+let let_ ?(ident = `Anon) m k : _ m =
   let+ t = m
   and+ bdy = scope k in
-  S.Let (t, bdy)
+  S.Let (t, ident, bdy)
 
 let pair m0 m1 =
   let+ x0 = m0
@@ -135,17 +135,38 @@ let sub_in mtm =
   S.SubIn tm
 
 let univ : _ m =
-  ret @@ S.Univ
+  ret S.Univ
 
-let pi mbase mfam : _ m =
+let nat : _ m =
+  ret S.Nat
+
+let code_nat =
+  ret S.CodeNat
+
+let nat_elim mmot mzero msuc mscrut =
+  let+ mot = mmot
+  and+ zero = mzero
+  and+ suc = msuc
+  and+ scrut = mscrut in
+  S.NatElim (mot, zero, suc, scrut)
+
+
+let zero =
+  ret S.Zero
+
+let suc m =
+  let+ x = m in
+  S.Suc x
+
+let pi ?(ident = `Anon) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
-  S.Pi (base, fam)
+  S.Pi (base, ident, fam)
 
-let sg mbase mfam : _ m =
+let sg ?(ident = `Anon) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
-  S.Sg (base, fam)
+  S.Sg (base, ident, fam)
 
 let sub mbase mphi mbdry =
   let+ base = mbase

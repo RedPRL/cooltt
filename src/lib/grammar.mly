@@ -12,14 +12,14 @@
 %token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
-%token UNIV
+%token TYPE
 %token TIMES FST SND
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
 %token PATH
-%token COE COM HCOM
+%token COE COM HCOM HFILL
 %token QUIT NORMALIZE DEF
-%token ELIM
+%token ELIM REC
 %token EOF
 %token TOPC BOTC
 
@@ -48,9 +48,9 @@ atomic_term: t = located(plain_atomic_term) {t}
 
 name:
   | s = ATOM
-    { s }
+    { `User s }
   | UNDERSCORE
-    { "_" }
+    { `Anon }
 
 decl:
   | DEF; nm = name; COLON; tp = term; EQUALS; body = term
@@ -96,8 +96,8 @@ plain_atomic_term:
     { Lit n }
   | NAT
     { Nat }
-  | UNIV
-    { Univ }
+  | TYPE
+    { Type }
   | name = HOLE_NAME
     { Hole name }
   | UNDERSCORE
@@ -145,16 +145,18 @@ plain_term:
     { Lam (BN {names; body}) }
   | LAM; ELIM; cases = cases
     { LamElim cases }
-  | ELIM; scrut = term; AT; mot = motive; cases = cases
+  | ELIM; scrut = term; AT; mot = atomic_term; cases = cases
     { Elim {mot; cases; scrut}}
+  | REC; scrut = term; AT; mot = atomic_term; cases = cases
+    { Rec {mot; cases; scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
   | dom = located(ap_or_plain_atomic_term) RIGHT_ARROW cod = term
-    { Pi ([Cell {name = "_"; tp = dom}], cod) }
+    { Pi ([Cell {name = `Anon; tp = dom}], cod) }
   | dom = located(ap_or_plain_atomic_term) TIMES cod = term
-    { Sg ([Cell {name = "_"; tp = dom}], cod) }
+    { Sg ([Cell {name = `Anon; tp = dom}], cod) }
   | SUB tp = atomic_term phi = atomic_term tm = atomic_term
     { Sub (tp, phi, tm) }
   | FST; t = term
@@ -169,14 +171,12 @@ plain_term:
     { Coe (fam, src, trg, body) }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { HCom (tp, src, trg, phi, body) }
+  | HFILL; tp = atomic_term; src = atomic_term; phi = atomic_term; body = atomic_term
+    { HFill (tp, src, phi, body) }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { AutoHCom (tp, src, trg, body) }
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
-
-motive:
-  | LBR names = list(name) RRIGHT_ARROW body = term RBR
-    { BN {names; body} }
 
 cases:
   | LSQ option(PIPE) cases = separated_list(PIPE, case) RSQ
@@ -205,9 +205,9 @@ pat:
 
 pat_arg:
   | ident = name
-    { `Simple (Some ident) }
+    { `Simple ident }
   | LBR i0 = name RRIGHT_ARROW i1 = name RBR
-    { `Inductive (Some i0, Some i1) }
+    { `Inductive (i0, i1) }
 
 tele_cell:
   | LPR name = name; COLON tp = term; RPR

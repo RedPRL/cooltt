@@ -5,14 +5,14 @@
 -/
 
 def myrefl : {
-  (A : univ) (a : A) → (i : 𝕀) → sub A {∂ i} [∂ i => a]
+  (A : type) (a : A) → (i : 𝕀) → sub A {∂ i} [∂ i => a]
 } = {
   \A a i => a
 }
 
 
 def funext : {
-  (A : univ) (B : univ) (f : (x : A) → B) (g : (x : A) → B)
+  (A : type) (B : type) (f : (x : A) → B) (g : (x : A) → B)
   (h : (x : A) (i : 𝕀) → sub B {∂ i} [i=0 => f x | i=1 => g x])
   → (i : 𝕀) → sub {(x : A) → B} {∂ i} [i=0 => f | i=1 => g]
 } = {
@@ -21,7 +21,7 @@ def funext : {
 }
 
 def pairext : {
-  (A : univ) (B : univ) (p : (x : A) × B) (q : (x : A) × B)
+  (A : type) (B : type) (p : (x : A) × B) (q : (x : A) × B)
   (h :
      (x : (i : 𝕀) → sub A {∂ i} [i=0 => fst p | i=1 => fst q]) ×
      (i : 𝕀) → sub B {∂ i} [i=0 => snd p | i=1 => snd q])

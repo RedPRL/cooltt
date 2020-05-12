@@ -26,13 +26,13 @@ open Sem
 
 module QTB :
 sig
-  val lam : D.tp -> (D.con -> S.t m) -> S.t m
+  val lam : ?ident:Ident.t -> D.tp -> (D.con -> S.t m) -> S.t m
 end =
 struct
-  let lam tp mbdy =
+  let lam ?(ident = `Anon) tp mbdy =
     bind_var ~abort:S.CofAbort tp @@ fun arg ->
     let+ bdy = mbdy arg in
-    S.Lam bdy
+    S.Lam (ident, bdy)
 end
 
 let rec quote_con (tp : D.tp) con : S.t m =
@@ -52,26 +52,37 @@ let rec quote_con (tp : D.tp) con : S.t m =
           let+ ix = quote_var lvl in
           S.Var ix
     end
+
   | _, D.Cut {cut = (hd, sp); tp} ->
     quote_cut (hd, sp)
-  | D.Pi (base, fam), con ->
-    QTB.lam base @@ fun arg ->
-    let* fib = lift_cmp @@ inst_tp_clo fam [arg] in
+
+  | D.Pi (base, _, fam), D.Lam (ident, clo) ->
+    QTB.lam ~ident base @@ fun arg ->
+    let* fib = lift_cmp @@ inst_tp_clo fam arg in
+    let* ap = lift_cmp @@ inst_tm_clo clo arg in
+    quote_con fib ap
+
+  | D.Pi (base, ident, fam), con ->
+    QTB.lam ~ident base @@ fun arg ->
+    let* fib = lift_cmp @@ inst_tp_clo fam arg in
     let* ap = lift_cmp @@ do_ap con arg in
     quote_con fib ap
-  | D.Sg (base, fam), _ ->
+
+  | D.Sg (base, _, fam), _ ->
     let* fst = lift_cmp @@ do_fst con in
     let* snd = lift_cmp @@ do_snd con in
-    let* fib = lift_cmp @@ inst_tp_clo fam [fst] in
+    let* fib = lift_cmp @@ inst_tp_clo fam fst in
     let+ tfst = quote_con base fst
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
+
   | D.Sub (tp, phi, clo), _ ->
     let+ tout =
       let* out = lift_cmp @@ do_sub_out con in
       quote_con tp out
     in
     S.SubIn tout
+
   | D.El code, _ ->
     let+ tout =
       let* unfolded = lift_cmp @@ unfold_el code in
@@ -79,23 +90,32 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con unfolded out
     in
     S.ElIn tout
+
   | _, D.Zero ->
     ret S.Zero
+
   | _, D.Suc n ->
     let+ tn = quote_con D.Nat n in
     S.Suc tn
+
   | D.TpDim, D.DimCon0 ->
     ret @@ S.Dim0
+
   | D.TpDim, D.DimCon1 ->
     ret @@ S.Dim1
+
   | D.TpCof, D.Cof cof ->
     let* phi = lift_cmp @@ cof_con_to_cof cof in
     quote_cof phi
+
   | D.TpPrf _, _ ->
     ret S.Prf
 
   | _, D.CodeNat ->
     ret S.CodeNat
+
+  | _, D.CodeUniv ->
+    ret S.CodeUniv
 
   | univ, D.CodePi (base, fam) ->
     let+ tbase = quote_con univ base
@@ -105,6 +125,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
       lift_cmp @@ do_ap fam var
     in
     S.CodePi (tbase, tfam)
+
   | univ, D.CodeSg (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
@@ -141,8 +162,17 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tbdry = quote_con bdry_tp bdry in
     S.CodePath (tfam, tbdry)
 
-  | _, D.FHCom (`Nat, r, s, phi, bdy) ->
-    quote_hcom D.CodeNat r s phi bdy
+  | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
+    (* bdy : (i : 𝕀) (_ : [...]) → nat *)
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeNat r s phi bdy' in
+    S.ElOut tm
 
   | _ ->
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
@@ -163,20 +193,20 @@ and quote_hcom code r s phi bdy =
 
 and quote_tp_clo base fam =
   bind_var ~abort:(S.El S.CofAbort) base @@ fun var ->
-  quote_tp @<< lift_cmp @@ inst_tp_clo fam [var]
+  quote_tp @<< lift_cmp @@ inst_tp_clo fam var
 
 and quote_tp (tp : D.tp) =
   match tp with
   | D.TpAbort -> ret @@ S.El S.CofAbort
   | D.Nat -> ret S.Nat
-  | D.Pi (base, fam) ->
+  | D.Pi (base, ident, fam) ->
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
-    S.Pi (tbase, tfam)
-  | D.Sg (base, fam) ->
+    S.Pi (tbase, ident, tfam)
+  | D.Sg (base, ident, fam) ->
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
-    S.Sg (tbase, tfam)
+    S.Sg (tbase, ident, tfam)
   | D.Univ ->
     ret S.Univ
   | D.UnfoldEl cut ->
@@ -193,7 +223,7 @@ and quote_tp (tp : D.tp) =
     let+ tphi = quote_cof phi
     and+ tm =
       bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
-      let* body = lift_cmp @@ inst_tm_clo cl [prf] in
+      let* body = lift_cmp @@ inst_tm_clo cl prf in
       quote_con tp body
     in
     S.Sub (ttp, tphi, tm)
@@ -233,7 +263,7 @@ and quote_hd =
     let branch_body (phi , clo) =
       begin
         bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
-        let* body = lift_cmp @@ inst_tm_clo clo [prf] in
+        let* body = lift_cmp @@ inst_tm_clo clo prf in
         quote_con tp body
       end
     in
@@ -285,25 +315,25 @@ and quote_spine tm =
 and quote_frm tm =
   function
   | D.KNatElim (mot, zero_case, suc_case) ->
-    let* mot_x =
-      bind_var ~abort:D.TpAbort D.Nat @@ fun x ->
-      lift_cmp @@ inst_tp_clo mot [x]
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.nat @@ fun _ -> TB.univ
     in
-    let* tmot =
-      bind_var ~abort:(S.El S.CofAbort) D.Nat @@ fun _ ->
-      quote_tp mot_x
+    let* tmot = quote_con mot_tp mot in
+    let* tzero_case =
+      let* mot_zero = lift_cmp @@ do_ap mot D.Zero in
+      quote_con (D.El mot_zero) zero_case
     in
-    let+ tzero_case =
-      let* mot_zero = lift_cmp @@ inst_tp_clo mot [D.Zero] in
-      quote_con mot_zero zero_case
-    and+ tsuc_case =
-      bind_var ~abort:S.CofAbort D.Nat @@ fun x ->
-      bind_var ~abort:S.CofAbort mot_x @@ fun ih ->
-      let* mot_suc_x = lift_cmp @@ inst_tp_clo mot [D.Suc x] in
-      let* suc_case_x = lift_cmp @@ inst_tm_clo suc_case [x; ih] in
-      quote_con mot_suc_x suc_case_x
+    let* suc_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.nat @@ fun x ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.el @@ TB.ap mot [TB.suc x]
     in
-    S.NatElim (tmot, tzero_case, tsuc_case, tm)
+    let* tsuc_case = quote_con suc_tp suc_case in
+    ret @@ S.NatElim (tmot, tzero_case, tsuc_case, tm)
   | D.KFst ->
     ret @@ S.Fst tm
   | D.KSnd ->
