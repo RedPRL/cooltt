@@ -6,7 +6,7 @@ module CS := ConcreteSyntax
 type t
 
 val init : t
-val add_global : Ident.t option -> D.tp -> D.con option -> t -> Symbol.t * t
+val add_global : Ident.t -> D.tp -> D.con option -> t -> Symbol.t * t
 val add_flex_global : D.tp -> t -> Symbol.t * t
 val resolve_global : Ident.t -> t -> Symbol.t option
 

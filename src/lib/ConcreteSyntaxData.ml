@@ -22,7 +22,8 @@ and bindern = BN of {names : Ident.t list; body : con}
 and cell = Cell of {name : Ident.t; tp : con}
 and con = con_ node
 and con_ =
-  | Var of [`User of Ident.t | `Level of int]
+  | Var of Ident.t
+  | DeBruijnLevel of int
   | Let of con * binder
   | Ann of {term : con; tp : con}
   | Nat
@@ -37,7 +38,7 @@ and con_ =
   | Fst of con
   | Snd of con
   | Type
-  | Hole of Ident.t option
+  | Hole of string option
   | Underscore
   | Unfold of Ident.t list * con
   | Elim of {mot : con; cases : case list; scrut : con}
@@ -64,10 +65,10 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and pat = Pat of {lbl : Ident.t; args : pat_arg list}
+and pat = Pat of {lbl : string; args : pat_arg list}
 [@@deriving show]
 
-and pat_arg = [`Simple of Ident.t option | `Inductive of Ident.t option * Ident.t option]
+and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 [@@deriving show]
 
 type decl =

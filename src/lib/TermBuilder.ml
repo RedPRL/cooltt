@@ -60,7 +60,7 @@ let el_out m : _ m =
   let+ tm = m in
   S.ElOut tm
 
-let lam ?(ident = None) mbdy : _ m =
+let lam ?(ident = `Anon) mbdy : _ m =
   scope @@ fun var ->
   let+ bdy = mbdy var in
   S.Lam (ident, bdy)
@@ -98,7 +98,7 @@ let com mline mr ms mphi mbdy =
   S.Com (line, r, s, phi, bdy)
 
 
-let let_ ?(ident = None) m k : _ m =
+let let_ ?(ident = `Anon) m k : _ m =
   let+ t = m
   and+ bdy = scope k in
   S.Let (t, ident, bdy)
@@ -159,12 +159,12 @@ let suc m =
   let+ x = m in
   S.Suc x
 
-let pi ?(ident = None) mbase mfam : _ m =
+let pi ?(ident = `Anon) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
   S.Pi (base, ident, fam)
 
-let sg ?(ident = None) mbase mfam : _ m =
+let sg ?(ident = `Anon) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)

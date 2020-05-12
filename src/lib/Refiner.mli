@@ -8,13 +8,12 @@ module CS := ConcreteSyntax
 
 open Tactic
 
-type ('a, 'b) quantifier = 'a -> Ident.t option * (var -> 'b) -> 'b
-
+type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
 module Hole : sig
-  val unleash_hole : Ident.t option -> [`Flex | `Rigid] -> bchk_tac
-  val unleash_tp_hole : Ident.t option -> [`Flex | `Rigid] -> tp_tac
-  val unleash_syn_hole : Ident.t option -> [`Flex | `Rigid] -> syn_tac
+  val unleash_hole : string option -> [`Flex | `Rigid] -> bchk_tac
+  val unleash_tp_hole : string option -> [`Flex | `Rigid] -> tp_tac
+  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> syn_tac
 end
 
 module Goal : sig
@@ -67,7 +66,7 @@ end
 
 module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : Ident.t option -> (var -> bchk_tac) -> bchk_tac
+  val intro : ?ident:Ident.t -> (var -> bchk_tac) -> bchk_tac
   val apply : syn_tac -> chk_tac -> syn_tac
 end
 
@@ -98,8 +97,8 @@ module Nat : sig
 end
 
 module Structural : sig
-  val let_ : syn_tac -> Ident.t option -> (var -> bchk_tac) -> bchk_tac
-  val let_syn : syn_tac -> Ident.t option -> (var -> syn_tac) -> syn_tac
+  val let_ : ?ident:Ident.t -> syn_tac -> (var -> bchk_tac) -> bchk_tac
+  val let_syn : ?ident:Ident.t -> syn_tac -> (var -> syn_tac) -> syn_tac
   val lookup_var : Ident.t -> syn_tac
   val level : int -> syn_tac
 end
@@ -111,7 +110,7 @@ module Tactic : sig
   val intro_implicit_connectives : bchk_tac -> bchk_tac
   val elim_implicit_connectives : syn_tac -> syn_tac
 
-  val tac_nary_quantifier : ('a, 'b) quantifier -> (Ident.t option * 'a) list -> 'b -> 'b
+  val tac_nary_quantifier : ('a, 'b) quantifier -> (Ident.t * 'a) list -> 'b -> 'b
 
   val match_goal : (D.tp -> chk_tac EM.m) -> chk_tac
   val bmatch_goal : (D.tp * D.cof * D.tm_clo -> bchk_tac EM.m) -> bchk_tac

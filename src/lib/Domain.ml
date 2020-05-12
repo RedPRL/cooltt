@@ -15,14 +15,14 @@ let un_lam con =
   (* y, x |= y(x) *)
 
 let compose f g =
-  Lam (None, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
+  Lam (`Anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
 
 let apply_to x =
   Clo (S.Ap (S.Var 0, S.Var 1), {tpenv = Emp; conenv = Snoc (Emp, x)})
 
-let fst = Lam (None, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
-let snd = Lam (None, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
-let el_out = Lam (None, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
+let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
+let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
+let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
 
 let dim_to_con =

@@ -68,4 +68,4 @@ end
 type tp_tac = Tp.tac
 type var = Var.tac
 
-val abstract : D.tp -> string option -> (var -> 'a EM.m) -> 'a EM.m
+val abstract : ?ident:Ident.t -> D.tp -> (var -> 'a EM.m) -> 'a EM.m

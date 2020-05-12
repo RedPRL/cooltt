@@ -48,9 +48,9 @@ atomic_term: t = located(plain_atomic_term) {t}
 
 name:
   | s = ATOM
-    { s }
+    { `User s }
   | UNDERSCORE
-    { "_" }
+    { `Anon }
 
 decl:
   | DEF; nm = name; COLON; tp = term; EQUALS; body = term
@@ -154,9 +154,9 @@ plain_term:
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
   | dom = located(ap_or_plain_atomic_term) RIGHT_ARROW cod = term
-    { Pi ([Cell {name = "_"; tp = dom}], cod) }
+    { Pi ([Cell {name = `Anon; tp = dom}], cod) }
   | dom = located(ap_or_plain_atomic_term) TIMES cod = term
-    { Sg ([Cell {name = "_"; tp = dom}], cod) }
+    { Sg ([Cell {name = `Anon; tp = dom}], cod) }
   | SUB tp = atomic_term phi = atomic_term tm = atomic_term
     { Sub (tp, phi, tm) }
   | FST; t = term
@@ -205,9 +205,9 @@ pat:
 
 pat_arg:
   | ident = name
-    { `Simple (Some ident) }
+    { `Simple ident }
   | LBR i0 = name RRIGHT_ARROW i1 = name RBR
-    { `Inductive (Some i0, Some i1) }
+    { `Inductive (i0, i1) }
 
 tele_cell:
   | LPR name = name; COLON tp = term; RPR

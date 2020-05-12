@@ -26,10 +26,10 @@ open Sem
 
 module QTB :
 sig
-  val lam : ?ident:Ident.t option -> D.tp -> (D.con -> S.t m) -> S.t m
+  val lam : ?ident:Ident.t -> D.tp -> (D.con -> S.t m) -> S.t m
 end =
 struct
-  let lam ?(ident = None) tp mbdy =
+  let lam ?(ident = `Anon) tp mbdy =
     bind_var ~abort:S.CofAbort tp @@ fun arg ->
     let+ bdy = mbdy arg in
     S.Lam (ident, bdy)

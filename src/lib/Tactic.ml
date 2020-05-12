@@ -63,9 +63,9 @@ struct
     tm, tp
 end
 
-let abstract : D.tp -> string option -> (Var.tac -> 'a EM.m) -> 'a EM.m =
-  fun tp name kont ->
-  EM.abstract name tp @@ fun (con : D.con) ->
+let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a EM.m) -> 'a EM.m =
+  fun ?(ident = `Anon) tp kont ->
+  EM.abstract ident tp @@ fun (con : D.con) ->
   kont @@ {tp; con}
 
 
@@ -106,7 +106,7 @@ struct
     let* tm = tac tp in
     let* con = EM.lift_ev @@ Sem.eval tm in
     let* () =
-      abstract (D.TpPrf phi) None @@ fun prf ->
+      abstract (D.TpPrf phi) @@ fun prf ->
       EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo pclo @@ Var.con prf
     in
     EM.ret tm

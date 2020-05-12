@@ -51,8 +51,14 @@ let execute_decl =
   let open Monad.Notation (EM) in
   function
   | CS.Def {name; def; tp} ->
-    let* _tp, vtp, _tm, vtm = elaborate_typed_term name tp def in
-    let+ _sym = EM.add_global (Some name) vtp @@ Some vtm in
+    let goal_name =
+      match name with
+      | `User name -> name
+      | `Machine name -> name
+      | `Anon -> "_"
+    in
+    let* _tp, vtp, _tm, vtm = elaborate_typed_term goal_name tp def in
+    let+ _sym = EM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
     EM.veil (Veil.const `Transparent) @@
