@@ -127,7 +127,7 @@ let test_sequent env cx phi =
   | `Inconsistent -> true
   | `PossiblyConsistent env -> Test.sequent env cx phi
 
-let is_consistent' env =
+let is_consistent env =
   let module Seq = struct type t = bool let vacuous = false let seq = List.exists end in
   let module S = Search (Seq) in
   if S.left_invert env [] (fun _ -> true) then `Consistent else `Inconsistent
