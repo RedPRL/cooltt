@@ -42,15 +42,15 @@ let find_class classes r =
 (* minimum requirement to do the search *)
 module type SEQ =
 sig
-  (* The type of the result of the search. *)
+  (** The type of the result of the search. *)
   type t
 
-  (* The default value for vacuous cases. Should be the same as `seq id []`. *)
+  (** The default value for vacuous cases. Should be the same as [seq id []]. *)
   val vacuous : t
 
-  (* The sequencing operator. Technically, we can demand `seq' : t list -> t` instead
-   * and the current `seq f l` would be `seq' (map f l)`. However, `List.for_all` and
-   * `CoolBasis.Monad.Util.app` directly fit into this type. *)
+  (** The sequencing operator. Technically, we can demand [seq' : t list -> t] instead
+    * and the current [seq f l] would be [seq' (map f l)]. However, [List.for_all] and
+    * [CoolBasis.Monad.Util.app] directly fit into this type. *)
   val seq : ('a -> t) -> 'a list -> t
 end
 
