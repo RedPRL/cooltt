@@ -74,12 +74,13 @@ struct
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
     let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
-    EM.lift_qu @@ Qu.quote_tp @@ D.El cut
+    EM.lift_qu @@ Qu.quote_tp @@ D.El (D.Cut {tp = D.Univ; cut})
 
   let unleash_syn_hole name flexity : T.syn_tac =
-    let* tpcut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
-    let+ tm = T.Chk.bchk (unleash_hole name flexity) @@ D.El tpcut in
-    tm, D.El tpcut
+    let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.const_tm_clo D.Abort) in
+    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
+    let+ tm = T.Chk.bchk (unleash_hole name flexity) tp in
+    tm, tp
 end
 
 
@@ -386,11 +387,6 @@ struct
     T.Tp.make @@
     EM.ret S.Univ
 
-  let el_formation tac =
-    T.Tp.make @@
-    let+ tm = tac D.Univ in
-    S.El tm
-
   let univ_tac : T.chk_tac -> T.chk_tac =
     fun m ->
     function
@@ -505,7 +501,7 @@ struct
   let auto_hcom tac_code tac_src tac_trg tac_tm : T.bchk_tac =
     fun (vtp, vpsi, clo) ->
     let* code = tac_code D.Univ in
-    let* elcode = EM.lift_ev @@ Sem.eval_tp @@ S.El code in
+    let* elcode = EM.lift_ev @@ Sem.eval_tp @@ S.UnfoldEl code in
     let* () = EM.equate_tp vtp elcode in
     let* psi = EM.lift_qu @@ Qu.quote_cof vpsi in
     let* src = tac_src D.TpDim in
@@ -540,7 +536,7 @@ struct
       let* bdy_tp  = hcom_bdy_tp vtp vsrc vpsi in
       EM.lift_qu @@ Qu.quote_con bdy_tp vtm'
     in
-    EM.ret @@ S.HCom (code, src, trg, psi, tm')
+    EM.ret @@ S.ElIn (S.HCom (code, src, trg, psi, tm'))
 
   let com tac_fam tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* piuniv =
@@ -571,7 +567,32 @@ struct
       TB.el @@ TB.ap vfam [i]
     and+ vfam_trg = EM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
+end
 
+module El =
+struct
+  let formation tac =
+    T.Tp.make @@
+    let+ tm = tac D.Univ in
+    S.El tm
+
+  let dest_el tp =
+    match tp with
+    | D.El con ->
+      EM.lift_cmp @@ Sem.unfold_el con
+    | _ ->
+      EM.expected_connective `El tp
+
+  let intro tac =
+    fun (tp, phi, clo) ->
+    let* unfolded = dest_el tp in
+    let+ tm = tac (unfolded, phi, D.un_lam @@ D.compose D.el_out @@ D.Lam clo) in
+    S.ElIn tm
+
+  let elim tac =
+    let* tm, tp = tac in
+    let+ unfolded = dest_el tp in
+    S.ElOut tm, unfolded
 end
 
 
@@ -669,6 +690,113 @@ end
 
 
 
+module UnravelEl : sig
+  (* Invariant: [unravel tp] produces an element of the universe when [tp] is a well-formed type, if it returns. *)
+  val unravel_tp : D.tp -> T.chk_tac
+
+end =
+struct
+  let ret_code : D.con -> T.chk_tac =
+    fun code ->
+      function
+      | D.Univ ->
+        EM.lift_qu @@ Qu.quote_con D.Univ code
+      | tp ->
+        EM.expected_connective `Univ tp
+
+  let ret_tp : D.tp -> T.tp_tac =
+    fun tp ->
+    T.Tp.make @@
+    EM.lift_qu @@ Qu.quote_tp tp
+
+  (*    A type
+   *    -----------
+   *    unravel_tp A : univ
+   *)
+  let rec unravel_tp =
+    function
+    | D.El code ->
+      ret_code code
+    | D.Pi (base, fam) ->
+      Univ.pi (unravel_tp base) (unravel_fam ~base fam)
+    | D.Sg (base, fam) ->
+      Univ.pi (unravel_tp base) (unravel_fam ~base fam)
+    | _ -> failwith ""
+
+  (*
+   *     A type
+   *     M : A
+   *     ------------------------------
+   *     unravel_iso_fwd A M : el(unravel_tp A)
+   *)
+  and unravel_iso_fwd : D.tp -> T.chk_tac -> T.chk_tac =
+     fun tp tac ->
+     match tp with
+     | D.El _ ->
+       tac
+
+  (*
+   *     A type
+   *     x : A |- B(x) type
+   *     M : (x : A) -> B(x)
+   *     ------------------------------
+   *     unravel_iso_fwd A M : el(unravel_tp((x : A) -> B(x)))
+   *                     ... : el(∏(unravel_tp(A), λ x:unravel_tp(A). unravel_tp(B(bwd[A](x)))))
+   *)
+     | D.Pi (base, fam) as pitp ->
+       T.Chk.bchk @@ El.intro @@
+       (* (x : el(unravel_tp(A))) -> el(unravel_tp(B(bwd[A](x))) *)
+       Pi.intro None @@ fun x ->
+       let x' = unravel_iso_bwd base @@ T.Chk.syn @@ T.Var.syn x in
+       let tacx' : T.Syn.tac = Pi.apply (T.Syn.ann tac (ret_tp pitp)) x' in (* tacx' : B(bwd[A](x)) *)
+       T.BChk.chk @@ fun goal ->
+       let* tx' = x' base in
+       let* vx' = EM.lift_ev @@ Sem.eval tx' in
+       let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx'] in
+       unravel_iso_fwd fib (T.Chk.syn tacx') goal
+
+     | _ ->
+       failwith ""
+
+  (*
+   *     A type
+   *     M : el(unravel_tp A)
+   *     ------------------------------
+   *     unravel_iso_bwd A M : A
+   *)
+  and unravel_iso_bwd : D.tp -> T.chk_tac -> T.chk_tac =
+    fun tp tac ->
+    match tp with
+    | D.El _ -> tac
+
+    | D.Pi (base, fam) as pitp ->
+  (*
+   *     A type
+   *     x : A |- B(x) type
+   *
+   *       M : el(unravel_tp((x : A) -> B(x)))
+   *     ... : el(∏(unravel_tp(A), λ x:unravel_tp(A). unravel_tp(B(bwd[A](x)))))
+   *     ------------------------------
+   *     unravel_iso_bwd A M : (x : A) -> B(x)
+   *)
+      T.Chk.bchk @@
+      Pi.intro None @@ fun x -> (* x : A *)
+      let x' = unravel_iso_fwd base @@ T.Chk.syn @@ T.Var.syn x in (* x' : el(unravel_tp(A)) *)
+      let tac' = El.elim @@ T.Syn.ann tac @@ El.formation @@ unravel_tp pitp in
+      T.BChk.syn @@ Pi.apply tac' x'
+
+    | _ -> failwith ""
+
+  and unravel_fam : base:D.tp -> D.tp_clo -> T.chk_tac =
+    fun ~base fam ->
+    T.Chk.bchk @@ Pi.intro None @@ fun tac_var ->
+    T.BChk.chk @@ fun goal ->
+    let* x = unravel_iso_bwd base (T.Chk.syn (T.Var.syn tac_var)) base in
+    let* vx = EM.lift_ev @@ Sem.eval x in
+    let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam [vx] in
+    unravel_tp fib goal
+end
+
 module Tactic =
 struct
   let match_goal tac =
@@ -678,14 +806,34 @@ struct
 
   let bmatch_goal = match_goal
 
-  let rec tac_lam name tac_body : T.bchk_tac =
+  let elim_implicit_connectives : T.syn_tac -> T.syn_tac =
+    fun tac ->
+    let rec go (tm, tp) =
+      match tp with
+      | D.Sub (tp, _, _) ->
+        go (S.SubOut tm, tp)
+      | D.El code ->
+        let* tp = EM.lift_cmp @@ Sem.unfold_el code in
+        go (S.ElOut tm, tp)
+      | _ ->
+        EM.ret (tm, tp)
+    in
+    go @<< tac
+
+  let rec intro_implicit_connectives : T.bchk_tac -> T.bchk_tac =
+    fun tac ->
     match_goal @@ function
-    | D.Pi _, _, _ ->
-      EM.ret @@ Pi.intro name tac_body
     | D.Sub _, _, _ ->
-      EM.ret @@ Sub.intro @@ tac_lam name tac_body
+      EM.ret @@ Sub.intro @@ intro_implicit_connectives tac
+    | D.El _, _, _ ->
+      EM.ret @@ El.intro @@ intro_implicit_connectives tac
     | _ ->
-      EM.throw @@ Invalid_argument "tac_lam cannot be called on this goal"
+      EM.ret tac
+
+
+
+  let rec tac_lam name tac_body : T.bchk_tac =
+    intro_implicit_connectives @@ Pi.intro name tac_body
 
   let rec tac_multi_lam names tac_body =
     match names with
@@ -698,7 +846,7 @@ struct
     function
     | [] -> tac_fun
     | tac :: tacs ->
-      tac_multi_apply (Pi.apply tac_fun tac) tacs
+      tac_multi_apply (elim_implicit_connectives @@ Pi.apply tac_fun tac) tacs
 
   let rec tac_nary_quantifier (quant : ('a, 'b) quantifier) cells body =
     match cells with

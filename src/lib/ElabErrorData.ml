@@ -14,6 +14,7 @@ struct
     | `Cof
     | `Sub
     | `Prf
+    | `El
     ]
 
   type t =

@@ -23,6 +23,7 @@ val do_ap2 : D.con -> D.con -> D.con -> D.con compute
 val do_fst : D.con -> D.con compute
 val do_snd : D.con -> D.con compute
 val do_sub_out : D.con -> D.con compute
+val do_el_out : D.con -> D.con compute
 val unfold_el : D.con -> D.tp compute
 val do_goal_proj : D.con -> D.con compute
 

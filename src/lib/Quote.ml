@@ -72,6 +72,13 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con tp out
     in
     S.SubIn tout
+  | D.El code, _ ->
+    let+ tout =
+      let* unfolded = lift_cmp @@ unfold_el code in
+      let* out = lift_cmp @@ do_el_out con in
+      quote_con unfolded out
+    in
+    S.ElIn tout
   | _, D.Zero ->
     ret S.Zero
   | _, D.Suc n ->
@@ -93,8 +100,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodePi (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      let* tpbase = lift_cmp @@ unfold_el base in
-      QTB.lam tpbase @@ fun var ->
+      QTB.lam (D.El base) @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -102,8 +108,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodeSg (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      let* tpbase = lift_cmp @@ unfold_el base in
-      QTB.lam tpbase @@ fun var ->
+      QTB.lam (D.El base) @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -144,7 +149,6 @@ let rec quote_con (tp : D.tp) con : S.t m =
 
 and quote_hcom code r s phi bdy =
   let* tcode = quote_con D.Univ code in
-  let* tp = lift_cmp @@ unfold_el code in
   let* tr = quote_dim r in
   let* ts = quote_dim s in
   let* tphi = quote_cof phi in
@@ -153,7 +157,7 @@ and quote_hcom code r s phi bdy =
     let* i_dim = lift_cmp @@ con_to_dim i in
     QTB.lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
-    quote_con D.Nat body
+    quote_con (D.El code) body
   in
   S.HCom (tcode, tr, ts, tphi, tbdy)
 
@@ -175,8 +179,11 @@ and quote_tp (tp : D.tp) =
     S.Sg (tbase, tfam)
   | D.Univ ->
     ret S.Univ
-  | D.El cut ->
+  | D.UnfoldEl cut ->
     let+ tm = quote_cut cut in
+    S.UnfoldEl tm
+  | D.El con ->
+    let+ tm = quote_con D.Univ con in
     S.El tm
   | D.GoalTp (lbl, tp) ->
     let+ tp = quote_tp tp in
@@ -213,9 +220,8 @@ and quote_hd =
     in
     let* tr = quote_dim r in
     let* ts = quote_dim s in
-    let* tp_con_r = lift_cmp @@ do_ap abs @@ D.dim_to_con r in
-    let* tp_r = lift_cmp @@ unfold_el tp_con_r in
-    let+ tm = quote_con tp_r con in
+    let* code_r = lift_cmp @@ do_ap abs @@ D.dim_to_con r in
+    let+ tm = quote_con (D.El code_r) con in
     S.Coe (tpcode, tr, ts, tm)
   | D.HCom (cut, r, s, phi, bdy) ->
     let code = D.Cut {cut; tp = D.Univ} in
@@ -309,4 +315,6 @@ and quote_frm tm =
     S.Ap (tm, targ)
   | D.KGoalProj ->
     ret @@ S.GoalProj tm
+  | D.KElOut ->
+    ret @@ S.ElOut tm
 
