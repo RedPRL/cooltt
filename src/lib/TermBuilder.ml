@@ -60,10 +60,10 @@ let el_out m : _ m =
   let+ tm = m in
   S.ElOut tm
 
-let lam mbdy : _ m =
+let lam ?(ident = None) mbdy : _ m =
   scope @@ fun var ->
   let+ bdy = mbdy var in
-  S.Lam (None, bdy)
+  S.Lam (ident, bdy)
 
 let rec ap m0 ms : _ m =
   match ms with
@@ -98,10 +98,10 @@ let com mline mr ms mphi mbdy =
   S.Com (line, r, s, phi, bdy)
 
 
-let let_ m k : _ m =
+let let_ ?(ident = None) m k : _ m =
   let+ t = m
   and+ bdy = scope k in
-  S.Let (t, None, bdy)
+  S.Let (t, ident, bdy)
 
 let pair m0 m1 =
   let+ x0 = m0
@@ -159,15 +159,15 @@ let suc m =
   let+ x = m in
   S.Suc x
 
-let pi mbase mfam : _ m =
+let pi ?(ident = None) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
-  S.Pi (base, None, fam)
+  S.Pi (base, ident, fam)
 
-let sg mbase mfam : _ m =
+let sg ?(ident = None) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
-  S.Sg (base, None, fam)
+  S.Sg (base, ident, fam)
 
 let sub mbase mphi mbdry =
   let+ base = mbase
