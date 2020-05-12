@@ -91,8 +91,9 @@ struct
           else
             pushes' {env with classes} phis
 
-  (* This is a duplicate of the most general search because (1) it's a clean way to avoid
-   * checking consistency within consistency and (2)  *)
+  (** [consistency'] is almost a duplicate of the most general search. It exists because
+    * (1) it's a clean way to avoid checking consistency within consistency and
+    * (2) it's a clean way to avoid recursive modules. *)
   let rec consistency' ({classes; true_vars; unreduced_joins} as env) =
     match unreduced_joins with
     | [] -> true
