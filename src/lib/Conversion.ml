@@ -160,7 +160,16 @@ and equate_con tp con0 con1 =
   | _, D.Cut {cut = cut0}, D.Cut {cut = cut1} ->
     equate_cut cut0 cut1
   | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
-    equate_hcom (D.CodeNat, r0, s0, phi0, bdy0) (D.CodeNat, r1, s1, phi1, bdy1)
+    let fix_body bdy =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let* bdy0' = fix_body bdy0 in
+    let* bdy1' = fix_body bdy1 in
+    equate_hcom (D.CodeNat, r0, s0, phi0, bdy0') (D.CodeNat, r1, s1, phi1, bdy1')
   | _, D.CodeNat, D.CodeNat ->
     ret ()
   | _, D.CodeUniv, D.CodeUniv ->

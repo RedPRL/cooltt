@@ -541,7 +541,7 @@ struct
       let* bdy_tp  = hcom_bdy_tp vtp vsrc vpsi in
       EM.lift_qu @@ Qu.quote_con bdy_tp vtm'
     in
-    EM.ret @@ S.ElIn (S.HCom (code, src, trg, psi, tm'))
+    EM.ret @@ S.ElOut (S.HCom (code, src, trg, psi, tm'))
 
   let com tac_fam tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* piuniv =

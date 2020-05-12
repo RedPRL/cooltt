@@ -116,6 +116,14 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "dim0"
   | DimCon1 ->
     Format.fprintf fmt "dim1"
+  | ElIn con ->
+    Format.fprintf fmt "el/in[%a]" pp_con con
+  | CodeNat ->
+    Format.fprintf fmt "nat/code"
+  | SubIn _ ->
+    Format.fprintf fmt "<sub/in>"
+  | FHCom _ ->
+    Format.fprintf fmt "<fhcom>"
   | _ ->
     Format.fprintf fmt "<don't know how to print>"
 

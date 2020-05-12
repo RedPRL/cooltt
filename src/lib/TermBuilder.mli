@@ -32,8 +32,13 @@ val cof_abort : t m
 val sub_out : t m -> t m
 val sub_in : t m -> t m
 
+val el_in : t m -> t m
+val el_out : t m -> t m
+
 val univ : tp m
 val nat : tp m
+val code_nat : t m
+val nat_elim : t m -> t m -> t m -> t m -> t m
 
 val pi : tp m -> tp b -> tp m
 val sg : tp m -> tp b -> tp m

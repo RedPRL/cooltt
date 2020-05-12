@@ -144,8 +144,17 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tbdry = quote_con bdry_tp bdry in
     S.CodePath (tfam, tbdry)
 
-  | _, D.FHCom (`Nat, r, s, phi, bdy) ->
-    quote_hcom D.CodeNat r s phi bdy
+  | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@
+      TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeNat r s phi bdy' in
+    S.ElOut tm
 
   | _ ->
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))

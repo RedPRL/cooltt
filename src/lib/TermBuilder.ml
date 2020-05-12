@@ -136,10 +136,21 @@ let sub_in mtm =
   S.SubIn tm
 
 let univ : _ m =
-  ret @@ S.Univ
+  ret S.Univ
 
 let nat : _ m =
-  ret @@ S.Nat
+  ret S.Nat
+
+let code_nat =
+  ret S.CodeNat
+
+let nat_elim mmot mzero msuc mscrut =
+  let+ mot = mmot
+  and+ zero = mzero
+  and+ suc = msuc
+  and+ scrut = mscrut in
+  S.NatElim (mot, zero, suc, scrut)
+
 
 let suc m =
   let+ x = m in

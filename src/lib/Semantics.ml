@@ -464,18 +464,34 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
     cut_frm ~tp:(D.El fib) ~cut @@
     D.KNatElim (mot, zero, suc)
   | D.FHCom (`Nat, r, s, phi, bdy) ->
+    Format.eprintf "Doing FHCom@.";
     (* com (\i => mot (fhcom nat r i phi bdy)) r s phi (\i prf => nat_elim mot zero suc (bdy i prf)) *)
     splice_tm @@
+    Splice.foreign mot @@ fun mot ->
     Splice.foreign_dim r @@ fun r ->
     Splice.foreign_dim s @@ fun s ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
+    Splice.foreign zero @@ fun zero ->
+    Splice.foreign suc @@ fun suc ->
     Splice.term @@
-      (*
-      let fam = TB.lam @@ fun i -> inst_tp_clo mot [D.FHCom (`Nat, r, i, phi, bdy)] in
-      let bdy' = TB.lam @@ fun i -> TB.lam @@ fun prf -> do_nat_elim mot zero suc (raise Todo) in
-      *)
-    TB.com (raise Todo) r s phi (raise Todo)
+    let fam =
+      TB.lam @@ fun i ->
+      let fhcom =
+        TB.el_out @@
+        TB.hcom TB.code_nat r i phi @@
+        TB.lam @@ fun j ->
+        TB.lam @@ fun prf ->
+        TB.el_in @@ TB.ap bdy [j; prf]
+      in
+      TB.ap mot [fhcom]
+    in
+    let bdy' =
+      TB.lam @@ fun i ->
+      TB.lam @@ fun prf ->
+      TB.nat_elim mot zero suc @@ TB.ap bdy [i; prf]
+    in
+    TB.el_out @@ TB.com fam r s phi bdy'
   | _ ->
     Format.eprintf "bad: %a@." D.pp_con n;
     CM.throw @@ NbeFailed "Not a number"
@@ -755,7 +771,14 @@ and enact_rigid_hcom code r s phi bdy tag =
     Splice.term @@
     TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
   | `HComNat ->
-    ret @@ D.ElIn (D.FHCom (`Nat, r, s, phi, bdy))
+    let* bdy' =
+      splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_out @@ TB.ap bdy [i; prf]
+    in
+    ret @@ D.ElIn (D.FHCom (`Nat, r, s, phi, bdy'))
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
