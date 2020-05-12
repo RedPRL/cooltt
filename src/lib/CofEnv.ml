@@ -81,7 +81,7 @@ struct
       | Cof.Cof phi ->
         match phi with
         | Cof.Meet psis ->
-          pushes' env (psis @ phis)
+          pushes' env @@ psis @ phis
         | Cof.Join psis ->
           pushes' {env with unreduced_joins = psis :: unreduced_joins} phis
         | Cof.Eq (r, s) ->
@@ -98,10 +98,9 @@ struct
     match unreduced_joins with
     | [] -> true
     | psis :: unreduced_joins ->
-      let search psi =
-        Option.fold ~none:false ~some:consistency' @@ pushes' {env with unreduced_joins} [psi]
-      in
-      List.exists search psis
+      psis |> List.exists @@ fun psi ->
+      Option.fold ~none:false ~some:consistency' @@
+      pushes' {env with unreduced_joins} [psi]
 end
 
 module Search (M : SEQ) :
@@ -123,10 +122,8 @@ struct
         | [] -> cont {classes; true_vars}
         | psis :: unreduced_joins ->
           if SearchHelper.consistency' env then
-            let search psi =
-              go (SearchHelper.pushes' {env with unreduced_joins} [psi])
-            in
-            M.seq search psis
+            psis |> M.seq @@ fun psi ->
+            go @@ SearchHelper.pushes' {env with unreduced_joins} [psi]
           else
             M.vacuous
     in
