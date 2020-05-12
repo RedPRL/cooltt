@@ -43,6 +43,7 @@ and con_ =
   | Underscore
   | Unfold of ident list * con
   | Elim of {mot : con; cases : case list; scrut : con}
+  | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
   | Dim
   | Cof

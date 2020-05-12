@@ -625,7 +625,7 @@ struct
     let ix = ElabEnv.size env - lvl - 1 in
     index ix
 
-  let let_ tac_def (nm_x, (tac_bdy : T.var -> T.bchk_tac)) : T.bchk_tac =
+  let let_ tac_def nm_x (tac_bdy : T.var -> T.bchk_tac) : T.bchk_tac =
     fun goal ->
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Sem.eval tdef in
@@ -638,6 +638,22 @@ struct
       tac_bdy var goal
     in
     EM.ret @@ S.Let (S.SubIn tdef, tbdy)
+
+  let let_syn tac_def nm_x (tac_bdy : T.var -> T.syn_tac) : T.syn_tac =
+    let* tdef, tp_def = tac_def in
+    let* vdef = EM.lift_ev @@ Sem.eval tdef in
+    let* tbdy, tbdytp =
+      let* const_vdef =
+        EM.lift_cmp @@ Sem.splice_tm @@ Splice.foreign vdef @@ fun vdef ->
+        Splice.term @@ TB.lam @@ fun _ -> vdef
+      in
+      T.abstract (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) nm_x @@ fun var ->
+      let* tbdy, bdytp = tac_bdy var in
+      let* tbdytp = EM.lift_qu @@ Qu.quote_tp bdytp in
+      EM.ret (tbdy, tbdytp)
+    in
+    let* bdytp = EM.lift_ev @@ EvM.append [D.SubIn vdef] @@ Sem.eval_tp tbdytp in
+    EM.ret (S.Let (S.SubIn tdef, tbdy), bdytp)
 end
 
 

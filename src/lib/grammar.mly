@@ -19,7 +19,7 @@
 %token PATH
 %token COE COM HCOM
 %token QUIT NORMALIZE DEF
-%token ELIM
+%token ELIM REC
 %token EOF
 %token TOPC BOTC
 
@@ -147,6 +147,8 @@ plain_term:
     { LamElim cases }
   | ELIM; scrut = term; AT; mot = atomic_term; cases = cases
     { Elim {mot; cases; scrut}}
+  | REC; scrut = term; AT; mot = atomic_term; cases = cases
+    { Rec {mot; cases; scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term

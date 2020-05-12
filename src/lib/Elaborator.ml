@@ -169,7 +169,7 @@ and bchk_tm : CS.con -> T.bchk_tac =
   | CS.Suc c ->
     T.BChk.chk @@ R.Nat.suc (chk_tm c)
   | CS.Let (c, B bdy) ->
-    R.Structural.let_ (syn_tm c) (Some bdy.name, fun _ -> bchk_tm bdy.body)
+    R.Structural.let_ (syn_tm c) (Some bdy.name) @@ fun _ -> bchk_tm bdy.body
   | CS.Unfold (idents, c) ->
     fun goal ->
       unfold idents @@ bchk_tm c goal
@@ -235,6 +235,14 @@ and syn_tm : CS.con -> T.syn_tac =
       (chk_tm mot)
       (chk_cases cases)
       (syn_tm scrut)
+  | CS.Rec {mot; cases; scrut} ->
+    let mot_tac = chk_tm mot in
+    R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) None @@ fun tp ->
+    R.Tactic.Elim.elim
+      (T.Chk.bchk @@ R.Pi.intro None @@ fun _ -> T.BChk.syn @@ R.Sub.elim @@ T.Var.syn tp)
+      (chk_cases cases)
+      (syn_tm scrut)
+
   | CS.Ann {term; tp} ->
     T.Syn.ann (chk_tm term) (chk_tp tp)
   | CS.Unfold (idents, c) ->
