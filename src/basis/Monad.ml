@@ -56,7 +56,7 @@ struct
   let rec iter f =
     function
     | [] -> M.ret ()
-    | (x :: xs) -> let* () = f x in iter f xs
+    | x :: xs -> let* () = f x in iter f xs
 end
 
 module type MonadReaderResult = sig
