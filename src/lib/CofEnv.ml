@@ -136,22 +136,21 @@ let assume env phi =
   match env with
   | `Inconsistent -> env
   | `Consistent env ->
-    let rec go env =
+    let rec go ({classes; true_vars; unreduced_joins} as env) =
       function
-      | [] -> `Consistent env
+      | [] -> if Test.simple env Cof.bot then `Inconsistent else `Consistent env
       | (phi :: phis) ->
         match phi with
         | Cof.Var v ->
-          go {env with true_vars = VarSet.add v env.true_vars} phis
+          go {env with true_vars = VarSet.add v true_vars} phis
         | Cof.Cof phi ->
           match phi with
           | Cof.Meet psis ->
             go env (psis @ phis)
           | Cof.Join psis ->
-            let env = {env with unreduced_joins = psis :: env.unreduced_joins} in
-            if Test.simple env Cof.bot then `Inconsistent else go env phis
+            go {env with unreduced_joins = psis :: unreduced_joins} phis
           | Cof.Eq (r, s) ->
-            let classes = UF.union r s env.classes in
+            let classes = UF.union r s classes in
             if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
               `Inconsistent
             else
