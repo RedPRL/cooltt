@@ -928,7 +928,8 @@ struct
         match fib with
         | D.El code ->
           EM.lift_qu @@ Qu.quote_con D.Univ code
-        | _ -> failwith "lam_elim"
+        | _ ->
+          EM.expected_connective `El fib
       in
       EM.ret @@
       Pi.intro None @@ fun x ->
