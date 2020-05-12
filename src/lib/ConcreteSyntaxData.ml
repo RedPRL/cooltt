@@ -1,4 +1,4 @@
-open CoolBasis 
+open CoolBasis
 
 type info = LexingUtil.span option
 
@@ -38,7 +38,7 @@ and con_ =
   | Pair of con * con
   | Fst of con
   | Snd of con
-  | Univ
+  | Type
   | Hole of ident option
   | Underscore
   | Unfold of ident list * con

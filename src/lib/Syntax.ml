@@ -135,7 +135,7 @@ let rec pp env fmt tm =
   | CodeNat ->
     Format.fprintf fmt "<nat>"
   | CodeUniv ->
-    Format.fprintf fmt "<univ>"
+    Format.fprintf fmt "<type>"
   | NatElim (mot, zero, suc, tm) ->
     Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
       (pp_atomic env) tm
@@ -201,7 +201,7 @@ and pp_tp env fmt tp =
   | TpCof ->
     Format.fprintf fmt "𝔽"
   | Univ ->
-    Format.fprintf fmt "univ"
+    Format.fprintf fmt "type"
   | Nat ->
     Format.fprintf fmt "nat"
   | El tm ->

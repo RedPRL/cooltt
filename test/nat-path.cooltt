@@ -1,16 +1,12 @@
 def symm : {
-  (A : univ) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
+  (A : type) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
 }= {
   λ A p i =>
-  hcom A 0 1 {λ j _ =>
-    [ j=0 ∨ i=1 => p 0
-    | i=0 => p j
-    ]
-  }
+  ?
 }
 
 def trans/filler : {
-  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
+  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
 } = {
   λ A p q j i =>
   hcom A 0 j {∂ i} {λ j _ =>
@@ -21,14 +17,14 @@ def trans/filler : {
 }
 
 def trans : {
-  (A : univ) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
+  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
 } = {
   λ A p q => trans/filler A p q 1
 }
 
 
 def J : {
-  (A : univ) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → univ) →
+  (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) →
   {C {λ _ => p 0}} → C p
 } = {
   λ A p C d =>
@@ -41,7 +37,7 @@ def J : {
 
 /-
 def trans-assoc : {
-  (A : univ) (s : A) (t : A) (u : A) (v : A)
+  (A : type) (s : A) (t : A) (u : A) (v : A)
   (p : path {λ _ => A} s t) (q : path {λ _ => A} t u) (r : path {λ _ => A} u v) →
     path
       {λ _ => path {λ _ => A} s v}
@@ -54,7 +50,7 @@ def trans-assoc : {
 
 /-
 def trans-left-unit : {
-  (A : univ) (p : 𝕀 → A)
+  (A : type) (p : 𝕀 → A)
   → path {λ _ => path {λ _ => A} {p 0} {p 1}} {trans A {λ _ => p 0} p} p
 } = {
   λ A p => ?
@@ -62,7 +58,7 @@ def trans-left-unit : {
 -/
 
 def trans-right-unit : {
-  (A : univ) (p : 𝕀 → A)
+  (A : type) (p : 𝕀 → A)
   → path {λ _ => path {λ _ => A} {p 0} {p 1}} p {trans A p {λ _ => p 1}}
 } = {
   λ A p => trans/filler A p {λ _ => p 1}
@@ -70,7 +66,7 @@ def trans-right-unit : {
 
 /-
 def trans-symm-refl : {
-  (A : univ) (p : 𝕀 → A)
+  (A : type) (p : 𝕀 → A)
   → path {λ _ => path {λ _ => A} {p 0} {p 0}} {trans A p {symm A p}} {λ _ => p 0}
 } = {
   λ A p => ?
@@ -78,7 +74,7 @@ def trans-symm-refl : {
 -/
 
 def cong : {
-  (A : univ) (B : univ) (f : A → B) (p : 𝕀 → A) →
+  (A : type) (B : type) (f : A → B) (p : 𝕀 → A) →
   path {λ _ => B} {f {p 0}} {f {p 1}}
 } = {
   λ A B f p i => f {p i}

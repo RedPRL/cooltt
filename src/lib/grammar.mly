@@ -12,7 +12,7 @@
 %token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
-%token UNIV
+%token TYPE
 %token TIMES FST SND
 %token LAM LET IN SUB
 %token SUC NAT ZERO UNFOLD
@@ -96,8 +96,8 @@ plain_atomic_term:
     { Lit n }
   | NAT
     { Nat }
-  | UNIV
-    { Univ }
+  | TYPE
+    { Type }
   | name = HOLE_NAME
     { Hole name }
   | UNDERSCORE

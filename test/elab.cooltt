@@ -7,12 +7,12 @@ def boundary-test : (i : 𝕀) (_ : [∂ i]) → nat = {
 
 normalize boundary-test
 
-def reflexivity : (A : univ) (a : A) (i : 𝕀) → A = {
+def reflexivity : (A : type) (a : A) (i : 𝕀) → A = {
   \A a _ => a
 }
 
 
-def pi-code-test : univ = (x : nat) → nat
+def pi-code-test : type = (x : nat) → nat
 
 def foo : pi-code-test =
   \x => x
@@ -21,7 +21,7 @@ normalize pi-code-test
 
 
 def simple-let : {
-  (A : univ) (a : A) -> A
+  (A : type) (a : A) -> A
 } = {
   \A a =>
   let b : A = a in

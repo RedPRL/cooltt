@@ -32,7 +32,7 @@ let keywords =
     ("def", DEF);
     ("normalize", NORMALIZE);
     ("quit", QUIT);
-    ("univ", UNIV);
+    ("type", TYPE);
     ("→", RIGHT_ARROW);
     ("𝕀", DIM);
     ("dim", DIM);

@@ -1,7 +1,7 @@
 -- See also pre-path-types.cooltt.
 
 def formation : {
-  (A : 𝕀 → univ) (a : A 0) (b : A 1) → univ
+  (A : 𝕀 → type) (a : A 0) (b : A 1) → type
 } = {
   \A a b =>
   path A a b
@@ -10,7 +10,7 @@ def formation : {
 normalize formation
 
 def myrefl : {
-  (A : univ) (a : A) → path {\_ => A} a a
+  (A : type) (a : A) → path {\_ => A} a a
 } = {
   \A a i => a
 }
@@ -18,7 +18,7 @@ def myrefl : {
 normalize myrefl
 
 def funext : {
-  (A : univ) (B : univ) (f : (x : A) → B) (g : (x : A) → B)
+  (A : type) (B : type) (f : (x : A) → B) (g : (x : A) → B)
   (h : (x : A) → path {\_ => B} {f x} {g x})
   → path {\_ => (x : A) → B} f g
 } = {
@@ -29,7 +29,7 @@ def funext : {
 normalize funext
 
 def pairext : {
-  (A : univ) (B : univ) (p : (x : A) × B) (q : (x : A) × B)
+  (A : type) (B : type) (p : (x : A) × B) (q : (x : A) × B)
   (h : (x : path {\_ => A} {fst p} {fst q}) × path {\_ => B} {snd p} {snd q})
   → path {\_ => (x : A) × B} p q
 } = {
