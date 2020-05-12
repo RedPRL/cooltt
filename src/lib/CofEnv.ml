@@ -11,7 +11,7 @@ type reduced_env =
     true_vars : VarSet.t
   }
 
-type consistent_env =
+type env' =
   { classes : D.dim UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
@@ -21,7 +21,7 @@ type consistent_env =
     (** a stack of unreduced joins, each represented by a list of cofibrations *)
   }
 
-type env = [ `Consistent of consistent_env | `Inconsistent ]
+type env = [ `Consistent of env' | `Inconsistent ]
 
 let init () = `Consistent
     {classes = UF.init ~size:100;
@@ -59,7 +59,7 @@ sig
   val left_invert : env -> D.cof list -> (reduced_env -> M.t) -> M.t
 
   (* Search all branches assuming more cofibrations *)
-  val left_invert' : consistent_env -> D.cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert' : env' -> D.cof list -> (reduced_env -> M.t) -> M.t
 end
   =
   functor (M : SEQ) ->
@@ -84,7 +84,7 @@ end
               go env (psis @ phis)
             | Cof.Join psis ->
               let env = {env with unreduced_joins = psis :: unreduced_joins} in
-              if Test.simple env Cof.bot then M.vacuous else go env phis
+              if Test.inconsistency env then M.vacuous else go env phis
             | Cof.Eq (r, s) ->
               let classes = UF.union r s classes in
               if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
@@ -100,8 +100,8 @@ end
   end
 and Test :
 sig
-  val simple : consistent_env -> D.cof -> bool
-  val sequent : consistent_env -> D.cof list -> D.cof -> bool
+  val inconsistency : env' -> bool
+  val sequent : env' -> D.cof list -> D.cof -> bool
 end =
 struct
   (* Invariant: classes is consistent *)
@@ -124,7 +124,7 @@ struct
   module M = Search (Seq)
 
   let sequent env cx phi = M.left_invert' env cx (fun env -> right env phi)
-  let simple env phi = sequent env [] phi
+  let inconsistency env = M.left_invert' env [] (fun _ -> false)
 end
 
 let test_sequent env cx phi =
@@ -138,7 +138,7 @@ let assume env phi =
   | `Consistent env ->
     let rec go ({classes; true_vars; unreduced_joins} as env) =
       function
-      | [] -> if Test.simple env Cof.bot then `Inconsistent else `Consistent env
+      | [] -> if Test.inconsistency env then `Inconsistent else `Consistent env
       | (phi :: phis) ->
         match phi with
         | Cof.Var v ->
