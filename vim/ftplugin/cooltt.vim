@@ -14,7 +14,7 @@ endif
 command! Cooltt :call CheckBuffer()
 nnoremap <buffer> <LocalLeader>l :call CheckBuffer()<CR>
 nnoremap <buffer> <LocalLeader>p :call CheckBuffer(line('.'))<CR>
-autocmd QuitPre <buffer> call s:CloseBuffer()
+autocmd ExitPre <buffer> call s:CloseBuffer()
 
 digraph FF 120125
 digraph II 120128
