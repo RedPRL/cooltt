@@ -62,23 +62,24 @@ def J/eq : {
   com mot 0 1 {∂ k} {λ i _ => [k=0 => coe {λ j => C {square j}} 0 i d | k=1 ∨ i=0 => d]}
 }
 
-/-
 def trans-left-unit : {
   (A : type) (p : 𝕀 → A)
-  → path {path A {p 0} {p 1}} {trans A {λ _ => p 0} p} p
+  → path {path A {p 0} {p 1}} p {trans A {λ _ => p 0} p}
 } = {
   λ A p k i =>
   hcom A 0 1 {k=0 ∨ ∂ i} {λ j _ =>
-    [ j=0 ∨ ∂ i => [j=0 ∨ i=1 => p j | i=0 => p 0]
-    | k=0 => hcom A 0 1 {λ l _ =>
+    [ j=0 ∨ i=0 => p 0
+    | i=1 => p j
+    | k=0 =>
+      hcom A 0 1 {∂ i ∨ ∂ j} {λ l _ =>
         [ l=0 ∨ j=0 ∨ i=0 => p 0
-        | i=1 => hcom A 0 j {∂ l} {λ j _ => [ l=0 ∨ j=0 => p 0 | l=1 => p j ]}
+        | j=1 => trans/filler A {λ _ => p 0} p i l
+        | i=1 => trans/filler A {λ _ => p 0} p j l
         ]
       }
     ]
   }
 }
--/
 
 def trans-right-unit : {
   (A : type) (p : 𝕀 → A)
