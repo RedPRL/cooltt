@@ -11,6 +11,7 @@ module type Tactic =
 sig
   type tac
   val update_span : LexingUtil.span option -> tac -> tac
+  val whnf : tac -> tac
 end
 
 module Tp : sig
@@ -50,6 +51,8 @@ struct
 
   let update_span loc =
     map @@ EM.update_span loc
+
+  let whnf tac = tac
 end
 
 module Var =
@@ -89,6 +92,13 @@ struct
     let* tm, tp' = tac in
     let+ () = EM.equate_tp tp tp' in
     tm
+
+  let whnf tac =
+    fun tp ->
+    EM.lift_cmp @@ Sem.whnf_tp tp |>>
+    function
+    | `Done -> tac tp
+    | `Reduce tp -> tac tp
 end
 
 and BChk : sig
@@ -114,6 +124,13 @@ struct
   let syn : Syn.tac -> tac =
     fun tac ->
     chk @@ Chk.syn tac
+
+  let whnf tac =
+    fun (tp, phi, clo) ->
+    EM.lift_cmp @@ Sem.whnf_tp tp |>>
+    function
+    | `Done -> tac (tp, phi, clo)
+    | `Reduce tp -> tac (tp, phi, clo)
 end
 
 and Syn : sig
@@ -130,6 +147,13 @@ struct
     let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
     let+ tm = tac_tm vtp in
     tm, vtp
+
+let whnf tac =
+  let* tm, tp = tac in
+  EM.lift_cmp @@ Sem.whnf_tp tp |>>
+  function
+  | `Done -> EM.ret (tm, tp)
+  | `Reduce tp' -> EM.ret (tm, tp')
 end
 
 

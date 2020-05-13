@@ -26,28 +26,6 @@ let rec unfold idents k =
     | _ ->
       unfold idents k
 
-let whnf_chk tac =
-  fun goal ->
-  EM.lift_cmp @@ Sem.whnf_tp goal |>>
-  function
-  | `Done -> tac goal
-  | `Reduce goal -> tac goal
-
-let whnf_syn (tac : T.syn_tac) =
-  let* tm, tp = tac in
-  EM.lift_cmp @@ Sem.whnf_tp tp |>>
-  function
-  | `Done -> EM.ret (tm, tp)
-  | `Reduce tp' -> EM.ret (tm, tp')
-
-let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
-  fun (tp, psi, clo) ->
-  EM.lift_cmp @@ Sem.whnf_tp tp |>>
-  function
-  | `Done -> tac (tp, psi, clo)
-  | `Reduce tp -> tac (tp, psi, clo)
-
-
 module CoolTp :
 sig
   include T.Tactic
@@ -69,6 +47,11 @@ struct
   type tac =
     | Tp of T.Tp.tac
     | Code of T.Chk.tac
+
+  let whnf =
+    function
+    | Tp tac -> Tp (T.Tp.whnf tac)
+    | Code tac -> Code (T.Chk.whnf tac)
 
   let update_span span =
     function
@@ -153,7 +136,7 @@ and bchk_tm : CS.con -> T.bchk_tac =
   fun con ->
   T.BChk.update_span con.info @@
   R.Tactic.intro_implicit_connectives @@
-  whnf_bchk @@
+  T.BChk.whnf @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
@@ -235,9 +218,8 @@ and bchk_tm : CS.con -> T.bchk_tac =
 and syn_tm : CS.con -> T.syn_tac =
   function con ->
     T.Syn.update_span con.info @@
-    whnf_syn @@
     R.Tactic.elim_implicit_connectives @@
-    whnf_syn @@
+    T.Syn.whnf @@
     match con.node with
     | CS.Hole name ->
       R.Hole.unleash_syn_hole name `Rigid
@@ -252,7 +234,7 @@ and syn_tm : CS.con -> T.syn_tac =
         match ts with
         | [] -> acc
         | t :: ts ->
-          let tac = R.Tactic.elim_implicit_connectives @@ whnf_syn @@ R.Pi.apply acc t in
+          let tac = R.Tactic.elim_implicit_connectives @@ T.Syn.whnf @@ R.Pi.apply acc t in
           go tac ts
       in
       go (syn_tm t) @@ List.map chk_tm ts
