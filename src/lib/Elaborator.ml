@@ -33,6 +33,13 @@ let whnf_chk tac =
   | `Done -> tac goal
   | `Reduce goal -> tac goal
 
+let whnf_syn (tac : T.syn_tac) =
+  let* tm, tp = tac in
+  EM.lift_cmp @@ Sem.whnf_tp tp |>>
+  function
+  | `Done -> EM.ret (tm, tp)
+  | `Reduce tp' -> EM.ret (tm, tp')
+
 let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
   fun (tp, psi, clo) ->
   EM.lift_cmp @@ Sem.whnf_tp tp |>>
@@ -227,48 +234,59 @@ and bchk_tm : CS.con -> T.bchk_tac =
 
 and syn_tm : CS.con -> T.syn_tac =
   function con ->
-  T.Syn.update_span con.info @@
-  R.Tactic.elim_implicit_connectives @@
-  match con.node with
-  | CS.Hole name ->
-    R.Hole.unleash_syn_hole name `Rigid
-  | CS.Var id ->
-    R.Structural.lookup_var id
-  | CS.DeBruijnLevel lvl ->
-    R.Structural.level lvl
-  | CS.Ap (t, ts) ->
-    R.Tactic.tac_multi_apply (syn_tm t) @@ List.map chk_tm ts
-  | CS.Fst t ->
-    R.Sg.pi1 @@ syn_tm t
-  | CS.Snd t ->
-    R.Sg.pi2 @@ syn_tm t
-  | CS.Elim {mot; cases; scrut} ->
-    R.Tactic.Elim.elim
-      (chk_tm mot)
-      (chk_cases cases)
-      (syn_tm scrut)
-  | CS.Rec {mot; cases; scrut} ->
-    let mot_tac = chk_tm mot in
-    R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
-    R.Tactic.Elim.elim
-      (T.Chk.bchk @@ R.Pi.intro @@ fun _ -> T.BChk.syn @@ R.Sub.elim @@ T.Var.syn tp)
-      (chk_cases cases)
-      (syn_tm scrut)
+    T.Syn.update_span con.info @@
+    whnf_syn @@
+    R.Tactic.elim_implicit_connectives @@
+    whnf_syn @@
+    match con.node with
+    | CS.Hole name ->
+      R.Hole.unleash_syn_hole name `Rigid
+    | CS.Var id ->
+      R.Structural.lookup_var id
+    | CS.DeBruijnLevel lvl ->
+      R.Structural.level lvl
+    | CS.Ap (t, []) ->
+      syn_tm t
+    | CS.Ap (t, ts) ->
+      let rec go acc ts =
+        match ts with
+        | [] -> acc
+        | t :: ts ->
+          let tac = R.Tactic.elim_implicit_connectives @@ whnf_syn @@ R.Pi.apply acc t in
+          go tac ts
+      in
+      go (syn_tm t) @@ List.map chk_tm ts
+    | CS.Fst t ->
+      R.Sg.pi1 @@ syn_tm t
+    | CS.Snd t ->
+      R.Sg.pi2 @@ syn_tm t
+    | CS.Elim {mot; cases; scrut} ->
+      R.Tactic.Elim.elim
+        (chk_tm mot)
+        (chk_cases cases)
+        (syn_tm scrut)
+    | CS.Rec {mot; cases; scrut} ->
+      let mot_tac = chk_tm mot in
+      R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
+      R.Tactic.Elim.elim
+        (T.Chk.bchk @@ R.Pi.intro @@ fun _ -> T.BChk.syn @@ R.Sub.elim @@ T.Var.syn tp)
+        (chk_cases cases)
+        (syn_tm scrut)
 
-  | CS.Ann {term; tp} ->
-    T.Syn.ann (chk_tm term) (chk_tp tp)
-  | CS.Unfold (idents, c) ->
-    unfold idents @@ syn_tm c
-  | CS.Coe (tp, src, trg, body) ->
-    R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
-  | CS.HCom (tp, src, trg, cof, tm) ->
-    R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
-  | CS.Com (fam, src, trg, cof, tm) ->
-    R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
-  | CS.TopC -> R.Univ.topc
-  | CS.BotC -> R.Univ.botc
-  | _ ->
-    failwith @@ "TODO : " ^ CS.show_con con
+    | CS.Ann {term; tp} ->
+      T.Syn.ann (chk_tm term) (chk_tp tp)
+    | CS.Unfold (idents, c) ->
+      unfold idents @@ syn_tm c
+    | CS.Coe (tp, src, trg, body) ->
+      R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
+    | CS.HCom (tp, src, trg, cof, tm) ->
+      R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | CS.Com (fam, src, trg, cof, tm) ->
+      R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | CS.TopC -> R.Univ.topc
+    | CS.BotC -> R.Univ.botc
+    | _ ->
+      failwith @@ "TODO : " ^ CS.show_con con
 
 and chk_cases cases =
   List.map chk_case cases

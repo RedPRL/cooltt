@@ -1,0 +1,13 @@
+def pathsimple : {
+  (A : type) → A → A → type
+} = {
+  λ A x y => path {λ _ => A} x y
+}
+
+def refl : {
+  (A : type) → (x : A) → pathsimple A x x
+} = {
+  λ A x => ?
+}
+
+normalize refl

@@ -867,14 +867,6 @@ struct
     | _ ->
       EM.ret tac
 
-
-
-  let rec tac_multi_apply tac_fun =
-    function
-    | [] -> tac_fun
-    | tac :: tacs ->
-      tac_multi_apply (elim_implicit_connectives @@ Pi.apply tac_fun tac) tacs
-
   let rec tac_nary_quantifier (quant : ('a, 'b) quantifier) cells body =
     match cells with
     | [] -> body
