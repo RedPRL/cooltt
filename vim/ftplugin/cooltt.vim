@@ -14,10 +14,13 @@ endif
 command! Cooltt :call CheckBuffer()
 nnoremap <buffer> <LocalLeader>l :call CheckBuffer()<CR>
 nnoremap <buffer> <LocalLeader>p :call CheckBuffer(line('.'))<CR>
-autocmd ExitPre <buffer> call s:CloseBuffer()
+autocmd QuitPre <buffer> call s:CloseBuffer()
 
 digraph FF 120125
 digraph II 120128
+
+sign define coolttInfo text=? texthl=Identifier
+sign define coolttError linehl=Error text=» texthl=Error
 
 " Optional argument: the last line to send to cooltt (default: all).
 function! CheckBuffer(...)
@@ -37,12 +40,23 @@ function! CheckBuffer(...)
   silent %d _
   wincmd p
 
+  execute 'sign unplace * buffer=1'
+
   let s:job = job_start(g:cooltt_path .
     \' - -w ' . s:EditWidth(), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
+    \'err_cb': 'ParseError',
     \'out_io': 'buffer', 'out_name': 'cooltt', 'out_msg': 0,
     \'err_io': 'buffer', 'err_name': 'cooltt', 'err_msg': 0})
+endfunction
+
+function! ParseError(ch, line)
+  let matches = matchlist(a:line, '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) \[Error\]:$')
+  if (get(matches, 1) != 0)
+    execute 'sign place ' . matches[1] . ' line=' . matches[1] . ' name=coolttError buffer=1'
+    execute 'sign place ' . matches[1] . ' line=' . matches[1] . ' name=coolttError buffer=1'
+  endif
 endfunction
 
 " Call this only from cooltt output buffer.
