@@ -65,7 +65,7 @@ def J/eq : {
 /-
 def trans-left-unit : {
   (A : type) (p : 𝕀 → A)
-  → path {λ _ => path {λ _ => A} {p 0} {p 1}} {trans A {λ _ => p 0} p} p
+  → path {path A {p 0} {p 1}} {trans A {λ _ => p 0} p} p
 } = {
   λ A p k i =>
   hcom A 0 1 {k=0 ∨ ∂ i} {λ j _ =>
