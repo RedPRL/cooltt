@@ -1,13 +1,12 @@
-def pathsimple : {
+def path : {
   (A : type) → A → A → type
 } = {
-  λ A x y => path {λ _ => A} x y
+  λ A x y => pathd {λ _ => A} x y
 }
 
-def refl : {
-  (A : type) → (x : A) → pathsimple A x x
+def minimize : {
+  (A : type) (p : 𝕀 → A) → path {path A {p 0} {p 1}} p p
 } = {
-  λ A x => ?
+  λ A p => ?
 }
 
-normalize refl
