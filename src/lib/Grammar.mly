@@ -18,12 +18,17 @@
     {node = plain_name_to_term node; info}
 
   let forget_location {node; info} = node
+
+  let rec rev_ann' tp term = {node = Ann {term; tp}; info = term.info}
+
+  let rec rev_ann rev_tps term =
+    List.fold_right rev_ann' rev_tps term
 %}
 
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token COLON PIPE COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -36,6 +41,10 @@
 %token ELIM
 %token EOF
 %token TOPC BOTC
+
+%nonassoc IN RRIGHT_ARROW
+%left COLON
+%nonassoc FST SND SUC RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
 %type <Ident.t> plain_name
@@ -181,16 +190,21 @@ plain_term:
   | t = plain_term_except_cof_case
     { t }
 
+rev_annotated(X):
+  | t = X
+    {t, []}
+  | ann = rev_annotated(X); COLON; tp = term
+    { let t, tps = ann in t, tp :: tps }
+
 plain_term_except_cof_case:
   | t = plain_spine
     { t }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
-  | LET; name = plain_name; COLON; tp = term; EQUALS; def = term; IN; body = term
-    { Let ({node = Ann {term = def; tp}; info = def.info}, B {name; body}) }
-  | LET; name = plain_name; EQUALS; def = term; IN; body = term
-    { Let (def, B {name; body}) }
-  | LPR t = term; AT; tp = term RPR
+  | LET; rev_annotated_name = rev_annotated(plain_name); EQUALS; def = term; IN; body = term
+    { let name, rev_tps = rev_annotated_name in
+      Let (rev_ann rev_tps def, B {name; body}) }
+  | t = term; COLON; tp = term
     { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
