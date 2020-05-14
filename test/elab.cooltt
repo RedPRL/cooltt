@@ -1,5 +1,5 @@
 def boundary-test : (i : 𝕀) (_ : [∂ i]) → nat = {
-  \i _ =>
+  i _ =>
    [ i=1 => 5
    | i=0 => 19
    ]
@@ -8,14 +8,14 @@ def boundary-test : (i : 𝕀) (_ : [∂ i]) → nat = {
 normalize boundary-test
 
 def reflexivity : (A : type) (a : A) (i : 𝕀) → A = {
-  \A a _ => a
+  A a _ => a
 }
 
 
 def pi-code-test : type = (x : nat) → nat
 
 def foo : pi-code-test =
-  \x => x
+  x => x
 
 normalize pi-code-test
 
@@ -23,7 +23,7 @@ normalize pi-code-test
 def simple-let : {
   (A : type) (a : A) -> A
 } = {
-  \A a =>
+  A a =>
   let b : A = a in
   b
 }
@@ -35,10 +35,10 @@ def hole-in-type : {
   (x : nat) (y : nat) (z : nat)
   → ?tyhole
 } = {
-  \y z => ?tmhole
+  y z => ?tmhole
 }
 
-def foo : (x : nat) → (y : nat) × pathd {\i => nat} x y = {
-  \x =>
+def foo : (x : nat) → (y : nat) × pathd {i => nat} x y = {
+  x =>
   [x, ?hole1]
 }

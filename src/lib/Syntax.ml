@@ -76,8 +76,7 @@ let ppenv_bind env ident =
 let rec pp env fmt tm =
   match tm with
   | Lam _ ->
-    Format.fprintf fmt "@[%a %a@]"
-      Uuseg_string.pp_utf_8 "λ"
+    Format.fprintf fmt "@[%a@]"
       (pp_lambdas env) tm
   | Ap _ ->
     pp_applications env fmt tm

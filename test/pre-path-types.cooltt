@@ -7,7 +7,7 @@
 def myrefl : {
   (A : type) (a : A) → (i : 𝕀) → sub A {∂ i} [∂ i => a]
 } = {
-  \A a i => a
+  A a i => a
 }
 
 
@@ -16,7 +16,7 @@ def funext : {
   (h : (x : A) (i : 𝕀) → sub B {∂ i} [i=0 => f x | i=1 => g x])
   → (i : 𝕀) → sub {(x : A) → B} {∂ i} [i=0 => f | i=1 => g]
 } = {
-  \A B f g h i x =>
+  A B f g h i x =>
   h x i
 }
 
@@ -27,9 +27,12 @@ def pairext : {
      (i : 𝕀) → sub B {∂ i} [i=0 => snd p | i=1 => snd q])
   → (i : 𝕀) → sub {(x : A) × B} {∂ i} [i=0 => p | i=1 => q]
 } = {
-  \A B p q h i =>
+  A B p q h i =>
   [ {fst h} i
   , {snd h} i
   ]
 }
 
+normalize myrefl
+normalize funext
+normalize pairext
