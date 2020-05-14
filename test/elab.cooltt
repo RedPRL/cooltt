@@ -1,8 +1,8 @@
 def boundary-test : (i : 𝕀) (_ : [∂ i]) → nat = {
   i _ =>
-   [ i=1 => 5
-   | i=0 => 19
-   ]
+  [ i=1 => 5
+  | i=0 => 19
+  ]
 }
 
 normalize boundary-test
