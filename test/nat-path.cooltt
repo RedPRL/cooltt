@@ -1,8 +1,8 @@
 def symm : {
-  (A : type) (p : 𝕀 → A) → path {λ _ => A} {p 1} {p 0}
+  (A : type) (p : 𝕀 → A) → path {_ => A} {p 1} {p 0}
 }= {
-  λ A p i =>
-  hcom A 0 1 {λ j _ =>
+  A p i =>
+  hcom A 0 1 {j _ =>
     [ j=0 ∨ i=1 => p 0
     | i=0 => p j
     ]
@@ -12,8 +12,8 @@ def symm : {
 def trans/filler : {
   (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → 𝕀 → 𝕀 → A
 } = {
-  λ A p q j i =>
-  hcom A 0 j {∂ i} {λ j _ =>
+  A p q j i =>
+  hcom A 0 j {∂ i} {j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
@@ -21,18 +21,18 @@ def trans/filler : {
 }
 
 def trans : {
-  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {λ _ => A} {p 0} {q 1}
+  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {_ => A} {p 0} {q 1}
 } = {
-  λ A p q => trans/filler A p q 1
+  A p q => trans/filler A p q 1
 }
 
 
 def J : {
   (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) →
-  {C {λ _ => p 0}} → C p
+  {C {_ => p 0}} → C p
 } = {
-  λ A p C d =>
-  coe {λ i => C {hfill A 0 {∂ i} {λ k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}} 0 1 d
+  A p C d =>
+  coe {i => C {hfill A 0 {∂ i} {k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}} 0 1 d
 }
 
 normalize J
@@ -40,100 +40,100 @@ normalize J
 /-
 def trans-assoc : {
   (A : type) (s : A) (t : A) (u : A) (v : A)
-  (p : path {λ _ => A} s t) (q : path {λ _ => A} t u) (r : path {λ _ => A} u v) →
+  (p : path {_ => A} s t) (q : path {_ => A} t u) (r : path {_ => A} u v) →
     path
-      {λ _ => path {λ _ => A} s v}
+      {_ => path {_ => A} s v}
       {trans A {trans A p q} r}
       {trans A p {trans A q r}}
 } = {
-  λ A s t u v p q r i j => hcom A 0 j {λ k _ => ?}
+  A s t u v p q r i j => hcom A 0 j {k _ => ?}
 }
 -/
 
 /-
 def trans-left-unit : {
   (A : type) (p : 𝕀 → A)
-  → path {λ _ => path {λ _ => A} {p 0} {p 1}} {trans A {λ _ => p 0} p} p
+  → path {_ => path {_ => A} {p 0} {p 1}} {trans A {_ => p 0} p} p
 } = {
-  λ A p => ?
+  A p => ?
 }
 -/
 
 def trans-right-unit : {
   (A : type) (p : 𝕀 → A)
-  → path {λ _ => path {λ _ => A} {p 0} {p 1}} p {trans A p {λ _ => p 1}}
+  → path {_ => path {_ => A} {p 0} {p 1}} p {trans A p {_ => p 1}}
 } = {
-  λ A p => trans/filler A p {λ _ => p 1}
+  A p => trans/filler A p {_ => p 1}
 }
 
 /-
 def trans-symm-refl : {
   (A : type) (p : 𝕀 → A)
-  → path {λ _ => path {λ _ => A} {p 0} {p 0}} {trans A p {symm A p}} {λ _ => p 0}
+  → path {_ => path {_ => A} {p 0} {p 0}} {trans A p {symm A p}} {_ => p 0}
 } = {
-  λ A p => ?
+  A p => ?
 }
 -/
 
 def cong : {
   (A : type) (B : type) (f : A → B) (p : 𝕀 → A) →
-  path {λ _ => B} {f {p 0}} {f {p 1}}
+  path {_ => B} {f {p 0}} {f {p 1}}
 } = {
-  λ A B f p i => f {p i}
+  A B f p i => f {p i}
 }
 
 def + : nat → nat → nat = {
   λ elim [
-  | zero => λ n => n
-  | suc {_ => ih} => λ n => suc {ih n}
+  | zero => n => n
+  | suc {_ => ih} => n => suc {ih n}
   ]
 }
 
-def +-right-unit : (x : nat) → path {λ _ => nat} {+ x 0} x = {
+def +-right-unit : (x : nat) → path {_ => nat} {+ x 0} x = {
   λ elim [
   | zero =>
-    λ _ => 0
+    _ => 0
   | suc {y => ih} =>
-    λ i => suc {ih i}
+    i => suc {ih i}
   ]
 }
 
-def +-left-unit : (x : nat) → path {λ _ => nat} {+ 0 x} x = {
-  λ x _ => x
+def +-left-unit : (x : nat) → path {_ => nat} {+ 0 x} x = {
+  x _ => x
 }
 
-def +-suc-r : (x : nat) (y : nat) → path {λ _ => nat} {+ x {suc y}} {suc {+ x y}} = {
+def +-suc-r : (x : nat) (y : nat) → path {_ => nat} {+ x {suc y}} {suc {+ x y}} = {
   λ elim [
   | zero =>
-    λ x i => {suc x}
+    x i => {suc x}
   | suc {x => ih} =>
-    λ y i => suc {ih y i}
+    y i => suc {ih y i}
   ]
 }
 
-def +-comm : (x : nat) (y : nat) → path {λ _ => nat} {+ y x} {+ x y} = {
+def +-comm : (x : nat) (y : nat) → path {_ => nat} {+ y x} {+ x y} = {
   λ elim [
   | zero => +-right-unit
   | suc {y => ih} =>
-    λ z =>
-    trans nat {+-suc-r z y} {λ j => suc {ih z j}}
+    z =>
+    trans nat {+-suc-r z y} {j => suc {ih z j}}
   ]
 }
 
 def +-assoc : {
   (x : nat) (y : nat) (z : nat) →
-  path {λ _ => nat} {+ {+ x y} z} {+ x {+ y z}}
+  path {_ => nat} {+ {+ x y} z} {+ x {+ y z}}
 } = {
   λ elim [
-  | zero => λ y z i => + y z
-  | suc {x => ih} => λ y z i => suc {ih y z i}
+  | zero => y z i => + y z
+  | suc {x => ih} => y z i => suc {ih y z i}
   ]
 }
 
 def test : {
   (p : 𝕀 → nat) → (i : 𝕀) → nat
 } = {
-  λ p i =>
+  p i =>
   rec {symm nat p i} @ nat [
   | zero => zero
   | suc {x => ih} => zero
@@ -144,8 +144,8 @@ def test : {
 def test2 : {
   (i : 𝕀) → nat
 } = {
-  λ i =>
-  rec {symm nat {\_ => zero} i} @ nat [
+  i =>
+  rec {symm nat {_ => zero} i} @ nat [
   | zero => zero
   | suc {x => ih} => zero
   ]
@@ -161,5 +161,5 @@ normalize test2
 -- reduced as they could be, it is of no consequence for definitional
 -- equivalence. That is, we don't bother pushing eliminators through all the
 -- branches of a disjunction split, but our equational theory acts as if we do.
-def test2' : sub {𝕀 → nat} #t {λ i => hcom nat 0 1 {∂ i} {λ _ _ => 0}} = test2
+def test2' : sub {𝕀 → nat} #t {i => hcom nat 0 1 {∂ i} {_ _ => 0}} = test2
 

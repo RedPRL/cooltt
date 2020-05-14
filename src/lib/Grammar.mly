@@ -4,6 +4,18 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
+  let underscore_as_name = `Anon
+
+  let plain_name_to_term =
+    function
+    | `User a -> Var (`User a)
+    | `Anon -> Underscore
+    | `Machine _ -> failwith "Impossible Internal Error"
+
+  let name_to_term {node; info} =
+    {node = plain_name_to_term node; info}
+
+  let forget_location {node; info} = node
 %}
 
 %token <int> NUMERAL
@@ -24,36 +36,42 @@
 %token TOPC BOTC
 
 %start <ConcreteSyntax.signature> sign
+%type <Ident.t> plain_name
 %type <con_>
-  ap_or_plain_atomic_term
-  plain_atomic_cof_except_atomic_term
-  plain_atomic_in_cof
-  plain_cof_except_atomic_term
-  plain_atomic_term
-  plain_cof_or_atomic_term
-  plain_cof_or_term
-  plain_term
+  plain_atomic_in_cof_except_term
+  plain_cof_except_term
+  plain_atomic_term_except_name
   bracketed
+  plain_spine
+  plain_lambda_except_cof_case
+  plain_term_except_coe_case
 %type <pat> pat
 %type <pat * con> case
+%type <con * con> cof_case
 %type <cell> tele_cell
 %%
 
+%inline
 located(X):
   | e = X
     { locate $loc e }
 
 term: t = located(plain_term) {t}
+atomic_in_cof: t = located(plain_atomic_in_cof) {t}
+%inline
+name: t = located(plain_name) {t}
+atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
+spine: t = located(plain_spine) {t}
 
-name:
+plain_name:
   | s = ATOM
     { `User s }
   | UNDERSCORE
-    { `Anon }
+    { underscore_as_name }
 
 decl:
-  | DEF; nm = name; COLON; tp = term; EQUALS; body = term
+  | DEF; nm = plain_name; COLON; tp = term; EQUALS; body = term
     { Def {name = nm; def = body; tp} }
   | QUIT
     { Quit }
@@ -66,30 +84,41 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-plain_atomic_cof_except_atomic_term:
-  | BOUNDARY t = term
+plain_atomic_in_cof_except_term:
+  | BOUNDARY t = atomic_term
     { CofBoundary t }
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
 
-plain_atomic_in_cof: t = plain_atomic_term | t = plain_atomic_cof_except_atomic_term {t}
+plain_atomic_in_cof:
+  | t = plain_atomic_term
+  | t = plain_atomic_in_cof_except_term
+    { t }
 
-plain_cof_except_atomic_term:
-  | c = plain_atomic_cof_except_atomic_term
+plain_cof_except_term:
+  | c = plain_atomic_in_cof_except_term
     { c }
-  | phi = located(plain_atomic_in_cof) JOIN psis = separated_nonempty_list(JOIN, located(plain_atomic_in_cof))
+  | phi = atomic_in_cof JOIN psis = separated_nonempty_list(JOIN, atomic_in_cof)
     { Join (phi :: psis) }
-  | phi = located(plain_atomic_in_cof) MEET psis = separated_nonempty_list(MEET, located(plain_atomic_in_cof))
+  | phi = atomic_in_cof MEET psis = separated_nonempty_list(MEET, atomic_in_cof)
     { Meet (phi :: psis) }
 
-plain_cof_or_atomic_term: t = plain_atomic_term | t = plain_cof_except_atomic_term {t}
-plain_cof_or_term: t = plain_term | t = plain_cof_except_atomic_term {t}
+plain_cof_or_atomic_term_except_name:
+  | t = plain_atomic_term_except_name
+  | t = plain_cof_except_term
+    { t }
+plain_cof_or_term_except_coe_case:
+  | t = plain_term_except_coe_case
+  | t = plain_cof_except_term
+    { t }
+plain_cof_or_term:
+  | t = plain_term
+  | t = plain_cof_except_term
+    { t }
 
-plain_atomic_term:
+plain_atomic_term_except_name:
   | LBR t = plain_cof_or_term RBR
     { t }
-  | a = ATOM
-    { Var (`User a) }
   | ZERO
     { Lit 0 }
   | n = NUMERAL
@@ -100,8 +129,6 @@ plain_atomic_term:
     { Type }
   | name = HOLE_NAME
     { Hole name }
-  | UNDERSCORE
-    { Underscore }
   | DIM
     { Dim }
   | COF
@@ -117,32 +144,63 @@ plain_atomic_term:
 bracketed:
   | left = term COMMA right = term
     { Pair (left, right) }
-  | ioption(PIPE) cases = separated_list(PIPE, cof_case)
+  | { CofSplit [] }
+  | case = cof_case
+    { CofSplit [case] }
+  | case1 = cof_case; PIPE; cases2 = separated_nonempty_list(PIPE, cof_case)
+    { CofSplit (case1 :: cases2) }
+  | PIPE cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = located(plain_cof_or_term)
+  | t = located(plain_cof_or_term_except_coe_case)
     { Prf t }
 
-ap_or_plain_atomic_term:
+plain_atomic_term:
+  | name = plain_name
+    { plain_name_to_term name }
+  | t = plain_atomic_term_except_name
+    { t }
+
+plain_spine:
+  | spine = nonempty_list(name); arg = atomic_term_except_name; args = list(atomic_term)
+    { Ap (name_to_term (List.hd spine), List.map name_to_term (List.tl spine) @ [arg] @ args) }
+  | f = atomic_term_except_name; args = nonempty_list(atomic_term)
+    { Ap (f, args) }
+  | f = name; args = nonempty_list(name)
+    { Ap (name_to_term f, List.map name_to_term args) }
   | t = plain_atomic_term
     { t }
-  | f = atomic_term; args = nonempty_list(atomic_term)
-    { Ap (f, args) }
+
+plain_lambda_and_cof_case:
+  | name = name; RRIGHT_ARROW; body = term
+    { name, body }
+
+plain_lambda_except_cof_case:
+  | name1 = name; names2 = nonempty_list(plain_name); RRIGHT_ARROW; body = term
+    { Lam (BN {names = [forget_location name1] @ names2; body}) }
+  | LAM; names = list(plain_name); RRIGHT_ARROW; body = term
+    { Lam (BN {names; body}) }
 
 plain_term:
-  | t = ap_or_plain_atomic_term
+  | t = plain_lambda_and_cof_case
+    { let name, body = t in Lam (BN {names = [forget_location name]; body})  }
+  | t = plain_term_except_coe_case
     { t }
-  | UNFOLD; names = nonempty_list(name); IN; body = term;
+
+plain_term_except_coe_case:
+  | t = plain_spine
+    { t }
+  | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
-  | LET; name = name; COLON; tp = term; EQUALS; def = term; IN; body = term
+  | LET; name = plain_name; COLON; tp = term; EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, B {name; body}) }
-  | LET; name = name; EQUALS; def = term; IN; body = term
+  | LET; name = plain_name; EQUALS; def = term; IN; body = term
     { Let (def, B {name; body}) }
   | LPR t = term; AT; tp = term RPR
     { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
-  | LAM; names = list(name); RRIGHT_ARROW; body = term
-    { Lam (BN {names; body}) }
+  | t = plain_lambda_except_cof_case
+    { t }
   | LAM; ELIM; cases = cases
     { LamElim cases }
   | ELIM; scrut = term; AT; mot = atomic_term; cases = cases
@@ -153,11 +211,11 @@ plain_term:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
-  | dom = located(ap_or_plain_atomic_term) RIGHT_ARROW cod = term
+  | dom = spine; RIGHT_ARROW; cod = term
     { Pi ([Cell {name = `Anon; tp = dom}], cod) }
-  | dom = located(ap_or_plain_atomic_term) TIMES cod = term
+  | dom = spine; TIMES; cod = term
     { Sg ([Cell {name = `Anon; tp = dom}], cod) }
-  | SUB tp = atomic_term phi = atomic_term tm = atomic_term
+  | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
   | FST; t = term
     { Fst t }
@@ -187,7 +245,9 @@ case:
     { p, t }
 
 cof_case:
-  | phi = located(plain_cof_or_atomic_term) RRIGHT_ARROW t = term
+  | t = plain_lambda_and_cof_case
+    { let name, body = t in name_to_term name, body }
+  | phi = located(plain_cof_or_atomic_term_except_name) RRIGHT_ARROW t = term
     { phi, t }
 
 pat_lbl:
@@ -204,11 +264,11 @@ pat:
    { Pat {lbl; args} }
 
 pat_arg:
-  | ident = name
+  | ident = plain_name
     { `Simple ident }
-  | LBR i0 = name RRIGHT_ARROW i1 = name RBR
+  | LBR i0 = plain_name RRIGHT_ARROW i1 = plain_name RBR
     { `Inductive (i0, i1) }
 
 tele_cell:
-  | LPR name = name; COLON tp = term; RPR
+  | LPR name = plain_name; COLON tp = term; RPR
     { Cell {name; tp} }

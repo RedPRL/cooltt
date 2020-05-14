@@ -3,26 +3,26 @@
 def formation : {
   (A : 𝕀 → type) (a : A 0) (b : A 1) → type
 } = {
-  \A a b =>
+  A a b =>
   path A a b
 }
 
 normalize formation
 
 def myrefl : {
-  (A : type) (a : A) → path {\_ => A} a a
+  (A : type) (a : A) → path {_ => A} a a
 } = {
-  \A a i => a
+  A a i => a
 }
 
 normalize myrefl
 
 def funext : {
   (A : type) (B : type) (f : (x : A) → B) (g : (x : A) → B)
-  (h : (x : A) → path {\_ => B} {f x} {g x})
-  → path {\_ => (x : A) → B} f g
+  (h : (x : A) → path {_ => B} {f x} {g x})
+  → path {_ => (x : A) → B} f g
 } = {
-  \A B f g h i x =>
+  A B f g h i x =>
   h x i
 }
 
@@ -30,10 +30,10 @@ normalize funext
 
 def pairext : {
   (A : type) (B : type) (p : (x : A) × B) (q : (x : A) × B)
-  (h : (x : path {\_ => A} {fst p} {fst q}) × path {\_ => B} {snd p} {snd q})
-  → path {\_ => (x : A) × B} p q
+  (h : (x : path {_ => A} {fst p} {fst q}) × path {_ => B} {snd p} {snd q})
+  → path {_ => (x : A) × B} p q
 } = {
-  \A B p q h i =>
+  A B p q h i =>
   [ {fst h} i
   , {snd h} i
   ]
