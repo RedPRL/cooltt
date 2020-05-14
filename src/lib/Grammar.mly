@@ -144,12 +144,7 @@ plain_atomic_term_except_name:
 bracketed:
   | left = term COMMA right = term
     { Pair (left, right) }
-  | { CofSplit [] }
-  | case = cof_case
-    { CofSplit [case] }
-  | case1 = cof_case; PIPE; cases2 = separated_nonempty_list(PIPE, cof_case)
-    { CofSplit (case1 :: cases2) }
-  | PIPE cases = separated_list(PIPE, cof_case)
+  | ioption(PIPE) cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
   | t = located(plain_cof_or_term_except_coe_case)
     { Prf t }
