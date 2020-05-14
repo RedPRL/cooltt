@@ -1,7 +1,7 @@
 open Lex
-open Lexing
+open CoolBasis.LexingUtil
 
-exception Parse_error of string
+exception ParseError of string * span
 
 let print_position lexbuf =
   let pos = lexbuf.lex_curr_p in
@@ -11,13 +11,11 @@ let print_position lexbuf =
 let parse_with_error lexbuf =
   try Grammar.sign Lex.token lexbuf with
   | SyntaxError msg ->
-    let location = print_position lexbuf in
-    let msg = Printf.sprintf "%s: %s\n" location msg in
-    raise (Parse_error msg)
+    let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
+    raise @@ ParseError ("Lexing error", span)
   | Grammar.Error ->
-    let location = print_position lexbuf in
-    let msg = Printf.sprintf "%s: syntax error.\n" location in
-    raise (Parse_error msg)
+    let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
+    raise @@ ParseError ("Parse error", span)
 
 let load input =
   let ch, filename =
