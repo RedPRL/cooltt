@@ -83,14 +83,14 @@ def cong : {
 }
 
 def + : nat → nat → nat = {
-  λ elim [
+  elim [
   | zero => n => n
   | suc {_ => ih} => n => suc {ih n}
   ]
 }
 
 def +-right-unit : (x : nat) → path {_ => nat} {+ x 0} x = {
-  λ elim [
+  elim [
   | zero =>
     _ => 0
   | suc {y => ih} =>
@@ -103,7 +103,7 @@ def +-left-unit : (x : nat) → path {_ => nat} {+ 0 x} x = {
 }
 
 def +-suc-r : (x : nat) (y : nat) → path {_ => nat} {+ x {suc y}} {suc {+ x y}} = {
-  λ elim [
+  elim [
   | zero =>
     x i => {suc x}
   | suc {x => ih} =>
@@ -112,7 +112,7 @@ def +-suc-r : (x : nat) (y : nat) → path {_ => nat} {+ x {suc y}} {suc {+ x y}
 }
 
 def +-comm : (x : nat) (y : nat) → path {_ => nat} {+ y x} {+ x y} = {
-  λ elim [
+  elim [
   | zero => +-right-unit
   | suc {y => ih} =>
     z =>
@@ -124,7 +124,7 @@ def +-assoc : {
   (x : nat) (y : nat) (z : nat) →
   path {_ => nat} {+ {+ x y} z} {+ x {+ y z}}
 } = {
-  λ elim [
+  elim [
   | zero => y z i => + y z
   | suc {x => ih} => y z i => suc {ih y z i}
   ]
@@ -133,22 +133,28 @@ def +-assoc : {
 def test : {
   (p : 𝕀 → nat) → (i : 𝕀) → nat
 } = {
+  let fun : nat → nat =
+    elim [
+    | zero => zero
+    | suc _ => zero
+    ]
+  in
   p i =>
-  rec {symm nat p i} @ nat [
-  | zero => zero
-  | suc {x => ih} => zero
-  ]
+  fun {symm nat p i}
 }
 
 
 def test2 : {
   (i : 𝕀) → nat
 } = {
+  let fun : nat → nat =
+    elim [
+    | zero => zero
+    | suc _ => zero
+    ]
+  in
   i =>
-  rec {symm nat {_ => zero} i} @ nat [
-  | zero => zero
-  | suc {x => ih} => zero
-  ]
+  fun {symm nat {_ => zero} i}
 }
 
 normalize test

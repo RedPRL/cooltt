@@ -26,9 +26,7 @@ let keywords =
     ("in", IN);
     ("fst", FST);
     ("snd", SND);
-    ("fun", LAM);
     ("elim", ELIM);
-    ("rec", REC);
     ("unfold", UNFOLD);
     ("def", DEF);
     ("normalize", NORMALIZE);
@@ -109,10 +107,6 @@ rule token = parse
     { RIGHT_ARROW }
   | "=>"
     { RRIGHT_ARROW }
-  | "λ"
-    { LAM }
-  | "\\"
-    { LAM }
   | '_'
     { UNDERSCORE }
   | "?" atom

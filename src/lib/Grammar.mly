@@ -28,12 +28,12 @@
 %token EQUALS JOIN MEET
 %token TYPE
 %token TIMES FST SND
-%token LAM LET IN SUB
+%token LET IN SUB
 %token SUC NAT ZERO UNFOLD
 %token PATH
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE DEF
-%token ELIM REC
+%token ELIM
 %token EOF
 %token TOPC BOTC
 
@@ -174,8 +174,6 @@ plain_lambda_and_cof_case:
 plain_lambda_except_cof_case:
   | name1 = name; names2 = nonempty_list(plain_name); RRIGHT_ARROW; body = term
     { Lam (BN {names = [forget_location name1] @ names2; body}) }
-  | LAM; names = list(plain_name); RRIGHT_ARROW; body = term
-    { Lam (BN {names; body}) }
 
 plain_term:
   | t = plain_lambda_and_cof_case
@@ -198,12 +196,8 @@ plain_term_except_coe_case:
     { Suc t }
   | t = plain_lambda_except_cof_case
     { t }
-  | LAM; ELIM; cases = cases
+  | ELIM; cases = cases
     { LamElim cases }
-  | ELIM; scrut = term; AT; mot = atomic_term; cases = cases
-    { Elim {mot; cases; scrut}}
-  | REC; scrut = term; AT; mot = atomic_term; cases = cases
-    { Rec {mot; cases; scrut}}
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
