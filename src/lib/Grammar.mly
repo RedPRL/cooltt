@@ -46,7 +46,7 @@
   bracketed
   plain_spine
   plain_lambda_except_cof_case
-  plain_term_except_coe_case
+  plain_term_except_cof_case
 %type <pat> pat
 %type <pat * con> case
 %type <con * con> cof_case
@@ -109,8 +109,8 @@ plain_cof_or_atomic_term_except_name:
   | t = plain_atomic_term_except_name
   | t = plain_cof_except_term
     { t }
-plain_cof_or_term_except_coe_case:
-  | t = plain_term_except_coe_case
+plain_cof_or_term_except_cof_case:
+  | t = plain_term_except_cof_case
   | t = plain_cof_except_term
     { t }
 plain_cof_or_term:
@@ -148,7 +148,7 @@ bracketed:
     { Pair (left, right) }
   | ioption(PIPE) cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = located(plain_cof_or_term_except_coe_case)
+  | t = located(plain_cof_or_term_except_cof_case)
     { Prf t }
 
 plain_atomic_term:
@@ -178,10 +178,10 @@ plain_lambda_except_cof_case:
 plain_term:
   | t = plain_lambda_and_cof_case
     { let name, body = t in Lam (BN {names = [forget_location name]; body})  }
-  | t = plain_term_except_coe_case
+  | t = plain_term_except_cof_case
     { t }
 
-plain_term_except_coe_case:
+plain_term_except_cof_case:
   | t = plain_spine
     { t }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
