@@ -4,6 +4,8 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
+  let atom_as_name a = `User a
+
   let underscore_as_name = `Anon
 
   let plain_name_to_term =
@@ -66,7 +68,7 @@ spine: t = located(plain_spine) {t}
 
 plain_name:
   | s = ATOM
-    { `User s }
+    { atom_as_name s }
   | UNDERSCORE
     { underscore_as_name }
 
