@@ -1,8 +1,8 @@
 (menhir
  (flags --strict --explain --interpret-show-cst --table)
- (modules grammar))
+ (modules Grammar))
 
-(ocamllex lex)
+(ocamllex Lex)
 
 (library
  (name Core)
