@@ -7,7 +7,8 @@ This vim plugin requires Vim 8 (released September 2016).
 While editing a .cooltt file, run `:Cooltt` or `<LocalLeader>l` (`l` for `load`)
 in the command (normal) mode to check the current buffer and display the output
 in a separate buffer. Run `<LocalLeader>p` (`p` for `partial`) to check the
-current buffer, ignoring lines below the cursor's current position.
+current buffer, ignoring lines below the cursor's current position. From the
+output buffer, run `CTRL-]` to jump to the location of the message.
 
 ### Typing special characters
 

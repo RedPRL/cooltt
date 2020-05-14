@@ -19,8 +19,10 @@ autocmd QuitPre <buffer> call s:CloseBuffer()
 digraph FF 120125
 digraph II 120128
 
-sign define coolttInfo text=? texthl=Identifier
-sign define coolttError linehl=Error text=» texthl=Error
+sign define coolttInfo text=» texthl=Identifier
+sign define coolttError text=» texthl=Error
+
+let s:regex = '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) '
 
 " Optional argument: the last line to send to cooltt (default: all).
 function! CheckBuffer(...)
@@ -46,16 +48,30 @@ function! CheckBuffer(...)
     \' - -w ' . s:EditWidth(), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
-    \'err_cb': 'ParseError',
+    \'out_cb': 'ParseInfo', 'err_cb': 'ParseError',
     \'out_io': 'buffer', 'out_name': 'cooltt', 'out_msg': 0,
     \'err_io': 'buffer', 'err_name': 'cooltt', 'err_msg': 0})
 endfunction
 
+function! ParseInfo(ch, line)
+  let matches = matchlist(a:line, s:regex . '\[Info\]:$')
+  if (get(matches, 1) != 0)
+    execute 'sign place ' . matches[1] . ' line=' . matches[1] . ' name=coolttInfo buffer=1'
+  endif
+endfunction
+
 function! ParseError(ch, line)
-  let matches = matchlist(a:line, '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) \[Error\]:$')
+  let matches = matchlist(a:line, s:regex . '\[Error\]:$')
   if (get(matches, 1) != 0)
     execute 'sign place ' . matches[1] . ' line=' . matches[1] . ' name=coolttError buffer=1'
-    execute 'sign place ' . matches[1] . ' line=' . matches[1] . ' name=coolttError buffer=1'
+  endif
+endfunction
+
+" Call this only from cooltt output buffer.
+function! g:JumpFromOutputBuffer()
+  let matches = matchlist(getline(search(s:regex, 'bcW')), s:regex)
+  if (get(matches, 1) != 0)
+    execute 'sign jump ' . matches[1] . ' buffer=1'
   endif
 endfunction
 
@@ -72,6 +88,7 @@ function! s:InitBuffer()
   set syntax=cooltt
   set noswapfile
   nnoremap <buffer> <LocalLeader>l :call CheckFromOutputBuffer()<CR>
+  nnoremap <buffer> <C-]> :call JumpFromOutputBuffer()<CR>
 endfunction
 
 function! s:EditWidth()
