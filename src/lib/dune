@@ -2,7 +2,7 @@
  (flags --strict --explain --interpret-show-cst --table)
  (modules Grammar))
 
-(ocamllex lex)
+(ocamllex Lex)
 
 (library
  (name Core)
