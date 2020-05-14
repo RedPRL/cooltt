@@ -30,7 +30,7 @@
 %token TIMES FST SND
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD
-%token PATH
+%token PATHD
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE DEF
 %token ELIM
@@ -213,7 +213,7 @@ plain_term_except_coe_case:
   | SND; t = term
     { Snd t }
 
-  | PATH; tp = atomic_term; left = atomic_term; right = atomic_term
+  | PATHD; tp = atomic_term; left = atomic_term; right = atomic_term
     { Path (tp, left, right) }
 
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term

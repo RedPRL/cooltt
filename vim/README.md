@@ -22,7 +22,6 @@ there are ASCII equivalents.
 | ∂    | `C-k dP`  |       |
 | ∧    | `C-k AN`  | `/\`  |
 | ∨    | `C-k OR`  | `\/`  |
-| λ    | `C-k *l`  | `\`   |
 | ×    | `C-k *X`  | `*`   |
 | →    | `C-k ->`  | `->`  |
 
