@@ -1,7 +1,7 @@
 " vim-cooltt ftplugin
 " Language:     cooltt
 " Author:       Carlo Angiuli
-" Last Change:  2020 May 12
+" Last Change:  2020 May 14
 
 if (exists("b:did_ftplugin") || !has('job'))
   finish
@@ -18,6 +18,11 @@ autocmd QuitPre <buffer> call s:CloseBuffer()
 
 digraph FF 120125
 digraph II 120128
+
+sign define coolttInfo text=» texthl=Identifier
+sign define coolttError text=✗ texthl=Error
+
+let s:regex = '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) '
 
 " Optional argument: the last line to send to cooltt (default: all).
 function! CheckBuffer(...)
@@ -37,12 +42,42 @@ function! CheckBuffer(...)
   silent %d _
   wincmd p
 
+  execute 'sign unplace * file=' . l:current
+
   let s:job = job_start(g:cooltt_path .
     \' - -w ' . s:EditWidth(), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
+    \'out_cb': 'ParseInfo', 'err_cb': 'ParseError',
     \'out_io': 'buffer', 'out_name': 'cooltt', 'out_msg': 0,
     \'err_io': 'buffer', 'err_name': 'cooltt', 'err_msg': 0})
+endfunction
+
+function! ParseInfo(ch, line)
+  let matches = matchlist(a:line, s:regex . '\[Info\]:$')
+  if (get(matches, 1) != 0)
+    let line = matches[1]
+    let buf = getbufvar('cooltt', 'active')
+    execute 'sign place ' . line . ' line=' . line . ' name=coolttInfo file=' . buf
+  endif
+endfunction
+
+function! ParseError(ch, line)
+  let matches = matchlist(a:line, s:regex . '\[Error\]:$')
+  if (get(matches, 1) != 0)
+    let line = matches[1]
+    let buf = getbufvar('cooltt', 'active')
+    execute 'sign place ' . line . ' line=' . line . ' name=coolttError file=' . buf
+  endif
+endfunction
+
+" Call this only from cooltt output buffer.
+function! g:JumpFromOutputBuffer()
+  let matches = matchlist(getline(search(s:regex, 'bcW')), s:regex)
+  if (get(matches, 1) != 0 && bufexists(b:active) &&
+      \ (winbufnr(bufwinnr(b:active)) == bufnr(b:active)))
+    execute 'sign jump ' . matches[1] . ' file=' . b:active
+  endif
 endfunction
 
 " Call this only from cooltt output buffer.
@@ -58,6 +93,7 @@ function! s:InitBuffer()
   set syntax=cooltt
   set noswapfile
   nnoremap <buffer> <LocalLeader>l :call CheckFromOutputBuffer()<CR>
+  nnoremap <buffer> <C-]> :call JumpFromOutputBuffer()<CR>
 endfunction
 
 function! s:EditWidth()

@@ -15,8 +15,9 @@ let main width input =
   | Failure s ->
     Format.eprintf "Internal error (Failure): %s\n" s;
     1
-  | Load.Parse_error s ->
-    Format.eprintf "Frontend error: %s" s;
+  | Load.ParseError (err, span) ->
+    let loc = Some span in
+    Log.pp_message ~loc ~lvl:`Error Format.pp_print_string Format.err_formatter err;
     1
   | ElabError.ElabError (err, loc) ->
     Log.pp_message ~loc ~lvl:`Error ElabError.pp Format.err_formatter err;

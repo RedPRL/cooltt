@@ -22,8 +22,8 @@ syn region  coolttEncl transparent matchgroup=coolttSymb start="{" end="}" conta
 
 syn match   coolttHole '?\k*'
 
-syn keyword coolttKeyw zero suc nat in fst snd elim rec unfold type dim
-syn keyword coolttKeyw cof sub path coe hcom com hfill
+syn keyword coolttKeyw zero suc nat in fst snd elim unfold type dim
+syn keyword coolttKeyw cof sub pathd coe hcom com hfill
 
 syn keyword coolttDecl def let normalize quit
 

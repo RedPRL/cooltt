@@ -511,37 +511,58 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval bdy
 
+and inspect_con con =
+  let open CM in
+  match con with
+  | D.Cut {tp; cut} ->
+    begin
+      whnf_tp tp |>>
+      function
+      | `Done -> ret con
+      | `Reduce tp -> ret @@ D.Cut {tp; cut}
+    end
+  | _ -> ret con
+
 and do_goal_proj con =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match con with
-  | D.GoalRet con -> ret con
-  | D.Cut {tp = D.GoalTp (_, tp); cut} ->
-    ret @@ cut_frm ~tp ~cut D.KGoalProj
-  | _ ->
-    CM.throw @@ NbeFailed "do_goal_proj"
+  begin
+    inspect_con con |>>
+    function
+    | D.GoalRet con -> ret con
+    | D.Cut {tp = D.GoalTp (_, tp); cut} ->
+      ret @@ cut_frm ~tp ~cut D.KGoalProj
+    | _ ->
+      CM.throw @@ NbeFailed "do_goal_proj"
+  end
 
 and do_fst con : D.con CM.m =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match con with
-  | D.Pair (con0, _) -> ret con0
-  | D.Cut {tp = D.Sg (base, _, _); cut} ->
-    ret @@ cut_frm ~tp:base ~cut D.KFst
-  | _ ->
-    throw @@ NbeFailed "Couldn't fst argument in do_fst"
+  begin
+    inspect_con con |>>
+    function
+    | D.Pair (con0, _) -> ret con0
+    | D.Cut {tp = D.Sg (base, _, _); cut} ->
+      ret @@ cut_frm ~tp:base ~cut D.KFst
+    | _ ->
+      throw @@ NbeFailed "Couldn't fst argument in do_fst"
+  end
 
 and do_snd con : D.con CM.m =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match con with
-  | D.Pair (_, con1) -> ret con1
-  | D.Cut {tp = D.Sg (_, _, fam); cut} ->
-    let* fst = do_fst con in
-    let+ fib = inst_tp_clo fam fst in
-    cut_frm ~tp:fib ~cut D.KSnd
-  | _ ->
-    throw @@ NbeFailed ("Couldn't snd argument in do_snd")
+  begin
+    inspect_con con |>>
+    function
+    | D.Pair (_, con1) -> ret con1
+    | D.Cut {tp = D.Sg (_, _, fam); cut} ->
+      let* fst = do_fst con in
+      let+ fib = inst_tp_clo fam fst in
+      cut_frm ~tp:fib ~cut D.KSnd
+    | _ ->
+      throw @@ NbeFailed ("Couldn't snd argument in do_snd")
+  end
 
 
 and do_ap2 f a b =
@@ -549,23 +570,26 @@ and do_ap2 f a b =
   let* fa = do_ap f a in
   do_ap fa b
 
-and do_ap f a =
+
+and do_ap con a =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match f with
-  | D.Lam (_, clo) ->
-    inst_tm_clo clo a
+  begin
+    inspect_con con |>>
+    function
+    | D.Lam (_, clo) ->
+      inst_tm_clo clo a
 
-  | D.Destruct dst ->
-    do_destruct dst a
+    | D.Destruct dst ->
+      do_destruct dst a
 
-  | D.Cut {tp = D.Pi (base, _, fam); cut} ->
-    let+ fib = inst_tp_clo fam a in
-    cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
+    | D.Cut {tp = D.Pi (base, _, fam); cut} ->
+      let+ fib = inst_tp_clo fam a in
+      cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
 
-  | _ ->
-    Format.eprintf "Bad: %a@." D.pp_con f;
-    throw @@ NbeFailed "Not a function in do_ap"
+    | con ->
+      throw @@ NbeFailed "Not a function in do_ap"
+  end
 
 and do_destruct dst a =
   let open CM in
@@ -582,72 +606,81 @@ and do_destruct dst a =
 and do_sub_out con =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match con with
-  | D.SubIn con ->
-    ret con
-  | D.Cut {tp = D.Sub (tp, phi, clo); cut} ->
-    ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []}
-  | _ ->
-    throw @@ NbeFailed "do_sub_out"
+  begin
+    inspect_con con |>>
+    function
+    | D.SubIn con ->
+      ret con
+    | D.Cut {tp = D.Sub (tp, phi, clo); cut} ->
+      ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []}
+    | _ ->
+      throw @@ NbeFailed "do_sub_out"
+  end
 
 and do_el_out con =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match con with
-  | D.ElIn con ->
-    ret con
-  | D.Cut {tp = D.El con; cut} ->
-    let+ tp = unfold_el con in
-    cut_frm ~tp ~cut D.KElOut
-  | D.Cut {tp; cut} ->
-    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
-    throw @@ NbeFailed "do_el_out"
-  | _ ->
-    Format.eprintf "bad el/out: %a@." D.pp_con con;
-    throw @@ NbeFailed "do_el_out"
+  begin
+    inspect_con con |>>
+    function
+    | D.ElIn con ->
+      ret con
+    | D.Cut {tp = D.El con; cut} ->
+      let+ tp = unfold_el con in
+      cut_frm ~tp ~cut D.KElOut
+    | D.Cut {tp; cut} ->
+      Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
+      throw @@ NbeFailed "do_el_out"
+    | _ ->
+      Format.eprintf "bad el/out: %a@." D.pp_con con;
+      throw @@ NbeFailed "do_el_out"
+  end
 
 and unfold_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
     abort_if_inconsistent D.TpAbort @@
-    match con with
+    begin
+      inspect_con con |>>
+      function
 
-    | D.Cut {cut} ->
-      ret @@ D.UnfoldEl cut
+      | D.Cut {cut} ->
+        ret @@ D.UnfoldEl cut
 
-    | D.CodeNat ->
-      ret D.Nat
+      | D.CodeNat ->
+        ret D.Nat
 
-    | D.CodeUniv ->
-      ret D.Univ
+      | D.CodeUniv ->
+        ret D.Univ
 
-    | D.CodePi (base, fam) ->
-      splice_tp @@
-      Splice.foreign base @@ fun base ->
-      Splice.foreign fam @@ fun fam ->
-      Splice.term @@
-      TB.pi (TB.el base) @@ fun x ->
-      TB.el @@ TB.ap fam [x]
+      | D.CodePi (base, fam) ->
+        splice_tp @@
+        Splice.foreign base @@ fun base ->
+        Splice.foreign fam @@ fun fam ->
+        Splice.term @@
+        TB.pi (TB.el base) @@ fun x ->
+        TB.el @@ TB.ap fam [x]
 
-    | D.CodeSg (base, fam) ->
-      splice_tp @@
-      Splice.foreign base @@ fun base ->
-      Splice.foreign fam @@ fun fam ->
-      Splice.term @@
-      TB.sg (TB.el base) @@ fun x ->
-      TB.el @@ TB.ap fam [x]
+      | D.CodeSg (base, fam) ->
+        splice_tp @@
+        Splice.foreign base @@ fun base ->
+        Splice.foreign fam @@ fun fam ->
+        Splice.term @@
+        TB.sg (TB.el base) @@ fun x ->
+        TB.el @@ TB.ap fam [x]
 
-    | D.CodePath (fam, bdry) ->
-      splice_tp @@
-      Splice.foreign fam @@ fun fam ->
-      Splice.foreign bdry @@ fun bdry ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
-      TB.ap bdry [i; prf]
+      | D.CodePath (fam, bdry) ->
+        splice_tp @@
+        Splice.foreign fam @@ fun fam ->
+        Splice.foreign bdry @@ fun bdry ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
+        TB.ap bdry [i; prf]
 
-    | con ->
-      CM.throw @@ NbeFailed "unfold_el failed"
+      | con ->
+        CM.throw @@ NbeFailed "unfold_el failed"
+    end
 
 and do_coe r s (abs : D.con) con =
   let open CM in

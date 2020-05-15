@@ -1,12 +1,24 @@
-def symm : {
-  (A : type) (p : 𝕀 → A) → path {_ => A} {p 1} {p 0}
+def path : {
+  (A : type) → A → A → type
+} = {
+  A x y => pathd {_ => A} x y
+}
+
+def symm/filler : {
+  (A : type) (p : 𝕀 → A) → 𝕀 → 𝕀 → A
 }= {
   A p i =>
-  hcom A 0 1 {j _ =>
+  hfill A 0 {∂ i} {j _ =>
     [ j=0 ∨ i=1 => p 0
     | i=0 => p j
     ]
   }
+}
+
+def symm : {
+  (A : type) (p : 𝕀 → A) → path A {p 1} {p 0}
+}= {
+  A p i => symm/filler A p i 1
 }
 
 def trans/filler : {
@@ -21,7 +33,7 @@ def trans/filler : {
 }
 
 def trans : {
-  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path {_ => A} {p 0} {q 1}
+  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) → path A {p 0} {q 1}
 } = {
   A p q => trans/filler A p q 1
 }
@@ -37,47 +49,60 @@ def J : {
 
 normalize J
 
-/-
-def trans-assoc : {
-  (A : type) (s : A) (t : A) (u : A) (v : A)
-  (p : path {_ => A} s t) (q : path {_ => A} t u) (r : path {_ => A} u v) →
-    path
-      {_ => path {_ => A} s v}
-      {trans A {trans A p q} r}
-      {trans A p {trans A q r}}
+def J/eq : {
+  (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) →
+  (d : C {_ => p 0}) → path {C {_ => p 0}} {J A {_ => p 0} C d} d
 } = {
-  A s t u v p q r i j => hcom A 0 j {k _ => ?}
+  A p C d =>
+  let square : 𝕀 → 𝕀 → A = i => hfill A 0 {∂ i} {_ _ => p 0} in
+  k =>
+  let mot : 𝕀 → type =
+    i => C {hfill A 0 {∂ k ∨ ∂ i} {j _ => [k=0 => square i j | j=0 ∨ k=1 ∨ ∂ i => p 0]}}
+  in
+  com mot 0 1 {∂ k} {i _ => [k=0 => coe {j => C {square j}} 0 i d | k=1 ∨ i=0 => d]}
 }
--/
 
-/-
 def trans-left-unit : {
   (A : type) (p : 𝕀 → A)
-  → path {_ => path {_ => A} {p 0} {p 1}} {trans A {_ => p 0} p} p
+  → path {path A {p 0} {p 1}} p {trans A {_ => p 0} p}
 } = {
-  A p => ?
+  A p k i =>
+  hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
+    [ j=0 ∨ i=0 => p 0
+    | i=1 => p j
+    | k=0 =>
+      hcom A 0 1 {∂ i ∨ ∂ j} {l _ =>
+        [ l=0 ∨ j=0 ∨ i=0 => p 0
+        | j=1 => trans/filler A {_ => p 0} p i l
+        | i=1 => trans/filler A {_ => p 0} p j l
+        ]
+      }
+    ]
+  }
 }
--/
 
 def trans-right-unit : {
   (A : type) (p : 𝕀 → A)
-  → path {_ => path {_ => A} {p 0} {p 1}} p {trans A p {_ => p 1}}
+  → path {path A {p 0} {p 1}} p {trans A p {_ => p 1}}
 } = {
   A p => trans/filler A p {_ => p 1}
 }
 
-/-
 def trans-symm-refl : {
   (A : type) (p : 𝕀 → A)
-  → path {_ => path {_ => A} {p 0} {p 0}} {trans A p {symm A p}} {_ => p 0}
+  → path {path A {p 0} {p 0}} {_ => p 0} {trans A p {symm A p}}
 } = {
-  A p => ?
+  A p k i =>
+  hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
+    [ j=0 ∨ i=0 => p i
+    | k=0 ∨ i=1 => symm/filler A p j i
+    ]
+  }
 }
--/
 
 def cong : {
   (A : type) (B : type) (f : A → B) (p : 𝕀 → A) →
-  path {_ => B} {f {p 0}} {f {p 1}}
+  path B {f {p 0}} {f {p 1}}
 } = {
   A B f p i => f {p i}
 }
@@ -89,7 +114,7 @@ def + : nat → nat → nat = {
   ]
 }
 
-def +-right-unit : (x : nat) → path {_ => nat} {+ x 0} x = {
+def +-right-unit : (x : nat) → path nat {+ x 0} x = {
   elim [
   | zero =>
     _ => 0
@@ -98,11 +123,11 @@ def +-right-unit : (x : nat) → path {_ => nat} {+ x 0} x = {
   ]
 }
 
-def +-left-unit : (x : nat) → path {_ => nat} {+ 0 x} x = {
+def +-left-unit : (x : nat) → path nat {+ 0 x} x = {
   x _ => x
 }
 
-def +-suc-r : (x : nat) (y : nat) → path {_ => nat} {+ x {suc y}} {suc {+ x y}} = {
+def +-suc-r : (x : nat) (y : nat) → path nat {+ x {suc y}} {suc {+ x y}} = {
   elim [
   | zero =>
     x i => {suc x}
@@ -111,7 +136,7 @@ def +-suc-r : (x : nat) (y : nat) → path {_ => nat} {+ x {suc y}} {suc {+ x y}
   ]
 }
 
-def +-comm : (x : nat) (y : nat) → path {_ => nat} {+ y x} {+ x y} = {
+def +-comm : (x : nat) (y : nat) → path nat {+ y x} {+ x y} = {
   elim [
   | zero => +-right-unit
   | suc {y => ih} =>
@@ -122,13 +147,14 @@ def +-comm : (x : nat) (y : nat) → path {_ => nat} {+ y x} {+ x y} = {
 
 def +-assoc : {
   (x : nat) (y : nat) (z : nat) →
-  path {_ => nat} {+ {+ x y} z} {+ x {+ y z}}
+  path nat {+ {+ x y} z} {+ x {+ y z}}
 } = {
   elim [
   | zero => y z i => + y z
   | suc {x => ih} => y z i => suc {ih y z i}
   ]
 }
+
 
 def test : {
   (p : 𝕀 → nat) → (i : 𝕀) → nat
@@ -168,4 +194,3 @@ normalize test2
 -- equivalence. That is, we don't bother pushing eliminators through all the
 -- branches of a disjunction split, but our equational theory acts as if we do.
 def test2' : sub {𝕀 → nat} #t {i => hcom nat 0 1 {∂ i} {_ _ => 0}} = test2
-

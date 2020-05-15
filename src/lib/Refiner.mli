@@ -104,8 +104,6 @@ module Structural : sig
 end
 
 module Tactic : sig
-  val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
-
   val intro_implicit_connectives : bchk_tac -> bchk_tac
   val elim_implicit_connectives : syn_tac -> syn_tac
 
