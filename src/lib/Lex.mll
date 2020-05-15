@@ -120,8 +120,6 @@ rule token = parse
     }
   | "?"
     { HOLE_NAME None }
-  | "@"
-    { AT }
   | "#t"
     { TOPC }
   | "#f"

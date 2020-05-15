@@ -27,8 +27,8 @@ syn keyword coolttKeyw cof sub pathd coe hcom com hfill
 
 syn keyword coolttDecl def let normalize quit
 
-syn match   coolttSymb '=>\|[|,*×:=_@𝕀𝔽∂∧∨→]\|->\|#t\|#f'
-syn match   coolttSymb '\\/\|/\\\|\\'
+syn match   coolttSymb '=>\|[|,*×:=_𝕀𝔽∂∧∨→]\|->\|#t\|#f'
+syn match   coolttSymb '\\/\|/\\'
 
 syn region  coolttComm excludenl start="\k\@1<!--" end="$" contains=coolttTodo
 syn region  coolttBlockComm start="\k\@1<!/-" end="-/" nextgroup=coolttKeyw contains=coolttBlockComm,coolttTodo
