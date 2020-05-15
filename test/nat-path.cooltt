@@ -1,7 +1,5 @@
-def path : {
-  (A : type) → A → A → type
-} = {
-  A x y => pathd {_ => A} x y
+def path (A : type) (x : A) (y : A) : type = {
+  pathd {_ => A} x y
 }
 
 def symm/filler : {

@@ -46,17 +46,17 @@ let pp_message fmt =
 
 module EM = ElabBasics
 
-let elaborate_typed_term name tp tm =
+let elaborate_typed_term name (args : ConcreteSyntaxData.cell list) tp tm =
   let open Monad.Notation (EM) in
   EM.push_problem name @@
   let* tp =
     EM.push_problem "tp" @@
-    Tactic.Tp.run @@ Elaborator.chk_tp tp
+    Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
   in
   let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
   let* tm =
     EM.push_problem "tm" @@
-    Elaborator.chk_tm tm vtp
+    Elaborator.chk_tm_in_tele args tm vtp
   in
   let+ vtm = EM.lift_ev @@ Sem.eval tm in
   tp, vtp, tm, vtm
@@ -64,8 +64,8 @@ let elaborate_typed_term name tp tm =
 let execute_decl =
   let open Monad.Notation (EM) in
   function
-  | CS.Def {name; def; tp} ->
-    let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) tp def in
+  | CS.Def {name; args; def; tp} ->
+    let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
     let+ _sym = EM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
