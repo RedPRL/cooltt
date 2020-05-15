@@ -201,9 +201,14 @@ struct
     m |> scope @@ fun env ->
     Env.set_veil (Env.get_veil env) Env.init
 
-  let emit loc pp a : unit m =
+  let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) ->
-    Log.pp_message ~loc ~lvl:`Info pp Format.std_formatter a;
+    let fmt =
+      match lvl with
+      | `Info -> Format.std_formatter
+      | `Error | `Warn -> Format.err_formatter
+    in
+    Log.pp_message ~loc ~lvl pp fmt a;
     Ok (), st
 
   let veil v =

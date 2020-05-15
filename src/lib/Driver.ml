@@ -14,21 +14,35 @@ let _ =
 
 
 type message =
-  | NormalizedTerm of S.t * S.t
+  | NormalizedTerm of {orig : S.t; nf : S.t}
+  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
+  | UnboundIdent of Ident.t
 
 let pp_message fmt =
   function
-  | NormalizedTerm (s, t) ->
+  | NormalizedTerm {orig; nf} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
       "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
-      (S.pp env) s
-      (S.pp env) t
-
-let rec int_to_term =
-  function
-  | 0 -> S.Zero
-  | n -> S.Suc (int_to_term (n - 1))
+      (S.pp env) orig
+      (S.pp env) nf
+  | Definition {ident; tp; tm = Some tm} ->
+    let env = Pp.Env.emp in
+    Format.fprintf fmt
+      "@[<v>%a@ : %a@ = %a@]"
+      Ident.pp ident
+      (S.pp_atomic_tp env) tp
+      (S.pp_atomic env) tm
+  | Definition {ident; tp; tm = None} ->
+    let env = Pp.Env.emp in
+    Format.fprintf fmt
+      "@[%a : %a@]"
+      Ident.pp ident
+      (S.pp_atomic_tp env) tp
+  | UnboundIdent ident ->
+    Format.fprintf fmt
+      "@[Unbound identifier %a@]"
+      Ident.pp ident
 
 module EM = ElabBasics
 
@@ -51,13 +65,7 @@ let execute_decl =
   let open Monad.Notation (EM) in
   function
   | CS.Def {name; def; tp} ->
-    let goal_name =
-      match name with
-      | `User name -> name
-      | `Machine name -> name
-      | `Anon -> "_"
-    in
-    let* _tp, vtp, _tm, vtm = elaborate_typed_term goal_name tp def in
+    let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) tp def in
     let+ _sym = EM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
@@ -65,8 +73,28 @@ let execute_decl =
     let* tm, vtp = Elaborator.syn_tm term in
     let* vtm = EM.lift_ev @@ Sem.eval tm in
     let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
-    let+ () = EM.emit term.info pp_message @@ NormalizedTerm (tm, tm') in
+    let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
     `Continue
+  | CS.Print ident ->
+    begin
+      EM.resolve ident.node |>>
+      function
+      | `Global sym ->
+        let* vtp, con = EM.get_global sym in
+        let* tp = EM.lift_qu @@ Qu.quote_tp vtp in
+        let* tm =
+          match con with
+          | None -> EM.ret None
+          | Some con ->
+            let* tm = EM.lift_qu @@ Qu.quote_con vtp con in
+            EM.ret @@ Some tm
+        in
+        let+ () = EM.emit ident.info pp_message @@ Definition {ident = ident.node; tp; tm} in
+        `Continue
+      | _ ->
+        let+ () = EM.emit ~lvl:`Error ident.info pp_message @@ UnboundIdent ident.node in
+        `Continue
+    end
   | CS.Quit ->
     EM.ret `Quit
 

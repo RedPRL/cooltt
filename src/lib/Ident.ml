@@ -5,3 +5,10 @@ let pp fmt =
   | `Anon -> Format.fprintf fmt "<anon>"
   | `User str -> Uuseg_string.pp_utf_8 fmt str
   | `Machine str -> Uuseg_string.pp_utf_8 fmt str
+
+let to_string =
+  function
+  | `Anon -> "<anon>"
+  | `User str -> str
+  | `Machine str -> str
+
