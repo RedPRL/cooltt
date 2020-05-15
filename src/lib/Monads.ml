@@ -203,7 +203,12 @@ struct
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) ->
-    Log.pp_message ~loc ~lvl pp Format.std_formatter a;
+    let fmt =
+      match lvl with
+      | `Info -> Format.std_formatter
+      | `Error | `Warn -> Format.err_formatter
+    in
+    Log.pp_message ~loc ~lvl pp fmt a;
     Ok (), st
 
   let veil v =
