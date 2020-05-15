@@ -1,7 +1,7 @@
 " vim-cooltt ftplugin
 " Language:     cooltt
 " Author:       Carlo Angiuli
-" Last Change:  2020 May 12
+" Last Change:  2020 May 14
 
 if (exists("b:did_ftplugin") || !has('job'))
   finish
@@ -20,7 +20,7 @@ digraph FF 120125
 digraph II 120128
 
 sign define coolttInfo text=» texthl=Identifier
-sign define coolttError text=» texthl=Error
+sign define coolttError text=✗ texthl=Error
 
 let s:regex = '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) '
 
@@ -42,7 +42,7 @@ function! CheckBuffer(...)
   silent %d _
   wincmd p
 
-  execute 'sign unplace * buffer=1'
+  execute 'sign unplace * file=' . l:current
 
   let s:job = job_start(g:cooltt_path .
     \' - -w ' . s:EditWidth(), {
@@ -56,22 +56,27 @@ endfunction
 function! ParseInfo(ch, line)
   let matches = matchlist(a:line, s:regex . '\[Info\]:$')
   if (get(matches, 1) != 0)
-    execute 'sign place ' . matches[1] . ' line=' . matches[1] . ' name=coolttInfo buffer=1'
+    let line = matches[1]
+    let buf = getbufvar('cooltt', 'active')
+    execute 'sign place ' . line . ' line=' . line . ' name=coolttInfo file=' . buf
   endif
 endfunction
 
 function! ParseError(ch, line)
   let matches = matchlist(a:line, s:regex . '\[Error\]:$')
   if (get(matches, 1) != 0)
-    execute 'sign place ' . matches[1] . ' line=' . matches[1] . ' name=coolttError buffer=1'
+    let line = matches[1]
+    let buf = getbufvar('cooltt', 'active')
+    execute 'sign place ' . line . ' line=' . line . ' name=coolttError file=' . buf
   endif
 endfunction
 
 " Call this only from cooltt output buffer.
 function! g:JumpFromOutputBuffer()
   let matches = matchlist(getline(search(s:regex, 'bcW')), s:regex)
-  if (get(matches, 1) != 0)
-    execute 'sign jump ' . matches[1] . ' buffer=1'
+  if (get(matches, 1) != 0 && bufexists(b:active) &&
+      \ (winbufnr(bufwinnr(b:active)) == bufnr(b:active)))
+    execute 'sign jump ' . matches[1] . ' file=' . b:active
   endif
 endfunction
 
