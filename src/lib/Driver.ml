@@ -46,7 +46,7 @@ let pp_message fmt =
 
 module EM = ElabBasics
 
-let elaborate_typed_term name (args : ConcreteSyntaxData.cell list) tp tm =
+let elaborate_typed_term name (args : CS.cell list) tp tm =
   let open Monad.Notation (EM) in
   EM.push_problem name @@
   let* tp =
