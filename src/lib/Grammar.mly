@@ -82,8 +82,8 @@ plain_name:
     { underscore_as_name }
 
 decl:
-  | DEF; nm = plain_name; COLON; tp = term; EQUALS; body = term
-    { Def {name = nm; def = body; tp} }
+  | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; EQUALS; body = term
+    { Def {name = nm; args = tele; def = body; tp} }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term

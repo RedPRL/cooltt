@@ -128,9 +128,33 @@ and chk_tp : CS.con -> T.tp_tac =
   T.Tp.update_span con.info @@
   CoolTp.as_tp @@ cool_chk_tp con
 
+and chk_tp_in_tele (args : CS.cell list) (con : CS.con) : T.tp_tac =
+  let rec loop args =
+    match args with
+    | [] -> cool_chk_tp con
+    | CS.Cell {name; tp} :: args ->
+      CoolTp.update_span tp.info @@
+      CoolTp.pi (cool_chk_tp tp) name @@
+      loop args
+  in
+  CoolTp.as_tp @@ loop args
+
 and chk_tm : CS.con -> T.chk_tac =
   fun con ->
   T.Chk.bchk @@ bchk_tm con
+
+and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.chk_tac =
+  let rec loop args =
+    match args with
+    | [] -> bchk_tm con
+    | CS.Cell {name; tp} :: args ->
+      T.BChk.update_span tp.info @@
+      R.Tactic.intro_implicit_connectives @@
+      T.BChk.whnf @@
+      R.Pi.intro ~ident:name @@ fun _ ->
+      loop args
+  in
+  T.Chk.bchk @@ loop args
 
 and bchk_tm : CS.con -> T.bchk_tac =
   fun con ->
