@@ -30,6 +30,7 @@ let keywords =
     ("unfold", UNFOLD);
     ("def", DEF);
     ("normalize", NORMALIZE);
+    ("print", PRINT);
     ("quit", QUIT);
     ("type", TYPE);
     ("→", RIGHT_ARROW);

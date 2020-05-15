@@ -151,12 +151,12 @@ and bchk_tm : CS.con -> T.bchk_tac =
       | _ -> EM.ret @@ R.Nat.literal n
     end
 
-  | CS.Lam (BN {names = []; body}) ->
+  | CS.Lam ([], body) ->
     bchk_tm body
 
-  | CS.Lam (BN {names = nm :: names; body}) ->
+  | CS.Lam (nm :: names, body) ->
     R.Pi.intro ~ident:nm @@ fun _ ->
-    bchk_tm {con with node = CS.Lam (BN {names; body})}
+    bchk_tm {con with node = CS.Lam (names, body)}
 
   | CS.LamElim cases ->
     R.Tactic.Elim.lam_elim @@ chk_cases cases
@@ -164,8 +164,8 @@ and bchk_tm : CS.con -> T.bchk_tac =
     R.Sg.intro (bchk_tm c0) (bchk_tm c1)
   | CS.Suc c ->
     T.BChk.chk @@ R.Nat.suc (chk_tm c)
-  | CS.Let (c, B bdy) ->
-    R.Structural.let_ ~ident:bdy.name (syn_tm c) @@ fun _ -> bchk_tm bdy.body
+  | CS.Let (c, ident, body) ->
+    R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
   | CS.Unfold (idents, c) ->
     fun goal ->
       unfold idents @@ bchk_tm c goal

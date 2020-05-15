@@ -37,7 +37,7 @@
 %token SUC NAT ZERO UNFOLD
 %token PATHD
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE DEF
+%token QUIT NORMALIZE PRINT DEF
 %token ELIM
 %token EOF
 %token TOPC BOTC
@@ -47,7 +47,7 @@
 %nonassoc FST SND SUC RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
-%type <Ident.t> plain_name
+%type <Ident.t> plain_name name
 %type <con_>
   plain_atomic_in_cof_except_term
   plain_cof_except_term
@@ -88,6 +88,8 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
+  | PRINT; name = name
+    { Print name }
 
 sign:
   | EOF
@@ -182,11 +184,11 @@ plain_lambda_and_cof_case:
 
 plain_lambda_except_cof_case:
   | name1 = name; names2 = nonempty_list(plain_name); RRIGHT_ARROW; body = term
-    { Lam (BN {names = [forget_location name1] @ names2; body}) }
+    { Lam (forget_location name1 :: names2, body) }
 
 plain_term:
   | t = plain_lambda_and_cof_case
-    { let name, body = t in Lam (BN {names = [forget_location name]; body})  }
+    { let name, body = t in Lam ([forget_location name], body)  }
   | t = plain_term_except_cof_case
     { t }
 
@@ -203,7 +205,7 @@ plain_term_except_cof_case:
     { Unfold (names, body) }
   | LET; rev_annotated_name = rev_annotated(plain_name); EQUALS; def = term; IN; body = term
     { let name, rev_tps = rev_annotated_name in
-      Let (rev_ann rev_tps def, B {name; body}) }
+      Let (rev_ann rev_tps def, name, body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }
   | SUC; t = term
