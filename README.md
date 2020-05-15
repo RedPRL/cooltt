@@ -1,6 +1,6 @@
 ## cooltt
 
-An implementation of normalization by evaluation (nbe) & elaboration for
+A cool implementation of normalization by evaluation (nbe) & elaboration for
 Cartesian cubical type theory.
 
 For examples, see the `test/` directory.
