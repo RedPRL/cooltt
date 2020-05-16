@@ -54,6 +54,8 @@ module Univ : sig
   val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val auto_hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> bchk_tac
   val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
+  val topc : syn_tac
+  val botc : syn_tac
 end
 
 module El : sig

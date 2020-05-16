@@ -289,6 +289,8 @@ and syn_tm : CS.con -> T.syn_tac =
       R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | CS.TopC -> R.Univ.topc
+    | CS.BotC -> R.Univ.botc
     | _ ->
       failwith @@ "TODO : " ^ CS.show_con con
 
