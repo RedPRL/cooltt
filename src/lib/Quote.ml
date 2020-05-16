@@ -53,7 +53,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
       lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim0 |>> function
       | true -> ret S.Dim0
       | false ->
-        lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) |>> function
+        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim1 |>> function
         | true -> ret S.Dim1
         | false ->
           let+ ix = quote_var lvl in
