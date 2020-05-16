@@ -367,13 +367,13 @@ in order to isolate the interesting parts of the Kan structure.
 
 \begin{mathparpagebreakable}
   \inferrule{
-    \Hint{s, s' : \DIM\to\DIM}\\
-    \Hint{\phi : \DIM\to\COF}\\
+    \Hint{s_\bullet, s'_\bullet : \DIM\to\DIM}\\
+    \Hint{\phi_\bullet : \DIM\to\COF}\\
     \Hint{
       \Code{A} :
       \Prod{i:\DIM}{
         \Prod{j:\DIM}{
-          \Prod{*:\TpPrf{j=s\prn{i}\lor{\phi\prn{i}}}}{
+          \Prod{*:\TpPrf{j=s_{i}\lor{\phi_{i}}}}{
             \TpUniv
           }
         }
@@ -383,26 +383,31 @@ in order to isolate the interesting parts of the Kan structure.
     \Hint{r,r' : \DIM}\\\\
     \Hint{
       M : \TpEl{
-        \CodeHCom{s\prn{r}}{s'\prn{r}}{\phi\prn{r}}{\Code{A}\prn{r}}
+        \CodeHCom{s_{r}}{s'_{r}}{\phi_{r}}{\Code{A}_{r}}
       }
     }
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{C} : \TpHCom{s\prn{r'}}{s'\prn{r'}}{\phi\prn{r'}}{\Code{A}\prn{r'}}\\
-        \tilde{C} := {?}
+        \tilde{C} : \TpHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}\\
+        \tilde{C} :=
+        \TmBox{s_{r'}}{s'_{r'}}{\phi_{r'}}{
+          \lambda{*}.{?}
+        }{
+          \SubIn{\tilde{H}}
+        }
       \end{array}
     }
   }{
     \Coe{
       \lambda i.
-      \CodeHCom{s\prn{i}}{s'\prn{i}}{\phi\prn{i}}{\Code{A}}
+      \CodeHCom{s_{i}}{s'_{i}}{\phi_{i}}{\Code{A}_i}
     }{r}{r'}{M}
     =
     \ElIn{\tilde{C}}
     :
     \TpEl{
-      \CodeHCom{s\prn{r'}}{s'\prn{r'}}{\phi\prn{r'}}{\Code{A}\prn{r'}}
+      \CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}
     }
   }
 \end{mathparpagebreakable}
