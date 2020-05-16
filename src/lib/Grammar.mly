@@ -18,11 +18,6 @@
     {node = plain_name_to_term node; info}
 
   let forget_location {node; info} = node
-
-  let rec rev_ann' tp term = {node = Ann {term; tp}; info = term.info}
-
-  let rec rev_ann rev_tps term =
-    List.fold_right rev_ann' rev_tps term
 %}
 
 %token <int> NUMERAL
@@ -43,7 +38,7 @@
 %token TOPC BOTC
 
 %nonassoc IN RRIGHT_ARROW
-%left COLON
+%nonassoc COLON
 %nonassoc FST SND SUC RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
@@ -192,20 +187,15 @@ plain_term:
   | t = plain_term_except_cof_case
     { t }
 
-rev_annotated(X):
-  | t = X
-    {t, []}
-  | ann = rev_annotated(X); COLON; tp = term
-    { let t, tps = ann in t, tp :: tps }
-
 plain_term_except_cof_case:
   | t = plain_spine
     { t }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
-  | LET; rev_annotated_name = rev_annotated(plain_name); EQUALS; def = term; IN; body = term
-    { let name, rev_tps = rev_annotated_name in
-      Let (rev_ann rev_tps def, name, body) }
+  | LET; name = plain_name; COLON; tp = term; EQUALS; def = term; IN; body = term
+    { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
+  | LET; name = plain_name; EQUALS; def = term; IN; body = term
+    { Let (def, name, body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }
   | SUC; t = term
