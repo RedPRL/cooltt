@@ -771,6 +771,8 @@ and dispatch_rigid_coe line r s con =
       ret @@ `Reduce `CoePath
     | D.CodeNat ->
       ret @@ `Reduce `CoeNat
+    | D.FHCom (`Univ, _, _, _, _) ->
+      raise Todo
     | D.Cut {cut} ->
       ret `Done
     | _ ->
@@ -792,6 +794,8 @@ and dispatch_rigid_hcom code r s phi (bdy : D.con) =
       ret @@ `Reduce (`FHCom `Nat)
     | D.CodeUniv ->
       ret @@ `Reduce (`FHCom `Univ)
+    | D.FHCom (`Univ, _, _, _, _) ->
+      raise Todo
     | D.Cut {cut} ->
       ret @@ `Done cut
     | _ ->
