@@ -90,10 +90,10 @@ struct
       | Cof.Cof phi ->
         match phi with
         | Cof.Join psis ->
-          let+ psis = MU.commute_list @@ List.map loop psis in
+          let+ psis = MU.map loop psis in
           Cof.Cof (Cof.Join psis)
         | Cof.Meet psis ->
-          let+ psis = MU.commute_list @@ List.map loop psis in
+          let+ psis = MU.map loop psis in
           Cof.Cof (Cof.Meet psis)
         | Cof.Eq (r, s) ->
           gen @@ `CofEq (r, s)
