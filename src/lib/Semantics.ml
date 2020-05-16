@@ -387,7 +387,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
     ret `Done
   | D.Cut {cut} ->
     whnf_cut cut
-  | D.FHCom (`Nat, r, s, phi, bdy) ->
+  | D.FHCom (_, r, s, phi, bdy) ->
     begin
       Cof.join [Cof.eq r s; phi] |> test_sequent [] |>> function
       | true ->
@@ -781,7 +781,7 @@ and dispatch_rigid_hcom code r s phi (bdy : D.con) =
     | D.CodePath (fam, bdry) ->
       ret @@ `Reduce (`HComPath (fam, bdry))
     | D.CodeNat ->
-      ret @@ `Reduce `HComNat
+      ret @@ `Reduce (`FHCom `Nat)
     | D.Cut {cut} ->
       ret @@ `Done cut
     | _ ->
@@ -860,16 +860,16 @@ and enact_rigid_hcom code r s phi bdy tag =
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
     TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
-  | `HComNat ->
+  | `FHCom tag ->
     (* bdy : (i : 𝕀) (_ : [...]) → el(<nat>) *)
-    let* bdy' =
+    let+ bdy' =
       splice_tm @@
       Splice.foreign bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_out @@ TB.ap bdy [i; prf]
     in
-    ret @@ D.ElIn (D.FHCom (`Nat, r, s, phi, bdy'))
+    D.ElIn (D.FHCom (tag, r, s, phi, bdy'))
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
