@@ -24,29 +24,29 @@ let pp_message fmt =
   | NormalizedTerm {orig; nf} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
-      "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]@."
+      "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
       (S.pp env) orig
       (S.pp env) nf
   | TermNotSynthesizable orig ->
     Format.fprintf fmt
-      "@[Please annotate the type of@,@[<hv> %a@]@]@."
+      "@[Please annotate the type of@,@[<hv> %a@]@]"
       CS.pp_con_ orig
   | Definition {ident; tp; tm = Some tm} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
-      "@[<v>%a@ : %a@ = %a@]@."
+      "@[<v>%a@ : %a@ = %a@]"
       Ident.pp ident
       (S.pp_atomic_tp env) tp
       (S.pp_atomic env) tm
   | Definition {ident; tp; tm = None} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
-      "@[%a : %a@]@."
+      "@[%a : %a@]"
       Ident.pp ident
       (S.pp_atomic_tp env) tp
   | UnboundIdent ident ->
     Format.fprintf fmt
-      "@[Unbound identifier %a@]@."
+      "@[Unbound identifier %a@]"
       Ident.pp ident
 
 module EM = ElabBasics
