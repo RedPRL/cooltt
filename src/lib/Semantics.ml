@@ -63,6 +63,62 @@ let rec normalize_cof phi =
     Cof.meet phis
 
 
+module FaceLattice :
+sig
+  (** An atomic formula *)
+  type atom = [`CofEq of D.dim * D.dim]
+
+  (** A generator for a lattice homomorphism *)
+  type gen = atom -> D.cof CM.m
+
+  (** Extend a generator to a lattice homomorphism *)
+  val extend : gen -> D.cof -> D.cof CM.m
+
+  (** Quantifier elimination *)
+  val forall : Symbol.t -> D.cof -> D.cof CM.m
+end =
+struct
+  open CM
+
+  type atom = [`CofEq of D.dim * D.dim]
+  type gen = atom -> D.cof CM.m
+
+  let extend gen =
+    let rec loop =
+      function
+      | Cof.Var _ as phi -> ret phi
+      | Cof.Cof phi ->
+        match phi with
+        | Cof.Join psis ->
+          let+ psis = MU.map loop psis in
+          Cof.Cof (Cof.Join psis)
+        | Cof.Meet psis ->
+          let+ psis = MU.map loop psis in
+          Cof.Cof (Cof.Meet psis)
+        | Cof.Eq (r, s) ->
+          gen @@ `CofEq (r, s)
+    in
+    loop
+
+  let forall sym =
+    let i = D.DimProbe sym in
+    extend @@
+    function
+    | `CofEq (r, s) ->
+      test_sequent [] (Cof.eq r s) |>>
+      function
+      | true -> ret Cof.top
+      | false ->
+        test_sequent [] (Cof.eq i r) |>>
+        function
+        | true -> ret Cof.bot
+        | false ->
+          test_sequent [] (Cof.eq i s) |>>
+          function
+          | true -> ret Cof.bot
+          | false -> ret @@ Cof.eq r s
+end
+
 let con_to_dim =
   let open CM in
   function
@@ -262,6 +318,11 @@ and eval : S.t -> D.con EvM.m =
           let+ phis = MU.map eval tphis in
           D.Cof (Cof.Meet phis)
       end
+    | S.ForallCof tm ->
+      let sym = Symbol.named "forall_probe" in
+      let i = D.DimProbe sym in
+      let* phi = append [D.dim_to_con i] @@ eval_cof tm in
+      D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
     | S.CofSplit (ttp, branches) ->
       let* tp = eval_tp ttp in
       let tphis, tms = List.split branches in
