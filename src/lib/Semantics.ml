@@ -109,10 +109,14 @@ struct
       function
       | true -> ret Cof.top
       | false ->
-        test_sequent [] (Cof.join [Cof.eq i r; Cof.eq i s]) |>>
+        test_sequent [] (Cof.eq i r) |>>
         function
         | true -> ret Cof.bot
-        | false -> ret @@ Cof.eq r s
+        | false ->
+          test_sequent [] (Cof.eq i s) |>>
+          function
+          | true -> ret Cof.bot
+          | false -> ret @@ Cof.eq r s
 end
 
 let con_to_dim =
