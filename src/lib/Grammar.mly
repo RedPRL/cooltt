@@ -147,9 +147,9 @@ plain_atomic_term_except_name:
   | COF
     { Cof }
   | TOPC
-    { TopC }
+    { Meet [] }
   | BOTC
-    { BotC }
+    { Join [] }
 
   | LSQ t = bracketed RSQ
     { t }

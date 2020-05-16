@@ -51,8 +51,6 @@ and con_ =
   | CofSplit of (con * con) list
   | Path of con * con * con
   | Coe of con * con * con * con
-  | TopC
-  | BotC
   | HCom of con * con * con * con * con
   | HFill of con * con * con * con
   | AutoHCom of con * con * con * con
