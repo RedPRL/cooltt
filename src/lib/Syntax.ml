@@ -124,6 +124,13 @@ let rec pp env fmt tm =
     Format.fprintf fmt "#t"
   | Cof (Cof.Meet phis) ->
     Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∧ ") (pp_atomic env) fmt phis
+  | ForallCof phi ->
+    let x, envx = ppenv_bind env `Anon in
+    Format.fprintf fmt "%a %a %a %a"
+      Uuseg_string.pp_utf_8 "∀"
+      Uuseg_string.pp_utf_8 x
+      Uuseg_string.pp_utf_8 "→"
+      (pp envx) phi
   | Fst tm ->
     Format.fprintf fmt "fst %a" (pp_atomic env) tm
   | Snd tm ->

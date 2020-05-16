@@ -313,6 +313,11 @@ and eval : S.t -> D.con EvM.m =
           let+ phis = MU.map eval tphis in
           D.Cof (Cof.Meet phis)
       end
+    | S.ForallCof tm ->
+      let sym = Symbol.named "forall_probe" in
+      let i = D.DimProbe sym in
+      let* phi = append [D.dim_to_con i] @@ eval_cof tm in
+      D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
     | S.CofSplit (ttp, branches) ->
       let* tp = eval_tp ttp in
       let tphis, tms = List.split branches in
