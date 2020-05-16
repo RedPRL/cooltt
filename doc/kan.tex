@@ -329,11 +329,11 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
         \tilde{T}\prn{i,*} :=
         {
           \begin{bmatrix*}[l]
-            \phi &\to &\tilde{O}\prn{i,*}\\
+            i=r\lor\phi &\to &\tilde{O}\prn{i,*}\\
             \psi &\to &\Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}\\
             s=s' &\to &\tilde{P}\prn{i,*}
           \end{bmatrix*}
@@ -343,23 +343,13 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{Q} : \TpEl{\Code{A}\prn{s,*}}\\
-        \tilde{Q} :=
-        \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{
-          \lambda i,*.
-          \brk{
-            i=r\to \tilde{O}\prn{i,*}
-            \mid \phi\lor\psi\lor{s=s'} \to \tilde{T}\prn{i,*}
-          }
-        }
-      \end{array}
-    }
-    \\\\\\
-    {
-      \begin{array}{l}
         \tilde{H} : \TpHCom{s}{s'}{\psi}{\Code{A}}\\
         \tilde{H} :=
-        \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{\SubIn{\tilde{Q}}}
+        \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{
+          \SubIn{
+            \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
+          }
+        }
       \end{array}
     }
   }{
