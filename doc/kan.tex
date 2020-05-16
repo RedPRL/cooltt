@@ -2,7 +2,10 @@
 \usepackage{jon-note}
 \usepackage{jon-todo}
 \usepackage{mathpartir}
+\usepackage{mathtools}
 \usepackage{fullpage}
+
+\mprset{flushleft}
 
 \title{Universes}
 \author{Angiuli, Favonia, Sterling}
@@ -309,32 +312,54 @@ in order to isolate the interesting parts of the Kan structure.
         }
       }
     }
-    \\\\
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{O} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor \phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{O}\prn{i,*} := \TmCap{s}{s'}{\psi}{\Code{A}}{\ElOut{M\prn{i,*}}}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{P} : \Prod{i:\DIM}{\Prod{*:\TpPrf{s=s'\lor \psi}}{\TpEl{\Code{A}\prn{s',*}}}}\\
+        \tilde{P}\prn{i,*} = \HCom{\Code{A}\prn{s',*}}{r}{i}{\phi}{M}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{T}\prn{i,*} :=
+        {
+          \begin{bmatrix*}[l]
+            \phi &\to &\tilde{O}\prn{i,*}\\
+            \psi &\to &\Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}\\
+            s=s' &\to &\tilde{P}\prn{i,*}
+          \end{bmatrix*}
+        }
+      \end{array}
+    }
+    \\\\\\
     {
       \begin{array}{l}
         \tilde{Q} : \TpEl{\Code{A}\prn{s,*}}\\
         \tilde{Q} :=
-        \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor s=s'}{
+        \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{
           \lambda i,*.
           \brk{
-            i=r\to {?}
-            \mid
-            \phi \to \tilde{O}\prn{?}
-            \mid
-            \psi \to
-            \Coe{?}{s'}{s}{?}
-            \mid
-            s=s'\to ?
+            i=r\to \tilde{O}\prn{i,*}
+            \mid \phi\lor\psi\lor{s=s'} \to \tilde{T}\prn{i,*}
           }
         }
       \end{array}
     }
-    \\
+    \\\\\\
     {
       \begin{array}{l}
         \tilde{H} : \TpHCom{s}{s'}{\psi}{\Code{A}}\\
         \tilde{H} :=
-        \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r'}}{\SubIn{\tilde{Q}}}
+        \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{\SubIn{\tilde{Q}}}
       \end{array}
     }
   }{
