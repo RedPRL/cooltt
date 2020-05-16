@@ -772,7 +772,7 @@ and dispatch_rigid_coe line r s con =
     | D.CodeNat ->
       ret @@ `Reduce `CoeNat
     | D.FHCom (`Univ, _, _, _, _) ->
-      raise Todo
+      ret @@ `Reduce `CoeFHCom
     | D.Cut {cut} ->
       ret `Done
     | _ ->
@@ -795,7 +795,7 @@ and dispatch_rigid_hcom code r s phi (bdy : D.con) =
     | D.CodeUniv ->
       ret @@ `Reduce (`FHCom `Univ)
     | D.FHCom (`Univ, _, _, _, _) ->
-      raise Todo
+      ret @@ `Reduce `HComFHCom
     | D.Cut {cut} ->
       ret @@ `Done cut
     | _ ->
@@ -839,6 +839,8 @@ and enact_rigid_coe line r s con tag =
     let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
     let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
+  | `CoeFHCom ->
+    raise Todo
 
 and enact_rigid_hcom code r s phi bdy tag =
   let open CM in
@@ -884,6 +886,8 @@ and enact_rigid_hcom code r s phi bdy tag =
       TB.el_out @@ TB.ap bdy [i; prf]
     in
     D.ElIn (D.FHCom (tag, r, s, phi, bdy'))
+  | `HComFHCom ->
+    raise Todo
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
