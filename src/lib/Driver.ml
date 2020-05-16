@@ -15,7 +15,7 @@ let _ =
 
 type message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
-  | TermNotSynthesizable of CS.con
+  | TermNotSynthesizable of CS.con_
   | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
   | UnboundIdent of Ident.t
 
@@ -30,7 +30,7 @@ let pp_message fmt =
   | TermNotSynthesizable orig ->
     Format.fprintf fmt
       "@[Please annotate the type of@,@[<hv> %a@]@]"
-      CS.pp_con orig
+      CS.pp_con_ orig
   | Definition {ident; tp; tm = Some tm} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
@@ -84,7 +84,7 @@ let execute_decl =
         let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
         `Continue
       | Error (Elaborator.NotSynthesizable con) ->
-        let+ () = EM.emit ~lvl:`Error con.info pp_message @@ TermNotSynthesizable con in
+        let+ () = EM.emit ~lvl:`Error con.info pp_message @@ TermNotSynthesizable con.node in
         `Continue
       | Error err -> EM.throw err
     end
