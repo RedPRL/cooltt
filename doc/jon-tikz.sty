@@ -1,0 +1,274 @@
+\RequirePackage{xparse}
+\RequirePackage{tikz}
+\usetikzlibrary{matrix,arrows}
+\usetikzlibrary{fit,positioning,calc}
+\RequirePackage{tikz-cd}
+
+\tikzset{
+  desc/.style={sloped, fill=white,inner sep=2pt},
+  upright desc/.style={fill=white,inner sep=2pt},
+  pullback/.style = {
+    append after command={
+      \pgfextra{
+        \draw ($(\tikzlastnode) + (.2cm,-.5cm)$) -- ++(0.3cm,0) -- ++(0,0.3cm);
+      }
+    }
+  },
+  dotted pullback/.style = {
+    append after command={
+      \pgfextra{
+        \draw [densely dotted] ($(\tikzlastnode) + (.2cm,-.5cm)$) -- ++(0.3cm,0) -- ++(0,0.3cm);
+      }
+    }
+  },
+  pushout/.style = {
+    append after command={
+      \pgfextra{
+        \draw ($(\tikzlastnode) + (-.2cm,.5cm)$) -- ++(-0.3cm,0) -- ++(0,-0.3cm);
+      }
+    }
+  },
+  between/.style args={#1 and #2}{
+    at = ($(#1)!0.5!(#2)$)
+  },
+  diagram/.style = {
+    on grid,
+    node distance=2cm,
+    commutative diagrams/every diagram,
+    every node/.append style = {
+      commutative diagrams/every cell,
+    }
+  },
+  fibration/.style = {
+    -{Triangle[open]}
+  },
+  opfibration/.style = {
+    -{Triangle}
+  },
+  lies over/.style = {
+    |-{Triangle[open]}
+  },
+  op lies over/.style = {
+    |-{Triangle}
+  },
+  embedding/.style = {
+    {right hook}->
+  },
+  embedding*/.style = {
+    {left hook}->
+  },
+  exists/.style = {
+    densely dotted
+  }
+}
+
+\newlength{\dontworryaboutit}
+
+\tikzset{
+  inline diagram/.style = {
+    commutative diagrams/every diagram,
+    commutative diagrams/cramped,
+    every node/.append style = {
+      commutative diagrams/every cell,
+      anchor = base,
+      inner sep = 0pt
+    },
+    every path/.append style = {
+      outer xsep = 2pt
+    }
+  }
+}
+
+\ExplSyntaxOn
+
+\cs_new:Npn \jms_tikz_morphism:nnn #1 #2 #3 {
+  \tikz[inline~diagram, baseline = (Y.base)]{
+    \node (X) {$#2$};
+    \node (Y) [right = 3ex~of~X] {$#3$};
+    \path[#1] (X) edge (Y);
+  }
+}
+
+\cs_new:Npn \jms_tikz_sized_morphism:nnnn #1 #2 #3 #4 {
+  \tikz[inline~diagram, baseline = (Y.base)]{%
+    \settowidth{\dontworryaboutit}{\scriptsize$#2$}
+    \pgfmathsetmacro\len{max(width("$xxx$"),7pt+\dontworryaboutit)}
+
+    \node (X) {$#3$};
+    \node (Y) [right = \len~pt~of~X] {$#4$};
+    \path[#1] (X) edge node [above,yshift=.3ex] {\scriptsize$#2$} (Y);
+  }
+}
+
+\cs_new:Npn \jms_tikz_auto_morphism:nnnn #1 #2 #3 #4 {
+  \IfValueTF{#2}{
+    \mindelim{1}
+    \jms_tikz_sized_morphism:nnnn {#1} {#2} {#3} {#4}
+  }{
+    \jms_tikz_morphism:nnn {#1} {#3} {#4}
+  }
+}
+
+
+\NewDocumentCommand\PrimMor{mmmm}{
+  \IfValueTF{#2}{
+    \mindelim{1}
+    \jms_tikz_sized_morphism:nnnn {#1} {#2} {#3} {#4}
+  }{
+    \jms_tikz_morphism:nnn {#1} {#3} {#4}
+  }
+}
+
+% Draw a morphism inline, with dynamically sized arrow
+\NewDocumentCommand\Mor{D||{->} o m m}{%
+  \jms_tikz_auto_morphism:nnnn {#1} {#2} {#3} {#4}
+}
+
+\NewDocumentCommand\FibMor{D||{} o m m}{%
+  \jms_tikz_auto_morphism:nnnn {fibration,#1} {#2} {#3} {#4}
+}
+\NewDocumentCommand\OpFibMor{D||{} o m m}{%
+  \jms_tikz_auto_morphism:nnnn {opfibration,#1} {#2} {#3} {#4}
+}
+
+\NewDocumentCommand\EmbMor{D||{} o m m}{%
+  \jms_tikz_auto_morphism:nnnn {embedding,#1} {#2} {#3} {#4}
+}
+
+\ExplSyntaxOff
+
+
+%% TODO: rectify these
+\NewDocumentCommand\Span{m m m}{%
+  \tikz[inline diagram, baseline = (Y.base)]{%
+    \node (X) {$#2$\hspace*{.5ex}};
+    \node (Y) [right = 3ex of X] {\hspace*{.5ex}$#1$\hspace*{.5ex}};
+    \node (Z) [right = 3ex of Y] {\hspace*{.5ex}$#3$};
+    \path[<-] (X) edge (Y);
+    \path[->] (Y) edge (Z);
+  }%
+}
+
+\NewDocumentCommand\CoSpan{m m m}{%
+  \tikz[inline diagram, baseline = (Y.base)]{%
+    \node (X) {$#2$\hspace*{.5ex}};
+    \node (Y) [right = 3ex of X] {\hspace*{.5ex}$#1$\hspace*{.5ex}};
+    \node (Z) [right = 3ex of Y] {\hspace*{.5ex}$#3$};
+    \path[->] (X) edge (Y);
+    \path[<-] (Y) edge (Z);
+  }%
+}
+
+
+\tikzset{
+  square/nw/.style = {},
+  square/ne/.style = {},
+  square/se/.style = {},
+  square/sw/.style = {},
+  square/north/.style = {},
+  square/south/.style = {},
+  square/west/.style = {},
+  square/east/.style = {},
+  square/north/node/.style = {above},
+  square/south/node/.style = {below},
+  square/west/node/.style = {left},
+  square/east/node/.style = {right},
+}
+
+\ExplSyntaxOn
+
+\bool_new:N \l_jon_glue_west
+
+\keys_define:nn { jon-tikz/diagram } {
+  nw .tl_set:N = \l_jon_tikz_diagram_nw,
+  sw .tl_set:N = \l_jon_tikz_diagram_sw,
+  ne .tl_set:N = \l_jon_tikz_diagram_ne,
+  se .tl_set:N = \l_jon_tikz_diagram_se,
+
+  width .tl_set:N = \l_jon_tikz_diagram_width,
+  height .tl_set:N = \l_jon_tikz_diagram_height,
+
+  north .tl_set:N = \l_jon_tikz_diagram_north,
+  south .tl_set:N = \l_jon_tikz_diagram_south,
+  west .tl_set:N = \l_jon_tikz_diagram_west,
+  east .tl_set:N = \l_jon_tikz_diagram_east,
+
+  nw/style .code:n = {\tikzset{square/nw/.style = {#1}}},
+  sw/style .code:n = {\tikzset{square/sw/.style = {#1}}},
+  ne/style .code:n = {\tikzset{square/ne/.style = {#1}}},
+  se/style .code:n = {\tikzset{square/se/.style = {#1}}},
+
+  glue .choice:,
+  glue / west .code:n = {\bool_set:Nn \l_jon_glue_west \c_true_bool},
+
+  glue~target .tl_set:N = \l_jon_tikz_glue_target,
+
+  north/style .code:n = {\tikzset{square/north/.style = {#1}}},
+  north/node/style .code:n = {\tikzset{square/north/node/.style = {#1}}},
+  south/style .code:n = {\tikzset{square/south/.style = {#1}}},
+  south/node/style .code:n = {\tikzset{square/south/node/.style = {#1}}},
+  west/style .code:n = {\tikzset{square/west/.style = {#1}}},
+  west/node/style .code:n = {\tikzset{square/west/node/.style = {#1}}},
+  east/style .code:n = {\tikzset{square/east/.style = {#1}}},
+  east/node/style .code:n = {\tikzset{square/east/node/.style = {#1}}},
+
+  draft .meta:n = {
+    nw = {\__jon_tikz_diagram_fmt_placeholder:n {nw}},
+    sw = {\__jon_tikz_diagram_fmt_placeholder:n {sw}},
+    se = {\__jon_tikz_diagram_fmt_placeholder:n {se}},
+    ne = {\__jon_tikz_diagram_fmt_placeholder:n {ne}},
+    north = {\__jon_tikz_diagram_fmt_placeholder:n {north}},
+    south = {\__jon_tikz_diagram_fmt_placeholder:n {south}},
+    west = {\__jon_tikz_diagram_fmt_placeholder:n {west}},
+    east = {\__jon_tikz_diagram_fmt_placeholder:n {east}},
+  }
+}
+
+\tl_set:Nn \l_jon_tikz_diagram_width { 2cm }
+\tl_set:Nn \l_jon_tikz_diagram_height { 2cm }
+
+
+\cs_new:Npn \__jon_tikz_diagram_fmt_placeholder:n #1 {
+  \texttt{\textcolor{red}{#1}}
+}
+
+\keys_set:nn { jon-tikz/diagram } {
+  glue~target = {},
+}
+
+
+\cs_new:Nn \__jon_tikz_render_square:nn {
+  \group_begin:
+  \keys_set:nn {jon-tikz/diagram} {#2}
+  \bool_if:nTF \l_jon_glue_west {
+    \node (#1ne) [right = \l_jon_tikz_diagram_width~of~\l_jon_tikz_glue_target ne,square/ne] {$\l_jon_tikz_diagram_ne$};
+    \node (#1se) [below = \l_jon_tikz_diagram_height~of~#1ne,square/se] {$\l_jon_tikz_diagram_se$};
+    \path[->,square/north] (\l_jon_tikz_glue_target ne) edge node [square/north/node] {$\l_jon_tikz_diagram_north$} (#1ne);
+    \path[->,square/east] (#1ne) edge node [square/east/node] {$\l_jon_tikz_diagram_east$} (#1se);
+    \path[->,square/south] (\l_jon_tikz_glue_target se) edge node [square/south/node] {$\l_jon_tikz_diagram_south$} (#1se);
+  } {
+    \node (#1nw) [square/nw] {$\l_jon_tikz_diagram_nw$};
+    \node (#1sw) [below = \l_jon_tikz_diagram_height~of~#1nw,square/sw] {$\l_jon_tikz_diagram_sw$};
+    \path[->,square/west] (#1nw) edge node [square/west/node] {$\l_jon_tikz_diagram_west$} (#1sw);
+
+    \node (#1ne) [right = \l_jon_tikz_diagram_width~of~#1nw,square/ne] {$\l_jon_tikz_diagram_ne$};
+    \node (#1se) [below = \l_jon_tikz_diagram_height~of~#1ne,square/se] {$\l_jon_tikz_diagram_se$};
+    \path[->,square/north] (#1nw) edge node [square/north/node] {$\l_jon_tikz_diagram_north$} (#1ne);
+    \path[->,square/east] (#1ne) edge node [square/east/node] {$\l_jon_tikz_diagram_east$} (#1se);
+    \path[->,square/south] (#1sw) edge node [square/south/node] {$\l_jon_tikz_diagram_south$} (#1se);
+  }
+  \group_end:
+}
+
+\NewDocumentCommand\SpliceDiagramSquare{D<>{}m}{
+  \__jon_tikz_render_square:nn {#1} {#2}
+}
+
+
+\NewDocumentCommand\DiagramSquare{D<>{}O{}m}{
+  \begin{tikzpicture}[diagram,#2,baseline=(#1sw.base)]
+    \__jon_tikz_render_square:nn {#1} {#3}
+  \end{tikzpicture}
+}
+
+\ExplSyntaxOff

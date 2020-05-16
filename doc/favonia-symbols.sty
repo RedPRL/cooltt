@@ -1,0 +1,21 @@
+\RequirePackage{graphicx}
+\RequirePackage{calc}
+
+\newlength{\YoOffset}
+\NewDocumentCommand\YoSymScaled{m}{
+  \raisebox{#1em * \real{-.02}}{%
+    \includegraphics[quiet=true,draft=false,height=#1em * \real{.67},keepaspectratio]{yo-serif.pdf}%
+    \setlength{\YoOffset}{#1em * \real{0.05}}%
+    \hspace{\YoOffset}%
+  }
+}
+
+% Jon-Favonia
+\NewDocumentCommand{\YoSym}{}{
+  \mathord{%
+    \mathchoice{\YoSymScaled{1}}{\YoSymScaled{1}}{\YoSymScaled{\defaultscriptratio}}{\YoSymScaled{\defaultscriptscriptratio}}
+  }%
+}
+
+
+

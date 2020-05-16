@@ -1,0 +1,767 @@
+% The ebproof package - Formal proofs in the style of sequent calculus
+
+%% ebproof.sty
+%% Copyright 2017 Emmanuel Beffara <manu@beffara.org>
+
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2005/12/01 or later.
+
+% This work has the LPPL maintenance status `maintained'.
+
+% The Current Maintainer of this work is Emmanuel Beffara.
+
+% This work consists of the files ebproof.sty and ebproof.tex.
+
+\NeedsTeXFormat{LaTeX2e}
+\RequirePackage{expl3}
+\RequirePackage{xparse}
+\ProvidesExplPackage{ebproof}{2017/05/17}{2.0}{EB's proof trees}
+
+
+%% Parameters
+
+%%% Declaration of the parameters
+
+\keys_define:nn { ebproof } {
+
+% general shape
+
+center .bool_set:N = \l_ebproof_center_bool,
+
+proof~style .choice: ,
+proof~style / upwards .code:n = \bool_set_false:N \l_ebproof_updown_bool,
+proof~style / downwards .code:n = \bool_set_true:N \l_ebproof_updown_bool,
+
+% spacing
+
+separation .dim_set:N = \l_ebproof_separation_dim,
+rule~margin .dim_set:N = \l_ebproof_rule_margin_dim,
+
+% shape of inference lines
+
+rule~thickness .dim_set:N = \l_ebproof_rule_thickness_dim,
+rule~separation .dim_set:N = \l_ebproof_rule_separation_dim,
+rule~dash~length .dim_set:N = \l_ebproof_rule_dash_length_dim,
+rule~dash~space .dim_set:N = \l_ebproof_rule_dash_space_dim,
+rule~code .tl_set:N = \l_ebproof_rule_code_tl,
+
+rule~style .choice:,
+
+% templates
+
+template .tl_set:N = \l_ebproof_template_tl,
+left~template .tl_set:N = \l_ebproof_left_template_tl,
+right~template .tl_set:N = \l_ebproof_right_template_tl,
+
+% labels
+
+left~label .tl_set:N = \l_ebproof_left_label_tl,
+right~label .tl_set:N = \l_ebproof_right_label_tl,
+left~label~template .tl_set:N = \l_ebproof_left_label_template_tl,
+right~label~template .tl_set:N = \l_ebproof_right_label_template_tl,
+label~separation .dim_set:N = \l_ebproof_label_separation_dim,
+label~axis .dim_set:N = \l_ebproof_label_axis_dim,
+
+}
+
+%%% Rule styles
+
+\NewDocumentCommand \ebproofnewrulestyle { mm } {
+  \keys_define:nn { ebproof } {
+    rule~style / #1 .meta:nn = { ebproof } { #2 }
+  }
+}
+
+\ebproofnewrulestyle { simple } {
+  rule~code = { \tex_hrule:D height \l_ebproof_rule_thickness_dim }
+}
+
+\ebproofnewrulestyle { no~rule } {
+  rule~code =
+}
+
+\ebproofnewrulestyle { double } {
+  rule~code = {
+    \tex_hrule:D height \l_ebproof_rule_thickness_dim
+    \skip_vertical:N \l_ebproof_rule_separation_dim
+    \tex_hrule:D height \l_ebproof_rule_thickness_dim
+  }
+}
+
+\ebproofnewrulestyle { dashed } {
+  rule~code = {
+    \hbox_to_wd:nn { \tex_hsize:D } {
+      \dim_set:Nn \l_tmpa_dim { \l_ebproof_rule_dash_space_dim / 2 }
+      \skip_horizontal:n { -\l_tmpa_dim }
+      \tex_cleaders:D \hbox:n {
+        \skip_horizontal:N \l_tmpa_dim
+        \tex_vrule:D
+          height \l_ebproof_rule_thickness_dim
+          width \l_ebproof_rule_dash_length_dim
+        \skip_horizontal:N \l_tmpa_dim
+      }\tex_hfill:D
+      \skip_horizontal:n { -\l_tmpa_dim }
+    }
+  }
+}
+
+%%% Default values
+
+\keys_set:nn { ebproof } {
+  center = true,
+  proof~style = upwards,
+  separation = 1.5em,
+  rule~margin = .7ex,
+  rule~thickness = .4pt,
+  rule~separation = 2pt,
+  rule~dash~length = .2em,
+  rule~dash~space = .3em,
+  rule~style = simple,
+  template = $\inserttext$,
+  left~template = $\inserttext\mathrel{}$,
+  right~template = $\mathrel{}\inserttext$,
+  left~label = ,
+  right~label = ,
+  left~label~template = \inserttext,
+  right~label~template = \inserttext,
+  label~separation = 0.5em,
+  label~axis = 0.5ex
+}
+
+%%% Defining style macros
+
+\NewDocumentCommand \ebproofnewstyle { mm } {
+  \keys_define:nn { ebproof } { #1 .meta:n = { #2 } }
+}
+
+
+%% Proof trees
+
+% Proof trees are represented as a data structure that consists of a box and a
+% set of marks, which are vertical positions in the box (as distances from the
+% left edge). Arbitrary marks can be defined, the folowing are used for
+% alignment:
+% - left :  the left of the conclusion
+% - right : the right of the conclusion
+% - axis :  the vertical axis of the conclusion
+
+
+%%% Registers
+
+% TeX does not actually provide data structures, so we have to encode things.
+% We provide an allocator for "registers" holding boxes with attributes. Such
+% a register consists in a box register and a property list for marks, which
+% maps mark names to values as explicit dimensions with units.
+
+% Create a new register.
+
+\cs_new:Nn \ebproof_new:N {
+  \box_new:N #1
+  \prop_new:c { l_ebproof_marks_ \__int_value:w #1 _prop }
+}
+
+% Clear a register.
+
+\cs_new:Nn \ebproof_clear:N {
+  \hbox_set:Nn #1 {}
+  % Using \box_clear:N instead would not work because trying to push this box
+  % on the stack would not actually append any box.
+  \prop_clear:c { l_ebproof_marks_ \__int_value:w #1 _prop }
+  \ebproof_set_mark:Nnn #1 { left } { 0pt }
+  \ebproof_set_mark:Nnn #1 { right } { 0pt }
+  \ebproof_set_mark:Nnn #1 { axis } { 0pt }
+}
+
+
+%%% Mark operations
+
+% Set the value of a mark. The third argument is a dimension expression.
+
+\dim_new:N \l_ebproof_transit_dim
+
+\cs_new:Nn \ebproof_set_mark:Nnn {
+  \dim_set:Nn \l_ebproof_transit_dim { #3 }
+  \prop_put:cnV { l_ebproof_marks_ \__int_value:w #1 _prop } { #2 }
+    \l_ebproof_transit_dim
+}
+
+% Get the value of a mark. This is expandable and can be used in expressions.
+
+\cs_new:Nn \ebproof_mark:Nn {
+  \prop_item:cn { l_ebproof_marks_ \__int_value:w #1 _prop } { #2 }
+}
+
+% Shift the marks by a specified amount, without modifying the box.
+
+\cs_new:Nn \ebproof_shift_x:Nn {
+  \prop_map_inline:cn { l_ebproof_marks_ \__int_value:w #1 _prop } {
+    \ebproof_set_mark:Nnn #1 { ##1 } { ##2 + #2 }
+  }
+}
+
+% Move the left and right marks of the first tree so that they are at least as
+% far from the axis as they are in the second tree. For instance if the marks
+% are set as
+%    1:      L---A-------R
+%    2:  L-------A---R
+% then the marks of the first tree are then set as
+%    1:  L-------A-------R
+% The contents of the tree are unchanged.
+
+\cs_new:Nn \ebproof_enlarge_conclusion:NN {
+  \dim_set:Nn \l_tmpa_dim { \ebproof_mark:Nn #1 {axis}
+    + \ebproof_mark:Nn #2 {left} - \ebproof_mark:Nn #2 {axis} }
+  \dim_compare:nNnT { \l_tmpa_dim } < { \ebproof_mark:Nn #1 {left} } {
+    \ebproof_set_mark:Nnn #1 {left} { \l_tmpa_dim } }
+  \dim_set:Nn \l_tmpa_dim { \ebproof_mark:Nn #1 {axis}
+    + \ebproof_mark:Nn #2 {right} - \ebproof_mark:Nn #2 {axis} }
+  \dim_compare:nNnT { \l_tmpa_dim } > { \ebproof_mark:Nn #1 {right} } {
+    \ebproof_set_mark:Nnn #1 {right} { \l_tmpa_dim } }
+}
+
+
+%%% Building blocks
+
+% Make a tree with explicit material in horizontal mode. Set the left and
+% right marks to extremal positions and set the axis in the middle.
+
+\cs_new:Nn \ebproof_make_simple:Nn {
+  \hbox_set:Nn #1 { #2 }
+  \ebproof_set_mark:Nnn #1 { left } { 0pt }
+  \ebproof_set_mark:Nnn #1 { axis } { \box_wd:N #1 / 2 }
+  \ebproof_set_mark:Nnn #1 { right } { \box_wd:N #1 }
+}
+
+% Make a tree with explicit material in horizontal mode, split in two parts.
+% Set the left and right marks to extremal positions and set the axis between
+% the two parts.
+
+\cs_new:Nn \ebproof_make_split:Nnn {
+  \ebproof_set_mark:Nnn #1 { left } { 0pt }
+  \hbox_set:Nn #1 { #2 }
+  \ebproof_set_mark:Nnn #1 { axis } { \box_wd:N #1 }
+  \hbox_set:Nn #1 { \hbox_unpack:N #1 #3 }
+  \ebproof_set_mark:Nnn #1 { right } { \box_wd:N #1 }
+}
+
+% Make a tree with explicit material in vertical mode, using an explicit width
+% and axis.
+
+\cs_new:Nn \ebproof_make_vertical:Nnnn {
+  \ebproof_set_mark:Nnn #1 { left } { 0pt }
+  \ebproof_set_mark:Nnn #1 { axis } { #2 }
+  \ebproof_set_mark:Nnn #1 { right } { #3 }
+  \vbox_set:Nn #1 {
+    \dim_set:Nn \tex_hsize:D { \ebproof_mark:Nn #1 {right} }
+    #4
+  }
+  \box_set_wd:Nn #1 { \ebproof_mark:Nn #1 {right} }
+}
+
+%%% Assembling boxes
+
+% Extend a tree box. The marks are shifted so that alignment is preserved. The
+% arguments are dimensions for the left, top, right and bottom sides
+% respectively.
+
+\cs_new:Nn \ebproof_extend:Nnnnn {
+  \dim_compare:nNnF { #2 } = { 0pt } {
+    \hbox_set:Nn #1 {
+      \skip_horizontal:n { #2 }
+      \box_use:N #1
+    }
+    \ebproof_shift_x:Nn #1 { #2 }
+  }
+  \box_set_ht:Nn #1 { \box_ht:N #1 + #3 }
+  \box_set_wd:Nn #1 { \box_wd:N #1 + #4 }
+  \box_set_dp:Nn #1 { \box_dp:N #1 + #5 }
+}
+
+% Append the contents of the second tree to the first one on the right, with
+% matching baselines. The marks of both trees are preserved. The middle
+% argument specifies the space to insert between boxes.
+
+\cs_new:Nn \ebproof_append_right:NnN {
+  \hbox_set:Nn #1 {
+    \box_use:N #1
+    \dim_compare:nNnF { #2 } = { 0pt } { \skip_horizontal:n { #2 } }
+    \box_use:N #3
+  }
+}
+
+% Append the contents of the second tree to the first one on the left, with
+% matching baselines. The marks of the first tree are shifted accordingly. The
+% middle argument specifies the space to insert between boxes.
+
+\cs_new:Nn \ebproof_append_left:NnN {
+  \ebproof_shift_x:Nn #1 { \box_wd:N #3 + #2 }
+  \hbox_set:Nn #1 {
+    \box_use:N #3
+    \dim_compare:nNnF { #2 } = { 0pt } { \skip_horizontal:n { #2 } }
+    \box_use:N #1
+  }
+}
+
+% Shift of two trees to the right so that the axes match. The marks of the one
+% that is shifted are updated accordingly.
+
+\cs_new:Nn \ebproof_align:NN {
+  \dim_set:Nn \l_tmpa_dim
+    { \ebproof_mark:Nn #2 {axis} - \ebproof_mark:Nn #1 {axis} }
+  \dim_compare:nNnTF \l_tmpa_dim < { 0pt } {
+    \ebproof_extend:Nnnnn #2 { -\l_tmpa_dim } { 0pt } { 0pt } { 0pt }
+  } {
+    \ebproof_extend:Nnnnn #1 { \l_tmpa_dim } { 0pt } { 0pt } { 0pt }
+  }
+}
+
+% Append the contents of the second tree above the first one, with matching
+% axes. The marks of the first tree are preserved.
+
+\cs_new:Nn \ebproof_append_above:NN {
+  \ebproof_align:NN #1 #2
+  \vbox_set:Nn #1 {
+    \box_use:N #2
+    \tex_prevdepth:D -1000pt
+    \box_use:N #1
+  }
+}
+
+% Append the contents of the second tree below the first one, with matching
+% axes. The marks of the first tree are preserved.
+
+\cs_new:Nn \ebproof_append_below:NN {
+  \ebproof_align:NN #1 #2
+  \vbox_set_top:Nn #1 {
+    \box_use:N #1
+    \tex_prevdepth:D -1000pt
+    \box_use:N #2
+  }
+}
+
+% Shift the material in a tree vertically so that the height and depth are
+% equal (like TeX's \vcenter but around the baseline).
+
+\cs_new:Nn \ebproof_vcenter:N {
+  \dim_set:Nn \l_tmpa_dim { ( \box_ht:N #1 - \box_dp:N #1 ) / 2 }
+  \box_set_eq:NN \l_tmpa_box #1
+  \hbox_set:Nn #1
+    { \box_move_down:nn { \l_tmpa_dim } { \box_use:N \l_tmpa_box } }
+}
+
+
+%% Making inferences
+%
+% The following commands use the parameters defined at the beginning of the
+% package for actually building proof trees using the commands defined above.
+
+% Append the contents of the second tree above or below the first one,
+% depending on current settings. Axes are aligned and the marks of the first
+% tree are preserved.
+
+\cs_new:Nn \ebproof_append_vertical:NN {
+  \bool_if:NTF \l_ebproof_updown_bool
+    { \ebproof_append_below:NN #1 #2 }
+    { \ebproof_append_above:NN #1 #2 }
+}
+
+% Make a box containing an inference rule with labels, using the current
+% settings. The width and axis position are taken as those of the conclusion
+% of another tree box. The third argument is used as a temporary register for
+% building labels.
+
+\cs_new:Nn \ebproof_make_rule_for:NNN {
+
+  % Build the rule.
+
+  \ebproof_make_vertical:Nnnn #1
+    { \ebproof_mark:Nn #2 {axis} - \ebproof_mark:Nn #2 {left} }
+    { \ebproof_mark:Nn #2 {right} - \ebproof_mark:Nn #2 {left} }
+    {
+      \skip_vertical:N \l_ebproof_rule_margin_dim
+      \tl_if_empty:NF { \l_ebproof_rule_code_tl } {
+        \tl_use:N \l_ebproof_rule_code_tl
+        \skip_vertical:N \l_ebproof_rule_margin_dim
+      }
+    }
+  \ebproof_vcenter:N #1
+
+  % Append the left label
+
+  \tl_if_blank:VF \l_ebproof_left_label_tl {
+    \ebproof_make_simple:Nn #3 {
+      \box_move_down:nn { \l_ebproof_label_axis_dim } { \hbox:n {
+        \cs_set_eq:NN \inserttext \l_ebproof_left_label_tl
+        \tl_use:N \l_ebproof_left_label_template_tl
+      } }
+    }
+    \box_set_ht:Nn #3 { 0pt }
+    \box_set_dp:Nn #3 { 0pt }
+    \ebproof_append_left:NnN
+      \l_ebproof_c_box \l_ebproof_label_separation_dim \l_ebproof_d_box
+  }
+
+  % Append the right label
+
+  \tl_if_blank:VF \l_ebproof_right_label_tl {
+    \ebproof_make_simple:Nn #3 {
+      \box_move_down:nn { \l_ebproof_label_axis_dim } { \hbox:n {
+        \cs_set_eq:NN \inserttext \l_ebproof_right_label_tl
+        \tl_use:N \l_ebproof_right_label_template_tl
+      } }
+    }
+    \box_set_ht:Nn #3 { 0pt }
+    \box_set_dp:Nn #3 { 0pt }
+    \ebproof_append_right:NnN
+      \l_ebproof_c_box \l_ebproof_label_separation_dim \l_ebproof_d_box
+  }
+
+}
+
+
+%% Stack-based interface
+
+%%% The stack
+
+% Logically, box structures are stored on a stack. However, TeX does not
+% provide data structures for that and the grouping mechanism is not flexible
+% enough, so we encode them using what we actually have. A stack for boxes is
+% implemented using a global hbox |\g_ebproof_stack_box| that contains all the
+% boxes successively. A sequence |\g_ebproof_stack_seq| is used to store the
+% dimensions property lists textually. We maintain a counter
+% |\g_ebproof_level_int| with the number of elements on the stack, for
+% consistency checks.
+
+\int_new:N \g_ebproof_level_int
+\box_new:N \g_ebproof_stack_box
+\seq_new:N \g_ebproof_stack_seq
+
+% Clear the stack.
+
+\cs_new:Nn \ebproof_clear_stack: {
+  \int_gset:Nn \g_ebproof_level_int { 0 }
+  \hbox_gset:Nn \g_ebproof_stack_box { }
+  \seq_gclear:N \g_ebproof_stack_seq
+}
+
+% Push the contents of a register on the stack.
+
+\cs_new:Nn \ebproof_push:N {
+  \int_gincr:N \g_ebproof_level_int
+  \hbox_gset:Nn \g_ebproof_stack_box
+    { \hbox_unpack:N \g_ebproof_stack_box \box_use:N #1 }
+  \seq_gput_left:Nv \g_ebproof_stack_seq
+    { l_ebproof_marks_ \__int_value:w #1 _prop }
+}
+
+% Pop the value from the top of the stack into a register.
+
+\cs_new:Nn \ebproof_pop:N {
+  \int_compare:nNnTF { \g_ebproof_level_int } > { 0 } {
+    \int_gdecr:N \g_ebproof_level_int
+    \hbox_gset:Nn \g_ebproof_stack_box {
+      \hbox_unpack:N \g_ebproof_stack_box
+      \box_gset_to_last:N \g_tmpa_box
+    }
+    \box_set_eq_clear:NN #1 \g_tmpa_box
+    \seq_gpop_left:NN \g_ebproof_stack_seq \l_tmpa_tl
+    \tl_set_eq:cN { l_ebproof_marks_ \__int_value:w #1 _prop } \l_tmpa_tl
+  } {
+    \PackageError{ebproof}{Missing~premiss~in~a~proof~tree}{}
+    \ebproof_clear:N #1
+  }
+}
+
+%%% Assembling trees
+
+\ebproof_new:N \l_ebproof_a_box
+\ebproof_new:N \l_ebproof_b_box
+\ebproof_new:N \l_ebproof_c_box
+\ebproof_new:N \l_ebproof_d_box
+
+% Join horizontally a number of elements at the top of the stack. If several
+% trees are joined, use the left mark of the left tree, the right mark of the
+% right tree and set the axis in the middle of these marks.
+
+\cs_new:Nn \ebproof_join_horizontal:n {
+  \int_case:nnF { #1 } {
+  { 0 } {
+    \group_begin:
+    \ebproof_clear:N \l_ebproof_a_box
+    \ebproof_push:N \l_ebproof_a_box
+    \group_end:
+  }
+  { 1 } { }
+  } {
+    \group_begin:
+    \ebproof_pop:N \l_ebproof_a_box
+    \prg_replicate:nn { #1 - 1 } {
+      \ebproof_pop:N \l_ebproof_b_box
+      \ebproof_append_left:NnN
+        \l_ebproof_a_box \l_ebproof_separation_dim \l_ebproof_b_box
+    }
+    \ebproof_set_mark:Nnn \l_ebproof_a_box { left }
+      { \ebproof_mark:Nn \l_ebproof_b_box { left } }
+    \ebproof_set_mark:Nnn \l_ebproof_a_box { axis }
+      { ( \ebproof_mark:Nn \l_ebproof_a_box { left }
+        + \ebproof_mark:Nn \l_ebproof_a_box { right } ) / 2 }
+    \ebproof_push:N \l_ebproof_a_box
+    \group_end:
+  }
+}
+
+% Join vertically the two elements at the top of the stack, with a horizontal
+% rule of the appropriate size.
+
+\cs_new:Nn \ebproof_join_vertical: {
+  \group_begin:
+  \ebproof_pop:N \l_ebproof_a_box
+  \ebproof_pop:N \l_ebproof_b_box
+  \ebproof_enlarge_conclusion:NN \l_ebproof_b_box \l_ebproof_a_box
+  \ebproof_make_rule_for:NNN \l_ebproof_c_box \l_ebproof_b_box
+    \l_ebproof_d_box
+  \ebproof_append_vertical:NN \l_ebproof_a_box \l_ebproof_c_box
+  \ebproof_append_vertical:NN \l_ebproof_a_box \l_ebproof_b_box
+  \ebproof_push:N \l_ebproof_a_box
+  \group_end:
+}
+
+%%% High-level commands
+
+% Push a box with default formatting, using explicit alignment if the code
+% contains a |&| character
+
+\cs_new:Npn \ebproof_statement_parse:w #1&#2&#3\ebproof_statement_stop: {
+  \tl_if_empty:nTF { #3 } {
+    \ebproof_make_simple:Nn \l_ebproof_a_box
+      { \cs_set:Npn \inserttext { #1 } \tl_use:N \l_ebproof_template_tl }
+  } {
+    \ebproof_make_split:Nnn \l_ebproof_a_box
+      { \cs_set:Npn \inserttext { #1 } \tl_use:N \l_ebproof_left_template_tl }
+      { \cs_set:Npn \inserttext { #2 } \tl_use:N \l_ebproof_right_template_tl }
+  }
+  \ebproof_push:N \l_ebproof_a_box
+}
+
+\cs_new:Nn \ebproof_push_statement:n {
+  \ebproof_statement_parse:w #1&& \ebproof_statement_stop:
+}
+
+
+%% Document interface
+
+%%% Functions to define statements
+
+% The |\g_ebproof_stack_seq| variable contains the list of all defined
+% statements. For each statement |X|, there is a document command |\ebproofX|
+% and the alias |\X| is defined when entering a |prooftree| environment.
+
+\seq_new:N \g_ebproof_statements_seq
+
+% Install the aliases for statements, saving the original value of the control
+% sequences.
+
+\cs_new:Nn \ebproof_setup_statements: {
+  \seq_map_inline:Nn \g_ebproof_statements_seq {
+    \cs_set_eq:cc { ebproof_saved_ ##1 } { ##1 }
+    \cs_set_eq:cc { ##1 } { ebproof ##1 }
+  }
+}
+
+% Restore the saved meanings of the control sequences. This is useful when
+% interpreting user-provided code in statement arguments. The meanings are
+% automatically restored when leaving a |prooftree| environment because of
+% grouping.
+
+\cs_new:Nn \ebproof_restore_statements: {
+  \seq_map_inline:Nn \g_ebproof_statements_seq {
+    \cs_set_eq:cc { ##1 } { ebproof_saved_ ##1 }
+  }
+}
+
+% Define a new statement. The first argument is the name, the second one is an
+% argument specifier as used by |xparse| and the third one is the body of the
+% command.
+
+\cs_new:Nn \ebproof_new_statement:nnn {
+  \exp_args:Nc \NewDocumentCommand { ebproof#1 }{ #2 } { #3 }
+  \seq_put_right:Nn \g_ebproof_statements_seq { #1 }
+}
+
+% Define a deprecated statement. The syntax is the same as above except that
+% an extra argument in third position indicates what should be used instead.
+% The effect is the same except that a warning message is issued the first
+% time the statement is used.
+
+\cs_new:Nn \ebproof_new_deprecated_statement:nnnn {
+  \cs_new:cpn { ebproof_#1_warning: } {
+    \PackageWarning { ebproof } { \token_to_str:c{#1}~is~deprecated,~#3 }
+    \cs_gset:cn { ebproof_#1_warning: } { }
+  }
+  \ebproof_new_statement:nnn { #1 } { #2 }
+    { \use:c { ebproof_#1_warning: } #4 }
+}
+
+
+%%% Basic commands
+
+\ebproof_new_statement:nnn { set } { m } {
+  \keys_set:nn { ebproof } { #1 }
+}
+
+\ebproof_new_statement:nnn { hypo } { O{} m } {
+  \group_begin:
+  \ebproof_restore_statements:
+  \keys_set:nn { ebproof } { #1 }
+  \ebproof_push_statement:n { #2 }
+  \group_end:
+}
+
+\ebproof_new_statement:nnn { infer } { O{} m O{} m } {
+  \group_begin:
+  \ebproof_restore_statements:
+  \keys_set_known:nnN { ebproof / rule~style } { #1 } \l_tmpa_tl
+  \keys_set:nV { ebproof } \l_tmpa_tl
+  \tl_set:Nn \l_ebproof_right_label_tl { #3 }
+  \ebproof_join_horizontal:n { #2 }
+  \ebproof_push_statement:n { #4 }
+  \ebproof_join_vertical:
+  \group_end:
+}
+
+\ebproof_new_statement:nnn { ellipsis } { m m } {
+  \group_begin:
+  \ebproof_restore_statements:
+  \tl_clear:N \l_ebproof_rule_code_tl
+  \ebproof_make_split:Nnn \l_ebproof_a_box { } {
+    \vbox_set:Nn \l_tmpa_box {
+      \skip_vertical:n { 1.2ex }
+      \hbox:n { \tex_ignorespaces:D #1 }
+      \skip_vertical:n { 1.2ex }
+    }
+    \vbox_to_ht:nn { \box_ht:N \l_tmpa_box } {
+      \tex_xleaders:D \vbox_to_ht:nn { .8ex }
+        { \tex_vss:D \hbox:n { . } \tex_vss:D }
+      \tex_vfill:D
+    }
+    \hbox_overlap_right:n { ~ \box_use:N \l_tmpa_box }
+  }
+  \ebproof_push:N \l_ebproof_a_box
+  \ebproof_join_vertical:
+  \ebproof_push_statement:n {#2}
+  \ebproof_join_vertical:
+  \group_end:
+}
+
+
+%%% Modifying trees
+
+% Rewrite the box at the top of the stack while preserving its dimensions an
+% marks. The code is typeset in horizontal mode, with control sequences to
+% access the original box and its marks:
+%  - \treebox is a box register with the original material
+%  - \treemark{NAME} provides the value of a given mark
+
+\ebproof_new_statement:nnn { rewrite } { m } {
+  \group_begin:
+  \ebproof_restore_statements:
+  \ebproof_pop:N \l_ebproof_a_box
+  \box_set_eq:NN \l_tmpa_box \l_ebproof_a_box
+  \hbox_set:Nn \l_tmpb_box {
+    \cs_set_eq:NN \treebox \l_tmpa_box
+    \cs_set:Npn \treemark { \ebproof_mark:Nn \l_ebproof_a_box }
+    { #1 }
+  }
+  \box_set_wd:Nn \l_tmpb_box { \box_wd:N \l_ebproof_a_box }
+  \box_set_ht:Nn \l_tmpb_box { \box_ht:N \l_ebproof_a_box }
+  \box_set_dp:Nn \l_tmpb_box { \box_dp:N \l_ebproof_a_box }
+  \box_set_eq:NN \l_ebproof_a_box \l_tmpb_box
+  \ebproof_push:N \l_ebproof_a_box
+  \group_end:
+}
+
+% Insert |\left| and |\right| delimiters without changing the alignment
+
+\ebproof_new_statement:nnn { delims } { m m } {
+  \group_begin:
+  \ebproof_restore_statements:
+  \ebproof_pop:N \l_ebproof_a_box
+  \hbox_set:Nn \l_tmpa_box
+    { $ \tex_vcenter:D { \box_use:N \l_ebproof_a_box } $ }
+  \dim_set:Nn \l_tmpa_dim
+    { \box_ht:N \l_tmpa_box - \box_ht:N \l_ebproof_a_box }
+  \hbox_set:Nn \l_ebproof_a_box {
+    $ #1 \tex_vrule:D
+      height \box_ht:N \l_tmpa_box depth \box_dp:N \l_tmpa_box width 0pt
+    \tex_right:D . $
+  }
+  \ebproof_shift_x:Nn \l_ebproof_a_box { \box_wd:N \l_ebproof_a_box }
+  \hbox_set:Nn \l_ebproof_a_box {
+    \hbox_unpack:N \l_ebproof_a_box
+    $ \tex_left:D . \box_use:N \l_tmpa_box #2 $
+  }
+  \hbox_set:Nn \l_ebproof_a_box
+    { \box_move_down:nn { \l_tmpa_dim } { \box_use:N \l_ebproof_a_box } }
+  \ebproof_push:N \l_ebproof_a_box
+  \group_end:
+}
+
+
+%%% Deprecated statements
+
+% These statements were defined in versions 1.x of the package, they are
+% preserved for temporary upwards compatibility and will be removed in a
+% future version.
+
+\ebproof_new_deprecated_statement:nnnn { Alter } { m }
+  { use~\token_to_str:c{rewrite}~instead } { \ebproofrewrite{ #1 \box\treebox } }
+\ebproof_new_deprecated_statement:nnnn { Delims } { }
+  { use~\token_to_str:c{delims}~instead } { \ebproofdelims }
+\ebproof_new_deprecated_statement:nnnn { Ellipsis } { }
+  { use~\token_to_str:c{ellipsis}~instead } { \ebproofellipsis }
+\ebproof_new_deprecated_statement:nnnn { Hypo } { }
+  { use~\token_to_str:c{hypo}~instead } { \ebproofhypo }
+\ebproof_new_deprecated_statement:nnnn { Infer } { }
+  { use~\token_to_str:c{infer}~instead } { \ebproofinfer }
+
+
+%%% Environment interface
+
+\ebproof_clear_stack:
+
+\tl_new:N \l_ebproof_start_level_tl
+
+\NewDocumentEnvironment { prooftree } { s O{} } {
+  \keys_set_known:nnN { ebproof / proof~style } { #2 } \l_tmpa_tl
+  \keys_set:nV { ebproof } \l_tmpa_tl
+  \tl_set:Nx \l_ebproof_start_level_tl { \int_use:N \g_ebproof_level_int }
+  \vbox_set:Nw \l_tmpa_box
+  \ebproof_setup_statements:
+} {
+  \vbox_set_end:
+  \ebproof_pop:N \l_ebproof_a_box
+  \int_compare:nNnF { \g_ebproof_level_int } = { \tl_use:N \l_ebproof_start_level_tl } {
+    \PackageError{ebproof}{Malformed~proof~tree}{
+      Some~hypotheses~were~declared~but~not~used~in~this~tree.}
+  }
+  \IfBooleanTF { #1 } {
+    \[ \box_use:N \l_ebproof_a_box \]
+    \ignorespacesafterend
+  } {
+    \hbox_unpack:N \c_empty_box
+    \bool_if:NTF \l_ebproof_center_bool {
+      \hbox:n { $ \tex_vcenter:D { \box_use:N \l_ebproof_a_box } $ }
+    } {
+      \box_use:N \l_ebproof_a_box
+    }
+  }
+}
+
+% A trick for the starred version:
+\cs_new:cpn { prooftree* } { \prooftree* }
+\cs_new:cpn { endprooftree* } { \endprooftree }

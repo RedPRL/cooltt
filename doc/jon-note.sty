@@ -1,0 +1,263 @@
+\RequirePackage{url}
+\RequirePackage{xparse}
+\RequirePackage{microtype}
+\RequirePackage{eucal}
+\RequirePackage{jmsdelim}
+\RequirePackage{jon-tikz}
+\RequirePackage{ebproof}
+\RequirePackage{upgreek}
+\RequirePackage{amsmath}
+% \RequirePackage{amsfonts}
+\RequirePackage{amsthm}
+\RequirePackage{stmaryrd}
+
+\RequirePackage{zi4}
+\RequirePackage[tt=false]{libertine}
+\RequirePackage[libertine,frenchmath]{newtxmath}
+
+\def\section{\@startsection{section}{1}%
+  \z@{.7\linespacing\@plus\linespacing}{.5\linespacing}%
+  {\normalfont\bfseries\centering}}
+
+
+
+\usepackage{xcolor}
+
+\definecolor{Matterhorn}{RGB}{77,77,77}
+\definecolor{RegalBlue}{RGB}{3,69,117}
+\definecolor{RedDevil}{RGB}{134,1,17}
+
+\microtypesetup{
+  activate={true,nocompatibility},
+  final,
+  tracking=false,
+  kerning=true,
+  spacing=true,
+  factor=1100,
+  stretch=10,
+  shrink=10
+}
+
+
+\RequirePackage[backend=biber,natbib=true, doi=true, citestyle=alphabetic, backref=true, style=alphabetic, maxnames=1000, mincrossrefs=99]{biblatex}
+\setcounter{biburlnumpenalty}{9000}
+\setcounter{biburlucpenalty}{9000}
+\setcounter{biburllcpenalty}{9000}
+
+\RequirePackage{silence}
+\WarningFilter{latex}{Marginpar on page}
+\WarningFilter{latexfont}{Font shape}
+\WarningFilter{latexfont}{Some font}
+\WarningFilter*{amsthm}{The \@nx\qedhere command}
+
+
+\NewDocumentCommand\MathSmall{m}{\mbox{\scriptsize $#1$}}
+
+\let\prn\parens%
+\let\brc\braces%
+\let\brk\brackets%
+\let\frk\mathfrak%
+
+\ExplSyntaxOn
+\NewDocumentCommand\floors{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \lfloor\rfloor {#3}
+}
+\NewDocumentCommand\ceils{+O{}sm}{
+  \keys_set:nn {jmsdelim} {#1}
+  \jmsdelim_make:nnnn {#2} \lceil\rceil {#3}
+}
+\ExplSyntaxOff
+
+\NewDocumentCommand\AlxTop{m}{\mathbb{B}\prn{#1}}
+
+\NewDocumentCommand\ObjInit{g}{\emptyset\IfValueT{#1}{_{#1}}}
+\NewDocumentCommand\ObjTerm{g}{\mathbf{1}\IfValueT{#1}{_{#1}}}
+\NewDocumentCommand\ArrId{m}{\mathbf{id}_{#1}}
+\NewDocumentCommand\IHom{mm}{\bbrackets*{#1,#2}}
+\NewDocumentCommand\Hom{ogg}{%
+  \IfValueTF{#1}{%
+    \IfValueTF{#2}{%
+      \operatorname{Hom}_{#1}\prn{#2,#3}%
+    }{%
+      \operatorname{Hom}_{#1}%
+    }%
+  }{%
+    \brk{#2,#3}%
+  }%
+}
+\NewDocumentCommand\ECat{}{\mathcal{E}}
+\NewDocumentCommand\FCat{}{\mathcal{F}}
+\NewDocumentCommand\CCat{}{\mathcal{C}}
+\NewDocumentCommand\GCat{}{\mathcal{G}}
+\NewDocumentCommand\TCat{}{\mathcal{T}}
+\NewDocumentCommand\DCat{}{\mathcal{D}}
+\NewDocumentCommand\XCat{}{\mathcal{X}}
+\NewDocumentCommand\YCat{}{\mathcal{Y}}
+\NewDocumentCommand\LCat{}{\mathcal{L}}
+\NewDocumentCommand\RCat{}{\mathcal{R}}
+\NewDocumentCommand\ThCat{}{\mathbb{T}}
+\NewDocumentCommand\SET{}{\mathbf{Set}}
+\NewDocumentCommand\CAT{}{\mathbf{Cat}}
+\NewDocumentCommand\Psh{m}{\mathcal{P}\mathrm{r}\prn{#1}}
+\NewDocumentCommand\PshSG{m}{\mathcal{P}\mathrm{r}_{\Sigma}\prn{#1}}
+\NewDocumentCommand\PshSGFP{m}{\mathcal{P}\mathrm{r}_{\Sigma}\prn{#1}_{\mathrm{f.p.}}}
+\NewDocumentCommand\PshFP{m}{\mathcal{P}\mathrm{r}\prn{#1}_{\mathrm{f.p.}}}
+\NewDocumentCommand\Sh{m}{\mathcal{S}\mathrm{h}\prn{#1}}
+\NewDocumentCommand\ShFP{m}{\mathcal{S}\mathrm{h}\prn{#1}_{\mathrm{f.p.}}}
+\NewDocumentCommand\Str{}{\mathcal{O}}
+\NewDocumentCommand\OpCat{m}{#1^{\mathrm{op}}}
+\NewDocumentCommand\Yo{og}{\mathsf{y}\IfValueT{#1}{_{#1}}\IfValueT{#2}{\prn{#2}}}
+\NewDocumentCommand\Cod{g}{\partial_1\IfValueT{#1}{\prn{#1}}}
+\NewDocumentCommand\Dom{g}{\partial_0\IfValueT{#1}{\prn{#1}}}
+
+\NewDocumentCommand\Simplex{m}{\boldsymbol{\Delta}^{#1}}
+
+\NewDocumentCommand\Lim{m}{
+  \mindelim{1}
+  \operatorname{lim}_{#1}
+}
+
+\NewDocumentCommand\Colim{m}{
+  \mindelim{1}
+  \operatorname{colim}_{#1}
+}
+
+\NewDocumentCommand\Coprod{m}{
+  \mindelim{1}
+  {\textstyle\coprod}_{#1}
+}
+
+\NewDocumentCommand\ArrCat{m}{#1^\to}
+\NewDocumentCommand\CartArr{m}{#1^\to_{\mathit{cart}}}
+
+\NewDocumentCommand\Sl{smm}{%
+  \mindelim{1}%
+  \IfBooleanTF{#1}{\prn{#2}}{#2}_{/#3}%
+}
+
+\NewDocumentCommand\CoSl{smm}{%
+  \mindelim{1}%
+  \IfBooleanTF{#1}{\prn{#2}}{#2}_{\backslash{}#3}%
+}
+
+\RequirePackage{amsthm}
+\RequirePackage{etoolbox}
+\RequirePackage{pifont}
+\RequirePackage[nameinlink,capitalize,noabbrev]{cleveref}
+
+
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{principle}[theorem]{Principle}
+\newtheorem{open-question}[theorem]{Open Question}
+\theoremstyle{definition}
+\newtheorem{construction}[theorem]{Construction}
+\newtheorem{convention}[theorem]{Convention}
+\newtheorem{notation}[theorem]{Notation}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{note}[theorem]{Note}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}[theorem]{Exercise}
+\newtheorem{history}[theorem]{History}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{observation}[theorem]{Observation}
+
+
+\NewDocumentCommand\SetupFleuron{m}{%
+  \AtBeginEnvironment{#1}{%
+    \renewcommand\qedsymbol{\ding{166}}%
+    \pushQED{\qed}%
+  }%
+  \AtEndEnvironment{#1}{\popQED}%
+}
+
+\SetupFleuron{convention}
+\SetupFleuron{notation}
+\SetupFleuron{example}
+\SetupFleuron{note}
+\SetupFleuron{remark}
+\SetupFleuron{proposition}
+\SetupFleuron{definition}
+\SetupFleuron{principle}
+\SetupFleuron{open-question}
+\SetupFleuron{history}
+\SetupFleuron{observation}
+\SetupFleuron{fact}
+\SetupFleuron{construction}
+
+
+\Crefname{rule}{Rule}{Rules}
+\Crefname{principle}{Principle}{Principles}
+\Crefname{open-question}{Open Question}{Open Questions}
+\Crefname{diagram}{Diagram}{Diagrams}
+\Crefname{reduction}{Reduction}{Reductions}
+\allowdisplaybreaks%
+
+
+
+\usepackage{pict2e}
+
+\ExplSyntaxOn
+
+\newlength\SquareSize
+\setlength\SquareSize{1.2ex}
+\newdimen\SquareThickness
+\SquareThickness=.7pt
+
+\cs_new_protected:Nn \__draw_bb_square:n {
+  \group_begin:
+  \setlength\unitlength{#1\SquareSize}
+  \linethickness{#1\SquareThickness}
+  \begin{picture}(1.1,1,1)
+    \polygon(0,0)(0,1)(1,1) (1,0)(0,0)
+    \Line(.8,0) (.8,1)
+  \end{picture}
+  \group_end:
+}
+
+\cs_new_protected:Nn \__draw_square:n {
+  \group_begin:
+  \setlength\unitlength{#1\SquareSize}
+  \linethickness{#1\SquareThickness}
+  \begin{picture}(1,1)
+    \polygon(0,0)(0,1)(1,1) (1,0)(0,0)
+  \end{picture}
+  \group_end:
+}
+
+\NewDocumentCommand\SQUARE{}{
+  \mathchoice
+    {\__draw_square:n {1}}
+    {\__draw_square:n {1}}
+    {\__draw_square:n {0.75}}
+    {\__draw_square:n {0.75}}
+}
+\NewDocumentCommand\CUBE{}{
+  \mathchoice
+    {\__draw_bb_square:n {1}}
+    {\__draw_bb_square:n {1}}
+    {\__draw_bb_square:n {0.75}}
+    {\__draw_bb_square:n {0.75}}
+}
+
+\ExplSyntaxOff
+
+
+
+\def\wasyfamily{\fontencoding{U}\fontfamily{wasy}\selectfont}
+\NewDocumentCommand\PILL{}{%
+  \raisebox{.2pt}{%
+    \rotatebox[origin=c]{90}{%
+      \leavevmode%
+      \hbox to 0pt{\wasyfamily\char71\hss}%
+      \hbox{\wasyfamily\char35}%
+    }%
+  }%
+}
+

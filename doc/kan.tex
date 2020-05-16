@@ -1,0 +1,215 @@
+\documentclass[draft]{amsart}
+\usepackage{jon-note}
+\usepackage{jon-todo}
+\usepackage{mathpartir}
+
+\title{Universes}
+\author{Angiuli, Favonia, Sterling}
+
+\begin{document}
+\maketitle
+
+\NewDocumentCommand\TpHCom{mmmm}{
+  \mathsf{Hcom}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
+}
+
+\NewDocumentCommand\HCom{mmmmm}{
+  \mathsf{hcom}_{#1}\brc{#2\rightsquigarrow #3;#4}\prn{#5}
+}
+\NewDocumentCommand\Coe{mmmm}{
+  \mathsf{coe}_{#1}\brc{#2\rightsquigarrow #3}\prn{#4}
+}
+\NewDocumentCommand\CodeHCom{mmmm}{
+  \widehat{\mathsf{HCom}}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
+}
+
+\NewDocumentCommand\TmBox{mmmmm}{
+  \mathsf{box}\brc{#1\rightsquigarrow #2;#3}\prn{#4;#5}
+}
+
+\NewDocumentCommand\IsTp{m}{#1\ \mathit{type}}
+\NewDocumentCommand\DIM{}{\mathbb{I}}
+\NewDocumentCommand\COF{}{\mathbb{F}}
+\NewDocumentCommand\TpPrf{m}{\brk{#1}}
+\NewDocumentCommand\TpEl{m}{\mathsf{el}\prn{#1}}
+\NewDocumentCommand\TpUniv{}{\mathsf{Univ}}
+\NewDocumentCommand\Prod{mm}{
+  {\textstyle\prod}_{#1}#2
+}
+\NewDocumentCommand\TpSub{mmm}{
+  \brk{#1 \mathrel{\delimsep{\vert}} #2 \to #3}
+}
+\NewDocumentCommand\SubIn{m}{
+  {\uparrow_{\mathsf{sub}}}\prn{#1}
+}
+\NewDocumentCommand\SubOut{m}{
+  {\downarrow_{\mathsf{sub}}}\prn{#1}
+}
+
+\NewDocumentCommand\CodeUniv{}{\mindelim{1}\widehat{\mathsf{Univ}}}
+\NewDocumentCommand\Code{m}{\mindelim{1}\hat{#1}}
+
+\NewDocumentCommand\ElInOut{}{{\updownarrow_{\mathsf{el}}}}
+\NewDocumentCommand\ElIn{m}{{\uparrow_{\mathsf{el}}}\prn{#1}}
+\NewDocumentCommand\ElOut{m}{{\downarrow_{\mathsf{el}}}\prn{#1}}
+\NewDocumentCommand\Hint{m}{{\color{gray}#1}}
+
+\section{Cubical subtypes}
+
+\begin{mathparpagebreakable}
+  \inferrule[subtype formation]{
+    \IsTp{A}\\
+    \phi : \COF\\
+    * : \TpPrf{\phi} \vdash M\prn{*} : A
+  }{
+    \IsTp{\TpSub{A}{*:\phi}{M\prn{*}}}
+  }
+  \and
+  \inferrule[subtype introduction]{
+    \Hint{\IsTp{A}}\\
+    \Hint{\phi : \COF}\\
+    \Hint{* : \TpPrf{\phi} \vdash M\prn{*} : A}\\
+    N : A\\
+    * : \TpPrf{\phi} \vdash N = M\prn{*} : A
+  }{
+    \SubIn{N} : \TpSub{A}{*:\phi}{M\prn{*}}
+  }
+\end{mathparpagebreakable}
+
+\todo{Finish up}
+
+\section{Type structure of the universe}
+
+\begin{mathparpagebreakable}
+  \inferrule[univ formation]{
+  }{
+    \IsTp{\TpUniv}
+  }
+  \and
+  \inferrule[el formation]{
+    \Code{A} : \TpUniv
+  }{
+    \IsTp{\TpEl{\Code{A}}}
+  }
+  \and
+  \inferrule[hcom structure]{
+    \hat{A} : \TpUniv\\
+    r,s : \DIM\\
+    \phi : \COF\\
+    M : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}}{\TpEl{\Code{A}}}
+  }{
+    \HCom{\Code{A}}{r}{s}{\phi}{M} : \TpEl{\Code{A}}
+    \mid
+    r=s\lor\phi \to M\prn{s,*}
+  }
+  \and
+  \inferrule[coe structure]{
+    \hat{A} : \DIM\to \TpUniv\\
+    r,s:\DIM\\
+    M : \TpEl{\Code{A}\prn{r}}
+  }{
+    \Coe{\Code{A}}{r}{s}{M} : \TpEl{\Code{A}\prn{s}} \mid
+    r=s\to M
+  }
+  \and
+  \inferrule[composite type formation]{
+    r,s:\DIM\\
+    \phi:\COF\\
+    \Code{A} : \Prod{i:\DIM}{
+      \Prod{* : \TpPrf{i=r\lor\phi}}{
+        \TpUniv
+      }
+    }
+  }{
+    \IsTp{\TpHCom{r}{s}{\phi}{\Code{A}}}
+    \mid
+    {r=s\lor\phi} \to
+    \TpEl{\Code{A}\prn{s,*}}
+  }
+  \and
+  \inferrule[composite type introduction]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Hint{
+      \Code{A} : \Prod{i:\DIM}{
+        \Prod{* : \TpPrf{i=r\lor\phi}}{
+          \TpUniv
+        }
+      }
+    }\\
+    N : \Prod{*:\TpPrf{r=s\lor\phi}}{\TpEl{\Code{A}\prn{s,*}}}\\
+    M : \TpSub{\TpEl{\Code{A}\prn{r,*}}}{*:\phi}{
+      \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
+        N\prn{*}
+      }
+    }
+  }{
+    \TmBox{r}{s}{\phi}{N}{M} : \TpHCom{r}{s}{\phi}{\Code{A}}
+    \mid
+    r=s\lor\phi \to
+    \brk{r=s \to \SubOut{M}\mid \phi \to N\prn{*}}
+  }
+\end{mathparpagebreakable}
+
+\todo{Box and cap}
+
+\section{Code structure}
+
+We have a code for the universe in the universe; for now, we ignore size issues
+in order to isolate the interesting parts of the Kan structure.
+
+\begin{mathparpagebreakable}
+  \inferrule[universe code]{
+  }{
+    \CodeUniv : \TpUniv
+  }
+  \and
+  \inferrule[universe code decoding]{
+  }{
+    \ElInOut : \TpEl{\CodeUniv} \cong \TpUniv
+  }
+\end{mathparpagebreakable}
+
+\begin{convention}
+  Given $\Code{A} : \TpUniv$, we will write $\ElIn{\Code{A}} : \TpEl{\CodeUniv}$
+  and $\ElOut{\ElIn{\Code{A}}} = \Code{A} : \TpUniv$.
+\end{convention}
+
+
+
+\begin{mathparpagebreakable}
+  \inferrule[formal hcom code]{
+    r,s : \DIM\\
+    \phi : \COF\\
+    \Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpUniv}}
+  }{
+    \CodeHCom{r}{s}{\phi}{\Code{A}} : \TpUniv
+    \mid
+    r=s\lor\phi
+    \to
+    \Code{A}\prn{s,*}
+  }
+  \and
+  \inferrule[hcom-univ computation]{
+    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpEl{\CodeUniv}}}}
+  }{
+    \HCom{\CodeUniv}{r}{s}{\phi}{\Code{A}} =
+    \ElIn{
+      \CodeHCom{r}{s}{\phi}{
+        \lambda i,*. \ElOut{\Code{A}\prn{i,*}}
+      }
+    }
+    :
+    \TpEl{\CodeUniv}
+  }
+  \and
+  \inferrule[hcom code decoding]{
+    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpUniv}}}
+  }{
+    \ElInOut : \TpEl{
+      \CodeHCom{r}{s}{\phi}{\Code{A}}
+    } \cong \TpHCom{r}{s}{\phi}{\Code{A}}
+  }
+\end{mathparpagebreakable}
+
+\end{document}
