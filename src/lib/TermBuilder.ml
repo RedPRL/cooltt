@@ -258,14 +258,7 @@ struct
 
   exception Todo
 
-  let coe_path ~(fam_line : S.t m) (* A : I -> I -> U *)
-      ~(bdry_line : S.t m)         (* a&b together; i:I j:I -> [_ : j=0 v j=1] -> A i j *)
-      ~(r : S.t m)                 (* r : I *)
-      ~(s : S.t m)                 (* s/r' : I *)
-      ~(bdy : S.t m)               (* m : path (A r) (bdry_line r 0) (bdry_line r 1) *)
-    (* ------------------------ *)
-    : S.t m                        (* path (A r') (bdry_line r' 0) (bdry_line r' 1) *)
-    =
+  let coe_path ~(fam_line : S.t m) ~(bdry_line : S.t m) ~(r : S.t m) ~(s : S.t m) ~(bdy : S.t m) : S.t m =
     el_in @@
     lam @@ fun j ->
     sub_in @@
@@ -279,24 +272,6 @@ struct
       ; eq i r, (fun q -> sub_out @@ ap (el_out bdy) [j])
       ]
 
-  (*
-   * fam : I -> U
-   * bdry : (i : I) (_ : [d(i)]) -> fam i
-   * bdy : (j : I) (_ : [φ \/ j=r]) (i : I) -> (A [_:d(i) => bdry(i,_)])
-     hcom_{path(A; a)} r s φ bdy : (i : I) -> (A [_:d(i) => bdry(i,_)])
-         matching
-         [p : [φ\/s=r] => sub/out {bdy(s,p)}]
-     =
-     λ i.
-     sub/in {
-       hcom_{fam(i)} r s (φ \/ d(i)) {
-        λ k. λ p : [φ \/ d(i) \/ k=r].
-        [ q : [d(i)] => bdry(i,q)
-        | q : [φ \/ k=r] => sub/out {bdy(k,q,i)}
-        ]
-       } : fam i
-     }
-   *)
   let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy =
     el_in @@
     lam @@ fun i ->
