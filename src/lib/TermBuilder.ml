@@ -2,7 +2,6 @@ open CoolBasis
 
 module S = Syntax
 
-
 module M : sig
   include Monad.S
 
@@ -286,4 +285,18 @@ struct
       [ d_i , (fun q -> ap bdry [i; q])
       ; join [phi; eq k r] , (fun q -> sub_out (ap (el_out (ap bdy [k;q])) [i]))
       ]
+
+
+  module HComInFHCom :
+  sig
+    type fhcom_u = {r : S.t m; s : S.t m; phi : S.t m; bdy : S.t m}
+    val hcom_fhcom : fhcom:fhcom_u -> r:S.t m -> s:S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+  end =
+  struct
+    type fhcom_u = {r : S.t m; s : S.t m; phi : S.t m; bdy : S.t m}
+
+    let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(s : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
+      raise Todo
+  end
+
 end
