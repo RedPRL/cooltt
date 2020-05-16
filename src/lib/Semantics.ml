@@ -782,6 +782,8 @@ and dispatch_rigid_hcom code r s phi (bdy : D.con) =
       ret @@ `Reduce (`HComPath (fam, bdry))
     | D.CodeNat ->
       ret @@ `Reduce (`FHCom `Nat)
+    | D.CodeUniv ->
+      ret @@ `Reduce (`FHCom `Univ)
     | D.Cut {cut} ->
       ret @@ `Done cut
     | _ ->

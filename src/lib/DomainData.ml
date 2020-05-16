@@ -10,7 +10,6 @@ type dim =
 
 type cof = (dim, int) Cof.cof
 
-
 (** Destructors: exotic semantic operations that don't exist in syntax; these
   * are meant to fail on things in improper form, rather than become neutral. *)
 type dst =
@@ -48,7 +47,7 @@ and con =
   | CodeNat
   | CodeUniv
 
-  | FHCom of [`Nat] * dim * dim * cof * con
+  | FHCom of [`Nat | `Univ] * dim * dim * cof * con
 
   | Destruct of dst
 
