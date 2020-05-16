@@ -100,6 +100,7 @@ struct
     loop
 
   let forall sym =
+    let i = D.DimProbe sym in
     extend @@
     function
     | `CofEq (r, s) ->
@@ -107,7 +108,6 @@ struct
       function
       | true -> ret Cof.top
       | false ->
-        let i = D.DimProbe sym in
         test_sequent [] (Cof.join [Cof.eq i r; Cof.eq i s]) |>>
         function
         | true -> ret Cof.bot
