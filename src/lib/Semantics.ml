@@ -584,6 +584,14 @@ and inspect_con con =
     end
   | _ -> ret con
 
+and whnf_inspect_con con =
+  let open CM in
+  whnf_con con |>>
+  function
+  | `Done -> ret con
+  | `Reduce con -> ret con
+
+
 and do_goal_proj con =
   let open CM in
   abort_if_inconsistent D.Abort @@
@@ -768,7 +776,7 @@ and dispatch_rigid_coe line r s con =
     | _ ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_coe"
   in
-  go @<< do_ap line (D.dim_to_con i)
+  go @<< whnf_inspect_con @<< do_ap line (D.dim_to_con i)
 
 and dispatch_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
@@ -789,7 +797,7 @@ and dispatch_rigid_hcom code r s phi (bdy : D.con) =
     | _ ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_hcom"
   in
-  go code
+  go @<< whnf_inspect_con code
 
 and enact_rigid_coe line r s con tag =
   let open CM in
