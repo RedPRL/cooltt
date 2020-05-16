@@ -210,8 +210,12 @@ and bchk_tm : CS.con -> T.bchk_tac =
     T.BChk.chk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
   | CS.Join cs ->
     T.BChk.chk @@ R.Cof.join (List.map chk_tm cs)
+  | CS.BotC ->
+    T.BChk.chk @@ R.Cof.join []
   | CS.Meet cs ->
     T.BChk.chk @@ R.Cof.meet (List.map chk_tm cs)
+  | CS.TopC ->
+    T.BChk.chk @@ R.Cof.meet []
   | CS.CofBoundary c ->
     T.BChk.chk @@ R.Cof.boundary (chk_tm c)
   | CS.CofSplit splits ->
@@ -289,8 +293,6 @@ and syn_tm : CS.con -> T.syn_tac =
       R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
-    | CS.TopC -> R.Univ.topc
-    | CS.BotC -> R.Univ.botc
     | _ ->
       failwith @@ "TODO : " ^ CS.show_con con
 
