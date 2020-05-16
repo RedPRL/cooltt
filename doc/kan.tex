@@ -27,6 +27,10 @@
   \mathsf{box}\brc{#1\rightsquigarrow #2;#3}\prn{#4;#5}
 }
 
+\NewDocumentCommand\TmCap{mmmmm}{
+  \mathsf{cap}\brc{#1\leftsquigarrow #2;#3}\prn{#4;#5}
+}
+
 \NewDocumentCommand\IsTp{m}{#1\ \mathit{type}}
 \NewDocumentCommand\DIM{}{\mathbb{I}}
 \NewDocumentCommand\COF{}{\mathbb{F}}
@@ -93,7 +97,7 @@
   }
   \and
   \inferrule[hcom structure]{
-    \hat{A} : \TpUniv\\
+    \Code{A} : \TpUniv\\
     r,s : \DIM\\
     \phi : \COF\\
     M : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}}{\TpEl{\Code{A}}}
@@ -104,7 +108,7 @@
   }
   \and
   \inferrule[coe structure]{
-    \hat{A} : \DIM\to \TpUniv\\
+    \Code{A} : \DIM\to \TpUniv\\
     r,s:\DIM\\
     M : \TpEl{\Code{A}\prn{r}}
   }{
@@ -146,12 +150,90 @@
   }{
     \TmBox{r}{s}{\phi}{N}{M} : \TpHCom{r}{s}{\phi}{\Code{A}}
     \mid
-    r=s\lor\phi \to
-    \brk{r=s \to \SubOut{M}\mid \phi \to N\prn{*}}
+    r=s \to \SubOut{M}\mid
+    \phi \to N\prn{*}
+  }
+  \and
+  \inferrule[composite type elimination]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Code{A} : \Prod{i:\DIM}{
+      \Prod{* : \TpPrf{i=r\lor\phi}}{
+        \TpUniv
+      }
+    }
+    \\
+    M : \TpHCom{r}{s}{\phi}{\Code{A}}
+  }{
+    \TmCap{r}{s}{\phi}{\Code{A}}{M} :
+    \TpEl{\Code{A}\prn{r,*}}
+    \mid
+    r=s\to M
+    \mid
+    \phi\to\Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{M}
+  }
+  \and
+  \inferrule[composite type computation]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Hint{
+      \Code{A} : \Prod{i:\DIM}{
+        \Prod{* : \TpPrf{i=r\lor\phi}}{
+          \TpUniv
+        }
+      }
+    }\\
+    \Hint{N : \Prod{*:\TpPrf{r=s\lor\phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+    \Hint{
+      M : \TpSub{\TpEl{\Code{A}\prn{r,*}}}{*:\phi}{
+        \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
+          N\prn{*}
+        }
+      }
+    }
+  }{
+    \TmCap{r}{s}{\phi}{\Code{A}}{
+      \TmBox{r}{s}{\phi}{N}{M}
+    }
+    =
+    \SubOut{M}
+    : \TpEl{\Code{A}\prn{r,*}}
+  }
+  \and
+  \inferrule[composite type uniqueness]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Hint{
+      \Code{A} : \Prod{i:\DIM}{
+        \Prod{* : \TpPrf{i=r\lor\phi}}{
+          \TpUniv
+        }
+      }
+    }\\
+    \Hint{
+      M : \TpHCom{r}{s}{\phi}{\Code{A}}
+    }
+  }{
+    M =
+    \TmBox{r}{s}{\phi}{
+      \lambda{*}. M
+    }{
+      \SubIn{
+        \TmCap{r}{s}{\phi}{\Code{A}}{M}
+      }
+    }
+    : \TpHCom{r}{s}{\phi}{\Code{A}}
   }
 \end{mathparpagebreakable}
 
-\todo{Box and cap}
+\begin{warning}
+  %
+  The arguments to $\mathsf{box}$ go in the order forced by their typing
+  constraints, but please note that this is the opposite of what appeared in
+  Carlo's thesis.
+  %
+\end{warning}
+
 
 \section{Code structure}
 
