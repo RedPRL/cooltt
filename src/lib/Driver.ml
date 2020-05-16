@@ -15,6 +15,7 @@ let _ =
 
 type message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
+  | TermNotSynthesizable of CS.con
   | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
   | UnboundIdent of Ident.t
 
@@ -26,6 +27,10 @@ let pp_message fmt =
       "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
       (S.pp env) orig
       (S.pp env) nf
+  | TermNotSynthesizable orig ->
+    Format.fprintf fmt
+      "@[Please annotate the type of@,@[<hv> %a@]@]"
+      CS.pp_con orig
   | Definition {ident; tp; tm = Some tm} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
@@ -69,12 +74,20 @@ let execute_decl =
     let+ _sym = EM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
-    EM.veil (Veil.const `Transparent) @@
-    let* tm, vtp = Elaborator.syn_tm term in
-    let* vtm = EM.lift_ev @@ Sem.eval tm in
-    let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
-    let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
-    `Continue
+    begin
+      EM.veil (Veil.const `Transparent) @@
+      EM.trap (Elaborator.syn_tm term) |>>
+      function
+      | Ok (tm, vtp) ->
+        let* vtm = EM.lift_ev @@ Sem.eval tm in
+        let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
+        let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
+        `Continue
+      | Error (Elaborator.NotSynthesizable con) ->
+        let+ () = EM.emit ~lvl:`Error con.info pp_message @@ TermNotSynthesizable con in
+        `Continue
+      | Error err -> EM.throw err
+    end
   | CS.Print ident ->
     begin
       EM.resolve ident.node |>>
@@ -114,4 +127,3 @@ let process_sign : CS.signature -> unit =
   fun sign ->
   EM.run_exn ElabState.init Env.init @@
   execute_signature sign
-
