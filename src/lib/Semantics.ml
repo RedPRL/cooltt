@@ -771,6 +771,8 @@ and dispatch_rigid_coe line r s con =
       ret @@ `Reduce `CoePath
     | D.CodeNat ->
       ret @@ `Reduce `CoeNat
+    | D.CodeUniv ->
+      ret @@ `Reduce `CoeUniv
     | D.FHCom (`Univ, _, _, _, _) ->
       ret @@ `Reduce `CoeFHCom
     | D.Cut {cut} ->
@@ -807,7 +809,7 @@ and enact_rigid_coe line r s con tag =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match tag with
-  | `CoeNat ->
+  | `CoeNat | `CoeUniv ->
     ret con
   | `CoePi ->
     let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
