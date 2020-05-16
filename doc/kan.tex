@@ -24,7 +24,7 @@
   \mathsf{coe}_{#1}\brc{#2\rightsquigarrow #3}\prn{#4}
 }
 \NewDocumentCommand\CodeHCom{mmmm}{
-  \widehat{\mathsf{HCom}}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
+  \widehat{\mathsf{Hcom}}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
 }
 
 \NewDocumentCommand\TmBox{mmmmm}{
@@ -331,12 +331,10 @@ in order to isolate the interesting parts of the Kan structure.
       \begin{array}{l}
         \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
         \tilde{T}\prn{i,*} :=
-        {
-          \begin{bmatrix*}[l]
-            i=r\lor\phi &\to &\tilde{O}\prn{i,*}\\
-            \psi &\to &\Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}\\
-            s=s' &\to &\tilde{P}\prn{i,*}
-          \end{bmatrix*}
+        \brk{
+          i=r\lor\phi \to \tilde{O}\prn{i,*}
+          \mid
+          \psi\lor s=s' \to \Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}
         }
       \end{array}
     }
@@ -361,6 +359,50 @@ in order to isolate the interesting parts of the Kan structure.
     :
     \TpEl{
       \CodeHCom{s}{s'}{\psi}{\Code{A}}
+    }
+  }
+\end{mathparpagebreakable}
+
+\section{Coercion in composite types}
+
+\begin{mathparpagebreakable}
+  \inferrule{
+    \Hint{s, s' : \DIM\to\DIM}\\
+    \Hint{\phi : \DIM\to\COF}\\
+    \Hint{
+      \Code{A} :
+      \Prod{i:\DIM}{
+        \Prod{j:\DIM}{
+          \Prod{*:\TpPrf{j=s\prn{i}\lor{\phi\prn{i}}}}{
+            \TpUniv
+          }
+        }
+      }
+    }
+    \\
+    \Hint{r,r' : \DIM}\\\\
+    \Hint{
+      M : \TpEl{
+        \CodeHCom{s\prn{r}}{s'\prn{r}}{\phi\prn{r}}{\Code{A}\prn{r}}
+      }
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{C} : \TpHCom{s\prn{r'}}{s'\prn{r'}}{\phi\prn{r'}}{\Code{A}\prn{r'}}\\
+        \tilde{C} := {?}
+      \end{array}
+    }
+  }{
+    \Coe{
+      \lambda i.
+      \CodeHCom{s\prn{i}}{s'\prn{i}}{\phi\prn{i}}{\Code{A}}
+    }{r}{r'}{M}
+    =
+    \ElIn{\tilde{C}}
+    :
+    \TpEl{
+      \CodeHCom{s\prn{r'}}{s'\prn{r'}}{\phi\prn{r'}}{\Code{A}\prn{r'}}
     }
   }
 \end{mathparpagebreakable}
