@@ -74,8 +74,8 @@ let execute_decl =
     let+ _sym = EM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
+    EM.veil (Veil.const `Transparent)
     begin
-      EM.veil (Veil.const `Transparent) @@
       EM.trap (Elaborator.syn_tm term) |>>
       function
       | Ok (tm, vtp) ->
