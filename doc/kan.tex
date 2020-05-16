@@ -2,6 +2,7 @@
 \usepackage{jon-note}
 \usepackage{jon-todo}
 \usepackage{mathpartir}
+\usepackage{fullpage}
 
 \title{Universes}
 \author{Angiuli, Favonia, Sterling}
@@ -291,6 +292,59 @@ in order to isolate the interesting parts of the Kan structure.
     \ElInOut : \TpEl{
       \CodeHCom{r}{s}{\phi}{\Code{A}}
     } \cong \TpHCom{r}{s}{\phi}{\Code{A}}
+  }
+\end{mathparpagebreakable}
+
+\section{Composition in composite types}
+
+\begin{mathparpagebreakable}
+  \inferrule{
+    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=s\lor\psi}}{\TpUniv}}}\\
+    \Hint{
+      M : \Prod{i:\DIM}{
+        \Prod{*:\TpPrf{i=r\lor\phi}}{
+          \TpEl{
+            \CodeHCom{s}{s'}{\psi}{\Code{A}}
+          }
+        }
+      }
+    }
+    \\\\
+    {
+      \begin{array}{l}
+        \tilde{Q} : \TpEl{\Code{A}\prn{s,*}}\\
+        \tilde{Q} :=
+        \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor s=s'}{
+          \lambda i,*.
+          \brk{
+            \phi \to \tilde{O}\prn{?}
+            \mid
+            \psi \to
+            \Coe{?}{s'}{s}{?}
+            \mid
+            s=s'\to ?
+          }
+        }
+      \end{array}
+    }
+    \\
+    {
+      \begin{array}{l}
+        \tilde{H} : \TpHCom{s}{s'}{\psi}{\Code{A}}\\
+        \tilde{H} :=
+        \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r'}}{\SubIn{\tilde{Q}}}
+      \end{array}
+    }
+  }{
+    \HCom{
+      \CodeHCom{s}{s'}{\psi}{\Code{A}}
+    }{r}{r'}{\phi}{M}
+    =
+    \ElIn{\tilde{H}}
+    :
+    \TpEl{
+      \CodeHCom{s}{s'}{\psi}{\Code{A}}
+    }
   }
 \end{mathparpagebreakable}
 
