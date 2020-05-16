@@ -65,15 +65,16 @@ let rec normalize_cof phi =
 
 module FaceLattice :
 sig
+  (** An atomic formula *)
   type atom = [`CofEq of D.dim * D.dim]
 
-  (* A generator for a lattice homomorphism *)
+  (** A generator for a lattice homomorphism *)
   type gen = atom -> D.cof CM.m
 
-  (* Extend a generator to a lattice homomorphism *)
+  (** Extend a generator to a lattice homomorphism *)
   val extend : gen -> D.cof -> D.cof CM.m
 
-  (* Quantifier elimination *)
+  (** Quantifier elimination *)
   val forall : Symbol.t -> D.cof -> D.cof CM.m
 end =
 struct
