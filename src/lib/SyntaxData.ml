@@ -32,6 +32,7 @@ type t =
   | ElOut of t
 
   | Box of t * t * t * t * t
+  | Cap of t * t * t * t * t
 
   | CodePath of t * t
   | CodePi of t * t

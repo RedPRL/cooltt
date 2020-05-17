@@ -3,6 +3,9 @@ module D = Domain
 
 
 exception Todo
+exception CJHM
+exception CFHM
+exception CCHM
 
 open CoolBasis
 open Bwd
@@ -373,6 +376,9 @@ and eval : S.t -> D.con EvM.m =
       and+ vsides = eval sides
       and+ vcap = eval cap in
       D.Box (vr, vs, vphi, vsides, vcap)
+
+    | S.Cap (r, s, phi, code, box) ->
+      raise CJHM
 
 and eval_dim tr =
   let open EvM in

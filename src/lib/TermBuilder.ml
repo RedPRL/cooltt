@@ -224,8 +224,15 @@ let box mr ms mphi msides mcap =
   and+ cap = mcap in
   S.Box (r, s, phi, sides, cap)
 
-let cap mr ms mphi mcode mtm =
-  raise CJHM
+let cap mr ms mphi mcode mbox =
+  let+ r = mr
+  and+ s = ms
+  and+ phi = mphi
+  and+ code = mcode
+  and+ box = mbox in
+  S.Cap (r, s, phi, code, box)
+
+
 
 
 module Kan =

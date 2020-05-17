@@ -1,12 +1,12 @@
 open CoolBasis open Bwd
 include SyntaxData
 
-let rec condense =
+let rec to_numeral =
   function
   | Zero -> Some 0
   | Suc t ->
     Option.map (fun n -> n + 1) @@
-    condense t
+    to_numeral t
   | _ -> None
 
 
@@ -139,7 +139,7 @@ let rec pp env fmt tm =
     Format.fprintf fmt "0"
   | Suc tm ->
     begin
-      match condense tm with
+      match to_numeral tm with
       | Some n -> Format.fprintf fmt "%i" (n + 1)
       | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
     end
@@ -185,6 +185,8 @@ let rec pp env fmt tm =
       (pp env) tm
       (pp envx) bdy
   | Box (r, s, phi, sides, cap) ->
+    Format.fprintf fmt "<box>"
+  | Cap (r, s, phi, code, box) ->
     Format.fprintf fmt "<box>"
 
 and pp_tp env fmt tp =
