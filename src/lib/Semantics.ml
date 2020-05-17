@@ -209,7 +209,11 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
   | S.TpVar ix ->
     get_local_tp ix
   | S.TpHCom (r, s, phi, bdy) ->
-    raise Todo
+    let+ vr = eval_dim r
+    and+ vs = eval_dim s
+    and+ vphi = eval_cof phi
+    and+ vbdy = eval bdy in
+    D.TpHCom (vr, vs, vphi, vbdy)
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -955,7 +959,7 @@ and enact_rigid_coe line r s con tag =
     let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
   | `CoeFHCom ->
-    raise Todo
+    raise CFHM
 
 and enact_rigid_hcom code r s phi bdy tag =
   let open CM in
@@ -1002,7 +1006,7 @@ and enact_rigid_hcom code r s phi bdy tag =
     in
     D.ElIn (D.FHCom (tag, r, s, phi, bdy'))
   | `HComFHCom ->
-    raise Todo
+    raise CFHM
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
