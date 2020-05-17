@@ -184,8 +184,19 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tm = quote_hcom D.CodeNat r s phi bdy' in
     S.ElOut tm
 
-  | D.TpHCom _, _ ->
-    raise CCHM
+  | D.TpHCom (r,s,phi,bdy), _ ->
+    let+ tr = quote_dim r
+    and+ ts = quote_dim s
+    and+ tphi = quote_cof phi
+    and+ tcap =
+      let* bdy_r = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
+      quote_con (D.El bdy_r) @<<
+      lift_cmp @@ Sem.do_rigid_cap r s phi bdy con
+    and+ tsides =
+      QTB.lam (D.TpPrf phi) @@ fun prf ->
+      quote_con tp con
+    in
+    S.Box (tr, ts, tphi, tcap, tsides)
 
   | _ ->
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
