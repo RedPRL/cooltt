@@ -336,7 +336,6 @@ struct
         end
       @@ fun box_tube ->
       box fhcom.r fhcom.s fhcom.phi box_tube @@
-      sub_in @@
       hcom (ap fhcom.bdy [fhcom.s; prf]) r s (join [phi; fhcom.phi; eq fhcom.r fhcom.s]) @@
       lam @@ fun i ->
       lam @@ fun _ ->

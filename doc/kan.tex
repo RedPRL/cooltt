@@ -62,29 +62,29 @@
 \NewDocumentCommand\ElOut{m}{{\downarrow_{\mathsf{el}}}\prn{#1}}
 \NewDocumentCommand\Hint{m}{{\color{gray}#1}}
 
-\section{Cubical subtypes}
-
-\begin{mathparpagebreakable}
-  \inferrule[subtype formation]{
-    \IsTp{A}\\
-    \phi : \COF\\
-    * : \TpPrf{\phi} \vdash M\prn{*} : A
-  }{
-    \IsTp{\TpSub{A}{*:\phi}{M\prn{*}}}
-  }
-  \and
-  \inferrule[subtype introduction]{
-    \Hint{\IsTp{A}}\\
-    \Hint{\phi : \COF}\\
-    \Hint{* : \TpPrf{\phi} \vdash M\prn{*} : A}\\
-    N : A\\
-    * : \TpPrf{\phi} \vdash N = M\prn{*} : A
-  }{
-    \SubIn{N} : \TpSub{A}{*:\phi}{M\prn{*}}
-  }
-\end{mathparpagebreakable}
-
-\todo{Finish up}
+% \section{Cubical subtypes}
+%
+% \begin{mathparpagebreakable}
+%   \inferrule[subtype formation]{
+%     \IsTp{A}\\
+%     \phi : \COF\\
+%     * : \TpPrf{\phi} \vdash M\prn{*} : A
+%   }{
+%     \IsTp{\TpSub{A}{*:\phi}{M\prn{*}}}
+%   }
+%   \and
+%   \inferrule[subtype introduction]{
+%     \Hint{\IsTp{A}}\\
+%     \Hint{\phi : \COF}\\
+%     \Hint{* : \TpPrf{\phi} \vdash M\prn{*} : A}\\
+%     N : A\\
+%     * : \TpPrf{\phi} \vdash N = M\prn{*} : A
+%   }{
+%     \SubIn{N} : \TpSub{A}{*:\phi}{M\prn{*}}
+%   }
+% \end{mathparpagebreakable}
+%
+% \todo{Finish up}
 
 \section{Type structure of the universe}
 
@@ -146,15 +146,16 @@
       }
     }\\
     N : \Prod{*:\TpPrf{r=s\lor\phi}}{\TpEl{\Code{A}\prn{s,*}}}\\
-    M : \TpSub{\TpEl{\Code{A}\prn{r,*}}}{*:\phi}{
-      \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
-        N\prn{*}
-      }
+    M :
+    \TpEl{\Code{A}\prn{r,*}} \mid
+    \phi \to
+    \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
+      N\prn{*}
     }
   }{
     \TmBox{r}{s}{\phi}{N}{M} : \TpHCom{r}{s}{\phi}{\Code{A}}
     \mid
-    r=s \to \SubOut{M}\mid
+    r=s \to M\mid
     \phi \to N\prn{*}
   }
   \and
@@ -189,10 +190,12 @@
     }\\
     \Hint{N : \Prod{*:\TpPrf{r=s\lor\phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
     \Hint{
-      M : \TpSub{\TpEl{\Code{A}\prn{r,*}}}{*:\phi}{
-        \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
-          N\prn{*}
-        }
+      M :
+      \TpEl{\Code{A}\prn{r,*}}
+      \mid
+      \phi\to
+      \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
+        N\prn{*}
       }
     }
   }{
@@ -200,7 +203,7 @@
       \TmBox{r}{s}{\phi}{N}{M}
     }
     =
-    \SubOut{M}
+    M
     : \TpEl{\Code{A}\prn{r,*}}
   }
   \and
@@ -222,9 +225,7 @@
     \TmBox{r}{s}{\phi}{
       \lambda{*}. M
     }{
-      \SubIn{
-        \TmCap{r}{s}{\phi}{\Code{A}}{M}
-      }
+      \TmCap{r}{s}{\phi}{\Code{A}}{M}
     }
     : \TpHCom{r}{s}{\phi}{\Code{A}}
   }
@@ -344,9 +345,7 @@ in order to isolate the interesting parts of the Kan structure.
         \tilde{H} : \TpHCom{s}{s'}{\psi}{\Code{A}}\\
         \tilde{H} :=
         \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{
-          \SubIn{
-            \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
-          }
+          \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
         }
       \end{array}
     }
@@ -394,7 +393,7 @@ in order to isolate the interesting parts of the Kan structure.
         \TmBox{s_{r'}}{s'_{r'}}{\phi_{r'}}{
           \lambda{*}.{?}
         }{
-          \SubIn{\tilde{H}}
+          \tilde{H}
         }
       \end{array}
     }

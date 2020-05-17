@@ -449,7 +449,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
         test_sequent [] (Cof.eq r s) |>>
         function
         | true ->
-          reduce_to @<< do_sub_out cap
+          reduce_to cap
         | false ->
           test_sequent [] phi |>>
           function
@@ -793,7 +793,7 @@ and do_rigid_cap r s phi code =
         let tp = D.El code_fib in
         ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
       | D.Box (_,_,_,_,cap) ->
-        do_sub_out cap
+        ret cap
       | _ ->
         throw @@ NbeFailed "do_rigid_cap"
     end
