@@ -1,5 +1,7 @@
 open CoolBasis
 
+exception Todo
+
 module S = Syntax
 
 module M : sig
@@ -181,6 +183,9 @@ let tp_prf mphi =
   let+ phi = mphi in
   S.TpPrf phi
 
+let prf =
+  ret S.Prf
+
 
 let eq mr ms =
   let+ r = mr
@@ -201,6 +206,12 @@ let dim1 = ret S.Dim1
 
 let boundary mr =
   join [eq mr dim0; eq mr dim1]
+
+let box mr ms mtube mcap =
+  raise Todo
+
+let cap mr ms mphi mcode mtm =
+  raise Todo
 
 
 module Kan =
@@ -255,7 +266,6 @@ struct
     el_in @@
     pair p0 p1
 
-  exception Todo
 
   let coe_path ~(fam_line : S.t m) ~(bdry_line : S.t m) ~(r : S.t m) ~(s : S.t m) ~(bdy : S.t m) : S.t m =
     el_in @@
@@ -296,7 +306,26 @@ struct
     type fhcom_u = {r : S.t m; s : S.t m; phi : S.t m; bdy : S.t m}
 
     let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(s : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
-      raise Todo
+      el_in @@
+      let_
+        begin
+          lam @@ fun i ->
+          lam @@ fun _ ->
+          cap fhcom.r fhcom.s fhcom.phi fhcom.bdy @@ el_out @@ ap bdy [i; prf]
+        end
+      @@ fun box_tube ->
+      box fhcom.r fhcom.s box_tube @@
+      sub_in @@
+      hcom (ap fhcom.bdy [fhcom.s; prf]) r s (join [phi; fhcom.phi; eq fhcom.r fhcom.s]) @@
+      lam @@ fun i ->
+      lam @@ fun _ ->
+      cof_split
+        (el @@ ap fhcom.bdy [fhcom.s; prf])
+        [ join [eq i r; phi],
+          (fun _ -> hcom (ap fhcom.bdy [fhcom.s; prf]) r i phi bdy)
+        ; join [fhcom.phi; eq fhcom.r fhcom.s],
+          (fun _ -> coe (lam @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.s fhcom.r (ap box_tube [i; prf]))
+        ]
   end
 
 end
