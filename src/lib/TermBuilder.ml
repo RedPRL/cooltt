@@ -346,17 +346,24 @@ struct
           lam @@ fun _ ->
           cap fhcom.r fhcom.s fhcom.phi fhcom.bdy @@ el_out @@ ap bdy [i; prf]
         end
-      @@ fun box_tube ->
-      box fhcom.r fhcom.s fhcom.phi box_tube @@
+      @@ fun o_tilde ->
+      let_ ~ident:(`Machine "P")
+        begin
+          lam ~ident:(`Machine "i") @@ fun i ->
+          lam @@ fun _ ->
+          hcom (ap fhcom.bdy [fhcom.s; prf]) r i phi bdy
+        end
+      @@ fun p_tilde ->
+      box fhcom.r fhcom.s fhcom.phi (lam @@ fun _ -> ap p_tilde [s; prf]) @@
       hcom (ap fhcom.bdy [fhcom.s; prf]) r s (join [phi; fhcom.phi; eq fhcom.r fhcom.s]) @@
       lam ~ident:(`Machine "i") @@ fun i ->
       lam @@ fun _ ->
       cof_split
         (el @@ ap fhcom.bdy [fhcom.s; prf])
         [ join [eq i r; phi],
-          (fun _ -> hcom (ap fhcom.bdy [fhcom.s; prf]) r i phi bdy)
+          (fun _ -> ap o_tilde [i; prf])
         ; join [fhcom.phi; eq fhcom.r fhcom.s],
-          (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.s fhcom.r (ap box_tube [i; prf]))
+          (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.s fhcom.r (ap p_tilde [i; prf]))
         ]
 
     (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
