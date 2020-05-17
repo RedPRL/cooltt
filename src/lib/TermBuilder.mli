@@ -6,6 +6,7 @@ open CoolBasis
 
 include Monad.S
 
+
 type t := Syntax.t
 type tp := Syntax.tp
 
@@ -76,4 +77,8 @@ module Kan : sig
     type fhcom_u = {r : t m; s : t m; phi : t m; bdy : t m}
     val hcom_fhcom : fhcom:fhcom_u -> r:t m -> s:t m -> phi:t m -> bdy:t m -> t m
   end
+end
+
+module Test : sig
+  val print_example : unit -> unit
 end

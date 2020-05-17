@@ -185,9 +185,19 @@ let rec pp env fmt tm =
       (pp env) tm
       (pp envx) bdy
   | Box (r, s, phi, sides, cap) ->
-    Format.fprintf fmt "<box>"
+    Format.fprintf fmt "@[<hv2>box %a %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) s
+      (pp_atomic env) phi
+      (pp_atomic env) sides
+      (pp_atomic env) cap
   | Cap (r, s, phi, code, box) ->
-    Format.fprintf fmt "<box>"
+    Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) s
+      (pp_atomic env) phi
+      (pp_atomic env) code
+      (pp_atomic env) box
 
 and pp_tp env fmt tp =
   match tp with

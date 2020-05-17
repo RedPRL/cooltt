@@ -13,6 +13,8 @@ module M : sig
   val run : tplen:int -> conlen:int-> 'a m -> 'a
   val lvl : int -> S.t m
   val tplvl : int -> S.tp m
+
+  val test : S.t m -> unit
 end =
 struct
   type local = {tplen : int; conlen : int}
@@ -46,6 +48,12 @@ struct
 
   let run ~tplen ~conlen m =
     m {tplen; conlen}
+
+  let test m =
+    let tm = run ~tplen:0 ~conlen:0 m in
+    Format.printf
+      "@[<v>Testing:@ %a@]@."
+      (S.pp Pp.Env.emp) tm
 end
 
 
@@ -332,28 +340,44 @@ struct
 
     let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(s : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
       el_in @@
-      let_
+      let_ ~ident:(`Machine "O")
         begin
-          lam @@ fun i ->
+          lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
           cap fhcom.r fhcom.s fhcom.phi fhcom.bdy @@ el_out @@ ap bdy [i; prf]
         end
       @@ fun box_tube ->
       box fhcom.r fhcom.s fhcom.phi box_tube @@
       hcom (ap fhcom.bdy [fhcom.s; prf]) r s (join [phi; fhcom.phi; eq fhcom.r fhcom.s]) @@
-      lam @@ fun i ->
+      lam ~ident:(`Machine "i") @@ fun i ->
       lam @@ fun _ ->
       cof_split
         (el @@ ap fhcom.bdy [fhcom.s; prf])
         [ join [eq i r; phi],
           (fun _ -> hcom (ap fhcom.bdy [fhcom.s; prf]) r i phi bdy)
         ; join [fhcom.phi; eq fhcom.r fhcom.s],
-          (fun _ -> coe (lam @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.s fhcom.r (ap box_tube [i; prf]))
+          (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.s fhcom.r (ap box_tube [i; prf]))
         ]
 
     (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
     let coe_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(s : S.t m) ~(bdy : S.t m) : S.t m =
       raise CFHM
   end
+end
 
+module Test =
+struct
+  let closed_form =
+    lam ~ident:(`Machine "s") @@ fun h_r ->
+    lam ~ident:(`Machine "s'") @@ fun h_s ->
+    lam ~ident:(`Machine "ψ") @@ fun h_phi ->
+    lam ~ident:(`Machine "A") @@ fun h_bdy ->
+    lam ~ident:(`Machine "r") @@ fun r ->
+    lam ~ident:(`Machine "r'") @@ fun s ->
+    lam ~ident:(`Machine "φ") @@ fun phi ->
+    lam ~ident:(`Machine "M") @@ fun bdy ->
+    Kan.FHCom.hcom_fhcom ~fhcom:{r = h_r; s = h_s; phi = h_phi; bdy = h_bdy} ~r ~s ~phi ~bdy
+
+  let print_example () =
+    test closed_form
 end
