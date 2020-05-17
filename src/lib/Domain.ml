@@ -3,6 +3,8 @@ open CoolBasis
 
 module S = Syntax
 
+let const_tp_clo tp =
+  TpClo (S.TpVar 0, {tpenv = Snoc (Emp, tp); conenv = Emp})
 
 let push frm (hd, sp) =
   hd, sp @ [frm]

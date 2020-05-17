@@ -255,14 +255,12 @@ and quote_hd =
     S.Var (n - (lvl + 1))
   | D.Global sym ->
     ret @@ S.Global sym
-  | D.Coe (abs, r, s, con) ->
-    let* tpcode =
-      QTB.lam D.TpDim @@ fun i ->
-      quote_con D.Univ @<< lift_cmp @@ do_ap abs i
-    in
+  | D.Coe (code, r, s, con) ->
+    let code_tp = D.Pi (D.TpDim, `Anon, D.const_tp_clo D.Univ) in
+    let* tpcode = quote_con code_tp code in
     let* tr = quote_dim r in
     let* ts = quote_dim s in
-    let* code_r = lift_cmp @@ do_ap abs @@ D.dim_to_con r in
+    let* code_r = lift_cmp @@ do_ap code @@ D.dim_to_con r in
     let+ tm = quote_con (D.El code_r) con in
     S.Coe (tpcode, tr, ts, tm)
   | D.HCom (cut, r, s, phi, bdy) ->
@@ -283,8 +281,23 @@ and quote_hd =
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
     ret @@ S.CofSplit (ttp, List.combine tphis tms)
-  | D.Cap _ ->
-    raise CFHM
+  | D.Cap (r, s, phi, code, box) ->
+    let* tr = quote_dim r in
+    let* ts = quote_dim s in
+    let* tphi = quote_cof phi in
+    let* code_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_cof phi @@ fun phi ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+      TB.univ
+    in
+    let+ tcode = quote_con code_tp code
+    and+ tbox = quote_cut box in
+    S.Cap (tr, ts, tphi, tcode, tbox)
 
 
 and quote_dim d =
