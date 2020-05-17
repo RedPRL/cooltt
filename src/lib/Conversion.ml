@@ -327,6 +327,24 @@ and equate_hd hd0 hd1 =
       equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo D.Prf
     in
     MU.iter equate_branch branches
+  | D.Cap (r0, s0, phi0, code0, box0), D.Cap (r1, s1, phi1, code1, box1) ->
+    let* () = equate_dim r0 r1 in
+    let* () = equate_dim s0 s1 in
+    let* () = equate_cof phi0 phi1 in
+    let* () =
+      let* code_tp =
+        lift_cmp @@
+        Sem.splice_tp @@
+        Splice.foreign_dim r0 @@ fun r ->
+        Splice.foreign_cof phi0 @@ fun phi ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+        TB.univ
+      in
+      equate_con code_tp code0 code1
+    in
+    equate_cut box0 box1
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
 
