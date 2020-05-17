@@ -4,6 +4,9 @@ module Sem = Semantics
 
 
 exception Todo
+exception CFHM
+exception CJHM
+exception CCHM
 
 open CoolBasis
 open Monads
@@ -103,7 +106,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.UnfoldEl cut0, D.UnfoldEl cut1 ->
     equate_cut cut0 cut1
   | D.TpHCom (r0, s0, phi0, bdy0), D.TpHCom (r1, s1, phi1, bdy1) ->
-    raise Todo
+    raise CCHM
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
@@ -209,6 +212,14 @@ and equate_con tp con0 con1 =
       TB.el @@ TB.ap fam [i]
     in
     equate_con bdry_tp bdry0 bdry1
+
+  | D.TpHCom (r, s, phi, bdy) as hcom_tp, _, _ ->
+    let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
+    let* cap1 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con1 in
+    let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
+    let* () = equate_con (D.El code_cap) cap0 cap1 in
+    QuM.left_invert_under_cofs [phi] @@
+    equate_con hcom_tp con0 con1
 
   | _ ->
     conv_err @@ ExpectedConEq (tp, con0, con1)
