@@ -398,7 +398,7 @@ and eval : S.t -> D.con EvM.m =
           TB.cof_split
             (TB.el @@ TB.ap code [s; TB.prf])
             [TB.eq r s, (fun _ -> box);
-             phi, (fun _ -> TB.coe (TB.lam @@ fun i -> TB.ap code [i; TB.prf]) s r box)]
+             phi, (fun _ -> TB.coe code s r box)]
         | false ->
           raise CJHM
       end
