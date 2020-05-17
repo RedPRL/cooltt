@@ -259,8 +259,23 @@ and quote_tp (tp : D.tp) =
     let+ tphi = quote_cof phi in
     S.TpPrf tphi
   | D.TpHCom (r, s, phi, bdy) ->
-    raise CCHM
-
+    let+ tr = quote_dim r
+    and+ ts = quote_dim s
+    and+ tphi = quote_cof phi
+    and+ tbdy =
+      let* tp_bdy =
+        lift_cmp @@
+        Sem.splice_tp @@
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_cof phi @@ fun phi ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+        TB.univ
+      in
+      quote_con tp_bdy bdy
+    in
+    S.TpHCom (tr, ts, tphi, tbdy)
 
 and quote_hd =
   function
