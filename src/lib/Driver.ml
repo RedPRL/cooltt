@@ -29,7 +29,7 @@ let pp_message fmt =
       (S.pp env) nf
   | TermNotSynthesizable orig ->
     Format.fprintf fmt
-      "@[Please annotate the type of@,@[<hv> %a@]@]"
+      "@[Type annotation required for@,@[<hv> %a@]@]"
       CS.pp_con_ orig
   | Definition {ident; tp; tm = Some tm} ->
     let env = Pp.Env.emp in
