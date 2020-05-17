@@ -532,6 +532,21 @@ and whnf_tp =
         let+ tp = unfold_el con in
         `Reduce tp
     end
+  | D.TpHCom (r, s, phi, bdy) ->
+    begin
+      Cof.join [Cof.eq r s; phi] |> test_sequent [] |>>
+      function
+      | true ->
+        let* code = do_ap2 bdy (D.dim_to_con s) D.Prf in
+        begin
+          whnf_tp @@ D.El code |>>
+          function
+          | `Done -> ret @@ `Reduce (D.El code)
+          | `Reduce tp -> ret @@ `Reduce tp
+        end
+      | false ->
+        ret `Done
+    end
   | tp ->
     ret `Done
 
