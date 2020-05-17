@@ -401,6 +401,7 @@ and eval : S.t -> D.con EvM.m =
             [TB.eq r s, (fun _ -> box);
              phi, (fun _ -> TB.coe code s r box)]
         | false ->
+          (* do_rigid_cap *)
           raise CJHM
       end
 
@@ -534,6 +535,13 @@ and whnf_hd hd =
           go branches
     in
     go branches
+
+(* C*HM:
+ *   D.Cap (r, s, phi, code, cut) ->
+ *
+ *     1) test r=s ∨ φ; if so, reduce to the appropriate boundary
+ *     2) whnf the cut, either reconstitute or do_rigid_cap
+ *)
 
 and whnf_cut cut : D.con whnf CM.m =
   let open CM in
