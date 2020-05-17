@@ -216,8 +216,13 @@ let dim1 = ret S.Dim1
 let boundary mr =
   join [eq mr dim0; eq mr dim1]
 
-let box mr ms mtube mcap =
-  raise CJHM
+let box mr ms mphi msides mcap =
+  let+ r = mr
+  and+ s = ms
+  and+ phi = mphi
+  and+ sides = msides
+  and+ cap = mcap in
+  S.Box (r, s, phi, sides, cap)
 
 let cap mr ms mphi mcode mtm =
   raise CJHM
@@ -323,7 +328,7 @@ struct
           cap fhcom.r fhcom.s fhcom.phi fhcom.bdy @@ el_out @@ ap bdy [i; prf]
         end
       @@ fun box_tube ->
-      box fhcom.r fhcom.s box_tube @@
+      box fhcom.r fhcom.s fhcom.phi box_tube @@
       sub_in @@
       hcom (ap fhcom.bdy [fhcom.s; prf]) r s (join [phi; fhcom.phi; eq fhcom.r fhcom.s]) @@
       lam @@ fun i ->

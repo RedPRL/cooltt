@@ -48,6 +48,7 @@ and con =
   | CodeUniv
 
   | FHCom of [`Nat | `Univ] * dim * dim * cof * con
+  | Box of dim * dim * cof * con * con
 
   | Destruct of dst
 

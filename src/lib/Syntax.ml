@@ -184,6 +184,8 @@ let rec pp env fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp env) tm
       (pp envx) bdy
+  | Box (r, s, phi, sides, cap) ->
+    Format.fprintf fmt "<box>"
 
 and pp_tp env fmt tp =
   match tp with

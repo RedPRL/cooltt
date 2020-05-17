@@ -366,6 +366,14 @@ and eval : S.t -> D.con EvM.m =
     | S.CodeUniv ->
       ret D.CodeUniv
 
+    | S.Box (r, s, phi, sides, cap) ->
+      let+ vr = eval_dim r
+      and+ vs = eval_dim s
+      and+ vphi = eval_cof phi
+      and+ vsides = eval sides
+      and+ vcap = eval cap in
+      D.Box (vr, vs, vphi, vsides, vcap)
+
 and eval_dim tr =
   let open EvM in
   let* con = eval tr in
@@ -381,22 +389,37 @@ and eval_cof tphi =
 and whnf_con : D.con -> D.con whnf CM.m =
   let open CM in
   fun con ->
-  match con with
-  | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
-  | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
-  | D.Destruct _ ->
-    ret `Done
-  | D.Cut {cut} ->
-    whnf_cut cut
-  | D.FHCom (_, r, s, phi, bdy) ->
-    begin
-      Cof.join [Cof.eq r s; phi] |> test_sequent [] |>> function
-      | true ->
-        reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
-      | false ->
-        ret `Done
-    end
+    match con with
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
+    | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
+    | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
+    | D.Destruct _ ->
+      ret `Done
+    | D.Cut {cut} ->
+      whnf_cut cut
+    | D.FHCom (_, r, s, phi, bdy) ->
+      begin
+        test_sequent [] (Cof.join [Cof.eq r s; phi]) |>>
+        function
+        | true ->
+          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+        | false ->
+          ret `Done
+      end
+    | D.Box (r, s, phi, sides, cap) ->
+      begin
+        test_sequent [] (Cof.eq r s) |>>
+        function
+        | true ->
+          reduce_to @<< do_sub_out cap
+        | false ->
+          test_sequent [] phi |>>
+          function
+          | true ->
+            reduce_to @<< do_ap sides D.Prf
+          | false ->
+            ret `Done
+      end
 
 and reduce_to con =
   let open CM in
