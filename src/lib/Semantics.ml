@@ -383,11 +383,12 @@ and eval : S.t -> D.con EvM.m =
       let* vphi = eval_cof phi in
       let* vcode = eval code in
       let* vbox = eval box in
+      lift_cmp @@
       begin
-        lift_cmp @@ CM.test_sequent [] (Cof.join [Cof.eq vr vs; vphi]) |>>
+        let open CM in
+        CM.test_sequent [] (Cof.join [Cof.eq vr vs; vphi]) |>>
         function
         | true ->
-          lift_cmp @@
           splice_tm @@
           Splice.foreign_dim vr @@ fun r ->
           Splice.foreign_dim vs @@ fun s ->
