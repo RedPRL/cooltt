@@ -69,7 +69,7 @@ module Kan : sig
   val coe_path : fam_line:t m -> bdry_line:t m -> coe
   val hcom_path : fam:t m -> bdry:t m -> hcom
 
-  module HComInFHCom : sig
+  module FHCom : sig
     type fhcom_u = {r : t m; s : t m; phi : t m; bdy : t m}
     val hcom_fhcom : fhcom:fhcom_u -> r:t m -> s:t m -> phi:t m -> bdy:t m -> t m
   end
