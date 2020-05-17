@@ -106,7 +106,20 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.UnfoldEl cut0, D.UnfoldEl cut1 ->
     equate_cut cut0 cut1
   | D.TpHCom (r0, s0, phi0, bdy0), D.TpHCom (r1, s1, phi1, bdy1) ->
-    raise CCHM
+    let* () = equate_dim r0 r1 in
+    let* () = equate_dim s0 s1 in
+    let* () = equate_cof phi0 phi1 in
+    let* tp_bdy =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.foreign_dim r0 @@ fun r ->
+      Splice.foreign_cof phi0 @@ fun phi ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+      TB.univ
+    in
+    equate_con tp_bdy bdy0 bdy1
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
