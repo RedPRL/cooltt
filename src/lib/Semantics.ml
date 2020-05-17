@@ -539,8 +539,8 @@ and whnf_hd hd =
 (* C*HM:
  *   D.Cap (r, s, phi, code, cut) ->
  *
- *     1) test r=s ∨ φ; if so, reduce to the appropriate boundary
- *     2) whnf the cut, either reconstitute or do_rigid_cap
+ *     1) test r=s ∨ φ; if so, reduce to the appropriate boundary; see the corresponding eval case of Cap for a template.
+ *     2) whnf the cut, either reconstitute or do_rigid_cap.
  *)
 
 and whnf_cut cut : D.con whnf CM.m =
