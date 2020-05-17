@@ -378,7 +378,30 @@ and eval : S.t -> D.con EvM.m =
       D.Box (vr, vs, vphi, vsides, vcap)
 
     | S.Cap (r, s, phi, code, box) ->
-      raise CJHM
+      let* vr = eval_dim r in
+      let* vs = eval_dim s in
+      let* vphi = eval_cof phi in
+      let* vcode = eval code in
+      let* vbox = eval box in
+      begin
+        lift_cmp @@ CM.test_sequent [] (Cof.join [Cof.eq vr vs; vphi]) |>>
+        function
+        | true ->
+          lift_cmp @@
+          splice_tm @@
+          Splice.foreign_dim vr @@ fun r ->
+          Splice.foreign_dim vs @@ fun s ->
+          Splice.foreign_cof vphi @@ fun phi ->
+          Splice.foreign vcode @@ fun code ->
+          Splice.foreign vbox @@ fun box ->
+          Splice.term @@
+          TB.cof_split
+            (TB.el @@ TB.ap code [s; TB.prf])
+            [TB.eq r s, (fun _ -> box);
+             phi, (fun _ -> TB.coe (TB.lam @@ fun i -> TB.ap code [i; TB.prf]) s r box)]
+        | false ->
+          raise CJHM
+      end
 
 and eval_dim tr =
   let open EvM in
