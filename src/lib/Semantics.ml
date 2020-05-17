@@ -491,7 +491,7 @@ and whnf_hd hd =
       | true -> reduce_to con
       | false ->
         begin
-          dispatch_rigid_coe abs r s con |>>
+          dispatch_rigid_coe abs |>>
           function
           | `Done ->
             ret `Done
@@ -510,7 +510,7 @@ and whnf_hd hd =
           ret `Done
         | `Reduce code ->
           begin
-            dispatch_rigid_hcom code r s phi bdy |>>
+            dispatch_rigid_hcom code |>>
             function
             | `Done _ ->
               ret `Done
@@ -875,7 +875,7 @@ and do_coe r s (abs : D.con) con =
   | _ -> do_rigid_coe abs r s con
 
 
-and dispatch_rigid_coe line r s con =
+and dispatch_rigid_coe line =
   let open CM in
   let i = D.DimProbe (Symbol.named "do_rigid_coe") in
   let rec go peek =
@@ -899,7 +899,7 @@ and dispatch_rigid_coe line r s con =
   in
   go @<< whnf_inspect_con @<< do_ap line (D.dim_to_con i)
 
-and dispatch_rigid_hcom code r s phi (bdy : D.con) =
+and dispatch_rigid_hcom code =
   let open CM in
   let rec go code =
     match code with
@@ -913,8 +913,8 @@ and dispatch_rigid_hcom code r s phi (bdy : D.con) =
       ret @@ `Reduce (`FHCom `Nat)
     | D.CodeUniv ->
       ret @@ `Reduce (`FHCom `Univ)
-    | D.FHCom (`Univ, _, _, _, _) ->
-      ret @@ `Reduce `HComFHCom
+    | D.FHCom (`Univ, r, s, phi, bdy) ->
+      ret @@ `Reduce (`HComFHCom (r, s, phi, bdy))
     | D.Cut {cut} ->
       ret @@ `Done cut
     | _ ->
@@ -1005,8 +1005,19 @@ and enact_rigid_hcom code r s phi bdy tag =
       TB.el_out @@ TB.ap bdy [i; prf]
     in
     D.ElIn (D.FHCom (tag, r, s, phi, bdy'))
-  | `HComFHCom ->
-    raise CFHM
+  | `HComFHCom (h_r,h_s,h_phi,h_bdy) ->
+    splice_tm @@
+    Splice.foreign_dim r @@ fun r ->
+    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_cof phi @@ fun phi ->
+    Splice.foreign bdy @@ fun bdy ->
+    Splice.foreign_dim h_r @@ fun h_r ->
+    Splice.foreign_dim h_s @@ fun h_s ->
+    Splice.foreign_cof h_phi @@ fun h_phi ->
+    Splice.foreign h_bdy @@ fun h_bdy ->
+    Splice.term @@
+    let fhcom = TB.Kan.FHCom.{r = h_r; s = h_s; phi = h_phi; bdy = h_bdy} in
+    TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~s ~phi ~bdy
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
     let hd = D.HCom (cut, r, s, phi, bdy) in
@@ -1015,7 +1026,7 @@ and enact_rigid_hcom code r s phi bdy tag =
 and do_rigid_coe (line : D.con) r s con =
   let open CM in
   CM.abort_if_inconsistent D.Abort @@
-  let* tag = dispatch_rigid_coe line r s con in
+  let* tag = dispatch_rigid_coe line in
   match tag with
   | `Done ->
     let hd = D.Coe (line, r, s, con) in
@@ -1027,7 +1038,7 @@ and do_rigid_coe (line : D.con) r s con =
 and do_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
   CM.abort_if_inconsistent D.Abort @@
-  let* tag = dispatch_rigid_hcom code r s phi bdy in
+  let* tag = dispatch_rigid_hcom code in
   match tag with
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
