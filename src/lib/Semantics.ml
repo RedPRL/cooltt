@@ -157,6 +157,20 @@ and con_to_cof =
   | _ -> throw @@ NbeFailed "con_to_cof"
 
 
+
+let cap_boundary r s phi code box =
+  Splice.foreign_dim r @@ fun r ->
+  Splice.foreign_dim s @@ fun s ->
+  Splice.foreign_cof phi @@ fun phi ->
+  Splice.foreign code @@ fun code ->
+  Splice.foreign box @@ fun box ->
+  Splice.term @@
+  TB.cof_split
+    (TB.el @@ TB.ap code [s; TB.prf])
+    [TB.eq r s, (fun _ -> box);
+     phi, (fun _ -> TB.coe code s r box)]
+
+
 let rec eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
@@ -389,20 +403,9 @@ and eval : S.t -> D.con EvM.m =
         CM.test_sequent [] (Cof.join [Cof.eq vr vs; vphi]) |>>
         function
         | true ->
-          splice_tm @@
-          Splice.foreign_dim vr @@ fun r ->
-          Splice.foreign_dim vs @@ fun s ->
-          Splice.foreign_cof vphi @@ fun phi ->
-          Splice.foreign vcode @@ fun code ->
-          Splice.foreign vbox @@ fun box ->
-          Splice.term @@
-          TB.cof_split
-            (TB.el @@ TB.ap code [s; TB.prf])
-            [TB.eq r s, (fun _ -> box);
-             phi, (fun _ -> TB.coe code s r box)]
+          splice_tm @@ cap_boundary vr vs vphi vcode vbox
         | false ->
-          (* do_rigid_cap *)
-          raise CJHM
+          do_rigid_cap vr vs vphi vcode vbox
       end
 
 and eval_dim tr =
@@ -535,13 +538,19 @@ and whnf_hd hd =
           go branches
     in
     go branches
-
-(* C*HM:
- *   D.Cap (r, s, phi, code, cut) ->
- *
- *     1) test r=s ∨ φ; if so, reduce to the appropriate boundary; see the corresponding eval case of Cap for a template.
- *     2) whnf the cut, either reconstitute or do_rigid_cap.
- *)
+  | D.Cap (r, s, phi, code, cut) ->
+    begin
+      test_sequent [] (Cof.join [Cof.eq r s; phi]) |>> function
+      | true ->
+        let box = D.Cut {cut; tp = D.TpHCom (r, s, phi, code)} in
+        reduce_to @<< splice_tm @@ cap_boundary r s phi code box
+      | false ->
+        whnf_cut cut |>> function
+        | `Done ->
+          ret `Done
+        | `Reduce box ->
+          reduce_to @<< do_rigid_cap r s phi code box
+  end
 
 and whnf_cut cut : D.con whnf CM.m =
   let open CM in
@@ -650,24 +659,28 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval bdy
 
-and inspect_con con =
-  let open CM in
-  match con with
-  | D.Cut {tp; cut} ->
-    begin
-      whnf_tp tp |>>
-      function
-      | `Done -> ret con
-      | `Reduce tp -> ret @@ D.Cut {tp; cut}
-    end
-  | _ -> ret con
-
+(* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con con =
   let open CM in
   whnf_con con |>>
   function
   | `Done -> ret con
   | `Reduce con -> ret con
+
+(* reduces a constructor to something that is stable to pattern match on,
+ * _including_ type annotations on cuts *)
+and inspect_con con =
+  let open CM in
+  whnf_inspect_con con |>>
+  function
+  | D.Cut {tp; cut} as con ->
+    begin
+      whnf_tp tp |>>
+      function
+      | `Done -> ret con
+      | `Reduce tp -> ret @@ D.Cut {tp; cut}
+    end
+  | con -> ret con
 
 
 and do_goal_proj con =
@@ -764,6 +777,24 @@ and do_sub_out con =
       throw @@ NbeFailed "do_sub_out"
   end
 
+and do_rigid_cap r s phi code =
+  let open CM in
+  fun box ->
+    abort_if_inconsistent D.Abort @@
+    begin
+      inspect_con box |>>
+      function
+      | D.Cut {cut} ->
+        let* code_fib = do_ap2 code (D.dim_to_con r) D.Prf in
+        let tp = D.El code_fib in
+        ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
+      | D.Box (_,_,_,_,cap) ->
+        do_sub_out cap
+      | _ ->
+        throw @@ NbeFailed "do_rigid_cap"
+    end
+
+
 and do_el_out con =
   let open CM in
   abort_if_inconsistent D.Abort @@
@@ -831,6 +862,7 @@ and unfold_el : D.con -> D.tp CM.m =
       | con ->
         CM.throw @@ NbeFailed "unfold_el failed"
     end
+
 
 and do_coe r s (abs : D.con) con =
   let open CM in

@@ -72,7 +72,7 @@ and hd =
   | Var of int (* De Bruijn level *)
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
-  (* C*HM: add Cap of dim * dim * cof * con * cut *)
+  | Cap of dim * dim * cof * con * cut (* TODO: the last [con] may be unnecessary to store here *)
   | SubOut of cut * cof * tm_clo
   | Split of tp * (cof * tm_clo) list
 

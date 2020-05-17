@@ -4,6 +4,9 @@ module Sem = Semantics
 module TB = TermBuilder
 
 exception Todo
+exception CCHM
+exception CJHM
+exception CFHM
 
 open CoolBasis
 open Monads
@@ -242,7 +245,7 @@ and quote_tp (tp : D.tp) =
     let+ tphi = quote_cof phi in
     S.TpPrf tphi
   | D.TpHCom (r, s, phi, bdy) ->
-    raise Todo
+    raise CCHM
 
 
 and quote_hd =
@@ -280,6 +283,9 @@ and quote_hd =
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
     ret @@ S.CofSplit (ttp, List.combine tphis tms)
+  | D.Cap _ ->
+    raise CFHM
+
 
 and quote_dim d =
   quote_con D.TpDim @@
