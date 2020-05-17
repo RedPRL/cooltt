@@ -249,35 +249,35 @@ let cap mr ms mphi mcode mbox =
 
 module Kan =
 struct
-  type coe = r:S.t m -> s:S.t m -> bdy:S.t m -> S.t m
-  type hcom = r:S.t m -> s:S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+  type coe = r:S.t m -> r':S.t m -> bdy:S.t m -> S.t m
+  type hcom = r:S.t m -> r':S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
 
-  let coe_pi ~base_line ~fam_line ~r ~s ~bdy : _ m =
+  let coe_pi ~base_line ~fam_line ~r ~r' ~bdy : _ m =
     el_in @@
     lam @@ fun arg ->
-    let_ (lam @@ fun i -> coe base_line s i arg) @@ fun coe_base_line ->
+    let_ (lam @@ fun i -> coe base_line r' i arg) @@ fun coe_base_line ->
     let fib_line = lam @@ fun i -> ap fam_line [i; ap coe_base_line [i]] in
-    coe fib_line r s @@
+    coe fib_line r r' @@
     ap (el_out bdy) [ap coe_base_line [r]]
 
-  let hcom_pi ~base ~fam ~r ~s ~phi ~bdy : _ m =
+  let hcom_pi ~base ~fam ~r ~r' ~phi ~bdy : _ m =
     el_in @@
     lam @@ fun arg ->
     let tfib = ap fam [arg] in
-    hcom tfib r s phi @@
+    hcom tfib r r' phi @@
     lam @@ fun i ->
     lam @@ fun prf ->
     ap (el_out (ap bdy [i; prf])) [arg]
 
-  let coe_sg ~base_line ~fam_line ~r ~s ~bdy : _ m =
+  let coe_sg ~base_line ~fam_line ~r ~r' ~bdy : _ m =
     let fst_line = lam @@ fun i -> coe base_line r i @@ fst @@ el_out bdy in
     let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
     el_in @@
     pair
-      (ap fst_line [s])
-      (coe fib_line r s @@ snd @@ el_out bdy)
+      (ap fst_line [r'])
+      (coe fib_line r r' @@ snd @@ el_out bdy)
 
-  let hcom_sg ~base ~fam ~r ~s ~phi ~bdy : _ m =
+  let hcom_sg ~base ~fam ~r ~r' ~phi ~bdy : _ m =
     let p0_line =
       lam @@ fun i ->
       hcom base r i phi @@
@@ -285,13 +285,13 @@ struct
       lam @@ fun prf ->
       fst @@ el_out @@ ap bdy [j; prf]
     in
-    let p0 = ap p0_line [s] in
+    let p0 = ap p0_line [r'] in
     let fib_line =
       lam @@ fun i ->
       ap fam [ap p0_line [i]]
     in
     let p1 =
-      com fib_line r s phi @@
+      com fib_line r r' phi @@
       lam @@ fun i ->
       lam @@ fun prf ->
       snd @@ el_out @@ ap bdy [i; prf]
@@ -300,12 +300,12 @@ struct
     pair p0 p1
 
 
-  let coe_path ~(fam_line : S.t m) ~(bdry_line : S.t m) ~(r : S.t m) ~(s : S.t m) ~(bdy : S.t m) : S.t m =
+  let coe_path ~(fam_line : S.t m) ~(bdry_line : S.t m) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
     el_in @@
     lam @@ fun j ->
     sub_in @@
     let_ (boundary j) @@ fun d_j ->
-    com (lam @@ fun i -> ap fam_line [i; j]) r s d_j @@
+    com (lam @@ fun i -> ap fam_line [i; j]) r r' d_j @@
     lam @@ fun i ->
     lam @@ fun _ ->
     cof_split
@@ -314,13 +314,13 @@ struct
       ; eq i r, (fun q -> sub_out @@ ap (el_out bdy) [j])
       ]
 
-  let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy =
+  let hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy =
     el_in @@
     lam @@ fun i ->
     sub_in @@
     let_ (boundary i) @@ fun d_i ->
     let_ (ap fam [i]) @@ fun fam_i ->
-    hcom fam_i r s (join [phi; d_i]) @@
+    hcom fam_i r r' (join [phi; d_i]) @@
     lam @@ fun k ->
     lam @@ fun p ->
     cof_split
@@ -331,43 +331,43 @@ struct
 
   module FHCom :
   sig
-    type fhcom_u = {r : S.t m; s : S.t m; phi : S.t m; bdy : S.t m}
-    val hcom_fhcom : fhcom:fhcom_u -> r:S.t m -> s:S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
-    val coe_fhcom : fhcom:fhcom_u -> r:S.t m -> s:S.t m -> bdy:S.t m -> S.t m
+    type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
+    val hcom_fhcom : fhcom:fhcom_u -> r:S.t m -> r':S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+    val coe_fhcom : fhcom:fhcom_u -> r:S.t m -> r':S.t m -> bdy:S.t m -> S.t m
   end =
   struct
-    type fhcom_u = {r : S.t m; s : S.t m; phi : S.t m; bdy : S.t m}
+    type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
 
-    let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(s : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
+    let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
       el_in @@
       let_ ~ident:(`Machine "O")
         begin
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
-          cap fhcom.r fhcom.s fhcom.phi fhcom.bdy @@ el_out @@ ap bdy [i; prf]
+          cap fhcom.r fhcom.r' fhcom.phi fhcom.bdy @@ el_out @@ ap bdy [i; prf]
         end
       @@ fun o_tilde ->
       let_ ~ident:(`Machine "P")
         begin
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
-          hcom (ap fhcom.bdy [fhcom.s; prf]) r i phi bdy
+          hcom (ap fhcom.bdy [fhcom.r'; prf]) r i phi bdy
         end
       @@ fun p_tilde ->
-      box fhcom.r fhcom.s fhcom.phi (lam @@ fun _ -> ap p_tilde [s; prf]) @@
-      hcom (ap fhcom.bdy [fhcom.s; prf]) r s (join [phi; fhcom.phi; eq fhcom.r fhcom.s]) @@
+      box fhcom.r fhcom.r' fhcom.phi (lam @@ fun _ -> ap p_tilde [r'; prf]) @@
+      hcom (ap fhcom.bdy [fhcom.r'; prf]) r r' (join [phi; fhcom.phi; eq fhcom.r fhcom.r']) @@
       lam ~ident:(`Machine "i") @@ fun i ->
       lam @@ fun _ ->
       cof_split
-        (el @@ ap fhcom.bdy [fhcom.s; prf])
+        (el @@ ap fhcom.bdy [fhcom.r'; prf])
         [ join [eq i r; phi],
           (fun _ -> ap o_tilde [i; prf])
-        ; join [fhcom.phi; eq fhcom.r fhcom.s],
-          (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.s fhcom.r (ap p_tilde [i; prf]))
+        ; join [fhcom.phi; eq fhcom.r fhcom.r'],
+          (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]))
         ]
 
     (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
-    let coe_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(s : S.t m) ~(bdy : S.t m) : S.t m =
+    let coe_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
       raise CFHM
   end
 end
@@ -376,14 +376,14 @@ module Test =
 struct
   let closed_form =
     lam ~ident:(`Machine "s") @@ fun h_r ->
-    lam ~ident:(`Machine "s'") @@ fun h_s ->
+    lam ~ident:(`Machine "s'") @@ fun h_r' ->
     lam ~ident:(`Machine "ψ") @@ fun h_phi ->
     lam ~ident:(`Machine "A") @@ fun h_bdy ->
     lam ~ident:(`Machine "r") @@ fun r ->
-    lam ~ident:(`Machine "r'") @@ fun s ->
+    lam ~ident:(`Machine "r'") @@ fun r' ->
     lam ~ident:(`Machine "φ") @@ fun phi ->
     lam ~ident:(`Machine "M") @@ fun bdy ->
-    Kan.FHCom.hcom_fhcom ~fhcom:{r = h_r; s = h_s; phi = h_phi; bdy = h_bdy} ~r ~s ~phi ~bdy
+    Kan.FHCom.hcom_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~phi ~bdy
 
   let print_example () =
     test closed_form

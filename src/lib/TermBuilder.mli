@@ -61,8 +61,8 @@ val boundary : t m -> t m
 val forall : t b -> t m
 
 module Kan : sig
-  type coe = r:t m -> s:t m -> bdy:t m -> t m
-  type hcom = r:t m -> s:t m -> phi:t m -> bdy:t m -> t m
+  type coe = r:t m -> r':t m -> bdy:t m -> t m
+  type hcom = r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
 
   val coe_pi : base_line:t m -> fam_line:t m -> coe
   val hcom_pi : base:t m -> fam:t m -> hcom
@@ -74,8 +74,8 @@ module Kan : sig
   val hcom_path : fam:t m -> bdry:t m -> hcom
 
   module FHCom : sig
-    type fhcom_u = {r : t m; s : t m; phi : t m; bdy : t m}
-    val hcom_fhcom : fhcom:fhcom_u -> r:t m -> s:t m -> phi:t m -> bdy:t m -> t m
+    type fhcom_u = {r : t m; r' : t m; phi : t m; bdy : t m}
+    val hcom_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
   end
 end
 

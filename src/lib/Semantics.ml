@@ -275,17 +275,17 @@ and eval : S.t -> D.con EvM.m =
     | S.GoalProj tm ->
       let* con = eval tm in
       lift_cmp @@ do_goal_proj con
-    | S.Coe (tpcode, tr, ts, tm) ->
+    | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
-      let* s = eval_dim ts in
+      let* r' = eval_dim tr' in
       let* con = eval tm in
       begin
-        CM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
+        CM.test_sequent [] (Cof.eq r r') |> lift_cmp |>> function
         | true ->
           ret con
         | false ->
           let* coe_abs = eval tpcode in
-          lift_cmp @@ do_rigid_coe coe_abs r s con
+          lift_cmp @@ do_rigid_coe coe_abs r r' con
       end
     | S.HCom (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
@@ -922,7 +922,7 @@ and dispatch_rigid_hcom code =
   in
   go @<< whnf_inspect_con code
 
-and enact_rigid_coe line r s con tag =
+and enact_rigid_coe line r r' con tag =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match tag with
@@ -933,35 +933,35 @@ and enact_rigid_coe line r s con tag =
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
     let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
     let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-    Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
+    Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
   | `CoeSg ->
     let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
     let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
     let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-    Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
+    Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
   | `CoePath ->
     let split_line = D.compose (D.Destruct D.DCodePathSplit) line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
     let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
     let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-    Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
+    Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
   | `CoeFHCom ->
     raise CFHM
 
-and enact_rigid_hcom code r s phi bdy tag =
+and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match tag with
@@ -970,31 +970,31 @@ and enact_rigid_hcom code r s phi bdy tag =
     Splice.foreign base @@ fun base ->
     Splice.foreign fam @@ fun fam ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
-    TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
+    TB.Kan.hcom_pi ~base ~fam ~r ~r' ~phi ~bdy
   | `HComSg (base, fam) ->
     splice_tm @@
     Splice.foreign base @@ fun base ->
     Splice.foreign fam @@ fun fam ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
-    TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
+    TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
   | `HComPath (fam, bdry) ->
     splice_tm @@
     Splice.foreign fam @@ fun fam ->
     Splice.foreign bdry @@ fun bdry ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
-    TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
+    TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
   | `FHCom tag ->
     (* bdy : (i : 𝕀) (_ : [...]) → el(<nat>) *)
     let+ bdy' =
@@ -1004,23 +1004,23 @@ and enact_rigid_hcom code r s phi bdy tag =
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_out @@ TB.ap bdy [i; prf]
     in
-    D.ElIn (D.FHCom (tag, r, s, phi, bdy'))
-  | `HComFHCom (h_r,h_s,h_phi,h_bdy) ->
+    D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
+  | `HComFHCom (h_r,h_r',h_phi,h_bdy) ->
     splice_tm @@
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.foreign_dim h_r @@ fun h_r ->
-    Splice.foreign_dim h_s @@ fun h_s ->
+    Splice.foreign_dim h_r' @@ fun h_r' ->
     Splice.foreign_cof h_phi @@ fun h_phi ->
     Splice.foreign h_bdy @@ fun h_bdy ->
     Splice.term @@
-    let fhcom = TB.Kan.FHCom.{r = h_r; s = h_s; phi = h_phi; bdy = h_bdy} in
-    TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~s ~phi ~bdy
+    let fhcom = TB.Kan.FHCom.{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} in
+    TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~r' ~phi ~bdy
   | `Done cut ->
     let tp = D.El (D.Cut {tp = D.Univ; cut}) in
-    let hd = D.HCom (cut, r, s, phi, bdy) in
+    let hd = D.HCom (cut, r, r', phi, bdy) in
     ret @@ D.Cut {tp; cut = hd, []}
 
 and do_rigid_coe (line : D.con) r s con =
