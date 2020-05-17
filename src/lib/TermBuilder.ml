@@ -209,6 +209,10 @@ let meet mphis =
   let+ phis = MU.commute_list mphis in
   S.Cof (Cof.Meet phis)
 
+let forall mphi =
+  let+ phi = scope mphi in
+  S.ForallCof phi
+
 let tp_dim = ret S.TpDim
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1

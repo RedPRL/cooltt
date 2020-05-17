@@ -57,6 +57,7 @@ val eq : t m -> t m -> t m
 val join : t m list -> t m
 val meet : t m list -> t m
 val boundary : t m -> t m
+val forall : t b -> t m
 
 module Kan : sig
   type coe = r:t m -> s:t m -> bdy:t m -> t m
