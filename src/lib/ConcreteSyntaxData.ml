@@ -74,4 +74,8 @@ type decl =
   | NormalizeTerm of con
   | Quit
 
+type command =
+  | EndOfFile
+  | Decl of decl
+
 type signature = decl list
