@@ -85,7 +85,7 @@ let execute_decl =
         `Continue
       | Error (Elaborator.NotSynthesizable con) ->
         let+ () = EM.emit ~lvl:`Error con.info pp_message @@ TermNotSynthesizable con.node in
-        `Continue
+        `Error ()
       | Error err -> EM.throw err
     end
   | CS.Print ident ->
@@ -111,19 +111,22 @@ let execute_decl =
   | CS.Quit ->
     EM.ret `Quit
 
-let rec execute_signature sign =
+(* Favonia: I haven't decided to extend the environment to hold past errors. *)
+let rec execute_signature ~status sign =
   let open Monad.Notation (EM) in
   match sign with
-  | [] -> EM.ret ()
+  | [] -> EM.ret status
   | d :: sign ->
     let* res = execute_decl d in
     match res with
     | `Continue ->
-      execute_signature sign
+      execute_signature ~status sign
+    | `Error () ->
+      execute_signature ~status:(Result.error ()) sign
     | `Quit ->
-      EM.ret ()
+      EM.ret status
 
-let process_sign : CS.signature -> unit =
+let process_sign : CS.signature -> (unit, unit) result =
   fun sign ->
   EM.run_exn ElabState.init Env.init @@
-  execute_signature sign
+  execute_signature ~status:(Result.ok ()) sign

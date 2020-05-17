@@ -4,22 +4,23 @@ open Cmdliner
 let execute input = Load.load input |> Driver.process_sign
 
 let main width input =
-  try
+  match
     Format.set_margin width;
-    execute input;
-    0
+    execute input
   with
-  | Invalid_argument s ->
+  | Ok () -> 0
+  | Error () -> 1
+  | exception (Invalid_argument s) ->
     Format.eprintf "Internal error (invalid argument): %s\n" s;
     1
-  | Failure s ->
+  | exception (Failure s) ->
     Format.eprintf "Internal error (Failure): %s\n" s;
     1
-  | Load.ParseError (err, span) ->
+  | exception (Load.ParseError (err, span)) ->
     let loc = Some span in
     Log.pp_message ~loc ~lvl:`Error Format.pp_print_string Format.err_formatter err;
     1
-  | ElabError.ElabError (err, loc) ->
+  | exception (ElabError.ElabError (err, loc)) ->
     Log.pp_message ~loc ~lvl:`Error ElabError.pp Format.err_formatter err;
     1
 

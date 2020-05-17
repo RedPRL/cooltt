@@ -294,7 +294,7 @@ and syn_tm : CS.con -> T.syn_tac =
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
-      EM.throw @@ NotSynthesizable con
+      EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con, con.info)
 
 and chk_cases cases =
   List.map chk_case cases
