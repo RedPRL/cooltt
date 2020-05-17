@@ -368,7 +368,23 @@ struct
 
     (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
     let coe_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
-      raise CFHM
+      let s_ x = ap fhcom.r [x] in
+      let s'_ x = ap fhcom.r' [x] in
+      let psi_ x = ap fhcom.phi [x] in
+      let code_ x = ap fhcom.bdy [x] in
+      el_in @@
+      box (s_ r') (s'_ r') (psi_ r')
+        (raise CFHM)
+        begin
+          hcom (code_ r') (s_ r') (s'_ r') (join [psi_ r'; eq r r']) @@
+          lam @@ fun i ->
+          lam @@ fun _ ->
+          cof_split (el @@ code_ r')
+            [eq i (s_ r'), raise CFHM;
+             psi_ r', raise CFHM;
+             eq r r', raise CFHM]
+            (* I think the r=r' and i = s_r' branches can be combined *)
+        end
   end
 end
 
