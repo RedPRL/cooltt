@@ -46,6 +46,7 @@ val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m
+val tp_hcom : t m -> t m -> t m -> t m -> tp m
 val el : t m -> tp m
 
 val dim0 : t m

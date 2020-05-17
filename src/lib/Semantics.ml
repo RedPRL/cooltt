@@ -749,6 +749,9 @@ and unfold_el : D.con -> D.tp CM.m =
         TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
         TB.ap bdry [i; prf]
 
+      | D.FHCom (`Univ, r, s, phi, bdy) ->
+        ret @@ D.TpHCom (r, s, phi, bdy)
+
       | con ->
         CM.throw @@ NbeFailed "unfold_el failed"
     end

@@ -90,6 +90,13 @@ let hcom mcode mr ms mphi mbdy =
   and+ bdy = mbdy in
   S.HCom (code, r, s, phi, bdy)
 
+let tp_hcom mr ms mphi mbdy =
+  let+ r = mr
+  and+ s = ms
+  and+ phi = mphi
+  and+ bdy = mbdy in
+  S.TpHCom (r, s, phi, bdy)
+
 let com mline mr ms mphi mbdy =
   let+ line = mline
   and+ r = mr
