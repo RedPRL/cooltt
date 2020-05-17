@@ -191,6 +191,8 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
     D.TpPrf phi
   | S.TpVar ix ->
     get_local_tp ix
+  | S.TpHCom (r, s, phi, bdy) ->
+    raise Todo
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in

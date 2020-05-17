@@ -169,3 +169,5 @@ and pp_tp fmt =
     Format.fprintf fmt "unfold-el[%a]" pp_cut cut
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"
+  | TpHCom _ ->
+    Format.fprintf fmt "<Hcom>"

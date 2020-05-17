@@ -241,6 +241,8 @@ and quote_tp (tp : D.tp) =
   | D.TpPrf phi ->
     let+ tphi = quote_cof phi in
     S.TpPrf tphi
+  | D.TpHCom (r, s, phi, bdy) ->
+    raise Todo
 
 
 and quote_hd =

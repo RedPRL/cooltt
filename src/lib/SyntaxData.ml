@@ -50,5 +50,6 @@ and tp =
   | Pi of tp * Ident.t * tp
   | Sg of tp * Ident.t * tp
   | Nat
+  | TpHCom of t * t * t * t
 
 type env = tp list

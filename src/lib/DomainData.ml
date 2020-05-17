@@ -64,6 +64,7 @@ and tp =
   | Sg of tp * Ident.t * tp_clo
   | Nat
   | TpAbort
+  | TpHCom of dim * dim * cof * con
 
 and hd =
   | Global of Symbol.t

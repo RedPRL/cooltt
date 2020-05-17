@@ -225,6 +225,8 @@ and pp_tp env fmt tp =
     pp_tp env fmt tp
   | TpPrf cof ->
     Format.fprintf fmt "[%a]" (pp env) cof
+  | TpHCom (r, s, phi, bdy) ->
+    Format.fprintf fmt "<Hcom>"
 
 and pp_atomic_tp env fmt tp =
   match tp with
