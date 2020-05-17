@@ -1,6 +1,8 @@
 open CoolBasis
 
-exception Todo
+exception CFHM
+exception CCHM
+exception CJHM
 
 module S = Syntax
 
@@ -215,10 +217,10 @@ let boundary mr =
   join [eq mr dim0; eq mr dim1]
 
 let box mr ms mtube mcap =
-  raise Todo
+  raise CJHM
 
 let cap mr ms mphi mcode mtm =
-  raise Todo
+  raise CJHM
 
 
 module Kan =
@@ -303,11 +305,11 @@ struct
       ; join [phi; eq k r] , (fun q -> sub_out (ap (el_out (ap bdy [k;q])) [i]))
       ]
 
-
-  module HComInFHCom :
+  module FHCom :
   sig
     type fhcom_u = {r : S.t m; s : S.t m; phi : S.t m; bdy : S.t m}
     val hcom_fhcom : fhcom:fhcom_u -> r:S.t m -> s:S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+    val coe_fhcom : fhcom:fhcom_u -> r:S.t m -> s:S.t m -> bdy:S.t m -> S.t m
   end =
   struct
     type fhcom_u = {r : S.t m; s : S.t m; phi : S.t m; bdy : S.t m}
@@ -333,6 +335,10 @@ struct
         ; join [fhcom.phi; eq fhcom.r fhcom.s],
           (fun _ -> coe (lam @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.s fhcom.r (ap box_tube [i; prf]))
         ]
+
+    (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
+    let coe_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(s : S.t m) ~(bdy : S.t m) : S.t m =
+      raise CFHM
   end
 
 end
