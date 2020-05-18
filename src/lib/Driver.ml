@@ -83,8 +83,8 @@ let execute_decl =
         let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
         let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
         `Continue
-      | Error (Elaborator.NotSynthesizable con) ->
-        let+ () = EM.emit ~lvl:`Error con.info pp_message @@ TermNotSynthesizable con.node in
+      | Error (Err.ElabError (Err.ExpectedSynthesizableTerm con, info)) ->
+        let+ () = EM.emit ~lvl:`Error info pp_message @@ TermNotSynthesizable con.node in
         `Error ()
       | Error err -> EM.throw err
     end

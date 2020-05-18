@@ -11,8 +11,6 @@ module Sem = Semantics
 open CoolBasis
 open Monad.Notation (EM)
 
-exception NotSynthesizable of CS.con
-
 let rec unfold idents k =
   match idents with
   | [] -> k
