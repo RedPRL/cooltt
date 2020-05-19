@@ -23,7 +23,7 @@ struct
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | InvalidTypeExpression of CS.con
     | ExpectedConnective of connective * Pp.env * S.tp
-    | ExpectedSynthesizableTerm of S.t
+    | ExpectedSynthesizableTerm of CS.con
     | MalformedCase
     | CannotEliminate of Pp.env * S.tp
     | ExpectedSimpleInductive of Pp.env * S.tp

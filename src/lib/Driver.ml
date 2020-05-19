@@ -15,6 +15,7 @@ let _ =
 
 type message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
+  | TermNotSynthesizable of CS.con_
   | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
   | UnboundIdent of Ident.t
 
@@ -26,6 +27,10 @@ let pp_message fmt =
       "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
       (S.pp env) orig
       (S.pp env) nf
+  | TermNotSynthesizable orig ->
+    Format.fprintf fmt
+      "@[Type annotation required for@,@[<hv> %a@]@]"
+      CS.pp_con_ orig
   | Definition {ident; tp; tm = Some tm} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
@@ -69,12 +74,20 @@ let execute_decl =
     let+ _sym = EM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
-    EM.veil (Veil.const `Transparent) @@
-    let* tm, vtp = Elaborator.syn_tm term in
-    let* vtm = EM.lift_ev @@ Sem.eval tm in
-    let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
-    let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
-    `Continue
+    EM.veil (Veil.const `Transparent)
+    begin
+      EM.trap (Elaborator.syn_tm term) |>>
+      function
+      | Ok (tm, vtp) ->
+        let* vtm = EM.lift_ev @@ Sem.eval tm in
+        let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
+        let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
+        `Continue
+      | Error (Err.ElabError (Err.ExpectedSynthesizableTerm con, info)) ->
+        let+ () = EM.emit ~lvl:`Error info pp_message @@ TermNotSynthesizable con.node in
+        `Error ()
+      | Error err -> EM.throw err
+    end
   | CS.Print ident ->
     begin
       EM.resolve ident.node |>>
@@ -98,20 +111,22 @@ let execute_decl =
   | CS.Quit ->
     EM.ret `Quit
 
-let rec execute_signature sign =
+(* Favonia: I haven't decided to extend the environment to hold past errors. *)
+let rec execute_signature ~status sign =
   let open Monad.Notation (EM) in
   match sign with
-  | [] -> EM.ret ()
+  | [] -> EM.ret status
   | d :: sign ->
     let* res = execute_decl d in
     match res with
     | `Continue ->
-      execute_signature sign
+      execute_signature ~status sign
+    | `Error () ->
+      execute_signature ~status:(Result.error ()) sign
     | `Quit ->
-      EM.ret ()
+      EM.ret status
 
-let process_sign : CS.signature -> unit =
+let process_sign : CS.signature -> (unit, unit) result =
   fun sign ->
   EM.run_exn ElabState.init Env.init @@
-  execute_signature sign
-
+  execute_signature ~status:(Result.ok ()) sign
