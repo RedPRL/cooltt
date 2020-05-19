@@ -75,6 +75,7 @@ type decl =
   | Quit
 
 type command =
+  | NoOp
   | EndOfFile
   | Decl of decl
 

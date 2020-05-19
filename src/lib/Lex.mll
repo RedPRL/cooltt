@@ -72,6 +72,10 @@ rule token = parse
     { line_comment token lexbuf }
   | "⍝" (* APL *)
     { line_comment token lexbuf }
+  | "⨾"
+    { SEMISEMI }
+  | ";;"
+    { SEMISEMI }
   | "/-"
     { block_comment token lexbuf }
   | '('

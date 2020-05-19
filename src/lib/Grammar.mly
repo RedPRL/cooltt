@@ -34,7 +34,7 @@
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF
 %token ELIM
-%token EOF
+%token SEMISEMI EOF
 %token TOPC BOTC
 
 %nonassoc IN RRIGHT_ARROW
@@ -42,6 +42,7 @@
 %nonassoc FST SND SUC RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
+%start <ConcreteSyntax.command> command
 %type <Ident.t> plain_name name
 %type <con_>
   plain_atomic_in_cof_except_term
@@ -89,8 +90,18 @@ decl:
 sign:
   | EOF
     { [] }
+  | SEMISEMI; s = sign
+    { s }
   | d = decl; s = sign
     { d :: s }
+
+command:
+  | EOF
+    { EndOfFile }
+  | SEMISEMI
+    { NoOp }
+  | d = decl; SEMISEMI
+    { Decl d }
 
 plain_atomic_in_cof_except_term:
   | BOUNDARY t = atomic_term
