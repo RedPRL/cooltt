@@ -22,6 +22,9 @@
 \NewDocumentCommand\Coe{mmmm}{
   \mathsf{coe}_{#1}\brc{#2\rightsquigarrow #3}\prn{#4}
 }
+\NewDocumentCommand\Com{mmmmm}{
+  \mathsf{com}_{#1}\brc{#2\rightsquigarrow #3;#4}\prn{#5}
+}
 \NewDocumentCommand\CodeHCom{mmmm}{
   \widehat{\mathsf{Hcom}}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
 }
@@ -117,6 +120,17 @@
   }{
     \Coe{\Code{A}}{r}{s}{M} : \TpEl{\Code{A}\prn{s}} \mid
     r=s\to M
+  }
+  \and
+  \inferrule[com structure]{
+    \Code{A} : \DIM\to \TpUniv\\
+    r,s : \DIM\\
+    \phi : \COF\\
+    M : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}}{\TpEl{\Code{A}\prn{i}}}
+  }{
+    \Com{\Code{A}}{r}{s}{\phi}{M} : \TpEl{\Code{A}\prn{s}}
+    \mid
+    r=s\lor\phi \to M\prn{s,*}
   }
   \and
   \inferrule[composite type formation]{
@@ -391,12 +405,56 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
+        \tilde{O} : \Prod{j:\DIM}{
+          \Prod{*:\TpPrf{r=r'}}{
+            \TpEl{\Code{A}_{r}\prn{s_{r},*}}}}\\
+        \tilde{O}\prn{j,*} :=
+          \HCom{\Code{A}_{r}\prn{s_{r},*}}{s'_{r}}{j}{\phi_{r}}{
+            \lambda j,*.
+            \brk{
+              ??
+              \mid
+              \Coe{\lambda j.\Code{A}_r\prn{j,*}}{j}{s_r}{
+                \Coe{\lambda j.\Code{A}_r\prn{j,*}}{s'_r}{j}{M}}}
+            }
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{Q} : \Prod{j:\DIM}{
+          \Prod{*:\TpPrf{j=s_{r'}\lor \phi_{r'}}}{
+            \TpEl{\Code{A}_{r'}\prn{j,*}}}}\\
+        \tilde{Q}\prn{j,*} :=
+          ??
+          %\Com{\Code{A}_{r'}}{s_{r'}}{j}{\phi_{r'}}{\lambda k.
+          %  \Coe{\Code{A}_{r'}}{s'_{r'}}{k}{
+          %    \Coe{\lambda i.\Code{A}_{i}\prn{j,*}}{r}{k}{M}}}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{H} : \Prod{j:\DIM}{
+          \Prod{*:\TpPrf{j=s_{r'}\lor \phi_{r'}\lor r=r'}}{
+            \TpEl{\Code{A}_{r'}\prn{s_{r'},*}}}}\\
+        \tilde{H}\prn{j,*} :=
+        \brk{
+          j=s_{r'}\lor \phi_{r'} \to \tilde{Q}\prn{j,*}
+          \mid
+          r=r' \to \tilde{O}\prn{j,*}
+        }
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
         \tilde{C} : \TpHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}\\
         \tilde{C} :=
         \TmBox{s_{r'}}{s'_{r'}}{\phi_{r'}}{
-          \lambda{*}.{?}
+          \lambda{*}.{\tilde{Q}\prn{s'_{r'},*}}
         }{
-          \tilde{H}
+          \HCom{\Code{A}_{r'}(s_{r'},*)}{s_{r'}}{s'_{r'}}{\phi_{r'} \lor r=r'}{\tilde{H}}
         }
       \end{array}
     }
