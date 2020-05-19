@@ -70,6 +70,8 @@ rule token = parse
     { (NUMERAL (int_of_string (Lexing.lexeme lexbuf))) }
   | "--"
     { line_comment token lexbuf }
+  | "⍝" (* APL *)
+    { line_comment token lexbuf }
   | "/-"
     { block_comment token lexbuf }
   | '('
