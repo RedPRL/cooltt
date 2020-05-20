@@ -1,4 +1,3 @@
-(* This is the top-level driver for the proof assistant. Given
- * a signature (a list of commands/declarations) process each
- * command in sequence *)
-val process_sign : ConcreteSyntax.signature -> (unit, unit) result
+(* This is the top-level driver for the proof assistant. *)
+val process_file : input:string option -> (unit, unit) result
+val do_repl : input:string option -> (unit, unit) result

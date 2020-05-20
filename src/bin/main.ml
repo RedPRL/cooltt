@@ -1,12 +1,10 @@
 open Core
 open Cmdliner
 
-let execute input = Load.load input |> Driver.process_sign
-
-let main width input =
+let main interactive width input =
   match
     Format.set_margin width;
-    execute input
+    if interactive then Driver.do_repl ~input else Driver.process_file ~input
   with
   | Ok () -> 0
   | Error () -> 1
@@ -23,6 +21,10 @@ let main width input =
   | exception (ElabError.ElabError (err, loc)) ->
     Log.pp_message ~loc ~lvl:`Error ElabError.pp Format.std_formatter err;
     1
+
+let opt_interactive =
+  let doc = "Interactive mode." in
+  Arg.(value & flag & info ["i"; "interactive"] ~doc)
 
 let opt_width =
   let default_width = Format.get_margin () in
@@ -41,5 +43,5 @@ let info =
     ~exits:(err_exit :: Term.default_exits)
 
 let () =
-  let t = Term.(const main $ opt_width $ opt_input_file) in
+  let t = Term.(const main $ opt_interactive $ opt_width $ opt_input_file) in
   Term.exit_status @@ Term.eval (t, info)

@@ -130,3 +130,30 @@ let process_sign : CS.signature -> (unit, unit) result =
   fun sign ->
   EM.run_exn ElabState.init Env.init @@
   execute_signature ~status:(Result.ok ()) sign
+
+let process_file ~input = Load.load_file input |> process_sign
+
+let execute_command =
+  let open Monad.Notation (EM) in
+  function
+  | CS.Decl decl -> execute_decl decl
+  | NoOp -> EM.ret `Continue
+  | CS.EndOfFile -> EM.ret `Quit
+
+let rec execute_commands (ch : in_channel) lexbuf =
+  let open Monad.Notation (EM) in
+  let cmd = Load.load_cmd lexbuf in
+  let* res = execute_command cmd in
+    match res with
+    | `Continue ->
+       execute_commands ch lexbuf
+    | `Error () ->
+       execute_commands ch lexbuf
+    | `Quit ->
+      close_in ch;
+      EM.ret (Result.ok ())
+
+let do_repl ~input =
+  let ch, lexbuf = Load.prepare_repl input in
+  EM.run_exn ElabState.init Env.init @@
+  execute_commands ch lexbuf
