@@ -407,11 +407,9 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{N} : \Prod{i:\DIM}{
-          \Prod{j:\DIM}{
-            \Prod{*:\TpPrf{\forall i.\phi_i}}{
-              \TpEl{\Code{A}_{i}\prn{j,*}}
-            }
+        \tilde{N} : \Prod{i,j:\DIM}{
+          \Prod{*:\TpPrf{\forall i.\phi_i}}{
+            \TpEl{\Code{A}_{i}\prn{j,*}}
           }
         }\\
         \tilde{N}\prn{i,j,*} :=
