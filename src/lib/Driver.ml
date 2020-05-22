@@ -131,7 +131,7 @@ let rec execute_signature ~status sign =
 let process_sign : CS.signature -> (unit, unit) result =
   fun sign ->
   EM.run_exn ElabState.init Env.init @@
-  execute_signature ~status:(Result.ok ()) sign
+  execute_signature ~status:(Ok ()) sign
 
 let process_file input =
   match Load.load_file input with
@@ -168,10 +168,10 @@ let rec repl (ch : in_channel) lexbuf =
       repl ch lexbuf
     | Ok `Quit ->
       close_in ch;
-      EM.ret (Ok ())
+      EM.ret @@ Ok ()
     | Error `Quit ->
       close_in ch;
-      EM.ret (Error ())
+      EM.ret @@ Error ()
 
 let do_repl () =
   let ch, lexbuf = Load.prepare_repl () in
