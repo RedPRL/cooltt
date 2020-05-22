@@ -18,7 +18,7 @@ let opt_mode =
     "Mode. Currently supported modes include $(b,scripting) (default) and $(b,interactive). "^
     "A prefix that is distinct enough is sufficient. "^
     "For example, $(b,--mode int) means $(b,--mode interactive)." in
-  Arg.(value & opt (some string) None & info ["m"; "mode"] ~doc)
+  Arg.(value & opt (some string) None & info ["m"; "mode"] ~doc ~docv:"MODE")
 
 let opt_interactive =
   let doc = "An abbreviation of $(b,--mode interactive)." in
@@ -27,7 +27,7 @@ let opt_interactive =
 let opt_width =
   let default_width = Format.get_margin () in
   let doc = "Set the maximum output width to $(docv) columns." in
-  Arg.(value & opt int default_width & info ["w"; "width"] ~doc ~docv:"VAL")
+  Arg.(value & opt int default_width & info ["w"; "width"] ~doc ~docv:"NUM")
 
 let opt_input_file =
   let doc = "The file to typecheck. When $(docv) is -, read standard input." in
