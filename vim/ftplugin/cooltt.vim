@@ -1,7 +1,7 @@
 " vim-cooltt ftplugin
 " Language:     cooltt
 " Author:       Carlo Angiuli
-" Last Change:  2020 May 14
+" Last Change:  2020 May 18
 
 if (exists("b:did_ftplugin") || !has('job'))
   finish
@@ -22,7 +22,7 @@ digraph II 120128
 sign define coolttInfo text=» texthl=Identifier
 sign define coolttError text=✗ texthl=Error
 
-let s:regex = '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) '
+let s:regex = '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) \[\(\a\+\)\]'
 
 " Optional argument: the last line to send to cooltt (default: all).
 function! CheckBuffer(...)
@@ -48,26 +48,17 @@ function! CheckBuffer(...)
     \' - -w ' . s:EditWidth(), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
-    \'out_cb': 'ParseInfo', 'err_cb': 'ParseError',
-    \'out_io': 'buffer', 'out_name': 'cooltt', 'out_msg': 0,
-    \'err_io': 'buffer', 'err_name': 'cooltt', 'err_msg': 0})
+    \'out_cb': 'ParseMessages',
+    \'out_io': 'buffer', 'out_name': 'cooltt', 'out_msg': 0})
 endfunction
 
-function! ParseInfo(ch, line)
-  let matches = matchlist(a:line, s:regex . '\[Info\]:$')
-  if (get(matches, 1) != 0)
+function! ParseMessages(ch, line)
+  let matches = matchlist(a:line, s:regex)
+  if (get(matches, 1) != 0 && (get(matches, 5) == 'Info' || get(matches, 5) == 'Error'))
     let line = matches[1]
+    let type = matches[5]
     let buf = getbufvar('cooltt', 'active')
-    execute 'sign place ' . line . ' line=' . line . ' name=coolttInfo file=' . buf
-  endif
-endfunction
-
-function! ParseError(ch, line)
-  let matches = matchlist(a:line, s:regex . '\[Error\]:$')
-  if (get(matches, 1) != 0)
-    let line = matches[1]
-    let buf = getbufvar('cooltt', 'active')
-    execute 'sign place ' . line . ' line=' . line . ' name=coolttError file=' . buf
+    execute 'sign place ' . line . ' line=' . line . ' name=cooltt' . type . ' file=' . buf
   endif
 endfunction
 
