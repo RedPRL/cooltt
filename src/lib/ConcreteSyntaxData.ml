@@ -8,6 +8,7 @@ let pp_info fmt =
   | Some span ->
     LexingUtil.pp_span fmt span
 
+type upath = string list
 
 type 'a node =
   {node : 'a;
@@ -73,5 +74,6 @@ type decl =
   | Print of Ident.t node
   | NormalizeTerm of con
   | Quit
+  | Import of upath
 
 type signature = decl list

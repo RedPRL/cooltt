@@ -7,6 +7,8 @@ module Sem = Semantics
 module Qu = Quote
 open CoolBasis
 
+exception Todo
+
 
 let _ =
   Printexc.record_backtrace true;
@@ -110,6 +112,7 @@ let execute_decl =
     end
   | CS.Quit ->
     EM.ret `Quit
+  | CS.Import p -> raise Todo
 
 (* Favonia: I haven't decided to extend the environment to hold past errors. *)
 let rec execute_signature ~status sign =
