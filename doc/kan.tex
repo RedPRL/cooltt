@@ -402,7 +402,7 @@ in order to isolate the interesting parts of the Kan structure.
         \HCom{\Code{A}_{r}\prn{s_r,*}}{s'_{r}}{j}{\phi_{r}}{
           \lambda j,*.
           \brk{
-            j=s'_r \to \TmCap{s_r}{s'_r}{\phi_r}{??}{M}
+            j=s'_r \to \TmCap{s_r}{s'_r}{\phi_r}{\Code{A}_r}{M}
             \mid
             \phi_r \to
             \Coe{\lambda j.\Code{A}_r\prn{j,*}}{j}{s_r}{
@@ -451,30 +451,16 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{H} : \Prod{j:\DIM}{
-          \Prod{*:\TpPrf{j=s_{r'}\lor \phi_{r'}\lor r=r'}}{
-            \TpEl{\Code{A}_{r'}\prn{s_{r'},*}}
+        \tilde{H} : \TpEl{\Code{A}_{r'}\prn{s_{r'},*}} \\
+        \tilde{H} :=
+        \HCom{\Code{A}_{r'}(s_{r'},*)}{s_{r'}}{s'_{r'}}{\phi_{r'} \lor r=r'}{
+          \lambda j,*.\brk{
+            j=s_{r'}\to \tilde{P}
+            \mid
+            \phi_{r'} \to \Coe{\lambda j.\Code{A}_{r'}\prn{j,*}}{j}{s_{r'}}{\tilde{Q}\prn{j,*}}
+            \mid
+            r=r' \to \tilde{O}\prn{j}
           }
-        }\\
-        \tilde{H}\prn{j,*} :=
-        \brk{
-          j=s_{r'}\to \tilde{P}
-          \mid
-          \phi_{r'} \to \Coe{\lambda j.\Code{A}_{r'}\prn{j,*}}{j}{s_{r'}}{\tilde{Q}\prn{j,*}}
-          \mid
-          r=r' \to \tilde{O}\prn{j}
-        }
-      \end{array}
-    }
-    \\\\\\
-    {
-      \begin{array}{l}
-        \tilde{C} : \TpEl{\CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}}\\
-        \tilde{C} :=
-        \TmBox{s_{r'}}{s'_{r'}}{\phi_{r'}}{
-          \lambda{*}.{\tilde{Q}\prn{s'_{r'},*}}
-        }{
-          \HCom{\Code{A}_{r'}(s_{r'},*)}{s_{r'}}{s'_{r'}}{\phi_{r'} \lor r=r'}{\tilde{H}}
         }
       \end{array}
     }
@@ -484,7 +470,11 @@ in order to isolate the interesting parts of the Kan structure.
       \CodeHCom{s_{i}}{s'_{i}}{\phi_{i}}{\Code{A}_i}
     }{r}{r'}{M}
     =
-    \tilde{C}
+    \TmBox{s_{r'}}{s'_{r'}}{\phi_{r'}}{
+      \lambda{*}.{\tilde{Q}\prn{s'_{r'},*}}
+    }{
+      \tilde{H}
+    }
     :
     \TpEl{
       \CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}
