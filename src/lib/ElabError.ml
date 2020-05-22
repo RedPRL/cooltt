@@ -48,9 +48,10 @@ let pp fmt =
       "Head connective mismatch, expected %a but got %a"
       pp_connective conn
       (S.pp_tp ppenv) tp
-  | ExpectedSynthesizableTerm _ ->
-    Fmt.fprintf fmt
-      "Expected synthesizable term"
+  | ExpectedSynthesizableTerm orig ->
+    Format.fprintf fmt
+      "@[Type annotation required for@,@[<hv> %a@]@]"
+      CS.pp_con_ orig
   | InvalidTypeExpression cs ->
     Fmt.fprintf fmt
       "Invalid type expression: %a"

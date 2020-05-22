@@ -13,12 +13,12 @@ let pp_lvl fmt =
   | `Warn ->
     Format.fprintf fmt "Warn"
 
-let pp_message ~loc ~lvl pp fmt data =
+let pp_message ~loc ~lvl pp data =
   match loc with
   | None ->
-    pp fmt data
+    pp Format.std_formatter data
   | Some span ->
-    Format.fprintf fmt "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
+    Format.fprintf Format.std_formatter "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
       LexingUtil.pp_span span
       pp_lvl lvl
       pp data

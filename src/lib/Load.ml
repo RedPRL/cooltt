@@ -1,21 +1,17 @@
 open Lex
 open CoolBasis.LexingUtil
 
+type error = LexingError of span | ParseError of span
 exception ParseError of string * span
 
-let print_position lexbuf =
-  let pos = lexbuf.lex_curr_p in
-  Printf.sprintf "%s:%d:%d" pos.pos_fname pos.pos_lnum
-    (pos.pos_cnum - pos.pos_bol + 1)
-
 let parse_with_error parser lexbuf =
-  try parser Lex.token lexbuf with
+  try Ok (parser Lex.token lexbuf) with
   | SyntaxError msg ->
     let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
-    raise @@ ParseError ("Lexing error", span)
+    Error (LexingError span)
   | Grammar.Error ->
     let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
-    raise @@ ParseError ("Parse error", span)
+    Error (ParseError span)
 
 let create_lexbuf input =
   let ch, filename =

@@ -1,6 +1,10 @@
 open Core
 open Cmdliner
 
+let _ =
+  Printexc.record_backtrace true;
+  ()
+
 let main interactive width input =
   match
     Format.set_margin width;
@@ -13,13 +17,6 @@ let main interactive width input =
     1
   | exception (Failure s) ->
     Format.eprintf "Internal error (Failure): %s\n" s;
-    1
-  | exception (Load.ParseError (err, span)) ->
-    let loc = Some span in
-    Log.pp_message ~loc ~lvl:`Error Format.pp_print_string Format.std_formatter err;
-    1
-  | exception (ElabError.ElabError (err, loc)) ->
-    Log.pp_message ~loc ~lvl:`Error ElabError.pp Format.std_formatter err;
     1
 
 let opt_interactive =
