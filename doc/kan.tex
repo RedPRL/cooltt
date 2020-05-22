@@ -405,23 +405,22 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{N} : \Prod{k:\DIM}{\Prod{j:\DIM}{
-          \Prod{*:\TpPrf{??}}{
-            \TpEl{\Code{A}_{r}\prn{??}}}}}\\
-        \tilde{N}\prn{k,j} :=
-          \Coe{\lambda j.??}{s'_k}{j}{\Coe{\lambda i.??}{r}{k}{M}}
+        \tilde{N} : \Prod{i:\DIM}{\Prod{j:\DIM}{
+          \Prod{*:\TpPrf{\forall i.\phi_i}}{
+            \TpEl{\Code{A}_{i}\prn{j,*}}}}}\\
+        \tilde{N}\prn{i,j,*} :=
+          \Coe{\lambda j.\Code{A}_i\prn{j,*}}{s'_i}{j}{\Coe{\lambda i.\Code{A}_i\prn{s'_i,*}}{r}{i}{M}}
       \end{array}
     }
     \\\\\\
     {
       \begin{array}{l}
         \tilde{O} : \Prod{j:\DIM}{
-          \Prod{*:\TpPrf{??}}{
-            \TpEl{\Code{A}_{r}\prn{??}}}}\\
-        \tilde{O}\prn{j,*} :=
-          \HCom{\Code{A}_{r}\prn{??}}{s'_{r}}{j}{\phi_{r}}{
+          \TpEl{\Code{A}_{r}\prn{s_r,*}}}\\
+        \tilde{O}\prn{j} :=
+          \HCom{\Code{A}_{r}\prn{s_r,*}}{s'_{r}}{j}{\phi_{r}}{
             \dots} \\
-            \qquad\qquad
+            \dots :=
             \lambda j,*.
             \brk{
               j=s'_r \to \TmCap{s_r}{s'_r}{\phi_r}{??}{M}
@@ -439,14 +438,14 @@ in order to isolate the interesting parts of the Kan structure.
         \tilde{P} :=
           \Com{\lambda i.\Code{A}_i\prn{s_i,*}}{r}{r'}{\forall i.\phi_i \lor \forall i.\prn{s_i=s'_i}}{
             \dots} \\
-            \qquad\qquad
+            \dots :=
             \lambda i,*.
             \brk{
-              i=r \to \tilde{O}\prn{s_r,*}
+              i=r \to \tilde{O}\prn{s_r}
               \mid
-              \forall i.\phi_i \to \tilde{N}\prn{i,s_i}
+              \forall i.\phi_i \to \tilde{N}\prn{i,s_i,*}
               \mid
-              \forall i.(s_i=s'_i) \to \Coe{\lambda i.\Code{A}_i\prn{??}}{r}{i}{M}
+              \forall i.(s_i=s'_i) \to \Coe{\lambda i.\Code{A}_i\prn{s_i,*}}{r}{i}{M}
             }
       \end{array}
     }
@@ -458,14 +457,15 @@ in order to isolate the interesting parts of the Kan structure.
             \TpEl{\Code{A}_{r'}\prn{j,*}}}}\\
         \tilde{Q}\prn{j,*} :=
           \Com{\lambda j.\Code{A}_{r'}\prn{j,*}}{s_{r'}}{j}{r=r'\lor\forall i.\phi_i}{
+            \dots} \\
+            \dots :=
             \lambda j,*.\brk{
               j=s_{r'} \to \tilde{P}
               \mid
-              r=r' \to \Coe{\lambda j.??}{s'_{r'}}{j}{M}
+              r=r' \to \Coe{\lambda j.\Code{A}_{r'}\prn{j,*}}{s'_{r'}}{j}{M}
               \mid
-              \forall i.\phi_i \to \tilde{N}\prn{r',j}
+              \forall i.\phi_i \to \tilde{N}\prn{r',j,*}
             }
-          }
       \end{array}
     }
     \\\\\\
@@ -480,7 +480,7 @@ in order to isolate the interesting parts of the Kan structure.
           \mid
           \phi_{r'} \to \Coe{\lambda j.\Code{A}_{r'}\prn{j,*}}{j}{s_{r'}}{\tilde{Q}\prn{j,*}}
           \mid
-          r=r' \to \tilde{O}\prn{j,*}
+          r=r' \to \tilde{O}\prn{j}
         }
       \end{array}
     }
