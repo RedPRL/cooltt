@@ -34,6 +34,10 @@
 ;; This file started out as a copy of redtt.el
 ;; (https://github.com/RedPRL/redtt/blob/master/emacs/redtt.el) and did not
 ;; change much.
+;;
+;; Unicode characters can be entered in whatever way is easiest for your
+;; emacs set up; we recommend M-x set-input-mode and then selecting TeX
+;; mode so that \lambda renders to λ, etc.
 
 ;;; Code:
 
@@ -98,7 +102,7 @@
 
 
 (defconst cooltt-expression-keywords
-  '("zero" "suc" "nat" "in" "fst" "snd" "elim" "rec" "unfold" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill")
+  '("zero" "suc" "nat" "in" "fst" "snd" "elim" "unfold" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill")
   "Expression keywords.")
 
 
