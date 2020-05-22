@@ -62,20 +62,56 @@ in `f.rot`. When RedTT starts, it produces a cache of these terms from the
 
 ## questions this design needs to answer
 
-_this isn't exhaustive! it also won't exist in the final version, it's more
-of a todo list to make sure i don't forget to address things that have been
-brought up_
+_this list isn't exhaustive nor are the answers conclusive! this section
+won't even exist in the final version, it's more of a todo list to make
+sure i don't forget to address things that have been brought up; tentative
+answers below each_
 
 1. what are the names of the imported identifiers? (Are they qualified?)
+   - i think they should be fully qualified all the time for now; i don't
+     want to worry about "open" style directives right now because it's a
+     whole other kettle of fish.
+
 1. Do we need to keep track of whether an identifier comes from this file
    or an imported file?
+   - i suspect probably not, just looking at the implementation in
+     `Driver.ml`. right now, when decls get elaborated they are added as
+     globals along with their type; i don't see why you wouldn't want to do
+     that recursively into includes as well.
+
 1. Re: the diamond problem, do we need to make sure that all references to
    an imported identifier are judgmentally equal?
-1. What happens if identifiers are shadowed?
+   - i don't understand this question yet. my intuition is that there
+     shouldn't be copies of the elaborated version of anything, and that
+     all references should be to that one entity. but i don't think that's
+     really an answer to this question and i'll have to come back to it and
+     figure out what i'm missing. (TODO)
+
+1. What happens if identifiers are shadowed (or clash)?
+   - my temptation right now is to only define elaboration when identifiers
+     are unique, that is to say if you have two units named `Nat`, that's
+     an elaboration error. i'll try to reflect this in the judgemental
+     structure below;i think this is in line with the `decls ok` judgement
+     from the TILT paper that rules out irritating ambiguities about names
+     of things.
 
 1. what is the output of checking that is cached? how do you compare those
    things for equality?
+   - as a first cut i think you can read this off from the elaborator,
+
+     ```
+	 elaborate_typed_term : string ->   //the identifier
+		 ConcreteSyntaxData.cell list -> // args from the parse tree
+		 ConcreteSyntax.con ->    // type from the parse tree
+		 ConcreteSyntax.con ->    // body, or definition from the parse tree
+		 (SyntaxData.tp * DomainData.tp * SyntaxData.t * DomainData.con) m
+	 ```
+	 so elaboration at least of a definition produces a syntactic term and
+     type and a semantic term and type
+
+
 1. what needs to be done while reading the cache to restore that state?
+
 1. how do you patch a bunch of these together? Suppose a file includes
    multiple other files that have both been cached already; we need to
    create a "combined" state that has both of them loaded somehow
