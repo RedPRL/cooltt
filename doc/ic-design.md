@@ -62,8 +62,9 @@ in `f.rot`. When RedTT starts, it produces a cache of these terms from the
 
 ## questions this design needs to answer
 
-*this isn't exhaustive and also won't be a top level heading in the final
-version*
+_this isn't exhaustive! it also won't exist in the final version, it's more
+of a todo list to make sure i don't forget to address things that have been
+brought up_
 
 1. what are the names of the imported identifiers? (Are they qualified?)
 1. Do we need to keep track of whether an identifier comes from this file
@@ -118,12 +119,15 @@ _imports_
 ```
 decl ::= def ... | print ... | normalizeterm ... | quit | import p
 ```
+For convenience, we refer to the fragment of `decl` that doesn't include
+`import` as `decl0`.
 
 ## Judgemental Changes
 
- - judegmental flattening, `flat u u'`; u is a cooltt unit that
-   includes `import` declarations and `u'` is a cooltt unit that does
-   not
+ - judegmental flattening, `flat : decl → decl0 → U`. `flat u u'`; relates
+   a cooltt unit `u` that includes imports to one that does not, `u'`. This
+   is a semantic version of IC that allows us to state a theorem about
+   elaboration.
 
  - elaborating a file now has to change to deal with this new decl
 
