@@ -64,17 +64,17 @@ let consolidate_options mode interactive width input_file : options Term.ret =
   | (Some `Scripting | None), false, width, Some input_file ->
     `Ok {mode = `Scripting input_file; width}
   | (Some `Scripting | None), false, _, None ->
-    `Error (true, "The scripting mode needs an input file")
+    `Error (true, "scripting mode expects an input file")
   | Some `Interactive, _, width, None | None, true, width, None ->
     `Ok {mode = `Interactive; width}
   | Some `Interactive, _, _, Some _ | None, true, _, _ ->
-    `Error (true, "No input file allowed in the interactive mode")
+    `Error (true, "interactive mode expects no input files")
   | Some `Scripting, true, _, _ ->
-    `Error (true, "Inconsistent mode assignment")
+    `Error (true, "inconsistent mode assignment")
   | Some (`Ambiguous s), _, _, _ ->
-    `Error (true, "The mode " ^ quote s ^ " is ambiguous")
+    `Error (true, "ambiguous mode prefix " ^ quote s)
   | Some (`Nonexistent s), _, _, _ ->
-    `Error (true, "No mode with the prefix " ^ quote s)
+    `Error (true, "no mode with the prefix " ^ quote s)
 
 let () =
   let options : options Term.t = Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file)) in
