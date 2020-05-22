@@ -5,14 +5,10 @@
 \usepackage{mathtools}
 \usepackage[landscape]{geometry}
 
+\addbibresource{refs.bib}
+
 
 \mprset{flushleft}
-
-\title{Universes}
-\author{Angiuli, Favonia, Sterling}
-
-\begin{document}
-\maketitle
 
 \NewDocumentCommand\TpHCom{mmmm}{
   \mathsf{Hcom}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
@@ -66,29 +62,43 @@
 \NewDocumentCommand\ElOut{m}{{\downarrow_{\mathsf{el}}}\prn{#1}}
 \NewDocumentCommand\Hint{m}{{\color{gray}#1}}
 
-% \section{Cubical subtypes}
-%
-% \begin{mathparpagebreakable}
-%   \inferrule[subtype formation]{
-%     \IsTp{A}\\
-%     \phi : \COF\\
-%     * : \TpPrf{\phi} \vdash M\prn{*} : A
-%   }{
-%     \IsTp{\TpSub{A}{*:\phi}{M\prn{*}}}
-%   }
-%   \and
-%   \inferrule[subtype introduction]{
-%     \Hint{\IsTp{A}}\\
-%     \Hint{\phi : \COF}\\
-%     \Hint{* : \TpPrf{\phi} \vdash M\prn{*} : A}\\
-%     N : A\\
-%     * : \TpPrf{\phi} \vdash N = M\prn{*} : A
-%   }{
-%     \SubIn{N} : \TpSub{A}{*:\phi}{M\prn{*}}
-%   }
-% \end{mathparpagebreakable}
-%
-% \todo{Finish up}
+
+\title{Universes}
+\author{Angiuli, Favonia, Sterling}
+
+\begin{document}
+\maketitle
+
+This note gives a semantic version of the structure and algorithms of Kan
+universes of Kan types, previously encoded in syntactic form by
+\citet{angiuli:2019}. By \emph{semantic} we mean replacing the obfuscatory use
+of substitution with ordinary families as in
+\citet{orton-pitts:2016,abcfhl:2019}. We differ from
+\citep{orton-pitts:2016,abcfhl:2019} in the following ways:
+
+\begin{enumerate}
+
+  \item The developments in the style of Orton--Pitts construct various notions
+    in the internal language of a topos, but do not carefully check that they
+    may be combined in a coherent way. In contrast, we are defining an
+    equational theory for a \emph{general} coercion and composition operator,
+    which can be \emph{modeled} by a carefully executed Orton--Pitts
+    construction.
+
+  \item The artificial distinction between ``cap'' and ``tube'' maintained in
+    the Orton--Pitts developments is replaced by the more semantic use of
+    disjunction. This significantly simplifies both the rules for typing
+    compositions, and for computing them.
+
+  \item Finally, we are experimentally targetting \emph{weak} universes \`a la
+    Tarski instead of strict ones (i.e.\ we do not place equations on the
+    $\TpEl{-}$ operator except those induced by cubical boundary conditions);
+    this is both more natural from a semantic point of view, and apparently
+    advantageous from the side of implementation (where the strict equations
+    lose too much information too early).
+
+\end{enumerate}
+
 
 \section{Type structure of the universe}
 
@@ -468,18 +478,22 @@ in order to isolate the interesting parts of the Kan structure.
         }
       \end{array}
     }
-    }{
-      \Coe{
-        \lambda i.
-        \CodeHCom{s_{i}}{s'_{i}}{\phi_{i}}{\Code{A}_i}
-      }{r}{r'}{M}
-      =
-      \tilde{C}
-      :
-      \TpEl{
-        \CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}
-      }
+  }{
+    \Coe{
+      \lambda i.
+      \CodeHCom{s_{i}}{s'_{i}}{\phi_{i}}{\Code{A}_i}
+    }{r}{r'}{M}
+    =
+    \tilde{C}
+    :
+    \TpEl{
+      \CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}
     }
-  \end{mathparpagebreakable}
+  }
+\end{mathparpagebreakable}
+
+\clearpage
+\nocite{*}
+\printbibliography
 
 \end{document}
