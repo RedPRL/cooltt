@@ -135,21 +135,6 @@
     r=s\lor\phi \to M\prn{s,*}
   }
   \and
-  \inferrule[composite type formation]{
-    r,s:\DIM\\
-    \phi:\COF\\
-    \Code{A} : \Prod{i:\DIM}{
-      \Prod{* : \TpPrf{i=r\lor\phi}}{
-        \TpUniv
-      }
-    }
-  }{
-    \IsTp{\TpHCom{r}{s}{\phi}{\Code{A}}}
-    \mid
-    {r=s\lor\phi} \to
-    \TpEl{\Code{A}\prn{s,*}}
-  }
-  \and
   \inferrule[composite type introduction]{
     \Hint{r,s:\DIM}\\
     \Hint{\phi:\COF}\\
@@ -168,7 +153,7 @@
       N\prn{*}
     }
   }{
-    \TmBox{r}{s}{\phi}{N}{M} : \TpHCom{r}{s}{\phi}{\Code{A}}
+    \TmBox{r}{s}{\phi}{N}{M} : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
     \mid
     r=s \to M\mid
     \phi \to N\prn{*}
@@ -183,7 +168,7 @@
       }
     }
     \\
-    M : \TpHCom{r}{s}{\phi}{\Code{A}}
+    M : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
   }{
     \TmCap{r}{s}{\phi}{\Code{A}}{M} :
     \TpEl{\Code{A}\prn{r,*}}
@@ -233,7 +218,7 @@
       }
     }\\
     \Hint{
-      M : \TpHCom{r}{s}{\phi}{\Code{A}}
+      M : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
     }
   }{
     M =
@@ -242,7 +227,7 @@
     }{
       \TmCap{r}{s}{\phi}{\Code{A}}{M}
     }
-    : \TpHCom{r}{s}{\phi}{\Code{A}}
+    : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
   }
 \end{mathparpagebreakable}
 
@@ -304,16 +289,6 @@ in order to isolate the interesting parts of the Kan structure.
     :
     \TpEl{\CodeUniv}
   }
-  \and
-  \inferrule[hcom code decoding]{
-    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpUniv}}}
-  }{
-    \ElInOut : \TpEl{
-      \CodeHCom{r}{s}{\phi}{\Code{A}}
-    } \cong \TpHCom{r}{s}{\phi}{\Code{A}}
-    \mid
-    r=s\lor\phi \to \lambda x.x
-  }
 \end{mathparpagebreakable}
 
 \section{Composition in composite types}
@@ -334,7 +309,7 @@ in order to isolate the interesting parts of the Kan structure.
     {
       \begin{array}{l}
         \tilde{O} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor \phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
-        \tilde{O}\prn{i,*} := \TmCap{s}{s'}{\psi}{\Code{A}}{\ElOut{M\prn{i,*}}}
+        \tilde{O}\prn{i,*} := \TmCap{s}{s'}{\psi}{\Code{A}}{M\prn{i,*}}
       \end{array}
     }
     \\\\\\
@@ -358,22 +333,14 @@ in order to isolate the interesting parts of the Kan structure.
         }
       \end{array}
     }
-    \\\\\\
-    {
-      \begin{array}{l}
-        \tilde{H} : \TpHCom{s}{s'}{\psi}{\Code{A}}\\
-        \tilde{H} :=
-        \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{
-          \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
-        }
-      \end{array}
-    }
   }{
     \HCom{
       \CodeHCom{s}{s'}{\psi}{\Code{A}}
     }{r}{r'}{\phi}{M}
     =
-    \ElIn{\tilde{H}}
+    \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{
+      \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
+    }
     :
     \TpEl{
       \CodeHCom{s}{s'}{\psi}{\Code{A}}
@@ -492,7 +459,7 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{C} : \TpHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}\\
+        \tilde{C} : \TpEl{\CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}}\\
         \tilde{C} :=
         \TmBox{s_{r'}}{s'_{r'}}{\phi_{r'}}{
           \lambda{*}.{\tilde{Q}\prn{s'_{r'},*}}
@@ -507,7 +474,7 @@ in order to isolate the interesting parts of the Kan structure.
         \CodeHCom{s_{i}}{s'_{i}}{\phi_{i}}{\Code{A}_i}
       }{r}{r'}{M}
       =
-      \ElIn{\tilde{C}}
+      \tilde{C}
       :
       \TpEl{
         \CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}
