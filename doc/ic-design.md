@@ -100,13 +100,13 @@ answers below each_
    - as a first cut i think you can read this off from the elaborator,
 
      ```
-	 elaborate_typed_term : string ->   //the identifier
-		 ConcreteSyntaxData.cell list -> // args from the parse tree
-		 ConcreteSyntax.con ->    // type from the parse tree
-		 ConcreteSyntax.con ->    // body, or definition from the parse tree
-		 (SyntaxData.tp * DomainData.tp * SyntaxData.t * DomainData.con) m
-	 ```
-	 so elaboration at least of a definition produces a syntactic term and
+     elaborate_typed_term : string ->   //the identifier
+         ConcreteSyntaxData.cell list -> // args from the parse tree
+         ConcreteSyntax.con ->    // type from the parse tree
+         ConcreteSyntax.con ->    // body, or definition from the parse tree
+         (SyntaxData.tp * DomainData.tp * SyntaxData.t * DomainData.con) m
+     ```
+     so elaboration at least of a definition produces a syntactic term and
      type and a semantic term and type
 
 
@@ -183,15 +183,15 @@ For convenience, we refer to the fragment of `decl` that doesn't include
      For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
 
      If (decls ok), and
-		(flat s s'), and
-	    (decls ⊢ s' ~> u1), and
-		(decls | cache ⊢ s ~> u2), then
+        (flat s s'), and
+        (decls ⊢ s' ~> u1), and
+        (decls | cache ⊢ s ~> u2), then
      u1 = u2
    ```
 
-	"If the source of a unit `u` is checked with no cache and produces
-	output `u1`, and it is checked with caching and produces output `u2`,
-	then `u1 = u2`."
+    "If the source of a unit `u` is checked with no cache and produces
+    output `u1`, and it is checked with caching and produces output `u2`,
+    then `u1 = u2`."
 
 2. [idempotence? stability?]
 
@@ -199,19 +199,19 @@ For convenience, we refer to the fragment of `decl` that doesn't include
      For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
 
      If (decls ok), and
-	    r ∈ cache, and
-		r' ∈ cache', and
-		r = r', and
-	    (decls | cache  ⊢ s ~> u1), and
-		(decls | cache' ⊢ s ~> u2), then
+        r ∈ cache, and
+        r' ∈ cache', and
+        r = r', and
+        (decls | cache  ⊢ s ~> u1), and
+        (decls | cache' ⊢ s ~> u2), then
      u1 = u2
    ```
 
-	"If the source of a unit is checked with a cache, then something in
+    "If the source of a unit is checked with a cache, then something in
     that cache changes in a way that doesn't change its signature, then the
     results are the same"
 
-	[ this doesn't really work out; i think i need to formulate elaboration
+    [ this doesn't really work out; i think i need to formulate elaboration
     with a cache as an output as below, then this is the stronger theorem
     that implies that one ]
 
@@ -227,9 +227,9 @@ For convenience, we refer to the fragment of `decl` that doesn't include
      For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
 
      If (decls ok), and
-		(update r cache cache), and
-	    (decls | ∅      ⊢ s ~> u1 , cache), and
-		(decls | cache' ⊢ s ~> u2 , cache''), then
+        (update r cache cache), and
+        (decls | ∅      ⊢ s ~> u1 , cache), and
+        (decls | cache' ⊢ s ~> u2 , cache''), then
      u1 = u2 and cache' = cache''
    ```
 
