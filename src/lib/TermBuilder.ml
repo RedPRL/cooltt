@@ -331,7 +331,6 @@ struct
   struct
     type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
 
-    (* TODO: fix according to Carlo's changes *)
     let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
       let_ ~ident:(`Machine "O")
         begin
