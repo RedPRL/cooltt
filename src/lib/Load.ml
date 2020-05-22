@@ -16,8 +16,8 @@ let parse_with_error parser lexbuf =
 let create_lexbuf input =
   let ch, filename =
     match input with
-    | None -> stdin, "[stdin]"
-    | Some filename -> open_in filename, filename
+    | `Stdin -> stdin, "[stdin]"
+    | `File filename -> open_in filename, filename
   in
   let lexbuf = Lexing.from_channel ch in
   lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = filename};
@@ -29,7 +29,7 @@ let load_file input =
   close_in ch;
   sign
 
-let prepare_repl input = create_lexbuf input
+let prepare_repl () = create_lexbuf `Stdin
 
 (* Favonia: still thinking about the line numbers. *)
 let reset_pos lexbuf = ()

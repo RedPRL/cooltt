@@ -18,7 +18,7 @@ let pp_message ~loc ~lvl pp data =
   | None ->
     pp Format.std_formatter data
   | Some span ->
-    Format.fprintf Format.std_formatter "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
+    Format.printf "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
       LexingUtil.pp_span span
       pp_lvl lvl
       pp data
