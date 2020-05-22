@@ -23,22 +23,26 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE AT COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token COLON PIPE COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD
-%token PATH
+%token PATHD
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE DEF
+%token QUIT NORMALIZE PRINT DEF
 %token ELIM
 %token EOF
 %token TOPC BOTC
 
+%nonassoc IN RRIGHT_ARROW
+%nonassoc COLON
+%nonassoc FST SND SUC RIGHT_ARROW TIMES
+
 %start <ConcreteSyntax.signature> sign
-%type <Ident.t> plain_name
+%type <Ident.t> plain_name name
 %type <con_>
   plain_atomic_in_cof_except_term
   plain_cof_except_term
@@ -46,7 +50,7 @@
   bracketed
   plain_spine
   plain_lambda_except_cof_case
-  plain_term_except_coe_case
+  plain_term_except_cof_case
 %type <pat> pat
 %type <pat * con> case
 %type <con * con> cof_case
@@ -73,12 +77,14 @@ plain_name:
     { underscore_as_name }
 
 decl:
-  | DEF; nm = plain_name; COLON; tp = term; EQUALS; body = term
-    { Def {name = nm; def = body; tp} }
+  | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; EQUALS; body = term
+    { Def {name = nm; args = tele; def = body; tp} }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
+  | PRINT; name = name
+    { Print name }
 
 sign:
   | EOF
@@ -109,8 +115,8 @@ plain_cof_or_atomic_term_except_name:
   | t = plain_atomic_term_except_name
   | t = plain_cof_except_term
     { t }
-plain_cof_or_term_except_coe_case:
-  | t = plain_term_except_coe_case
+plain_cof_or_term_except_cof_case:
+  | t = plain_term_except_cof_case
   | t = plain_cof_except_term
     { t }
 plain_cof_or_term:
@@ -148,7 +154,7 @@ bracketed:
     { Pair (left, right) }
   | ioption(PIPE) cases = separated_list(PIPE, cof_case)
     { CofSplit cases }
-  | t = located(plain_cof_or_term_except_coe_case)
+  | t = located(plain_cof_or_term_except_cof_case)
     { Prf t }
 
 plain_atomic_term:
@@ -173,24 +179,24 @@ plain_lambda_and_cof_case:
 
 plain_lambda_except_cof_case:
   | name1 = name; names2 = nonempty_list(plain_name); RRIGHT_ARROW; body = term
-    { Lam (BN {names = [forget_location name1] @ names2; body}) }
+    { Lam (forget_location name1 :: names2, body) }
 
 plain_term:
   | t = plain_lambda_and_cof_case
-    { let name, body = t in Lam (BN {names = [forget_location name]; body})  }
-  | t = plain_term_except_coe_case
+    { let name, body = t in Lam ([forget_location name], body)  }
+  | t = plain_term_except_cof_case
     { t }
 
-plain_term_except_coe_case:
+plain_term_except_cof_case:
   | t = plain_spine
     { t }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
   | LET; name = plain_name; COLON; tp = term; EQUALS; def = term; IN; body = term
-    { Let ({node = Ann {term = def; tp}; info = def.info}, B {name; body}) }
+    { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
   | LET; name = plain_name; EQUALS; def = term; IN; body = term
-    { Let (def, B {name; body}) }
-  | LPR t = term; AT; tp = term RPR
+    { Let (def, name, body) }
+  | t = term; COLON; tp = term
     { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
@@ -213,7 +219,7 @@ plain_term_except_coe_case:
   | SND; t = term
     { Snd t }
 
-  | PATH; tp = atomic_term; left = atomic_term; right = atomic_term
+  | PATHD; tp = atomic_term; left = atomic_term; right = atomic_term
     { Path (tp, left, right) }
 
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term

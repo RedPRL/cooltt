@@ -11,8 +11,6 @@ module Sem = Semantics
 open CoolBasis
 open Monad.Notation (EM)
 
-exception Todo
-
 let rec unfold idents k =
   match idents with
   | [] -> k
@@ -25,21 +23,6 @@ let rec unfold idents k =
       EM.veil veil @@ unfold idents k
     | _ ->
       unfold idents k
-
-let whnf_chk tac =
-  fun goal ->
-  EM.lift_cmp @@ Sem.whnf_tp goal |>>
-  function
-  | `Done -> tac goal
-  | `Reduce goal -> tac goal
-
-let whnf_bchk (tac : T.bchk_tac) : T.bchk_tac =
-  fun (tp, psi, clo) ->
-  EM.lift_cmp @@ Sem.whnf_tp tp |>>
-  function
-  | `Done -> tac (tp, psi, clo)
-  | `Reduce tp -> tac (tp, psi, clo)
-
 
 module CoolTp :
 sig
@@ -62,6 +45,11 @@ struct
   type tac =
     | Tp of T.Tp.tac
     | Code of T.Chk.tac
+
+  let whnf =
+    function
+    | Tp tac -> Tp (T.Tp.whnf tac)
+    | Code tac -> Code (T.Chk.whnf tac)
 
   let update_span span =
     function
@@ -138,15 +126,39 @@ and chk_tp : CS.con -> T.tp_tac =
   T.Tp.update_span con.info @@
   CoolTp.as_tp @@ cool_chk_tp con
 
+and chk_tp_in_tele (args : CS.cell list) (con : CS.con) : T.tp_tac =
+  let rec loop args =
+    match args with
+    | [] -> cool_chk_tp con
+    | CS.Cell {name; tp} :: args ->
+      CoolTp.update_span tp.info @@
+      CoolTp.pi (cool_chk_tp tp) name @@
+      loop args
+  in
+  CoolTp.as_tp @@ loop args
+
 and chk_tm : CS.con -> T.chk_tac =
   fun con ->
   T.Chk.bchk @@ bchk_tm con
+
+and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.chk_tac =
+  let rec loop args =
+    match args with
+    | [] -> bchk_tm con
+    | CS.Cell {name; tp} :: args ->
+      T.BChk.update_span tp.info @@
+      R.Tactic.intro_implicit_connectives @@
+      T.BChk.whnf @@
+      R.Pi.intro ~ident:name @@ fun _ ->
+      loop args
+  in
+  T.Chk.bchk @@ loop args
 
 and bchk_tm : CS.con -> T.bchk_tac =
   fun con ->
   T.BChk.update_span con.info @@
   R.Tactic.intro_implicit_connectives @@
-  whnf_bchk @@
+  T.BChk.whnf @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
@@ -161,12 +173,12 @@ and bchk_tm : CS.con -> T.bchk_tac =
       | _ -> EM.ret @@ R.Nat.literal n
     end
 
-  | CS.Lam (BN {names = []; body}) ->
+  | CS.Lam ([], body) ->
     bchk_tm body
 
-  | CS.Lam (BN {names = nm :: names; body}) ->
+  | CS.Lam (nm :: names, body) ->
     R.Pi.intro ~ident:nm @@ fun _ ->
-    bchk_tm {con with node = CS.Lam (BN {names; body})}
+    bchk_tm {con with node = CS.Lam (names, body)}
 
   | CS.LamElim cases ->
     R.Tactic.Elim.lam_elim @@ chk_cases cases
@@ -174,8 +186,8 @@ and bchk_tm : CS.con -> T.bchk_tac =
     R.Sg.intro (bchk_tm c0) (bchk_tm c1)
   | CS.Suc c ->
     T.BChk.chk @@ R.Nat.suc (chk_tm c)
-  | CS.Let (c, B bdy) ->
-    R.Structural.let_ ~ident:bdy.name (syn_tm c) @@ fun _ -> bchk_tm bdy.body
+  | CS.Let (c, ident, body) ->
+    R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
   | CS.Unfold (idents, c) ->
     fun goal ->
       unfold idents @@ bchk_tm c goal
@@ -196,8 +208,12 @@ and bchk_tm : CS.con -> T.bchk_tac =
     T.BChk.chk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
   | CS.Join cs ->
     T.BChk.chk @@ R.Cof.join (List.map chk_tm cs)
+  | CS.BotC ->
+    T.BChk.chk @@ R.Cof.join []
   | CS.Meet cs ->
     T.BChk.chk @@ R.Cof.meet (List.map chk_tm cs)
+  | CS.TopC ->
+    T.BChk.chk @@ R.Cof.meet []
   | CS.CofBoundary c ->
     T.BChk.chk @@ R.Cof.boundary (chk_tm c)
   | CS.CofSplit splits ->
@@ -227,48 +243,56 @@ and bchk_tm : CS.con -> T.bchk_tac =
 
 and syn_tm : CS.con -> T.syn_tac =
   function con ->
-  T.Syn.update_span con.info @@
-  R.Tactic.elim_implicit_connectives @@
-  match con.node with
-  | CS.Hole name ->
-    R.Hole.unleash_syn_hole name `Rigid
-  | CS.Var id ->
-    R.Structural.lookup_var id
-  | CS.DeBruijnLevel lvl ->
-    R.Structural.level lvl
-  | CS.Ap (t, ts) ->
-    R.Tactic.tac_multi_apply (syn_tm t) @@ List.map chk_tm ts
-  | CS.Fst t ->
-    R.Sg.pi1 @@ syn_tm t
-  | CS.Snd t ->
-    R.Sg.pi2 @@ syn_tm t
-  | CS.Elim {mot; cases; scrut} ->
-    R.Tactic.Elim.elim
-      (chk_tm mot)
-      (chk_cases cases)
-      (syn_tm scrut)
-  | CS.Rec {mot; cases; scrut} ->
-    let mot_tac = chk_tm mot in
-    R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
-    R.Tactic.Elim.elim
-      (T.Chk.bchk @@ R.Pi.intro @@ fun _ -> T.BChk.syn @@ R.Sub.elim @@ T.Var.syn tp)
-      (chk_cases cases)
-      (syn_tm scrut)
+    T.Syn.update_span con.info @@
+    R.Tactic.elim_implicit_connectives @@
+    T.Syn.whnf @@
+    match con.node with
+    | CS.Hole name ->
+      R.Hole.unleash_syn_hole name `Rigid
+    | CS.Var id ->
+      R.Structural.lookup_var id
+    | CS.DeBruijnLevel lvl ->
+      R.Structural.level lvl
+    | CS.Ap (t, []) ->
+      syn_tm t
+    | CS.Ap (t, ts) ->
+      let rec go acc ts =
+        match ts with
+        | [] -> acc
+        | t :: ts ->
+          let tac = R.Tactic.elim_implicit_connectives @@ T.Syn.whnf @@ R.Pi.apply acc t in
+          go tac ts
+      in
+      go (syn_tm t) @@ List.map chk_tm ts
+    | CS.Fst t ->
+      R.Sg.pi1 @@ syn_tm t
+    | CS.Snd t ->
+      R.Sg.pi2 @@ syn_tm t
+    | CS.Elim {mot; cases; scrut} ->
+      R.Tactic.Elim.elim
+        (chk_tm mot)
+        (chk_cases cases)
+        (syn_tm scrut)
+    | CS.Rec {mot; cases; scrut} ->
+      let mot_tac = chk_tm mot in
+      R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
+      R.Tactic.Elim.elim
+        (T.Chk.bchk @@ R.Pi.intro @@ fun _ -> T.BChk.syn @@ R.Sub.elim @@ T.Var.syn tp)
+        (chk_cases cases)
+        (syn_tm scrut)
 
-  | CS.Ann {term; tp} ->
-    T.Syn.ann (chk_tm term) (chk_tp tp)
-  | CS.Unfold (idents, c) ->
-    unfold idents @@ syn_tm c
-  | CS.Coe (tp, src, trg, body) ->
-    R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
-  | CS.HCom (tp, src, trg, cof, tm) ->
-    R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
-  | CS.Com (fam, src, trg, cof, tm) ->
-    R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
-  | CS.TopC -> R.Univ.topc
-  | CS.BotC -> R.Univ.botc
-  | _ ->
-    failwith @@ "TODO : " ^ CS.show_con con
+    | CS.Ann {term; tp} ->
+      T.Syn.ann (chk_tm term) (chk_tp tp)
+    | CS.Unfold (idents, c) ->
+      unfold idents @@ syn_tm c
+    | CS.Coe (tp, src, trg, body) ->
+      R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
+    | CS.HCom (tp, src, trg, cof, tm) ->
+      R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | CS.Com (fam, src, trg, cof, tm) ->
+      R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | _ ->
+      EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con, con.info)
 
 and chk_cases cases =
   List.map chk_case cases

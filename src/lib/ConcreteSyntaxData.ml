@@ -16,21 +16,18 @@ type 'a node =
 [@@deriving show]
 
 
-type binder = B of {name : Ident.t; body : con}
-and bindern = BN of {names : Ident.t list; body : con}
-
-and cell = Cell of {name : Ident.t; tp : con}
+type cell = Cell of {name : Ident.t; tp : con}
 and con = con_ node
 and con_ =
   | Var of Ident.t
   | DeBruijnLevel of int
-  | Let of con * binder
+  | Let of con * Ident.t * con
   | Ann of {term : con; tp : con}
   | Nat
   | Suc of con
   | Lit of int
   | Pi of cell list * con
-  | Lam of bindern
+  | Lam of Ident.t list * con
   | Ap of con * con list
   | Sg of cell list * con
   | Sub of con * con * con
@@ -72,7 +69,8 @@ and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 [@@deriving show]
 
 type decl =
-  | Def of {name : Ident.t; def : con; tp : con}
+  | Def of {name : Ident.t; args : cell list; def : con; tp : con}
+  | Print of Ident.t node
   | NormalizeTerm of con
   | Quit
 

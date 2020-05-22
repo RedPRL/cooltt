@@ -1,6 +1,6 @@
 ## cooltt
 
-An implementation of normalization by evaluation (nbe) & elaboration for
+A cool implementation of normalization by evaluation (nbe) & elaboration for
 Cartesian cubical type theory.
 
 For examples, see the `test/` directory.
@@ -29,7 +29,7 @@ Once dune is available the executable can be locally changed and run with the
 following:
 
 ```
-$ dune exec ./src/bin/main.exe          # from the `cooltt` top-level directory
+$ dune exec cooltt                      # from the `cooltt` top-level directory
 ```
 
 

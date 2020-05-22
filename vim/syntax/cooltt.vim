@@ -22,13 +22,13 @@ syn region  coolttEncl transparent matchgroup=coolttSymb start="{" end="}" conta
 
 syn match   coolttHole '?\k*'
 
-syn keyword coolttKeyw zero suc nat in fst snd elim rec unfold type dim
-syn keyword coolttKeyw cof sub path coe hcom com hfill
+syn keyword coolttKeyw zero suc nat in fst snd elim unfold type dim
+syn keyword coolttKeyw cof sub pathd coe hcom com hfill
 
-syn keyword coolttDecl def let normalize quit
+syn keyword coolttDecl def let normalize print quit
 
-syn match   coolttSymb '=>\|[|,*×:=λ_@𝕀𝔽∂∧∨→]\|->\|#t\|#f'
-syn match   coolttSymb '\\/\|/\\\|\\'
+syn match   coolttSymb '=>\|[|,*×:=_𝕀𝔽∂∧∨→]\|->\|#t\|#f'
+syn match   coolttSymb '\\/\|/\\'
 
 syn region  coolttComm excludenl start="\k\@1<!--" end="$" contains=coolttTodo
 syn region  coolttBlockComm start="\k\@1<!/-" end="-/" nextgroup=coolttKeyw contains=coolttBlockComm,coolttTodo

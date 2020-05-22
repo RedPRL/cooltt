@@ -54,8 +54,6 @@ module Univ : sig
   val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val auto_hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> bchk_tac
   val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
-  val topc : syn_tac
-  val botc : syn_tac
 end
 
 module El : sig
@@ -104,8 +102,6 @@ module Structural : sig
 end
 
 module Tactic : sig
-  val tac_multi_apply : syn_tac -> chk_tac list -> syn_tac
-
   val intro_implicit_connectives : bchk_tac -> bchk_tac
   val elim_implicit_connectives : syn_tac -> syn_tac
 

@@ -30,6 +30,7 @@ let keywords =
     ("unfold", UNFOLD);
     ("def", DEF);
     ("normalize", NORMALIZE);
+    ("print", PRINT);
     ("quit", QUIT);
     ("type", TYPE);
     ("→", RIGHT_ARROW);
@@ -39,7 +40,7 @@ let keywords =
     ("cof", COF);
     ("∂", BOUNDARY);
     ("sub", SUB);
-    ("path", PATH);
+    ("pathd", PATHD);
     ("coe", COE);
     ("hcom", HCOM);
     ("hfill", HFILL);
@@ -120,8 +121,6 @@ rule token = parse
     }
   | "?"
     { HOLE_NAME None }
-  | "@"
-    { AT }
   | "#t"
     { TOPC }
   | "#f"

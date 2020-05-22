@@ -33,3 +33,6 @@ def pairext : {
   ]
 }
 
+normalize myrefl
+normalize funext
+normalize pairext
