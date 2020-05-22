@@ -370,13 +370,12 @@ struct
         (raise CFHM)
         begin
           hcom (code_ r') (s_ r') (s'_ r') (join [psi_ r'; eq r r']) @@
-          lam @@ fun i ->
+          lam @@ fun j ->
           lam @@ fun _ ->
           cof_split (el @@ code_ r')
-            [eq i (s_ r'), raise CFHM;
-             psi_ r', raise CFHM;
-             eq r r', raise CFHM]
-            (* I think the r=r' and i = s_r' branches can be combined *)
+            [eq j (s_ r'), raise CCHM;
+             psi_ r', raise CCHM;
+             eq r r', raise CCHM]
         end
   end
 end
