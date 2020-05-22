@@ -111,10 +111,12 @@ answers below each_
 
 
 1. what needs to be done while reading the cache to restore that state?
+   - TODO
 
 1. how do you patch a bunch of these together? Suppose a file includes
    multiple other files that have both been cached already; we need to
    create a "combined" state that has both of them loaded somehow
+   - TODO
 
 ## Syntactic Changes
 
@@ -190,3 +192,47 @@ For convenience, we refer to the fragment of `decl` that doesn't include
 	"If the source of a unit `u` is checked with no cache and produces
 	output `u1`, and it is checked with caching and produces output `u2`,
 	then `u1 = u2`."
+
+2. [idempotence? stability?]
+
+   ```
+     For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
+
+     If (decls ok), and
+	    r ∈ cache, and
+		r' ∈ cache', and
+		r = r', and
+	    (decls | cache  ⊢ s ~> u1), and
+		(decls | cache' ⊢ s ~> u2), then
+     u1 = u2
+   ```
+
+	"If the source of a unit is checked with a cache, then something in
+    that cache changes in a way that doesn't change its signature, then the
+    results are the same"
+
+	[ this doesn't really work out; i think i need to formulate elaboration
+    with a cache as an output as below, then this is the stronger theorem
+    that implies that one ]
+
+
+3. Q: do i want to consider the cache as part of the output of elaboration?
+   probably, in order to write things like
+
+   `update : unit → cache → cache` is a relation that describes updating
+   the entry in a cache in a way that does not change the signature you
+   infer from it. (this feels very fuzzy)
+
+   ```
+     For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
+
+     If (decls ok), and
+		(update r cache cache), and
+	    (decls | ∅      ⊢ s ~> u1 , cache), and
+		(decls | cache' ⊢ s ~> u2 , cache''), then
+     u1 = u2 and cache' = cache''
+   ```
+
+   "if you check a unit from scratch, then change something in a compatible
+   way and recheck the unit from the resultant cache with that change, you
+   get the same output"
