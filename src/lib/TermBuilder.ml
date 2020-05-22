@@ -100,13 +100,6 @@ let hcom mcode mr ms mphi mbdy =
   and+ bdy = mbdy in
   S.HCom (code, r, s, phi, bdy)
 
-let tp_hcom mr ms mphi mbdy =
-  let+ r = mr
-  and+ s = ms
-  and+ phi = mphi
-  and+ bdy = mbdy in
-  S.TpHCom (r, s, phi, bdy)
-
 let com mline mr ms mphi mbdy =
   let+ line = mline
   and+ r = mr
@@ -339,12 +332,11 @@ struct
     type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
 
     let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
-      el_in @@
       let_ ~ident:(`Machine "O")
         begin
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
-          cap fhcom.r fhcom.r' fhcom.phi fhcom.bdy @@ el_out @@ ap bdy [i; prf]
+          cap fhcom.r fhcom.r' fhcom.phi fhcom.bdy @@ ap bdy [i; prf]
         end
       @@ fun o_tilde ->
       let_ ~ident:(`Machine "P")
@@ -372,7 +364,6 @@ struct
       let s'_ x = ap fhcom.r' [x] in
       let psi_ x = ap fhcom.phi [x] in
       let code_ x = ap fhcom.bdy [x] in
-      el_in @@
       box (s_ r') (s'_ r') (psi_ r')
         (raise CFHM)
         begin

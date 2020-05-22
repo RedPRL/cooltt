@@ -105,7 +105,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     equate_con D.Univ con0 con1
   | D.ElCut cut0, D.ElCut cut1 ->
     equate_cut cut0 cut1
-  | D.TpHCom (r0, s0, phi0, bdy0), D.TpHCom (r1, s1, phi1, bdy1) ->
+  | D.ElUnstable (`HCom (r0, s0, phi0, bdy0)), D.ElUnstable (`HCom (r1, s1, phi1, bdy1)) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
     let* () = equate_cof phi0 phi1 in
@@ -226,7 +226,7 @@ and equate_con tp con0 con1 =
     in
     equate_con bdry_tp bdry0 bdry1
 
-  | D.TpHCom (r, s, phi, bdy) as hcom_tp, _, _ ->
+  | D.ElUnstable (`HCom (r, s, phi, bdy)) as hcom_tp, _, _ ->
     let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
     let* cap1 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con1 in
     let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in

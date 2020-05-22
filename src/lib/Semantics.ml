@@ -221,12 +221,6 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
     D.TpPrf phi
   | S.TpVar ix ->
     get_local_tp ix
-  | S.TpHCom (r, s, phi, bdy) ->
-    let+ vr = eval_dim r
-    and+ vs = eval_dim s
-    and+ vphi = eval_cof phi
-    and+ vbdy = eval bdy in
-    D.TpHCom (vr, vs, vphi, vbdy)
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -560,7 +554,7 @@ and whnf_hd hd =
     begin
       test_sequent [] (Cof.join [Cof.eq r s; phi]) |>> function
       | true ->
-        let box = D.Cut {cut; tp = D.TpHCom (r, s, phi, code)} in
+        let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, s, phi, code))} in
         reduce_to @<< splice_tm @@ cap_boundary r s phi code box
       | false ->
         whnf_cut cut |>> function
@@ -599,7 +593,7 @@ and whnf_tp =
         let+ tp = do_el con in
         `Reduce tp
     end
-  | D.TpHCom (r, s, phi, bdy) ->
+  | D.ElUnstable (`HCom (r, s, phi, bdy)) ->
     begin
       Cof.join [Cof.eq r s; phi] |> test_sequent [] |>>
       function
@@ -892,9 +886,6 @@ and unfold_el : D.con -> D.tp CM.m =
         TB.pi TB.tp_dim @@ fun i ->
         TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
         TB.ap bdry [i; prf]
-
-      | D.FHCom (`Univ, r, s, phi, bdy) ->
-        ret @@ D.TpHCom (r, s, phi, bdy)
 
       | con ->
         CM.throw @@ NbeFailed "unfold_el failed"

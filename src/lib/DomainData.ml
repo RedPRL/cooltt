@@ -57,6 +57,7 @@ and tp =
   | Univ
   | El of con
   | ElCut of cut
+  | ElUnstable of [`HCom of dim * dim * cof * con]
   | GoalTp of string option * tp
   | TpDim
   | TpCof
@@ -65,7 +66,6 @@ and tp =
   | Sg of tp * Ident.t * tp_clo
   | Nat
   | TpAbort
-  | TpHCom of dim * dim * cof * con
 
 and hd =
   | Global of Symbol.t

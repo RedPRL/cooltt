@@ -186,7 +186,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tm = quote_hcom D.CodeNat r s phi bdy' in
     S.ElOut tm
 
-  | D.TpHCom (r,s,phi,bdy), _ ->
+  | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
     let+ tr = quote_dim r
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
@@ -262,7 +262,7 @@ and quote_tp (tp : D.tp) =
   | D.TpPrf phi ->
     let+ tphi = quote_cof phi in
     S.TpPrf tphi
-  | D.TpHCom (r, s, phi, bdy) ->
+  | D.ElUnstable (`HCom (r, s, phi, bdy)) ->
     let+ tr = quote_dim r
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
@@ -279,7 +279,7 @@ and quote_tp (tp : D.tp) =
       in
       quote_con tp_bdy bdy
     in
-    S.TpHCom (tr, ts, tphi, tbdy)
+    S.El (S.HCom (S.CodeUniv, tr, ts, tphi, tbdy))
 
 and quote_hd =
   function
