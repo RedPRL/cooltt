@@ -9,9 +9,13 @@ type options = {mode: [`Interactive | `Scripting of [`Stdin | `File of string]];
 
 let main {mode; width} =
   Format.set_margin width;
-  match mode with
-  | `Interactive -> Driver.do_repl ()
-  | `Scripting input -> Driver.process_file input
+  match
+    match mode with
+    | `Interactive -> Driver.do_repl ()
+    | `Scripting input -> Driver.process_file input
+  with
+  | Ok () -> `Ok ()
+  | Error () -> `Error (false, "there are errors in the script")
 
 let opt_mode =
   let doc =
@@ -73,6 +77,6 @@ let consolidate_options mode interactive width input_file : options Term.ret =
     `Error (true, "No mode with the prefix " ^ quote s)
 
 let () =
-  let options = Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file)) in
-  let t = Term.(const main $ options) in
+  let options : options Term.t = Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file)) in
+  let t = Term.ret @@ Term.(const main $ options) in
   Term.exit @@ Term.eval ~catch:true ~err:Format.std_formatter (t, myinfo)
