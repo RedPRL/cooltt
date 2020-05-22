@@ -1,17 +1,23 @@
+_This document is currently a *rough draft*. Do not take anything written
+here as gospel; it's partial and what is here is all up for negotiation, in
+progress, and likely just plain incorrect in many instances. This
+disclaimer will be removed in the future once we've discussed the draft and
+it gets promoted to working spec._
+
 # Incremental Checking in cooltt
 
 This document describes a system for incremental checking (IC) of cooltt
 files in the style of incremental compilation with TILT (see
-http://www.cs.cmu.edu/~rwh/papers/smlsc/mlw.pdf). The goal of this is to
-allow cooltt developments to be broken up into separate _units_. Once a
-unit is checked, the result will be cached until its source changes, so
-that subsequent units that depend on it may be checked without redundant
-work.
+[http://www.cs.cmu.edu/~rwh/papers/smlsc/mlw.pdf]). The goal is to allow
+cooltt developments to be broken up into separate _units_. Once a unit is
+checked, the result will be cached until its source changes, so that
+subsequent units that depend on it may be checked without redundant work.
 
-At present this does not include a notion of "separate checking", by
+At present this design does not include a notion of "separate checking", by
 analogy to separate compilation, at the very least because cooltt does not
-have interfaces. That is an interesting possible area of future study but
-out of scope here.
+have interfaces. Extending cooltt with interfaces and the other features of
+a more robust module system is an fun possible future project but currently
+out of scope.
 
 ## High Level Summary
 
@@ -32,25 +38,25 @@ in `f.rot`. When RedTT starts, it produces a cache of these terms from the
 
 ### Goals
 1. Within reason, implement an IC mechanism that is modular and not
-  intertwined with the particular cooltt code base (and therefore could be
-  reused for other systems later).
+   intertwined with the particular cooltt code base (and therefore could be
+   reused for other systems later).
 
 1. Do not needlessly depend on ocaml internals -- i.e. don't use the built
-  in `Marshal` functionality -- in favor of rolling our own free-standing
-  solutions.
+   in `Marshal` functionality -- in favor of rolling our own free-standing
+   solutions.
 
 1. Do not make egregiously large cache files. (RedTT solved this by using
-  `gzip`, which is very good at compressing highly repetitive core terms
-  expressed as JSON.)
+   `gzip`, which is very good at compressing highly repetitive core terms
+   expressed as JSON.)
 
 1. Make a reasonably performant IC mechanism, but favor ease of inspection,
-  extension, and verification over raw performance.
+   extension, and verification of the implementation over raw performance.
 
 1. Do not conflate IC with designing a module system for cooltt. Rather,
    make an IC mechanism that will allow for experimentation with different
    ideas for module systems later.
 
-1. Do not conflate IC with powerful import syntax (à la
+1. Do not conflate IC with designing a powerful import syntax (à la
    https://github.com/RedPRL/redtt/issues/449), but again make an IC
    mechanism that will admit future experimentation.
 
@@ -115,6 +121,10 @@ decl ::= def ... | print ... | normalizeterm ... | quit | import p
 
 ## Judgemental Changes
 
+ - judegmental flattening, `flat u u'`; u is a cooltt unit that
+   includes `import` declarations and `u'` is a cooltt unit that does
+   not
+
  - elaborating a file now has to change to deal with this new decl
 
  - checking a unit u with no caching at all
@@ -131,8 +141,9 @@ decl ::= def ... | print ... | normalizeterm ... | quit | import p
      For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
 
      If (decls ok), and
-	    (decls |- s ~> u1), and
-		(decls | cache |- s ~> u2), then
+		(flat s s'), and
+	    (decls ⊢ s' ~> u1), and
+		(decls | cache ⊢ s ~> u2), then
      u1 = u2
    ```
 
