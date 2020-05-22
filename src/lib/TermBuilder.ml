@@ -348,15 +348,17 @@ struct
         end
       @@ fun p_tilde ->
       box fhcom.r fhcom.r' fhcom.phi (lam @@ fun _ -> ap p_tilde [r'; prf]) @@
-      hcom (ap fhcom.bdy [fhcom.r'; prf]) r r' (join [phi; fhcom.phi; eq fhcom.r fhcom.r']) @@
+      hcom (ap fhcom.bdy [fhcom.r; prf]) r r' (join [phi; fhcom.phi; eq fhcom.r fhcom.r']) @@
       lam ~ident:(`Machine "i") @@ fun i ->
       lam @@ fun _ ->
       cof_split
         (el @@ ap fhcom.bdy [fhcom.r'; prf])
         [ join [eq i r; phi],
           (fun _ -> ap o_tilde [i; prf])
-        ; join [fhcom.phi; eq fhcom.r fhcom.r'],
+        ; fhcom.phi,
           (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]))
+        ; eq fhcom.r fhcom.r',
+          (fun _ -> ap p_tilde [i; prf])
         ]
 
     (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
