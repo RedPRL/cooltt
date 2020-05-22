@@ -1,5 +1,18 @@
 # Incremental Checking in cooltt
 
+This document describes a system for incremental checking (IC) of cooltt
+files in the style of incremental compilation with TILT (see
+http://www.cs.cmu.edu/~rwh/papers/smlsc/mlw.pdf). The goal of this is to
+allow cooltt developments to be broken up into separate _units_. Once a
+unit is checked, the result will be cached until its source changes, so
+that subsequent units that depend on it may be checked without redundant
+work.
+
+At present this does not include a notion of "separate checking", by
+analogy to separate compilation, at the very least because cooltt does not
+have interfaces. That is an interesting possible area of future study but
+out of scope here.
+
 ## High Level Summary
 
 ### RedTT Solution
@@ -60,7 +73,7 @@ version*
    multiple other files that have both been cached already; we need to
    create a "combined" state that has both of them loaded somehow
 
-## syntactic forms
+## Syntactic Changes
 
 ### Unit Paths
 "Unit paths" are names used in import statements for units:
@@ -91,7 +104,18 @@ few choices include:
    concerns of avoiding the complixities of the file system, but also not
    burdening the programmer with the generation of too much boilerplate.
 
-## judgemental forms
+### Extension to the syntax of cooltt
+
+The concrete syntax of cooltt declarations is extended with a form for
+_imports_
+
+```
+decl ::= def ... | print ... | normalizeterm ... | quit | import p
+```
+
+## Judgemental Changes
+
+ - elaborating a file now has to change to deal with this new decl
 
  - checking a unit u with no caching at all
 
@@ -99,8 +123,19 @@ few choices include:
 
 ## selected rules
 
-## theorems that should hold
+## Theorems
 
-1. [consistency] If the source of a unit `u` is checked with no cache and
-   produces outtput `u1`, and it is checked with caching and produces output
-   `u2`, then `u1 = u2`.
+1. [consistency]
+
+   ```
+     For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
+
+     If (decls ok), and
+	    (decls |- s ~> u1), and
+		(decls | cache |- s ~> u2), then
+     u1 = u2
+   ```
+
+	"If the source of a unit `u` is checked with no cache and produces
+	output `u1`, and it is checked with caching and produces output `u2`,
+	then `u1 = u2`."
