@@ -231,8 +231,6 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "nat"
   | El tm ->
     Format.fprintf fmt "el %a" (pp_atomic env) tm
-  | UnfoldEl tm ->
-    Format.fprintf fmt "el! %a" (pp_atomic env) tm
   | TpVar ix ->
     Format.fprintf fmt "#var[%i]" ix
   | GoalTp (_, tp) ->

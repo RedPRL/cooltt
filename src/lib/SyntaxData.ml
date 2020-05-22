@@ -43,7 +43,6 @@ type t =
 and tp =
   | Univ
   | El of t
-  | UnfoldEl of t
   | TpVar of int
   | GoalTp of string option * tp
   | TpDim

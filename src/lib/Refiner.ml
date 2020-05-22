@@ -11,7 +11,7 @@ module Sem = Semantics
 module Qu = Quote
 module Cofibration = Cof (* this lets us access Cof after it gets shadowed below *)
 
-exception Todo
+exception CJHM
 
 open CoolBasis
 open Monads
@@ -79,11 +79,11 @@ struct
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
     let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
-    EM.lift_qu @@ Qu.quote_tp @@ D.El (D.Cut {tp = D.Univ; cut})
+    EM.lift_qu @@ Qu.quote_tp @@ D.ElCut cut
 
   let unleash_syn_hole name flexity : T.syn_tac =
     let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
-    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
+    let tp = D.ElCut cut in
     let+ tm = T.Chk.bchk (unleash_hole name flexity) tp in
     tm, tp
 end
@@ -509,6 +509,8 @@ struct
     S.HCom (code, src, trg, cof, tm), vtp
 
   let auto_hcom tac_code tac_src tac_trg tac_tm : T.bchk_tac =
+    raise CJHM
+(*
     fun (vtp, vpsi, clo) ->
     let* code = tac_code D.Univ in
     let* vcode = EM.lift_ev @@ Sem.eval code in
@@ -548,6 +550,7 @@ struct
       EM.lift_qu @@ Qu.quote_con bdy_tp vtm'
     in
     EM.ret @@ S.ElOut (S.HCom (code, src, trg, psi, tm'))
+   *)
 
   let com tac_fam tac_src tac_trg tac_cof tac_tm : T.syn_tac =
     let* piuniv =
@@ -702,7 +705,8 @@ struct
 
     let* tcase_zero =
       let* code = EM.lift_cmp @@ Sem.do_ap vmot D.Zero in
-      tac_case_zero @@ D.El code
+      let* tp = EM.lift_cmp @@ Sem.do_el code in
+      tac_case_zero tp
     in
 
     let* tcase_suc =
@@ -719,120 +723,13 @@ struct
 
     let+ fib_scrut =
       let* vscrut = EM.lift_ev @@ Sem.eval tscrut in
-      EM.lift_cmp @@ Sem.do_ap vmot vscrut
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot vscrut in
+      EM.lift_cmp @@ Sem.do_el code
     in
 
-    S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), D.El fib_scrut
+    S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
 end
 
-
-
-module UnravelEl : sig
-  (* Invariant: [unravel tp] produces an element of the universe when [tp] is a well-formed type, if it returns. *)
-  val unravel_tp : D.tp -> T.chk_tac
-
-end =
-struct
-  let ret_code : D.con -> T.chk_tac =
-    fun code ->
-      function
-      | D.Univ ->
-        EM.lift_qu @@ Qu.quote_con D.Univ code
-      | tp ->
-        EM.expected_connective `Univ tp
-
-  let ret_tp : D.tp -> T.tp_tac =
-    fun tp ->
-    T.Tp.make @@
-    EM.lift_qu @@ Qu.quote_tp tp
-
-  (*    A type
-   *    -----------
-   *    unravel_tp A : univ
-   *)
-  let rec unravel_tp =
-    function
-    | D.El code ->
-      ret_code code
-    | D.Pi (base, _, fam) ->
-      Univ.pi (unravel_tp base) (unravel_fam ~base fam)
-    | D.Sg (base, _, fam) ->
-      Univ.pi (unravel_tp base) (unravel_fam ~base fam)
-    | _ -> failwith ""
-
-  (*
-   *     A type
-   *     M : A
-   *     ------------------------------
-   *     unravel_iso_fwd A M : el(unravel_tp A)
-   *)
-  and unravel_iso_fwd : D.tp -> T.chk_tac -> T.chk_tac =
-     fun tp tac ->
-     match tp with
-     | D.El _ ->
-       tac
-
-  (*
-   *     A type
-   *     x : A |- B(x) type
-   *     M : (x : A) -> B(x)
-   *     ------------------------------
-   *     unravel_iso_fwd A M : el(unravel_tp((x : A) -> B(x)))
-   *                     ... : el(∏(unravel_tp(A), λ x:unravel_tp(A). unravel_tp(B(bwd[A](x)))))
-   *)
-     | D.Pi (base, _, fam) as pitp ->
-       T.Chk.bchk @@ El.intro @@
-       (* (x : el(unravel_tp(A))) -> el(unravel_tp(B(bwd[A](x))) *)
-       Pi.intro @@ fun x ->
-       let x' = unravel_iso_bwd base @@ T.Chk.syn @@ T.Var.syn x in
-       let tacx' : T.Syn.tac = Pi.apply (T.Syn.ann tac (ret_tp pitp)) x' in (* tacx' : B(bwd[A](x)) *)
-       T.BChk.chk @@ fun goal ->
-       let* tx' = x' base in
-       let* vx' = EM.lift_ev @@ Sem.eval tx' in
-       let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam vx' in
-       unravel_iso_fwd fib (T.Chk.syn tacx') goal
-
-     | _ ->
-       failwith ""
-
-  (*
-   *     A type
-   *     M : el(unravel_tp A)
-   *     ------------------------------
-   *     unravel_iso_bwd A M : A
-   *)
-  and unravel_iso_bwd : D.tp -> T.chk_tac -> T.chk_tac =
-    fun tp tac ->
-    match tp with
-    | D.El _ -> tac
-
-    | D.Pi (base, _, fam) as pitp ->
-  (*
-   *     A type
-   *     x : A |- B(x) type
-   *
-   *       M : el(unravel_tp((x : A) -> B(x)))
-   *     ... : el(∏(unravel_tp(A), λ x:unravel_tp(A). unravel_tp(B(bwd[A](x)))))
-   *     ------------------------------
-   *     unravel_iso_bwd A M : (x : A) -> B(x)
-   *)
-      T.Chk.bchk @@
-      Pi.intro @@ fun x -> (* x : A *)
-      let x' = unravel_iso_fwd base @@ T.Chk.syn @@ T.Var.syn x in (* x' : el(unravel_tp(A)) *)
-      let tac' = El.elim @@ T.Syn.ann tac @@ El.formation @@ unravel_tp pitp in
-      T.BChk.syn @@ Pi.apply tac' x'
-
-    | _ -> failwith ""
-
-  and unravel_fam : base:D.tp -> D.tp_clo -> T.chk_tac =
-    fun ~base fam ->
-    T.Chk.bchk @@ Pi.intro @@ fun tac_var ->
-    T.BChk.chk @@ fun goal ->
-    let* x = unravel_iso_bwd base (T.Chk.syn (T.Var.syn tac_var)) base in
-    let* vx = EM.lift_ev @@ Sem.eval x in
-    let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam vx in
-    unravel_tp fib goal
-end
 
 module Tactic =
 struct
@@ -926,7 +823,7 @@ struct
       let* base, fam = EM.dest_pi tp in
       let mot_tac : T.chk_tac =
         T.Chk.bchk @@
-        Pi.intro @@ fun var ->
+        Pi.intro @@ fun var -> (* of type nat *)
         T.BChk.chk @@ fun goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
         match fib with

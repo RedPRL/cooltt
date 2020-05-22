@@ -103,7 +103,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     equate_tp tp0 tp1
   | D.El con0, D.El con1 ->
     equate_con D.Univ con0 con1
-  | D.UnfoldEl cut0, D.UnfoldEl cut1 ->
+  | D.ElCut cut0, D.ElCut cut1 ->
     equate_cut cut0 cut1
   | D.TpHCom (r0, s0, phi0, bdy0), D.TpHCom (r1, s1, phi1, bdy1) ->
     let* () = equate_dim r0 r1 in
@@ -230,7 +230,8 @@ and equate_con tp con0 con1 =
     let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
     let* cap1 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con1 in
     let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
-    let* () = equate_con (D.El code_cap) cap0 cap1 in
+    let* tp_cap = lift_cmp @@ do_el code_cap in
+    let* () = equate_con tp_cap cap0 cap1 in
     QuM.left_invert_under_cofs [phi] @@
     equate_con hcom_tp con0 con1
 
@@ -289,7 +290,8 @@ and equate_frm k0 k1 =
     let* () = equate_con mot_tp mot0 mot1 in
     let* () =
       let* mot_zero = lift_cmp @@ do_ap mot0 D.Zero in
-      equate_con (D.El mot_zero) zero_case0 zero_case1
+      let* tp_mot_zero = lift_cmp @@ do_el mot_zero in
+      equate_con tp_mot_zero zero_case0 zero_case1
     in
     let* suc_tp =
       lift_cmp @@ Sem.splice_tp @@
@@ -337,7 +339,8 @@ and equate_hd hd0 hd1 =
       equate_con D.Univ code0 code1
     in
     let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
-    equate_con (D.El code) con0 con1
+    let* tp_code = lift_cmp @@ do_el code in
+    equate_con tp_code con0 con1
   | D.HCom (cut0, r0, s0, phi0, bdy0), D.HCom (cut1, r1, s1, phi1, bdy1) ->
     let code0 = D.Cut {tp = D.Univ; cut = cut0} in
     let code1 = D.Cut {tp = D.Univ; cut = cut1} in
@@ -382,7 +385,8 @@ and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   bind_var_ (D.TpPrf (Cof.join [Cof.eq i_dim r0; phi0])) @@ fun prf ->
   let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
   let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
-  equate_con (D.El code0) con0 con1
+  let* tp = lift_cmp @@ do_el code0 in
+  equate_con tp con0 con1
 
 
 and equate_cof phi psi =

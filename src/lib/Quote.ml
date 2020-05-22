@@ -130,7 +130,8 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodePi (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      QTB.lam (D.El base) @@ fun var ->
+      let* elbase = lift_cmp @@ do_el base in
+      QTB.lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -139,7 +140,8 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodeSg (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      QTB.lam (D.El base) @@ fun var ->
+      let* elbase = lift_cmp @@ do_el base in
+      QTB.lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -189,9 +191,10 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
     and+ tcap =
-      let* bdy_r = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
-      quote_con (D.El bdy_r) @<<
-      lift_cmp @@ Sem.do_rigid_cap r s phi bdy con
+      let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
+      let* el_bdy_r = lift_cmp @@ do_el bdy_r in
+      quote_con el_bdy_r @<<
+      lift_cmp @@ do_rigid_cap r s phi bdy con
     and+ tsides =
       QTB.lam (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
@@ -211,7 +214,8 @@ and quote_hcom code r s phi bdy =
     let* i_dim = lift_cmp @@ con_to_dim i in
     QTB.lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
-    quote_con (D.El code) body
+    let* tp = lift_cmp @@ do_el code in
+    quote_con tp body
   in
   S.HCom (tcode, tr, ts, tphi, tbdy)
 
@@ -233,11 +237,11 @@ and quote_tp (tp : D.tp) =
     S.Sg (tbase, ident, tfam)
   | D.Univ ->
     ret S.Univ
-  | D.UnfoldEl cut ->
-    let+ tm = quote_cut cut in
-    S.UnfoldEl tm
   | D.El con ->
     let+ tm = quote_con D.Univ con in
+    S.El tm
+  | D.ElCut cut ->
+    let+ tm = quote_cut cut in
     S.El tm
   | D.GoalTp (lbl, tp) ->
     let+ tp = quote_tp tp in
@@ -290,7 +294,8 @@ and quote_hd =
     let* tr = quote_dim r in
     let* ts = quote_dim s in
     let* code_r = lift_cmp @@ do_ap code @@ D.dim_to_con r in
-    let+ tm = quote_con (D.El code_r) con in
+    let* tp_code_r = lift_cmp @@ do_el code_r in
+    let+ tm = quote_con tp_code_r con in
     S.Coe (tpcode, tr, ts, tm)
   | D.HCom (cut, r, s, phi, bdy) ->
     let code = D.Cut {cut; tp = D.Univ} in
@@ -379,7 +384,8 @@ and quote_frm tm =
     let* tmot = quote_con mot_tp mot in
     let* tzero_case =
       let* mot_zero = lift_cmp @@ do_ap mot D.Zero in
-      quote_con (D.El mot_zero) zero_case
+      let* tp_mot_zero = lift_cmp @@ do_el mot_zero in
+      quote_con tp_mot_zero zero_case
     in
     let* suc_tp =
       lift_cmp @@ Sem.splice_tp @@

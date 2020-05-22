@@ -167,8 +167,8 @@ and pp_tp fmt =
     Format.fprintf fmt "<abort>"
   | El con ->
     Format.fprintf fmt "el[%a]" pp_con con
-  | UnfoldEl cut ->
-    Format.fprintf fmt "unfold-el[%a]" pp_cut cut
+  | ElCut con ->
+    Format.fprintf fmt "el-cut[%a]" pp_cut con
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"
   | TpHCom _ ->
