@@ -1112,28 +1112,42 @@ and do_coe r s (abs : D.con) con =
 
 and dispatch_rigid_coe line =
   let open CM in
-  let x = Symbol.named "do_rigid_coe" in
-  let go peek =
-    match peek with
+  let go x codex =
+    match codex with
     | D.CodePi (basex, famx) ->
-      ret @@ `Reduce (`CoePi (x, basex, famx))
+      `Reduce (`CoePi (x, basex, famx))
     | D.CodeSg (basex, famx) ->
-      ret @@ `Reduce (`CoeSg (x, basex, famx))
+      `Reduce (`CoeSg (x, basex, famx))
     | D.CodePath (famx, bdryx) ->
-      ret @@ `Reduce (`CoePath (x, famx, bdryx))
+      `Reduce (`CoePath (x, famx, bdryx))
     | D.CodeNat ->
-      ret @@ `Reduce `CoeNat
+      `Reduce `CoeNat
     | D.CodeUniv ->
-      ret @@ `Reduce `CoeUniv
+      `Reduce `CoeUniv
     | D.FHCom (`Univ, sx, s'x, phix, bdyx) ->
-      ret @@ `Reduce (`CoeHCom (x, sx, s'x, phix, bdyx))
+      `Reduce (`CoeHCom (x, sx, s'x, phix, bdyx))
     | D.Cut {cut} ->
-      ret `Done
+      `Done
     | _ ->
-      Format.eprintf "%a@." D.pp_con peek;
+      `Unknown
+  in
+  let peek line =
+    let x = Symbol.named "do_rigid_coe" in
+    go x <@> whnf_inspect_con @<< do_ap line @@ D.dim_to_con @@ D.DimProbe x |>>
+    function
+    | `Reduce _ | `Done as res -> ret res
+    | `Unknown ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_coe"
   in
-  go @<< whnf_inspect_con @<< do_ap line @@ D.dim_to_con @@ D.DimProbe x
+  match line with
+  | D.BindSym (x, codex) ->
+    begin
+      match go x codex with
+      | `Reduce _ | `Done as res -> ret res
+      | `Unknown -> peek line
+    end
+  | _ ->
+    peek line
 
 and dispatch_rigid_hcom code =
   let open CM in
