@@ -31,6 +31,9 @@ type t =
   | ElIn of t
   | ElOut of t
 
+  | Box of t * t * t * t * t
+  | Cap of t * t * t * t * t
+
   | CodePath of t * t
   | CodePi of t * t
   | CodeSg of t * t
@@ -40,7 +43,6 @@ type t =
 and tp =
   | Univ
   | El of t
-  | UnfoldEl of t
   | TpVar of int
   | GoalTp of string option * tp
   | TpDim

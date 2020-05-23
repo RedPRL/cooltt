@@ -3,6 +3,9 @@ module D = Domain
 
 
 exception Todo
+exception CJHM
+exception CFHM
+exception CCHM
 
 open CoolBasis
 open Bwd
@@ -154,6 +157,36 @@ and con_to_cof =
   | _ -> throw @@ NbeFailed "con_to_cof"
 
 
+let cap_boundary r s phi code box =
+  Splice.foreign_dim r @@ fun r ->
+  Splice.foreign_dim s @@ fun s ->
+  Splice.foreign_cof phi @@ fun phi ->
+  Splice.foreign code @@ fun code ->
+  Splice.foreign box @@ fun box ->
+  Splice.term @@
+  TB.cof_split
+    (TB.el @@ TB.ap code [s; TB.prf])
+    [TB.eq r s, (fun _ -> box);
+     phi, (fun _ -> TB.coe code s r box)]
+
+(* Invariant: apply only to whnf *)
+let hd_stability : D.hd -> [`Stable | `Unstable] =
+  function
+  | D.Global _ | D.Var _ -> `Stable
+  | D.Coe _ | D.Split _ | D.HCom _ | D.Cap _ | D.SubOut _ -> `Unstable
+
+(* Invariant: apply only to whnf *)
+let cut_stability : D.cut -> [`Stable | `Unstable] =
+  fun (hd, _) ->
+  hd_stability hd
+
+(* Invariant: apply only to whnf *)
+let con_stability : D.con -> [`Stable | `Unstable] =
+  function
+  | D.Cut {cut} -> cut_stability cut
+  | D.FHCom _ | D.Box _ -> `Unstable
+  | _ -> `Stable
+
 let rec eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
@@ -169,11 +202,8 @@ let rec eval_tp : S.tp -> D.tp EvM.m =
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
-    let+ con = eval tm in
-    D.El con
-  | S.UnfoldEl tm ->
     let* con = eval tm in
-    lift_cmp @@ unfold_el con
+    lift_cmp @@ do_el con
   | S.GoalTp (lbl, tp) ->
     let+ tp = eval_tp tp in
     D.GoalTp (lbl, tp)
@@ -252,17 +282,17 @@ and eval : S.t -> D.con EvM.m =
     | S.GoalProj tm ->
       let* con = eval tm in
       lift_cmp @@ do_goal_proj con
-    | S.Coe (tpcode, tr, ts, tm) ->
+    | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
-      let* s = eval_dim ts in
+      let* r' = eval_dim tr' in
       let* con = eval tm in
       begin
-        CM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
+        CM.test_sequent [] (Cof.eq r r') |> lift_cmp |>> function
         | true ->
           ret con
         | false ->
           let* coe_abs = eval tpcode in
-          lift_cmp @@ do_rigid_coe coe_abs r s con
+          lift_cmp @@ do_rigid_coe coe_abs r r' con
       end
     | S.HCom (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
@@ -364,6 +394,31 @@ and eval : S.t -> D.con EvM.m =
     | S.CodeUniv ->
       ret D.CodeUniv
 
+    | S.Box (r, s, phi, sides, cap) ->
+      let+ vr = eval_dim r
+      and+ vs = eval_dim s
+      and+ vphi = eval_cof phi
+      and+ vsides = eval sides
+      and+ vcap = eval cap in
+      D.Box (vr, vs, vphi, vsides, vcap)
+
+    | S.Cap (r, s, phi, code, box) ->
+      let* vr = eval_dim r in
+      let* vs = eval_dim s in
+      let* vphi = eval_cof phi in
+      let* vcode = eval code in
+      let* vbox = eval box in
+      lift_cmp @@
+      begin
+        let open CM in
+        CM.test_sequent [] (Cof.join [Cof.eq vr vs; vphi]) |>>
+        function
+        | true ->
+          splice_tm @@ cap_boundary vr vs vphi vcode vbox
+        | false ->
+          do_rigid_cap vr vs vphi vcode vbox
+      end
+
 and eval_dim tr =
   let open EvM in
   let* con = eval tr in
@@ -376,25 +431,41 @@ and eval_cof tphi =
 
 
 
+
 and whnf_con : D.con -> D.con whnf CM.m =
   let open CM in
   fun con ->
-  match con with
-  | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
-  | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
-  | D.Destruct _ ->
-    ret `Done
-  | D.Cut {cut} ->
-    whnf_cut cut
-  | D.FHCom (`Nat, r, s, phi, bdy) ->
-    begin
-      Cof.join [Cof.eq r s; phi] |> test_sequent [] |>> function
-      | true ->
-        reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
-      | false ->
-        ret `Done
-    end
+    match con with
+    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
+    | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
+    | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
+    | D.DestructLine _ ->
+      ret `Done
+    | D.Cut {cut} ->
+      whnf_cut cut
+    | D.FHCom (_, r, s, phi, bdy) ->
+      begin
+        test_sequent [] (Cof.join [Cof.eq r s; phi]) |>>
+        function
+        | true ->
+          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+        | false ->
+          ret `Done
+      end
+    | D.Box (r, s, phi, sides, cap) ->
+      begin
+        test_sequent [] (Cof.eq r s) |>>
+        function
+        | true ->
+          reduce_to cap
+        | false ->
+          test_sequent [] phi |>>
+          function
+          | true ->
+            reduce_to @<< do_ap sides D.Prf
+          | false ->
+            ret `Done
+      end
 
 and reduce_to con =
   let open CM in
@@ -428,7 +499,7 @@ and whnf_hd hd =
       | true -> reduce_to con
       | false ->
         begin
-          dispatch_rigid_coe abs r s con |>>
+          dispatch_rigid_coe abs |>>
           function
           | `Done ->
             ret `Done
@@ -447,7 +518,7 @@ and whnf_hd hd =
           ret `Done
         | `Reduce code ->
           begin
-            dispatch_rigid_hcom code r s phi bdy |>>
+            dispatch_rigid_hcom code |>>
             function
             | `Done _ ->
               ret `Done
@@ -479,6 +550,19 @@ and whnf_hd hd =
           go branches
     in
     go branches
+  | D.Cap (r, s, phi, code, cut) ->
+    begin
+      test_sequent [] (Cof.join [Cof.eq r s; phi]) |>> function
+      | true ->
+        let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, s, phi, code))} in
+        reduce_to @<< splice_tm @@ cap_boundary r s phi code box
+      | false ->
+        whnf_cut cut |>> function
+        | `Done ->
+          ret `Done
+        | `Reduce box ->
+          reduce_to @<< do_rigid_cap r s phi code box
+  end
 
 and whnf_cut cut : D.con whnf CM.m =
   let open CM in
@@ -496,16 +580,33 @@ and whnf_tp =
       whnf_con con |>>
       function
       | `Done -> ret `Done
-      | `Reduce con -> ret @@ `Reduce (D.El con)
+      | `Reduce con ->
+        let+ tp = do_el con in
+        `Reduce tp
     end
-  | D.UnfoldEl cut ->
+  | D.ElCut cut ->
     begin
       whnf_cut cut |>>
       function
       | `Done -> ret `Done
       | `Reduce con ->
-        let+ tp = unfold_el con in
+        let+ tp = do_el con in
         `Reduce tp
+    end
+  | D.ElUnstable (`HCom (r, s, phi, bdy)) ->
+    begin
+      Cof.join [Cof.eq r s; phi] |> test_sequent [] |>>
+      function
+      | true ->
+        let* tp  = do_el @<< do_ap2 bdy (D.dim_to_con s) D.Prf in
+        begin
+          whnf_tp tp |>>
+          function
+          | `Done -> ret @@ `Reduce tp
+          | `Reduce tp -> ret @@ `Reduce tp
+        end
+      | false ->
+        ret `Done
     end
   | tp ->
     ret `Done
@@ -520,8 +621,9 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
     let* v = do_nat_elim mot zero suc n in
     do_ap2 suc n v
   | D.Cut {cut} ->
-    let+ fib = do_ap mot n  in
-    cut_frm ~tp:(D.El fib) ~cut @@
+    let* fib = do_ap mot n in
+    let+ elfib = do_el fib in
+    cut_frm ~tp:elfib ~cut @@
     D.KNatElim (mot, zero, suc)
   | D.FHCom (`Nat, r, s, phi, bdy) ->
     (* bdy : (i : 𝕀) (_ : [_]) → nat *)
@@ -572,17 +674,29 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval bdy
 
+(* reduces a constructor to something that is stable to pattern match on *)
+and whnf_inspect_con con =
+  let open CM in
+  whnf_con con |>>
+  function
+  | `Done -> ret con
+  | `Reduce con -> ret con
+
+(* reduces a constructor to something that is stable to pattern match on,
+ * _including_ type annotations on cuts *)
 and inspect_con con =
   let open CM in
-  match con with
-  | D.Cut {tp; cut} ->
+  whnf_inspect_con con |>>
+  function
+  | D.Cut {tp; cut} as con ->
     begin
       whnf_tp tp |>>
       function
       | `Done -> ret con
       | `Reduce tp -> ret @@ D.Cut {tp; cut}
     end
-  | _ -> ret con
+  | con -> ret con
+
 
 and do_goal_proj con =
   let open CM in
@@ -632,35 +746,40 @@ and do_ap2 f a b =
   do_ap fa b
 
 
-and do_ap con a =
+and do_ap con arg =
   let open CM in
   abort_if_inconsistent D.Abort @@
   begin
     inspect_con con |>>
     function
     | D.Lam (_, clo) ->
-      inst_tm_clo clo a
+      inst_tm_clo clo arg
 
-    | D.Destruct dst ->
-      do_destruct dst a
+    | D.DestructLine (cofenv, dst, line) ->
+      CM.restore_cof_env cofenv @@
+      let* con = do_ap line arg in
+      do_destruct dst con
 
     | D.Cut {tp = D.Pi (base, _, fam); cut} ->
-      let+ fib = inst_tp_clo fam a in
-      cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
+      let+ fib = inst_tp_clo fam arg in
+      cut_frm ~tp:fib ~cut @@ D.KAp (base, arg)
 
     | con ->
       throw @@ NbeFailed "Not a function in do_ap"
   end
 
-and do_destruct dst a =
+and do_destruct dst con =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match dst, a with
+  let* con = whnf_inspect_con con in
+  match dst, con with
   | D.DCodePiSplit, D.CodePi (base, fam)
   | D.DCodeSgSplit, D.CodeSg (base, fam) ->
     ret @@ D.Pair (base, fam)
   | D.DCodePathSplit, D.CodePath(fam, bdry) ->
     ret @@ D.Pair (fam, bdry)
+  | D.DCodeHComSplit, D.FHCom (`Univ, r, r', phi, bdy) ->
+    ret @@ D.Pair (D.dim_to_con r, D.Pair (D.dim_to_con r', D.Pair (D.cof_to_con phi, bdy)))
   | _ ->
     throw @@ NbeFailed "Invalid destructor application"
 
@@ -677,6 +796,24 @@ and do_sub_out con =
     | _ ->
       throw @@ NbeFailed "do_sub_out"
   end
+
+and do_rigid_cap r s phi code =
+  let open CM in
+  fun box ->
+    abort_if_inconsistent D.Abort @@
+    begin
+      inspect_con box |>>
+      function
+      | D.Cut {cut} ->
+        let* code_fib = do_ap2 code (D.dim_to_con r) D.Prf in
+        let* tp = do_el code_fib in
+        ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
+      | D.Box (_,_,_,_,cap) ->
+        ret cap
+      | _ ->
+        throw @@ NbeFailed "do_rigid_cap"
+    end
+
 
 and do_el_out con =
   let open CM in
@@ -697,6 +834,22 @@ and do_el_out con =
       throw @@ NbeFailed "do_el_out"
   end
 
+
+and do_el : D.con -> D.tp CM.m =
+  let open CM in
+  fun con ->
+    abort_if_inconsistent D.TpAbort @@
+    begin
+      inspect_con con |>>
+      function
+      | D.Cut {cut} ->
+        ret @@ D.ElCut cut
+      | D.FHCom (`Univ, r, s, phi, bdy) ->
+        ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
+      | _ ->
+        ret @@ D.El con
+    end
+
 and unfold_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
@@ -706,7 +859,7 @@ and unfold_el : D.con -> D.tp CM.m =
       function
 
       | D.Cut {cut} ->
-        ret @@ D.UnfoldEl cut
+        CM.throw @@ NbeFailed "unfold_el on cut !!!"
 
       | D.CodeNat ->
         ret D.Nat
@@ -743,6 +896,7 @@ and unfold_el : D.con -> D.tp CM.m =
         CM.throw @@ NbeFailed "unfold_el failed"
     end
 
+
 and do_coe r s (abs : D.con) con =
   let open CM in
   test_sequent [] (Cof.eq r s) |>> function
@@ -750,7 +904,7 @@ and do_coe r s (abs : D.con) con =
   | _ -> do_rigid_coe abs r s con
 
 
-and dispatch_rigid_coe line r s con =
+and dispatch_rigid_coe line =
   let open CM in
   let i = D.DimProbe (Symbol.named "do_rigid_coe") in
   let rec go peek =
@@ -763,14 +917,18 @@ and dispatch_rigid_coe line r s con =
       ret @@ `Reduce `CoePath
     | D.CodeNat ->
       ret @@ `Reduce `CoeNat
+    | D.CodeUniv ->
+      ret @@ `Reduce `CoeUniv
+    | D.FHCom (`Univ, _, _, _, _) ->
+      ret @@ `Reduce `CoeFHCom
     | D.Cut {cut} ->
       ret `Done
     | _ ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_coe"
   in
-  go @<< do_ap line (D.dim_to_con i)
+  go @<< whnf_inspect_con @<< do_ap line (D.dim_to_con i)
 
-and dispatch_rigid_hcom code r s phi (bdy : D.con) =
+and dispatch_rigid_hcom code =
   let open CM in
   let rec go code =
     match code with
@@ -781,52 +939,73 @@ and dispatch_rigid_hcom code r s phi (bdy : D.con) =
     | D.CodePath (fam, bdry) ->
       ret @@ `Reduce (`HComPath (fam, bdry))
     | D.CodeNat ->
-      ret @@ `Reduce `HComNat
+      ret @@ `Reduce (`FHCom `Nat)
+    | D.CodeUniv ->
+      ret @@ `Reduce (`FHCom `Univ)
+    | D.FHCom (`Univ, r, s, phi, bdy) ->
+      ret @@ `Reduce (`HComFHCom (r, s, phi, bdy))
     | D.Cut {cut} ->
       ret @@ `Done cut
     | _ ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_hcom"
   in
-  go code
+  go @<< whnf_inspect_con code
 
-and enact_rigid_coe line r s con tag =
+and enact_rigid_coe line r r' con tag =
   let open CM in
   abort_if_inconsistent D.Abort @@
+  let destruct_frozen dst line =
+    let+ cof_env = CM.read_cof_env in
+    D.DestructLine (cof_env, dst, line)
+  in
   match tag with
-  | `CoeNat ->
+  | `CoeNat | `CoeUniv ->
     ret con
   | `CoePi ->
-    let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
+    let* split_line = destruct_frozen D.DCodePiSplit line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
     let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
     let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-    Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~s ~bdy
+    Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
   | `CoeSg ->
-    let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
+    let* split_line = destruct_frozen D.DCodeSgSplit line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
     let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
     let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-    Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~s ~bdy
+    Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
   | `CoePath ->
-    let split_line = D.compose (D.Destruct D.DCodePathSplit) line in
+    let* split_line = destruct_frozen D.DCodePathSplit line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
     let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
     let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
-    Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~s ~bdy
+    Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
+  | `CoeFHCom ->
+    let* split_line = destruct_frozen D.DCodeHComSplit line in
+    splice_tm @@
+    Splice.foreign split_line @@ fun split_line ->
+    Splice.foreign_dim r @@ fun r ->
+    Splice.foreign_dim r' @@ fun r' ->
+    Splice.foreign con @@ fun bdy ->
+    let s = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+    let s' = TB.lam @@ fun i -> TB.fst @@ TB.snd @@ TB.ap split_line [i] in
+    let phi = TB.lam @@ fun i -> TB.fst @@ TB.snd @@ TB.snd @@ TB.ap split_line [i] in
+    let code = TB.lam @@ fun i -> TB.snd @@ TB.snd @@ TB.snd @@ TB.ap split_line [i] in
+    let fhcom = TB.Kan.FHCom.{r = s; r' = s'; phi; bdy = code} in
+    Splice.term @@ TB.Kan.FHCom.coe_fhcom ~fhcom ~r ~r' ~bdy
 
-and enact_rigid_hcom code r s phi bdy tag =
+and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in
   abort_if_inconsistent D.Abort @@
   match tag with
@@ -835,65 +1014,79 @@ and enact_rigid_hcom code r s phi bdy tag =
     Splice.foreign base @@ fun base ->
     Splice.foreign fam @@ fun fam ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
-    TB.Kan.hcom_pi ~base ~fam ~r ~s ~phi ~bdy
+    TB.Kan.hcom_pi ~base ~fam ~r ~r' ~phi ~bdy
   | `HComSg (base, fam) ->
     splice_tm @@
     Splice.foreign base @@ fun base ->
     Splice.foreign fam @@ fun fam ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
-    TB.Kan.hcom_sg ~base ~fam ~r ~s ~phi ~bdy
+    TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
   | `HComPath (fam, bdry) ->
     splice_tm @@
     Splice.foreign fam @@ fun fam ->
     Splice.foreign bdry @@ fun bdry ->
     Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
+    Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign_cof phi @@ fun phi ->
     Splice.foreign bdy @@ fun bdy ->
     Splice.term @@
-    TB.Kan.hcom_path ~fam ~bdry ~r ~s ~phi ~bdy
-  | `HComNat ->
+    TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
+  | `FHCom tag ->
     (* bdy : (i : 𝕀) (_ : [...]) → el(<nat>) *)
-    let* bdy' =
+    let+ bdy' =
       splice_tm @@
       Splice.foreign bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_out @@ TB.ap bdy [i; prf]
     in
-    ret @@ D.ElIn (D.FHCom (`Nat, r, s, phi, bdy'))
+    D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
+  | `HComFHCom (h_r,h_r',h_phi,h_bdy) ->
+    splice_tm @@
+    Splice.foreign_dim r @@ fun r ->
+    Splice.foreign_dim r' @@ fun r' ->
+    Splice.foreign_cof phi @@ fun phi ->
+    Splice.foreign bdy @@ fun bdy ->
+    Splice.foreign_dim h_r @@ fun h_r ->
+    Splice.foreign_dim h_r' @@ fun h_r' ->
+    Splice.foreign_cof h_phi @@ fun h_phi ->
+    Splice.foreign h_bdy @@ fun h_bdy ->
+    Splice.term @@
+    let fhcom = TB.Kan.FHCom.{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} in
+    TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~r' ~phi ~bdy
   | `Done cut ->
-    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
-    let hd = D.HCom (cut, r, s, phi, bdy) in
+    let tp = D.ElCut cut in
+    let hd = D.HCom (cut, r, r', phi, bdy) in
     ret @@ D.Cut {tp; cut = hd, []}
 
 and do_rigid_coe (line : D.con) r s con =
   let open CM in
   CM.abort_if_inconsistent D.Abort @@
-  let* tag = dispatch_rigid_coe line r s con in
+  let* tag = dispatch_rigid_coe line in
   match tag with
   | `Done ->
     let hd = D.Coe (line, r, s, con) in
-    let+ code = do_ap line (D.dim_to_con s) in
-    D.Cut {tp = D.El code; cut = hd, []}
+    let* code = do_ap line (D.dim_to_con s) in
+    let+ tp = do_el code in
+    D.Cut {tp; cut = hd, []}
   | `Reduce tag ->
     enact_rigid_coe line r s con tag
 
 and do_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
   CM.abort_if_inconsistent D.Abort @@
-  let* tag = dispatch_rigid_hcom code r s phi bdy in
+  let* tag = dispatch_rigid_hcom code in
   match tag with
   | `Done cut ->
-    let tp = D.El (D.Cut {tp = D.Univ; cut}) in
+    let tp = D.ElCut cut in
     let hd = D.HCom (cut, r, s, phi, bdy) in
     ret @@ D.Cut {tp; cut = hd, []}
   | `Reduce tag ->

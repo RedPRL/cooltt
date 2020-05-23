@@ -1,0 +1,490 @@
+\documentclass[draft]{amsart}
+\usepackage{jon-note}
+\usepackage{jon-todo}
+\usepackage{mathpartir}
+\usepackage{mathtools}
+\usepackage[landscape]{geometry}
+
+\addbibresource{refs.bib}
+
+
+\mprset{flushleft}
+
+\NewDocumentCommand\TpHCom{mmmm}{
+  \mathsf{Hcom}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
+}
+
+\NewDocumentCommand\HCom{mmmmm}{
+  \mathsf{hcom}_{#1}\brc{#2\rightsquigarrow #3;#4}\prn{#5}
+}
+\NewDocumentCommand\Coe{mmmm}{
+  \mathsf{coe}_{#1}\brc{#2\rightsquigarrow #3}\prn{#4}
+}
+\NewDocumentCommand\Com{mmmmm}{
+  \mathsf{com}_{#1}\brc{#2\rightsquigarrow #3;#4}\prn{#5}
+}
+\NewDocumentCommand\CodeHCom{mmmm}{
+  \widehat{\mathsf{Hcom}}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
+}
+
+\NewDocumentCommand\TmBox{mmmmm}{
+  \mathsf{box}\brc{#1\rightsquigarrow #2;#3}\prn{#4;#5}
+}
+
+\NewDocumentCommand\TmCap{mmmmm}{
+  \mathsf{cap}\brc{#1\leftsquigarrow #2;#3}\prn{#4;#5}
+}
+
+\NewDocumentCommand\IsTp{m}{#1\ \mathit{type}}
+\NewDocumentCommand\DIM{}{\vvmathbb{I}}
+\NewDocumentCommand\COF{}{\vvmathbb{F}}
+\NewDocumentCommand\TpPrf{m}{\brk{#1}}
+\NewDocumentCommand\TpEl{m}{\mathsf{el}\prn{#1}}
+\NewDocumentCommand\TpUniv{}{\mathsf{Univ}}
+\NewDocumentCommand\Prod{mm}{
+  {\textstyle\prod}_{#1}#2
+}
+\NewDocumentCommand\TpSub{mmm}{
+  \brk{#1 \mathrel{\delimsep{\vert}} #2 \to #3}
+}
+\NewDocumentCommand\SubIn{m}{
+  {\uparrow_{\mathsf{sub}}}\prn{#1}
+}
+\NewDocumentCommand\SubOut{m}{
+  {\downarrow_{\mathsf{sub}}}\prn{#1}
+}
+
+\NewDocumentCommand\CodeUniv{}{\mindelim{1}\widehat{\mathsf{Univ}}}
+\NewDocumentCommand\Code{m}{\mindelim{1}\hat{#1}}
+
+\NewDocumentCommand\ElInOut{}{{\updownarrow_{\mathsf{el}}}}
+\NewDocumentCommand\ElIn{m}{{\uparrow_{\mathsf{el}}}\prn{#1}}
+\NewDocumentCommand\ElOut{m}{{\downarrow_{\mathsf{el}}}\prn{#1}}
+\NewDocumentCommand\Hint{m}{{\color{gray}#1}}
+
+
+\title{Universes}
+\author{Angiuli, Favonia, Sterling}
+
+\begin{document}
+\maketitle
+
+This note gives a semantic version of the structure and algorithms of Kan
+universes of Kan types, previously encoded in syntactic form by
+\citet{angiuli:2019}. By \emph{semantic} we mean using ordinary families and
+functions (as in \citep{orton-pitts:2016,abcfhl:2019}) instead of syntactic
+substitutions. We differ from \citep{orton-pitts:2016,abcfhl:2019} in the
+following ways:
+
+\begin{enumerate}
+
+  \item The developments in the style of Orton--Pitts construct various notions
+    in the internal language of a topos, but do not carefully check that they
+    may be combined in a coherent way. In contrast, we are defining an
+    equational theory for a \emph{general} coercion and composition operator,
+    which can be \emph{modeled} by a carefully executed Orton--Pitts
+    construction.
+
+  \item The artificial distinction between ``cap'' and ``tube'' maintained in
+    the Orton--Pitts developments is replaced by the more semantic use of
+    disjunction. This significantly simplifies both the rules for typing
+    compositions, and for computing them.
+
+  \item Finally, we are experimentally targetting \emph{weak} universes \`a la
+    Tarski instead of strict ones (i.e.\ we do not place equations on the
+    $\TpEl{-}$ operator except those induced by cubical boundary conditions);
+    this is both more natural from a semantic point of view, and apparently
+    advantageous from the side of implementation (where the strict equations
+    lose too much information too early).
+
+\end{enumerate}
+
+
+\section{Type structure of the universe}
+
+\begin{mathparpagebreakable}
+  \inferrule[univ formation]{
+  }{
+    \IsTp{\TpUniv}
+  }
+  \and
+  \inferrule[el formation]{
+    \Code{A} : \TpUniv
+  }{
+    \IsTp{\TpEl{\Code{A}}}
+  }
+  \and
+  \inferrule[hcom structure]{
+    \Code{A} : \TpUniv\\
+    r,s : \DIM\\
+    \phi : \COF\\
+    M : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}}{\TpEl{\Code{A}}}
+  }{
+    \HCom{\Code{A}}{r}{s}{\phi}{M} : \TpEl{\Code{A}}
+    \mid
+    r=s\lor\phi \to M\prn{s,*}
+  }
+  \and
+  \inferrule[coe structure]{
+    \Code{A} : \DIM\to \TpUniv\\
+    r,s:\DIM\\
+    M : \TpEl{\Code{A}\prn{r}}
+  }{
+    \Coe{\Code{A}}{r}{s}{M} : \TpEl{\Code{A}\prn{s}} \mid
+    r=s\to M
+  }
+  \and
+  \inferrule[com structure]{
+    \Code{A} : \DIM\to \TpUniv\\
+    r,s : \DIM\\
+    \phi : \COF\\
+    M : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}}{\TpEl{\Code{A}\prn{i}}}
+  }{
+    \Com{\Code{A}}{r}{s}{\phi}{M} : \TpEl{\Code{A}\prn{s}}
+    \mid
+    r=s\lor\phi \to M\prn{s,*}
+  }
+  \and
+  \inferrule[composite type introduction]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Hint{
+      \Code{A} : \Prod{i:\DIM}{
+        \Prod{* : \TpPrf{i=r\lor\phi}}{
+          \TpUniv
+        }
+      }
+    }\\
+    N : \Prod{*:\TpPrf{\phi}}{\TpEl{\Code{A}\prn{s,*}}}\\
+    M :
+    \TpEl{\Code{A}\prn{r,*}} \mid
+    \phi \to
+    \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
+      N\prn{*}
+    }
+  }{
+    \TmBox{r}{s}{\phi}{N}{M} : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
+    \mid
+    r=s \to M\mid
+    \phi \to N\prn{*}
+  }
+  \and
+  \inferrule[composite type elimination]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Code{A} : \Prod{i:\DIM}{
+      \Prod{* : \TpPrf{i=r\lor\phi}}{
+        \TpUniv
+      }
+    }
+    \\
+    M : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
+  }{
+    \TmCap{r}{s}{\phi}{\Code{A}}{M} :
+    \TpEl{\Code{A}\prn{r,*}}
+    \mid
+    r=s\to M
+    \mid
+    \phi\to\Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{M}
+  }
+  \and
+  \inferrule[composite type computation]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Hint{
+      \Code{A} : \Prod{i:\DIM}{
+        \Prod{* : \TpPrf{i=r\lor\phi}}{
+          \TpUniv
+        }
+      }
+    }\\
+    \Hint{N : \Prod{*:\TpPrf{\phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+    \Hint{
+      M :
+      \TpEl{\Code{A}\prn{r,*}}
+      \mid
+      \phi\to
+      \Coe{\lambda i.\Code{A}\prn{i,*}}{s}{r}{
+        N\prn{*}
+      }
+    }
+  }{
+    \TmCap{r}{s}{\phi}{\Code{A}}{
+      \TmBox{r}{s}{\phi}{N}{M}
+    }
+    =
+    M
+    : \TpEl{\Code{A}\prn{r,*}}
+  }
+  \and
+  \inferrule[composite type uniqueness]{
+    \Hint{r,s:\DIM}\\
+    \Hint{\phi:\COF}\\
+    \Hint{
+      \Code{A} : \Prod{i:\DIM}{
+        \Prod{* : \TpPrf{i=r\lor\phi}}{
+          \TpUniv
+        }
+      }
+    }\\
+    \Hint{
+      M : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
+    }
+  }{
+    M =
+    \TmBox{r}{s}{\phi}{
+      \lambda{*}. M
+    }{
+      \TmCap{r}{s}{\phi}{\Code{A}}{M}
+    }
+    : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
+  }
+\end{mathparpagebreakable}
+
+\begin{warning}
+  %
+  The arguments to $\mathsf{box}$ go in the order forced by their typing
+  constraints, but please note that this is the opposite of what appeared in
+  \citep{angiuli:2019}.
+  %
+\end{warning}
+
+
+\section{Code structure}
+
+We have a code for the universe in the universe; for now, we ignore size issues
+in order to isolate the interesting parts of the Kan structure.
+
+\begin{mathparpagebreakable}
+  \inferrule[universe code]{
+  }{
+    \CodeUniv : \TpUniv
+  }
+  \and
+  \inferrule[universe code decoding]{
+  }{
+    \ElInOut : \TpEl{\CodeUniv} \cong \TpUniv
+  }
+\end{mathparpagebreakable}
+
+\begin{convention}
+  Given $\Code{A} : \TpUniv$, we will write $\ElIn{\Code{A}} : \TpEl{\CodeUniv}$
+  and $\ElOut{\ElIn{\Code{A}}} = \Code{A} : \TpUniv$.
+\end{convention}
+
+
+
+\begin{mathparpagebreakable}
+  \inferrule[formal hcom code]{
+    r,s : \DIM\\
+    \phi : \COF\\
+    \Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpUniv}}
+  }{
+    \CodeHCom{r}{s}{\phi}{\Code{A}} : \TpUniv
+    \mid
+    r=s\lor\phi
+    \to
+    \Code{A}\prn{s,*}
+  }
+  \and
+  \inferrule[hcom-univ computation]{
+    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpEl{\CodeUniv}}}}
+  }{
+    \HCom{\CodeUniv}{r}{s}{\phi}{\Code{A}} =
+    \ElIn{
+      \CodeHCom{r}{s}{\phi}{
+        \lambda i,*. \ElOut{\Code{A}\prn{i,*}}
+      }
+    }
+    :
+    \TpEl{\CodeUniv}
+  }
+\end{mathparpagebreakable}
+
+\section{Composition in composite types}
+
+\begin{mathparpagebreakable}
+  \inferrule{
+    \Hint{\Code{A} : \Prod{j:\DIM}{\Prod{*:\TpPrf{j=s\lor\psi}}{\TpUniv}}}\\
+    \Hint{
+      M : \Prod{i:\DIM}{
+        \Prod{*:\TpPrf{i=r\lor\phi}}{
+          \TpEl{
+            \CodeHCom{s}{s'}{\psi}{\Code{A}}
+          }
+        }
+      }
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{O} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor \phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{O}\prn{i,*} := \TmCap{s}{s'}{\psi}{\Code{A}}{M\prn{i,*}}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{P} : \Prod{i:\DIM}{\Prod{*:\TpPrf{s=s'\lor \psi}}{\TpEl{\Code{A}\prn{s',*}}}}\\
+        \tilde{P}\prn{i,*} = \HCom{\Code{A}\prn{s',*}}{r}{i}{\phi}{M}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{T}\prn{i,*} :=
+        \brk{
+          i=r\lor\phi \to \tilde{O}\prn{i,*}
+          \mid
+          \psi \to \Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}
+          \mid
+          s=s' \to \tilde{P}\prn{i,*}
+        }
+      \end{array}
+    }
+  }{
+    \HCom{
+      \CodeHCom{s}{s'}{\psi}{\Code{A}}
+    }{r}{r'}{\phi}{M}
+    =
+    \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{
+      \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
+    }
+    :
+    \TpEl{
+      \CodeHCom{s}{s'}{\psi}{\Code{A}}
+    }
+  }
+\end{mathparpagebreakable}
+
+\section{Coercion in composite types}
+
+\begin{mathparpagebreakable}
+  \inferrule{
+    \Hint{s_\bullet, s'_\bullet : \DIM\to\DIM}\\
+    \Hint{\phi_\bullet : \DIM\to\COF}\\
+    \Hint{
+      \Code{A}_\bullet :
+      \Prod{i:\DIM}{
+        \Prod{j:\DIM}{
+          \Prod{*:\TpPrf{j=s_{i}\lor{\phi_{i}}}}{
+            \TpUniv
+          }
+        }
+      }
+    }
+    \\
+    \Hint{r,r' : \DIM}\\\\
+    \Hint{
+      M : \TpEl{
+        \CodeHCom{s_{r}}{s'_{r}}{\phi_{r}}{\Code{A}_{r}}
+      }
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{N} : \Prod{i,j:\DIM}{
+          \Prod{*:\TpPrf{\forall i.\phi_i}}{
+            \TpEl{\Code{A}_{i}\prn{j,*}}
+          }
+        }\\
+        \tilde{N}\prn{i,j,*} :=
+        \Coe{\Code{A}_i\prn{\bullet,*}}{s'_i}{j}{\Coe{\Code{A}_\bullet\prn{s'_\bullet,*}}{r}{i}{M}}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{O} : \DIM \to \TpEl{\Code{A}_{r}\prn{s_r,*}}
+        \\
+        \tilde{O}\prn{j} :=
+        \HCom{\Code{A}_{r}\prn{s_r,*}}{s'_{r}}{j}{\phi_{r}}{
+          \lambda k,*.
+          \brk{
+            k=s'_r \to \TmCap{s_r}{s'_r}{\phi_r}{\Code{A}_r}{M}
+            \mid
+            \phi_r \to
+            \Coe{\Code{A}_r\prn{\bullet,*}}{k}{s_r}{
+              \Coe{\Code{A}_r\prn{\bullet,*}}{s'_r}{k}{M}
+            }
+          }
+        }
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{P} : \TpEl{\Code{A}_{r'}\prn{s_{r'},*}} \\
+        \tilde{P} :=
+        \Com{\Code{A}_\bullet\prn{s_\bullet,*}}{r}{r'}{\forall i.\phi_i \lor \forall i.\prn{s_i=s'_i}}{
+          \lambda i,*.
+          \brk{
+            i=r \to \tilde{O}\prn{s_r}
+            \mid
+            \forall i.\phi_i \to \tilde{N}\prn{i,s_i,*}
+            \mid
+            \forall i.(s_i=s'_i) \to \Coe{\Code{A}_\bullet\prn{s_\bullet,*}}{r}{i}{M}
+          }
+        }
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{Q} : \Prod{j:\DIM}{
+          \Prod{*:\TpPrf{\phi_{r'}}}{
+            \TpEl{\Code{A}_{r'}\prn{j,*}}
+          }
+        }\\
+        \tilde{Q}\prn{j,*} :=
+        \Com{\Code{A}_{r'}\prn{\bullet,*}}{s_{r'}}{j}{r=r'\lor\forall i.\phi_i}{
+          \lambda k,*.\brk{
+            k=s_{r'} \to \tilde{P}
+            \mid
+            r=r' \to \Coe{\Code{A}_{r'}\prn{\bullet,*}}{s'_{r'}}{k}{M}
+            \mid
+            \forall i.\phi_i \to \tilde{N}\prn{r',k,*}
+          }
+        }
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{H} : \TpEl{\Code{A}_{r'}\prn{s_{r'},*}} \\
+        \tilde{H} :=
+        \HCom{\Code{A}_{r'}(s_{r'},*)}{s_{r'}}{s'_{r'}}{\phi_{r'} \lor r=r'}{
+          \lambda j,*.\brk{
+            j=s_{r'}\to \tilde{P}
+            \mid
+            \phi_{r'} \to \Coe{\Code{A}_{r'}\prn{\bullet,*}}{j}{s_{r'}}{\tilde{Q}\prn{j,*}}
+            \mid
+            r=r' \to \tilde{O}\prn{j}
+          }
+        }
+      \end{array}
+    }
+  }{
+    \Coe{
+      \lambda i.
+      \CodeHCom{s_{i}}{s'_{i}}{\phi_{i}}{\Code{A}_i}
+    }{r}{r'}{M}
+    =
+    \TmBox{s_{r'}}{s'_{r'}}{\phi_{r'}}{
+      \lambda{*}.{\tilde{Q}\prn{s'_{r'},*}}
+    }{
+      \tilde{H}
+    }
+    :
+    \TpEl{
+      \CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}
+    }
+  }
+\end{mathparpagebreakable}
+
+\clearpage
+\nocite{*}
+\printbibliography
+
+\end{document}

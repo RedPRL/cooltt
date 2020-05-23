@@ -239,8 +239,6 @@ plain_term_except_cof_case:
     { HCom (tp, src, trg, phi, body) }
   | HFILL; tp = atomic_term; src = atomic_term; phi = atomic_term; body = atomic_term
     { HFill (tp, src, phi, body) }
-  | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
-    { AutoHCom (tp, src, trg, body) }
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
 

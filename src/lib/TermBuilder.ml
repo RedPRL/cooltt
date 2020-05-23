@@ -1,7 +1,10 @@
 open CoolBasis
 
-module S = Syntax
+exception CFHM
+exception CCHM
+exception CJHM
 
+module S = Syntax
 
 module M : sig
   include Monad.S
@@ -10,6 +13,8 @@ module M : sig
   val run : tplen:int -> conlen:int-> 'a m -> 'a
   val lvl : int -> S.t m
   val tplvl : int -> S.tp m
+
+  val test : S.t m -> unit
 end =
 struct
   type local = {tplen : int; conlen : int}
@@ -43,6 +48,12 @@ struct
 
   let run ~tplen ~conlen m =
     m {tplen; conlen}
+
+  let test m =
+    let tm = run ~tplen:0 ~conlen:0 m in
+    Format.printf
+      "@[<v>Testing:@ %a@]@."
+      (S.pp Pp.Env.emp) tm
 end
 
 
@@ -182,6 +193,9 @@ let tp_prf mphi =
   let+ phi = mphi in
   S.TpPrf phi
 
+let prf =
+  ret S.Prf
+
 
 let eq mr ms =
   let+ r = mr
@@ -196,6 +210,10 @@ let meet mphis =
   let+ phis = MU.commute_list mphis in
   S.Cof (Cof.Meet phis)
 
+let forall mphi =
+  let+ phi = scope mphi in
+  S.ForallCof phi
+
 let tp_dim = ret S.TpDim
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
@@ -203,38 +221,56 @@ let dim1 = ret S.Dim1
 let boundary mr =
   join [eq mr dim0; eq mr dim1]
 
+let box mr ms mphi msides mcap =
+  let+ r = mr
+  and+ s = ms
+  and+ phi = mphi
+  and+ sides = msides
+  and+ cap = mcap in
+  S.Box (r, s, phi, sides, cap)
+
+let cap mr ms mphi mcode mbox =
+  let+ r = mr
+  and+ s = ms
+  and+ phi = mphi
+  and+ code = mcode
+  and+ box = mbox in
+  S.Cap (r, s, phi, code, box)
+
+
+
 
 module Kan =
 struct
-  type coe = r:S.t m -> s:S.t m -> bdy:S.t m -> S.t m
-  type hcom = r:S.t m -> s:S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+  type coe = r:S.t m -> r':S.t m -> bdy:S.t m -> S.t m
+  type hcom = r:S.t m -> r':S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
 
-  let coe_pi ~base_line ~fam_line ~r ~s ~bdy : _ m =
+  let coe_pi ~base_line ~fam_line ~r ~r' ~bdy : _ m =
     el_in @@
     lam @@ fun arg ->
-    let_ (lam @@ fun i -> coe base_line s i arg) @@ fun coe_base_line ->
+    let_ (lam @@ fun i -> coe base_line r' i arg) @@ fun coe_base_line ->
     let fib_line = lam @@ fun i -> ap fam_line [i; ap coe_base_line [i]] in
-    coe fib_line r s @@
+    coe fib_line r r' @@
     ap (el_out bdy) [ap coe_base_line [r]]
 
-  let hcom_pi ~base ~fam ~r ~s ~phi ~bdy : _ m =
+  let hcom_pi ~base ~fam ~r ~r' ~phi ~bdy : _ m =
     el_in @@
     lam @@ fun arg ->
     let tfib = ap fam [arg] in
-    hcom tfib r s phi @@
+    hcom tfib r r' phi @@
     lam @@ fun i ->
     lam @@ fun prf ->
     ap (el_out (ap bdy [i; prf])) [arg]
 
-  let coe_sg ~base_line ~fam_line ~r ~s ~bdy : _ m =
+  let coe_sg ~base_line ~fam_line ~r ~r' ~bdy : _ m =
     let fst_line = lam @@ fun i -> coe base_line r i @@ fst @@ el_out bdy in
     let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
     el_in @@
     pair
-      (ap fst_line [s])
-      (coe fib_line r s @@ snd @@ el_out bdy)
+      (ap fst_line [r'])
+      (coe fib_line r r' @@ snd @@ el_out bdy)
 
-  let hcom_sg ~base ~fam ~r ~s ~phi ~bdy : _ m =
+  let hcom_sg ~base ~fam ~r ~r' ~phi ~bdy : _ m =
     let p0_line =
       lam @@ fun i ->
       hcom base r i phi @@
@@ -242,13 +278,13 @@ struct
       lam @@ fun prf ->
       fst @@ el_out @@ ap bdy [j; prf]
     in
-    let p0 = ap p0_line [s] in
+    let p0 = ap p0_line [r'] in
     let fib_line =
       lam @@ fun i ->
       ap fam [ap p0_line [i]]
     in
     let p1 =
-      com fib_line r s phi @@
+      com fib_line r r' phi @@
       lam @@ fun i ->
       lam @@ fun prf ->
       snd @@ el_out @@ ap bdy [i; prf]
@@ -256,21 +292,13 @@ struct
     el_in @@
     pair p0 p1
 
-  exception Todo
 
-  let coe_path ~(fam_line : S.t m) (* A : I -> I -> U *)
-      ~(bdry_line : S.t m)         (* a&b together; i:I j:I -> [_ : j=0 v j=1] -> A i j *)
-      ~(r : S.t m)                 (* r : I *)
-      ~(s : S.t m)                 (* s/r' : I *)
-      ~(bdy : S.t m)               (* m : path (A r) (bdry_line r 0) (bdry_line r 1) *)
-    (* ------------------------ *)
-    : S.t m                        (* path (A r') (bdry_line r' 0) (bdry_line r' 1) *)
-    =
+  let coe_path ~(fam_line : S.t m) ~(bdry_line : S.t m) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
     el_in @@
     lam @@ fun j ->
     sub_in @@
     let_ (boundary j) @@ fun d_j ->
-    com (lam @@ fun i -> ap fam_line [i; j]) r s d_j @@
+    com (lam @@ fun i -> ap fam_line [i; j]) r r' d_j @@
     lam @@ fun i ->
     lam @@ fun _ ->
     cof_split
@@ -279,31 +307,13 @@ struct
       ; eq i r, (fun q -> sub_out @@ ap (el_out bdy) [j])
       ]
 
-  (*
-   * fam : I -> U
-   * bdry : (i : I) (_ : [d(i)]) -> fam i
-   * bdy : (j : I) (_ : [φ \/ j=r]) (i : I) -> (A [_:d(i) => bdry(i,_)])
-     hcom_{path(A; a)} r s φ bdy : (i : I) -> (A [_:d(i) => bdry(i,_)])
-         matching
-         [p : [φ\/s=r] => sub/out {bdy(s,p)}]
-     =
-     λ i.
-     sub/in {
-       hcom_{fam(i)} r s (φ \/ d(i)) {
-        λ k. λ p : [φ \/ d(i) \/ k=r].
-        [ q : [d(i)] => bdry(i,q)
-        | q : [φ \/ k=r] => sub/out {bdy(k,q,i)}
-        ]
-       } : fam i
-     }
-   *)
-  let hcom_path ~fam ~bdry ~r ~s ~phi ~bdy =
+  let hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy =
     el_in @@
     lam @@ fun i ->
     sub_in @@
     let_ (boundary i) @@ fun d_i ->
     let_ (ap fam [i]) @@ fun fam_i ->
-    hcom fam_i r s (join [phi; d_i]) @@
+    hcom fam_i r r' (join [phi; d_i]) @@
     lam @@ fun k ->
     lam @@ fun p ->
     cof_split
@@ -311,4 +321,140 @@ struct
       [ d_i , (fun q -> ap bdry [i; q])
       ; join [phi; eq k r] , (fun q -> sub_out (ap (el_out (ap bdy [k;q])) [i]))
       ]
+
+  module FHCom :
+  sig
+    type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
+    val hcom_fhcom : fhcom:fhcom_u -> r:S.t m -> r':S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+    val coe_fhcom : fhcom:fhcom_u -> r:S.t m -> r':S.t m -> bdy:S.t m -> S.t m
+  end =
+  struct
+    type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
+
+    let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
+      let_ ~ident:(`Machine "O")
+        begin
+          lam ~ident:(`Machine "i") @@ fun i ->
+          lam @@ fun _ ->
+          cap fhcom.r fhcom.r' fhcom.phi fhcom.bdy @@ ap bdy [i; prf]
+        end
+      @@ fun o_tilde ->
+      let_ ~ident:(`Machine "P")
+        begin
+          lam ~ident:(`Machine "i") @@ fun i ->
+          lam @@ fun _ ->
+          hcom (ap fhcom.bdy [fhcom.r'; prf]) r i phi bdy
+        end
+      @@ fun p_tilde ->
+      box fhcom.r fhcom.r' fhcom.phi (lam @@ fun _ -> ap p_tilde [r'; prf]) @@
+      hcom (ap fhcom.bdy [fhcom.r; prf]) r r' (join [phi; fhcom.phi; eq fhcom.r fhcom.r']) @@
+      lam ~ident:(`Machine "i") @@ fun i ->
+      lam @@ fun _ ->
+      cof_split
+        (el @@ ap fhcom.bdy [fhcom.r'; prf])
+        [ join [eq i r; phi],
+          (fun _ -> ap o_tilde [i; prf])
+        ; fhcom.phi,
+          (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]))
+        ; eq fhcom.r fhcom.r',
+          (fun _ -> ap p_tilde [i; prf])
+        ]
+
+    (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
+    let coe_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
+      let s_ x = ap fhcom.r [x] in
+      let s'_ x = ap fhcom.r' [x] in
+      let phi_ x = ap fhcom.phi [x] in
+      let code_ x = ap fhcom.bdy [x] in
+      let_ ~ident:(`Machine "N")
+        begin
+          lam ~ident:(`Machine "i") @@ fun i ->
+          lam ~ident:(`Machine "j") @@ fun j ->
+          lam @@ fun _ ->
+          coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ i) [k; prf]) (s'_ i) j @@
+          coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s'_ k; prf]) r i bdy
+        end
+      @@ fun n_tilde ->
+      let_ ~ident:(`Machine "O")
+        begin
+          lam ~ident:(`Machine "j") @@ fun j ->
+          hcom (ap (code_ r) [s_ r; prf]) (s'_ r) j (phi_ r) @@
+          lam ~ident:(`Machine "k") @@ fun k ->
+          lam @@ fun _ ->
+          cof_split (el (ap (code_ r) [s_ r; prf]))
+            [eq k (s'_ r),
+             (fun _ -> cap (s_ r) (s'_ r) (phi_ r) (code_ r) bdy);
+             phi_ r,
+             (fun _ ->
+                coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) k (s_ r) @@
+                coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) (s'_ r) k bdy)]
+        end
+      @@ fun o_tilde ->
+      let_ ~ident:(`Machine "P")
+        begin
+          let line = lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s_ k; prf] in
+          let cof = join [forall phi_; forall (fun i -> eq (s_ i) (s'_ i))] in
+          com line r r' cof @@
+          lam ~ident:(`Machine "i") @@ fun i ->
+          lam @@ fun _ ->
+          cof_split (el @@ ap (code_ r') [s_ r'; prf])
+            [eq i r, (fun _ -> ap o_tilde [s_ r]);
+             forall phi_, (fun _ -> ap n_tilde [i; s_ i; prf]);
+             forall (fun i -> eq (s_ i) (s'_ i)), (fun _ -> coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s_ k; prf]) r i bdy)]
+        end
+      @@ fun p_tilde ->
+      let_ ~ident:(`Machine "Q")
+        begin
+          lam ~ident:(`Machine "j") @@ fun j ->
+          lam @@ fun _ ->
+          let line = lam ~ident:(`Machine "k") @@ fun k -> ap (code_ r') [k; prf] in
+          com line (s_ r') j (join [eq r r'; forall phi_]) @@
+          lam ~ident:(`Machine "k") @@ fun k ->
+          lam @@ fun _ ->
+          cof_split (el @@ ap (code_ r') [j; prf])
+            [eq k (s_ r'), (fun _ -> p_tilde);
+             eq r r', (fun _ -> coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) (s'_ r') k bdy);
+             forall phi_, (fun _ -> ap n_tilde [r'; k; prf])]
+        end
+      @@ fun q_tilde ->
+      box (s_ r') (s'_ r') (phi_ r')
+        (lam @@ fun _ -> ap q_tilde [s'_ r'; prf])
+        begin
+          hcom (code_ r') (s_ r') (s'_ r') (join [phi_ r'; eq r r']) @@
+          lam @@ fun j ->
+          lam @@ fun _ ->
+          cof_split (el @@ code_ r')
+            [eq j (s_ r'), (fun _ -> p_tilde);
+             phi_ r', (fun _ -> coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) j (s_ r') (ap q_tilde [j; prf]));
+             eq r r', (fun _ -> ap o_tilde [j])]
+        end
+  end
+end
+
+module Test =
+struct
+  let closed_form_hcom =
+    lam ~ident:(`Machine "s") @@ fun h_r ->
+    lam ~ident:(`Machine "s'") @@ fun h_r' ->
+    lam ~ident:(`Machine "ψ") @@ fun h_phi ->
+    lam ~ident:(`Machine "A") @@ fun h_bdy ->
+    lam ~ident:(`Machine "r") @@ fun r ->
+    lam ~ident:(`Machine "r'") @@ fun r' ->
+    lam ~ident:(`Machine "φ") @@ fun phi ->
+    lam ~ident:(`Machine "M") @@ fun bdy ->
+    Kan.FHCom.hcom_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~phi ~bdy
+
+  let closed_form_coe =
+    lam ~ident:(`Machine "s") @@ fun h_r ->
+    lam ~ident:(`Machine "s'") @@ fun h_r' ->
+    lam ~ident:(`Machine "φ") @@ fun h_phi ->
+    lam ~ident:(`Machine "A") @@ fun h_bdy ->
+    lam ~ident:(`Machine "r") @@ fun r ->
+    lam ~ident:(`Machine "r'") @@ fun r' ->
+    lam ~ident:(`Machine "M") @@ fun bdy ->
+    Kan.FHCom.coe_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~bdy
+
+  let print_example () =
+    test closed_form_hcom;
+    test closed_form_coe
 end

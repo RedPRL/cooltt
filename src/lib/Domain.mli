@@ -7,6 +7,8 @@ val cof_to_con : cof -> con
 val mk_var : tp -> int -> con
 val push : frm -> cut -> cut
 
+val const_tp_clo : tp -> tp_clo
+
 
 val un_lam : con -> tm_clo
 val compose : con -> con -> con
