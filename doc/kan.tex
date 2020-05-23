@@ -10,6 +10,14 @@
 
 \mprset{flushleft}
 
+\NewDocumentCommand\CodeV{mmmm}{
+  \widehat{\mathsf{V}}\brc{#1}\prn{#2;#3;#4}
+}
+
+\NewDocumentCommand\CodeEq{mm}{
+  \mathsf{Equiv}\prn{#1;#2}
+}
+
 \NewDocumentCommand\TpHCom{mmmm}{
   \mathsf{Hcom}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
 }
@@ -285,6 +293,23 @@ in order to isolate the interesting parts of the Kan structure.
     r=s\lor\phi
     \to
     \Code{A}\prn{s,*}
+  }
+  \and
+  \inferrule[formal v code]{
+    r : \DIM\\
+    \Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}\\
+    \Code{B} : \TpUniv\\
+    \Code{E} : \Prod{*:\TpPrf{r=0}}{\CodeEq{\Code{A}\prn{*}}{\Code{B}}}
+  }{
+    \CodeV{r}{\Code{A}}{\Code{B}}{\Code{E}} : \TpUniv
+    \mid
+    r=0
+    \to
+    \Code{A}\prn{*}
+    \mid
+    r=1
+    \to
+    \Code{B}
   }
   \and
   \inferrule[hcom-univ computation]{
