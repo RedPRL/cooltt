@@ -10,12 +10,24 @@
 
 \mprset{flushleft}
 
+\NewDocumentCommand\Dummy{}{
+  \underline{\hspace{.5em}}
+}
+
 \NewDocumentCommand\CodeV{mmmm}{
   \widehat{\mathsf{V}}\brc{#1}\prn{#2;#3;#4}
 }
 
-\NewDocumentCommand\CodeEq{mm}{
-  \mathsf{Equiv}\prn{#1;#2}
+\NewDocumentCommand\IsContr{g}{
+  \mathsf{IsContr}\IfValueT{#1}{\prn{#1}}
+}
+
+\NewDocumentCommand\Fiber{gggg}{
+  \mathsf{Fiber}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
+}
+
+\NewDocumentCommand\Equiv{gg}{
+  \mathsf{Equiv}\IfValueT{#1}{\prn{#1;#2}}
 }
 
 \NewDocumentCommand\TpHCom{mmmm}{
@@ -49,6 +61,9 @@
 \NewDocumentCommand\TpPrf{m}{\brk{#1}}
 \NewDocumentCommand\TpEl{m}{\mathsf{el}\prn{#1}}
 \NewDocumentCommand\TpUniv{}{\mathsf{Univ}}
+\NewDocumentCommand\CodeProd{mm}{
+  {\widehat{\textstyle\prod}}_{#1}#2
+}
 \NewDocumentCommand\Prod{mm}{
   {\textstyle\prod}_{#1}#2
 }
@@ -60,6 +75,18 @@
 }
 \NewDocumentCommand\SubOut{m}{
   {\downarrow_{\mathsf{sub}}}\prn{#1}
+}
+\NewDocumentCommand\CodeSum{mm}{
+  {\widehat{\textstyle\sum}}_{#1}#2
+}
+\NewDocumentCommand\Sum{mm}{
+  {\textstyle\sum}_{#1}#2
+}
+\NewDocumentCommand\CodePath{mmm}{
+  {\widehat{\mathsf{Path}}}_{#1}\prn{#2;#3}
+}
+\NewDocumentCommand\Path{mmm}{
+  {\mathsf{Path}}_{#1}\prn{#2;#3}
 }
 
 \NewDocumentCommand\CodeUniv{}{\mindelim{1}\widehat{\mathsf{Univ}}}
@@ -280,6 +307,44 @@ in order to isolate the interesting parts of the Kan structure.
   and $\ElOut{\ElIn{\Code{A}}} = \Code{A} : \TpUniv$.
 \end{convention}
 
+\begin{mathparpagebreakable}
+  \inferrule[formal pi code]{
+    \Code{A} : \TpUniv\\
+    \Code{B} : \Prod{M:\TpEl{\Code{A}}}{\TpUniv}
+  }{
+    \CodeProd{M:\TpEl{\Code{A}}}{\Code{B}\prn{M}} : \TpUniv
+  }
+  \and
+  \inferrule[formal sigma code]{
+    \Code{A} : \TpUniv\\
+    \Code{B} : \Prod{M:\TpEl{\Code{A}}}{\TpUniv}
+  }{
+    \CodeSum{M:\TpEl{\Code{A}}}{\Code{B}\prn{M}} : \TpUniv
+  }
+\end{mathparpagebreakable}
+
+\begin{notation}
+  These are abbreviations for equivalences. Contractability is defined in terms of paths \emph{to} the center, not \emph{from} it.
+  \[
+    \begin{array}{l}
+      \IsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
+      \IsContr{\Code{C}} \coloneq \CodeProd{M:\TpEl{\Code{C}}}{\CodeProd{N:\TpEl{\Code{C}}}{\CodePath{\lambda\Dummy.\Code{C}}{N}{M}}}
+    \end{array}
+  \]
+  \[
+    \begin{array}{l}
+      \Fiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}} \to \TpEl{\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
+      \Fiber{\Code{A}}{\Code{B}}{F}{N} \coloneq \CodeProd{M:\TpEl{\Code{A}}}{\CodePath{\lambda\Dummy.\Code{B}}{F\prn{M}}{N}}
+    \end{array}
+  \]
+  \[
+    \begin{array}{l}
+      \Equiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
+      \Equiv{\Code{A}}{\Code{B}} \coloneq \CodeSum{F:\TpEl{\Code{A}}\to\TpEl{\Code{B}}}{\CodeProd{N:\TpEl{\Code{B}}}{\IsContr{\Fiber{\Code{A}}{\Code{B}}{F}{N}}}}
+    \end{array}
+  \]
+\end{notation}
+
 
 
 \begin{mathparpagebreakable}
@@ -299,7 +364,7 @@ in order to isolate the interesting parts of the Kan structure.
     r : \DIM\\
     \Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}\\
     \Code{B} : \TpUniv\\
-    E : \Prod{*:\TpPrf{r=0}}{\CodeEq{\Code{A}\prn{*}}{\Code{B}}}
+    E : \Prod{*:\TpPrf{r=0}}{\Equiv{\Code{A}\prn{*}}{\Code{B}}}
   }{
     \CodeV{r}{\Code{A}}{\Code{B}}{E} : \TpUniv
     \mid
@@ -344,7 +409,7 @@ in order to isolate the interesting parts of the Kan structure.
     {
       \begin{array}{l}
         \tilde{O} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor \phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
-        \tilde{O}\prn{i,*} := \TmCap{s}{s'}{\psi}{\Code{A}}{M\prn{i,*}}
+        \tilde{O}\prn{i,*} \coloneq \TmCap{s}{s'}{\psi}{\Code{A}}{M\prn{i,*}}
       \end{array}
     }
     \\\\\\
@@ -358,7 +423,7 @@ in order to isolate the interesting parts of the Kan structure.
     {
       \begin{array}{l}
         \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
-        \tilde{T}\prn{i,*} :=
+        \tilde{T}\prn{i,*} \coloneq
         \brk{
           i=r\lor\phi \to \tilde{O}\prn{i,*}
           \mid
@@ -414,7 +479,7 @@ in order to isolate the interesting parts of the Kan structure.
             \TpEl{\Code{A}_{i}\prn{j,*}}
           }
         }\\
-        \tilde{N}\prn{i,j,*} :=
+        \tilde{N}\prn{i,j,*} \coloneq
         \Coe{\Code{A}_i\prn{\bullet,*}}{s'_i}{j}{\Coe{\Code{A}_\bullet\prn{s'_\bullet,*}}{r}{i}{M}}
       \end{array}
     }
@@ -423,7 +488,7 @@ in order to isolate the interesting parts of the Kan structure.
       \begin{array}{l}
         \tilde{O} : \DIM \to \TpEl{\Code{A}_{r}\prn{s_r,*}}
         \\
-        \tilde{O}\prn{j} :=
+        \tilde{O}\prn{j} \coloneq
         \HCom{\Code{A}_{r}\prn{s_r,*}}{s'_{r}}{j}{\phi_{r}}{
           \lambda k,*.
           \brk{
@@ -441,7 +506,7 @@ in order to isolate the interesting parts of the Kan structure.
     {
       \begin{array}{l}
         \tilde{P} : \TpEl{\Code{A}_{r'}\prn{s_{r'},*}} \\
-        \tilde{P} :=
+        \tilde{P} \coloneq
         \Com{\Code{A}_\bullet\prn{s_\bullet,*}}{r}{r'}{\forall i.\phi_i \lor \forall i.\prn{s_i=s'_i}}{
           \lambda i,*.
           \brk{
@@ -462,7 +527,7 @@ in order to isolate the interesting parts of the Kan structure.
             \TpEl{\Code{A}_{r'}\prn{j,*}}
           }
         }\\
-        \tilde{Q}\prn{j,*} :=
+        \tilde{Q}\prn{j,*} \coloneq
         \Com{\Code{A}_{r'}\prn{\bullet,*}}{s_{r'}}{j}{r=r'\lor\forall i.\phi_i}{
           \lambda k,*.\brk{
             k=s_{r'} \to \tilde{P}
@@ -478,7 +543,7 @@ in order to isolate the interesting parts of the Kan structure.
     {
       \begin{array}{l}
         \tilde{H} : \TpEl{\Code{A}_{r'}\prn{s_{r'},*}} \\
-        \tilde{H} :=
+        \tilde{H} \coloneq
         \HCom{\Code{A}_{r'}(s_{r'},*)}{s_{r'}}{s'_{r'}}{\phi_{r'} \lor r=r'}{
           \lambda j,*.\brk{
             j=s_{r'}\to \tilde{P}
