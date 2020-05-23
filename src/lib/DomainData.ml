@@ -2,12 +2,7 @@ module S = Syntax
 open CoolBasis
 open Bwd
 
-type dim =
-  | Dim0
-  | Dim1
-  | DimVar of int
-  | DimProbe of Symbol.t
-
+include Dim
 type cof = (dim, int) Cof.cof
 
 (** Destructors: exotic semantic operations that don't exist in syntax; these

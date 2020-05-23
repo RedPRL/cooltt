@@ -1,24 +1,27 @@
 open CoolBasis
 
-module D = Domain
+open Dim
+
+type cof = (Dim.dim, int) Cof.cof
+
 module UF = DisjointSet.Make (PersistentTable.M)
 module VarSet = Set.Make (Int)
 
 type reduced_env =
-  { classes : D.dim UF.t;
+  { classes : dim UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
     true_vars : VarSet.t
   }
 
 type env' =
-  { classes : D.dim UF.t;
+  { classes : dim UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
     true_vars : VarSet.t;
     (** set of cofibration variables assumed to be true *)
 
-    unreduced_joins : D.cof list list;
+    unreduced_joins : cof list list;
     (** a stack of unreduced joins, each represented by a list of cofibrations *)
   }
 
@@ -62,7 +65,7 @@ sig
 
       @return If the [env.classes] would be inconsistent, [None] is returned.
       Otherwise, [Some env] is returned and [env.classes] will be consistent. *)
-  val pushes' : env' -> D.cof list -> env' option
+  val pushes' : env' -> cof list -> env' option
 
   (** Checking whether the [env'] is consistent.
       Invariant: intput [env.classes] must be consistent;
@@ -86,7 +89,7 @@ struct
           pushes' {env with unreduced_joins = psis :: unreduced_joins} phis
         | Cof.Eq (r, s) ->
           let classes = UF.union r s classes in
-          if UF.find D.Dim0 classes = UF.find D.Dim1 classes then
+          if UF.find Dim0 classes = UF.find Dim1 classes then
             None
           else
             pushes' {env with classes} phis
@@ -106,11 +109,11 @@ end
 module Search (M : SEQ) :
 sig
   (** Search all branches assuming more cofibrations. *)
-  val left_invert : env -> D.cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert : env -> cof list -> (reduced_env -> M.t) -> M.t
 
   (** Search all branches assuming more cofibrations.
       Invariant: [env.classes] must be consistent *)
-  val left_invert' : env' -> D.cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert' : env' -> cof list -> (reduced_env -> M.t) -> M.t
 end =
 struct
   let left_invert' env phis cont =
@@ -136,7 +139,7 @@ struct
 end
 
 (* Invariant: local.classes must be consistent. *)
-let rec test (local : reduced_env) : D.cof -> bool =
+let rec test (local : reduced_env) : cof -> bool =
   function
   | Cof.Cof phi ->
     begin
@@ -183,7 +186,7 @@ let assume env phi =
 module M (M : CoolBasis.Monad.S) :
 sig
   (** Search all branches induced by unreduced joins under additional cofibrations. *)
-  val left_invert_under_cofs : env -> D.cof list -> (env -> unit M.m) -> unit M.m
+  val left_invert_under_cofs : env -> cof list -> (env -> unit M.m) -> unit M.m
 end
 =
 struct
