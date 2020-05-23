@@ -196,7 +196,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Abort | D.CodeNat | D.CodeUniv | D.DestructLine _ as con -> ret con
+  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Abort | D.CodeNat | D.CodeUniv as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -659,8 +659,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
-  | D.DestructLine _ ->
+  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to @<< push_subst_con r x con
@@ -982,11 +981,6 @@ and do_ap con arg =
       let* r = con_to_dim arg in
       subst_con r x con
 
-    | D.DestructLine (cofenv, dst, line) ->
-      CM.restore_cof_env cofenv @@
-      let* con = do_ap line arg in
-      do_destruct dst con
-
     | D.Cut {tp = D.Pi (base, _, fam); cut} ->
       let+ fib = inst_tp_clo fam arg in
       cut_frm ~tp:fib ~cut @@ D.KAp (base, arg)
@@ -994,21 +988,6 @@ and do_ap con arg =
     | con ->
       throw @@ NbeFailed "Not a function in do_ap"
   end
-
-and do_destruct dst con =
-  let open CM in
-  abort_if_inconsistent D.Abort @@
-  let* con = whnf_inspect_con con in
-  match dst, con with
-  | D.DCodePiSplit, D.CodePi (base, fam)
-  | D.DCodeSgSplit, D.CodeSg (base, fam) ->
-    ret @@ D.Pair (base, fam)
-  | D.DCodePathSplit, D.CodePath(fam, bdry) ->
-    ret @@ D.Pair (fam, bdry)
-  | D.DCodeHComSplit, D.FHCom (`Univ, r, r', phi, bdy) ->
-    ret @@ D.Pair (D.dim_to_con r, D.Pair (D.dim_to_con r', D.Pair (D.cof_to_con phi, bdy)))
-  | _ ->
-    throw @@ NbeFailed "Invalid destructor application"
 
 and do_sub_out con =
   let open CM in
