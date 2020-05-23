@@ -20,7 +20,7 @@ let main {mode; width} =
 let opt_mode =
   let doc =
     "Set the interaction mode. "^
-    "The value $(i,MODE) must be (an unambiguous prefix of) one of "^
+    "The value $(docv) must be (an unambiguous prefix of) one of "^
     "$(b,scripting) (default) or $(b,interactive)." in
   Arg.(value & opt (some string) None & info ["m"; "mode"] ~doc ~docv:"MODE")
 
