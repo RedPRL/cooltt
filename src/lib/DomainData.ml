@@ -24,6 +24,8 @@ and tm_clo =
 
 and con =
   | Lam of Ident.t * tm_clo
+  | BindSym of Symbol.t * con
+  | LetSym of dim * Symbol.t * con
   | Cut of {tp : tp; cut : cut}
   | Zero
   | Suc of con

@@ -187,6 +187,228 @@ let con_stability : D.con -> [`Stable | `Unstable] =
   | D.FHCom _ | D.Box _ -> `Unstable
   | _ -> `Stable
 
+(* LOL: experimental haha *)
+let rec subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
+  fun r x con ->
+  CM.ret @@ D.LetSym (r, x, con)
+
+and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
+  fun r x ->
+  let open CM in
+  function
+  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Abort | D.CodeNat | D.CodeUniv | D.DestructLine _ as con -> ret con
+  | D.LetSym (s, y, con) ->
+    push_subst_con r x @<< push_subst_con s y con
+  | D.Suc con ->
+    let+ con = subst_con r x con in
+    D.Suc con
+  | D.Lam (ident, clo) ->
+    let+ clo = subst_clo r x clo in
+    D.Lam (ident, clo)
+  | BindSym (y, con) ->
+    begin
+      test_sequent [] (Cof.eq (D.DimProbe x) (D.DimProbe y)) |>>
+      function
+      | true ->
+        ret @@ D.BindSym (y, con)
+      | false ->
+        let+ con = subst_con r x con in
+        D.BindSym (y, con)
+    end
+  | D.Pair (con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    D.Pair (con0, con1)
+  | D.CodePi (con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    D.CodePi (con0, con1)
+  | D.CodeSg (con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    D.CodeSg (con0, con1)
+  | D.CodePath (con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    D.CodePath (con0, con1)
+  | D.ElIn con ->
+    let+ con = subst_con r x con in
+    D.ElIn con
+  | GoalRet con ->
+    let+ con = subst_con r x con in
+    D.GoalRet con
+  | D.SubIn con ->
+    let+ con = subst_con r x con in
+    D.SubIn con
+  | D.Cof (Cof.Join phis) ->
+    let+ phis = MU.map (subst_con r x) phis in
+    D.Cof (Cof.Join phis)
+  | D.Cof (Cof.Meet phis) ->
+    let+ phis = MU.map (subst_con r x) phis in
+    D.Cof (Cof.Meet phis)
+  | D.Cof (Cof.Eq (s, s')) ->
+    let+ s = subst_con r x s
+    and+ s' = subst_con r x s' in
+    D.Cof (Cof.Eq (s, s'))
+  | D.FHCom (tag, s, s', phi, bdy) ->
+    let+ s = subst_dim r x s
+    and+ s' = subst_dim r x s'
+    and+ phi = subst_cof r x phi
+    and+ bdy = subst_con r x bdy in
+    D.FHCom (tag, s, s', phi, bdy)
+  | D.Box (s, s', phi, sides, bdy) ->
+    let+ s = subst_dim r x s
+    and+ s' = subst_dim r x s'
+    and+ phi = subst_cof r x phi
+    and+ sides = subst_con r x sides
+    and+ bdy = subst_con r x bdy in
+    D.Box(s, s', phi, sides, bdy)
+  | D.Cut {tp = D.TpDim; cut = (D.Global y, [])} as con ->
+    begin
+      test_sequent [] (Cof.eq (D.DimProbe x) (D.DimProbe y)) |>>
+      function
+      | true ->
+        ret @@ D.dim_to_con r
+      | false ->
+        ret con
+    end
+  | D.Cut {tp; cut} ->
+    let+ tp = subst_tp r x tp
+    and+ cut = subst_cut r x cut in
+    D.Cut {tp; cut}
+
+and subst_dim : D.dim -> Symbol.t -> D.dim -> D.dim CM.m =
+  fun r x s ->
+  let open CM in
+  con_to_dim @<< push_subst_con r x @@ D.dim_to_con s
+
+and subst_cof : D.dim -> Symbol.t -> D.cof -> D.cof CM.m =
+  fun r x phi ->
+  let open CM in
+  con_to_cof @<< push_subst_con r x @@ D.cof_to_con phi
+
+and subst_clo : D.dim -> Symbol.t -> D.tm_clo -> D.tm_clo CM.m =
+  fun r x (Clo (tm, env)) ->
+  let open CM in
+  let+ env = subst_env r x env in
+  D.Clo (tm, env)
+
+and subst_tp_clo : D.dim -> Symbol.t -> D.tp_clo -> D.tp_clo CM.m =
+  fun r x (TpClo (tp, env)) ->
+  let open CM in
+  let+ env = subst_env r x env in
+  D.TpClo (tp, env)
+
+and subst_env : D.dim -> Symbol.t -> D.env -> D.env CM.m =
+  fun r x {tpenv; conenv} ->
+  let open CM in
+  let+ tpenv = MU.map_bwd (subst_tp r x) tpenv
+  and+ conenv = MU.map_bwd (subst_con r x) conenv in
+  D.{tpenv; conenv}
+
+and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
+  fun r x ->
+  let open CM in
+  function
+  | D.Pi (base, ident, fam) ->
+    let+ base = subst_tp r x base
+    and+ fam = subst_tp_clo r x fam in
+    D.Pi (base, ident, fam)
+  | D.Sg (base, ident, fam) ->
+    let+ base = subst_tp r x base
+    and+ fam = subst_tp_clo r x fam in
+    D.Sg (base, ident, fam)
+  | D.Sub (base, phi, clo) ->
+    let+ base = subst_tp r x base
+    and+ phi = subst_cof r x phi
+    and+ clo = subst_clo r x clo in
+    D.Sub (base, phi, clo)
+  | D.Univ | D.Nat | D.TpDim | D.TpCof | D.TpAbort as con -> ret con
+  | D.TpPrf phi ->
+    let+ phi = subst_cof r x phi in
+    D.TpPrf phi
+  | D.GoalTp (lbl, tp) ->
+    let+ tp = subst_tp r x tp in
+    D.GoalTp (lbl, tp)
+  | D.El code ->
+    let+ code = subst_con r x code in
+    D.El code
+  | D.ElCut cut ->
+    let+ cut = subst_cut r x cut in
+    D.ElCut cut
+  | D.ElUnstable (`HCom (s, s', phi, bdy)) ->
+    let+ s = subst_dim r x s
+    and+ s' = subst_dim r x s'
+    and+ phi = subst_cof r x phi
+    and+ bdy = subst_con r x bdy in
+    D.ElUnstable (`HCom (s, s', phi, bdy))
+
+and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
+  fun r x (hd, sp) ->
+  let open CM in
+  let+ hd = subst_hd r x hd
+  and+ sp = subst_sp r x sp in
+  (hd, sp)
+
+and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
+  fun r x ->
+  let open CM in
+  function
+  | D.Global _ | D.Var _ as hd -> ret hd
+  | D.Coe (code, s, s', con) ->
+    let+ code = subst_con r x code
+    and+ s = subst_dim r x s
+    and+ s' = subst_dim r x s'
+    and+ con = subst_con r x con in
+    D.Coe (code, s, s', con)
+  | D.HCom (code, s, s', phi, bdy) ->
+    let+ code = subst_cut r x code
+    and+ s = subst_dim r x s
+    and+ s' = subst_dim r x s'
+    and+ phi = subst_cof r x phi
+    and+ bdy = subst_con r x bdy in
+    D.HCom (code, s, s', phi, bdy)
+  | D.Cap (s, s', phi, code, box) ->
+    let+ code = subst_con r x code
+    and+ s = subst_dim r x s
+    and+ s' = subst_dim r x s'
+    and+ phi = subst_cof r x phi
+    and+ box = subst_cut r x box in
+    D.Cap (s, s', phi, code, box)
+  | D.SubOut (cut, phi, clo) ->
+    let+ cut = subst_cut r x cut
+    and+ phi = subst_cof r x phi
+    and+ clo = subst_clo r x clo in
+    D.SubOut (cut, phi, clo)
+  | D.Split (tp, branches) ->
+    let go_branch (phi, clo) =
+      let+ phi = subst_cof r x phi
+      and+ clo = subst_clo r x clo in
+      (phi, clo)
+    in
+    let+ tp = subst_tp r x tp
+    and+ branches = MU.map go_branch branches in
+    D.Split (tp, branches)
+
+and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
+  fun r x ->
+  let open CM in
+  function
+  | D.KFst | D.KSnd | D.KGoalProj | D.KElOut as frm -> ret frm
+  | D.KAp (tp, arg) ->
+    let+ tp = subst_tp r x tp
+    and+ arg = subst_con r x arg in
+    D.KAp (tp, arg)
+  | D.KNatElim (con0, con1, con2) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1
+    and+ con2 = subst_con r x con2 in
+    D.KNatElim (con0, con1, con2)
+
+and subst_sp : D.dim -> Symbol.t -> D.frm list -> D.frm list CM.m =
+  fun r x ->
+  CM.MU.map @@ subst_frm r x
+
 let rec eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
@@ -434,38 +656,39 @@ and eval_cof tphi =
 
 and whnf_con : D.con -> D.con whnf CM.m =
   let open CM in
-  fun con ->
-    match con with
-    | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
-    | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-    | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
-    | D.DestructLine _ ->
-      ret `Done
-    | D.Cut {cut} ->
-      whnf_cut cut
-    | D.FHCom (_, r, s, phi, bdy) ->
-      begin
-        test_sequent [] (Cof.join [Cof.eq r s; phi]) |>>
+  function
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
+  | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
+  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
+  | D.DestructLine _ ->
+    ret `Done
+  | D.LetSym (r, x, con) ->
+    reduce_to @<< push_subst_con r x con
+  | D.Cut {cut} ->
+    whnf_cut cut
+  | D.FHCom (_, r, s, phi, bdy) ->
+    begin
+      test_sequent [] (Cof.join [Cof.eq r s; phi]) |>>
+      function
+      | true ->
+        reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+      | false ->
+        ret `Done
+    end
+  | D.Box (r, s, phi, sides, cap) ->
+    begin
+      test_sequent [] (Cof.eq r s) |>>
+      function
+      | true ->
+        reduce_to cap
+      | false ->
+        test_sequent [] phi |>>
         function
         | true ->
-          reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+          reduce_to @<< do_ap sides D.Prf
         | false ->
           ret `Done
-      end
-    | D.Box (r, s, phi, sides, cap) ->
-      begin
-        test_sequent [] (Cof.eq r s) |>>
-        function
-        | true ->
-          reduce_to cap
-        | false ->
-          test_sequent [] phi |>>
-          function
-          | true ->
-            reduce_to @<< do_ap sides D.Prf
-          | false ->
-            ret `Done
-      end
+    end
 
 and reduce_to con =
   let open CM in
@@ -680,7 +903,7 @@ and whnf_inspect_con con =
   whnf_con con |>>
   function
   | `Done -> ret con
-  | `Reduce con -> ret con
+  | `Reduce con' -> ret con'
 
 (* reduces a constructor to something that is stable to pattern match on,
  * _including_ type annotations on cuts *)
@@ -754,6 +977,10 @@ and do_ap con arg =
     function
     | D.Lam (_, clo) ->
       inst_tm_clo clo arg
+
+    | D.BindSym (x, con) ->
+      let* r = con_to_dim arg in
+      subst_con r x con
 
     | D.DestructLine (cofenv, dst, line) ->
       CM.restore_cof_env cofenv @@
@@ -906,31 +1133,32 @@ and do_coe r s (abs : D.con) con =
 
 and dispatch_rigid_coe line =
   let open CM in
-  let i = D.DimProbe (Symbol.named "do_rigid_coe") in
-  let rec go peek =
+  let x = Symbol.named "do_rigid_coe" in
+  let go peek =
     match peek with
-    | D.CodePi _ ->
-      ret @@ `Reduce `CoePi
-    | D.CodeSg _ ->
-      ret @@ `Reduce `CoeSg
-    | D.CodePath _ ->
-      ret @@ `Reduce `CoePath
+    | D.CodePi (basex, famx) ->
+      ret @@ `Reduce (`CoePi (x, basex, famx))
+    | D.CodeSg (basex, famx) ->
+      ret @@ `Reduce (`CoeSg (x, basex, famx))
+    | D.CodePath (famx, bdryx) ->
+      ret @@ `Reduce (`CoePath (x, famx, bdryx))
     | D.CodeNat ->
       ret @@ `Reduce `CoeNat
     | D.CodeUniv ->
       ret @@ `Reduce `CoeUniv
-    | D.FHCom (`Univ, _, _, _, _) ->
-      ret @@ `Reduce `CoeFHCom
+    | D.FHCom (`Univ, sx, s'x, phix, bdyx) ->
+      ret @@ `Reduce (`CoeHCom (x, sx, s'x, phix, bdyx))
     | D.Cut {cut} ->
       ret `Done
     | _ ->
+      Format.eprintf "%a@." D.pp_con peek;
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_coe"
   in
-  go @<< whnf_inspect_con @<< do_ap line (D.dim_to_con i)
+  go @<< whnf_inspect_con @<< do_ap line @@ D.dim_to_con @@ D.DimProbe x
 
 and dispatch_rigid_hcom code =
   let open CM in
-  let rec go code =
+  let go code =
     match code with
     | D.CodePi (base, fam) ->
       ret @@ `Reduce (`HComPi (base, fam))
@@ -954,54 +1182,42 @@ and dispatch_rigid_hcom code =
 and enact_rigid_coe line r r' con tag =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  let destruct_frozen dst line =
-    let+ cof_env = CM.read_cof_env in
-    D.DestructLine (cof_env, dst, line)
-  in
   match tag with
   | `CoeNat | `CoeUniv ->
     ret con
-  | `CoePi ->
-    let* split_line = destruct_frozen D.DCodePiSplit line in
+  | `CoePi (x, basex, famx) ->
     splice_tm @@
-    Splice.foreign split_line @@ fun split_line ->
+    Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
+    Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
     Splice.foreign_dim r @@ fun r ->
     Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
-    let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
-    let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
-  | `CoeSg ->
-    let* split_line = destruct_frozen D.DCodeSgSplit line in
+  | `CoeSg (x, basex, famx) ->
     splice_tm @@
-    Splice.foreign split_line @@ fun split_line ->
+    Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
+    Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
     Splice.foreign_dim r @@ fun r ->
     Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
-    let base_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
-    let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
-  | `CoePath ->
-    let* split_line = destruct_frozen D.DCodePathSplit line in
+  | `CoePath (x, famx, bdryx) ->
     splice_tm @@
-    Splice.foreign split_line @@ fun split_line ->
+    Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
+    Splice.foreign (D.BindSym (x, bdryx)) @@ fun bdry_line ->
     Splice.foreign_dim r @@ fun r ->
     Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
-    let fam_line = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
-    let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
-  | `CoeFHCom ->
-    let* split_line = destruct_frozen D.DCodeHComSplit line in
+  | `CoeHCom (x, sx, s'x, phix, bdyx) ->
     splice_tm @@
-    Splice.foreign split_line @@ fun split_line ->
+    Splice.foreign (D.BindSym (x, D.dim_to_con sx)) @@ fun s ->
+    Splice.foreign (D.BindSym (x, D.dim_to_con s'x)) @@ fun s' ->
+    Splice.foreign (D.BindSym (x, D.cof_to_con phix)) @@ fun phi ->
+    Splice.foreign (D.BindSym (x, bdyx)) @@ fun code ->
     Splice.foreign_dim r @@ fun r ->
     Splice.foreign_dim r' @@ fun r' ->
     Splice.foreign con @@ fun bdy ->
-    let s = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
-    let s' = TB.lam @@ fun i -> TB.fst @@ TB.snd @@ TB.ap split_line [i] in
-    let phi = TB.lam @@ fun i -> TB.fst @@ TB.snd @@ TB.snd @@ TB.ap split_line [i] in
-    let code = TB.lam @@ fun i -> TB.snd @@ TB.snd @@ TB.snd @@ TB.ap split_line [i] in
     let fhcom = TB.Kan.FHCom.{r = s; r' = s'; phi; bdy = code} in
     Splice.term @@ TB.Kan.FHCom.coe_fhcom ~fhcom ~r ~r' ~bdy
 
