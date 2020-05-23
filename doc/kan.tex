@@ -332,12 +332,14 @@ in order to isolate the interesting parts of the Kan structure.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor{s=s'}\lor\psi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
         \tilde{T}\prn{i,*} :=
         \brk{
           i=r\lor\phi \to \tilde{O}\prn{i,*}
           \mid
-          s=s'\lor\psi \to \Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}
+          \psi \to \Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}
+          \mid
+          s=s' \to \tilde{P}\prn{i,*}
         }
       \end{array}
     }
