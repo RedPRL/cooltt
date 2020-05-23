@@ -61,6 +61,7 @@
 \NewDocumentCommand\TpPrf{m}{\brk{#1}}
 \NewDocumentCommand\TpEl{m}{\mathsf{el}\prn{#1}}
 \NewDocumentCommand\TpUniv{}{\mathsf{Univ}}
+\NewDocumentCommand\CodeTo{}{\mathbin{\hat{\to}}}
 \NewDocumentCommand\CodeProd{mm}{
   {\widehat{\textstyle\prod}}_{#1}#2
 }
@@ -333,8 +334,8 @@ in order to isolate the interesting parts of the Kan structure.
   \]
   \[
     \begin{array}{l}
-      \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}} \to \TpEl{\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
-      \CodeFiber{\Code{A}}{\Code{B}}{F}{N} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{F\prn{x}}{N}}
+      \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}\CodeTo\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
+      \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{\ElOut{f}\prn{x}}{y}}
     \end{array}
   \]
   \[
@@ -342,10 +343,10 @@ in order to isolate the interesting parts of the Kan structure.
       \CodeEquiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
       \CodeEquiv{\Code{A}}{\Code{B}} \coloneq
       \CodeSum{
-        f:\Code{A}\mathrel{\hat{\to}}\Code{B}
+        f:\Code{A}\CodeTo\Code{B}
       }{
-        \CodeProd{x:\Code{B}}{
-          \CodeIsContr{\CodeFiber{\Code{A}}{\Code{B}}{\ElOut{f}}{x}}
+        \CodeProd{y:\Code{B}}{
+          \CodeIsContr{\CodeFiber{\Code{A}}{\Code{B}}{f}{y}}
         }
       }
     \end{array}
