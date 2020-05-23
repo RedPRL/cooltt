@@ -439,7 +439,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
     | D.Lam _ | D.Zero | D.Suc _ | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
     | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
     | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeUniv
-    | D.Destruct _ ->
+    | D.DestructLine _ ->
       ret `Done
     | D.Cut {cut} ->
       whnf_cut cut
@@ -746,21 +746,23 @@ and do_ap2 f a b =
   do_ap fa b
 
 
-and do_ap con a =
+and do_ap con arg =
   let open CM in
   abort_if_inconsistent D.Abort @@
   begin
     inspect_con con |>>
     function
     | D.Lam (_, clo) ->
-      inst_tm_clo clo a
+      inst_tm_clo clo arg
 
-    | D.Destruct dst ->
-      do_destruct dst a
+    | D.DestructLine (cofenv, dst, line) ->
+      CM.restore_cof_env cofenv @@
+      let* con = do_ap line arg in
+      do_destruct dst con
 
     | D.Cut {tp = D.Pi (base, _, fam); cut} ->
-      let+ fib = inst_tp_clo fam a in
-      cut_frm ~tp:fib ~cut @@ D.KAp (base, a)
+      let+ fib = inst_tp_clo fam arg in
+      cut_frm ~tp:fib ~cut @@ D.KAp (base, arg)
 
     | con ->
       throw @@ NbeFailed "Not a function in do_ap"
@@ -952,11 +954,15 @@ and dispatch_rigid_hcom code =
 and enact_rigid_coe line r r' con tag =
   let open CM in
   abort_if_inconsistent D.Abort @@
+  let destruct_frozen dst line =
+    let+ cof_env = CM.read_cof_env in
+    D.DestructLine (cof_env, dst, line)
+  in
   match tag with
   | `CoeNat | `CoeUniv ->
     ret con
   | `CoePi ->
-    let split_line = D.compose (D.Destruct D.DCodePiSplit) line in
+    let* split_line = destruct_frozen D.DCodePiSplit line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
@@ -966,7 +972,7 @@ and enact_rigid_coe line r r' con tag =
     let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
   | `CoeSg ->
-    let split_line = D.compose (D.Destruct D.DCodeSgSplit) line in
+    let* split_line = destruct_frozen D.DCodeSgSplit line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
@@ -976,7 +982,7 @@ and enact_rigid_coe line r r' con tag =
     let fam_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
   | `CoePath ->
-    let split_line = D.compose (D.Destruct D.DCodePathSplit) line in
+    let* split_line = destruct_frozen D.DCodePathSplit line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->
@@ -986,7 +992,7 @@ and enact_rigid_coe line r r' con tag =
     let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
   | `CoeFHCom ->
-    let split_line = D.compose (D.Destruct D.DCodeHComSplit) line in
+    let* split_line = destruct_frozen D.DCodeHComSplit line in
     splice_tm @@
     Splice.foreign split_line @@ fun split_line ->
     Splice.foreign_dim r @@ fun r ->

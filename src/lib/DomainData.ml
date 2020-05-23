@@ -46,7 +46,7 @@ and con =
   | FHCom of [`Nat | `Univ] * dim * dim * cof * con
   | Box of dim * dim * cof * con * con
 
-  | Destruct of dst
+  | DestructLine of CofEnv.env * dst * con
 
 and tp =
   | Sub of tp * cof * tm_clo
