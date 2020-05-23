@@ -328,7 +328,7 @@ in order to isolate the interesting parts of the Kan structure.
   \[
     \begin{array}{l}
       \IsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
-      \IsContr{\Code{C}} \coloneq \CodeProd{M:\TpEl{\Code{C}}}{\CodeProd{N:\TpEl{\Code{C}}}{\CodePath{\lambda\Dummy.\Code{C}}{N}{M}}}
+      \IsContr{\Code{C}} \coloneq \CodeSum{M:\TpEl{\Code{C}}}{\CodeProd{N:\TpEl{\Code{C}}}{\CodePath{\lambda\Dummy.\Code{C}}{N}{M}}}
     \end{array}
   \]
   \[
