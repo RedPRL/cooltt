@@ -15,13 +15,13 @@ let main {mode; width} =
     | `Scripting input -> Driver.process_file input
   with
   | Ok () -> `Ok ()
-  | Error () -> `Error (false, "there are errors in the script")
+  | Error () -> `Error (false, "encountered one or more errors")
 
 let opt_mode =
   let doc =
-    "Mode. Currently supported modes include $(b,scripting) (default) and $(b,interactive). "^
-    "A prefix that is distinct enough is sufficient. "^
-    "For example, $(b,--mode int) means $(b,--mode interactive)." in
+    "Set the interaction mode. "^
+    "The value $(i,MODE) must be (an unambiguous prefix of) one of "^
+    "$(b,scripting) (default) or $(b,interactive)." in
   Arg.(value & opt (some string) None & info ["m"; "mode"] ~doc ~docv:"MODE")
 
 let opt_interactive =
