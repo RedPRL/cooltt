@@ -766,10 +766,11 @@ and do_ap con a =
       throw @@ NbeFailed "Not a function in do_ap"
   end
 
-and do_destruct dst a =
+and do_destruct dst con =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match dst, a with
+  let* con = whnf_inspect_con con in
+  match dst, con with
   | D.DCodePiSplit, D.CodePi (base, fam)
   | D.DCodeSgSplit, D.CodeSg (base, fam) ->
     ret @@ D.Pair (base, fam)
