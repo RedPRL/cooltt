@@ -433,7 +433,7 @@ end
 
 module Test =
 struct
-  let closed_form =
+  let closed_form_hcom =
     lam ~ident:(`Machine "s") @@ fun h_r ->
     lam ~ident:(`Machine "s'") @@ fun h_r' ->
     lam ~ident:(`Machine "ψ") @@ fun h_phi ->
@@ -444,6 +444,17 @@ struct
     lam ~ident:(`Machine "M") @@ fun bdy ->
     Kan.FHCom.hcom_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~phi ~bdy
 
+  let closed_form_coe =
+    lam ~ident:(`Machine "s") @@ fun h_r ->
+    lam ~ident:(`Machine "s'") @@ fun h_r' ->
+    lam ~ident:(`Machine "φ") @@ fun h_phi ->
+    lam ~ident:(`Machine "A") @@ fun h_bdy ->
+    lam ~ident:(`Machine "r") @@ fun r ->
+    lam ~ident:(`Machine "r'") @@ fun r' ->
+    lam ~ident:(`Machine "M") @@ fun bdy ->
+    Kan.FHCom.coe_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~bdy
+
   let print_example () =
-    test closed_form
+    test closed_form_hcom;
+    test closed_form_coe
 end
