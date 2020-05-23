@@ -203,10 +203,7 @@ struct
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) ->
-    (* We always choose stdout because the messages get interleaved
-     * even with flushing. *)
-    let fmt = Format.std_formatter in
-    Log.pp_message ~loc ~lvl pp fmt a;
+    Log.pp_message ~loc ~lvl pp a;
     Ok (), st
 
   let veil v =
