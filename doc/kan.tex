@@ -18,16 +18,16 @@
   \widehat{\mathsf{V}}\brc{#1}\prn{#2;#3;#4}
 }
 
-\NewDocumentCommand\IsContr{g}{
-  \mathsf{IsContr}\IfValueT{#1}{\prn{#1}}
+\NewDocumentCommand\CodeIsContr{g}{
+  \widehat{\mathsf{IsContr}}\IfValueT{#1}{\prn{#1}}
 }
 
-\NewDocumentCommand\Fiber{gggg}{
-  \mathsf{Fiber}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
+\NewDocumentCommand\CodeFiber{gggg}{
+  \widehat{\mathsf{Fiber}}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
 }
 
-\NewDocumentCommand\Equiv{gg}{
-  \mathsf{Equiv}\IfValueT{#1}{\prn{#1;#2}}
+\NewDocumentCommand\CodeEquiv{gg}{
+  \widehat{\mathsf{Equiv}}\IfValueT{#1}{\prn{#1;#2}}
 }
 
 \NewDocumentCommand\TpHCom{mmmm}{
@@ -327,25 +327,25 @@ in order to isolate the interesting parts of the Kan structure.
   These are abbreviations for equivalences. Contractability is defined in terms of paths \emph{to} the center, not \emph{from} it.
   \[
     \begin{array}{l}
-      \IsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
-      \IsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
+      \CodeIsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
+      \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
     \end{array}
   \]
   \[
     \begin{array}{l}
-      \Fiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}} \to \TpEl{\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
-      \Fiber{\Code{A}}{\Code{B}}{F}{N} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{F\prn{x}}{N}}
+      \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}} \to \TpEl{\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
+      \CodeFiber{\Code{A}}{\Code{B}}{F}{N} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{F\prn{x}}{N}}
     \end{array}
   \]
   \[
     \begin{array}{l}
-      \Equiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
-      \Equiv{\Code{A}}{\Code{B}} \coloneq
+      \CodeEquiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
+      \CodeEquiv{\Code{A}}{\Code{B}} \coloneq
       \CodeSum{
         f:\Code{A}\mathrel{\hat{\to}}\Code{B}
       }{
         \CodeProd{x:\Code{B}}{
-          \IsContr{\Fiber{\Code{A}}{\Code{B}}{\ElOut{f}}{x}}
+          \CodeIsContr{\CodeFiber{\Code{A}}{\Code{B}}{\ElOut{f}}{x}}
         }
       }
     \end{array}
@@ -371,7 +371,7 @@ in order to isolate the interesting parts of the Kan structure.
     r : \DIM\\
     \Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}\\
     \Code{B} : \TpUniv\\
-    E : \Prod{*:\TpPrf{r=0}}{\TpEl{\Equiv{\Code{A}\prn{*}}{\Code{B}}}}
+    E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}
   }{
     \CodeV{r}{\Code{A}}{\Code{B}}{E} : \TpUniv
     \mid
