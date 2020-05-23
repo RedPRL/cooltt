@@ -310,16 +310,16 @@ in order to isolate the interesting parts of the Kan structure.
 \begin{mathparpagebreakable}
   \inferrule[formal pi code]{
     \Code{A} : \TpUniv\\
-    \Code{B} : \Prod{M:\TpEl{\Code{A}}}{\TpUniv}
+    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
   }{
-    \CodeProd{M:\TpEl{\Code{A}}}{\Code{B}\prn{M}} : \TpUniv
+    \CodeProd{x:\Code{A}}{\Code{B}\prn{x}} : \TpUniv
   }
   \and
   \inferrule[formal sigma code]{
     \Code{A} : \TpUniv\\
-    \Code{B} : \Prod{M:\TpEl{\Code{A}}}{\TpUniv}
+    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
   }{
-    \CodeSum{M:\TpEl{\Code{A}}}{\Code{B}\prn{M}} : \TpUniv
+    \CodeSum{x:\Code{A}}{\Code{B}\prn{x}} : \TpUniv
   }
 \end{mathparpagebreakable}
 
@@ -328,19 +328,26 @@ in order to isolate the interesting parts of the Kan structure.
   \[
     \begin{array}{l}
       \IsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
-      \IsContr{\Code{C}} \coloneq \CodeSum{M:\TpEl{\Code{C}}}{\CodeProd{N:\TpEl{\Code{C}}}{\CodePath{\lambda\Dummy.\Code{C}}{N}{M}}}
+      \IsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
     \end{array}
   \]
   \[
     \begin{array}{l}
       \Fiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}} \to \TpEl{\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
-      \Fiber{\Code{A}}{\Code{B}}{F}{N} \coloneq \CodeProd{M:\TpEl{\Code{A}}}{\CodePath{\lambda\Dummy.\Code{B}}{F\prn{M}}{N}}
+      \Fiber{\Code{A}}{\Code{B}}{F}{N} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{F\prn{x}}{N}}
     \end{array}
   \]
   \[
     \begin{array}{l}
       \Equiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
-      \Equiv{\Code{A}}{\Code{B}} \coloneq \CodeSum{F:\TpEl{\Code{A}}\to\TpEl{\Code{B}}}{\CodeProd{N:\TpEl{\Code{B}}}{\IsContr{\Fiber{\Code{A}}{\Code{B}}{F}{N}}}}
+      \Equiv{\Code{A}}{\Code{B}} \coloneq
+      \CodeSum{
+        f:\Code{A}\mathrel{\hat{\to}}\Code{B}
+      }{
+        \CodeProd{x:\Code{B}}{
+          \IsContr{\Fiber{\Code{A}}{\Code{B}}{\ElOut{f}}{x}}
+        }
+      }
     \end{array}
   \]
 \end{notation}
@@ -364,7 +371,7 @@ in order to isolate the interesting parts of the Kan structure.
     r : \DIM\\
     \Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}\\
     \Code{B} : \TpUniv\\
-    E : \Prod{*:\TpPrf{r=0}}{\Equiv{\Code{A}\prn{*}}{\Code{B}}}
+    E : \Prod{*:\TpPrf{r=0}}{\TpEl{\Equiv{\Code{A}\prn{*}}{\Code{B}}}}
   }{
     \CodeV{r}{\Code{A}}{\Code{B}}{E} : \TpUniv
     \mid
