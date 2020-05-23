@@ -75,6 +75,7 @@ module Kan : sig
   module FHCom : sig
     type fhcom_u = {r : t m; r' : t m; phi : t m; bdy : t m}
     val hcom_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
+    val coe_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> bdy:t m -> t m
   end
 end
 

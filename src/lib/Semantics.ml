@@ -775,6 +775,8 @@ and do_destruct dst a =
     ret @@ D.Pair (base, fam)
   | D.DCodePathSplit, D.CodePath(fam, bdry) ->
     ret @@ D.Pair (fam, bdry)
+  | D.DCodeHComSplit, D.FHCom (`Univ, r, r', phi, bdy) ->
+    ret @@ D.Pair (D.dim_to_con r, D.Pair (D.dim_to_con r', D.Pair (D.cof_to_con phi, bdy)))
   | _ ->
     throw @@ NbeFailed "Invalid destructor application"
 
@@ -839,8 +841,8 @@ and do_el : D.con -> D.tp CM.m =
       function
       | D.Cut {cut} ->
         ret @@ D.ElCut cut
-      | D.FHCom _ ->
-        raise CJHM
+      | D.FHCom (`Univ, r, s, phi, bdy) ->
+        ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
       | _ ->
         ret @@ D.El con
     end
@@ -983,7 +985,18 @@ and enact_rigid_coe line r r' con tag =
     let bdry_line = TB.lam @@ fun i -> TB.snd @@ TB.ap split_line [i] in
     Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
   | `CoeFHCom ->
-    raise CFHM
+    let split_line = D.compose (D.Destruct D.DCodeHComSplit) line in
+    splice_tm @@
+    Splice.foreign split_line @@ fun split_line ->
+    Splice.foreign_dim r @@ fun r ->
+    Splice.foreign_dim r' @@ fun r' ->
+    Splice.foreign con @@ fun bdy ->
+    let s = TB.lam @@ fun i -> TB.fst @@ TB.ap split_line [i] in
+    let s' = TB.lam @@ fun i -> TB.fst @@ TB.snd @@ TB.ap split_line [i] in
+    let phi = TB.lam @@ fun i -> TB.fst @@ TB.snd @@ TB.snd @@ TB.ap split_line [i] in
+    let code = TB.lam @@ fun i -> TB.snd @@ TB.snd @@ TB.snd @@ TB.ap split_line [i] in
+    let fhcom = TB.Kan.FHCom.{r = s; r' = s'; phi; bdy = code} in
+    Splice.term @@ TB.Kan.FHCom.coe_fhcom ~fhcom ~r ~r' ~bdy
 
 and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in

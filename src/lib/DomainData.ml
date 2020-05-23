@@ -16,6 +16,7 @@ type dst =
   | DCodePiSplit
   | DCodeSgSplit
   | DCodePathSplit
+  | DCodeHComSplit
 
 
 type env = {tpenv : tp bwd; conenv: con bwd}
