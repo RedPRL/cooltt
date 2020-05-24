@@ -149,6 +149,14 @@ following ways:
 
 \end{enumerate}
 
+\begin{remark}
+  The artificial separation of ``cap'' and ``tube'' and the lack of elaboration support of cubical subtypes led to the unfortunate discrepency between the types of arguments of \textsf{hfill} and those of \textsf{hcomp} in Cubical Agda. The main design challenge is that the coherence between ``cap'' and ``tube'' should be mentioned somewhere. One can use cubical subtypes to impose the coherence condition, but cubical subtypes are clumsy without a good elaborator. As a result, Agda removes cubical subtypes from the type of the primitive operator \textsf{hcomp}, using a special checker for the coherence condition beyond its typing. However, the derived function \textsf{hfill} could not enjoy the special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other words, the operators are either semantically correct but clumsy (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}). There are at least two ways to fix this:
+  \begin{enumerate}
+    \item Consolidate ``cap'' and ``tube'' into one system.
+    \item Good elaboration support for cubical subtypes.
+  \end{enumerate}
+  We did both in \textsf{cooltt}.
+\end{remark}
 
 \section{Type structure of the universe}
 
