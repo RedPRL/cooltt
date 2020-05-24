@@ -144,7 +144,7 @@ let rec test (local : reduced_env) : cof -> bool =
     function
     | Dim0, Dim0 -> true
     | Dim1, Dim1 -> true
-    (* Since local.classes is consistent, we can fastrack the false comparisons. *)
+    (* Since local.classes is consistent, we can fast-track the false comparisons. *)
     | Dim0, Dim1 -> false
     | Dim1, Dim0 -> false
     | DimVar l0, DimVar l1 when l0 = l1 -> true
