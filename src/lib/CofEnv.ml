@@ -140,14 +140,30 @@ end
 
 (* Invariant: local.classes must be consistent. *)
 let rec test (local : reduced_env) : cof -> bool =
+  let prim_dim_eq : dim * dim -> bool =
+    function
+    | Dim0, Dim0 -> true
+    | Dim1, Dim1 -> true
+    (* Since local.classes is consistent, we can fastrack the false comparisons. *)
+    | Dim0, Dim1 -> false
+    | Dim1, Dim0 -> false
+    | DimVar l0, DimVar l1 when l0 = l1 -> true
+    | (DimVar _ as r), (DimVar _ as s) ->
+      begin
+        match UF.find r local.classes with
+        | r' -> r' = find_class local.classes s
+        (* If the equivalence class of 'r' is a singleton, then the only way for r to equal s is if they are
+         * the same representative. Therefore, we can save a lookup. *)
+        | exception _ -> r = s
+      end
+    | r, s ->
+      find_class local.classes r = find_class local.classes s
+  in
   function
   | Cof.Cof phi ->
     begin
       match phi with
-      | Cof.Eq (r, s) when r = s ->
-        true
-      | Cof.Eq (r, s) ->
-        find_class local.classes r = find_class local.classes s
+      | Cof.Eq (r, s) -> prim_dim_eq (r, s)
       | Cof.Join phis ->
         List.exists (test local) phis
       | Cof.Meet phis ->
