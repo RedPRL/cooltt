@@ -211,7 +211,7 @@ following ways:
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
     M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}\\
-    N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M\prn{*}}
+    N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{M\prn{*}}
   }{
     \TmVin{r}{E}{M}{N} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
     \mid r=0 \to M
@@ -226,7 +226,7 @@ following ways:
     M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
   }{
     \TmVproj{r}{E}{M} : \TpEl{\Code{B}}
-    \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M}
+    \mid r=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{M}
     \mid r=1 \to M
   }
   \and
@@ -237,7 +237,7 @@ following ways:
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
     \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
-    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M\prn{*}}}
+    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{M\prn{*}}}
   }{
     \TmVproj{r}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
   }
@@ -502,8 +502,8 @@ in order to isolate the interesting parts of the Kan structure.
       \begin{array}{l}
         \tilde{P} : \Prod{i:\DIM}\Prod{*:\TpPrf{i=r\lor\phi\lor\partial{s}}}{\TpEl{\Code{B}}}\\
         \tilde{P}\prn{i,*} \coloneq \brk{
-            i=r\lor\phi\to\TmVproj{s}{E}{M} \mid
-            s=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{O\prn{\Code{A}\prn{*},M,i}} \mid
+            i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \mid
+            s=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{O\prn{\Code{A}\prn{*},M,i}} \mid
             s=1 \to O\prn{\Code{B},M,i}
         }
       \end{array}
@@ -513,7 +513,7 @@ in order to isolate the interesting parts of the Kan structure.
       \CodeV{s}{\Code{A}}{\Code{B}}{E}
     }{r}{r'}{\phi}{M}
     =
-    \TmVin{s}{E}{\tilde{O}\prn{\Code{A}\prn{*},M,r'}}{\tilde{P}}
+    \TmVin{s}{E}{\tilde{O}\prn{\Code{A}\prn{*},M,r'}}{\HCom{\Code{B}}{r}{r'}{\phi\lor\partial{s}}{\tilde{P}}}
     :
     \TpEl{
       \CodeV{s}{\Code{A}}{\Code{B}}{E}
