@@ -18,6 +18,14 @@
   \widehat{\mathsf{V}}\brc{#1}\prn{#2;#3;#4}
 }
 
+\NewDocumentCommand\TmVin{mmmm}{
+  \mathsf{Vin}\brc{#1}\prn{#2;#3;#4}
+}
+
+\NewDocumentCommand\TmVproj{mmm}{
+  \mathsf{Vproj}\brc{#1}\prn{#2;#3}
+}
+
 \NewDocumentCommand\CodeIsContr{g}{
   \widehat{\mathsf{IsContr}}\IfValueT{#1}{\prn{#1}}
 }
@@ -82,6 +90,12 @@
 }
 \NewDocumentCommand\Sum{mm}{
   {\textstyle\sum}_{#1}#2
+}
+\NewDocumentCommand\TmFst{g}{
+  \mathsf{fst}\IfValueT{#1}{\prn{#1}}
+}
+\NewDocumentCommand\TmSnd{g}{
+  \mathsf{snd}\IfValueT{#1}{\prn{#1}}
 }
 \NewDocumentCommand\CodePath{mmm}{
   {\widehat{\mathsf{Path}}}_{#1}\prn{#2;#3}
@@ -179,6 +193,52 @@ following ways:
     \Com{\Code{A}}{r}{s}{\phi}{M} : \TpEl{\Code{A}\prn{s}}
     \mid
     r=s\lor\phi \to M\prn{s,*}
+  }
+  \and
+  \inferrule[v type introduction]{ % CJHM formatting
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}\\
+    N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M\prn{*}}
+  }{
+    \TmVin{r}{E}{M}{N} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+    \mid r=0 \to M
+    \mid r=1 \to N
+  }
+  \and
+  \inferrule[v type elimination]{
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+  }{
+    \TmVproj{r}{E}{M} : \TpEl{\Code{B}}
+    \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M}
+    \mid r=1 \to M
+  }
+  \and
+  \inferrule[v type computation]{ % CJHM formatting
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
+    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M\prn{*}}}
+  }{
+    \TmVproj{r}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
+  }
+  \and
+  \inferrule[v type uniqueness]{
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \Hint{M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}}
+  }{
+    M = \TmVin{r}{E}{M}{\TmVproj{r}{E}{M}} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
   }
   \and
   \inferrule[composite type introduction]{
