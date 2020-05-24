@@ -44,22 +44,25 @@
 \NewDocumentCommand\CodeTo{}{
   \mathbin{\hat{\to}}
 }
-\NewDocumentCommand\CodeProd{mm}{
-  {\widehat{\textstyle\prod}}_{#1}#2
+\NewDocumentCommand\CodeProd{mg}{
+  {\widehat{\textstyle\prod}}_{#1}\IfValueT{#2}{#2}
 }
-\NewDocumentCommand\Prod{mm}{
-  {\textstyle\prod}_{#1}#2
+\NewDocumentCommand\Prod{mg}{
+  {\textstyle\prod}_{#1}\IfValueT{#2}{#2}
 }
 \NewDocumentCommand\TpSub{mmm}{
   \brk{#1 \mathrel{\delimsep{\vert}} #2 \to #3}
 }
 
 % pairs
-\NewDocumentCommand\CodeSum{mm}{
-  {\widehat{\textstyle\sum}}_{#1}#2
+\NewDocumentCommand\CodeSum{mg}{
+  {\widehat{\textstyle\sum}}_{#1}\IfValueT{#2}{#2}
 }
-\NewDocumentCommand\Sum{mm}{
-  {\textstyle\sum}_{#1}#2
+\NewDocumentCommand\Sum{mg}{
+  {\textstyle\sum}_{#1}\IfValueT{#2}{#2}
+}
+\NewDocumentCommand\TmPair{mm}{
+  \ggls{#1;#2}
 }
 \NewDocumentCommand\TmFst{g}{
   \mathsf{fst}\IfValueT{#1}{\prn{#1}}
@@ -93,6 +96,15 @@
 }
 \NewDocumentCommand\TmEquivApp{gggg}{
   \mathsf{EquivApp}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
+}
+\NewDocumentCommand\TmEquivInvHelper{gggg}{
+  \mathsf{EquivInvHelper}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
+}
+\NewDocumentCommand\TmEquivInv{gggg}{
+  \mathsf{EquivInv}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
+}
+\NewDocumentCommand\TmEquivInvPathTo{gggggg}{
+  \mathsf{EquivInv2}\IfValueT{#1}{\prn{#1;#2;#3;#4;#5;#6}}
 }
 
 % V types
@@ -237,7 +249,7 @@ Kan operations are a structure on codes of types.
     \Code{A} : \TpUniv\\
     r,s : \DIM\\
     \phi : \COF\\
-    M : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}}{\TpEl{\Code{A}}}
+    M : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi}\to\TpEl{\Code{A}}}
   }{
     \HCom{\Code{A}}{r}{s}{\phi}{M} : \TpEl{\Code{A}}
     \mid
@@ -257,7 +269,7 @@ Kan operations are a structure on codes of types.
     \Code{A} : \DIM\to \TpUniv\\
     r,s : \DIM\\
     \phi : \COF\\
-    M : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}}{\TpEl{\Code{A}\prn{i}}}
+    M : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi}\to\TpEl{\Code{A}\prn{i}}}
   }{
     \Com{\Code{A}}{r}{s}{\phi}{M} : \TpEl{\Code{A}\prn{s}}
     \mid
@@ -279,7 +291,7 @@ unstable type codes).
   \inferrule[formal hcom code]{
     r,s : \DIM\\
     \phi : \COF\\
-    \Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpUniv}}
+    \Code{A} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi}\to\TpUniv}
   }{
     \CodeHCom{r}{s}{\phi}{\Code{A}} : \TpUniv
     \mid
@@ -289,7 +301,7 @@ unstable type codes).
   }
   \and
   \inferrule[hcom-univ computation]{
-    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpEl{\CodeUniv}}}}
+    \Hint{\Code{A} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi}\to\TpEl{\CodeUniv}}}
   }{
     \HCom{\CodeUniv}{r}{s}{\phi}{\Code{A}} =
     \ElIn{
@@ -306,9 +318,7 @@ unstable type codes).
     \Hint{\phi:\COF}\\
     \Hint{
       \Code{A} : \Prod{i:\DIM}{
-        \Prod{* : \TpPrf{i=r\lor\phi}}{
-          \TpUniv
-        }
+        \TpPrf{i=r\lor\phi}\to\TpUniv
       }
     }\\
     N : \Prod{*:\TpPrf{\phi}}{\TpEl{\Code{A}\prn{s,*}}}\\
@@ -329,9 +339,7 @@ unstable type codes).
     \Hint{r,s:\DIM}\\
     \Hint{\phi:\COF}\\
     \Code{A} : \Prod{i:\DIM}{
-      \Prod{* : \TpPrf{i=r\lor\phi}}{
-        \TpUniv
-      }
+      \TpPrf{i=r\lor\phi}\to\TpUniv
     }
     \\
     M : \TpEl{\CodeHCom{r}{s}{\phi}{\Code{A}}}
@@ -349,9 +357,7 @@ unstable type codes).
     \Hint{\phi:\COF}\\
     \Hint{
       \Code{A} : \Prod{i:\DIM}{
-        \Prod{* : \TpPrf{i=r\lor\phi}}{
-          \TpUniv
-        }
+        \TpPrf{i=r\lor\phi}\to\TpUniv
       }
     }\\
     \Hint{N : \Prod{*:\TpPrf{\phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
@@ -378,9 +384,7 @@ unstable type codes).
     \Hint{\phi:\COF}\\
     \Hint{
       \Code{A} : \Prod{i:\DIM}{
-        \Prod{* : \TpPrf{i=r\lor\phi}}{
-          \TpUniv
-        }
+        \TpPrf{i=r\lor\phi}\to\TpUniv
       }
     }\\
     \Hint{
@@ -412,19 +416,19 @@ unstable type codes).
 We begin by defining some definitional extensions for equivalences.
 \[
   \begin{array}{l}
-    \CodeIsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
+    \CodeIsContr : \TpUniv\to\TpUniv\\
     \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
   \end{array}
 \]
 \[
   \begin{array}{l}
-    \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}\CodeTo\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
+    \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpEl{\Code{A}\CodeTo\Code{B}}\to\TpEl{\Code{B}}\to\TpUniv}}\\
     \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{\ElOut{f}\prn{x}}{y}}
   \end{array}
 \]
 \[
   \begin{array}{l}
-    \CodeEquiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
+    \CodeEquiv : \TpUniv\to\TpUniv\to\TpUniv\\
     \CodeEquiv{\Code{A}}{\Code{B}} \coloneq
     \CodeSum{
       f:\Code{A}\CodeTo\Code{B}
@@ -437,7 +441,7 @@ We begin by defining some definitional extensions for equivalences.
 \]
 \[
   \begin{array}{l}
-    \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{E:\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}}{\Prod{x:\TpEl{\Code{A}}}{\TpEl{\Code{B}}}}}}\\
+    \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}\to\TpEl{\Code{A}}\to\TpEl{\Code{B}}}}\\
     \TmEquivApp{\Code{A}}{\Code{B}}{E}{M} \coloneq \ElOut{\TmFst{\ElOut{E}}}\prn{M}
   \end{array}
 \]
@@ -450,7 +454,7 @@ We may now specify the rules for the V types.
 \begin{mathparpagebreakable}
   \inferrule[v type code]{
     r : \DIM\\
-    \Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}\\
+    \Code{A} : \TpPrf{r=0}\to\TpUniv\\
     \Code{B} : \TpUniv\\
     E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}
   }{
@@ -472,7 +476,7 @@ We may now specify the rules for the V types.
 \begin{mathparpagebreakable}
   \inferrule[v type introduction]{
     \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{A} : \TpPrf{r=0}\to\TpUniv}\\
     \Hint{\Code{B} : \TpUniv}\\
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
@@ -486,7 +490,7 @@ We may now specify the rules for the V types.
   \and
   \inferrule[v type elimination]{
     \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{A} : \TpPrf{r=0}\to\TpUniv}\\
     \Hint{\Code{B} : \TpUniv}\\
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
@@ -498,7 +502,7 @@ We may now specify the rules for the V types.
   \and
   \inferrule[v type computation]{
     \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{A} : \TpPrf{r=0}\to\TpUniv}\\
     \Hint{\Code{B} : \TpUniv}\\
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
@@ -510,7 +514,7 @@ We may now specify the rules for the V types.
   \and
   \inferrule[v type uniqueness]{
     \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{A} : \TpPrf{r=0}\to\TpUniv}\\
     \Hint{\Code{B} : \TpUniv}\\
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \Hint{M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}}
@@ -526,31 +530,29 @@ We may now specify the rules for the V types.
 \[
   \inferrule{
     \Hint{s:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{s=0}}{\TpUniv}}\\
+    \Hint{\Code{A} : \TpPrf{s=0}\to\TpUniv}\\
     \Hint{\Code{B} : \TpUniv}\\
     \Hint{E : \Prod{*:\TpPrf{s=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
     \Hint{r,r':\DIM}\\
     \Hint{
       M : \Prod{i:\DIM}{
-        \Prod{*:\TpPrf{i=r\lor\phi}}{
-          \TpEl{
-            \CodeV{s}{\Code{A}}{\Code{B}}{E}
-          }
+        \TpPrf{i=r\lor\phi}\to\TpEl{
+          \CodeV{s}{\Code{A}}{\Code{B}}{E}
         }
       }
     }
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{O} : \Prod{\Code{X}:\TpUniv}{\Prod{N:\Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpEl{\Code{X}}}}}{\Prod{i:\DIM}{\TpEl{X}}}}\\
+        \tilde{O} : \Prod{\Code{X}:\TpUniv}{\prn{\Prod{i:\DIM}{\TpPrf{i=r\lor\phi}\to\TpEl{\Code{X}}}}\to\DIM\to\TpEl{X}}\\
         \tilde{O}\prn{\Code{X},N,i} \coloneq \HCom{\Code{X}}{r}{i}{\phi}{N}
       \end{array}
     }
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{P} : \Prod{i:\DIM}\Prod{*:\TpPrf{i=r\lor\phi\lor\partial{s}}}{\TpEl{\Code{B}}}\\
+        \tilde{P} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi\lor\partial{s}}\to\TpEl{\Code{B}}}\\
         \tilde{P}\prn{i,*} \coloneq \brk{
             i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \mid
             s=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{O\prn{\Code{A}\prn{*},M,i}} \mid
@@ -573,7 +575,11 @@ We may now specify the rules for the V types.
 
 \[
   \inferrule{
-    \Hint{\Code{A} : \Prod{j:\DIM}{\Prod{*:\TpPrf{j=s\lor\psi}}{\TpUniv}}}\\
+    \Hint{s,s' : \DIM}\\
+    \Hint{\psi : \COF}\\
+    \Hint{\Code{A} : \Prod{j:\DIM}{\TpPrf{j=s\lor\psi}\to\TpUniv}}\\\\
+    \Hint{r,r' : \DIM}\\
+    \Hint{\phi : \COF}\\
     \Hint{
       M : \Prod{i:\DIM}{
         \Prod{*:\TpPrf{i=r\lor\phi}}{
@@ -640,8 +646,8 @@ We may now specify the rules for the V types.
         }
       }
     }
-    \\
-    \Hint{r,r' : \DIM}\\\\
+    \\\\
+    \Hint{r,r' : \DIM}\\
     \Hint{
       M : \TpEl{
         \CodeHCom{s_{r}}{s'_{r}}{\phi_{r}}{\Code{A}_{r}}
