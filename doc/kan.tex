@@ -10,38 +10,26 @@
 
 \mprset{flushleft}
 
-\NewDocumentCommand\Dummy{}{
-  \underline{\hspace{.5em}}
-}
+% misc
+\NewDocumentCommand\Hint{m}{{\color{gray}#1}}
+\NewDocumentCommand\Code{m}{\mindelim{1}\hat{#1}}
+\NewDocumentCommand\Dummy{}{\underline{\hspace{.5em}}}
 
-\NewDocumentCommand\CodeV{mmmm}{
-  \widehat{\mathsf{V}}\brc{#1}\prn{#2;#3;#4}
-}
+% cof and [cof]
+\NewDocumentCommand\DIM{}{\vvmathbb{I}}
+\NewDocumentCommand\COF{}{\vvmathbb{F}}
+\NewDocumentCommand\TpPrf{m}{\brk{#1}}
 
-\NewDocumentCommand\TmVin{mmmm}{
-  \mathsf{Vin}\brc{#1}\prn{#2;#3;#4}
-}
+% types, universe(s), and El
+\NewDocumentCommand\IsTp{m}{#1\ \mathit{type}}
+\NewDocumentCommand\TpEl{g}{\mathsf{el}\IfValueT{#1}{\prn{#1}}}
+\NewDocumentCommand\TpUniv{}{\mathsf{Univ}}
+\NewDocumentCommand\CodeUniv{}{\mindelim{1}\widehat{\mathsf{Univ}}}
+\NewDocumentCommand\ElInOut{}{{\updownarrow_{\mathsf{el}}}}
+\NewDocumentCommand\ElIn{g}{{\uparrow_{\mathsf{el}}}\IfValueT{#1}{\prn{#1}}}
+\NewDocumentCommand\ElOut{g}{{\downarrow_{\mathsf{el}}}\IfValueT{#1}{\prn{#1}}}
 
-\NewDocumentCommand\TmVproj{mmm}{
-  \mathsf{Vproj}\brc{#1}\prn{#2;#3}
-}
-
-\NewDocumentCommand\CodeIsContr{g}{
-  \widehat{\mathsf{IsContr}}\IfValueT{#1}{\prn{#1}}
-}
-
-\NewDocumentCommand\CodeFiber{gggg}{
-  \widehat{\mathsf{Fiber}}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
-}
-
-\NewDocumentCommand\CodeEquiv{gg}{
-  \widehat{\mathsf{Equiv}}\IfValueT{#1}{\prn{#1;#2}}
-}
-
-\NewDocumentCommand\TpHCom{mmmm}{
-  \mathsf{Hcom}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
-}
-
+% Kan operators
 \NewDocumentCommand\HCom{mmmmm}{
   \mathsf{hcom}_{#1}\brc{#2\rightsquigarrow #3;#4}\prn{#5}
 }
@@ -51,25 +39,11 @@
 \NewDocumentCommand\Com{mmmmm}{
   \mathsf{com}_{#1}\brc{#2\rightsquigarrow #3;#4}\prn{#5}
 }
-\NewDocumentCommand\CodeHCom{mmmm}{
-  \widehat{\mathsf{Hcom}}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
-}
 
-\NewDocumentCommand\TmBox{mmmmm}{
-  \mathsf{box}\brc{#1\rightsquigarrow #2;#3}\prn{#4;#5}
+% functions
+\NewDocumentCommand\CodeTo{}{
+  \mathbin{\hat{\to}}
 }
-
-\NewDocumentCommand\TmCap{mmmmm}{
-  \mathsf{cap}\brc{#1\leftsquigarrow #2;#3}\prn{#4;#5}
-}
-
-\NewDocumentCommand\IsTp{m}{#1\ \mathit{type}}
-\NewDocumentCommand\DIM{}{\vvmathbb{I}}
-\NewDocumentCommand\COF{}{\vvmathbb{F}}
-\NewDocumentCommand\TpPrf{m}{\brk{#1}}
-\NewDocumentCommand\TpEl{m}{\mathsf{el}\prn{#1}}
-\NewDocumentCommand\TpUniv{}{\mathsf{Univ}}
-\NewDocumentCommand\CodeTo{}{\mathbin{\hat{\to}}}
 \NewDocumentCommand\CodeProd{mm}{
   {\widehat{\textstyle\prod}}_{#1}#2
 }
@@ -79,12 +53,8 @@
 \NewDocumentCommand\TpSub{mmm}{
   \brk{#1 \mathrel{\delimsep{\vert}} #2 \to #3}
 }
-\NewDocumentCommand\SubIn{m}{
-  {\uparrow_{\mathsf{sub}}}\prn{#1}
-}
-\NewDocumentCommand\SubOut{m}{
-  {\downarrow_{\mathsf{sub}}}\prn{#1}
-}
+
+% pairs
 \NewDocumentCommand\CodeSum{mm}{
   {\widehat{\textstyle\sum}}_{#1}#2
 }
@@ -97,21 +67,58 @@
 \NewDocumentCommand\TmSnd{g}{
   \mathsf{snd}\IfValueT{#1}{\prn{#1}}
 }
+
+% cubical subtypes (not used now)
+\NewDocumentCommand\SubIn{m}{
+  {\uparrow_{\mathsf{sub}}}\prn{#1}
+}
+\NewDocumentCommand\SubOut{m}{
+  {\downarrow_{\mathsf{sub}}}\prn{#1}
+}
+
+% paths (elaborated into functions + cubical subtypes)
 \NewDocumentCommand\CodePath{mmm}{
   {\widehat{\mathsf{Path}}}_{#1}\prn{#2;#3}
 }
-\NewDocumentCommand\Path{mmm}{
-  {\mathsf{Path}}_{#1}\prn{#2;#3}
+
+% abbreviations
+\NewDocumentCommand\CodeIsContr{g}{
+  \widehat{\mathsf{IsContr}}\IfValueT{#1}{\prn{#1}}
+}
+\NewDocumentCommand\CodeFiber{gggg}{
+  \widehat{\mathsf{Fiber}}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
+}
+\NewDocumentCommand\CodeEquiv{gg}{
+  \widehat{\mathsf{Equiv}}\IfValueT{#1}{\prn{#1;#2}}
+}
+\NewDocumentCommand\TmEquivApp{gggg}{
+  \mathsf{EquivApp}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
 }
 
-\NewDocumentCommand\CodeUniv{}{\mindelim{1}\widehat{\mathsf{Univ}}}
-\NewDocumentCommand\Code{m}{\mindelim{1}\hat{#1}}
+% V types
+\NewDocumentCommand\CodeV{mmmm}{
+  \widehat{\mathsf{V}}\brc{#1}\prn{#2;#3;#4}
+}
+\NewDocumentCommand\TmVin{mmmm}{
+  \mathsf{Vin}\brc{#1}\prn{#2;#3;#4}
+}
+\NewDocumentCommand\TmVproj{mmm}{
+  \mathsf{Vproj}\brc{#1}\prn{#2;#3}
+}
 
-\NewDocumentCommand\ElInOut{}{{\updownarrow_{\mathsf{el}}}}
-\NewDocumentCommand\ElIn{m}{{\uparrow_{\mathsf{el}}}\prn{#1}}
-\NewDocumentCommand\ElOut{m}{{\downarrow_{\mathsf{el}}}\prn{#1}}
-\NewDocumentCommand\Hint{m}{{\color{gray}#1}}
-
+% composite types
+\NewDocumentCommand\TpHCom{mmmm}{
+  \mathsf{Hcom}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
+}
+\NewDocumentCommand\CodeHCom{mmmm}{
+  \widehat{\mathsf{Hcom}}\brc{#1\rightsquigarrow #2;#3}\prn{#4}
+}
+\NewDocumentCommand\TmBox{mmmmm}{
+  \mathsf{box}\brc{#1\rightsquigarrow #2;#3}\prn{#4;#5}
+}
+\NewDocumentCommand\TmCap{mmmmm}{
+  \mathsf{cap}\brc{#1\leftsquigarrow #2;#3}\prn{#4;#5}
+}
 
 \title{Universes}
 \author{St.~ZFC}
@@ -158,6 +165,12 @@ following ways:
   We did both in \texttt{cooltt}.
 \end{remark}
 
+\todo[CJHM]{
+  The entire text is out of order now. For example,
+  $\ElOut$ and $\CodeEquiv$ are used (in a non-trivial way) before they are introduced!
+  It is not the top priority now as we can do Haskell bindings in our mind.
+}
+
 \section{Type structure of the universe}
 
 \begin{mathparpagebreakable}
@@ -203,7 +216,6 @@ following ways:
     r=s\lor\phi \to M\prn{s,*}
   }
   \and
-  % Favonia: ElOut and Equiv are used here (in a non-trivial way) before they are introduced!
   \inferrule[v type introduction]{
     \Hint{r:\DIM}\\
     \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
@@ -211,7 +223,7 @@ following ways:
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
     M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}\\
-    N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{M\prn{*}}
+    N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}
   }{
     \TmVin{r}{E}{M}{N} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
     \mid r=0 \to M
@@ -226,7 +238,7 @@ following ways:
     M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
   }{
     \TmVproj{r}{E}{M} : \TpEl{\Code{B}}
-    \mid r=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{M}
+    \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M}
     \mid r=1 \to M
   }
   \and
@@ -237,7 +249,7 @@ following ways:
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
     \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
-    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{M\prn{*}}}
+    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}}
   }{
     \TmVproj{r}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
   }
@@ -396,7 +408,7 @@ in order to isolate the interesting parts of the Kan structure.
 \end{mathparpagebreakable}
 
 \begin{notation}
-  These are abbreviations for equivalences. Contractability is defined in terms of paths \emph{to} the center, not \emph{from} it.
+  These are abbreviations for equivalences.
   \[
     \begin{array}{l}
       \CodeIsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
@@ -422,7 +434,16 @@ in order to isolate the interesting parts of the Kan structure.
       }
     \end{array}
   \]
+  \[
+    \begin{array}{l}
+      \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{E:\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}}{\Prod{x:\TpEl{\Code{A}}}{\TpEl{\Code{B}}}}}}\\
+      \TmEquivApp{\Code{A}}{\Code{B}}{E}{M} \coloneq \ElOut{\TmFst{\ElOut{E}}}\prn{M}
+    \end{array}
+  \]
 \end{notation}
+\begin{warning}
+  Contractability is defined in terms of paths \emph{to} the center, not \emph{from} it.
+\end{warning}
 
 
 
@@ -503,7 +524,7 @@ in order to isolate the interesting parts of the Kan structure.
         \tilde{P} : \Prod{i:\DIM}\Prod{*:\TpPrf{i=r\lor\phi\lor\partial{s}}}{\TpEl{\Code{B}}}\\
         \tilde{P}\prn{i,*} \coloneq \brk{
             i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \mid
-            s=0 \to \ElOut{\TmFst{\ElOut{E\prn{*}}}}\prn{O\prn{\Code{A}\prn{*},M,i}} \mid
+            s=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{O\prn{\Code{A}\prn{*},M,i}} \mid
             s=1 \to O\prn{\Code{B},M,i}
         }
       \end{array}
