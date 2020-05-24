@@ -196,11 +196,12 @@ following ways:
   }
   \and
   % Favonia: ElOut is used here before it is introduced!
-  \inferrule[v type introduction]{ % CJHM formatting
+  \inferrule[v type introduction]{
     \Hint{r:\DIM}\\
     \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
     \Hint{\Code{B} : \TpUniv}\\
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \\\\
     M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}\\
     N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M\prn{*}}
   }{
@@ -221,11 +222,12 @@ following ways:
     \mid r=1 \to M
   }
   \and
-  \inferrule[v type computation]{ % CJHM formatting
+  \inferrule[v type computation]{
     \Hint{r:\DIM}\\
     \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
     \Hint{\Code{B} : \TpUniv}\\
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \\\\
     \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
     \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{M\prn{*}}}
   }{
