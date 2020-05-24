@@ -195,7 +195,7 @@ following ways:
     r=s\lor\phi \to M\prn{s,*}
   }
   \and
-  % Favonia: ElOut is used here before it is introduced!
+  % Favonia: ElOut and Equiv are used here (in a non-trivial way) before they are introduced!
   \inferrule[v type introduction]{
     \Hint{r:\DIM}\\
     \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
@@ -459,6 +459,57 @@ in order to isolate the interesting parts of the Kan structure.
     }
     :
     \TpEl{\CodeUniv}
+  }
+\end{mathparpagebreakable}
+
+
+\section{Composition in V types}
+
+\begin{mathparpagebreakable}
+  \inferrule{
+    \Hint{s:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{s=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{s=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \\\\
+    \Hint{r,r':\DIM}\\
+    \Hint{
+      M : \Prod{i:\DIM}{
+        \Prod{*:\TpPrf{i=r\lor\phi}}{
+          \TpEl{
+            \CodeV{s}{\Code{A}}{\Code{B}}{E}
+          }
+        }
+      }
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{O} : \Prod{\Code{X}:\TpUniv}{\Prod{N:\Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpEl{\Code{X}}}}}{\Prod{i:\DIM}{\TpEl{X}}}}\\
+        \tilde{O}\prn{\Code{X},N,i} \coloneq \HCom{\Code{X}}{r}{i}{\phi}{N}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{P} : \Prod{i:\DIM}\Prod{*:\TpPrf{i=r\lor\phi\lor\partial{s}}}{\TpEl{\Code{B}}}\\
+        \tilde{P}\prn{i,*} \coloneq \brk{
+            i=r\lor\phi\to\TmVproj{s}{E}{M} \mid
+            s=0 \to \ElOut{\TmFst{E\prn{*}}}\prn{O\prn{\Code{A}\prn{*},M,i}} \mid
+            s=1 \to O\prn{\Code{B},M,i}
+        }
+      \end{array}
+    }
+  }{
+    \HCom{
+      \CodeV{s}{\Code{A}}{\Code{B}}{E}
+    }{r}{r'}{\phi}{M}
+    =
+    \TmVin{s}{E}{\tilde{O}\prn{\Code{A}\prn{*},M,r'}}{\tilde{P}}
+    :
+    \TpEl{
+      \CodeV{s}{\Code{A}}{\Code{B}}{E}
+    }
   }
 \end{mathparpagebreakable}
 
