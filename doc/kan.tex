@@ -19,6 +19,7 @@
 \NewDocumentCommand\DIM{}{\vvmathbb{I}}
 \NewDocumentCommand\COF{}{\vvmathbb{F}}
 \NewDocumentCommand\TpPrf{m}{\brk{#1}}
+\NewDocumentCommand\Boundary{m}{\partial{#1}}
 
 % types, universe(s), and El
 \NewDocumentCommand\IsTp{m}{#1\ \mathit{type}}
@@ -103,8 +104,8 @@
 \NewDocumentCommand\TmEquivInv{gggg}{
   \mathsf{EquivInv}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
 }
-\NewDocumentCommand\TmEquivInvPathTo{gggggg}{
-  \mathsf{EquivInv2}\IfValueT{#1}{\prn{#1;#2;#3;#4;#5;#6}}
+\NewDocumentCommand\TmEquivInvFixer{gggggg}{
+  \mathsf{EquivInvFixer}\IfValueT{#1}{\prn{#1;#2;#3;#4;#5;#6}}
 }
 
 % V types
@@ -475,7 +476,7 @@ We may now specify the rules for the V types.
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
     M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}\\
-    N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}
+    N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{M\prn{*}}
   }{
     \TmVin{r}{E}{M}{N} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
     \mid r=0 \to M
@@ -490,7 +491,7 @@ We may now specify the rules for the V types.
     M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
   }{
     \TmVproj{r}{E}{M} : \TpEl{\Code{B}}
-    \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M}
+    \mid r=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{M}
     \mid r=1 \to M
   }
   \and
@@ -501,7 +502,7 @@ We may now specify the rules for the V types.
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \\\\
     \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
-    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}}
+    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{M\prn{*}}}
   }{
     \TmVproj{r}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
   }
@@ -546,10 +547,10 @@ We may now specify the rules for the V types.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{P} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi\lor\partial{s}}\to\TpEl{\Code{B}}}\\
+        \tilde{P} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi\lor\Boundary{s}}\to\TpEl{\Code{B}}}\\
         \tilde{P}\prn{i,*} \coloneq \brk{
             i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \mid
-            s=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{O\prn{\Code{A}\prn{*},M,i}} \mid
+            s=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{O\prn{\Code{A}\prn{*},M,i}} \mid
             s=1 \to O\prn{\Code{B},M,i}
         }
       \end{array}
@@ -559,7 +560,7 @@ We may now specify the rules for the V types.
       \CodeV{s}{\Code{A}}{\Code{B}}{E}
     }{r}{r'}{\phi}{M}
     =
-    \TmVin{s}{E}{\lambda{*}.\tilde{O}\prn{\Code{A}\prn{*},M,r'}}{\HCom{\Code{B}}{r}{r'}{\phi\lor\partial{s}}{\tilde{P}}}
+    \TmVin{s}{E}{\lambda{*}.\tilde{O}\prn{\Code{A}\prn{*},M,r'}}{\HCom{\Code{B}}{r}{r'}{\phi\lor\Boundary{s}}{\tilde{P}}}
     :
     \TpEl{
       \CodeV{s}{\Code{A}}{\Code{B}}{E}
