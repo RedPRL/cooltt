@@ -171,7 +171,11 @@ following ways:
   It is not the top priority now as we can do Haskell bindings in our mind.
 }
 
-\section{Type structure of the universe}
+\section{Basic rules for the universe}
+
+We begin by a basic weak universe \`a la Tarski closed under dependent product
+and sum and, for the sake of simplicity, \emph{itself}; this inconsistent
+universe would be replaced by a hierarchy of universes.
 
 \begin{mathparpagebreakable}
   \inferrule[univ formation]{
@@ -185,6 +189,50 @@ following ways:
     \IsTp{\TpEl{\Code{A}}}
   }
   \and
+  \inferrule[pi code]{
+    \Code{A} : \TpUniv\\
+    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
+  }{
+    \CodeProd{x:\Code{A}}{\Code{B}\prn{x}} : \TpUniv
+  }
+  \and
+  \inferrule[sigma code]{
+    \Code{A} : \TpUniv\\
+    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
+  }{
+    \CodeSum{x:\Code{A}}{\Code{B}\prn{x}} : \TpUniv
+  }
+  \and
+  \inferrule[universe code]{
+  }{
+    \CodeUniv : \TpUniv
+  }
+  \and
+  \inferrule[pi decoding]{
+    \Code{A} : \TpUniv\\
+    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
+  }{
+    \ElInOut : \TpEl{\CodeProd{x:\Code{A}{\Code{B}\prn{x}}}} \cong
+    \Prod{x : \TpEl{\Code{A}}}{\TpEl{\Code{B}\prn{x}}}
+  }
+  \and
+  \inferrule[sigma decoding]{
+    \Code{A} : \TpUniv\\
+    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
+  }{
+    \ElInOut : \TpEl{\CodeSum{x:\Code{A}{\Code{B}\prn{x}}}} \cong
+    \Sum{x : \TpEl{\Code{A}}}{\TpEl{\Code{B}\prn{x}}}
+  }
+  \and
+  \inferrule[universe code decoding]{
+  }{
+    \ElInOut : \TpEl{\CodeUniv} \cong \TpUniv
+  }
+\end{mathparpagebreakable}
+
+Kan operations are a structure on codes of types.
+
+\begin{mathparpagebreakable}
   \inferrule[hcom structure]{
     \Code{A} : \TpUniv\\
     r,s : \DIM\\
@@ -215,53 +263,42 @@ following ways:
     \mid
     r=s\lor\phi \to M\prn{s,*}
   }
-  \and
-  \inferrule[v type introduction]{
-    \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
-    \Hint{\Code{B} : \TpUniv}\\
-    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
-    \\\\
-    M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}\\
-    N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}
+\end{mathparpagebreakable}
+
+In the above, $\mathsf{com}$ is definitionally equal to its standard
+decomposition into $\mathsf{hcom}$ and $\mathsf{coe}$.
+
+\subsection{Rules for composite types}
+
+The homogeneous composition structure on the universe corresponds to a code for
+composite types; we characterize the elements of this code \emph{directly}
+rather than via some isomorphism (this is simplest in the case of cubically
+unstable type codes).
+
+\begin{mathparpagebreakable}
+  \inferrule[formal hcom code]{
+    r,s : \DIM\\
+    \phi : \COF\\
+    \Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpUniv}}
   }{
-    \TmVin{r}{E}{M}{N} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
-    \mid r=0 \to M
-    \mid r=1 \to N
+    \CodeHCom{r}{s}{\phi}{\Code{A}} : \TpUniv
+    \mid
+    r=s\lor\phi
+    \to
+    \Code{A}\prn{s,*}
   }
   \and
-  \inferrule[v type elimination]{
-    \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
-    \Hint{\Code{B} : \TpUniv}\\
-    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
-    M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+  \inferrule[hcom-univ computation]{
+    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpEl{\CodeUniv}}}}
   }{
-    \TmVproj{r}{E}{M} : \TpEl{\Code{B}}
-    \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M}
-    \mid r=1 \to M
-  }
-  \and
-  \inferrule[v type computation]{
-    \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
-    \Hint{\Code{B} : \TpUniv}\\
-    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
-    \\\\
-    \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
-    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}}
-  }{
-    \TmVproj{r}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
-  }
-  \and
-  \inferrule[v type uniqueness]{
-    \Hint{r:\DIM}\\
-    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
-    \Hint{\Code{B} : \TpUniv}\\
-    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
-    \Hint{M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}}
-  }{
-    M = \TmVin{r}{E}{\lambda{*}.M}{\TmVproj{r}{E}{M}} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+    \HCom{\CodeUniv}{r}{s}{\phi}{\Code{A}} =
+    \ElIn{
+      \CodeHCom{r}{s}{\phi}{
+        \lambda i,*. \ElOut{\Code{A}\prn{i,*}}
+      }
+    }
+    :
+    \TpEl{\CodeUniv}
   }
   \and
   \inferrule[composite type introduction]{
@@ -369,98 +406,49 @@ following ways:
 \end{warning}
 
 
-\section{Code structure}
 
-We have a code for the universe in the universe; for now, we ignore size issues
-in order to isolate the interesting parts of the Kan structure.
+\subsection{Rules for V types}
 
-\begin{mathparpagebreakable}
-  \inferrule[universe code]{
-  }{
-    \CodeUniv : \TpUniv
-  }
-  \and
-  \inferrule[universe code decoding]{
-  }{
-    \ElInOut : \TpEl{\CodeUniv} \cong \TpUniv
-  }
-\end{mathparpagebreakable}
-
-\begin{convention}
-  Given $M : A$, we will write $\ElIn{M} : \TpEl{\Code{A}}$
-  and $\ElOut{\ElIn{M}} = M : A$, where $\Code{A}$ is the code of the type $A$.
-\end{convention}
-
-\begin{mathparpagebreakable}
-  \inferrule[formal pi code]{
-    \Code{A} : \TpUniv\\
-    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
-  }{
-    \CodeProd{x:\Code{A}}{\Code{B}\prn{x}} : \TpUniv
-  }
-  \and
-  \inferrule[formal sigma code]{
-    \Code{A} : \TpUniv\\
-    \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
-  }{
-    \CodeSum{x:\Code{A}}{\Code{B}\prn{x}} : \TpUniv
-  }
-\end{mathparpagebreakable}
-
-\begin{notation}
-  These are abbreviations for equivalences.
-  \[
-    \begin{array}{l}
-      \CodeIsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
-      \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
-    \end{array}
-  \]
-  \[
-    \begin{array}{l}
-      \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}\CodeTo\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
-      \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{\ElOut{f}\prn{x}}{y}}
-    \end{array}
-  \]
-  \[
-    \begin{array}{l}
-      \CodeEquiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
-      \CodeEquiv{\Code{A}}{\Code{B}} \coloneq
-      \CodeSum{
-        f:\Code{A}\CodeTo\Code{B}
-      }{
-        \CodeProd{y:\Code{B}}{
-          \CodeIsContr{\CodeFiber{\Code{A}}{\Code{B}}{f}{y}}
-        }
+We begin by defining some definitional extensions for equivalences.
+\[
+  \begin{array}{l}
+    \CodeIsContr : \Prod{\Code{C}:\TpUniv}{\TpUniv}\\
+    \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
+  \end{array}
+\]
+\[
+  \begin{array}{l}
+    \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{F:\TpEl{\Code{A}\CodeTo\Code{B}}}{\Prod{N:\TpEl{\Code{B}}}{\TpUniv}}}}\\
+    \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{\ElOut{f}\prn{x}}{y}}
+  \end{array}
+\]
+\[
+  \begin{array}{l}
+    \CodeEquiv : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpUniv}}\\
+    \CodeEquiv{\Code{A}}{\Code{B}} \coloneq
+    \CodeSum{
+      f:\Code{A}\CodeTo\Code{B}
+    }{
+      \CodeProd{y:\Code{B}}{
+        \CodeIsContr{\CodeFiber{\Code{A}}{\Code{B}}{f}{y}}
       }
-    \end{array}
-  \]
-  \[
-    \begin{array}{l}
-      \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{E:\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}}{\Prod{x:\TpEl{\Code{A}}}{\TpEl{\Code{B}}}}}}\\
-      \TmEquivApp{\Code{A}}{\Code{B}}{E}{M} \coloneq \ElOut{\TmFst{\ElOut{E}}}\prn{M}
-    \end{array}
-  \]
-\end{notation}
+    }
+  \end{array}
+\]
+\[
+  \begin{array}{l}
+    \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\Prod{E:\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}}{\Prod{x:\TpEl{\Code{A}}}{\TpEl{\Code{B}}}}}}\\
+    \TmEquivApp{\Code{A}}{\Code{B}}{E}{M} \coloneq \ElOut{\TmFst{\ElOut{E}}}\prn{M}
+  \end{array}
+\]
+
 \begin{warning}
   Contractability is defined in terms of paths \emph{to} the center, not \emph{from} it.
 \end{warning}
 
-
-
+We may now specify the rules for the V types.
 \begin{mathparpagebreakable}
-  \inferrule[formal hcom code]{
-    r,s : \DIM\\
-    \phi : \COF\\
-    \Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpUniv}}
-  }{
-    \CodeHCom{r}{s}{\phi}{\Code{A}} : \TpUniv
-    \mid
-    r=s\lor\phi
-    \to
-    \Code{A}\prn{s,*}
-  }
-  \and
-  \inferrule[formal v code]{
+  \inferrule[v type code]{
     r : \DIM\\
     \Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}\\
     \Code{B} : \TpUniv\\
@@ -476,25 +464,66 @@ in order to isolate the interesting parts of the Kan structure.
     \to
     \Code{B}
   }
-  \and
-  \inferrule[hcom-univ computation]{
-    \Hint{\Code{A} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi}}{\TpEl{\CodeUniv}}}}
-  }{
-    \HCom{\CodeUniv}{r}{s}{\phi}{\Code{A}} =
-    \ElIn{
-      \CodeHCom{r}{s}{\phi}{
-        \lambda i,*. \ElOut{\Code{A}\prn{i,*}}
-      }
-    }
-    :
-    \TpEl{\CodeUniv}
-  }
 \end{mathparpagebreakable}
 
 
-\section{Composition in V types}
+\hfill
 
 \begin{mathparpagebreakable}
+  \inferrule[v type introduction]{
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \\\\
+    M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}\\
+    N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}
+  }{
+    \TmVin{r}{E}{M}{N} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+    \mid r=0 \to M
+    \mid r=1 \to N
+  }
+  \and
+  \inferrule[v type elimination]{
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+  }{
+    \TmVproj{r}{E}{M} : \TpEl{\Code{B}}
+    \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M}
+    \mid r=1 \to M
+  }
+  \and
+  \inferrule[v type computation]{
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \\\\
+    \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
+    \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}}{\Code{B}}{E\prn{*}}{M\prn{*}}}
+  }{
+    \TmVproj{r}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
+  }
+  \and
+  \inferrule[v type uniqueness]{
+    \Hint{r:\DIM}\\
+    \Hint{\Code{A} : \Prod{*:\TpPrf{r=0}}{\TpUniv}}\\
+    \Hint{\Code{B} : \TpUniv}\\
+    \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
+    \Hint{M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}}
+  }{
+    M = \TmVin{r}{E}{\lambda{*}.M}{\TmVproj{r}{E}{M}} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+  }
+  \and
+\end{mathparpagebreakable}
+
+
+\section{Composition and coercion algorithms}
+
+\[
   \inferrule{
     \Hint{s:\DIM}\\
     \Hint{\Code{A} : \Prod{*:\TpPrf{s=0}}{\TpUniv}}\\
@@ -540,11 +569,9 @@ in order to isolate the interesting parts of the Kan structure.
       \CodeV{s}{\Code{A}}{\Code{B}}{E}
     }
   }
-\end{mathparpagebreakable}
+\]
 
-\section{Composition in composite types}
-
-\begin{mathparpagebreakable}
+\[
   \inferrule{
     \Hint{\Code{A} : \Prod{j:\DIM}{\Prod{*:\TpPrf{j=s\lor\psi}}{\TpUniv}}}\\
     \Hint{
@@ -597,11 +624,9 @@ in order to isolate the interesting parts of the Kan structure.
       \CodeHCom{s}{s'}{\psi}{\Code{A}}
     }
   }
-\end{mathparpagebreakable}
+\]
 
-\section{Coercion in composite types}
-
-\begin{mathparpagebreakable}
+\[
   \inferrule{
     \Hint{s_\bullet, s'_\bullet : \DIM\to\DIM}\\
     \Hint{\phi_\bullet : \DIM\to\COF}\\
@@ -722,7 +747,7 @@ in order to isolate the interesting parts of the Kan structure.
       \CodeHCom{s_{r'}}{s'_{r'}}{\phi_{r'}}{\Code{A}_{r'}}
     }
   }
-\end{mathparpagebreakable}
+\]
 
 \clearpage
 \nocite{*}
