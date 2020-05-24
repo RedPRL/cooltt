@@ -249,7 +249,7 @@ following ways:
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \Hint{M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}}
   }{
-    M = \TmVin{r}{E}{M}{\TmVproj{r}{E}{M}} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+    M = \TmVin{r}{E}{\lambda{*}.M}{\TmVproj{r}{E}{M}} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
   }
   \and
   \inferrule[composite type introduction]{
