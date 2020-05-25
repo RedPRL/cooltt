@@ -135,8 +135,8 @@
 \begin{document}
 \maketitle
 
-This note gives a semantic version of the structure and algorithms of Kan
-universes of Kan types, previously encoded in syntactic form by
+This note gives a semantic version of the structure and algorithms of univalent
+Kan universes of Kan types, previously encoded in syntactic form by
 \citet{angiuli:2019}. By \emph{semantic} we mean using ordinary families and
 functions (as in \citep{orton-pitts:2016,abcfhl:2019}) instead of syntactic
 substitutions. We differ from \citep{orton-pitts:2016,abcfhl:2019} in the
@@ -215,7 +215,7 @@ universe would be replaced by a hierarchy of universes.
     \Code{A} : \TpUniv\\
     \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
   }{
-    \ElInOut : \TpEl{\CodeProd{x:\Code{A}{\Code{B}\prn{x}}}} \cong
+    \ElInOut : \TpEl{\CodeProd{x:\Code{A}}{\Code{B}\prn{x}}} \cong
     \Prod{x : \TpEl{\Code{A}}}{\TpEl{\Code{B}\prn{x}}}
   }
   \and
@@ -223,7 +223,7 @@ universe would be replaced by a hierarchy of universes.
     \Code{A} : \TpUniv\\
     \Code{B} : \TpEl{\Code{A}}\to {\TpUniv}
   }{
-    \ElInOut : \TpEl{\CodeSum{x:\Code{A}{\Code{B}\prn{x}}}} \cong
+    \ElInOut : \TpEl{\CodeSum{x:\Code{A}}{\Code{B}\prn{x}}} \cong
     \Sum{x : \TpEl{\Code{A}}}{\TpEl{\Code{B}\prn{x}}}
   }
   \and
