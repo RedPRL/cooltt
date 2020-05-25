@@ -176,7 +176,7 @@ let v_boundary r pcode code =
   Splice.term @@
   TB.cof_split TB.univ
     [TB.eq r TB.dim0, (fun _ -> TB.ap pcode [TB.prf]);
-    TB.eq r TB.dim1, (fun _ -> code)]
+     TB.eq r TB.dim1, (fun _ -> code)]
 
 (* LOL: experimental haha *)
 let rec subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
@@ -260,6 +260,12 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ code = subst_con r x code
     and+ pequiv = subst_con r x pequiv in
     D.CodeV (s, pcode, code, pequiv)
+  | D.VIn (s, equiv, pivot, base) ->
+    let+ s = subst_dim r x s
+    and+ equiv = subst_con r x equiv
+    and+ pivot = subst_con r x pivot
+    and+ base = subst_con r x base in
+    D.VIn (s, equiv, pivot, base)
   | D.Cut {tp = D.TpDim; cut = (D.Global y, [])} as con ->
     begin
       test_sequent [] (Cof.eq (D.DimProbe x) (D.DimProbe y)) |>>
@@ -378,6 +384,11 @@ and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
     and+ phi = subst_cof r x phi
     and+ box = subst_cut r x box in
     D.Cap (s, s', phi, code, box)
+  | D.VProj (s, equiv, v) ->
+    let+ s = subst_dim r x s
+    and+ equiv = subst_con r x equiv
+    and+ v = subst_cut r x v in
+    D.VProj (s, equiv, v)
   | D.SubOut (cut, phi, clo) ->
     let+ cut = subst_cut r x cut
     and+ phi = subst_cof r x phi
@@ -648,6 +659,30 @@ and eval : S.t -> D.con EvM.m =
           do_rigid_cap vr vs vphi vcode vbox
       end
 
+    | S.VIn (r, equiv, pivot, base) ->
+      let+ vr = eval_dim r
+      and+ vequiv = eval equiv
+      and+ vpivot = eval pivot
+      and+ vbase = eval base in
+      D.VIn (vr, vequiv, vpivot, vbase)
+
+    | S.VProj (r, equiv, v) ->
+      let* vr = eval_dim r in
+      let* vv = eval v in
+      begin
+        CM.test_sequent [] (Cof.eq vr Dim0) |> lift_cmp |>> function
+        | true -> (* r=0 *)
+          let* vequiv = eval equiv in
+          lift_cmp @@ do_equiv_fwd vequiv vv
+        | false ->
+          CM.test_sequent [] (Cof.eq vr Dim1) |> lift_cmp |>> function
+          | true -> (* r=1 *)
+            ret vv
+          | false ->
+            let* vequiv = eval equiv in
+            lift_cmp @@ do_rigid_vproj vr vequiv vv
+      end
+
     | S.CodeV (r, pcode, code, pequiv) ->
       let+ vr = eval_dim r
       and+ vpcode = eval pcode
@@ -709,6 +744,8 @@ and whnf_con : D.con -> D.con whnf CM.m =
       | true -> reduce_to @<< do_ap code D.Prf
       | false -> ret `Done
     end
+  | D.VIn (r, equiv, pivot, base) ->
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
 
 and reduce_to con =
@@ -806,7 +843,9 @@ and whnf_hd hd =
           ret `Done
         | `Reduce box ->
           reduce_to @<< do_rigid_cap r s phi code box
-  end
+    end
+  | D.VProj (r, equiv, v) ->
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
 and whnf_cut cut : D.con whnf CM.m =
   let open CM in
@@ -1039,6 +1078,8 @@ and do_rigid_cap r s phi code =
         throw @@ NbeFailed "do_rigid_cap"
     end
 
+and do_rigid_vproj r equiv v =
+  raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
 and do_el_out con =
   let open CM in
@@ -1365,3 +1406,8 @@ and splice_tm t =
 and splice_tp t =
   let env, tp = Splice.compile t in
   CM.lift_ev env @@ eval_tp tp
+
+and do_equiv_fwd e a =
+  let open CM in
+  let* f = do_el_out e |>> do_fst in
+  do_ap f a

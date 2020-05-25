@@ -204,6 +204,17 @@ let rec pp env fmt tm =
       (pp_atomic env) pcode
       (pp_atomic env) code
       (pp_atomic env) pequiv
+  | VIn (r, equiv, pivot, base) ->
+    Format.fprintf fmt "@[<hv2>vin %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) equiv
+      (pp_atomic env) pivot
+      (pp_atomic env) base
+  | VProj (r, equiv, v) ->
+    Format.fprintf fmt "@[<hv2>vproj %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) equiv
+      (pp_atomic env) v
 
 and pp_tp env fmt tp =
   match tp with

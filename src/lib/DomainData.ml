@@ -39,6 +39,7 @@ and con =
 
   | FHCom of [`Nat | `Univ] * dim * dim * cof * con
   | Box of dim * dim * cof * con * con
+  | VIn of dim * con * con * con
 
 and tp =
   | Sub of tp * cof * tm_clo
@@ -61,6 +62,7 @@ and hd =
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
   | Cap of dim * dim * cof * con * cut
+  | VProj of dim * con * cut
   | SubOut of cut * cof * tm_clo
   | Split of tp * (cof * tm_clo) list
 
