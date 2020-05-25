@@ -3,7 +3,8 @@
 \usepackage{jon-todo}
 \usepackage{mathpartir}
 \usepackage{mathtools}
-\usepackage[landscape]{geometry}
+\usepackage{varwidth}
+\usepackage[landscape,lmargin=.5in,rmargin=.5in]{geometry}
 
 \addbibresource{refs.bib}
 
@@ -63,7 +64,7 @@
   {\textstyle\sum}_{#1}\IfValueT{#2}{#2}
 }
 \NewDocumentCommand\TmPair{mm}{
-  \ggls{#1;#2}
+  \gls{#1;#2}
 }
 \NewDocumentCommand\TmFst{g}{
   \mathsf{fst}\IfValueT{#1}{\prn{#1}}
@@ -84,6 +85,9 @@
 \NewDocumentCommand\CodePath{mmm}{
   {\widehat{\mathsf{Path}}}_{#1}\prn{#2;#3}
 }
+\NewDocumentCommand\TpPath{mmm}{
+  {\mathsf{Path}}_{#1}\prn{#2;#3}
+}
 
 % abbreviations
 \NewDocumentCommand\CodeIsContr{g}{
@@ -96,16 +100,7 @@
   \widehat{\mathsf{Equiv}}\IfValueT{#1}{\prn{#1;#2}}
 }
 \NewDocumentCommand\TmEquivApp{gggg}{
-  \mathsf{EquivApp}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
-}
-\NewDocumentCommand\TmEquivInvHelper{gggg}{
-  \mathsf{EquivInvHelper}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
-}
-\NewDocumentCommand\TmEquivInv{gggg}{
-  \mathsf{EquivInv}\IfValueT{#1}{\prn{#1;#2;#3;#4}}
-}
-\NewDocumentCommand\TmEquivInvFixer{gggggg}{
-  \mathsf{EquivInvFixer}\IfValueT{#1}{\prn{#1;#2;#3;#4;#5;#6}}
+  \mathsf{EquivApp}\IfValueT{#1}{\prn{#1;#2;#3\IfValueT{#4}{;#4}}}
 }
 
 % V types
@@ -410,6 +405,9 @@ unstable type codes).
 
 We begin by defining some definitional extensions for equivalences.
 \[
+  \TpPath{A}{M}{N} \coloneq \Prod{i:\DIM}{A\prn{i} \mid i=0 \to M \mid i=1 \to N}
+\]
+\[
   \begin{array}{l}
     \CodeIsContr : \TpUniv\to\TpUniv\\
     \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
@@ -417,8 +415,8 @@ We begin by defining some definitional extensions for equivalences.
 \]
 \[
   \begin{array}{l}
-    \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpEl{\Code{A}\CodeTo\Code{B}}\to\TpEl{\Code{B}}\to\TpUniv}}\\
-    \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{\ElOut{f}\prn{x}}{y}}
+    \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\prn{\TpEl{\Code{A}}\to\TpEl{\Code{B}}}\to\TpEl{\Code{B}}\to\TpUniv}}\\
+    \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{f\prn{x}}{y}}
   \end{array}
 \]
 \[
@@ -429,7 +427,7 @@ We begin by defining some definitional extensions for equivalences.
       f:\Code{A}\CodeTo\Code{B}
     }{
       \CodeProd{y:\Code{B}}{
-        \CodeIsContr{\CodeFiber{\Code{A}}{\Code{B}}{f}{y}}
+        \CodeIsContr{\CodeFiber{\Code{A}}{\Code{B}}{\ElOut{f}}{y}}
       }
     }
   \end{array}
@@ -437,7 +435,7 @@ We begin by defining some definitional extensions for equivalences.
 \[
   \begin{array}{l}
     \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}\to\TpEl{\Code{A}}\to\TpEl{\Code{B}}}}\\
-    \TmEquivApp{\Code{A}}{\Code{B}}{E}{M} \coloneq \ElOut{\TmFst{\ElOut{E}}}\prn{M}
+    \TmEquivApp{\Code{A}}{\Code{B}}{E} \coloneq \ElOut{\TmFst{\ElOut{E}}}
   \end{array}
 \]
 
@@ -565,6 +563,150 @@ We may now specify the rules for the V types.
     \TpEl{
       \CodeV{s}{\Code{A}}{\Code{B}}{E}
     }
+  }
+\]
+
+\[
+  \inferrule{
+    \Hint{s_\bullet : \DIM\to\DIM}\\
+    \Hint{\Code{A}_\bullet : \Prod{i:\DIM}{\TpPrf{s_i=0}\to\TpUniv}}\\
+    \Hint{\Code{B}_\bullet : \DIM\to\TpUniv}\\
+    \Hint{E_\bullet : \Prod{i:\DIM}{\Prod{*:\TpPrf{s_i=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}}\\
+    \\\\
+    \Hint{r,r':\DIM}\\
+    \Hint{M : \TpEl{\CodeV{s_r}{\Code{A}_r}{\Code{B}_r}{E_r}}}
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{F} : \Prod{i:\DIM}{\TpPrf{s_i=0}\to\TpEl{\Code{A}_i\prn{*}}\to\TpEl{\Code{B}_i}}
+        \\
+        \tilde{F}\prn{i,*} \coloneq \TmEquivApp{\Code{A}_{i}\prn{*}}{\Code{B}_{i}}{E_{i}\prn{*}}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{O} : \TpEl{\Code{B}_{r'}}
+        \\
+        \tilde{O} \coloneq \Coe{\Code{B}_\bullet}{r}{r'}{\TmVproj{s_r}{E_r}{M}}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{varwidth}{\textwidth}
+        \[
+          \begin{array}{l}
+            \tilde{P} : \TpPrf{s_{r'}=0}\to
+            \Prod{x:\TpEl{\Code{A}_{r'}\prn{*}}}{
+              \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{\tilde{F}\prn{r',*,x}}{\tilde{O}}
+              \to
+              \DIM\to\TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+            }
+            \\
+            \tilde{P}\prn{*,M,N} \coloneq
+            \ElOut{
+              \ElOut{
+                \TmSnd{\ElOut{
+                    \ElOut{
+                      \TmSnd{\ElOut{
+                          E_{r'}\prn{*}
+                      }}
+                    }\prn{\tilde{O}}
+                }}
+              }\prn{\ElIn{\TmPair{M}{\ElIn{N}}}}
+            }
+          \end{array}
+        \]
+      \end{varwidth}
+    }
+    \\\\\\
+    { % Favonia: this is just coe in paths, but this style leads to shorter code?
+      \begin{array}{l}
+        \tilde{Q} :
+        \TpPrf{\forall k.s_k=0}\to
+        \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{
+          \tilde{F}\prn{r',*,\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}
+        }{
+          \tilde{O}
+        }
+        %\\
+        %\tilde{Q}\prn{*,j} \coloneq
+        %\Com{\Code{B}_\bullet}{r}{r'}{\Boundary{j}}{
+        %  \lambda i,*.
+        %  \brk{
+        %    i=r\lor j=0 \to \tilde{F}\prn{i,*,\Coe{\Code{A}_\bullet\prn{*}}{r}{i}{M}}
+        %    \mid
+        %    j=1\to \Coe{\Code{B}_\bullet}{r}{i}{\tilde{F}\prn{r,*,M}}
+        %  }
+        %}
+        \\
+        \tilde{Q}\prn{*} \coloneq
+        \ElOut{\Coe{
+          \lambda i.
+          \CodePath{
+            \lambda\Dummy.\TpEl{\Code{B}_i}
+          }{
+            \tilde{F}\prn{i,*,\Coe{\Code{A}_\bullet\prn{*}}{r}{i}{M}}
+          }{
+            \Coe{\Code{B}_\bullet}{r}{i}{\tilde{F}\prn{r,*,M}}
+          }
+        }{r}{r'}{
+          \ElIn{\lambda\Dummy.\tilde{F}\prn{r,*,M}}
+        }}
+      \end{array}
+    }
+    \\\\\\
+    {\begin{varwidth}{\textwidth}
+    \[
+      \begin{array}{l}
+        \tilde{R} : \TpPrf{s_{r'}=0}\to\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}}{\tilde{O}}
+        \\
+        \tilde{R}\prn{*} \coloneq
+          \HCom{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}}{\tilde{O}}}{1}{0}{\parens{\forall k.s_k = 0}\lor r=r'}{
+          \lambda j,*.
+          \brk{ %CJHM
+            \begin{aligned}
+              &\prn{\forall k.s_k = 0}\to\tilde{P}\prn{*,\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M},\tilde{Q}\prn{*},j}
+              \\
+              &r=r' \to \tilde{P}\prn{*,M,\prn{\lambda\Dummy.\TmVproj{s_r}{E_r}{M}},j}
+              \\
+              &j=1 \to
+                \TmFst{\ElOut{
+                  \ElOut{
+                    \TmSnd{\ElOut{
+                        E_{r'}\prn{*}
+                    }}
+                  }\prn{\tilde{O}}
+                }}
+            \end{aligned}
+          }
+        }
+      \end{array}
+    \]
+    \end{varwidth}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{S} : \TpEl{\Code{B}_{r'}}\\
+        \tilde{S} \coloneq \HCom{\TpEl{\Code{B}_{r'}}}{1}{0}{r=r'\lor\Boundary{s_{r'}}}{
+          \lambda k,*.
+          \brk{
+            k=1\lor s_{r'}=1\lor r=r'\to \tilde{O}
+            \mid
+            s_{r'}=0 \to \ElOut{\TmSnd{\ElOut{\tilde{R}\prn{*}}}}\prn{k}
+          }
+        }
+      \end{array}
+    }
+  }{
+    \Coe{
+      \CodeV{s_\bullet}{\Code{A}_\bullet}{\Code{B}_\bullet}{E_\bullet}
+    }{r}{r'}{\phi}{M}
+    =
+    \TmVin{s_{r'}}{E_{r'}}{\lambda{*}.\TmFst{\ElOut{\tilde{R}\prn{*}}}}{\tilde{S}}
+    :
+    \TpEl{\CodeV{s_\bullet}{\Code{A}_{r'}}{\Code{B}_{r'}}{E_{r'}}}
   }
 \]
 
