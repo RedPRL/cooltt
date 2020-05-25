@@ -421,9 +421,6 @@ unstable type codes).
 
 We begin by defining some definitional extensions for equivalences.
 \[
-  \TpPath{A}{M}{N} \coloneq \Prod{i:\DIM}{\prn{A\prn{i} \mid i=0 \to M \mid i=1 \to N}}
-\]
-\[
   \begin{array}{l}
     \CodeIsContr : \TpUniv\to\TpUniv\\
     \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
@@ -649,15 +646,11 @@ We may now specify the rules for the V types.
         \Prod{*:\TpPrf{s_{r'}=0}}{
           \Prod{
             p:\TpEl{\CodeFiberAlt{*}}
-            %\Sum{x:\TpEl{\Code{A}_{r'}\prn{*}}}{
-            %  \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{\tilde{F}\prn{r',*,x}}{\tilde{O}}
-            %}
           }{
             \TpEl{
               \CodePath{
                 \lambda\Dummy.\CodeFiberAlt{*}
               }{
-              %\ElIn{\TmPair{\TmFst{p}}{\ElIn{\TmSnd{p}}}}
                 p
               }{
                 \tilde{P}\prn{*}
@@ -689,16 +682,6 @@ We may now specify the rules for the V types.
             }
           }
         }
-        %\\
-        %\tilde{R}\prn{*,j} \coloneq
-        %\Com{\Code{B}_\bullet}{r}{r'}{\Boundary{j}}{
-        %  \lambda i,*.
-        %  \brk{
-        %    i=r\lor j=0 \to \tilde{F}\prn{i,*,\Coe{\Code{A}_\bullet\prn{*}}{r}{i}{M}}
-        %    \mid
-        %    j=1\to \Coe{\Code{B}_\bullet}{r}{i}{\tilde{F}\prn{r,*,M}}
-        %  }
-        %}
         \\
         \tilde{R}\prn{*} \coloneq
         \Coe{
