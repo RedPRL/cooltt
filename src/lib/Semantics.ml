@@ -1279,27 +1279,31 @@ and enact_rigid_hcom code r r' phi bdy tag =
 and do_rigid_coe (line : D.con) r s con =
   let open CM in
   CM.abort_if_inconsistent D.Abort @@
-  let* tag = dispatch_rigid_coe line in
-  match tag with
-  | `Done ->
-    let hd = D.Coe (line, r, s, con) in
-    let* code = do_ap line (D.dim_to_con s) in
-    let+ tp = do_el code in
-    D.Cut {tp; cut = hd, []}
-  | `Reduce tag ->
-    enact_rigid_coe line r s con tag
+  begin
+    dispatch_rigid_coe line |>>
+    function
+    | `Done ->
+      let hd = D.Coe (line, r, s, con) in
+      let* code = do_ap line (D.dim_to_con s) in
+      let+ tp = do_el code in
+      D.Cut {tp; cut = hd, []}
+    | `Reduce tag ->
+      enact_rigid_coe line r s con tag
+  end
 
 and do_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
   CM.abort_if_inconsistent D.Abort @@
-  let* tag = dispatch_rigid_hcom code in
-  match tag with
-  | `Done cut ->
-    let tp = D.ElCut cut in
-    let hd = D.HCom (cut, r, s, phi, bdy) in
-    ret @@ D.Cut {tp; cut = hd, []}
-  | `Reduce tag ->
-    enact_rigid_hcom code r s phi bdy tag
+  begin
+    dispatch_rigid_hcom code |>>
+    function
+    | `Done cut ->
+      let tp = D.ElCut cut in
+      let hd = D.HCom (cut, r, s, phi, bdy) in
+      ret @@ D.Cut {tp; cut = hd, []}
+    | `Reduce tag ->
+      enact_rigid_hcom code r s phi bdy tag
+  end
 
 and do_rigid_com (line : D.con) r s phi bdy =
   let open CM in
