@@ -474,6 +474,18 @@ struct
 
   let equiv_fwd equiv =
     el_out @@ fst @@ el_out equiv
+
+  (* CJHM CCHM names *)
+  let equiv_fiber_contr equiv y =
+    ap (el_out @@ snd @@ el_out equiv) [y]
+
+  (* CJHM CCHM names *)
+  let equiv_inv equiv y =
+    fst @@ el_out @@ equiv_fiber_contr equiv y
+
+  (* CJHM CCHM names *)
+  let equiv_inv_path equiv y p =
+    ap (snd @@ el_out @@ equiv_fiber_contr equiv y) p
 end
 
 module Test =
