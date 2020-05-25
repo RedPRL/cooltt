@@ -201,6 +201,9 @@ let rec quote_con (tp : D.tp) con : S.t m =
     in
     S.Box (tr, ts, tphi, tcap, tsides)
 
+  | _, D.LetSym (r, x, con) ->
+    quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
+
   | _ ->
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 

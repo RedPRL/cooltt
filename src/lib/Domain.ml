@@ -142,6 +142,8 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "<sub/in>"
   | FHCom _ ->
     Format.fprintf fmt "<fhcom>"
+  | LetSym _ ->
+    Format.fprintf fmt "<let-sym>"
   | _ ->
     Format.fprintf fmt "<don't know how to print>"
 
