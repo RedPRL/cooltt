@@ -586,9 +586,17 @@ We may now specify the rules for the V types.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{O} : \TpEl{\Code{B}_{r'}}
-        \\
+        \tilde{O} : \TpEl{\Code{B}_{r'}}\\
         \tilde{O} \coloneq \Coe{\Code{B}_\bullet}{r}{r'}{\TmVproj{s_r}{E_r}{M}}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{I} :
+        \TpPrf{s_{r'}=0}\to
+        \TpEl{\CodeIsContr{\CodeFiber{\Code{A}_{r'}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}}\\
+        \tilde{I}\prn{*} \coloneq \ElOut{\TmSnd{\ElOut{E_{r'}\prn{*}}}}\prn{\tilde{O}}
       \end{array}
     }
     \\\\\\
@@ -598,20 +606,11 @@ We may now specify the rules for the V types.
         \TpPrf{s_{r'}=0}\to
         \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
         \\
-        \tilde{P} \coloneq
-        \TmFst{\ElOut{
-            \ElOut{
-              \TmSnd{\ElOut{
-                  E_{r'}\prn{*}
-              }}
-            }\prn{\tilde{O}}
-        }}
+        \tilde{P}\prn{*} \coloneq \TmFst{\ElOut{\tilde{I}\prn{*}}}
       \end{array}
     }
     \\\\\\
     {
-      \begin{varwidth}{\textwidth}
-        \[
           \begin{array}{l}
             \tilde{Q} :
             \TpPrf{s_{r'}=0}\to
@@ -627,17 +626,11 @@ We may now specify the rules for the V types.
             \ElOut{
               \ElOut{
                 \TmSnd{\ElOut{
-                    \ElOut{
-                      \TmSnd{\ElOut{
-                          E_{r'}\prn{*}
-                      }}
-                    }\prn{\tilde{O}}
+                  \tilde{I}\prn{*}
                 }}
               }\prn{\ElIn{\TmPair{M}{\ElIn{N}}}}
             }
           \end{array}
-        \]
-      \end{varwidth}
     }
     \\\\\\
     { % Favonia: this is just coe in paths, but this style leads to shorter code?
@@ -682,9 +675,7 @@ We may now specify the rules for the V types.
         \tilde{S} :
         \TpPrf{s_{r'}=0\land\prn{\prn{\forall k.s_k=0}\lor r=r'}}\to
         \DIM\to
-        \Sum{x:\TpEl{\Code{A}_{r'}\prn{*}}}{
-          \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{\tilde{F}\prn{r',*,x}}{\tilde{O}}
-        }
+        \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
         \\
         \tilde{S}\prn{*} \coloneq
         \tilde{Q}\prn{*,\brk{\prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}} \mid r=r'\to \TmPair{M}{\lambda\Dummy.\TmVproj{s_r}{E_r}{M}}}}
@@ -703,9 +694,9 @@ We may now specify the rules for the V types.
           \HCom{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}}{\tilde{O}}}{1}{0}{\parens{\forall k.s_k = 0}\lor r=r'}{
           \lambda j,*.
           \brk{
-            \prn{\forall k.s_k = 0}\lor r=r'\to \tilde{S}\prn{*,j}
-            \mid
             j=1 \to \tilde{P}\prn{*}
+            \mid
+            \prn{\forall k.s_k = 0}\lor r=r'\to \tilde{S}\prn{*,j}
           }
         }
       \end{array}
