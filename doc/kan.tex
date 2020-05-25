@@ -687,7 +687,7 @@ We may now specify the rules for the V types.
     {\begin{varwidth}{\textwidth}
     \[
       \begin{array}{l}
-        \tilde{T} : \TpPrf{s_{r'}=0}\to\TpPrf{\prn{\forall k.s_k = 0}\lor r=r'}\to
+        \tilde{T} : \TpPrf{s_{r'}=0}\to
         \CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}}{\tilde{O}}
         \\
         \tilde{T}\prn{*} \coloneq
@@ -720,11 +720,11 @@ We may now specify the rules for the V types.
   }{
     \Coe{
       \CodeV{s_\bullet}{\Code{A}_\bullet}{\Code{B}_\bullet}{E_\bullet}
-    }{r}{r'}{\phi}{M}
+    }{r}{r'}{M}
     =
-    \TmVin{s_{r'}}{E_{r'}}{\lambda{*}.\TmFst{\ElOut{\tilde{T}\prn{*}}}}{\tilde{T}}
+    \TmVin{s_{r'}}{E_{r'}}{\lambda{*}.\TmFst{\ElOut{\tilde{T}\prn{*}}}}{\tilde{U}}
     :
-    \TpEl{\CodeV{s_\bullet}{\Code{A}_{r'}}{\Code{B}_{r'}}{E_{r'}}}
+    \TpEl{\CodeV{s_{r'}}{\Code{A}_{r'}}{\Code{B}_{r'}}{E_{r'}}}
   }
 \]
 
