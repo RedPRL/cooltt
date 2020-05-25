@@ -36,10 +36,11 @@
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
+%token V VPROJ
 
 %nonassoc IN RRIGHT_ARROW
 %nonassoc COLON
-%nonassoc FST SND SUC RIGHT_ARROW TIMES
+%nonassoc FST SND VPROJ SUC RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -229,6 +230,10 @@ plain_term_except_cof_case:
     { Fst t }
   | SND; t = term
     { Snd t }
+  | V; a = atomic_term; b = atomic_term; e = atomic_term
+    { V (a, b, e) }
+  | VPROJ; t = term
+    { VProj t }
 
   | PATHD; tp = atomic_term; left = atomic_term; right = atomic_term
     { Path (tp, left, right) }

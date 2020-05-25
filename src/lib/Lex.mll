@@ -44,7 +44,9 @@ let keywords =
     ("coe", COE);
     ("hcom", HCOM);
     ("hfill", HFILL);
-    ("com", COM)
+    ("com", COM);
+    ("V", V);
+    ("vproj", VPROJ);
   ]
 }
 
