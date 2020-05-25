@@ -169,23 +169,14 @@ let cap_boundary r s phi code box =
     [TB.eq r s, (fun _ -> box);
      phi, (fun _ -> TB.coe code s r box)]
 
-(* Invariant: apply only to whnf *)
-let hd_stability : D.hd -> [`Stable | `Unstable] =
-  function
-  | D.Global _ | D.Var _ -> `Stable
-  | D.Coe _ | D.Split _ | D.HCom _ | D.Cap _ | D.SubOut _ -> `Unstable
-
-(* Invariant: apply only to whnf *)
-let cut_stability : D.cut -> [`Stable | `Unstable] =
-  fun (hd, _) ->
-  hd_stability hd
-
-(* Invariant: apply only to whnf *)
-let con_stability : D.con -> [`Stable | `Unstable] =
-  function
-  | D.Cut {cut} -> cut_stability cut
-  | D.FHCom _ | D.Box _ -> `Unstable
-  | _ -> `Stable
+let v_boundary r pcode code =
+  Splice.foreign_dim r @@ fun r ->
+  Splice.foreign pcode @@ fun pcode ->
+  Splice.foreign code @@ fun code ->
+  Splice.term @@
+  TB.cof_split TB.univ
+    [TB.eq r TB.dim0, (fun _ -> TB.ap pcode [TB.prf]);
+    TB.eq r TB.dim1, (fun _ -> code)]
 
 (* LOL: experimental haha *)
 let rec subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
@@ -262,7 +253,13 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ phi = subst_cof r x phi
     and+ sides = subst_con r x sides
     and+ bdy = subst_con r x bdy in
-    D.Box(s, s', phi, sides, bdy)
+    D.Box (s, s', phi, sides, bdy)
+  | D.CodeV (s, pcode, code, pequiv) ->
+    let+ s = subst_dim r x s
+    and+ pcode = subst_con r x pcode
+    and+ code = subst_con r x code
+    and+ pequiv = subst_con r x pequiv in
+    D.CodeV (s, pcode, code, pequiv)
   | D.Cut {tp = D.TpDim; cut = (D.Global y, [])} as con ->
     begin
       test_sequent [] (Cof.eq (D.DimProbe x) (D.DimProbe y)) |>>
@@ -342,6 +339,12 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ bdy = subst_con r x bdy in
     D.ElUnstable (`HCom (s, s', phi, bdy))
+  | D.ElUnstable (`V (s, pcode, code, pequiv)) ->
+    let+ s = subst_dim r x s
+    and+ pcode = subst_con r x pcode
+    and+ code = subst_con r x code
+    and+ pequiv = subst_con r x pequiv in
+    D.ElUnstable (`V (s, pcode, code, pequiv))
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
   fun r x (hd, sp) ->
@@ -641,6 +644,13 @@ and eval : S.t -> D.con EvM.m =
           do_rigid_cap vr vs vphi vcode vbox
       end
 
+    | S.CodeV (r, pcode, code, pequiv) ->
+      let+ vr = eval_dim r
+      and+ vpcode = eval pcode
+      and+ vcode = eval code
+      and+ vpequiv = eval pequiv in
+      D.CodeV (vr, vpcode, vcode, vpequiv)
+
 and eval_dim tr =
   let open EvM in
   let* con = eval tr in
@@ -688,6 +698,14 @@ and whnf_con : D.con -> D.con whnf CM.m =
         | false ->
           ret `Done
     end
+  | D.CodeV (r, pcode, code, pequiv) ->
+    begin
+      test_sequent [] (Cof.boundary r) |>>
+      function
+      | true -> reduce_to @<< do_ap code D.Prf
+      | false -> ret `Done
+    end
+
 
 and reduce_to con =
   let open CM in
@@ -1052,6 +1070,8 @@ and do_el : D.con -> D.tp CM.m =
         ret @@ D.ElCut cut
       | D.FHCom (`Univ, r, s, phi, bdy) ->
         ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
+      | D.CodeV (r, pcode, code, pequiv) ->
+        ret @@ D.ElUnstable (`V (r, pcode, code, pequiv))
       | _ ->
         ret @@ D.El con
     end

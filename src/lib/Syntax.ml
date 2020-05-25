@@ -198,6 +198,12 @@ let rec pp env fmt tm =
       (pp_atomic env) phi
       (pp_atomic env) code
       (pp_atomic env) box
+  | CodeV (r, pcode, code, pequiv) ->
+    Format.fprintf fmt "@[<hv2>V %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) pcode
+      (pp_atomic env) code
+      (pp_atomic env) pequiv
 
 and pp_tp env fmt tp =
   match tp with

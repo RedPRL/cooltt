@@ -35,6 +35,7 @@ and con =
   | CodeSg of con * con
   | CodeNat
   | CodeUniv
+  | CodeV of dim * con * con * con
 
   | FHCom of [`Nat | `Univ] * dim * dim * cof * con
   | Box of dim * dim * cof * con * con
@@ -44,7 +45,7 @@ and tp =
   | Univ
   | El of con
   | ElCut of cut
-  | ElUnstable of [`HCom of dim * dim * cof * con]
+  | ElUnstable of [`HCom of dim * dim * cof * con | `V of dim * con * con * con]
   | GoalTp of string option * tp
   | TpDim
   | TpCof

@@ -120,6 +120,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
       TB.univ
     in
     equate_con tp_bdy bdy0 bdy1
+  | D.ElUnstable (`V (r0, pcode0, code0, pequiv0)), D.ElUnstable (`V (r1, pcode1, code1, pequiv1)) ->
+    raise CJHM
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
@@ -195,6 +197,9 @@ and equate_con tp con0 con1 =
   | _, D.CodeUniv, D.CodeUniv ->
     ret ()
 
+  | _, D.CodeV (r0, pcode0, code0, pequiv0), D.CodeV (r1, pcode1, code1, pequiv1) ->
+    raise CJHM
+
   | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
   | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
     let* _ = equate_con univ base0 base1 in
@@ -234,6 +239,9 @@ and equate_con tp con0 con1 =
     let* () = equate_con tp_cap cap0 cap1 in
     QuM.left_invert_under_cofs [phi] @@
     equate_con hcom_tp con0 con1
+
+  | D.ElUnstable (`V (r, pcode, code, pequiv)), _, _ ->
+    raise CJHM
 
   | _ ->
     conv_err @@ ExpectedConEq (tp, con0, con1)

@@ -173,5 +173,7 @@ and pp_tp fmt =
     Format.fprintf fmt "el-cut[%a]" pp_cut con
   | ElUnstable (`HCom _) ->
     Format.fprintf fmt "<Hcom>"
+  | ElUnstable (`V _) ->
+    Format.fprintf fmt "<V>"
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"
