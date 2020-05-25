@@ -456,6 +456,8 @@ module Equiv : sig
   val code_is_contr : S.t m -> S.t m
   val code_fiber : S.t m -> S.t m -> S.t m -> S.t m -> S.t m
   val equiv_fwd : S.t m -> S.t m
+  val equiv_inv : S.t m -> S.t m -> S.t m
+  val equiv_inv_path : S.t m -> S.t m -> S.t m -> S.t m
 end =
 struct
   let code_is_contr code =
@@ -485,7 +487,7 @@ struct
 
   (* CJHM CCHM names *)
   let equiv_inv_path equiv y p =
-    ap (snd @@ el_out @@ equiv_fiber_contr equiv y) p
+    ap (el_out @@ snd @@ el_out @@ equiv_fiber_contr equiv y) [p]
 end
 
 module Test =
