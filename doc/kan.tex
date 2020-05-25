@@ -3,7 +3,7 @@
 \usepackage{jon-todo}
 \usepackage{mathpartir}
 \usepackage{mathtools}
-\usepackage[landscape,lmargin=.5in,rmargin=.5in]{geometry}
+\usepackage[landscape]{geometry}
 
 \addbibresource{refs.bib}
 
@@ -530,6 +530,8 @@ We may now specify the rules for the V types.
 
 \section{Composition and coercion algorithms}
 
+\subsection{Composition in V types}
+
 \[
   \inferrule{
     \Hint{s:\DIM}\\
@@ -575,6 +577,8 @@ We may now specify the rules for the V types.
     }
   }
 \]
+
+\subsection{Coercion in V types}
 
 \[
   \inferrule{
@@ -732,6 +736,7 @@ We may now specify the rules for the V types.
   }
 \]
 
+\subsection{Composition in composite types}
 \[
   \inferrule{
     \Hint{s,s' : \DIM}\\
@@ -790,6 +795,9 @@ We may now specify the rules for the V types.
     }
   }
 \]
+
+
+\subsection{Coercion in composite types}
 
 \[
   \inferrule{
