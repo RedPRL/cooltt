@@ -442,7 +442,7 @@ struct
       univ
     in
     let* fam = tac_fam piuniv in
-    let* vfam = EM.lift_ev (Sem.eval fam) in
+    let* vfam = EM.lift_ev @@ Sem.eval fam in
     let* bdry_tp =
       EM.lift_cmp @@
       Sem.splice_tp @@
