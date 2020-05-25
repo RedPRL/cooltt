@@ -450,7 +450,7 @@ struct
       Splice.foreign vfam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+      TB.pi (TB.tp_prf @@ TB.boundary i) @@ fun prf ->
       TB.el @@ TB.ap fam [i]
     in
     let* bdry = tac_bdry bdry_tp in
