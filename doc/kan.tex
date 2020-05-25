@@ -653,25 +653,27 @@ We may now specify the rules for the V types.
             %  \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{\tilde{F}\prn{r',*,x}}{\tilde{O}}
             %}
           }{
-            \TpPath{
-              \lambda\Dummy.\TpEl{\CodeFiberAlt{*}}
-            }{
+            \TpEl{
+              \CodePath{
+                \lambda\Dummy.\CodeFiberAlt{*}
+              }{
               %\ElIn{\TmPair{\TmFst{p}}{\ElIn{\TmSnd{p}}}}
-              p
-            }{
-              \tilde{P}\prn{*}
+                p
+              }{
+                \tilde{P}\prn{*}
+              }
             }
           }
         }
         \\
         \tilde{Q}\prn{*,M} \coloneq
         \ElOut{
-          \ElOut{
-            \TmSnd{\ElOut{
-                \tilde{I}\prn{*}
-            }}
-          }\prn{M}
-        }
+          \TmSnd{
+            \ElOut{
+              \tilde{I}\prn{*}
+            }
+          }
+        }\prn{M}
       \end{array}
     }
     \\\\\\
@@ -718,12 +720,14 @@ We may now specify the rules for the V types.
       \begin{array}{l}
         \tilde{S} :
         \Prod{*:\TpPrf{s_{r'}=0\land\prn{\prn{\forall k.s_k=0}\lor r=r'}}}{
-          \TpPath{
-            \lambda\Dummy.\TpEl{\CodeFiberAlt{*}}
-          }{
-            {\color{RedDevil}{\cdots\text{\textit{really too long}}\cdots}}
-          }{
-            \tilde{P}\prn{*}
+          \TpEl{
+            \CodePath{
+              \lambda\Dummy.\CodeFiberAlt{*}
+            }{
+              {\color{RedDevil}{\cdots\text{\textit{really too long}}\cdots}}
+            }{
+              \tilde{P}\prn{*}
+            }
           }
         }
         \\
@@ -754,7 +758,7 @@ We may now specify the rules for the V types.
           \brk{
             j=1 \to \tilde{P}\prn{*}
             \delimmid
-            \prn{\forall k.s_k = 0}\lor r=r'\to \SubOut{\tilde{S}\prn{*,j}}
+            \prn{\forall k.s_k = 0}\lor r=r'\to \SubOut{\ElOut{\tilde{S}\prn{*}}\prn{j}}
           }
         }
       \end{array}
