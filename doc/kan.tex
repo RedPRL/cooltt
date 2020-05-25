@@ -452,10 +452,6 @@ We begin by defining some definitional extensions for equivalences.
   \end{array}
 \]
 
-\begin{warning}
-  Contractibility is defined in terms of paths \emph{to} the center, not \emph{from} it.
-\end{warning}
-
 We may now specify the rules for the V types.
 \begin{mathparpagebreakable}
   \inferrule[v type code]{
@@ -584,6 +580,7 @@ We may now specify the rules for the V types.
 \subsection{Coercion in V types}
 
 \NewDocumentCommand{\CodeFiberAlt}{g}{\widehat{\mathsf{Fiber'}}\IfValueT{#1}{\prn{#1}}}
+\NewDocumentCommand{\TooLong}{}{\textcolor{RedDevil}{\cdots\text{\textit{too long}}\cdots}}
 
 \[
   \inferrule{
@@ -651,9 +648,9 @@ We may now specify the rules for the V types.
               \CodePath{
                 \lambda\Dummy.\CodeFiberAlt{*}
               }{
-                p
-              }{
                 \tilde{P}\prn{*}
+              }{
+                p
               }
             }
           }
@@ -707,9 +704,13 @@ We may now specify the rules for the V types.
             \CodePath{
               \lambda\Dummy.\CodeFiberAlt{*}
             }{
-              {\color{RedDevil}{\cdots\text{\textit{really too long}}\cdots}}
-            }{
               \tilde{P}\prn{*}
+            }{
+              \brk{
+                \prn{\forall k.s_k = 0}\to\TooLong
+                \delimmid
+                r=r'\to \TooLong
+              }
             }
           }
         }
@@ -736,10 +737,10 @@ We may now specify the rules for the V types.
         \tilde{T}\prn{*} \coloneq
         \HCom{
           \CodeFiberAlt{*}
-        }{1}{0}{\parens{\forall k.s_k = 0}\lor r=r'}{
+        }{0}{1}{\parens{\forall k.s_k = 0}\lor r=r'}{
           \lambda j,*.
           \brk{
-            j=1 \to \tilde{P}\prn{*}
+            j=0 \to \tilde{P}\prn{*}
             \delimmid
             \prn{\forall k.s_k = 0}\lor r=r'\to \SubOut{\ElOut{\tilde{S}\prn{*}}\prn{j}}
           }
