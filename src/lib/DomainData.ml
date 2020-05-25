@@ -5,15 +5,6 @@ open Bwd
 include Dim
 type cof = (dim, int) Cof.cof
 
-(** Destructors: exotic semantic operations that don't exist in syntax; these
-  * are meant to fail on things in improper form, rather than become neutral. *)
-type dst =
-  | DCodePiSplit
-  | DCodeSgSplit
-  | DCodePathSplit
-  | DCodeHComSplit
-
-
 type env = {tpenv : tp bwd; conenv: con bwd}
 
 and tp_clo =
@@ -24,6 +15,8 @@ and tm_clo =
 
 and con =
   | Lam of Ident.t * tm_clo
+  | BindSym of Symbol.t * con
+  | LetSym of dim * Symbol.t * con
   | Cut of {tp : tp; cut : cut}
   | Zero
   | Suc of con
@@ -45,8 +38,6 @@ and con =
 
   | FHCom of [`Nat | `Univ] * dim * dim * cof * con
   | Box of dim * dim * cof * con * con
-
-  | DestructLine of CofEnv.env * dst * con
 
 and tp =
   | Sub of tp * cof * tm_clo
