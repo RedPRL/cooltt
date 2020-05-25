@@ -1,6 +1,7 @@
 module S := Syntax
 module D := Domain
 
+open CoolBasis
 open Monads
 
 val eval : S.t -> D.con evaluate
@@ -36,3 +37,6 @@ val do_rigid_cap : D.dim -> D.dim -> D.cof -> D.con -> D.con -> D.con compute
 
 val splice_tm : S.t Splice.t -> D.con compute
 val splice_tp : S.tp Splice.t -> D.tp compute
+
+val subst_con : D.dim -> Symbol.t -> D.con -> D.con compute
+val push_subst_con : D.dim -> Symbol.t -> D.con -> D.con compute

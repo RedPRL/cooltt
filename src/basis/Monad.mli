@@ -1,3 +1,5 @@
+open Bwd
+
 module type S = sig
   type 'a m
 
@@ -24,6 +26,7 @@ module Notation (M : S) : Notation with type 'a m = 'a M.m
 module Util (M : S) : sig
   val commute_list : 'a M.m list -> 'a list M.m
   val map : ('a -> 'b M.m) -> 'a list -> 'b list M.m
+  val map_bwd : ('a -> 'b M.m) -> 'a bwd -> 'b bwd M.m
   val iter : ('a -> unit M.m) -> 'a list -> unit M.m
 end
 
