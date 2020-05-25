@@ -74,7 +74,7 @@
   \mathsf{snd}\IfValueT{#1}{\prn{#1}}
 }
 
-% cubical subtypes (not used now)
+% cubical subtypes
 \NewDocumentCommand\SubIn{m}{
   {\uparrow_{\mathsf{sub}}}\prn{#1}
 }
@@ -679,10 +679,12 @@ We may now specify the rules for the V types.
       \begin{array}{l}
         \tilde{R} :
         \Prod{*:\TpPrf{\forall k.s_k=0}}{
-          \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{
-            \tilde{F}\prn{r',*,\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}
-          }{
-            \tilde{O}
+          \TpEl{
+            \CodePath{\lambda\Dummy.\Code{B}_{r'}}{
+              \tilde{F}\prn{r',*,\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}
+            }{
+              \tilde{O}
+            }
           }
         }
         %\\
@@ -697,7 +699,7 @@ We may now specify the rules for the V types.
         %}
         \\
         \tilde{R}\prn{*} \coloneq
-        \ElOut{\Coe{
+        \Coe{
           \lambda i.
           \CodePath{
             \lambda\Dummy.\Code{B}_i
@@ -707,8 +709,8 @@ We may now specify the rules for the V types.
             \Coe{\Code{B}_\bullet}{r}{i}{\tilde{F}\prn{r,*,M}}
           }
         }{r}{r'}{
-          \ElIn{\lambda\Dummy.\tilde{F}\prn{r,*,M}}
-        }}
+          \ElIn{\lambda\Dummy.\SubIn{\tilde{F}\prn{r,*,M}}}
+        }
       \end{array}
     }
     \\\\\\
@@ -729,9 +731,9 @@ We may now specify the rules for the V types.
         \tilde{Q}\prn{
           *,
           \brk{
-            \prn{\forall k.s_k = 0}\to\ElIn{\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\ElIn{\tilde{R}\prn{*}}}}
+            \prn{\forall k.s_k = 0}\to\ElIn{\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}}}
             \delimmid
-            r=r'\to \ElIn{\TmPair{M}{\ElIn{\lambda\Dummy.\TmVproj{s_r}{E_r}{M}}}}
+            r=r'\to \ElIn{\TmPair{M}{\ElIn{\lambda\Dummy.\SubIn{\TmVproj{s_r}{E_r}{M}}}}}
           }
         }
       \end{array}
@@ -752,7 +754,7 @@ We may now specify the rules for the V types.
           \brk{
             j=1 \to \tilde{P}\prn{*}
             \delimmid
-            \prn{\forall k.s_k = 0}\lor r=r'\to \tilde{S}\prn{*,j}
+            \prn{\forall k.s_k = 0}\lor r=r'\to \SubOut{\tilde{S}\prn{*,j}}
           }
         }
       \end{array}
@@ -766,7 +768,7 @@ We may now specify the rules for the V types.
           \brk{
             k=1\lor s_{r'}=1\lor r=r'\to \tilde{O}
             \delimmid
-            s_{r'}=0 \to \ElOut{\TmSnd{\ElOut{\tilde{T}\prn{*}}}}\prn{k}
+            s_{r'}=0 \to \SubOut{\ElOut{\TmSnd{\ElOut{\tilde{T}\prn{*}}}}\prn{k}}
           }
         }
       \end{array}
