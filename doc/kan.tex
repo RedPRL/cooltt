@@ -608,8 +608,10 @@ We may now specify the rules for the V types.
     {
       \begin{array}{l}
         \tilde{I} :
-        \TpPrf{s_{r'}=0}\to
-        \TpEl{\CodeIsContr{\CodeFiber{\Code{A}_{r'}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}}\\
+        \Prod{*:\TpPrf{s_{r'}=0}}{
+          \TpEl{\CodeIsContr{\CodeFiber{\Code{A}_{r'}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}}
+        }
+        \\
         \tilde{I}\prn{*} \coloneq \ElOut{\TmSnd{\ElOut{E_{r'}\prn{*}}}}\prn{\tilde{O}}
       \end{array}
     }
@@ -617,44 +619,47 @@ We may now specify the rules for the V types.
     {
       \begin{array}{l}
         \tilde{P} :
-        \TpPrf{s_{r'}=0}\to
-        \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+        \Prod{*:\TpPrf{s_{r'}=0}}{
+          \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+        }
         \\
         \tilde{P}\prn{*} \coloneq \TmFst{\ElOut{\tilde{I}\prn{*}}}
       \end{array}
     }
     \\\\\\
     {
-          \begin{array}{l}
-            \tilde{Q} :
-            \TpPrf{s_{r'}=0}\to
-            \prn{
-              \Sum{x:\TpEl{\Code{A}_{r'}\prn{*}}}{
-                \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{\tilde{F}\prn{r',*,x}}{\tilde{O}}
-              }
+      \begin{array}{l}
+        \tilde{Q} :
+        \Prod{*:\TpPrf{s_{r'}=0}}{
+          \prn{
+            \Sum{x:\TpEl{\Code{A}_{r'}\prn{*}}}{
+              \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{\tilde{F}\prn{r',*,x}}{\tilde{O}}
             }
-            \to
-            \DIM\to\TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
-            \\
-            \tilde{Q}\prn{*,\TmPair{M}{N}} \coloneq
-            \ElOut{
-              \ElOut{
-                \TmSnd{\ElOut{
-                  \tilde{I}\prn{*}
-                }}
-              }\prn{\ElIn{\TmPair{M}{\ElIn{N}}}}
-            }
-          \end{array}
+          }
+          \to
+          \DIM\to\TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+        }
+        \\
+        \tilde{Q}\prn{*,\TmPair{M}{N}} \coloneq
+        \ElOut{
+          \ElOut{
+            \TmSnd{\ElOut{
+                \tilde{I}\prn{*}
+            }}
+          }\prn{\ElIn{\TmPair{M}{\ElIn{N}}}}
+        }
+      \end{array}
     }
     \\\\\\
     { % Favonia: this is just coe in paths, but this style leads to shorter code?
       \begin{array}{l}
         \tilde{R} :
-        \TpPrf{\forall k.s_k=0}\to
-        \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{
-          \tilde{F}\prn{r',*,\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}
-        }{
-          \tilde{O}
+        \Prod{*:\TpPrf{\forall k.s_k=0}}{
+          \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{
+            \tilde{F}\prn{r',*,\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}
+          }{
+            \tilde{O}
+          }
         }
         %\\
         %\tilde{R}\prn{*,j} \coloneq
@@ -686,9 +691,10 @@ We may now specify the rules for the V types.
     {
       \begin{array}{l}
         \tilde{S} :
-        \TpPrf{s_{r'}=0\land\prn{\prn{\forall k.s_k=0}\lor r=r'}}\to
-        \DIM\to
-        \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+        \Prod{*:\TpPrf{s_{r'}=0\land\prn{\prn{\forall k.s_k=0}\lor r=r'}}}{
+          \DIM\to
+          \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+        }
         \\
         \tilde{S}\prn{*} \coloneq
         \tilde{Q}\prn{*,\brk{\prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}} \delimmid r=r'\to \TmPair{M}{\lambda\Dummy.\TmVproj{s_r}{E_r}{M}}}}
@@ -697,11 +703,13 @@ We may now specify the rules for the V types.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{T} : \TpPrf{s_{r'}=0}\to
-        \CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}}{\tilde{O}}
+        \tilde{T} :
+        \Prod{*:\TpPrf{s_{r'}=0}}{
+          \CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}\prn{*}}{\tilde{O}}
+        }
         \\
         \tilde{T}\prn{*} \coloneq
-          \HCom{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}}{\tilde{O}}}{1}{0}{\parens{\forall k.s_k = 0}\lor r=r'}{
+        \HCom{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}\prn{*}}{\tilde{O}}}{1}{0}{\parens{\forall k.s_k = 0}\lor r=r'}{
           \lambda j,*.
           \brk{
             j=1 \to \tilde{P}\prn{*}
