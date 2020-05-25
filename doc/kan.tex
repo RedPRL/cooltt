@@ -81,7 +81,7 @@
   {\downarrow_{\mathsf{sub}}}\prn{#1}
 }
 
-% paths (elaborated into functions + cubical subtypes)
+% paths
 \NewDocumentCommand\CodePath{mmm}{
   {\widehat{\mathsf{Path}}}_{#1}\prn{#2;#3}
 }
@@ -733,7 +733,7 @@ We may now specify the rules for the V types.
         \tilde{O}\prn{i,*} \coloneq \TmCap{s}{s'}{\psi}{\Code{A}}{M\prn{i,*}}
       \end{array}
     }
-    \\\\\\
+    \and
     {
       \begin{array}{l}
         \tilde{P} : \Prod{i:\DIM}{\Prod{*:\TpPrf{s=s'\lor \psi}}{\TpEl{\Code{A}\prn{s',*}}}}\\
