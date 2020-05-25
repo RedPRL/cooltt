@@ -3,6 +3,8 @@ open CoolBasis
 
 module S = Syntax
 
+let const_tp_clo tp =
+  TpClo (S.TpVar 0, {tpenv = Snoc (Emp, tp); conenv = Emp})
 
 let push frm (hd, sp) =
   hd, sp @ [frm]
@@ -140,6 +142,8 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "<sub/in>"
   | FHCom _ ->
     Format.fprintf fmt "<fhcom>"
+  | LetSym _ ->
+    Format.fprintf fmt "<let-sym>"
   | _ ->
     Format.fprintf fmt "<don't know how to print>"
 
@@ -165,7 +169,9 @@ and pp_tp fmt =
     Format.fprintf fmt "<abort>"
   | El con ->
     Format.fprintf fmt "el[%a]" pp_con con
-  | UnfoldEl cut ->
-    Format.fprintf fmt "unfold-el[%a]" pp_cut cut
+  | ElCut con ->
+    Format.fprintf fmt "el-cut[%a]" pp_cut con
+  | ElUnstable (`HCom _) ->
+    Format.fprintf fmt "<Hcom>"
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"

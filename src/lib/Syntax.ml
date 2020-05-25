@@ -1,12 +1,12 @@
 open CoolBasis open Bwd
 include SyntaxData
 
-let rec condense =
+let rec to_numeral =
   function
   | Zero -> Some 0
   | Suc t ->
     Option.map (fun n -> n + 1) @@
-    condense t
+    to_numeral t
   | _ -> None
 
 
@@ -139,7 +139,7 @@ let rec pp env fmt tm =
     Format.fprintf fmt "0"
   | Suc tm ->
     begin
-      match condense tm with
+      match to_numeral tm with
       | Some n -> Format.fprintf fmt "%i" (n + 1)
       | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
     end
@@ -184,6 +184,20 @@ let rec pp env fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp env) tm
       (pp envx) bdy
+  | Box (r, s, phi, sides, cap) ->
+    Format.fprintf fmt "@[<hv2>box %a %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) s
+      (pp_atomic env) phi
+      (pp_atomic env) sides
+      (pp_atomic env) cap
+  | Cap (r, s, phi, code, box) ->
+    Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) s
+      (pp_atomic env) phi
+      (pp_atomic env) code
+      (pp_atomic env) box
 
 and pp_tp env fmt tp =
   match tp with
@@ -217,8 +231,6 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "nat"
   | El tm ->
     Format.fprintf fmt "el %a" (pp_atomic env) tm
-  | UnfoldEl tm ->
-    Format.fprintf fmt "el! %a" (pp_atomic env) tm
   | TpVar ix ->
     Format.fprintf fmt "#var[%i]" ix
   | GoalTp (_, tp) ->

@@ -48,9 +48,17 @@ struct
     let+ {veil} = M.read in
     veil
 
+  let read_cof_env =
+    let+ {cof_env} = M.read in
+    cof_env
+
   let test_sequent cx phi =
     let+ {cof_env} = M.read in
     CofEnv.test_sequent cof_env cx phi
+
+  let restore_cof_env cof_env =
+    M.scope @@ fun local ->
+    {local with cof_env}
 
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
@@ -203,10 +211,7 @@ struct
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) ->
-    (* We always choose stdout because the messages get interleaved
-     * even with flushing. *)
-    let fmt = Format.std_formatter in
-    Log.pp_message ~loc ~lvl pp fmt a;
+    Log.pp_message ~loc ~lvl pp a;
     Ok (), st
 
   let veil v =

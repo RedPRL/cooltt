@@ -56,7 +56,6 @@ and con_ =
   | BotC
   | HCom of con * con * con * con * con
   | HFill of con * con * con * con
-  | AutoHCom of con * con * con * con
   | Com of con * con * con * con * con
 [@@deriving show]
 
@@ -75,5 +74,10 @@ type decl =
   | NormalizeTerm of con
   | Quit
   | Import of upath
+
+type command =
+  | NoOp
+  | EndOfFile
+  | Decl of decl
 
 type signature = decl list

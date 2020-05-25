@@ -2,22 +2,8 @@ module S = Syntax
 open CoolBasis
 open Bwd
 
-type dim =
-  | Dim0
-  | Dim1
-  | DimVar of int
-  | DimProbe of Symbol.t
-
+include Dim
 type cof = (dim, int) Cof.cof
-
-
-(** Destructors: exotic semantic operations that don't exist in syntax; these
-  * are meant to fail on things in improper form, rather than become neutral. *)
-type dst =
-  | DCodePiSplit
-  | DCodeSgSplit
-  | DCodePathSplit
-
 
 type env = {tpenv : tp bwd; conenv: con bwd}
 
@@ -29,6 +15,8 @@ and tm_clo =
 
 and con =
   | Lam of Ident.t * tm_clo
+  | BindSym of Symbol.t * con
+  | LetSym of dim * Symbol.t * con
   | Cut of {tp : tp; cut : cut}
   | Zero
   | Suc of con
@@ -48,15 +36,15 @@ and con =
   | CodeNat
   | CodeUniv
 
-  | FHCom of [`Nat] * dim * dim * cof * con
-
-  | Destruct of dst
+  | FHCom of [`Nat | `Univ] * dim * dim * cof * con
+  | Box of dim * dim * cof * con * con
 
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
   | El of con
-  | UnfoldEl of cut
+  | ElCut of cut
+  | ElUnstable of [`HCom of dim * dim * cof * con]
   | GoalTp of string option * tp
   | TpDim
   | TpCof
@@ -71,6 +59,7 @@ and hd =
   | Var of int (* De Bruijn level *)
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
+  | Cap of dim * dim * cof * con * cut
   | SubOut of cut * cof * tm_clo
   | Split of tp * (cof * tm_clo) list
 

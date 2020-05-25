@@ -1,3 +1,5 @@
+open Bwd
+
 module type S = sig
   type 'a m
 
@@ -58,6 +60,14 @@ struct
       let+ y = f x
       and+ ys = map f xs in
       y :: ys
+
+  let rec map_bwd f =
+    function
+    | Emp -> M.ret Emp
+    | Snoc (xs, x) ->
+      let+ xs = map_bwd f xs
+      and+ x = f x in
+      Snoc (xs, x)
 
   let rec iter f =
     function

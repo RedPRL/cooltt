@@ -18,8 +18,12 @@ module CmpM : sig
 
   val read_veil : Veil.t m
   val read_global : ElabState.t m
+  val read_cof_env : CofEnv.env m
+
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val test_sequent : D.cof list -> D.cof -> bool m
+
+  val restore_cof_env : CofEnv.env -> 'a m -> 'a m
 
   val abort_if_inconsistent : 'a -> 'a m -> 'a m
 end

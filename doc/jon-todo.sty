@@ -1,0 +1,46 @@
+\RequirePackage{xcolor}
+\RequirePackage{ifdraft}
+
+\definecolor{todo-color}{gray}{0.3}
+\definecolor{todo-red}{RGB}{134,1,17}
+\definecolor{todo-blue}{RGB}{3,69,117}
+
+\ExplSyntaxOn
+\NewDocumentCommand\todo{om}{
+  \ifdraft{
+    \noindent
+    \marginpar[\smash{\llap{$\color{todo-red}\bullet$}}]{\smash{\rlap{$\color{todo-red}\bullet$}}}
+    \group_begin:
+    \sffamily
+    \textcolor{todo-color}{
+      $\langle$
+      \textcolor{todo-red}{
+        \IfValueTF{#1}{Assigned~to~\textbf{#1}}{\textbf{todo}}
+      }~|~
+      #2
+      $\rangle$
+    }
+    \group_end:
+  }{}
+}
+
+\NewDocumentCommand\thought{m}{
+  \ifdraft{
+    \noindent
+    \marginpar[\smash{\llap{$\color{todo-blue}\bullet$}}]{\smash{\rlap{$\color{todo-blue}\bullet$}}}
+    \group_begin:
+    \sffamily
+    \textcolor{todo-color}{
+      $\langle$
+      \textcolor{todo-blue}{
+        \textbf{thought}
+      }~|~
+      #1
+      $\rangle$
+    }
+    \group_end:
+  }{}
+}
+
+\ExplSyntaxOff
+

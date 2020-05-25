@@ -221,8 +221,6 @@ and bchk_tm : CS.con -> T.bchk_tac =
     R.Cof.split branch_tacs
   | CS.Path (tp, a, b) ->
     T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
-  | CS.AutoHCom (tp, r, s, bdy) ->
-    R.Univ.auto_hcom (chk_tm tp) (chk_tm r) (chk_tm s) (chk_tm bdy)
   | CS.HFill (tp, src, cof, tm) ->
     R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
     R.Tactic.intro_implicit_connectives @@
@@ -292,7 +290,7 @@ and syn_tm : CS.con -> T.syn_tac =
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
-      EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con, con.info)
+      EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con.node, con.info)
 
 and chk_cases cases =
   List.map chk_case cases

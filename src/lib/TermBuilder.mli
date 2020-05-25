@@ -6,6 +6,7 @@ open CoolBasis
 
 include Monad.S
 
+
 type t := Syntax.t
 type tp := Syntax.tp
 
@@ -27,6 +28,8 @@ val snd : t m -> t m
 
 val zero : t m
 val suc : t m -> t m
+
+val prf : t m
 
 val cof_split : tp m -> (t m * t b) list -> t m
 val cof_abort : t m
@@ -54,10 +57,11 @@ val eq : t m -> t m -> t m
 val join : t m list -> t m
 val meet : t m list -> t m
 val boundary : t m -> t m
+val forall : t b -> t m
 
 module Kan : sig
-  type coe = r:t m -> s:t m -> bdy:t m -> t m
-  type hcom = r:t m -> s:t m -> phi:t m -> bdy:t m -> t m
+  type coe = r:t m -> r':t m -> bdy:t m -> t m
+  type hcom = r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
 
   val coe_pi : base_line:t m -> fam_line:t m -> coe
   val hcom_pi : base:t m -> fam:t m -> hcom
@@ -67,4 +71,14 @@ module Kan : sig
 
   val coe_path : fam_line:t m -> bdry_line:t m -> coe
   val hcom_path : fam:t m -> bdry:t m -> hcom
+
+  module FHCom : sig
+    type fhcom_u = {r : t m; r' : t m; phi : t m; bdy : t m}
+    val hcom_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
+    val coe_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> bdy:t m -> t m
+  end
+end
+
+module Test : sig
+  val print_example : unit -> unit
 end

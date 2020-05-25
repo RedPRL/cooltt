@@ -52,7 +52,6 @@ module Univ : sig
   val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
   val coe : chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
-  val auto_hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> bchk_tac
   val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
 end
 

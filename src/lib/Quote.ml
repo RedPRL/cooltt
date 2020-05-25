@@ -4,6 +4,9 @@ module Sem = Semantics
 module TB = TermBuilder
 
 exception Todo
+exception CCHM
+exception CJHM
+exception CFHM
 
 open CoolBasis
 open Monads
@@ -53,7 +56,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
       lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim0 |>> function
       | true -> ret S.Dim0
       | false ->
-        lift_cmp @@ CmpM.test_sequent [] (Cof.eq (D.DimVar lvl) D.Dim1) |>> function
+        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim1 |>> function
         | true -> ret S.Dim1
         | false ->
           let+ ix = quote_var lvl in
@@ -127,7 +130,8 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodePi (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      QTB.lam (D.El base) @@ fun var ->
+      let* elbase = lift_cmp @@ do_el base in
+      QTB.lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -136,7 +140,8 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | univ, D.CodeSg (base, fam) ->
     let+ tbase = quote_con univ base
     and+ tfam =
-      QTB.lam (D.El base) @@ fun var ->
+      let* elbase = lift_cmp @@ do_el base in
+      QTB.lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -181,6 +186,24 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tm = quote_hcom D.CodeNat r s phi bdy' in
     S.ElOut tm
 
+  | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
+    let+ tr = quote_dim r
+    and+ ts = quote_dim s
+    and+ tphi = quote_cof phi
+    and+ tcap =
+      let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
+      let* el_bdy_r = lift_cmp @@ do_el bdy_r in
+      quote_con el_bdy_r @<<
+      lift_cmp @@ do_rigid_cap r s phi bdy con
+    and+ tsides =
+      QTB.lam (D.TpPrf phi) @@ fun prf ->
+      quote_con tp con
+    in
+    S.Box (tr, ts, tphi, tcap, tsides)
+
+  | _, D.LetSym (r, x, con) ->
+    quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
+
   | _ ->
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
@@ -194,7 +217,8 @@ and quote_hcom code r s phi bdy =
     let* i_dim = lift_cmp @@ con_to_dim i in
     QTB.lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
-    quote_con (D.El code) body
+    let* tp = lift_cmp @@ do_el code in
+    quote_con tp body
   in
   S.HCom (tcode, tr, ts, tphi, tbdy)
 
@@ -216,11 +240,11 @@ and quote_tp (tp : D.tp) =
     S.Sg (tbase, ident, tfam)
   | D.Univ ->
     ret S.Univ
-  | D.UnfoldEl cut ->
-    let+ tm = quote_cut cut in
-    S.UnfoldEl tm
   | D.El con ->
     let+ tm = quote_con D.Univ con in
+    S.El tm
+  | D.ElCut cut ->
+    let+ tm = quote_cut cut in
     S.El tm
   | D.GoalTp (lbl, tp) ->
     let+ tp = quote_tp tp in
@@ -241,7 +265,24 @@ and quote_tp (tp : D.tp) =
   | D.TpPrf phi ->
     let+ tphi = quote_cof phi in
     S.TpPrf tphi
-
+  | D.ElUnstable (`HCom (r, s, phi, bdy)) ->
+    let+ tr = quote_dim r
+    and+ ts = quote_dim s
+    and+ tphi = quote_cof phi
+    and+ tbdy =
+      let* tp_bdy =
+        lift_cmp @@
+        Sem.splice_tp @@
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_cof phi @@ fun phi ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+        TB.univ
+      in
+      quote_con tp_bdy bdy
+    in
+    S.El (S.HCom (S.CodeUniv, tr, ts, tphi, tbdy))
 
 and quote_hd =
   function
@@ -250,15 +291,14 @@ and quote_hd =
     S.Var (n - (lvl + 1))
   | D.Global sym ->
     ret @@ S.Global sym
-  | D.Coe (abs, r, s, con) ->
-    let* tpcode =
-      QTB.lam D.TpDim @@ fun i ->
-      quote_con D.Univ @<< lift_cmp @@ do_ap abs i
-    in
+  | D.Coe (code, r, s, con) ->
+    let code_tp = D.Pi (D.TpDim, `Anon, D.const_tp_clo D.Univ) in
+    let* tpcode = quote_con code_tp code in
     let* tr = quote_dim r in
     let* ts = quote_dim s in
-    let* code_r = lift_cmp @@ do_ap abs @@ D.dim_to_con r in
-    let+ tm = quote_con (D.El code_r) con in
+    let* code_r = lift_cmp @@ do_ap code @@ D.dim_to_con r in
+    let* tp_code_r = lift_cmp @@ do_el code_r in
+    let+ tm = quote_con tp_code_r con in
     S.Coe (tpcode, tr, ts, tm)
   | D.HCom (cut, r, s, phi, bdy) ->
     let code = D.Cut {cut; tp = D.Univ} in
@@ -278,6 +318,24 @@ and quote_hd =
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
     ret @@ S.CofSplit (ttp, List.combine tphis tms)
+  | D.Cap (r, s, phi, code, box) ->
+    let* tr = quote_dim r in
+    let* ts = quote_dim s in
+    let* tphi = quote_cof phi in
+    let* code_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_cof phi @@ fun phi ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+      TB.univ
+    in
+    let+ tcode = quote_con code_tp code
+    and+ tbox = quote_cut box in
+    S.Cap (tr, ts, tphi, tcode, tbox)
+
 
 and quote_dim d =
   quote_con D.TpDim @@
@@ -329,7 +387,8 @@ and quote_frm tm =
     let* tmot = quote_con mot_tp mot in
     let* tzero_case =
       let* mot_zero = lift_cmp @@ do_ap mot D.Zero in
-      quote_con (D.El mot_zero) zero_case
+      let* tp_mot_zero = lift_cmp @@ do_el mot_zero in
+      quote_con tp_mot_zero zero_case
     in
     let* suc_tp =
       lift_cmp @@ Sem.splice_tp @@
