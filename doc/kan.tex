@@ -226,6 +226,15 @@ universe would be replaced by a hierarchy of universes.
     \Sum{x : \TpEl{\Code{A}}}{\TpEl{\Code{B}\prn{x}}}
   }
   \and
+  \inferrule[path decoding]{
+    \Code{A} : \DIM \to \TpUniv\\
+    M : \TpEl{\Code{A}\prn{0}}\\
+    N : \TpEl{\Code{A}\prn{1}}
+  }{
+    \ElInOut : \TpEl{\CodePath{\Code{A}}{M}{N}} \cong
+    \Prod{i : \DIM}{\prn{\TpEl{\Code{A}\prn{i}} \mid i=0 \to M \mid i=1 \to N}}
+  }
+  \and
   \inferrule[universe code decoding]{
   }{
     \ElInOut : \TpEl{\CodeUniv} \cong \TpUniv
