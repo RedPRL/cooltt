@@ -631,13 +631,20 @@ We may now specify the rules for the V types.
       \begin{array}{l}
         \tilde{Q} :
         \Prod{*:\TpPrf{s_{r'}=0}}{
-          \prn{
+          \Prod{
+            p:
             \Sum{x:\TpEl{\Code{A}_{r'}\prn{*}}}{
               \TpPath{\lambda\Dummy.\TpEl{\Code{B}_{r'}}}{\tilde{F}\prn{r',*,x}}{\tilde{O}}
             }
+          }{
+            \TpPath{
+              \lambda\Dummy.\TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+            }{
+              \ElIn{\TmPair{\TmFst{p}}{\ElIn{\TmSnd{p}}}}
+            }{
+              \tilde{P}\prn{*}
+            }
           }
-          \to
-          \DIM\to\TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
         }
         \\
         \tilde{Q}\prn{*,\TmPair{M}{N}} \coloneq
@@ -692,8 +699,13 @@ We may now specify the rules for the V types.
       \begin{array}{l}
         \tilde{S} :
         \Prod{*:\TpPrf{s_{r'}=0\land\prn{\prn{\forall k.s_k=0}\lor r=r'}}}{
-          \DIM\to
-          \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+          \TpPath{
+            \lambda\Dummy.\TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
+          }{
+            {\color{RedDevil}{\cdots\text{\textit{really too long}}\cdots}}
+          }{
+            \tilde{P}\prn{*}
+          }
         }
         \\
         \tilde{S}\prn{*} \coloneq
