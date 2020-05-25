@@ -412,6 +412,10 @@ and subst_sp : D.dim -> Symbol.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
   CM.MU.map @@ subst_frm r x
 
+let cut_frm ~tp ~cut frm =
+  D.Cut {tp; cut = D.push frm cut}
+
+
 let rec eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
@@ -896,9 +900,6 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
   | _ ->
     Format.eprintf "bad nat-elim: %a@." D.pp_con n;
     CM.throw @@ NbeFailed "Not a number"
-
-and cut_frm ~tp ~cut frm =
-  D.Cut {tp; cut = D.push frm cut}
 
 and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
   fun clo x ->
