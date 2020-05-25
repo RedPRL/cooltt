@@ -3,7 +3,6 @@
 \usepackage{jon-todo}
 \usepackage{mathpartir}
 \usepackage{mathtools}
-\usepackage{varwidth}
 \usepackage[landscape,lmargin=.5in,rmargin=.5in]{geometry}
 
 \addbibresource{refs.bib}
@@ -678,8 +677,7 @@ We may now specify the rules for the V types.
       \end{array}
     }
     \\\\\\
-    {\begin{varwidth}{\textwidth}
-    \[
+    {
       \begin{array}{l}
         \tilde{S} :
         \TpPrf{s_{r'}=0\land\prn{\prn{\forall k.s_k=0}\lor r=r'}}\to
@@ -689,12 +687,9 @@ We may now specify the rules for the V types.
         \tilde{S}\prn{*} \coloneq
         \tilde{Q}\prn{*,\brk{\prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}} \mid r=r'\to \TmPair{M}{\lambda\Dummy.\TmVproj{s_r}{E_r}{M}}}}
       \end{array}
-    \]
-    \end{varwidth}
     }
     \\\\\\
-    {\begin{varwidth}{\textwidth}
-    \[
+    {
       \begin{array}{l}
         \tilde{T} : \TpPrf{s_{r'}=0}\to
         \CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{E_{r'}}{\tilde{O}}
@@ -709,8 +704,6 @@ We may now specify the rules for the V types.
           }
         }
       \end{array}
-    \]
-    \end{varwidth}
     }
     \\\\\\
     {
