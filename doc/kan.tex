@@ -10,6 +10,8 @@
 
 \mprset{flushleft}
 
+\NewDocumentCommand\delimmid{}{\mathrel{\delimsep{\vert}}}
+
 % misc
 \NewDocumentCommand\Hint{m}{{\color{gray}#1}}
 \NewDocumentCommand\Code{m}{\mindelim{1}\hat{#1}}
@@ -555,9 +557,9 @@ We may now specify the rules for the V types.
       \begin{array}{l}
         \tilde{P} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi\lor\Boundary{s}}\to\TpEl{\Code{B}}}\\
         \tilde{P}\prn{i,*} \coloneq \brk{
-            i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \mid
-            s=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{O\prn{\Code{A}\prn{*},M,i}} \mid
-            s=1 \to O\prn{\Code{B},M,i}
+          i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \delimmid
+          s=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{O\prn{\Code{A}\prn{*},M,i}} \delimmid
+          s=1 \to O\prn{\Code{B},M,i}
         }
       \end{array}
     }
@@ -685,7 +687,7 @@ We may now specify the rules for the V types.
         \TpEl{\CodeFiber{\Code{A}_{r'}\prn{*}}{\Code{B}_{r'}}{\tilde{F}\prn{r',*}}{\tilde{O}}}
         \\
         \tilde{S}\prn{*} \coloneq
-        \tilde{Q}\prn{*,\brk{\prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}} \mid r=r'\to \TmPair{M}{\lambda\Dummy.\TmVproj{s_r}{E_r}{M}}}}
+        \tilde{Q}\prn{*,\brk{\prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}} \delimmid r=r'\to \TmPair{M}{\lambda\Dummy.\TmVproj{s_r}{E_r}{M}}}}
       \end{array}
     }
     \\\\\\
@@ -699,7 +701,7 @@ We may now specify the rules for the V types.
           \lambda j,*.
           \brk{
             j=1 \to \tilde{P}\prn{*}
-            \mid
+            \delimmid
             \prn{\forall k.s_k = 0}\lor r=r'\to \tilde{S}\prn{*,j}
           }
         }
@@ -713,7 +715,7 @@ We may now specify the rules for the V types.
           \lambda k,*.
           \brk{
             k=1\lor s_{r'}=1\lor r=r'\to \tilde{O}
-            \mid
+            \delimmid
             s_{r'}=0 \to \ElOut{\TmSnd{\ElOut{\tilde{T}\prn{*}}}}\prn{k}
           }
         }
@@ -767,9 +769,9 @@ We may now specify the rules for the V types.
         \tilde{T}\prn{i,*} \coloneq
         \brk{
           i=r\lor\phi \to \tilde{O}\prn{i,*}
-          \mid
+          \delimmid
           \psi \to \Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}
-          \mid
+          \delimmid
           s=s' \to \tilde{P}\prn{i,*}
         }
       \end{array}
@@ -832,7 +834,7 @@ We may now specify the rules for the V types.
           \lambda k,*.
           \brk{
             k=s'_r \to \TmCap{s_r}{s'_r}{\phi_r}{\Code{A}_r}{M}
-            \mid
+            \delimmid
             \phi_r \to
             \Coe{\Code{A}_r\prn{\bullet,*}}{k}{s_r}{
               \Coe{\Code{A}_r\prn{\bullet,*}}{s'_r}{k}{M}
@@ -850,9 +852,9 @@ We may now specify the rules for the V types.
           \lambda i,*.
           \brk{
             i=r \to \tilde{O}\prn{s_r}
-            \mid
+            \delimmid
             \forall i.\phi_i \to \tilde{N}\prn{i,s_i,*}
-            \mid
+            \delimmid
             \forall i.(s_i=s'_i) \to \Coe{\Code{A}_\bullet\prn{s_\bullet,*}}{r}{i}{M}
           }
         }
@@ -870,9 +872,9 @@ We may now specify the rules for the V types.
         \Com{\Code{A}_{r'}\prn{\bullet,*}}{s_{r'}}{j}{r=r'\lor\forall i.\phi_i}{
           \lambda k,*.\brk{
             k=s_{r'} \to \tilde{P}
-            \mid
+            \delimmid
             r=r' \to \Coe{\Code{A}_{r'}\prn{\bullet,*}}{s'_{r'}}{k}{M}
-            \mid
+            \delimmid
             \forall i.\phi_i \to \tilde{N}\prn{r',k,*}
           }
         }
@@ -886,9 +888,9 @@ We may now specify the rules for the V types.
         \HCom{\Code{A}_{r'}(s_{r'},*)}{s_{r'}}{s'_{r'}}{\phi_{r'} \lor r=r'}{
           \lambda j,*.\brk{
             j=s_{r'}\to \tilde{P}
-            \mid
+            \delimmid
             \phi_{r'} \to \Coe{\Code{A}_{r'}\prn{\bullet,*}}{j}{s_{r'}}{\tilde{Q}\prn{j,*}}
-            \mid
+            \delimmid
             r=r' \to \tilde{O}\prn{j}
           }
         }
