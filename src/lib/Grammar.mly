@@ -230,8 +230,8 @@ plain_term_except_cof_case:
     { Fst t }
   | SND; t = term
     { Snd t }
-  | V; a = atomic_term; b = atomic_term; e = atomic_term
-    { V (a, b, e) }
+  | V; r = atomic_term; a = atomic_term; b = atomic_term; e = atomic_term
+    { V (r, a, b, e) }
   | VPROJ; t = term
     { VProj t }
 
