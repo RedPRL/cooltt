@@ -735,10 +735,12 @@ We may now specify the rules for the V types.
         \tilde{S}\prn{*} \coloneq
         \tilde{Q}\prn{
           *,
-          \brk{
-            \prn{\forall k.s_k = 0}\to\ElIn{\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}}}
-            \delimmid
-            r=r'\to \ElIn{\TmPair{M}{\ElIn{\lambda\Dummy.\SubIn{\TmVproj{s_r}{E_r}{M}}}}}
+          \ElOut{
+            \brk{
+              \prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}}
+              \delimmid
+              r=r'\to \TmPair{M}{\ElIn{\lambda\Dummy.\SubIn{\TmVproj{s_r}{E_r}{M}}}}
+            }
           }
         }
       \end{array}
