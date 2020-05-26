@@ -8,7 +8,7 @@ let pp_info fmt =
   | Some span ->
     LexingUtil.pp_span fmt span
 
-type upath = string list
+type upath = string list (* todo: not any string will do; lexing should give that invariant though *)
 
 type 'a node =
   {node : 'a;

@@ -44,7 +44,8 @@ let keywords =
     ("coe", COE);
     ("hcom", HCOM);
     ("hfill", HFILL);
-    ("com", COM)
+    ("com", COM);
+    ("import", IMPORT)
   ]
 }
 
@@ -60,7 +61,6 @@ let atom_initial =
   [^ '0'-'9' '-' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']
 let atom_subsequent =
   [^                     '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' ' ' '\t' '\n' '\r']
-
 
 let number = ['0'-'9']['0'-'9']*
 let atom = atom_initial atom_subsequent*
@@ -94,6 +94,8 @@ rule token = parse
     { PIPE }
   | ','
     { COMMA }
+  | '.'
+    { DOT }
   | '*'
     { TIMES }
   | "×"
