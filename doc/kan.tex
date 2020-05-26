@@ -429,7 +429,7 @@ We begin by defining some definitional extensions for equivalences.
 \[
   \begin{array}{l}
     \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\prn{\TpEl{\Code{A}}\to\TpEl{\Code{B}}}\to\TpEl{\Code{B}}\to\TpUniv}}\\
-    \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeProd{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{f\prn{x}}{y}}
+    \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeSum{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{f\prn{x}}{y}}
   \end{array}
 \]
 \[
@@ -486,7 +486,7 @@ We may now specify the rules for the V types.
     N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{M\prn{*}}
   }{
     \TmVin{r}{E}{M}{N} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
-    \mid r=0 \to M
+    \mid r=0 \to M\prn{*}
     \mid r=1 \to N
   }
   \and
@@ -549,7 +549,7 @@ We may now specify the rules for the V types.
     \\\\\\
     {
       \begin{array}{l}
-        \tilde{O} : \Prod{\Code{X}:\TpUniv}{\prn{\Prod{i:\DIM}{\TpPrf{i=r\lor\phi}\to\TpEl{\Code{X}}}}\to\DIM\to\TpEl{X}}\\
+        \tilde{O} : \Prod{\Code{X}:\TpUniv}{\prn{\Prod{i:\DIM}{\TpPrf{i=r\lor\phi}\to\TpEl{\Code{X}}}}\to\DIM\to\TpEl{\Code{X}}}\\
         \tilde{O}\prn{\Code{X},N,i} \coloneq \HCom{\Code{X}}{r}{i}{\phi}{N}
       \end{array}
     }
@@ -559,8 +559,8 @@ We may now specify the rules for the V types.
         \tilde{P} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi\lor\Boundary{s}}\to\TpEl{\Code{B}}}\\
         \tilde{P}\prn{i,*} \coloneq \brk{
           i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \delimmid
-          s=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{O\prn{\Code{A}\prn{*},M,i}} \delimmid
-          s=1 \to O\prn{\Code{B},M,i}
+          s=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{\tilde{O}\prn{\Code{A}\prn{*},M,i}} \delimmid
+          s=1 \to \tilde{O}\prn{\Code{B},M,i}
         }
       \end{array}
     }
@@ -587,7 +587,7 @@ We may now specify the rules for the V types.
     \Hint{s_\bullet : \DIM\to\DIM}\\
     \Hint{\Code{A}_\bullet : \Prod{i:\DIM}{\TpPrf{s_i=0}\to\TpUniv}}\\
     \Hint{\Code{B}_\bullet : \DIM\to\TpUniv}\\
-    \Hint{E_\bullet : \Prod{i:\DIM}{\Prod{*:\TpPrf{s_i=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}}\\
+    \Hint{E_\bullet : \Prod{i:\DIM}{\Prod{*:\TpPrf{s_i=0}}{\TpEl{\CodeEquiv{\Code{A}_i\prn{*}}{\Code{B}_i}}}}}\\
     \\\\
     \Hint{r,r':\DIM}\\
     \Hint{M : \TpEl{\CodeV{s_r}{\Code{A}_r}{\Code{B}_r}{E_r}}}
