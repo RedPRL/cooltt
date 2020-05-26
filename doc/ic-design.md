@@ -158,7 +158,9 @@ _imports_
 decl ::= def ... | print ... | normalizeterm ... | quit | import p
 ```
 For convenience, we refer to the fragment of `decl` that doesn't include
-`import` as `decl0`.
+`import` as `decl0`. Nothing else in the syntax of cooltt changes
+currently, but would if we were to continue on to add a module system with
+explicit signatures, ascription, etc.
 
 ## Judgemental Changes
 
