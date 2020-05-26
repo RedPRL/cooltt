@@ -157,43 +157,82 @@ _imports_
 ```
 decl ::= def ... | print ... | normalizeterm ... | quit | import p
 ```
-For convenience, we refer to the fragment of `decl` that doesn't include
-`import` as `decl0`. Nothing else in the syntax of cooltt changes
-currently, but would if we were to continue on to add a module system with
-explicit signatures, ascription, etc.
 
-## Judgemental Changes
+## Semantics
 
- - judegmental flattening, `flat : decl → decl0 → U`. `flat u u'`; relates
-   a cooltt unit `u` that includes imports to one that does not, `u'`. This
-   is a semantic version of IC that allows us to state a theorem about
-   elaboration.
+### TILT style judgemental structure
 
- - elaborating a file now has to change to deal with this new decl
+bad naming problem: above, `decl` is the syntactic class of declarations in
+the cooltt grammar, as in `Grammar.mly`. In the TILT paper, `decs` is a
+semantic object that acts like a context for elaboration
 
- - checking a unit u with no caching at all
+"a declaration list decs declares expression (var:con), constructor
+(var:knd), and module (var:sig) variables. a structure declaration list has
+the form
 
- - checking a unit u with respect to some cache (should be sort of arbitrary)
+ lab1 > dec1, ... , labn > decn
 
-## selected rules
+giving a label to each declaration. The structure declaration list
+lab>dec,sdecs binds the variable declared by dec with the scope sdecs."
+
+
+### changes and additions
+ - in the theorems below, we wish to be able to state the property that
+   that the new elaboration judgement that refers to a cache does the same
+   thing as the existing non-caching elaboration. to do that, we need to be
+   able to relate the source of a unit that includes `import` statements to
+   the source of an equivalent unit that does not -- this amounts of a
+   judgemental of elaborating `import` statements.
+
+   we call this judgemement `flat : src → src0 → U`, where `src0` is the
+   language of cooltt that does not include `import`.
+
+ - we write the existing, non-caching, elaboration judgement `?? ⊢ s ~> u`,
+   where `s` is a term in the external language of cooltt and `u` is the
+   unit of the internal language that is the output. ?? is the context
+   under which the elaboration occurs. TODO what is ??.
+
+ - we write the caching-elaboration judgement `?? | c ⊢ s ~> u , c'` where
+   `s,u,??` are as before, but `c` is the cache in which the elaboration
+   takes place and `c'` is the cache at the end of elaboration. by making
+   the cache after elaboration an explicit output, we can state theorems
+   like Stability, below. TODO check the name here.
+
+### new rules corresponding to additions
 
 ## Theorems
 
 1. [consistency]
 
-   ```
-     For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
+	"Flattening a term and elaborating it produces the same output term and
+    cache as elaborating it starting from the empty cache".
 
-     If (decls ok), and
-        (flat s s'), and
-        (decls ⊢ s' ~> u1), and
-        (decls | cache ⊢ s ~> u2), then
+   ```
+     For all ?? : ctx , s : ??, u1 u2 : ??, cache : ??,
+
+     If (?? ok), and
+        (?? ⊢ flat s s'), and // i think this will need to be ctx aware; not the same one though
+        (?? ⊢ s' ~> u1), and
+        (?? | ∅ ⊢ s ~> u2 , c'), then
      u1 = u2
    ```
 
-    "If the source of a unit `u` is checked with no cache and produces
-    output `u1`, and it is checked with caching and produces output `u2`,
-    then `u1 = u2`."
+	NB: i could state this in a little bit stronger of a way but i don't
+    think there's much point. really you can have any cache with dom(c) ∩
+    names(s') = ∅ – you can have whatever garbage you want in there as long
+    as you never use it. but that just makes it sort of "morally empty";
+    you could show that you can swap such a context for empty and it'd be
+    equivalent.
+
+	if that intersection isn't empty and the types happen to agree — geez,
+    i have no idea. that could be ok? if the types don't agree then it'll
+    break for sure. you can't compile code against a library with the same
+    names and different types and expect that to make sense.
+
+	i think that this version is fine; the version with an empty
+    intersection is morally the same; the version with a consistent but
+    non-empty cache is a different theorem, like resumability or something.
+
 
 2. [idempotence? stability?]
 
