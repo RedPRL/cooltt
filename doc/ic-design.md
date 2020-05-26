@@ -198,22 +198,35 @@ lab>dec,sdecs binds the variable declared by dec with the scope sdecs."
    the cache after elaboration an explicit output, we can state theorems
    like Stability, below. TODO check the name here.
 
+ - TODO: what exactly are the types of ctx and cache? both are mappings.
+
+ - TODO: define: Γ ok — it's whatever the right thing is to make it a
+   mapping, so no duplicated names at least, probably other similar things.
+
+definition used below; updating a context with respect to just one element
+of its domain and leaving everything else alone.
+```
+update : name → ?? → cache → cache → U
+update r d c c' = (r ∈ dom c) and (c without r = c' without r) and (c' maps r to d)
+```
+
 ### new rules corresponding to additions
 
 ## Theorems
 
 1. [consistency]
 
-	"Flattening a term and elaborating it produces the same output term and
-    cache as elaborating it starting from the empty cache".
+	"Flattening a term and elaborating it as usual produces the same output
+    and cache as elaborating it starting from the empty cache".
 
    ```
-     For all ?? : ctx , s : ??, u1 u2 : ??, cache : ??,
+     For all Γ : ctx , s s' : external-term, u1 u2 : internal-term, c' :
+	 cache,
 
-     If (?? ok), and
-        (?? ⊢ flat s s'), and // i think this will need to be ctx aware; not the same one though
-        (?? ⊢ s' ~> u1), and
-        (?? | ∅ ⊢ s ~> u2 , c'), then
+     If (Γ ok), and
+        (?? ⊢ flat s s'), and   [ not the same ctx? ]
+        (Γ ⊢ s' ~> u1), and
+        (Γ | ∅ ⊢ s ~> u2 , c'), then
      u1 = u2
    ```
 
@@ -234,46 +247,51 @@ lab>dec,sdecs binds the variable declared by dec with the scope sdecs."
     non-empty cache is a different theorem, like resumability or something.
 
 
-2. [idempotence? stability?]
+2. [ idempotence? ]
+
+    "If the source of a unit is checked with a cache, and then something in
+    that cache changes in a way that doesn't change its signature, and the
+    source of that unit is checked again against the new cache, the results
+    are the same"
 
    ```
-     For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
+     For all Γ : ctx , s : external-term , u1 u2 : internal-term, c1 c2 c1'
+     c2' : cache, d1 d2 : ??,
 
-     If (decls ok), and
-        r ∈ cache, and
-        r' ∈ cache', and
-        r = r', and
-        (decls | cache  ⊢ s ~> u1), and
-        (decls | cache' ⊢ s ~> u2), then
-     u1 = u2
+     If (Γ ok), and
+        (r,d1) ∈ c1, and
+        (r,d2) ∈ c2, and
+		c1 / r = c2 / r, and     [ this is kind of a stupid way to say this.]
+		[something about d1 being morally the same as d2], and
+        Γ | c1 ⊢ s ~> u1 , c1', and
+        Γ | c2 ⊢ s ~> u2 , c2', then
+     u1 = u2 and c1' = c2' [probably?]
    ```
 
-    "If the source of a unit is checked with a cache, then something in
-    that cache changes in a way that doesn't change its signature, then the
-    results are the same"
+3. [ stability? ]
 
-    [ this doesn't really work out; i think i need to formulate elaboration
-    with a cache as an output as below, then this is the stronger theorem
-    that implies that one ]
+   "if you elaborate a term starting with the empty cache, then change
+   something in the resultant cache in a compatible way, then recheck the
+   unit with that new cache, you get the same output."
 
+   e.g. if data.nat defines addition, and you check something against it,
+   then change data.nat to define addition by recursion on the other
+   argument, you should still get the same cache and the same result.
 
-3. Q: do i want to consider the cache as part of the output of elaboration?
-   probably, in order to write things like
-
-   `update : unit → cache → cache` is a relation that describes updating
-   the entry in a cache in a way that does not change the signature you
-   infer from it. (this feels very fuzzy)
+   but that may not be true? maybe it's like a transport over that change or
+   something complicated; it's only judgementally the same not
+   definitionally the same? in the case of changing addition, you get
+   different definitional equalities as a result of which argument you
+   recurr on, so dependent code may not type check even though + : Nat ->
+   Nat -> Nat in both cases
 
    ```
-     For all decls : ?? , s : ??, u1 u2 : ??, cache : ??,
+     For all Γ : ctx, s : external-term, u1 u2 : internal-term, c c' c'' :
+     cache, d : ??,
 
-     If (decls ok), and
-        (update r cache cache), and
-        (decls | ∅      ⊢ s ~> u1 , cache), and
-        (decls | cache' ⊢ s ~> u2 , cache''), then
-     u1 = u2 and cache' = cache''
+     If (Γ ok), and
+        (Γ | ∅  ⊢ s ~> u1 , c), and
+		update r d c c'
+        (Γ | c' ⊢ s ~> u2 , c''), then
+     u1 = u2 and c' = c''
    ```
-
-   "if you check a unit from scratch, then change something in a compatible
-   way and recheck the unit from the resultant cache with that change, you
-   get the same output"
