@@ -210,9 +210,31 @@ update : name → ?? → cache → cache → U
 update r d c c' = (r ∈ dom c) and (c without r = c' without r) and (c' maps r to d)
 ```
 
+TODO: delete crap that doesn't make sense.
+
+TODO: to define Γ | c ⊢ s ~> u , c' -- case on s! start with empty; if s is an
+import, check the file age and if tehre's a cache, load that if you can;
+otherwise recurr
+
 ### new rules corresponding to additions
 
 ## Theorems
+
+thoughts from carlo: anything that feels like "the changes you make don't
+disrupt anything" is barking up the wrong tree. sometimes code changes and
+it's wrong. so don't think about consistency of a change with respect to a
+cache or whatever.
+
+instead, you want to know that the addition of the cache itself isn't
+changing the result EVEN IF THAT RESULT IS A FAILURE. "loading the cache is
+the same as loading the file".
+
+where does the cache come from? you still start from empty when you're
+reading a file and then as you go down the list of decls, go by cases; when
+you get to the import case, call out to an abstract LOAD action or
+something.
+
+
 
 1. [consistency]
 
