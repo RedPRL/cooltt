@@ -751,10 +751,10 @@ We may now specify the rules for the V types.
     {
       \begin{array}{l}
         \tilde{U} : \TpEl{\Code{B}_{r'}}\\
-        \tilde{U} \coloneq \HCom{\TpEl{\Code{B}_{r'}}}{1}{0}{r=r'\lor\Boundary{s_{r'}}}{
+        \tilde{U} \coloneq \HCom{\TpEl{\Code{B}_{r'}}}{1}{s_{r'}}{r=r'\lor\Boundary{s_{r'}}}{
           \lambda k,*.
           \brk{
-            k=1\lor s_{r'}=1\lor r=r'\to \tilde{O}
+            k=1\lor r=r'\to \tilde{O}
             \delimmid
             s_{r'}=0 \to \SubOut{\ElOut{\TmSnd{\ElOut{\tilde{T}\prn{*}}}}\prn{k}}
           }
