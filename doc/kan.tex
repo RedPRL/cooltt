@@ -693,6 +693,23 @@ We may now specify the rules for the V types.
         }{r}{r'}{
           \ElIn{\lambda\Dummy.\SubIn{\tilde{F}\prn{r,*,M}}}
         }
+        \\
+        \tilde{R}\prn{*} \coloneq
+        \ElIn{
+          \lambda i.
+          \SubIn{
+            \Com{\Code{B}_\bullet}{r}{r'}{\Boundary{i}}{
+              \lambda j,*.
+              \brk{
+                j=r\lor i=0 \to
+                \tilde{F}\prn{j,*,\Coe{\Code{A}_\bullet\prn{*}}{r}{j}{M}}
+                \delimmid
+                i=1\to
+                \Coe{\Code{B}_\bullet}{r}{j}{\tilde{F}\prn{r,*,M}}
+              }
+            }
+          }
+        }
       \end{array}
     }
     \\\\\\
