@@ -234,6 +234,11 @@ considers single declarations, while the form that considers a list of
 declarations reflects the monoidal struture of lists by iterating through
 and collecting the results as needed.
 
+_TODO: define `Γ ok` following TILT paper, at least that there aren't
+duplicate names so that it works as a mapping. probably need `c ok` too for
+caches that has almost the same rules_
+
+
 Rules for processing a list of declarations:
 ```
 —————————————————————–[eof]
@@ -263,43 +268,10 @@ user to inspect).
 
 ```
 
-
-————————– gets really fuzzy below here; these are scraps
-
-### changes and additions
- - in the theorems below, we wish to be able to state the property that
-   that the new elaboration judgement that refers to a cache does the same
-   thing as the existing non-caching elaboration. to do that, we need to be
-   able to relate the source of a unit that includes `import` statements to
-   the source of an equivalent unit that does not -- this amounts of a
-   judgemental of elaborating `import` statements.
-
-   we call this judgemement `flat : src → src0 → U`, where `src0` is the
-   language of cooltt that does not include `import`.
-
- - we write the existing, non-caching, elaboration judgement `?? ⊢ s ~> u`,
-   where `s` is a term in the external language of cooltt and `u` is the
-   unit of the internal language that is the output. ?? is the context
-   under which the elaboration occurs. TODO what is ??.
-
- - we write the caching-elaboration judgement `?? | c ⊢ s ~> u , c'` where
-   `s,u,??` are as before, but `c` is the cache in which the elaboration
-   takes place and `c'` is the cache at the end of elaboration. by making
-   the cache after elaboration an explicit output, we can state theorems
-   like Stability, below. TODO check the name here.
-
- - TODO: what exactly are the types of ctx and cache? both are mappings.
-
- - TODO: define: Γ ok — it's whatever the right thing is to make it a
-   mapping, so no duplicated names at least, probably other similar things.
-
-TODO: delete crap that doesn't make sense.
-
 TODO: to define Γ | c ⊢ s ~> u , c' -- case on s! start with empty; if s is an
-import, check the file age and if tehre's a cache, load that if you can;
+import, check the file age and if there's a cache, load that if you can;
 otherwise recurr
 
-### new rules corresponding to additions
 
 ## Theorems
 
@@ -325,11 +297,25 @@ To this end, we offer two theorems that should hold. The first,
 consistency, reflects the intuition that XXX. The second, XXX, reflects the
 intuition that XXXX.
 
-
 1. [consistency]
 
 	"Flattening a term and elaborating it as usual produces the same output
     and cache as elaborating it starting from the empty cache".
+
+	we wish to be able to state the property that that the new elaboration
+	judgement that refers to a cache does the same thing as the existing
+	non-caching elaboration. to do that, we need to be able to relate the
+	source of a unit that includes `import` statements to the source of an
+	equivalent unit that does not -- this amounts of a judgemental of
+	elaborating `import` statements.
+
+	we call this judgemement `flat : src → src0 → U`, where `src0` is the
+	language of cooltt that does not include `import`.
+
+	we write the existing, non-caching, elaboration judgement `?? ⊢ s ~>
+	u`, where `s` is a term in the external language of cooltt and `u` is
+	the unit of the internal language that is the output. ?? is the context
+	under which the elaboration occurs. TODO what is ??.
 
    ```
      For all Γ : ctx , s s' : external-term, u1 u2 : internal-term, c' :
@@ -342,20 +328,18 @@ intuition that XXXX.
      u1 = u2
    ```
 
-	NB: i could state this in a little bit stronger of a way but i don't
-    think there's much point. really you can have any cache with dom(c) ∩
-    names(s') = ∅ – you can have whatever garbage you want in there as long
-    as you never use it. but that just makes it sort of "morally empty";
-    you could show that you can swap such a context for empty and it'd be
-    equivalent.
+	_Aside: i could state a superficially stronger vesion of this but i
+    don't think there's much point. really you can have any cache with
+    `dom(c) ∩ used_names(s') = ∅`, that is you can have whatever garbage
+    you want in there as long as you never use it. but that just makes it
+    sort of "morally empty"; you could show that you can swap such a
+    context for empty and it'd be equivalent. it doesn't describe a richer
+    relationship between the two judgements especially.
 
-	if that intersection isn't empty and the types happen to agree — geez,
-    i have no idea. that could be ok? if the types don't agree then it'll
-    break for sure. you can't compile code against a library with the same
-    names and different types and expect that to make sense.
-
-	i think that this version is fine; the version with an empty
-    intersection is morally the same; the version with a consistent but
-    non-empty cache is a different theorem, like resumability or something.
+	if that intersection isn't empty and the types happen to agree – that
+    could be OK but this is veering off sharply into the wrong way of
+    thinking about this problem. it's not up to the cache mechanism to care
+    if the code checks or not, only to do a full and faithful rendition of
+    the non-cached mechanism._
 
 2. [ xx ]
