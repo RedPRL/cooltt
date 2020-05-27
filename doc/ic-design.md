@@ -287,6 +287,14 @@ The rules for `import` and `def` are the most interesting here. We omit the
 rules for `normalizeterm` and `print` entirely, since they're not in scope
 and invoke other IO effects (e.g. printing things to the screen for the
 user to inspect).
+
+We write `Γ ⊢ d ~> t` for "elaboration as it exists now in the
+implementation, specifically only referring to an environment.
+
+We write relational symbols like `restore p c'` to denote where IO heavy
+operations take place that are below the level of abstraction of this
+description.
+
 ```
 —————————————————————–—–[quit]
 Γ | c ⊢ quit ~> Quit , c
@@ -341,8 +349,11 @@ cache produces the same effect as re-checking the file that produced
 it--even if that result is in the negative.
 
 To this end, we offer two theorems that should hold. The first,
-consistency, reflects the intuition that XXX. The second, XXX, reflects the
-intuition that XXXX.
+consistency, reflects the intuition that elaborating with a cache should do
+the same thing as elaborating an equivalent file in the fragment of the
+language without `import` without a cache.  The second, XXX, reflects the
+intuition that the cache is as good as the file, that is to say loading the
+result from the cache is the same as loading the from scratch.
 
 1. [consistency]
 
@@ -365,28 +376,36 @@ intuition that XXXX.
     under which the elaboration occurs. TODO what is ??.
 
    ```
-     For all Γ : ctx , s s' : external-term, u1 u2 : internal-term, c' :
+     For all Γ : env , s s' : decls , u1 u2 : internal-term, c' :
      cache,
 
      If (Γ ok), and
-        (?? ⊢ flat s s'), and   [ not the same ctx? ]
+        (Γ ⊢ flat s s'), and
         (Γ ⊢ s' ~> u1), and
         (Γ | ∅ ⊢ s ~> u2 , c'), then
      u1 = u2
    ```
 
-    _Aside: i could state a superficially stronger vesion of this but i
+    _Aside: i could state a superficially stronger version of this but i
     don't think there's much point. really you can have any cache with
     `dom(c) ∩ used_names(s') = ∅`, that is you can have whatever garbage
     you want in there as long as you never use it. but that just makes it
     sort of "morally empty"; you could show that you can swap such a
     context for empty and it'd be equivalent. it doesn't describe a richer
-    relationship between the two judgements especially.
+    relationship between the two judgements especially._
 
-    if that intersection isn't empty and the types happen to agree – that
+    _if that intersection isn't empty and the types happen to agree – that
     could be OK but this is veering off sharply into the wrong way of
     thinking about this problem. it's not up to the cache mechanism to care
     if the code checks or not, only to do a full and faithful rendition of
     the non-cached mechanism._
 
 2. [ xx ]
+
+    "Loading the result from the cache is the same as loading the from
+    scratch"
+
+	```
+
+
+	```
