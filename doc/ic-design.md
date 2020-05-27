@@ -367,13 +367,10 @@ result from the cache is the same as loading the from scratch.
     equivalent unit that does not -- this amounts of a judgemental of
     elaborating `import` statements.
 
-    we call this judgemement `flat : src → src0 → U`, where `src0` is the
+    we call this judgemement `flat : decls → decls0 → U`, where `decls0` is the
     language of cooltt that does not include `import`.
 
-    we write the existing, non-caching, elaboration judgement `?? ⊢ s ~>
-    u`, where `s` is a term in the external language of cooltt and `u` is
-    the unit of the internal language that is the output. ?? is the context
-    under which the elaboration occurs. TODO what is ??.
+    we write the existing, non-caching, elaboration judgement as above.
 
    ```
      For all Γ : env , s s' : decls , u1 u2 : internal-term, c' :
@@ -381,10 +378,16 @@ result from the cache is the same as loading the from scratch.
 
      If (Γ ok), and
         (Γ ⊢ flat s s'), and
-        (Γ ⊢ s' ~> u1), and
-        (Γ | ∅ ⊢ s ~> u2 , c'), then
-     u1 = u2
+        (Γ ⊢ s' ~> u1), and  // do i need an output env to state this?
+        (Γ | ∅ ⊢ s ~> r , c'), then
+     (u1 = u2) //totally wrong, see note below.
    ```
+
+	_note: (TODO) this doesn't make sense any more now that i've written
+    out rules above. what i want to say is maybe more like: the union of
+    the cache and env produced is the same as the env produced above. so
+    the domains are equal and for everything in the domain the terms are
+    equal._
 
     _Aside: i could state a superficially stronger version of this but i
     don't think there's much point. really you can have any cache with
