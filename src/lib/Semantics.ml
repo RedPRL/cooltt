@@ -746,7 +746,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
       | true -> reduce_to @<< do_ap code D.Prf
       | false -> ret `Done
     end
-  | D.VIn (r, equiv, pivot, base) ->
+  | D.VIn (r, pequiv, pivot, base) ->
     begin
       test_sequent [] (Cof.eq r Dim0) |>>
       function
@@ -855,7 +855,7 @@ and whnf_hd hd =
         | `Reduce box ->
           reduce_to @<< do_rigid_cap r s phi code box
     end
-  | D.VProj (r, equiv, v) ->
+  | D.VProj (r, pequiv, v) ->
     raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
 and whnf_cut cut : D.con whnf CM.m =
@@ -1089,7 +1089,7 @@ and do_rigid_cap r s phi code =
         throw @@ NbeFailed "do_rigid_cap"
     end
 
-and do_rigid_vproj r equiv v =
+and do_rigid_vproj r pequiv v =
   let open CM in
   abort_if_inconsistent D.Abort @@
   begin
@@ -1101,7 +1101,7 @@ and do_rigid_vproj r equiv v =
         function
         | D.CodeV (_,_,code,_) ->
           let* tp = do_el code in
-          ret @@ D.Cut {tp; cut = D.VProj (r, equiv, cut), []}
+          ret @@ D.Cut {tp; cut = D.VProj (r, pequiv, cut), []}
         | _ ->
           throw @@ NbeFailed "do_rigid_vproj"
       end
