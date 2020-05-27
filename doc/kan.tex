@@ -111,8 +111,8 @@
 \NewDocumentCommand\TmVin{mmmm}{
   \mathsf{Vin}\brc{#1}\prn{#2;#3;#4}
 }
-\NewDocumentCommand\TmVproj{mmm}{
-  \mathsf{Vproj}\brc{#1}\prn{#2;#3}
+\NewDocumentCommand\TmVproj{mmmmm}{
+  \mathsf{Vproj}\brc{#1}\prn{#2;#3;#4;#5}
 }
 
 % composite types
@@ -497,7 +497,7 @@ We may now specify the rules for the V types.
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
   }{
-    \TmVproj{r}{E}{M} : \TpEl{\Code{B}}
+    \TmVproj{r}{\Code{A}}{\Code{B}}{E}{M} : \TpEl{\Code{B}}
     \mid r=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{M}
     \mid r=1 \to M
   }
@@ -511,7 +511,7 @@ We may now specify the rules for the V types.
     \Hint{M : \Prod{*:\TpPrf{r=0}}{\TpEl{\Code{A}\prn{*}}}}\\
     \Hint{N : \TpEl{\Code{B}} \mid r=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{M\prn{*}}}
   }{
-    \TmVproj{r}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
+    \TmVproj{r}{\Code{A}}{\Code{B}}{E}{\TmVin{r}{E}{M}{N}} = N : \TpEl{\Code{B}}
   }
   \and
   \inferrule[v type uniqueness]{
@@ -521,7 +521,7 @@ We may now specify the rules for the V types.
     \Hint{E : \Prod{*:\TpPrf{r=0}}{\TpEl{\CodeEquiv{\Code{A}\prn{*}}{\Code{B}}}}}\\
     \Hint{M : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}}
   }{
-    M = \TmVin{r}{E}{\lambda{*}.M}{\TmVproj{r}{E}{M}} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
+    M = \TmVin{r}{E}{\lambda{*}.M}{\TmVproj{r}{\Code{A}}{\Code{B}}{E}{M}} : \TpEl{\CodeV{r}{\Code{A}}{\Code{B}}{E}}
   }
   \and
 \end{mathparpagebreakable}
@@ -558,7 +558,7 @@ We may now specify the rules for the V types.
       \begin{array}{l}
         \tilde{P} : \Prod{i:\DIM}{\TpPrf{i=r\lor\phi\lor\Boundary{s}}\to\TpEl{\Code{B}}}\\
         \tilde{P}\prn{i,*} \coloneq \brk{
-          i=r\lor\phi \to \TmVproj{s}{E}{M\prn{i,*}} \delimmid
+          i=r\lor\phi \to \TmVproj{s}{\Code{A}}{\Code{B}}{E}{M\prn{i,*}} \delimmid
           s=0 \to \TmEquivApp{\Code{A}\prn{*}}{\Code{B}}{E\prn{*}}{\tilde{O}\prn{\Code{A}\prn{*},M,i}} \delimmid
           s=1 \to \tilde{O}\prn{\Code{B},M,i}
         }
@@ -603,7 +603,7 @@ We may now specify the rules for the V types.
     {
       \begin{array}{l}
         \tilde{O} : \TpEl{\Code{B}_{r'}}\\
-        \tilde{O} \coloneq \Coe{\Code{B}_\bullet}{r}{r'}{\TmVproj{s_r}{E_r}{M}}
+        \tilde{O} \coloneq \Coe{\Code{B}_\bullet}{r}{r'}{\TmVproj{s_r}{\Code{A}_r}{\Code{B}_r}{E_r}{M}}
       \end{array}
     }
     \and
@@ -742,7 +742,7 @@ We may now specify the rules for the V types.
             \brk{
               \prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}}
               \delimmid
-              r=r'\to \TmPair{M}{\ElIn{\lambda\Dummy.\SubIn{\TmVproj{s_r}{E_r}{M}}}}
+              r=r'\to \TmPair{M}{\ElIn{\lambda\Dummy.\SubIn{\TmVproj{s_r}{\Code{A}_r}{\Code{B}_r}{E_r}{M}}}}
             }
           }
         }
