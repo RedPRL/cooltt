@@ -65,7 +65,7 @@ in `f.rot`. When RedTT starts, it produces a cache of these terms from the
 _this list isn't exhaustive nor are the answers conclusive! this section
 won't even exist in the final version, it's more of a todo list to make
 sure i don't forget to address things that have been brought up; tentative
-answers below each_
+answers below each
 
 1. what are the names of the imported identifiers? (Are they qualified?)
    - i think they should be fully qualified all the time for now; i don't
@@ -152,7 +152,7 @@ few choices include:
 ### Extension to the syntax of cooltt
 
 The concrete syntax of cooltt declarations is extended with a form for
-_imports_
+_imports_ (the rest is unchanged)
 
 ```
 decl ::= def ... | print ... | normalizeterm ... | quit | import p
@@ -160,21 +160,111 @@ decl ::= def ... | print ... | normalizeterm ... | quit | import p
 
 ## Semantics
 
-### TILT style judgemental structure
+### Summary
 
-bad naming problem: above, `decl` is the syntactic class of declarations in
-the cooltt grammar, as in `Grammar.mly`. In the TILT paper, `decs` is a
-semantic object that acts like a context for elaboration
+A cooltt file, once lexed and parsed, is a list of declarations following
+the grammar above. Those declarations are processed in order of appearance,
+first by the elaborator which renders them into tactics and then by running
+those tactics to produce terms in the internal language. Running these
+tactics includes expensive calls to procsses like
+normalization-by-evaluation. This is the expensive work that we wish to
+avoid doing more than once.
 
-"a declaration list decs declares expression (var:con), constructor
-(var:knd), and module (var:sig) variables. a structure declaration list has
-the form
+To that end, we will equip elaboration with a _cache_ that maps names (as
+in the `def` declaration form) to the internal language terms resulting
+from the above process. When elaborating a definition, the cache will be
+consulted and updated as needed before proceeding.
 
- lab1 > dec1, ... , labn > decn
+As a related but also somewhat separate concern, we also extend the
+language to include `import` statements. This allows cooltt developments to
+be broken up into multiple files. When a file has been checked, the cache
+of its names and their paired terms will be written out to disk. When other
+files `import` another unit, the cache can be loaded back into memory from
+disk, merged with any possible current cache, and then we proceed as before
+but with the benefit of stored work done previously.
 
-giving a label to each declaration. The structure declaration list
-lab>dec,sdecs binds the variable declared by dec with the scope sdecs."
+In a given run of the elaborator, the cache starts out empty and is
+populated as needed and as possible given the imports present in a
+particular development, the files present on disk, and their relative age
+with respect to the source files they represent.
 
+Note that no attempt will be made to verify that the cache files written to disk
+are indeed the output of previous runs of cooltt; they will be read in good
+faith, if they are in the right format, and used. It is therefore possible
+that a user could _spoof_ a cache file by learning the format and writing
+one by hand. We do not attempt to protect ourselves from that attack;
+cooltt developments can be checked from scratch, with no cache files on
+disk, to provide ground-up evidence that they check as written.
+
+A judgemental description of this process is below, followed by statements
+of a few theorems that attempt to characterize some aspects of it.
+
+### Judgemental Summary
+
+A cooltt file is a list of declaractions, each one given by
+
+```
+decl ::=  def {name : Ident.t, ...}
+        | print ...
+	    | normalizeterm ...
+		| quit
+		| import p
+```
+
+A cache maps `Ident.t` to terms in the internal language.
+
+Elaboration of each declaration in sequence produces one of two outcomes,
+either a positive or negative depending on whether the declaration is
+well-formed.
+
+```
+result ::= Continue | Quit
+```
+
+The material results of elaboration are stored in an environment, `Γ`,
+mapping names to internal terms in the same way as the cache. The
+difference between the two is that the environment is built up
+incrementally through one run of the system, rather than referring to
+anything on disk from previous runs.
+
+We describe elaboration with the judgement `Γ | c ⊢ ds ~> r , c'` where `Γ`
+is an environment, `c c'` are caches, `ds` is a list of declarations, and
+`r` is a result. We pun this judgement with an identical form that
+considers single declarations, while the form that considers a list of
+declarations reflects the monoidal struture of lists by iterating through
+and collecting the results as needed.
+
+Rules for processing a list of declarations:
+```
+—————————————————————–[eof]
+Γ | c ⊢ [] ~> Quit , c
+
+
+Γ | c ⊢ d ~> Quit , c'
+———————————————————————————–[quit]
+Γ | c ⊢ d :: ds ~> Quit , c'
+
+
+Γ | c ⊢ d ~> Continue , c'
+———————————————————————————–[cont]
+Γ | c ⊢ d :: ds ~>  , c'
+```
+
+Rules for each declaration:
+
+The rules for `import` and `def` are the most interesting here. We omit the
+rules for `normalizeterm` and `print` entirely, since they're not in scope
+and invoke other IO effects (e.g. printing things to the screen for the
+user to inspect).
+```
+—————————————————————–—–[quit]
+Γ | c ⊢ quit ~> Quit , c
+
+
+```
+
+
+————————– gets really fuzzy below here; these are scraps
 
 ### changes and additions
  - in the theorems below, we wish to be able to state the property that
@@ -203,13 +293,6 @@ lab>dec,sdecs binds the variable declared by dec with the scope sdecs."
  - TODO: define: Γ ok — it's whatever the right thing is to make it a
    mapping, so no duplicated names at least, probably other similar things.
 
-definition used below; updating a context with respect to just one element
-of its domain and leaving everything else alone.
-```
-update : name → ?? → cache → cache → U
-update r d c c' = (r ∈ dom c) and (c without r = c' without r) and (c' maps r to d)
-```
-
 TODO: delete crap that doesn't make sense.
 
 TODO: to define Γ | c ⊢ s ~> u , c' -- case on s! start with empty; if s is an
@@ -220,20 +303,27 @@ otherwise recurr
 
 ## Theorems
 
-thoughts from carlo: anything that feels like "the changes you make don't
-disrupt anything" is barking up the wrong tree. sometimes code changes and
-it's wrong. so don't think about consistency of a change with respect to a
-cache or whatever.
+In general, it is not the responsibility of the caching mechanism (or the
+elaborator more generally) to make any promises about the quality of the
+code in the libraries; any reasoning that feels like "changes made to the
+files on disk do not disrupt anything" is not correct.
 
-instead, you want to know that the addition of the cache itself isn't
-changing the result EVEN IF THAT RESULT IS A FAILURE. "loading the cache is
-the same as loading the file".
+For example, imagine a library of natural numbers that offers a definition
+of addition and some client code that imports it. If that definition of
+addition changes from recurring on the first to the second argument, the
+client gets different definitional and judgemental equalities about the
+defined operation: the code is different even though it has the same name
+and type. Such a breaking change must cause changes in the clients that use
+it; it is not up to the caching mechanism to defend against or detect or
+fix situations like this.
 
-where does the cache come from? you still start from empty when you're
-reading a file and then as you go down the list of decls, go by cases; when
-you get to the import case, call out to an abstract LOAD action or
-something.
+Instead, we want to capture the idea that loading a result stored in the
+cache produces the same effect as re-checking the file that produced
+it--even if that result is in the negative.
 
+To this end, we offer two theorems that should hold. The first,
+consistency, reflects the intuition that XXX. The second, XXX, reflects the
+intuition that XXXX.
 
 
 1. [consistency]
@@ -268,52 +358,4 @@ something.
     intersection is morally the same; the version with a consistent but
     non-empty cache is a different theorem, like resumability or something.
 
-
-2. [ idempotence? ]
-
-    "If the source of a unit is checked with a cache, and then something in
-    that cache changes in a way that doesn't change its signature, and the
-    source of that unit is checked again against the new cache, the results
-    are the same"
-
-   ```
-     For all Γ : ctx , s : external-term , u1 u2 : internal-term, c1 c2 c1'
-     c2' : cache, d1 d2 : ??,
-
-     If (Γ ok), and
-        (r,d1) ∈ c1, and
-        (r,d2) ∈ c2, and
-		c1 / r = c2 / r, and     [ this is kind of a stupid way to say this.]
-		[something about d1 being morally the same as d2], and
-        Γ | c1 ⊢ s ~> u1 , c1', and
-        Γ | c2 ⊢ s ~> u2 , c2', then
-     u1 = u2 and c1' = c2' [probably?]
-   ```
-
-3. [ stability? ]
-
-   "if you elaborate a term starting with the empty cache, then change
-   something in the resultant cache in a compatible way, then recheck the
-   unit with that new cache, you get the same output."
-
-   e.g. if data.nat defines addition, and you check something against it,
-   then change data.nat to define addition by recursion on the other
-   argument, you should still get the same cache and the same result.
-
-   but that may not be true? maybe it's like a transport over that change or
-   something complicated; it's only judgementally the same not
-   definitionally the same? in the case of changing addition, you get
-   different definitional equalities as a result of which argument you
-   recurr on, so dependent code may not type check even though + : Nat ->
-   Nat -> Nat in both cases
-
-   ```
-     For all Γ : ctx, s : external-term, u1 u2 : internal-term, c c' c'' :
-     cache, d : ??,
-
-     If (Γ ok), and
-        (Γ | ∅  ⊢ s ~> u1 , c), and
-		update r d c c'
-        (Γ | c' ⊢ s ~> u2 , c''), then
-     u1 = u2 and c' = c''
-   ```
+2. [ xx ]
