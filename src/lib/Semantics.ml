@@ -384,11 +384,11 @@ and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
     and+ phi = subst_cof r x phi
     and+ box = subst_cut r x box in
     D.Cap (s, s', phi, code, box)
-  | D.VProj (s, equiv, v) ->
+  | D.VProj (s, pequiv, v) ->
     let+ s = subst_dim r x s
-    and+ equiv = subst_con r x equiv
+    and+ pequiv = subst_con r x pequiv
     and+ v = subst_cut r x v in
-    D.VProj (s, equiv, v)
+    D.VProj (s, pequiv, v)
   | D.SubOut (cut, phi, clo) ->
     let+ cut = subst_cut r x cut
     and+ phi = subst_cof r x phi
@@ -666,20 +666,22 @@ and eval : S.t -> D.con EvM.m =
       and+ vbase = eval base in
       D.VIn (vr, vequiv, vpivot, vbase)
 
-    | S.VProj (r, equiv, v) ->
+    | S.VProj (r, pequiv, v) ->
       let* vr = eval_dim r in
       let* vv = eval v in
       begin
         CM.test_sequent [] (Cof.eq vr Dim0) |> lift_cmp |>> function
         | true -> (* r=0 *)
-          let* vequiv = eval equiv in
+          let* vpequiv = eval pequiv in
+          let* vequiv = lift_cmp @@ do_ap vpequiv D.Prf in
           lift_cmp @@ do_equiv_fwd vequiv vv
         | false ->
           CM.test_sequent [] (Cof.eq vr Dim1) |> lift_cmp |>> function
           | true -> (* r=1 *)
             ret vv
           | false ->
-            let* vequiv = eval equiv in
+            let* vpequiv = eval pequiv in
+            let* vequiv = lift_cmp @@ do_ap vpequiv D.Prf in
             lift_cmp @@ do_rigid_vproj vr vequiv vv
       end
 
