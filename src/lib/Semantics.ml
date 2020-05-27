@@ -1079,7 +1079,26 @@ and do_rigid_cap r s phi code =
     end
 
 and do_rigid_vproj r equiv v =
-  raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+  let open CM in
+  abort_if_inconsistent D.Abort @@
+  begin
+    inspect_con v |>>
+    function
+    | D.Cut {tp = D.El vtp; cut} ->
+      inspect_con vtp |>>
+      begin
+        function
+        | D.CodeV (_,_,code,_) ->
+          let* tp = do_el code in
+          ret @@ D.Cut {tp; cut = D.VProj (r, equiv, cut), []}
+        | _ ->
+          throw @@ NbeFailed "do_rigid_vproj"
+      end
+    | D.VIn (_, _, _, base) ->
+      ret base
+    | _ ->
+      throw @@ NbeFailed "do_rigid_vproj"
+  end
 
 and do_el_out con =
   let open CM in
