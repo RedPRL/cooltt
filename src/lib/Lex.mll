@@ -46,8 +46,8 @@ let keywords =
     ("hfill", HFILL);
     ("com", COM);
     ("V", V);
+    ("🥦", V);
     ("vproj", VPROJ);
-    ("🥦", VPROJ);
   ]
 }
 
