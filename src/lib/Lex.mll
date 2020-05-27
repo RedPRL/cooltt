@@ -47,6 +47,7 @@ let keywords =
     ("com", COM);
     ("V", V);
     ("vproj", VPROJ);
+    ("🥦", VPROJ);
   ]
 }
 
