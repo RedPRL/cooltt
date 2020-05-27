@@ -29,8 +29,8 @@
 \NewDocumentCommand\TpUniv{}{\mathsf{Univ}}
 \NewDocumentCommand\CodeUniv{}{\mindelim{1}\widehat{\mathsf{Univ}}}
 \NewDocumentCommand\ElInOut{}{{\updownarrow_{\mathsf{el}}}}
-\NewDocumentCommand\ElIn{g}{{\uparrow_{\mathsf{el}}}\IfValueT{#1}{\prn{#1}}}
-\NewDocumentCommand\ElOut{g}{{\downarrow_{\mathsf{el}}}\IfValueT{#1}{\prn{#1}}}
+\NewDocumentCommand\ElIn{sg}{{\uparrow_{\mathsf{el}}}\IfValueT{#2}{\IfBooleanTF{#1}{#2}{\prn{#2}}}}
+\NewDocumentCommand\ElOut{sg}{{\downarrow_{\mathsf{el}}}\IfValueT{#2}{\IfBooleanTF{#1}{#2}{\prn{#2}}}}
 
 % Kan operators
 \NewDocumentCommand\HCom{mmmmm}{
@@ -667,7 +667,7 @@ We may now specify the rules for the V types.
       \end{array}
     }
     \\\\\\
-    { % Favonia: this is just coe in paths, but this style leads to shorter code?
+    {
       \begin{array}{l}
         \tilde{R} :
         \Prod{*:\TpPrf{\forall k.s_k=0}}{
@@ -693,23 +693,24 @@ We may now specify the rules for the V types.
         }{r}{r'}{
           \ElIn{\lambda\Dummy.\SubIn{\tilde{F}\prn{r,*,M}}}
         }
-        \\
-        \tilde{R}\prn{*} \coloneq
-        \ElIn{
-          \lambda i.
-          \SubIn{
-            \Com{\Code{B}_\bullet}{r}{r'}{\Boundary{i}}{
-              \lambda j,*.
-              \brk{
-                j=r\lor i=0 \to
-                \tilde{F}\prn{j,*,\Coe{\Code{A}_\bullet\prn{*}}{r}{j}{M}}
-                \delimmid
-                i=1\to
-                \Coe{\Code{B}_\bullet}{r}{j}{\tilde{F}\prn{r,*,M}}
-              }
-            }
-          }
-        }
+        % alternate definition of \tilde{R}:
+        %\\
+        %\tilde{R}\prn{*} \coloneq
+        %\ElIn{
+        %  \lambda i.
+        %  \SubIn{
+        %    \Com{\Code{B}_\bullet}{r}{r'}{\Boundary{i}}{
+        %      \lambda j,*.
+        %      \brk{
+        %        j=r\lor i=0 \to
+        %        \tilde{F}\prn{j,*,\Coe{\Code{A}_\bullet\prn{*}}{r}{j}{M}}
+        %        \delimmid
+        %        i=1\to
+        %        \Coe{\Code{B}_\bullet}{r}{j}{\tilde{F}\prn{r,*,M}}
+        %      }
+        %    }
+        %  }
+        %}
       \end{array}
     }
     \\\\\\
@@ -723,7 +724,7 @@ We may now specify the rules for the V types.
             }{
               \tilde{P}\prn{*}
             }{
-              \ElIn{
+              \ElIn*{
                 \brk{
                   \prn{\forall k.s_k = 0}\to\TooLong
                   \delimmid
@@ -737,7 +738,7 @@ We may now specify the rules for the V types.
         \tilde{S}\prn{*} \coloneq
         \tilde{Q}\prn{
           *,
-          \ElIn{
+          \ElIn*{
             \brk{
               \prn{\forall k.s_k = 0}\to\TmPair{\Coe{\Code{A}_\bullet\prn{*}}{r}{r'}{M}}{\tilde{R}\prn{*}}
               \delimmid
