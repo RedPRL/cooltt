@@ -855,8 +855,20 @@ and whnf_hd hd =
         | `Reduce box ->
           reduce_to @<< do_rigid_cap r s phi code box
     end
-  | D.VProj (r, pequiv, v) ->
-    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+  | D.VProj (r, pequiv, cut) ->
+    begin
+      test_sequent [] (Cof.eq r Dim0) |>> function
+      | true ->
+        let* equiv = do_ap pequiv D.Prf in
+        raise CJHM
+      | false ->
+        test_sequent [] (Cof.eq r Dim1) |>> function
+        | true -> raise CJHM
+        | false ->
+          whnf_cut cut |>> function
+          | `Done -> ret `Done
+          | `Reduce v -> reduce_to @<< do_rigid_vproj r pequiv v
+    end
 
 and whnf_cut cut : D.con whnf CM.m =
   let open CM in
