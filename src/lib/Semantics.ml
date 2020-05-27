@@ -745,7 +745,16 @@ and whnf_con : D.con -> D.con whnf CM.m =
       | false -> ret `Done
     end
   | D.VIn (r, equiv, pivot, base) ->
-    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+    begin
+      test_sequent [] (Cof.eq r Dim0) |>>
+      function
+      | true -> reduce_to @<< do_ap pivot D.Prf
+      | false ->
+        test_sequent [] (Cof.eq r Dim1) |>>
+        function
+        | true -> reduce_to base
+        | false -> ret `Done
+    end
 
 
 and reduce_to con =
