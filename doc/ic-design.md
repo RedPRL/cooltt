@@ -65,12 +65,13 @@ in `f.rot`. When RedTT starts, it produces a cache of these terms from the
 _this list isn't exhaustive nor are the answers conclusive! this section
 won't even exist in the final version, it's more of a todo list to make
 sure i don't forget to address things that have been brought up; tentative
-answers below each
+answers below each_
 
 1. what are the names of the imported identifiers? (Are they qualified?)
    - i think they should be fully qualified all the time for now; i don't
      want to worry about "open" style directives right now because it's a
-     whole other kettle of fish.
+     whole other kettle of fish. if i get this worked out well that will
+     feel like a tractable refinement.
 
 1. Do we need to keep track of whether an identifier comes from this file
    or an imported file?
@@ -78,6 +79,9 @@ answers below each
      `Driver.ml`. right now, when decls get elaborated they are added as
      globals along with their type; i don't see why you wouldn't want to do
      that recursively into includes as well.
+
+	 in the language of the judgements below, no, it's all just cache
+     entries.
 
 1. Re: the diamond problem, do we need to make sure that all references to
    an imported identifier are judgmentally equal?
@@ -91,14 +95,13 @@ answers below each
    - my temptation right now is to only define elaboration when identifiers
      are unique, that is to say if you have two units named `Nat`, that's
      an elaboration error. i'll try to reflect this in the judgemental
-     structure below;i think this is in line with the `decls ok` judgement
+     structure below;i think this is in line with the `decs ok` judgement
      from the TILT paper that rules out irritating ambiguities about names
      of things.
 
 1. what is the output of checking that is cached? how do you compare those
    things for equality?
    - as a first cut i think you can read this off from the elaborator,
-
      ```
      elaborate_typed_term : string ->   //the identifier
          ConcreteSyntaxData.cell list -> // args from the parse tree
@@ -107,16 +110,37 @@ answers below each
          (SyntaxData.tp * DomainData.tp * SyntaxData.t * DomainData.con) m
      ```
      so elaboration at least of a definition produces a syntactic term and
-     type and a semantic term and type
+     type and a semantic term and type.
+
+	 a little more intuitively, you want whatever is cached to be the thing
+     that took a lot of work to produce. so elaboration produces a bunch of
+     tactics built into each other that then get run to produce a term;
+     that process invokes NBE and the other expensive operations, so that
+     is the thing that we wish to store.
 
 
 1. what needs to be done while reading the cache to restore that state?
-   - TODO
+   - this is an interesting question. if each cache entry is "standalone"
+     then you just read in the cache files as you need them. if the terms
+     stored in the cache can refer to other things already in the cache,
+     then i'm not sure; i guess you have to read each file just for its
+     imports and load those caches, too, in the order that you would have
+     built them to begin with, so that there are no cache misses. i don't
+     actually have a sense for which case we're in (TODO: someone does,
+     though!)
+
+	 my first thought is that the terms we store could be A LOT larger in
+     the first case, so you don't get that simplicity for free; in the
+     second case maybe the terms are quite modest because there's less
+     repetition in the representation, but you pay the price by having the
+     cache loading operation be a little bit delicate.
 
 1. how do you patch a bunch of these together? Suppose a file includes
    multiple other files that have both been cached already; we need to
    create a "combined" state that has both of them loaded somehow
-   - TODO
+   - i think you just load the caches in the order of import-appearance in
+     the file in question; this may not be much of an issue. you can't have
+     repeated names anyway, that's an elaboration error. (see above)
 
 ## Syntactic Changes
 
@@ -173,7 +197,9 @@ avoid doing more than once.
 To that end, we will equip elaboration with a _cache_ that maps names (as
 in the `def` declaration form) to the internal language terms resulting
 from the above process. When elaborating a definition, the cache will be
-consulted and updated as needed before proceeding.
+consulted and updated as needed before proceeding. The need for an update
+will be determined by storing a hash of the file in its cache; if that hash
+doesn't match the hash of the current file, it will be reloaded.
 
 As a related but also somewhat separate concern, we also extend the
 language to include `import` statements. This allows cooltt developments to
@@ -199,7 +225,7 @@ disk, to provide ground-up evidence that they check as written.
 A judgemental description of this process is below, followed by statements
 of a few theorems that attempt to characterize some aspects of it.
 
-### Judgemental Summary
+### Judgemental Description
 
 A cooltt file is a list of declaractions, each one given by
 
@@ -239,7 +265,7 @@ duplicate names so that it works as a mapping. probably need `c ok` too for
 caches that has almost the same rules_
 
 
-Rules for processing a list of declarations:
+#### Rules for processing a list of declarations (_TODO not complete_):
 ```
 —————————————————————–[eof]
 Γ | c ⊢ [] ~> Quit , c
@@ -255,7 +281,7 @@ Rules for processing a list of declarations:
 Γ | c ⊢ d :: ds ~>  , c'
 ```
 
-Rules for each declaration:
+#### Rules for each declaration(_TODO not complete_):
 
 The rules for `import` and `def` are the most interesting here. We omit the
 rules for `normalizeterm` and `print` entirely, since they're not in scope
@@ -266,12 +292,33 @@ user to inspect).
 Γ | c ⊢ quit ~> Quit , c
 
 
+has_modern_cache p     restore p c'
+——————————————————————————————————–—–[import-restore]
+Γ | c ⊢ import p ~> Continue , c ∪ c'
+
+
+Γ | c ⊢ p ~> Continue , c'      //todo: c? Γ? empty?
+—————————————————————–—–————————————–[import-load]
+Γ | c ⊢ import p ~> Continue , c ∪ c'
+
+
+Γ | c ⊢ p ~> Quit , c'          //same todo
+—————————————————————–—–————————————–[import-load]
+Γ | c ⊢ import p ~> Quit , c
+
+
+Γ ∪ c ⊢ def {name, args, def, tp} ~> t
+———————————————————————————————————————————————–————————————–[def]
+Γ | c ⊢ def {name, args, def, tp} ~> Continue , c ∪ {name ↦ t}
+
+
 ```
 
-TODO: to define Γ | c ⊢ s ~> u , c' -- case on s! start with empty; if s is an
-import, check the file age and if there's a cache, load that if you can;
-otherwise recurr
+TODO: should the environment also be an output? it really serves the same
+role as the cache in a lot of ways it just has a different provenance.
 
+Processing a cooltt file always starts with an empty cache and environment;
+they are populated as the file is traversed.
 
 ## Theorems
 
