@@ -80,7 +80,7 @@ answers below each_
      globals along with their type; i don't see why you wouldn't want to do
      that recursively into includes as well.
 
-	 in the language of the judgements below, no, it's all just cache
+     in the language of the judgements below, no, it's all just cache
      entries.
 
 1. Re: the diamond problem, do we need to make sure that all references to
@@ -112,7 +112,7 @@ answers below each_
      so elaboration at least of a definition produces a syntactic term and
      type and a semantic term and type.
 
-	 a little more intuitively, you want whatever is cached to be the thing
+     a little more intuitively, you want whatever is cached to be the thing
      that took a lot of work to produce. so elaboration produces a bunch of
      tactics built into each other that then get run to produce a term;
      that process invokes NBE and the other expensive operations, so that
@@ -129,7 +129,7 @@ answers below each_
      actually have a sense for which case we're in (TODO: someone does,
      though!)
 
-	 my first thought is that the terms we store could be A LOT larger in
+     my first thought is that the terms we store could be A LOT larger in
      the first case, so you don't get that simplicity for free; in the
      second case maybe the terms are quite modest because there's less
      repetition in the representation, but you pay the price by having the
@@ -232,9 +232,9 @@ A cooltt file is a list of declaractions, each one given by
 ```
 decl ::=  def {name : Ident.t, ...}
         | print ...
-	    | normalizeterm ...
-		| quit
-		| import p
+        | normalizeterm ...
+        | quit
+        | import p
 ```
 
 A cache maps `Ident.t` to terms in the internal language.
@@ -346,27 +346,27 @@ intuition that XXXX.
 
 1. [consistency]
 
-	"Flattening a term and elaborating it as usual produces the same output
+    "Flattening a term and elaborating it as usual produces the same output
     and cache as elaborating it starting from the empty cache".
 
-	we wish to be able to state the property that that the new elaboration
-	judgement that refers to a cache does the same thing as the existing
-	non-caching elaboration. to do that, we need to be able to relate the
-	source of a unit that includes `import` statements to the source of an
-	equivalent unit that does not -- this amounts of a judgemental of
-	elaborating `import` statements.
+    we wish to be able to state the property that that the new elaboration
+    judgement that refers to a cache does the same thing as the existing
+    non-caching elaboration. to do that, we need to be able to relate the
+    source of a unit that includes `import` statements to the source of an
+    equivalent unit that does not -- this amounts of a judgemental of
+    elaborating `import` statements.
 
-	we call this judgemement `flat : src → src0 → U`, where `src0` is the
-	language of cooltt that does not include `import`.
+    we call this judgemement `flat : src → src0 → U`, where `src0` is the
+    language of cooltt that does not include `import`.
 
-	we write the existing, non-caching, elaboration judgement `?? ⊢ s ~>
-	u`, where `s` is a term in the external language of cooltt and `u` is
-	the unit of the internal language that is the output. ?? is the context
-	under which the elaboration occurs. TODO what is ??.
+    we write the existing, non-caching, elaboration judgement `?? ⊢ s ~>
+    u`, where `s` is a term in the external language of cooltt and `u` is
+    the unit of the internal language that is the output. ?? is the context
+    under which the elaboration occurs. TODO what is ??.
 
    ```
      For all Γ : ctx , s s' : external-term, u1 u2 : internal-term, c' :
-	 cache,
+     cache,
 
      If (Γ ok), and
         (?? ⊢ flat s s'), and   [ not the same ctx? ]
@@ -375,7 +375,7 @@ intuition that XXXX.
      u1 = u2
    ```
 
-	_Aside: i could state a superficially stronger vesion of this but i
+    _Aside: i could state a superficially stronger vesion of this but i
     don't think there's much point. really you can have any cache with
     `dom(c) ∩ used_names(s') = ∅`, that is you can have whatever garbage
     you want in there as long as you never use it. but that just makes it
@@ -383,7 +383,7 @@ intuition that XXXX.
     context for empty and it'd be equivalent. it doesn't describe a richer
     relationship between the two judgements especially.
 
-	if that intersection isn't empty and the types happen to agree – that
+    if that intersection isn't empty and the types happen to agree – that
     could be OK but this is veering off sharply into the wrong way of
     thinking about this problem. it's not up to the cache mechanism to care
     if the code checks or not, only to do a full and faithful rendition of
