@@ -860,10 +860,11 @@ and whnf_hd hd =
       test_sequent [] (Cof.eq r Dim0) |>> function
       | true ->
         let* equiv = do_ap pequiv D.Prf in
-        raise CJHM
+        reduce_to @<< do_equiv_fwd equiv @@ D.Cut {tp = raise CJHM; cut}
       | false ->
         test_sequent [] (Cof.eq r Dim1) |>> function
-        | true -> raise CJHM
+        | true ->
+          reduce_to @@ D.Cut {tp = raise CJHM; cut}
         | false ->
           whnf_cut cut |>> function
           | `Done -> ret `Done
