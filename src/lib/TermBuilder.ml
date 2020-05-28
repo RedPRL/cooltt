@@ -272,6 +272,45 @@ let code_path' mfam ml mr : _ m =
      eq i dim1, mr]
 
 
+module Equiv : sig
+  val code_is_contr : S.t m -> S.t m
+  val code_fiber : S.t m -> S.t m -> S.t m -> S.t m -> S.t m
+  val code_equiv : S.t m -> S.t m -> S.t m
+  val equiv_fwd : S.t m -> S.t m
+  val equiv_inv : S.t m -> S.t m -> S.t m
+  val equiv_inv_path : S.t m -> S.t m -> S.t m -> S.t m
+end =
+struct
+  let code_is_contr code =
+    code_sg code @@ lam @@ fun x ->
+    code_pi code @@ lam @@ fun y ->
+    code_path' (lam @@ fun _ -> code) x y
+
+  let code_fiber code_a code_b f b =
+    code_sg code_a @@ lam @@ fun a ->
+    code_path' (lam @@ fun _ -> code_b) (ap f [a]) b
+
+  let code_equiv code_a code_b =
+    code_sg (code_pi code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
+    code_pi code_b @@ lam @@ fun y ->
+    code_is_contr @@ code_fiber code_a code_b (el_out f) y
+
+  let equiv_fwd equiv =
+    el_out @@ fst @@ el_out equiv
+
+  (* CJHM CCHM names *)
+  let equiv_fiber_contr equiv y =
+    ap (el_out @@ snd @@ el_out equiv) [y]
+
+  (* CJHM CCHM names *)
+  let equiv_inv equiv y =
+    fst @@ el_out @@ equiv_fiber_contr equiv y
+
+  (* CJHM CCHM names *)
+  let equiv_inv_path equiv y p =
+    ap (el_out @@ snd @@ el_out @@ equiv_fiber_contr equiv y) [p]
+end
+
 module Kan =
 struct
   type coe = r:S.t m -> r':S.t m -> bdy:S.t m -> S.t m
@@ -455,45 +494,6 @@ struct
              eq r r', ap o_tilde [j]]
         end
   end
-end
-
-module Equiv : sig
-  val code_is_contr : S.t m -> S.t m
-  val code_fiber : S.t m -> S.t m -> S.t m -> S.t m -> S.t m
-  val code_equiv : S.t m -> S.t m -> S.t m
-  val equiv_fwd : S.t m -> S.t m
-  val equiv_inv : S.t m -> S.t m -> S.t m
-  val equiv_inv_path : S.t m -> S.t m -> S.t m -> S.t m
-end =
-struct
-  let code_is_contr code =
-    code_sg code @@ lam @@ fun x ->
-    code_pi code @@ lam @@ fun y ->
-    code_path' (lam @@ fun _ -> code) x y
-
-  let code_fiber code_a code_b f b =
-    code_sg code_a @@ lam @@ fun a ->
-    code_path' (lam @@ fun _ -> code_b) (ap f [a]) b
-
-  let code_equiv code_a code_b =
-    code_sg (code_pi code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
-    code_pi code_b @@ lam @@ fun y ->
-    code_is_contr @@ code_fiber code_a code_b (el_out f) y
-
-  let equiv_fwd equiv =
-    el_out @@ fst @@ el_out equiv
-
-  (* CJHM CCHM names *)
-  let equiv_fiber_contr equiv y =
-    ap (el_out @@ snd @@ el_out equiv) [y]
-
-  (* CJHM CCHM names *)
-  let equiv_inv equiv y =
-    fst @@ el_out @@ equiv_fiber_contr equiv y
-
-  (* CJHM CCHM names *)
-  let equiv_inv_path equiv y p =
-    ap (el_out @@ snd @@ el_out @@ equiv_fiber_contr equiv y) [p]
 end
 
 module Test =
