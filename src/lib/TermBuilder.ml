@@ -263,6 +263,18 @@ let cap mr ms mphi mcode mbox =
   and+ box = mbox in
   S.Cap (r, s, phi, code, box)
 
+let vin mr mpequiv mpivot mbase =
+  let+ r = mr
+  and+ pequiv = mpequiv
+  and+ pivot = mpivot
+  and+ base = mbase in
+  S.VIn (r, pequiv, pivot, base)
+
+let vproj mr mpequiv mv =
+  let+ r = mr
+  and+ pequiv = mpequiv
+  and+ v = mv in
+  S.VProj (r, pequiv, v)
 
 let code_path' mfam ml mr : _ m =
   code_path mfam @@ lam @@ fun i ->
@@ -393,6 +405,37 @@ struct
       ; join [phi; eq k r] , sub_out (ap (el_out (ap bdy [k;prf])) [i])
       ]
 
+  module V :
+  sig
+    type vcode = {r : S.t m; pcode : S.t m; code : S.t m; pequiv : S.t m}
+    val hcom_v : v:vcode -> r:S.t m -> r':S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+  end =
+  struct
+    type vcode = {r : S.t m; pcode : S.t m; code : S.t m; pequiv : S.t m}
+
+    let hcom_v ~(v : vcode) ~(r : S.t m) ~(r' : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
+      let_ ~ident:(`Machine "O")
+        begin
+          lam ~ident:(`Machine "X") @@ fun x ->
+          lam ~ident:(`Machine "N") @@ fun n ->
+          lam ~ident:(`Machine "i") @@ fun i ->
+          hcom x r i phi n
+        end
+      @@ fun o_tilde ->
+      let_ ~ident:(`Machine "P")
+        begin
+          lam ~ident:(`Machine "i") @@ fun i ->
+          lam @@ fun _ ->
+          cof_split (el @@ v.code)
+            [join [eq i r; phi], vproj v.r v.pequiv @@ ap bdy [i; prf];
+             eq v.r dim0, ap (Equiv.equiv_fwd (ap v.pequiv [prf])) [ap o_tilde [ap v.pcode [prf]; bdy; i]];
+             eq v.r dim1, ap o_tilde [v.code; bdy; i]]
+        end
+      @@ fun p_tilde ->
+      vin v.r v.pequiv (lam @@ fun _ -> ap o_tilde [ap v.pcode [prf]; bdy; r']) @@
+      hcom v.code r r' (join [phi; boundary v.r]) p_tilde
+  end
+
   module FHCom :
   sig
     type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
@@ -498,7 +541,18 @@ end
 
 module Test =
 struct
-  let closed_form_hcom =
+  let closed_form_hcom_v =
+    lam ~ident:(`Machine "s") @@ fun v_r ->
+    lam ~ident:(`Machine "A") @@ fun v_pcode ->
+    lam ~ident:(`Machine "B") @@ fun v_code ->
+    lam ~ident:(`Machine "E") @@ fun v_pequiv ->
+    lam ~ident:(`Machine "r") @@ fun r ->
+    lam ~ident:(`Machine "r'") @@ fun r' ->
+    lam ~ident:(`Machine "φ") @@ fun phi ->
+    lam ~ident:(`Machine "M") @@ fun bdy ->
+    Kan.V.hcom_v ~v:{r = v_r; pcode = v_pcode; code = v_code; pequiv = v_pequiv} ~r ~r' ~phi ~bdy
+
+  let closed_form_hcom_fhcom =
     lam ~ident:(`Machine "s") @@ fun h_r ->
     lam ~ident:(`Machine "s'") @@ fun h_r' ->
     lam ~ident:(`Machine "ψ") @@ fun h_phi ->
@@ -509,7 +563,7 @@ struct
     lam ~ident:(`Machine "M") @@ fun bdy ->
     Kan.FHCom.hcom_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~phi ~bdy
 
-  let closed_form_coe =
+  let closed_form_coe_fhcom =
     lam ~ident:(`Machine "s") @@ fun h_r ->
     lam ~ident:(`Machine "s'") @@ fun h_r' ->
     lam ~ident:(`Machine "φ") @@ fun h_phi ->
@@ -520,6 +574,7 @@ struct
     Kan.FHCom.coe_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~bdy
 
   let print_example () =
-    test closed_form_hcom;
-    test closed_form_coe
+    test closed_form_hcom_v;
+    test closed_form_hcom_fhcom;
+    test closed_form_coe_fhcom
 end
