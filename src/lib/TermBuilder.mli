@@ -59,6 +59,16 @@ val meet : t m list -> t m
 val boundary : t m -> t m
 val forall : t b -> t m
 
+
+module Equiv : sig
+  val code_is_contr : t m -> t m
+  val code_fiber : t m -> t m -> t m -> t m -> t m
+  val equiv_fwd : t m -> t m
+  val equiv_inv : t m -> t m -> t m
+  val equiv_inv_path : t m -> t m -> t m -> t m
+end
+
+
 module Kan : sig
   type coe = r:t m -> r':t m -> bdy:t m -> t m
   type hcom = r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
@@ -78,6 +88,7 @@ module Kan : sig
     val coe_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> bdy:t m -> t m
   end
 end
+
 
 module Test : sig
   val print_example : unit -> unit

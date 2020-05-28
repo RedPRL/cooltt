@@ -62,7 +62,7 @@ and hd =
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
   | Cap of dim * dim * cof * con * cut
-  | VProj of dim * con * cut
+  | VProj of dim * con * con * con * cut
   | SubOut of cut * cof * tm_clo
   | Split of tp * (cof * tm_clo) list
 

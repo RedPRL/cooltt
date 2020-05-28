@@ -384,11 +384,13 @@ and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
     and+ phi = subst_cof r x phi
     and+ box = subst_cut r x box in
     D.Cap (s, s', phi, code, box)
-  | D.VProj (s, pequiv, v) ->
+  | D.VProj (s, pcode, code, pequiv, v) ->
     let+ s = subst_dim r x s
+    and+ pcode = subst_con r x pcode
+    and+ code = subst_con r x code
     and+ pequiv = subst_con r x pequiv
     and+ v = subst_cut r x v in
-    D.VProj (s, pequiv, v)
+    D.VProj (s, pcode, code, pequiv, v)
   | D.SubOut (cut, phi, clo) ->
     let+ cut = subst_cut r x cut
     and+ phi = subst_cof r x phi
@@ -680,9 +682,7 @@ and eval : S.t -> D.con EvM.m =
           | true -> (* r=1 *)
             ret vv
           | false ->
-            let* vpequiv = eval pequiv in
-            let* vequiv = lift_cmp @@ do_ap vpequiv D.Prf in
-            lift_cmp @@ do_rigid_vproj vr vequiv vv
+            lift_cmp @@ do_rigid_vproj vr vv
       end
 
     | S.CodeV (r, pcode, code, pequiv) ->
@@ -855,20 +855,22 @@ and whnf_hd hd =
         | `Reduce box ->
           reduce_to @<< do_rigid_cap r s phi code box
     end
-  | D.VProj (r, pequiv, cut) ->
+  | D.VProj (r, pcode, code, pequiv, cut) ->
     begin
       test_sequent [] (Cof.eq r Dim0) |>> function
       | true ->
         let* equiv = do_ap pequiv D.Prf in
-        reduce_to @<< do_equiv_fwd equiv @@ D.Cut {tp = raise CJHM; cut}
+        let* tp = do_el @<< do_ap pcode D.Prf in
+        reduce_to @<< do_equiv_fwd equiv @@ D.Cut {tp; cut}
       | false ->
         test_sequent [] (Cof.eq r Dim1) |>> function
         | true ->
-          reduce_to @@ D.Cut {tp = raise CJHM; cut}
+          let* tp = do_el code in
+          reduce_to @@ D.Cut {tp; cut}
         | false ->
           whnf_cut cut |>> function
           | `Done -> ret `Done
-          | `Reduce v -> reduce_to @<< do_rigid_vproj r pequiv v
+          | `Reduce v -> reduce_to @<< do_rigid_vproj r v
     end
 
 and whnf_cut cut : D.con whnf CM.m =
@@ -1102,7 +1104,7 @@ and do_rigid_cap r s phi code =
         throw @@ NbeFailed "do_rigid_cap"
     end
 
-and do_rigid_vproj r pequiv v =
+and do_rigid_vproj r v =
   let open CM in
   abort_if_inconsistent D.Abort @@
   begin
@@ -1112,9 +1114,9 @@ and do_rigid_vproj r pequiv v =
       inspect_con vtp |>>
       begin
         function
-        | D.CodeV (_,_,code,_) ->
+        | D.CodeV (_,pcode,code,pequiv) ->
           let* tp = do_el code in
-          ret @@ D.Cut {tp; cut = D.VProj (r, pequiv, cut), []}
+          ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
         | _ ->
           throw @@ NbeFailed "do_rigid_vproj"
       end
