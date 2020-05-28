@@ -409,6 +409,7 @@ struct
   sig
     type vcode = {r : S.t m; pcode : S.t m; code : S.t m; pequiv : S.t m}
     val hcom_v : v:vcode -> r:S.t m -> r':S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
+    val coe_v : v:vcode -> r:S.t m -> r':S.t m -> bdy:S.t m -> S.t m
   end =
   struct
     type vcode = {r : S.t m; pcode : S.t m; code : S.t m; pequiv : S.t m}
@@ -434,6 +435,88 @@ struct
       @@ fun p_tilde ->
       vin v.r v.pequiv (lam @@ fun _ -> ap o_tilde [ap v.pcode [prf]; bdy; r']) @@
       hcom v.code r r' (join [phi; boundary v.r]) p_tilde
+
+    let coe_v ~(v : vcode) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
+      let s_ x = ap v.r [x] in
+      let pcode_ x = ap v.pcode [x] in
+      let code_ x = ap v.code [x] in
+      let pequiv_ x = ap v.pequiv [x] in
+      let_ ~ident:(`Machine "F")
+        begin
+          lam ~ident:(`Machine "i") @@ fun i ->
+          lam @@ fun _ ->
+          Equiv.equiv_fwd (pequiv_ i)
+        end
+      @@ fun f_tilde ->
+      let_ ~ident:(`Machine "O")
+        begin
+          coe (lam code_) r r' @@ vproj (s_ r) (pequiv_ r) bdy
+        end
+      @@ fun o_tilde ->
+      let_ ~ident:(`Machine "Fiber'")
+        begin
+          lam @@ fun _ ->
+          Equiv.code_fiber (ap (pcode_ r') [prf]) (code_ r') (ap f_tilde [r'; prf]) o_tilde
+        end
+      @@ fun fibercode ->
+      let_ ~ident:(`Machine "I")
+        begin
+          lam @@ fun _ ->
+          ap (el_out @@ snd @@ el_out @@ ap (pequiv_ r') [prf]) [o_tilde]
+        end
+      @@ fun i_tilde ->
+      let_ ~ident:(`Machine "P")
+        begin
+          lam @@ fun _ ->
+          fst @@ el_out @@ ap i_tilde [prf]
+        end
+      @@ fun p_tilde ->
+      let_ ~ident:(`Machine "Q")
+        begin
+          lam @@ fun _ ->
+          el_out @@ snd @@ el_out @@ ap i_tilde [prf]
+        end
+      @@ fun q_tilde ->
+      let_ ~ident:(`Machine "R")
+        begin
+          let line = lam ~ident:(`Machine "i") @@ fun i ->
+            code_path' (lam @@ fun _ -> code_ i)
+              (ap f_tilde [i; prf; coe (lam @@ fun j -> ap (pcode_ j) [prf]) r i bdy])
+              (coe (lam code_) r i (ap f_tilde [r; prf; bdy]))
+          in
+          lam @@ fun _ ->
+          coe line r r' @@ el_in @@ lam @@ fun _ -> sub_in @@ ap f_tilde [r; prf; bdy]
+        end
+      @@ fun r_tilde ->
+      let_ ~ident:(`Machine "S")
+        begin
+          let face =
+            forall (fun i -> eq (s_ i) dim0),
+            el_in @@ pair
+              (coe (lam @@ fun j -> ap (pcode_ j) [prf]) r r' bdy)
+              (ap r_tilde [prf])
+          in
+          let face' =
+            eq r r',
+            el_in @@ pair bdy
+              (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pequiv_ r) bdy)
+          in
+          lam @@ fun _ ->
+          (* NB: el_in is inside the cof_split, unlike in the TeX *)
+          ap q_tilde [prf; cof_split (el @@ ap fibercode [prf]) [face; face']]
+        end
+      @@ fun s_tilde ->
+      let_ ~ident:(`Machine "T")
+        begin
+          lam @@ fun _ ->
+          hcom (ap fibercode [prf]) dim0 dim1 (join [forall (fun i -> eq (s_ i) dim0); eq r r']) @@
+          lam ~ident:(`Machine "j") @@ fun j ->
+          cof_split (el @@ ap fibercode [prf])
+            [eq j dim0, ap p_tilde [prf];
+             join [forall (fun i -> eq (s_ i) dim0); eq r r'], sub_out @@ ap (el_out @@ ap s_tilde [prf]) [j]]
+        end
+      @@ fun t_tilde ->
+      prf (* todo *)
   end
 
   module FHCom :
@@ -552,6 +635,16 @@ struct
     lam ~ident:(`Machine "M") @@ fun bdy ->
     Kan.V.hcom_v ~v:{r = v_r; pcode = v_pcode; code = v_code; pequiv = v_pequiv} ~r ~r' ~phi ~bdy
 
+  let closed_form_coe_v =
+    lam ~ident:(`Machine "s") @@ fun v_r ->
+    lam ~ident:(`Machine "A") @@ fun v_pcode ->
+    lam ~ident:(`Machine "B") @@ fun v_code ->
+    lam ~ident:(`Machine "E") @@ fun v_pequiv ->
+    lam ~ident:(`Machine "r") @@ fun r ->
+    lam ~ident:(`Machine "r'") @@ fun r' ->
+    lam ~ident:(`Machine "M") @@ fun bdy ->
+    Kan.V.coe_v ~v:{r = v_r; pcode = v_pcode; code = v_code; pequiv = v_pequiv} ~r ~r' ~bdy
+
   let closed_form_hcom_fhcom =
     lam ~ident:(`Machine "s") @@ fun h_r ->
     lam ~ident:(`Machine "s'") @@ fun h_r' ->
@@ -575,6 +668,7 @@ struct
 
   let print_example () =
     test closed_form_hcom_v;
+    test closed_form_coe_v;
     test closed_form_hcom_fhcom;
     test closed_form_coe_fhcom
 end
