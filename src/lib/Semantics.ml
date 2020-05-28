@@ -166,8 +166,8 @@ let cap_boundary r s phi code box =
   Splice.term @@
   TB.cof_split
     (TB.el @@ TB.ap code [s; TB.prf])
-    [TB.eq r s, (fun _ -> box);
-     phi, (fun _ -> TB.coe code s r box)]
+    [TB.eq r s, box;
+     phi, TB.coe code s r box]
 
 let v_boundary r pcode code =
   Splice.foreign_dim r @@ fun r ->
@@ -175,8 +175,8 @@ let v_boundary r pcode code =
   Splice.foreign code @@ fun code ->
   Splice.term @@
   TB.cof_split TB.univ
-    [TB.eq r TB.dim0, (fun _ -> TB.ap pcode [TB.prf]);
-     TB.eq r TB.dim1, (fun _ -> code)]
+    [TB.eq r TB.dim0, TB.ap pcode [TB.prf];
+     TB.eq r TB.dim1, code]
 
 let vproj_boundary r pcode code pequiv v =
   Splice.foreign_dim r @@ fun r ->
@@ -187,8 +187,8 @@ let vproj_boundary r pcode code pequiv v =
   Splice.term @@
   TB.cof_split
     (TB.el (TB.code_v r pcode code pequiv))
-    [TB.eq r TB.dim0, (fun _ -> TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v]);
-     TB.eq r TB.dim1, (fun _ -> v)]
+    [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
+     TB.eq r TB.dim1, v]
 
 (* LOL: experimental haha *)
 let rec subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =

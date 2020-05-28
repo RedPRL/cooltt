@@ -130,11 +130,15 @@ let snd m =
 let cof_abort =
   ret S.CofAbort
 
+let const (m : S.t m) : S.t b =
+  fun _ -> m
+
+
 let cof_split mtp mbranches =
   let mphis, mtms = List.split mbranches in
   let+ tp = mtp
   and+ phis = MU.commute_list mphis
-  and+ tms = MU.map scope mtms in
+  and+ tms = MU.map scope @@ List.map const mtms in
   S.CofSplit (tp, List.combine phis tms)
 
 let sub_out mtm =
@@ -264,8 +268,8 @@ let code_path' mfam ml mr : _ m =
   code_path mfam @@ lam @@ fun i ->
   lam @@ fun _ ->
   cof_split (el @@ ap mfam [i])
-    [eq i dim0, (fun _ -> ml);
-     eq i dim1, (fun _ -> mr)]
+    [eq i dim0, ml;
+     eq i dim1, mr]
 
 
 module Kan =
@@ -331,8 +335,8 @@ struct
     lam @@ fun _ ->
     cof_split
       (el @@ ap fam_line [i; j])
-      [ d_j, (fun q -> ap bdry_line [i; j; q])
-      ; eq i r, (fun q -> sub_out @@ ap (el_out bdy) [j])
+      [ d_j, ap bdry_line [i; j; prf]
+      ; eq i r, sub_out @@ ap (el_out bdy) [j]
       ]
 
   let hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy =
@@ -346,8 +350,8 @@ struct
     lam @@ fun p ->
     cof_split
       (el fam_i)
-      [ d_i , (fun q -> ap bdry [i; q])
-      ; join [phi; eq k r] , (fun q -> sub_out (ap (el_out (ap bdy [k;q])) [i]))
+      [ d_i , ap bdry [i; prf]
+      ; join [phi; eq k r] , sub_out (ap (el_out (ap bdy [k;prf])) [i])
       ]
 
   module FHCom :
@@ -380,13 +384,9 @@ struct
       lam @@ fun _ ->
       cof_split
         (el @@ ap fhcom.bdy [fhcom.r'; prf])
-        [ join [eq i r; phi],
-          (fun _ -> ap o_tilde [i; prf])
-        ; fhcom.phi,
-          (fun _ -> coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]))
-        ; eq fhcom.r fhcom.r',
-          (fun _ -> ap p_tilde [i; prf])
-        ]
+        [join [eq i r; phi], ap o_tilde [i; prf];
+         fhcom.phi, coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]);
+         eq fhcom.r fhcom.r', ap p_tilde [i; prf]]
 
     (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
     let coe_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
@@ -410,12 +410,10 @@ struct
           lam ~ident:(`Machine "k") @@ fun k ->
           lam @@ fun _ ->
           cof_split (el (ap (code_ r) [s_ r; prf]))
-            [eq k (s'_ r),
-             (fun _ -> cap (s_ r) (s'_ r) (phi_ r) (code_ r) bdy);
+            [eq k (s'_ r), cap (s_ r) (s'_ r) (phi_ r) (code_ r) bdy;
              phi_ r,
-             (fun _ ->
-                coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) k (s_ r) @@
-                coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) (s'_ r) k bdy)]
+             coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) k (s_ r) @@
+             coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) (s'_ r) k bdy]
         end
       @@ fun o_tilde ->
       let_ ~ident:(`Machine "P")
@@ -426,9 +424,9 @@ struct
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
           cof_split (el @@ ap (code_ r') [s_ r'; prf])
-            [eq i r, (fun _ -> ap o_tilde [s_ r]);
-             forall phi_, (fun _ -> ap n_tilde [i; s_ i; prf]);
-             forall (fun i -> eq (s_ i) (s'_ i)), (fun _ -> coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s_ k; prf]) r i bdy)]
+            [eq i r, ap o_tilde [s_ r];
+             forall phi_, ap n_tilde [i; s_ i; prf];
+             forall (fun i -> eq (s_ i) (s'_ i)), coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s_ k; prf]) r i bdy]
         end
       @@ fun p_tilde ->
       let_ ~ident:(`Machine "Q")
@@ -440,9 +438,9 @@ struct
           lam ~ident:(`Machine "k") @@ fun k ->
           lam @@ fun _ ->
           cof_split (el @@ ap (code_ r') [j; prf])
-            [eq k (s_ r'), (fun _ -> p_tilde);
-             eq r r', (fun _ -> coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) (s'_ r') k bdy);
-             forall phi_, (fun _ -> ap n_tilde [r'; k; prf])]
+            [eq k (s_ r'), p_tilde;
+             eq r r', coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) (s'_ r') k bdy;
+             forall phi_, ap n_tilde [r'; k; prf]]
         end
       @@ fun q_tilde ->
       box (s_ r') (s'_ r') (phi_ r')
@@ -452,9 +450,9 @@ struct
           lam @@ fun j ->
           lam @@ fun _ ->
           cof_split (el @@ code_ r')
-            [eq j (s_ r'), (fun _ -> p_tilde);
-             phi_ r', (fun _ -> coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) j (s_ r') (ap q_tilde [j; prf]));
-             eq r r', (fun _ -> ap o_tilde [j])]
+            [eq j (s_ r'), p_tilde;
+             phi_ r', coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) j (s_ r') (ap q_tilde [j; prf]);
+             eq r r', ap o_tilde [j]]
         end
   end
 end
