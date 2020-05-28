@@ -755,7 +755,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
     begin
       test_sequent [] (Cof.boundary r) |>>
       function
-      | true -> reduce_to @<< do_ap code D.Prf
+      | true -> reduce_to @<< splice_tm @@ v_boundary r pcode code
       | false -> ret `Done
     end
   | D.VIn (r, pequiv, pivot, base) ->
