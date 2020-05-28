@@ -205,7 +205,30 @@ let rec quote_con (tp : D.tp) con : S.t m =
     S.Box (tr, ts, tphi, tcap, tsides)
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)), _ ->
-    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+    let+ tr = quote_dim r
+    and+ part =
+      QTB.lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
+      let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
+      let* tp = lift_cmp @@ do_el pcode_fib in
+      quote_con tp con
+    and+ tot =
+      let* tp = lift_cmp @@ do_el code in
+      let* proj = lift_cmp @@ do_rigid_vproj r con in
+      quote_con tp proj
+    and+ t_pequiv =
+      let* tp_pequiv =
+        lift_cmp @@
+        Sem.splice_tp @@
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign pcode @@ fun pcode ->
+        Splice.foreign code @@ fun code ->
+        Splice.term @@
+        TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+        TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+      in
+      quote_con tp_pequiv pequiv
+    in
+    S.VIn (tr, t_pequiv, part, tot)
 
   | _, D.LetSym (r, x, con) ->
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
