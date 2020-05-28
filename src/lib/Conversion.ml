@@ -380,8 +380,27 @@ and equate_hd hd0 hd1 =
       equate_con code_tp code0 code1
     in
     equate_cut box0 box1
-  | D.VProj _, D.VProj _ ->
-    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+  | D.VProj (r0, pcode0, code0, pequiv0, cut0), D.VProj (r1, pcode1, code1, pequiv1, cut1) ->
+    let* () = equate_dim r0 r1 in
+    let* () =
+      let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+      equate_con pcode_tp pcode0 pcode1
+    in
+    let* () = equate_con D.Univ code0 code1 in
+    let* () =
+      let* pequiv_tp =
+        lift_cmp @@
+        Sem.splice_tp @@
+        Splice.foreign_dim r0 @@ fun r ->
+        Splice.foreign pcode0 @@ fun pcode ->
+        Splice.foreign code0 @@ fun code ->
+        Splice.term @@
+        TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+        TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+      in
+      equate_con pequiv_tp pequiv0 pequiv1
+    in
+    equate_cut cut0 cut1
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
 
