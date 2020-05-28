@@ -460,6 +460,7 @@ end
 module Equiv : sig
   val code_is_contr : S.t m -> S.t m
   val code_fiber : S.t m -> S.t m -> S.t m -> S.t m -> S.t m
+  val code_equiv : S.t m -> S.t m -> S.t m
   val equiv_fwd : S.t m -> S.t m
   val equiv_inv : S.t m -> S.t m -> S.t m
   val equiv_inv_path : S.t m -> S.t m -> S.t m -> S.t m

@@ -344,7 +344,22 @@ and quote_hd =
     and+ tbox = quote_cut box in
     S.Cap (tr, ts, tphi, tcode, tbox)
   | D.VProj (r, pcode, code, pequiv, v) ->
-    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+    let* tr = quote_dim r in
+    let* t_pequiv =
+      let* tp_pequiv =
+        lift_cmp @@
+        Sem.splice_tp @@
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign pcode @@ fun pcode ->
+        Splice.foreign code @@ fun code ->
+        Splice.term @@
+        TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+        TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+      in
+      quote_con tp_pequiv pequiv
+    in
+    let+ tv = quote_cut v in
+    S.VProj (tr, t_pequiv, tv)
 
 
 and quote_dim d =

@@ -68,6 +68,7 @@ val forall : t b -> t m
 module Equiv : sig
   val code_is_contr : t m -> t m
   val code_fiber : t m -> t m -> t m -> t m -> t m
+  val code_equiv : t m -> t m -> t m
   val equiv_fwd : t m -> t m
   val equiv_inv : t m -> t m -> t m
   val equiv_inv_path : t m -> t m -> t m -> t m
