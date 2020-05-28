@@ -175,7 +175,8 @@ let rec quote_con (tp : D.tp) con : S.t m =
     S.CodePath (tfam, tbdry)
 
   | univ, D.CodeV (r, pcode, code, pequiv) ->
-    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+    let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
+    S.CodeV (tr, t_pcode, tcode, t_pequiv)
 
   | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
@@ -235,6 +236,26 @@ let rec quote_con (tp : D.tp) con : S.t m =
 
   | _ ->
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
+
+and quote_v_data r pcode code pequiv =
+  let+ tr = quote_dim r
+  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
+  and+ tcode = quote_con D.Univ code
+  and+ t_pequiv =
+    let* tp_pequiv =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign pcode @@ fun pcode ->
+      Splice.foreign code @@ fun code ->
+      Splice.term @@
+      TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+      TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+    in
+    quote_con tp_pequiv pequiv
+  in
+  tr, t_pcode, tcode, t_pequiv
+
 
 and quote_hcom code r s phi bdy =
   let* tcode = quote_con D.Univ code in
@@ -313,7 +334,8 @@ and quote_tp (tp : D.tp) =
     in
     S.El (S.HCom (S.CodeUniv, tr, ts, tphi, tbdy))
   | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
-    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
+    let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
+    S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
 
 and quote_hd =
   function
