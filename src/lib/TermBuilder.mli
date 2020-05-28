@@ -51,6 +51,11 @@ val tp_prf : t m -> tp m
 val tp_dim : tp m
 val el : t m -> tp m
 
+val code_pi : t m -> t m -> t m
+val code_sg : t m -> t m -> t m
+val code_path : t m -> t m -> t m
+val code_v : t m -> t m -> t m -> t m -> t m
+
 val dim0 : t m
 val dim1 : t m
 val eq : t m -> t m -> t m

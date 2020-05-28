@@ -178,6 +178,18 @@ let v_boundary r pcode code =
     [TB.eq r TB.dim0, (fun _ -> TB.ap pcode [TB.prf]);
      TB.eq r TB.dim1, (fun _ -> code)]
 
+let vproj_boundary r pcode code pequiv v =
+  Splice.foreign_dim r @@ fun r ->
+  Splice.foreign pcode @@ fun pcode ->
+  Splice.foreign code @@ fun code ->
+  Splice.foreign pequiv @@ fun pequiv ->
+  Splice.foreign v @@ fun v ->
+  Splice.term @@
+  TB.cof_split
+    (TB.el (TB.code_v r pcode code pequiv))
+    [TB.eq r TB.dim0, (fun _ -> TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v]);
+     TB.eq r TB.dim1, (fun _ -> v)]
+
 (* LOL: experimental haha *)
 let rec subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x con ->
@@ -857,20 +869,15 @@ and whnf_hd hd =
     end
   | D.VProj (r, pcode, code, pequiv, cut) ->
     begin
-      test_sequent [] (Cof.eq r Dim0) |>> function
+      test_sequent [] (Cof.boundary r) |>>
+      function
       | true ->
-        let* equiv = do_ap pequiv D.Prf in
-        let* tp = do_el @<< do_ap pcode D.Prf in
-        reduce_to @<< do_equiv_fwd equiv @@ D.Cut {tp; cut}
+        let* tp = do_el @@ D.CodeV (r, pcode, code, pequiv) in
+        reduce_to @<< splice_tm @@ vproj_boundary r pcode code pequiv @@ D.Cut {tp; cut}
       | false ->
-        test_sequent [] (Cof.eq r Dim1) |>> function
-        | true ->
-          let* tp = do_el code in
-          reduce_to @@ D.Cut {tp; cut}
-        | false ->
-          whnf_cut cut |>> function
-          | `Done -> ret `Done
-          | `Reduce v -> reduce_to @<< do_rigid_vproj r v
+        whnf_cut cut |>> function
+        | `Done -> ret `Done
+        | `Reduce v -> reduce_to @<< do_rigid_vproj r v
     end
 
 and whnf_cut cut : D.con whnf CM.m =

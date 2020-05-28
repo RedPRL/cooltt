@@ -194,6 +194,13 @@ let code_path mfam mbdry : _ m =
   and+ bdry = mbdry in
   S.CodePath (fam, bdry)
 
+let code_v mr mpcode mcode mpequiv : _ m=
+  let+ r = mr
+  and+ pcode = mpcode
+  and+ code = mcode
+  and+ pequiv = mpequiv in
+  S.CodeV (r, pcode, code, pequiv)
+
 let sub mbase mphi mbdry =
   let+ base = mbase
   and+ phi = mphi
