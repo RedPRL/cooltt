@@ -380,6 +380,8 @@ and equate_hd hd0 hd1 =
       equate_con code_tp code0 code1
     in
     equate_cut box0 box1
+  | D.VProj _, D.VProj _ ->
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
 
