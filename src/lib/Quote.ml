@@ -343,7 +343,7 @@ and quote_hd =
     let+ tcode = quote_con code_tp code
     and+ tbox = quote_cut box in
     S.Cap (tr, ts, tphi, tcode, tbox)
-  | D.VProj (r, code, pcode, pequiv, v) ->
+  | D.VProj (r, pcode, code, pequiv, v) ->
     raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
 
