@@ -872,8 +872,8 @@ and whnf_hd hd =
       test_sequent [] (Cof.boundary r) |>>
       function
       | true ->
-        let* tp = do_el @@ D.CodeV (r, pcode, code, pequiv) in
-        reduce_to @<< splice_tm @@ vproj_boundary r pcode code pequiv @@ D.Cut {tp; cut}
+        let v = D.Cut {cut; tp = D.ElUnstable (`V (r, pcode, code, pequiv))} in
+        reduce_to @<< splice_tm @@ vproj_boundary r pcode code pequiv v
       | false ->
         whnf_cut cut |>> function
         | `Done -> ret `Done
