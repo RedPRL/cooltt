@@ -175,7 +175,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     S.CodePath (tfam, tbdry)
 
   | univ, D.CodeV (r, pcode, code, pequiv) ->
-    raise CJHM
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
   | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
@@ -205,7 +205,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     S.Box (tr, ts, tphi, tcap, tsides)
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)), _ ->
-    raise CJHM
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
   | _, D.LetSym (r, x, con) ->
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
@@ -290,7 +290,7 @@ and quote_tp (tp : D.tp) =
     in
     S.El (S.HCom (S.CodeUniv, tr, ts, tphi, tbdy))
   | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
-    raise CJHM
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
 and quote_hd =
   function

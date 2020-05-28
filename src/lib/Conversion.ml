@@ -121,7 +121,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     in
     equate_con tp_bdy bdy0 bdy1
   | D.ElUnstable (`V (r0, pcode0, code0, pequiv0)), D.ElUnstable (`V (r1, pcode1, code1, pequiv1)) ->
-    raise CJHM
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
@@ -198,7 +198,7 @@ and equate_con tp con0 con1 =
     ret ()
 
   | _, D.CodeV (r0, pcode0, code0, pequiv0), D.CodeV (r1, pcode1, code1, pequiv1) ->
-    raise CJHM
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
   | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
   | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
@@ -241,7 +241,7 @@ and equate_con tp con0 con1 =
     equate_con hcom_tp con0 con1
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)), _, _ ->
-    raise CJHM
+    raise @@ List.nth [CJHM; CCHM; CFHM] (Random.int 3)
 
   | _ ->
     conv_err @@ ExpectedConEq (tp, con0, con1)
