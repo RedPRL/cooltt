@@ -12,7 +12,5 @@ def v-test (r : 𝕀) (A : type) : type =
 
 normalize v-test
 
-def scary (A : type) (a : A) : A =
+def cool (A : type) (a : A) : sub A #t {coe {_ => A} 0 1 a} =
   coe {i => v-test i A} 0 1 a
-
-normalize scary
