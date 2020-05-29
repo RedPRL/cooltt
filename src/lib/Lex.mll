@@ -25,6 +25,7 @@ let keywords =
     ("base", BASE);
     ("loop", LOOP);
     ("circle", CIRCLE);
+    ("🍪", CIRCLE);
     ("let", LET);
     ("in", IN);
     ("fst", FST);
