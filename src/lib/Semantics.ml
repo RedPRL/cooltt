@@ -692,8 +692,10 @@ and eval : S.t -> D.con EvM.m =
         CM.test_sequent [] (Cof.eq vr Dim0) |> lift_cmp |>> function
         | true -> (* r=0 *)
           let* vpequiv = eval pequiv in
-          let* vequiv = lift_cmp @@ do_ap vpequiv D.Prf in
-          lift_cmp @@ do_equiv_fwd vequiv vv
+          lift_cmp @@
+          let open CM in
+          let* f = do_ap vpequiv D.Prf |>> do_el_out |>> do_fst |>> do_el_out in
+          do_ap f vv
         | false ->
           CM.test_sequent [] (Cof.eq vr Dim1) |> lift_cmp |>> function
           | true -> (* r=1 *)
@@ -1485,7 +1487,3 @@ and splice_tp t =
   let env, tp = Splice.compile t in
   CM.lift_ev env @@ eval_tp tp
 
-and do_equiv_fwd e a =
-  let open CM in
-  let* f = do_el_out e |>> do_fst |>> do_el_out in
-  do_ap f a
