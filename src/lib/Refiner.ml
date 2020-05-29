@@ -470,6 +470,33 @@ struct
   let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Meet []), D.TpCof)
   let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Join []), D.TpCof)
 
+  let code_v (tac_dim : T.chk_tac) (tac_pcode: T.chk_tac) (tac_code : T.chk_tac) (tac_pequiv : T.chk_tac) : T.chk_tac =
+    univ_tac @@ fun univ ->
+    let* r = tac_dim D.TpDim in
+    let* vr : D.dim =
+      let* vr_con = EM.lift_ev @@ Sem.eval r in
+      EM.lift_cmp @@ Sem.con_to_dim vr_con
+    in
+    let* pcode =
+      let tp_pcode = D.Pi (D.TpPrf (Cofibration.eq vr D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+      tac_pcode tp_pcode
+    in
+    let* code = tac_code D.Univ in
+    let+ pequiv =
+      tac_pequiv @<<
+      let* vpcode = EM.lift_ev @@ Sem.eval pcode in
+      let* vcode = EM.lift_ev @@ Sem.eval code in
+      EM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.foreign_dim vr @@ fun r ->
+      Splice.foreign vpcode @@ fun pcode ->
+      Splice.foreign vcode @@ fun code ->
+      Splice.term @@
+      TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+      TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+    in
+    S.CodeV (r, pcode, code, pequiv)
+
   let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@

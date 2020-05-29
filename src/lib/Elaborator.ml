@@ -204,6 +204,8 @@ and bchk_tm : CS.con -> T.bchk_tac =
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
     let quant base (nm, fam) = R.Univ.sg base (T.Chk.bchk @@ R.Pi.intro ~ident:nm @@ fun var -> T.BChk.chk (fam var)) in
     T.BChk.chk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+  | CS.V (r, pcode, code, pequiv) ->
+    T.BChk.chk @@ R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
   | CS.CofEq (c0, c1) ->
     T.BChk.chk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
   | CS.Join cs ->
