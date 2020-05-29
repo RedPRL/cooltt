@@ -445,7 +445,7 @@ struct
         begin
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
-          Equiv.equiv_fwd (pequiv_ i)
+          Equiv.equiv_fwd @@ ap (pequiv_ i) [prf]
         end
       @@ fun f_tilde ->
       let_ ~ident:(`Machine "O")
@@ -511,12 +511,23 @@ struct
           lam @@ fun _ ->
           hcom (ap fibercode [prf]) dim0 dim1 (join [forall (fun i -> eq (s_ i) dim0); eq r r']) @@
           lam ~ident:(`Machine "j") @@ fun j ->
+          lam @@ fun _ ->
           cof_split (el @@ ap fibercode [prf])
             [eq j dim0, ap p_tilde [prf];
              join [forall (fun i -> eq (s_ i) dim0); eq r r'], sub_out @@ ap (el_out @@ ap s_tilde [prf]) [j]]
         end
       @@ fun t_tilde ->
-      prf (* todo *)
+      let_ ~ident:(`Machine "U")
+        begin
+          hcom (code_ r') dim1 (s_ r') (join [eq r r'; eq (s_ r') dim0]) @@
+          lam ~ident:(`Machine "k") @@ fun k ->
+          lam @@ fun _ ->
+          cof_split (el @@ code_ r')
+            [join [eq k dim1; eq r r'], o_tilde;
+             eq (s_ r') dim0, sub_out @@ ap (el_out @@ snd @@ el_out @@ ap t_tilde [prf]) [k]]
+        end
+      @@ fun u_tilde ->
+      vin (s_ r') (pequiv_ r') (lam @@ fun _ -> fst @@ el_out @@ ap t_tilde [prf]) u_tilde
   end
 
   module FHCom :
