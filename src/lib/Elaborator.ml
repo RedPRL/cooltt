@@ -223,12 +223,6 @@ and bchk_tm : CS.con -> T.bchk_tac =
     R.Cof.split branch_tacs
   | CS.Path (tp, a, b) ->
     T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
-  | CS.HFill (tp, src, cof, tm) ->
-    R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
-    R.Tactic.intro_implicit_connectives @@
-    T.BChk.syn @@
-    R.Tactic.elim_implicit_connectives @@
-    R.Univ.hcom (chk_tm tp) (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
   | _ ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
     match tp with
@@ -289,6 +283,17 @@ and syn_tm : CS.con -> T.syn_tac =
       R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
     | CS.HCom (tp, src, trg, cof, tm) ->
       R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | CS.HFill (code, src, cof, tm) ->
+      let code_tac = chk_tm code in
+      let tac =
+        R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
+        R.Tactic.intro_implicit_connectives @@
+        T.BChk.syn @@
+        R.Tactic.elim_implicit_connectives @@
+        R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
+      in
+      T.Syn.ann (T.Chk.bchk tac) @@
+      R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
