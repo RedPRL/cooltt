@@ -47,6 +47,7 @@ let contractum_or x =
 let rec quote_con (tp : D.tp) con : S.t m =
   QuM.abort_if_inconsistent S.CofAbort @@
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
+  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
   match tp, con with
   | _, D.Abort -> ret S.CofAbort
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
