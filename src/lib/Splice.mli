@@ -21,3 +21,8 @@ val foreign_clo : D.tm_clo -> (S.t TB.m -> 'a t) -> 'a t
 val foreign_tp : D.tp -> (S.tp TB.m -> 'a t) -> 'a t
 val compile : 'a t -> D.env * 'a
 val term : 'a TB.m -> 'a t
+
+module Macro :
+sig
+  val tp_pequiv_in_v : r:D.dim -> pcode:D.con -> code:D.con -> S.tp t
+end

@@ -47,6 +47,7 @@ let contractum_or x =
 let rec quote_con (tp : D.tp) con : S.t m =
   QuM.abort_if_inconsistent S.CofAbort @@
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
+  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
   match tp, con with
   | _, D.Abort -> ret S.CofAbort
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
@@ -197,8 +198,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
       let* el_bdy_r = lift_cmp @@ do_el bdy_r in
-      quote_con el_bdy_r @<<
-      lift_cmp @@ do_rigid_cap r s phi bdy con
+      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap con
     and+ tsides =
       QTB.lam (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
@@ -214,18 +214,12 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con tp con
     and+ tot =
       let* tp = lift_cmp @@ do_el code in
-      let* proj = lift_cmp @@ do_rigid_vproj r con in
+      let* proj = lift_cmp @@ do_rigid_vproj con in
       quote_con tp proj
     and+ t_pequiv =
       let* tp_pequiv =
-        lift_cmp @@
-        Sem.splice_tp @@
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign pcode @@ fun pcode ->
-        Splice.foreign code @@ fun code ->
-        Splice.term @@
-        TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-        TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+        lift_cmp @@ Sem.splice_tp @@
+        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
       in
       quote_con tp_pequiv pequiv
     in
@@ -235,6 +229,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
 
   | _ ->
+    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
 and quote_v_data r pcode code pequiv =
@@ -243,14 +238,8 @@ and quote_v_data r pcode code pequiv =
   and+ tcode = quote_con D.Univ code
   and+ t_pequiv =
     let* tp_pequiv =
-      lift_cmp @@
-      Sem.splice_tp @@
-      Splice.foreign_dim r @@ fun r ->
-      Splice.foreign pcode @@ fun pcode ->
-      Splice.foreign code @@ fun code ->
-      Splice.term @@
-      TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-      TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
     in
     quote_con tp_pequiv pequiv
   in
@@ -392,14 +381,8 @@ and quote_hd =
     let* tr = quote_dim r in
     let* t_pequiv =
       let* tp_pequiv =
-        lift_cmp @@
-        Sem.splice_tp @@
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign pcode @@ fun pcode ->
-        Splice.foreign code @@ fun code ->
-        Splice.term @@
-        TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-        TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+        lift_cmp @@ Sem.splice_tp @@
+        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
       in
       quote_con tp_pequiv pequiv
     in

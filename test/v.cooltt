@@ -1,0 +1,28 @@
+def v-test (r : 𝕀) (A : type) : type =
+  V r {_ => A} A {_ =>
+    [ x => x
+    , x =>
+      [ [x, _ => x]
+      , p i =>
+        let aux = hfill A 1 {∂ i} {k _ => [ k=1 => x | i=1 => {snd p} k | i=0 => x ] } in
+        [aux 0, aux]
+      ]
+    ]
+  }
+
+normalize v-test
+
+def cool (A : type) (a : A) : sub A #t {coe {_ => A} 0 1 a} =
+  coe {i => v-test i A} 0 1 a
+
+def cool2 (A : type) (a : A) (i : 𝕀) : A =
+  coe {i => v-test i A} i 0 [_ => a, a]
+
+normalize cool
+normalize cool2
+
+def cool3 (A : type) (a : A) (i : 𝕀) : sub A #t a =
+  let vin : v-test i A = [_ => a, a] in
+  vproj vin
+
+normalize cool3

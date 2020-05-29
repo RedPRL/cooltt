@@ -49,6 +49,7 @@ module Univ : sig
   val pi : chk_tac -> chk_tac -> chk_tac
   val sg : chk_tac -> chk_tac -> chk_tac
   val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
+  val code_v : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac
   val coe : chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
   val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
@@ -57,6 +58,11 @@ end
 module El : sig
   val formation : chk_tac -> tp_tac
   val intro : bchk_tac -> bchk_tac
+  val elim : syn_tac -> syn_tac
+end
+
+module ElV : sig
+  val intro : bchk_tac -> bchk_tac -> bchk_tac
   val elim : syn_tac -> syn_tac
 end
 

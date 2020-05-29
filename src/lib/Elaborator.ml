@@ -183,7 +183,16 @@ and bchk_tm : CS.con -> T.bchk_tac =
   | CS.LamElim cases ->
     R.Tactic.Elim.lam_elim @@ chk_cases cases
   | CS.Pair (c0, c1) ->
-    R.Sg.intro (bchk_tm c0) (bchk_tm c1)
+    begin
+      R.Tactic.bmatch_goal @@ function
+      | D.Sg _, _, _ ->
+        EM.ret @@ R.Sg.intro (bchk_tm c0) (bchk_tm c1)
+      | D.ElUnstable (`V _), _, _ ->
+        EM.ret @@ R.ElV.intro (bchk_tm c0) (bchk_tm c1)
+      | tp, _, _ ->
+        EM.expected_connective `Sg tp
+    end
+
   | CS.Suc c ->
     T.BChk.chk @@ R.Nat.suc (chk_tm c)
   | CS.Let (c, ident, body) ->
@@ -204,6 +213,8 @@ and bchk_tm : CS.con -> T.bchk_tac =
     let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
     let quant base (nm, fam) = R.Univ.sg base (T.Chk.bchk @@ R.Pi.intro ~ident:nm @@ fun var -> T.BChk.chk (fam var)) in
     T.BChk.chk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+  | CS.V (r, pcode, code, pequiv) ->
+    T.BChk.chk @@ R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
   | CS.CofEq (c0, c1) ->
     T.BChk.chk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
   | CS.Join cs ->
@@ -221,12 +232,6 @@ and bchk_tm : CS.con -> T.bchk_tac =
     R.Cof.split branch_tacs
   | CS.Path (tp, a, b) ->
     T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
-  | CS.HFill (tp, src, cof, tm) ->
-    R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
-    R.Tactic.intro_implicit_connectives @@
-    T.BChk.syn @@
-    R.Tactic.elim_implicit_connectives @@
-    R.Univ.hcom (chk_tm tp) (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
   | _ ->
     R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
     match tp with
@@ -266,6 +271,8 @@ and syn_tm : CS.con -> T.syn_tac =
       R.Sg.pi1 @@ syn_tm t
     | CS.Snd t ->
       R.Sg.pi2 @@ syn_tm t
+    | CS.VProj t ->
+      R.ElV.elim @@ syn_tm t
     | CS.Elim {mot; cases; scrut} ->
       R.Tactic.Elim.elim
         (chk_tm mot)
@@ -287,6 +294,17 @@ and syn_tm : CS.con -> T.syn_tac =
       R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
     | CS.HCom (tp, src, trg, cof, tm) ->
       R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | CS.HFill (code, src, cof, tm) ->
+      let code_tac = chk_tm code in
+      let tac =
+        R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
+        R.Tactic.intro_implicit_connectives @@
+        T.BChk.syn @@
+        R.Tactic.elim_implicit_connectives @@
+        R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
+      in
+      T.Syn.ann (T.Chk.bchk tac) @@
+      R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->

@@ -232,8 +232,8 @@ and equate_con tp con0 con1 =
     equate_con bdry_tp bdry0 bdry1
 
   | D.ElUnstable (`HCom (r, s, phi, bdy)) as hcom_tp, _, _ ->
-    let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
-    let* cap1 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con1 in
+    let* cap0 = lift_cmp @@ Sem.do_rigid_cap con0 in
+    let* cap1 = lift_cmp @@ Sem.do_rigid_cap con1 in
     let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
     let* tp_cap = lift_cmp @@ do_el code_cap in
     let* () = equate_con tp_cap cap0 cap1 in
@@ -242,8 +242,8 @@ and equate_con tp con0 con1 =
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
     let* () = QuM.left_invert_under_cofs [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
-    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj r con0 in
-    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj r con1 in
+    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj con0 in
+    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj con1 in
     let* tp_proj = lift_cmp @@ do_el code in
     equate_con tp_proj proj0 proj1
 
@@ -400,12 +400,7 @@ and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   let* pequiv_tp =
     lift_cmp @@
     Sem.splice_tp @@
-    Splice.foreign_dim r0 @@ fun r ->
-    Splice.foreign pcode0 @@ fun pcode ->
-    Splice.foreign code0 @@ fun code ->
-    Splice.term @@
-    TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-    TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+    Splice.Macro.tp_pequiv_in_v ~r:r0 ~pcode:pcode0 ~code:code0
   in
   equate_con pequiv_tp pequiv0 pequiv1
 
