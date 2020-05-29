@@ -440,7 +440,7 @@ and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
     and+ con1 = subst_con r x con1
     and+ con2 = subst_con r x con2 in
     D.KCircleElim (con0, con1, con2)
-    
+
 
 and subst_sp : D.dim -> Symbol.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
@@ -964,61 +964,69 @@ and whnf_tp =
   | tp ->
     ret `Done
 
-and do_nat_elim (mot : D.con) zero (suc : D.con) n : D.con CM.m =
+and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
   let open CM in
-  abort_if_inconsistent D.Abort @@
-  match n with
-  | D.Zero ->
-    ret zero
-  | D.Suc n ->
-    let* v = do_nat_elim mot zero suc n in
-    do_ap2 suc n v
-  | D.Cut {cut} ->
-    let* fib = do_ap mot n in
-    let+ elfib = do_el fib in
-    cut_frm ~tp:elfib ~cut @@
-    D.KNatElim (mot, zero, suc)
-  | D.FHCom (`Nat, r, s, phi, bdy) ->
-    (* bdy : (i : 𝕀) (_ : [_]) → nat *)
-    splice_tm @@
-    Splice.foreign mot @@ fun mot ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.foreign zero @@ fun zero ->
-    Splice.foreign suc @@ fun suc ->
-    Splice.term @@
-    let fam =
-      TB.lam @@ fun i ->
-      let fhcom =
-        TB.el_out @@
-        TB.hcom TB.code_nat r i phi @@
-        TB.lam @@ fun j ->
-        TB.lam @@ fun prf ->
-        TB.el_in @@ TB.ap bdy [j; prf]
+
+  let rec go con =
+    whnf_inspect_con con |>>
+    function
+    | D.Zero ->
+      ret zero
+    | D.Suc con' ->
+      let* v = go con' in
+      do_ap2 suc con' v
+    | D.Cut {cut} ->
+      let* fib = do_ap mot con in
+      let+ elfib = do_el fib in
+      cut_frm ~tp:elfib ~cut @@
+      D.KNatElim (mot, zero, suc)
+    | D.FHCom (`Nat, r, s, phi, bdy) ->
+      (* bdy : (i : 𝕀) (_ : [_]) → nat *)
+      splice_tm @@
+      Splice.foreign mot @@ fun mot ->
+      Splice.foreign_dim r @@ fun r ->
+      Splice.foreign_dim s @@ fun s ->
+      Splice.foreign_cof phi @@ fun phi ->
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.foreign zero @@ fun zero ->
+      Splice.foreign suc @@ fun suc ->
+      Splice.term @@
+      let fam =
+        TB.lam @@ fun i ->
+        let fhcom =
+          TB.el_out @@
+          TB.hcom TB.code_nat r i phi @@
+          TB.lam @@ fun j ->
+          TB.lam @@ fun prf ->
+          TB.el_in @@ TB.ap bdy [j; prf]
+        in
+        TB.ap mot [fhcom]
       in
-      TB.ap mot [fhcom]
-    in
-    let bdy' =
-      TB.lam @@ fun i ->
-      TB.lam @@ fun prf ->
-      TB.nat_elim mot zero suc @@ TB.ap bdy [i; prf]
-    in
-    TB.com fam r s phi bdy'
-  | _ ->
-    Format.eprintf "bad nat-elim: %a@." D.pp_con n;
-    CM.throw @@ NbeFailed "Not a number"
+      let bdy' =
+        TB.lam @@ fun i ->
+        TB.lam @@ fun prf ->
+        TB.nat_elim mot zero suc @@ TB.ap bdy [i; prf]
+      in
+      TB.com fam r s phi bdy'
+    | _ ->
+      Format.eprintf "bad nat-elim: %a@." D.pp_con con;
+      CM.throw @@ NbeFailed "Not a number"
+
+  in
+  fun con ->
+  abort_if_inconsistent D.Abort @@
+  go con
 
 and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
   let open CM in
   abort_if_inconsistent D.Abort @@
-  match c with
+  whnf_inspect_con c |>>
+  function
   | D.Base ->
     ret base
   | D.Loop r ->
     do_ap loop (D.dim_to_con r)
-  | D.Cut {cut} ->
+  | D.Cut {cut} as c ->
     let* fib = do_ap mot c in
     let+ elfib = do_el fib in
     cut_frm ~tp:elfib ~cut @@
@@ -1050,7 +1058,7 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
       TB.circle_elim mot base loop @@ TB.ap bdy [i; prf]
     in
     TB.com fam r s phi bdy'
-  | _ ->
+  | c ->
     Format.eprintf "bad circle-elim: %a@." D.pp_con c;
     CM.throw @@ NbeFailed "Not an element of the circle"
 
