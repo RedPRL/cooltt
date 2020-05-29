@@ -409,6 +409,9 @@ struct
   let nat : T.chk_tac =
     univ_tac @@ fun _ -> EM.ret S.CodeNat
 
+  let circle : T.chk_tac =
+    univ_tac @@ fun _ -> EM.ret S.CodeCircle
+
   let quantifier tac_base tac_fam =
     fun univ ->
     let* base = tac_base univ in
