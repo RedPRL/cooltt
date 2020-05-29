@@ -183,7 +183,16 @@ and bchk_tm : CS.con -> T.bchk_tac =
   | CS.LamElim cases ->
     R.Tactic.Elim.lam_elim @@ chk_cases cases
   | CS.Pair (c0, c1) ->
-    R.Sg.intro (bchk_tm c0) (bchk_tm c1)
+    begin
+      R.Tactic.bmatch_goal @@ function
+      | D.Sg _, _, _ ->
+        EM.ret @@ R.Sg.intro (bchk_tm c0) (bchk_tm c1)
+      | D.ElUnstable (`V _), _, _ ->
+        EM.ret @@ R.ElV.intro (bchk_tm c0) (bchk_tm c1)
+      | tp, _, _ ->
+        EM.expected_connective `Sg tp
+    end
+
   | CS.Suc c ->
     T.BChk.chk @@ R.Nat.suc (chk_tm c)
   | CS.Let (c, ident, body) ->
