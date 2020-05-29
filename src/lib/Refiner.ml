@@ -835,7 +835,7 @@ struct
         let* tac_loop =
           match find_case "loop" cases with
           | Some ([`Simple nm_x], tac) ->
-            EM.ret @@ Pi.intro ~ident:nm_x @@ fun _ -> Pi.intro @@ fun _ -> T.BChk.chk tac
+            EM.ret @@ Pi.intro ~ident:nm_x @@ fun _ -> T.BChk.chk tac
           | Some _ -> EM.elab_err Err.MalformedCase
           | None -> EM.ret @@ Hole.unleash_hole (Some "loop") `Rigid
         in
