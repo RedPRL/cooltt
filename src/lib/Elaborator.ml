@@ -271,6 +271,8 @@ and syn_tm : CS.con -> T.syn_tac =
       R.Sg.pi1 @@ syn_tm t
     | CS.Snd t ->
       R.Sg.pi2 @@ syn_tm t
+    | CS.VProj t ->
+      R.ElV.elim @@ syn_tm t
     | CS.Elim {mot; cases; scrut} ->
       R.Tactic.Elim.elim
         (chk_tm mot)

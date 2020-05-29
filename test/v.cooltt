@@ -20,3 +20,9 @@ def cool2 (A : type) (a : A) (i : 𝕀) : A =
 
 normalize cool
 normalize cool2
+
+def cool3 (A : type) (a : A) (i : 𝕀) : sub A #t a =
+  let vin : v-test i A = [_ => a, a] in
+  vproj vin
+
+normalize cool3
