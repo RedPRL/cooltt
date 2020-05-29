@@ -479,24 +479,6 @@ struct
           Equiv.code_fiber (ap (pcode_ r') [prf]) (code_ r') (ap f_tilde [r'; prf]) o_tilde
         end
       @@ fun fibercode ->
-      let_ ~ident:(`Machine "I")
-        begin
-          lam @@ fun _ ->
-          ap (el_out @@ snd @@ el_out @@ ap (pequiv_ r') [prf]) [o_tilde]
-        end
-      @@ fun i_tilde ->
-      let_ ~ident:(`Machine "P")
-        begin
-          lam @@ fun _ ->
-          fst @@ el_out @@ ap i_tilde [prf]
-        end
-      @@ fun p_tilde ->
-      let_ ~ident:(`Machine "Q")
-        begin
-          lam @@ fun _ ->
-          el_out @@ snd @@ el_out @@ ap i_tilde [prf]
-        end
-      @@ fun q_tilde ->
       let_ ~ident:(`Machine "R")
         begin
           let line = lam ~ident:(`Machine "i") @@ fun i ->
@@ -510,20 +492,15 @@ struct
       @@ fun r_tilde ->
       let_ ~ident:(`Machine "S")
         begin
-          let face =
-            forall (fun i -> eq (s_ i) dim0),
-            el_in @@ pair
-              (coe (lam @@ fun j -> ap (pcode_ j) [prf]) r r' bdy)
-              (ap r_tilde [prf])
-          in
-          let face' =
-            eq r r',
-            el_in @@ pair bdy
-              (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pequiv_ r) bdy)
-          in
           lam @@ fun _ ->
           (* NB: el_in is inside the cof_split, unlike in the TeX *)
-          ap q_tilde [prf; cof_split (el @@ ap fibercode [prf]) [face; face']]
+          Equiv.equiv_inv_path (ap (pequiv_ r') [prf]) o_tilde @@ (* "q_tilde" *)
+          cof_split (el @@ ap fibercode [prf])
+            [forall (fun i -> eq (s_ i) dim0), el_in @@ pair
+               (coe (lam @@ fun j -> ap (pcode_ j) [prf]) r r' bdy)
+               (ap r_tilde [prf]);
+             eq r r', el_in @@ pair bdy
+               (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pequiv_ r) bdy)]
         end
       @@ fun s_tilde ->
       let_ ~ident:(`Machine "T")
@@ -533,7 +510,7 @@ struct
           lam ~ident:(`Machine "j") @@ fun j ->
           lam @@ fun _ ->
           cof_split (el @@ ap fibercode [prf])
-            [eq j dim0, ap p_tilde [prf];
+            [eq j dim0, Equiv.equiv_inv (ap (pequiv_ r') [prf]) o_tilde; (* "p_tilde" *)
              join [forall (fun i -> eq (s_ i) dim0); eq r r'], sub_out @@ ap (el_out @@ ap s_tilde [prf]) [j]]
         end
       @@ fun t_tilde ->

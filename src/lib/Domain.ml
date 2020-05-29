@@ -155,8 +155,14 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "<fhcom>"
   | LetSym _ ->
     Format.fprintf fmt "<let-sym>"
-  | _ ->
-    Format.fprintf fmt "<don't know how to print>"
+  | CodeUniv -> Format.fprintf fmt "<code-univ>"
+  | BindSym _ -> Format.fprintf fmt "<bind-sym>"
+  | CodePath _ -> Format.fprintf fmt "<code-path>"
+  | CodePi _ -> Format.fprintf fmt "<code-pi>"
+  | CodeSg _ -> Format.fprintf fmt "<code-sg>"
+  | CodeV _ -> Format.fprintf fmt "<code-v>"
+  | Box _ -> Format.fprintf fmt "<box>"
+  | VIn _ -> Format.fprintf fmt "<vin>"
 
 and pp_tp fmt =
   function

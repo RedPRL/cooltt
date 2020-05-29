@@ -20,6 +20,9 @@ module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) modul
 
 type 'a whnf = [`Done | `Reduce of 'a]
 
+let cut_frm ~tp ~cut frm =
+  D.Cut {tp; cut = D.push frm cut}
+
 
 let get_local i =
   let open EvM in
@@ -122,40 +125,6 @@ struct
           | false -> ret @@ Cof.eq r s
 end
 
-let con_to_dim =
-  let open CM in
-  function
-  | D.DimCon0 -> ret D.Dim0
-  | D.DimCon1 -> ret D.Dim1
-  | D.Abort -> ret D.Dim0
-  | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
-  | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
-  | con ->
-    Format.eprintf "bad: %a@." D.pp_con con;
-    throw @@ NbeFailed "con_to_dim"
-
-
-let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
-  let open CM in
-  function
-  | Cof.Eq (r, s) ->
-    let+ r = con_to_dim r
-    and+ s = con_to_dim s in
-    Cof.eq r s
-  | Cof.Join phis ->
-    let+ phis = MU.map con_to_cof phis in
-    Cof.join phis
-  | Cof.Meet phis ->
-    let+ phis = MU.map con_to_cof phis in
-    Cof.meet phis
-
-and con_to_cof =
-  let open CM in
-  function
-  | Cof cof -> cof_con_to_cof cof
-  | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
-  | _ -> throw @@ NbeFailed "con_to_cof"
-
 
 let cap_boundary r s phi code box =
   Splice.foreign_dim r @@ fun r ->
@@ -190,8 +159,48 @@ let vproj_boundary r pcode code pequiv v =
     [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
      TB.eq r TB.dim1, v]
 
-(* LOL: experimental haha *)
-let rec subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
+
+
+
+let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
+  let open CM in
+  function
+  | Cof.Eq (r, s) ->
+    let+ r = con_to_dim r
+    and+ s = con_to_dim s in
+    Cof.eq r s
+  | Cof.Join phis ->
+    let+ phis = MU.map con_to_cof phis in
+    Cof.join phis
+  | Cof.Meet phis ->
+    let+ phis = MU.map con_to_cof phis in
+    Cof.meet phis
+
+and con_to_cof =
+  let open CM in
+  fun con ->
+  whnf_inspect_con con |>>
+  function
+  | D.Cof cof -> cof_con_to_cof cof
+  | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
+  | _ -> throw @@ NbeFailed "con_to_cof"
+
+and con_to_dim =
+  let open CM in
+  fun con ->
+  whnf_inspect_con con |>>
+  function
+  | D.DimCon0 -> ret D.Dim0
+  | D.DimCon1 -> ret D.Dim1
+  | D.Abort -> ret D.Dim0
+  | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
+  | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
+  | con ->
+    Format.eprintf "bad: %a@." D.pp_con con;
+    throw @@ NbeFailed "con_to_dim"
+
+
+and subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x con ->
   CM.ret @@ D.LetSym (r, x, con)
 
@@ -446,11 +455,7 @@ and subst_sp : D.dim -> Symbol.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
   CM.MU.map @@ subst_frm r x
 
-let cut_frm ~tp ~cut frm =
-  D.Cut {tp; cut = D.push frm cut}
-
-
-let rec eval_tp : S.tp -> D.tp EvM.m =
+and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
   | S.Nat -> ret D.Nat
@@ -700,7 +705,7 @@ and eval : S.t -> D.con EvM.m =
         | true ->
           splice_tm @@ cap_boundary vr vs vphi vcode vbox
         | false ->
-          do_rigid_cap vr vs vphi vcode vbox
+          do_rigid_cap vbox
       end
 
     | S.VIn (r, equiv, pivot, base) ->
@@ -717,14 +722,16 @@ and eval : S.t -> D.con EvM.m =
         CM.test_sequent [] (Cof.eq vr Dim0) |> lift_cmp |>> function
         | true -> (* r=0 *)
           let* vpequiv = eval pequiv in
-          let* vequiv = lift_cmp @@ do_ap vpequiv D.Prf in
-          lift_cmp @@ do_equiv_fwd vequiv vv
+          lift_cmp @@
+          let open CM in
+          let* f = do_ap vpequiv D.Prf |>> do_el_out |>> do_fst |>> do_el_out in
+          do_ap f vv
         | false ->
           CM.test_sequent [] (Cof.eq vr Dim1) |> lift_cmp |>> function
           | true -> (* r=1 *)
             ret vv
           | false ->
-            lift_cmp @@ do_rigid_vproj vr vv
+            lift_cmp @@ do_rigid_vproj vv
       end
 
     | S.CodeV (r, pcode, code, pequiv) ->
@@ -902,7 +909,7 @@ and whnf_hd hd =
         | `Done ->
           ret `Done
         | `Reduce box ->
-          reduce_to @<< do_rigid_cap r s phi code box
+          reduce_to @<< do_rigid_cap box
     end
   | D.VProj (r, pcode, code, pequiv, cut) ->
     begin
@@ -914,7 +921,7 @@ and whnf_hd hd =
       | false ->
         whnf_cut cut |>> function
         | `Done -> ret `Done
-        | `Reduce v -> reduce_to @<< do_rigid_vproj r v
+        | `Reduce v -> reduce_to @<< do_rigid_vproj v
     end
 
 and whnf_cut cut : D.con whnf CM.m =
@@ -1166,6 +1173,7 @@ and do_ap con arg =
       cut_frm ~tp:fib ~cut @@ D.KAp (base, arg)
 
     | con ->
+      Format.eprintf "bad function: %a / %a@." D.pp_con con D.pp_con arg;
       throw @@ NbeFailed "Not a function in do_ap"
   end
 
@@ -1183,39 +1191,31 @@ and do_sub_out con =
       throw @@ NbeFailed "do_sub_out"
   end
 
-and do_rigid_cap r s phi code =
+and do_rigid_cap box =
   let open CM in
-  fun box ->
-    abort_if_inconsistent D.Abort @@
-    begin
-      inspect_con box |>>
-      function
-      | D.Cut {cut} ->
-        let* code_fib = do_ap2 code (D.dim_to_con r) D.Prf in
-        let* tp = do_el code_fib in
-        ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
-      | D.Box (_,_,_,_,cap) ->
-        ret cap
-      | _ ->
-        throw @@ NbeFailed "do_rigid_cap"
-    end
+  abort_if_inconsistent D.Abort @@
+  begin
+    inspect_con box |>>
+    function
+    | D.Cut {cut; tp = D.ElUnstable (`HCom (r, s, phi, code))} ->
+      let* code_fib = do_ap2 code (D.dim_to_con r) D.Prf in
+      let* tp = do_el code_fib in
+      ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
+    | D.Box (_,_,_,_,cap) ->
+      ret cap
+    | _ ->
+      throw @@ NbeFailed "do_rigid_cap"
+  end
 
-and do_rigid_vproj r v =
+and do_rigid_vproj v =
   let open CM in
   abort_if_inconsistent D.Abort @@
   begin
     inspect_con v |>>
     function
-    | D.Cut {tp = D.El vtp; cut} ->
-      inspect_con vtp |>>
-      begin
-        function
-        | D.CodeV (_,pcode,code,pequiv) ->
-          let* tp = do_el code in
-          ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
-        | _ ->
-          throw @@ NbeFailed "do_rigid_vproj"
-      end
+    | D.Cut {tp = D.ElUnstable (`V (r, pcode, code, pequiv)); cut} ->
+      let* tp = do_el code in
+      ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
     | D.VIn (_, _, _, base) ->
       ret base
     | _ ->
@@ -1584,7 +1584,3 @@ and splice_tp t =
   let env, tp = Splice.compile t in
   CM.lift_ev env @@ eval_tp tp
 
-and do_equiv_fwd e a =
-  let open CM in
-  let* f = do_el_out e |>> do_fst in
-  do_ap f a

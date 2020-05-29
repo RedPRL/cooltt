@@ -62,6 +62,7 @@ val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
 val code_path : t m -> t m -> t m
 val code_v : t m -> t m -> t m -> t m -> t m
+val vproj : t m -> t m -> t m -> t m
 
 val dim0 : t m
 val dim1 : t m

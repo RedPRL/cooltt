@@ -29,6 +29,8 @@ let pp_connective fmt =
     Format.fprintf fmt "prf"
   | `El ->
     Format.fprintf fmt "el"
+  | `ElV ->
+    Format.fprintf fmt "V"
 
 let pp fmt =
   function

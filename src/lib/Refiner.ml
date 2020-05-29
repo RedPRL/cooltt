@@ -473,6 +473,28 @@ struct
   let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Meet []), D.TpCof)
   let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Join []), D.TpCof)
 
+  let code_v (tac_dim : T.chk_tac) (tac_pcode: T.chk_tac) (tac_code : T.chk_tac) (tac_pequiv : T.chk_tac) : T.chk_tac =
+    univ_tac @@ fun univ ->
+    let* r = tac_dim D.TpDim in
+    let* vr : D.dim =
+      let* vr_con = EM.lift_ev @@ Sem.eval r in
+      EM.lift_cmp @@ Sem.con_to_dim vr_con
+    in
+    let* pcode =
+      let tp_pcode = D.Pi (D.TpPrf (Cofibration.eq vr D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+      tac_pcode tp_pcode
+    in
+    let* code = tac_code D.Univ in
+    let+ pequiv =
+      tac_pequiv @<<
+      let* vpcode = EM.lift_ev @@ Sem.eval pcode in
+      let* vcode = EM.lift_ev @@ Sem.eval code in
+      EM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.Macro.tp_pequiv_in_v ~r:vr ~pcode:vpcode ~code:vcode
+    in
+    S.CodeV (r, pcode, code, pequiv)
+
   let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
     let* piuniv =
       EM.lift_cmp @@
@@ -570,6 +592,82 @@ struct
     S.ElOut tm, unfolded
 end
 
+
+module ElV =
+struct
+  let intro (tac_part : T.bchk_tac) (tac_tot : T.bchk_tac) : T.bchk_tac =
+    function
+    | D.ElUnstable (`V (r, pcode, code, pequiv)), phi, clo ->
+      let* part =
+        let* tp_part =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign_dim r @@ fun r ->
+          Splice.term @@
+          TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+          TB.el @@ TB.ap pcode [TB.prf]
+        in
+        let* bdry_fn =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_clo clo @@ fun clo ->
+          Splice.term @@
+          TB.lam @@ fun _ ->
+          TB.lam @@ fun _ ->
+          TB.ap clo [TB.prf]
+        in
+        tac_part (tp_part, phi, D.un_lam bdry_fn)
+      in
+      let* tot =
+        let* tp = EM.lift_cmp @@ Sem.do_el code in
+        let* vpart = EM.lift_ev @@ Sem.eval part in
+        let* bdry_fn =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_cof phi @@ fun phi ->
+          Splice.foreign_clo clo @@ fun clo ->
+          Splice.foreign vpart @@ fun part ->
+          Splice.foreign_dim r @@ fun r ->
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign code @@ fun code ->
+          Splice.foreign pequiv @@ fun pequiv ->
+          Splice.term @@
+          TB.lam @@ fun _ ->
+          let vtp = TB.el @@ TB.code_v r pcode code pequiv in
+          TB.cof_split vtp
+            [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
+             phi, TB.vproj r pequiv @@ TB.ap clo [TB.prf]]
+        in
+        tac_tot (tp, Cofibration.join [Cofibration.eq r D.Dim0; phi], D.un_lam bdry_fn)
+      in
+      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let+ t_pequiv =
+        let* tp_pequiv =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+        in
+        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+      in
+      S.VIn (tr, t_pequiv, part, tot)
+    | tp, _, _ ->
+      EM.expected_connective `ElV tp
+
+  let elim (tac_v : T.syn_tac) : T.syn_tac =
+    let* tm, tp = tac_v in
+    match tp with
+    | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
+      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let* t_pequiv =
+        let* tp_pequiv =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+        in
+        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+      in
+      let vproj = S.VProj (tr, t_pequiv, tm) in
+      let* tp_vproj = EM.lift_cmp @@ Sem.do_el code in
+      EM.ret (vproj, tp_vproj)
+    | _ ->
+      EM.expected_connective `ElV tp
+end
 
 module Structural =
 struct
