@@ -30,6 +30,7 @@
 %token TIMES FST SND
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD
+%token CIRCLE BASE LOOP
 %token PATHD
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF
@@ -40,7 +41,7 @@
 
 %nonassoc IN RRIGHT_ARROW
 %nonassoc COLON
-%nonassoc FST SND VPROJ SUC RIGHT_ARROW TIMES
+%nonassoc FST SND VPROJ SUC LOOP RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -145,6 +146,10 @@ plain_atomic_term_except_name:
     { Lit n }
   | NAT
     { Nat }
+  | BASE
+    { Base }
+  | CIRCLE
+    { Circle }
   | TYPE
     { Type }
   | name = HOLE_NAME
@@ -212,6 +217,8 @@ plain_term_except_cof_case:
     { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
+  | LOOP; t = term
+    { Loop t }
   | t = plain_lambda_except_cof_case
     { t }
   | ELIM; cases = cases
@@ -266,6 +273,10 @@ pat_lbl:
     { "zero" }
   | SUC
     { "suc" }
+  | BASE
+    { "base" }
+  | LOOP
+    { "loop" }
   | lbl = ATOM
     { lbl }
 
