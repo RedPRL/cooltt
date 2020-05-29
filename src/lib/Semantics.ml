@@ -1123,16 +1123,9 @@ and do_rigid_vproj r v =
   begin
     inspect_con v |>>
     function
-    | D.Cut {tp = D.El vtp; cut} ->
-      inspect_con vtp |>>
-      begin
-        function
-        | D.CodeV (_,pcode,code,pequiv) ->
-          let* tp = do_el code in
-          ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
-        | _ ->
-          throw @@ NbeFailed "do_rigid_vproj"
-      end
+    | D.Cut {tp = D.ElUnstable (`V (_, pcode, code, pequiv)); cut} ->
+      let* tp = do_el code in
+      ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
     | D.VIn (_, _, _, base) ->
       ret base
     | _ ->
