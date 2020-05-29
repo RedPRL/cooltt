@@ -88,6 +88,12 @@ module Kan : sig
   val coe_path : fam_line:t m -> bdry_line:t m -> coe
   val hcom_path : fam:t m -> bdry:t m -> hcom
 
+  module V : sig
+    type vcode = {r : t m; pcode : t m; code : t m; pequiv : t m}
+    val hcom_v : v:vcode -> r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
+    val coe_v : v:vcode -> r:t m -> r':t m -> bdy:t m -> t m
+  end
+
   module FHCom : sig
     type fhcom_u = {r : t m; r' : t m; phi : t m; bdy : t m}
     val hcom_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
