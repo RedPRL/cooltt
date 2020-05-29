@@ -657,6 +657,28 @@ struct
     | tp, _, _ ->
       EM.expected_connective `ElV tp
 
+  let elim (tac_v : T.syn_tac) : T.syn_tac =
+    let* tm, tp = tac_v in
+    match tp with
+    | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
+      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let* t_pequiv =
+        let* tp_pequiv =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.foreign_dim r @@ fun r ->
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign code @@ fun code ->
+          Splice.term @@
+          TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+          TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+        in
+        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+      in
+      let vproj = S.VProj (tr, t_pequiv, tm) in
+      let* tp_vproj = EM.lift_cmp @@ Sem.do_el code in
+      EM.ret (vproj, tp_vproj)
+    | _ ->
+      EM.expected_connective `ElV tp
 end
 
 module Structural =

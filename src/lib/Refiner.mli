@@ -63,6 +63,7 @@ end
 
 module ElV : sig
   val intro : bchk_tac -> bchk_tac -> bchk_tac
+  val elim : syn_tac -> syn_tac
 end
 
 module Pi : sig
