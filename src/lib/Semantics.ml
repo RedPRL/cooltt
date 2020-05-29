@@ -1495,5 +1495,5 @@ and splice_tp t =
 
 and do_equiv_fwd e a =
   let open CM in
-  let* f = do_el_out e |>> do_fst in
+  let* f = do_el_out e |>> do_fst |>> do_el_out in
   do_ap f a
