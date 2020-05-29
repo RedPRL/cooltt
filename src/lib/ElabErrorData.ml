@@ -9,6 +9,7 @@ struct
     [ `Pi
     | `Sg
     | `Nat
+    | `Circle
     | `Univ
     | `Dim
     | `Cof

@@ -97,6 +97,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* con1 = lift_cmp @@ inst_tm_clo clo1 prf in
     equate_con tp0 con0 con1
   | D.Nat, D.Nat
+  | D.Circle, D.Circle
   | D.Univ, D.Univ ->
     ret ()
   | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
@@ -171,6 +172,10 @@ and equate_con tp con0 con1 =
     ret ()
   | _, D.Suc con0, D.Suc con1 ->
     equate_con tp con0 con1
+  | _, D.Base, D.Base ->
+    ret ()
+  | _, D.Loop r0, D.Loop r1 ->
+    equate_dim r0 r1
   | D.TpDim, _, _ ->
     let* r0 = lift_cmp @@ con_to_dim con0 in
     let* r1 = lift_cmp @@ con_to_dim con1 in
@@ -192,7 +197,20 @@ and equate_con tp con0 con1 =
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
     equate_hcom (D.CodeNat, r0, s0, phi0, bdy0') (D.CodeNat, r1, s1, phi1, bdy1')
+  | _, D.FHCom (`Circle, r0, s0, phi0, bdy0), D.FHCom (`Circle, r1, s1, phi1, bdy1) ->
+    let fix_body bdy =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let* bdy0' = fix_body bdy0 in
+    let* bdy1' = fix_body bdy1 in
+    equate_hcom (D.CodeCircle, r0, s0, phi0, bdy0') (D.CodeCircle, r1, s1, phi1, bdy1')
   | _, D.CodeNat, D.CodeNat ->
+    ret ()
+  | _, D.CodeCircle, D.CodeCircle ->
     ret ()
   | _, D.CodeUniv, D.CodeUniv ->
     ret ()
@@ -314,6 +332,25 @@ and equate_frm k0 k1 =
       TB.el @@ TB.ap mot [TB.suc x]
     in
     equate_con suc_tp suc_case0 suc_case1
+  | D.KCircleElim (mot0, base_case0, loop_case0), D.KCircleElim (mot1, base_case1, loop_case1) ->
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.circle @@ fun _ -> TB.univ
+    in
+    let* () = equate_con mot_tp mot0 mot1 in
+    let* () =
+      let* mot_base = lift_cmp @@ do_ap mot0 D.Base in
+      let* tp_mot_base = lift_cmp @@ do_el mot_base in
+      equate_con tp_mot_base base_case0 base_case1
+    in
+    let* loop_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot0 @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun x ->
+      TB.el @@ TB.ap mot [TB.loop x]
+    in
+    equate_con loop_tp loop_case0 loop_case1
   | D.KGoalProj, D.KGoalProj ->
     ret ()
   | D.KElOut, D.KElOut ->

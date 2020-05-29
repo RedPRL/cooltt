@@ -29,6 +29,9 @@ val snd : t m -> t m
 val zero : t m
 val suc : t m -> t m
 
+val base : t m
+val loop : t m -> t m
+
 val prf : t m
 
 val cof_split : tp m -> (t m * t m) list -> t m
@@ -43,6 +46,10 @@ val univ : tp m
 val nat : tp m
 val code_nat : t m
 val nat_elim : t m -> t m -> t m -> t m -> t m
+
+val circle : tp m
+val code_circle : t m
+val circle_elim : t m -> t m -> t m -> t m -> t m
 
 val pi : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sg : ?ident:Ident.t -> tp m -> tp b -> tp m

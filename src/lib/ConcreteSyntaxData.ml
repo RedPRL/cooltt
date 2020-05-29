@@ -26,6 +26,9 @@ and con_ =
   | Nat
   | Suc of con
   | Lit of int
+  | Circle
+  | Base
+  | Loop of con
   | Pi of cell list * con
   | Lam of Ident.t list * con
   | Ap of con * con list

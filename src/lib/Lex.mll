@@ -22,6 +22,10 @@ let keywords =
     ("zero", ZERO);
     ("suc", SUC);
     ("nat", NAT);
+    ("base", BASE);
+    ("loop", LOOP);
+    ("circle", CIRCLE);
+    ("🍪", CIRCLE);
     ("let", LET);
     ("in", IN);
     ("fst", FST);

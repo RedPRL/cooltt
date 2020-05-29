@@ -95,6 +95,7 @@ and pp_frame : frm Pp.printer =
    | KSnd -> Format.fprintf fmt "snd"
    | KGoalProj -> Format.fprintf fmt "<goal-proj>"
    | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
+   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
    | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
 and pp_cof : cof Pp.printer =
@@ -118,6 +119,10 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "zero"
   | Suc con ->
     Format.fprintf fmt "suc[%a]" pp_con con
+  | Base ->
+    Format.fprintf fmt "base"
+  | Loop r ->
+    Format.fprintf fmt "loop[%a]" pp_dim r
   | Pair (con0, con1) ->
     Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
   | Prf ->
@@ -142,6 +147,8 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "el/in[%a]" pp_con con
   | CodeNat ->
     Format.fprintf fmt "nat/code"
+  | CodeCircle ->
+    Format.fprintf fmt "circle/code"
   | SubIn _ ->
     Format.fprintf fmt "<sub/in>"
   | FHCom _ ->
@@ -175,6 +182,8 @@ and pp_tp fmt =
     Format.fprintf fmt "<univ>"
   | Nat ->
     Format.fprintf fmt "<nat>"
+  | Circle ->
+    Format.fprintf fmt "<circle>"
   | TpAbort ->
     Format.fprintf fmt "<abort>"
   | El con ->

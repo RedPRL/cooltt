@@ -46,6 +46,7 @@ module Univ : sig
   val formation : tp_tac
   val univ : chk_tac
   val nat : chk_tac
+  val circle : chk_tac
   val pi : chk_tac -> chk_tac -> chk_tac
   val sg : chk_tac -> chk_tac -> chk_tac
   val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
@@ -90,6 +91,18 @@ module Nat : sig
   val formation : tp_tac
   val literal : int -> chk_tac
   val suc : chk_tac -> chk_tac
+  val elim
+    : chk_tac
+    -> chk_tac
+    -> chk_tac
+    -> syn_tac
+    -> syn_tac
+end
+
+module Circle : sig
+  val formation : tp_tac
+  val base : chk_tac
+  val loop : chk_tac -> chk_tac
   val elim
     : chk_tac
     -> chk_tac

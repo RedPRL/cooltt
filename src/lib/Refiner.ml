@@ -409,6 +409,9 @@ struct
   let nat : T.chk_tac =
     univ_tac @@ fun _ -> EM.ret S.CodeNat
 
+  let circle : T.chk_tac =
+    univ_tac @@ fun _ -> EM.ret S.CodeCircle
+
   let quantifier tac_base tac_fam =
     fun univ ->
     let* base = tac_base univ in
@@ -787,6 +790,66 @@ struct
 end
 
 
+module Circle =
+struct
+  let formation =
+    T.Tp.make @@
+    EM.ret S.Circle
+
+  let assert_circle =
+    function
+    | D.Circle -> EM.ret ()
+    | tp -> EM.expected_connective `Circle tp
+
+  let base =
+    fun tp ->
+    let+ () = assert_circle tp in
+    S.Base
+
+  let loop tac : T.chk_tac =
+    fun tp ->
+    let* () = assert_circle tp in
+    let+ r = tac D.TpDim in
+    S.Loop r
+
+  let elim (tac_mot : T.chk_tac) (tac_case_base : T.chk_tac) (tac_case_loop : T.chk_tac) tac_scrut : T.syn_tac =
+    EM.push_problem "elim" @@
+    let* tscrut, circletp = tac_scrut in
+    let* () = assert_circle circletp in
+    let* tmot =
+      tac_mot @<<
+      EM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.circle @@ fun _ -> TB.univ
+    in
+    let* vmot = EM.lift_ev @@ Sem.eval tmot in
+
+    let* tcase_base =
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot D.Base in
+      let* tp = EM.lift_cmp @@ Sem.do_el code in
+      tac_case_base tp
+    in
+
+    let* tcase_loop =
+      let* loop_tp =
+        EM.lift_cmp @@ Sem.splice_tp @@
+        Splice.foreign vmot @@ fun mot ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun x ->
+        TB.el @@ TB.ap mot [TB.loop x]
+      in
+      tac_case_loop loop_tp
+    in
+
+    let+ fib_scrut =
+      let* vscrut = EM.lift_ev @@ Sem.eval tscrut in
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot vscrut in
+      EM.lift_cmp @@ Sem.do_el code
+    in
+
+    S.CircleElim (tmot, tcase_base, tcase_loop, tscrut), fib_scrut
+end
+
+
 module Tactic =
 struct
   let match_goal tac =
@@ -860,6 +923,21 @@ struct
           | None -> EM.ret @@ Hole.unleash_hole (Some "suc") `Rigid
         in
         Nat.elim mot tac_zero (T.Chk.bchk tac_suc) scrut
+      | D.Circle, mot ->
+        let* tac_base : T.chk_tac =
+          match find_case "base" cases with
+          | Some ([], tac) -> EM.ret tac
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ T.Chk.bchk @@ Hole.unleash_hole (Some "base") `Rigid
+        in
+        let* tac_loop =
+          match find_case "loop" cases with
+          | Some ([`Simple nm_x], tac) ->
+            EM.ret @@ Pi.intro ~ident:nm_x @@ fun _ -> T.BChk.chk tac
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ Hole.unleash_hole (Some "loop") `Rigid
+        in
+        Circle.elim mot tac_base (T.Chk.bchk tac_loop) scrut
       | _ ->
         EM.with_pp @@ fun ppenv ->
         let* tp = EM.lift_qu @@ Qu.quote_tp ind_tp in
@@ -868,6 +946,8 @@ struct
     let assert_simple_inductive =
       function
       | D.Nat ->
+        EM.ret ()
+      | D.Circle ->
         EM.ret ()
       | tp ->
         EM.with_pp @@ fun ppenv ->
@@ -879,7 +959,7 @@ struct
       let* base, fam = EM.dest_pi tp in
       let mot_tac : T.chk_tac =
         T.Chk.bchk @@
-        Pi.intro @@ fun var -> (* of type nat *)
+        Pi.intro @@ fun var -> (* of inductive type *)
         T.BChk.chk @@ fun goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
         match fib with

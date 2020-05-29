@@ -34,20 +34,25 @@ struct
     | None -> Hashtbl.remove tbl k
     | Some v -> Hashtbl.replace tbl k v
 
-  let rec reroot t =
+  let rec rerootk (t : ('k, 'a) t) (kont : unit -> unit) : unit =
     match !t with
-    | Tbl _ ->
-      ()
+    | Tbl _ -> kont ()
     | Diff (k, ov, t') ->
-      reroot t';
-      match !t' with
-      | Tbl a as n ->
-        let ov' = Hashtbl.find_opt a k in
-        raw_set_opt a k ov;
-        t := n;
-        t' := Diff (k, ov', t)
-      | _ ->
-        raise Fatal
+      (rerootk[@tailcall]) t' @@ fun () ->
+      begin
+        match !t' with
+        | Tbl a as n ->
+          let ov' = Hashtbl.find_opt a k in
+          raw_set_opt a k ov;
+          t := n;
+          t' := Diff (k, ov', t)
+        | Diff _ ->
+          assert false
+      end;
+      kont ()
+
+  let reroot t =
+    rerootk t @@ fun () -> ()
 
   let size t =
     reroot t;

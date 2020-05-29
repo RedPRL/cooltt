@@ -1,0 +1,17 @@
+def Ω1s1 : type =
+  pathd {_ => circle} base base
+
+def loopn : nat -> Ω1s1 =
+  elim [
+  | zero => _ => base
+  | suc {n => loopn} =>
+    i =>
+    hcom circle 0 1 {∂ i} {k _ =>
+      [ k=0 => loopn i
+      | i=0 => base
+      | i=1 => loop k
+      ]
+    }
+  ]
+
+normalize {loopn 45}
