@@ -92,6 +92,18 @@ module Nat : sig
     -> syn_tac
 end
 
+module Circle : sig
+  val formation : tp_tac
+  val base : chk_tac
+  val loop : chk_tac -> chk_tac
+  val elim
+    : chk_tac
+    -> chk_tac
+    -> chk_tac
+    -> syn_tac
+    -> syn_tac
+end
+
 module Structural : sig
   val let_ : ?ident:Ident.t -> syn_tac -> (var -> bchk_tac) -> bchk_tac
   val let_syn : ?ident:Ident.t -> syn_tac -> (var -> syn_tac) -> syn_tac

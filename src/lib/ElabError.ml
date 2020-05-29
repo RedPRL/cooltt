@@ -21,6 +21,8 @@ let pp_connective fmt =
     Format.fprintf fmt "univ"
   | `Nat ->
     Format.fprintf fmt "nat"
+  | `Circle ->
+    Format.fprintf fmt "circle"
   | `Sub ->
     Format.fprintf fmt "sub"
   | `Prf ->

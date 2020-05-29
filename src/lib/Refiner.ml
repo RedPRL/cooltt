@@ -689,6 +689,66 @@ struct
 end
 
 
+module Circle =
+struct
+  let formation =
+    T.Tp.make @@
+    EM.ret S.Circle
+
+  let assert_circle =
+    function
+    | D.Circle -> EM.ret ()
+    | tp -> EM.expected_connective `Circle tp
+
+  let base =
+    fun tp ->
+    let+ () = assert_circle tp in
+    S.Base
+
+  let loop tac : T.chk_tac =
+    fun tp ->
+    let* () = assert_circle tp in
+    let+ r = tac D.TpDim in
+    S.Loop r
+
+  let elim (tac_mot : T.chk_tac) (tac_case_base : T.chk_tac) (tac_case_loop : T.chk_tac) tac_scrut : T.syn_tac =
+    EM.push_problem "elim" @@
+    let* tscrut, circletp = tac_scrut in
+    let* () = assert_circle circletp in
+    let* tmot =
+      tac_mot @<<
+      EM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.circle @@ fun _ -> TB.univ
+    in
+    let* vmot = EM.lift_ev @@ Sem.eval tmot in
+
+    let* tcase_base =
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot D.Base in
+      let* tp = EM.lift_cmp @@ Sem.do_el code in
+      tac_case_base tp
+    in
+
+    let* tcase_loop =
+      let* loop_tp =
+        EM.lift_cmp @@ Sem.splice_tp @@
+        Splice.foreign vmot @@ fun mot ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun x ->
+        TB.el @@ TB.ap mot [TB.loop x]
+      in
+      tac_case_loop loop_tp
+    in
+
+    let+ fib_scrut =
+      let* vscrut = EM.lift_ev @@ Sem.eval tscrut in
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot vscrut in
+      EM.lift_cmp @@ Sem.do_el code
+    in
+
+    S.CircleElim (tmot, tcase_base, tcase_loop, tscrut), fib_scrut
+end
+
+
 module Tactic =
 struct
   let match_goal tac =
