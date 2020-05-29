@@ -58,7 +58,7 @@ struct
       raise Fatal
 
   let get k t =
-    reroot t;
+    (* reroot t; *)    (* this is causing stack overflow ??? *)
     match !t with
     | Tbl a ->
       Hashtbl.find a k
