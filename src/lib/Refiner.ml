@@ -822,6 +822,21 @@ struct
           | None -> EM.ret @@ Hole.unleash_hole (Some "suc") `Rigid
         in
         Nat.elim mot tac_zero (T.Chk.bchk tac_suc) scrut
+      | D.Circle, mot ->
+        let* tac_base : T.chk_tac =
+          match find_case "base" cases with
+          | Some ([], tac) -> EM.ret tac
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ T.Chk.bchk @@ Hole.unleash_hole (Some "base") `Rigid
+        in
+        let* tac_loop =
+          match find_case "loop" cases with
+          | Some ([`Simple nm_x], tac) ->
+            EM.ret @@ Pi.intro ~ident:nm_x @@ fun _ -> Pi.intro @@ fun _ -> T.BChk.chk tac
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ Hole.unleash_hole (Some "loop") `Rigid
+        in
+        Circle.elim mot tac_base (T.Chk.bchk tac_loop) scrut
       | _ ->
         EM.with_pp @@ fun ppenv ->
         let* tp = EM.lift_qu @@ Qu.quote_tp ind_tp in
@@ -830,6 +845,8 @@ struct
     let assert_simple_inductive =
       function
       | D.Nat ->
+        EM.ret ()
+      | D.Circle ->
         EM.ret ()
       | tp ->
         EM.with_pp @@ fun ppenv ->
@@ -841,7 +858,7 @@ struct
       let* base, fam = EM.dest_pi tp in
       let mot_tac : T.chk_tac =
         T.Chk.bchk @@
-        Pi.intro @@ fun var -> (* of type nat *)
+        Pi.intro @@ fun var -> (* of inductive type *)
         T.BChk.chk @@ fun goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
         match fib with
