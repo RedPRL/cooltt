@@ -38,7 +38,7 @@ struct
     match !t with
     | Tbl _ -> kont ()
     | Diff (k, ov, t') ->
-      rerootk t' @@ fun () ->
+      (rerootk[@tailcall]) t' @@ fun () ->
       begin
         match !t' with
         | Tbl a as n ->
