@@ -199,6 +199,8 @@ and bchk_tm : CS.con -> T.bchk_tac =
       unfold idents @@ bchk_tm c goal
   | CS.Nat ->
     T.BChk.chk R.Univ.nat
+  | CS.Circle ->
+    T.BChk.chk R.Univ.circle
   | CS.Type ->
     T.BChk.chk R.Univ.univ
   | CS.Pi (cells, body) ->
