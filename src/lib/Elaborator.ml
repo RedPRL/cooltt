@@ -34,6 +34,7 @@ sig
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val path : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
+  val circle : tac
   val univ : tac
   val dim : tac
   val cof : tac
@@ -92,6 +93,7 @@ struct
     Code tac
 
   let nat = Code R.Univ.nat
+  let circle = Code R.Univ.circle
   let univ = Code R.Univ.univ
   let dim = Tp R.Dim.formation
   let cof = Tp R.Cof.formation
@@ -186,6 +188,10 @@ and bchk_tm : CS.con -> T.bchk_tac =
     R.Sg.intro (bchk_tm c0) (bchk_tm c1)
   | CS.Suc c ->
     T.BChk.chk @@ R.Nat.suc (chk_tm c)
+  | CS.Base ->
+    T.BChk.chk @@ R.Circle.base
+  | CS.Loop c ->
+    T.BChk.chk @@ R.Circle.loop (chk_tm c)
   | CS.Let (c, ident, body) ->
     R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
   | CS.Unfold (idents, c) ->
