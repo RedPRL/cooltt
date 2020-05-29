@@ -9,3 +9,8 @@ def v-test (r : 𝕀) (A : type) : type =
       ]
     ]
   }
+
+normalize v-test
+
+def scary (A : type) (a : A) : A =
+  coe {i => v-test i A} 0 1 a

@@ -20,6 +20,9 @@ module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) modul
 
 type 'a whnf = [`Done | `Reduce of 'a]
 
+let cut_frm ~tp ~cut frm =
+  D.Cut {tp; cut = D.push frm cut}
+
 
 let get_local i =
   let open EvM in
@@ -122,40 +125,6 @@ struct
           | false -> ret @@ Cof.eq r s
 end
 
-let con_to_dim =
-  let open CM in
-  function
-  | D.DimCon0 -> ret D.Dim0
-  | D.DimCon1 -> ret D.Dim1
-  | D.Abort -> ret D.Dim0
-  | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
-  | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
-  | con ->
-    Format.eprintf "bad: %a@." D.pp_con con;
-    throw @@ NbeFailed "con_to_dim"
-
-
-let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
-  let open CM in
-  function
-  | Cof.Eq (r, s) ->
-    let+ r = con_to_dim r
-    and+ s = con_to_dim s in
-    Cof.eq r s
-  | Cof.Join phis ->
-    let+ phis = MU.map con_to_cof phis in
-    Cof.join phis
-  | Cof.Meet phis ->
-    let+ phis = MU.map con_to_cof phis in
-    Cof.meet phis
-
-and con_to_cof =
-  let open CM in
-  function
-  | Cof cof -> cof_con_to_cof cof
-  | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
-  | _ -> throw @@ NbeFailed "con_to_cof"
-
 
 let cap_boundary r s phi code box =
   Splice.foreign_dim r @@ fun r ->
@@ -190,8 +159,48 @@ let vproj_boundary r pcode code pequiv v =
     [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
      TB.eq r TB.dim1, v]
 
-(* LOL: experimental haha *)
-let rec subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
+
+
+
+let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
+  let open CM in
+  function
+  | Cof.Eq (r, s) ->
+    let+ r = con_to_dim r
+    and+ s = con_to_dim s in
+    Cof.eq r s
+  | Cof.Join phis ->
+    let+ phis = MU.map con_to_cof phis in
+    Cof.join phis
+  | Cof.Meet phis ->
+    let+ phis = MU.map con_to_cof phis in
+    Cof.meet phis
+
+and con_to_cof =
+  let open CM in
+  fun con ->
+  whnf_inspect_con con |>>
+  function
+  | D.Cof cof -> cof_con_to_cof cof
+  | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
+  | _ -> throw @@ NbeFailed "con_to_cof"
+
+and con_to_dim =
+  let open CM in
+  fun con ->
+  whnf_inspect_con con |>>
+  function
+  | D.DimCon0 -> ret D.Dim0
+  | D.DimCon1 -> ret D.Dim1
+  | D.Abort -> ret D.Dim0
+  | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
+  | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
+  | con ->
+    Format.eprintf "bad: %a@." D.pp_con con;
+    throw @@ NbeFailed "con_to_dim"
+
+
+and subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x con ->
   CM.ret @@ D.LetSym (r, x, con)
 
@@ -437,11 +446,7 @@ and subst_sp : D.dim -> Symbol.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
   CM.MU.map @@ subst_frm r x
 
-let cut_frm ~tp ~cut frm =
-  D.Cut {tp; cut = D.push frm cut}
-
-
-let rec eval_tp : S.tp -> D.tp EvM.m =
+and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
   | S.Nat -> ret D.Nat
@@ -1077,6 +1082,7 @@ and do_ap con arg =
       cut_frm ~tp:fib ~cut @@ D.KAp (base, arg)
 
     | con ->
+      Format.eprintf "bad function: %a@." D.pp_con con;
       throw @@ NbeFailed "Not a function in do_ap"
   end
 
