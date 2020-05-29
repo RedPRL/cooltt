@@ -1281,6 +1281,8 @@ and dispatch_rigid_hcom code =
       ret @@ `Reduce (`FHCom `Univ)
     | D.FHCom (`Univ, r, s, phi, bdy) ->
       ret @@ `Reduce (`HComFHCom (r, s, phi, bdy))
+    | D.CodeV (r, a, b, e) ->
+      ret @@ `Reduce (`HComV (r, a, b, e))
     | D.Cut {cut} ->
       ret @@ `Done cut
     | _ ->
@@ -1398,6 +1400,19 @@ and enact_rigid_hcom code r r' phi bdy tag =
     Splice.term @@
     let fhcom = TB.Kan.FHCom.{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} in
     TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~r' ~phi ~bdy
+  | `HComV (h_r,h_pcode,h_code,h_pequiv) ->
+    splice_tm @@
+    Splice.foreign_dim r @@ fun r ->
+    Splice.foreign_dim r' @@ fun r' ->
+    Splice.foreign_cof phi @@ fun phi ->
+    Splice.foreign bdy @@ fun bdy ->
+    Splice.foreign_dim h_r @@ fun h_r ->
+    Splice.foreign h_pcode @@ fun h_pcode ->
+    Splice.foreign h_code @@ fun h_code ->
+    Splice.foreign h_pequiv @@ fun h_pequiv ->
+    Splice.term @@
+    let v = TB.Kan.V.{r = h_r; pcode = h_pcode; code = h_code; pequiv = h_pequiv} in
+    TB.Kan.V.hcom_v ~v ~r ~r' ~phi ~bdy
   | `Done cut ->
     let tp = D.ElCut cut in
     let hd = D.HCom (cut, r, r', phi, bdy) in
