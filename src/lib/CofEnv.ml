@@ -58,7 +58,7 @@ sig
   val seq : ('a -> t) -> 'a list -> t
 
   (** If the first component returns a "good" result, then don't bother with the second. (???) *)
-  val fast_track : (unit -> t) -> (unit -> t) -> t
+  val fast_track : (unit -> t) -> (t -> t) -> t
 end
 
 module SearchHelper :
@@ -124,9 +124,9 @@ struct
       function
       | None -> M.vacuous
       | Some ({classes; true_vars; unreduced_joins} as env) ->
-        M.fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
+        M.fast_track (fun _ -> cont {classes; true_vars}) @@ fun result ->
         match unreduced_joins with
-        | [] -> cont {classes; true_vars}
+        | [] -> result
         | psis :: unreduced_joins ->
           if SearchHelper.is_consistent env then
             psis |> M.seq @@ fun psi ->
@@ -167,7 +167,7 @@ struct
   let vacuous = true
   let seq = List.for_all
   let fast_track x y =
-    if x () then true else y ()
+    if x () then true else y false
 end
 
 module BoolSearchAll = Search (BoolSeqAll)
@@ -198,7 +198,7 @@ end
 =
 struct
   module MU = CoolBasis.Monad.Util (M)
-  module Seq = struct type t = unit M.m let vacuous = M.ret () let seq = MU.iter let fast_track _ x = x () end
+  module Seq = struct type t = unit M.m let vacuous = M.ret () let seq = MU.iter let fast_track _ x = x (M.ret ()) end
   module S = Search (Seq)
 
   let left_invert_under_cofs env phis cont =
