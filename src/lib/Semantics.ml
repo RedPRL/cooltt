@@ -1240,6 +1240,8 @@ and dispatch_rigid_coe line =
       `Reduce `CoeUniv
     | D.FHCom (`Univ, sx, s'x, phix, bdyx) ->
       `Reduce (`CoeHCom (x, sx, s'x, phix, bdyx))
+    | D.CodeV (s, a, b, e) ->
+      `Reduce (`V (x, s, a, b, e))
     | D.Cut {cut} ->
       `Done
     | _ ->
@@ -1327,6 +1329,17 @@ and enact_rigid_coe line r r' con tag =
     Splice.foreign con @@ fun bdy ->
     let fhcom = TB.Kan.FHCom.{r = s; r' = s'; phi; bdy = code} in
     Splice.term @@ TB.Kan.FHCom.coe_fhcom ~fhcom ~r ~r' ~bdy
+  | `V (x, s, pcode, code, pequiv) ->
+    splice_tm @@
+    Splice.foreign (D.BindSym (x, D.dim_to_con s)) @@ fun s ->
+    Splice.foreign (D.BindSym (x, pcode)) @@ fun pcode ->
+    Splice.foreign (D.BindSym (x, code)) @@ fun code ->
+    Splice.foreign (D.BindSym (x, pequiv)) @@ fun pequiv ->
+    Splice.foreign_dim r @@ fun r ->
+    Splice.foreign_dim r' @@ fun r' ->
+    Splice.foreign con @@ fun bdy ->
+    let v = TB.Kan.V.{r = s; pcode; code; pequiv} in
+    Splice.term @@ TB.Kan.V.coe_v ~v ~r ~r' ~bdy
 
 and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in
