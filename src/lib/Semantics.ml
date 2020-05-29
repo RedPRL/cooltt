@@ -675,7 +675,7 @@ and eval : S.t -> D.con EvM.m =
         | true ->
           splice_tm @@ cap_boundary vr vs vphi vcode vbox
         | false ->
-          do_rigid_cap vr vs vphi vcode vbox
+          do_rigid_cap vbox
       end
 
     | S.VIn (r, equiv, pivot, base) ->
@@ -699,7 +699,7 @@ and eval : S.t -> D.con EvM.m =
           | true -> (* r=1 *)
             ret vv
           | false ->
-            lift_cmp @@ do_rigid_vproj vr vv
+            lift_cmp @@ do_rigid_vproj vv
       end
 
     | S.CodeV (r, pcode, code, pequiv) ->
@@ -870,7 +870,7 @@ and whnf_hd hd =
         | `Done ->
           ret `Done
         | `Reduce box ->
-          reduce_to @<< do_rigid_cap r s phi code box
+          reduce_to @<< do_rigid_cap box
     end
   | D.VProj (r, pcode, code, pequiv, cut) ->
     begin
@@ -882,7 +882,7 @@ and whnf_hd hd =
       | false ->
         whnf_cut cut |>> function
         | `Done -> ret `Done
-        | `Reduce v -> reduce_to @<< do_rigid_vproj r v
+        | `Reduce v -> reduce_to @<< do_rigid_vproj v
     end
 
 and whnf_cut cut : D.con whnf CM.m =
@@ -1100,30 +1100,29 @@ and do_sub_out con =
       throw @@ NbeFailed "do_sub_out"
   end
 
-and do_rigid_cap r s phi code =
+and do_rigid_cap box =
   let open CM in
-  fun box ->
-    abort_if_inconsistent D.Abort @@
-    begin
-      inspect_con box |>>
-      function
-      | D.Cut {cut} ->
-        let* code_fib = do_ap2 code (D.dim_to_con r) D.Prf in
-        let* tp = do_el code_fib in
-        ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
-      | D.Box (_,_,_,_,cap) ->
-        ret cap
-      | _ ->
-        throw @@ NbeFailed "do_rigid_cap"
-    end
+  abort_if_inconsistent D.Abort @@
+  begin
+    inspect_con box |>>
+    function
+    | D.Cut {cut; tp = D.ElUnstable (`HCom (r, s, phi, code))} ->
+      let* code_fib = do_ap2 code (D.dim_to_con r) D.Prf in
+      let* tp = do_el code_fib in
+      ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
+    | D.Box (_,_,_,_,cap) ->
+      ret cap
+    | _ ->
+      throw @@ NbeFailed "do_rigid_cap"
+  end
 
-and do_rigid_vproj r v =
+and do_rigid_vproj v =
   let open CM in
   abort_if_inconsistent D.Abort @@
   begin
     inspect_con v |>>
     function
-    | D.Cut {tp = D.ElUnstable (`V (_, pcode, code, pequiv)); cut} ->
+    | D.Cut {tp = D.ElUnstable (`V (r, pcode, code, pequiv)); cut} ->
       let* tp = do_el code in
       ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
     | D.VIn (_, _, _, base) ->

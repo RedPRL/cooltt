@@ -198,8 +198,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
       let* el_bdy_r = lift_cmp @@ do_el bdy_r in
-      quote_con el_bdy_r @<<
-      lift_cmp @@ do_rigid_cap r s phi bdy con
+      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap con
     and+ tsides =
       QTB.lam (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
@@ -215,7 +214,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con tp con
     and+ tot =
       let* tp = lift_cmp @@ do_el code in
-      let* proj = lift_cmp @@ do_rigid_vproj r con in
+      let* proj = lift_cmp @@ do_rigid_vproj con in
       quote_con tp proj
     and+ t_pequiv =
       let* tp_pequiv =
