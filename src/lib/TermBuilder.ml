@@ -173,6 +173,26 @@ let suc m =
   let+ x = m in
   S.Suc x
 
+let circle : _ m =
+  ret S.Circle
+
+let code_circle =
+  ret S.CodeCircle
+
+let circle_elim mmot mbase mloop mscrut =
+  let+ mot = mmot
+  and+ base = mbase
+  and+ loop = mloop
+  and+ scrut = mscrut in
+  S.CircleElim (mot, base, loop, scrut)
+
+let base =
+  ret S.Base
+
+let loop m =
+  let+ x = m in
+  S.Loop x
+
 let pi ?(ident = `Anon) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in

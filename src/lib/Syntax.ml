@@ -143,10 +143,6 @@ let rec pp env fmt tm =
       | Some n -> Format.fprintf fmt "%i" (n + 1)
       | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
     end
-  | CodeNat ->
-    Format.fprintf fmt "<nat>"
-  | CodeUniv ->
-    Format.fprintf fmt "<type>"
   | NatElim (mot, zero, suc, tm) ->
     Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
       (pp_atomic env) tm
@@ -154,6 +150,17 @@ let rec pp env fmt tm =
       (pp_atomic env) mot
       (pp env) zero
       (pp env) suc
+  | Base ->
+    Format.fprintf fmt "base"
+  | Loop tm ->
+    Format.fprintf fmt "loop %a" (pp_atomic env) tm
+  | CircleElim (mot, base, loop, tm) ->
+    Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
+      (pp_atomic env) tm
+      "@"
+      (pp_atomic env) mot
+      (pp env) base
+      (pp env) loop
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp env fmt tm
   | CodePi (base, fam) ->
@@ -170,6 +177,12 @@ let rec pp env fmt tm =
     Format.fprintf fmt "@[prim-path %a %a@]"
       (pp_atomic env) fam
       (pp_atomic env) bdry
+  | CodeNat ->
+    Format.fprintf fmt "<nat>"
+  | CodeCircle ->
+    Format.fprintf fmt "<circle>"
+  | CodeUniv ->
+    Format.fprintf fmt "<type>"
   | Dim0 ->
     Format.fprintf fmt "0"
   | Dim1 ->
@@ -246,6 +259,8 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "type"
   | Nat ->
     Format.fprintf fmt "nat"
+  | Circle ->
+    Format.fprintf fmt "circle"
   | El tm ->
     Format.fprintf fmt "el %a" (pp_atomic env) tm
   | TpVar ix ->
@@ -268,8 +283,8 @@ and pp_cof_split_branch env fmt (phi, tm) =
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeUniv
-  | Zero | Prf ->
+  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
+  | Zero | Base | Prf ->
     pp env fmt tm
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp_atomic env fmt tm

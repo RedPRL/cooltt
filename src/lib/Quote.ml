@@ -124,6 +124,9 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | _, D.CodeNat ->
     ret S.CodeNat
 
+  | _, D.CodeCircle ->
+    ret S.CodeCircle
+
   | _, D.CodeUniv ->
     ret S.CodeUniv
 
@@ -188,6 +191,17 @@ let rec quote_con (tp : D.tp) con : S.t m =
       TB.el_in @@ TB.ap bdy [i; prf]
     in
     let+ tm = quote_hcom D.CodeNat r s phi bdy' in
+    S.ElOut tm
+
+  | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeCircle r s phi bdy' in
     S.ElOut tm
 
   | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
@@ -280,6 +294,7 @@ and quote_tp (tp : D.tp) =
   match tp with
   | D.TpAbort -> ret @@ S.El S.CofAbort
   | D.Nat -> ret S.Nat
+  | D.Circle -> ret S.Circle
   | D.Pi (base, ident, fam) ->
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
@@ -470,6 +485,26 @@ and quote_frm tm =
     in
     let* tsuc_case = quote_con suc_tp suc_case in
     ret @@ S.NatElim (tmot, tzero_case, tsuc_case, tm)
+  | D.KCircleElim (mot, base_case, loop_case) ->
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.circle @@ fun _ -> TB.univ
+    in
+    let* tmot = quote_con mot_tp mot in
+    let* tbase_case =
+      let* mot_base = lift_cmp @@ do_ap mot D.Base in
+      let* tp_mot_base = lift_cmp @@ do_el mot_base in
+      quote_con tp_mot_base base_case
+    in
+    let* loop_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun x ->
+      TB.el @@ TB.ap mot [TB.loop x]
+    in
+    let* tloop_case = quote_con loop_tp loop_case in
+    ret @@ S.CircleElim (tmot, tbase_case, tloop_case, tm)
   | D.KFst ->
     ret @@ S.Fst tm
   | D.KSnd ->
