@@ -235,6 +235,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
 
   | _ ->
+    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
 and quote_v_data r pcode code pequiv =

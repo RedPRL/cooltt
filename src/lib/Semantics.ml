@@ -1082,7 +1082,7 @@ and do_ap con arg =
       cut_frm ~tp:fib ~cut @@ D.KAp (base, arg)
 
     | con ->
-      Format.eprintf "bad function: %a@." D.pp_con con;
+      Format.eprintf "bad function: %a / %a@." D.pp_con con D.pp_con arg;
       throw @@ NbeFailed "Not a function in do_ap"
   end
 
