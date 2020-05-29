@@ -218,14 +218,8 @@ let rec quote_con (tp : D.tp) con : S.t m =
       quote_con tp proj
     and+ t_pequiv =
       let* tp_pequiv =
-        lift_cmp @@
-        Sem.splice_tp @@
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign pcode @@ fun pcode ->
-        Splice.foreign code @@ fun code ->
-        Splice.term @@
-        TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-        TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+        lift_cmp @@ Sem.splice_tp @@
+        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
       in
       quote_con tp_pequiv pequiv
     in
@@ -244,14 +238,8 @@ and quote_v_data r pcode code pequiv =
   and+ tcode = quote_con D.Univ code
   and+ t_pequiv =
     let* tp_pequiv =
-      lift_cmp @@
-      Sem.splice_tp @@
-      Splice.foreign_dim r @@ fun r ->
-      Splice.foreign pcode @@ fun pcode ->
-      Splice.foreign code @@ fun code ->
-      Splice.term @@
-      TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-      TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
     in
     quote_con tp_pequiv pequiv
   in
@@ -393,14 +381,8 @@ and quote_hd =
     let* tr = quote_dim r in
     let* t_pequiv =
       let* tp_pequiv =
-        lift_cmp @@
-        Sem.splice_tp @@
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign pcode @@ fun pcode ->
-        Splice.foreign code @@ fun code ->
-        Splice.term @@
-        TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-        TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+        lift_cmp @@ Sem.splice_tp @@
+        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
       in
       quote_con tp_pequiv pequiv
     in

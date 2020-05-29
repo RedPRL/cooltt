@@ -488,12 +488,7 @@ struct
       let* vcode = EM.lift_ev @@ Sem.eval code in
       EM.lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign_dim vr @@ fun r ->
-      Splice.foreign vpcode @@ fun pcode ->
-      Splice.foreign vcode @@ fun code ->
-      Splice.term @@
-      TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-      TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+      Splice.Macro.tp_pequiv_in_v ~r:vr ~pcode:vpcode ~code:vcode
     in
     S.CodeV (r, pcode, code, pequiv)
 
@@ -644,12 +639,7 @@ struct
       let+ t_pequiv =
         let* tp_pequiv =
           EM.lift_cmp @@ Sem.splice_tp @@
-          Splice.foreign_dim r @@ fun r ->
-          Splice.foreign pcode @@ fun pcode ->
-          Splice.foreign code @@ fun code ->
-          Splice.term @@
-          TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-          TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+          Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
         in
         EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
       in
@@ -665,12 +655,7 @@ struct
       let* t_pequiv =
         let* tp_pequiv =
           EM.lift_cmp @@ Sem.splice_tp @@
-          Splice.foreign_dim r @@ fun r ->
-          Splice.foreign pcode @@ fun pcode ->
-          Splice.foreign code @@ fun code ->
-          Splice.term @@
-          TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
-          TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+          Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
         in
         EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
       in

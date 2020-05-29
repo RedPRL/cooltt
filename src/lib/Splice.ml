@@ -32,3 +32,14 @@ let compile (t : 'a t) : D.env *'a  =
 let term (m : 'a TB.m) : 'a t =
   fun env ->
   m, env
+
+module Macro =
+struct
+  let tp_pequiv_in_v ~r ~pcode ~code =
+    foreign_dim r @@ fun r ->
+    foreign pcode @@ fun pcode ->
+    foreign code @@ fun code ->
+    term @@
+    TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+    TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+end
