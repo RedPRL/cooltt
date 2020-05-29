@@ -61,6 +61,10 @@ module El : sig
   val elim : syn_tac -> syn_tac
 end
 
+module ElV : sig
+  val intro : bchk_tac -> bchk_tac -> bchk_tac
+end
+
 module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
   val intro : ?ident:Ident.t -> (var -> bchk_tac) -> bchk_tac

@@ -595,6 +595,70 @@ struct
 end
 
 
+module ElV =
+struct
+  let intro (tac_part : T.bchk_tac) (tac_tot : T.bchk_tac) : T.bchk_tac =
+    function
+    | D.ElUnstable (`V (r, pcode, code, pequiv)), phi, clo ->
+      let* part =
+        let* tp_part =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign_dim r @@ fun r ->
+          Splice.term @@
+          TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+          TB.el @@ TB.ap pcode [TB.prf]
+        in
+        let* bdry_fn =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_clo clo @@ fun clo ->
+          Splice.term @@
+          TB.lam @@ fun _ ->
+          TB.lam @@ fun _ ->
+          TB.ap clo [TB.prf]
+        in
+        tac_part (tp_part, phi, D.un_lam bdry_fn)
+      in
+      let* tot =
+        let* tp = EM.lift_cmp @@ Sem.do_el code in
+        let* vpart = EM.lift_ev @@ Sem.eval part in
+        let* bdry_fn =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_cof phi @@ fun phi ->
+          Splice.foreign_clo clo @@ fun clo ->
+          Splice.foreign vpart @@ fun part ->
+          Splice.foreign_dim r @@ fun r ->
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign code @@ fun code ->
+          Splice.foreign pequiv @@ fun pequiv ->
+          Splice.term @@
+          TB.lam @@ fun _ ->
+          let vtp = TB.el @@ TB.code_v r pcode code pequiv in
+          TB.cof_split vtp
+            [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
+             phi, TB.vproj r pequiv @@ TB.ap clo [TB.prf]]
+        in
+        tac_tot (tp, Cofibration.join [Cofibration.eq r D.Dim0; phi], D.un_lam bdry_fn)
+      in
+      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let+ t_pequiv =
+        let* tp_pequiv =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.foreign_dim r @@ fun r ->
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign code @@ fun code ->
+          Splice.term @@
+          TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+          TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+        in
+        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+      in
+      S.VIn (tr, t_pequiv, part, tot)
+    | tp, _, _ ->
+      EM.expected_connective `ElV tp
+
+end
+
 module Structural =
 struct
   let lookup_var id : T.syn_tac =
