@@ -34,11 +34,15 @@ type t =
   | Box of t * t * t * t * t
   | Cap of t * t * t * t * t
 
+  | VIn of t * t * t * t
+  | VProj of t * t * t
+
   | CodePath of t * t
   | CodePi of t * t
   | CodeSg of t * t
   | CodeNat
   | CodeUniv
+  | CodeV of t * t * t * t
 
 and tp =
   | Univ

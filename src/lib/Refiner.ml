@@ -123,8 +123,10 @@ struct
         Splice.foreign_cof phi_sub @@ fun phi_sub ->
         Splice.foreign_clo clo_a @@ fun fn_a ->
         Splice.foreign_clo clo_sub @@ fun fn_sub ->
-        Splice.term @@ TB.lam @@ fun prf ->
-        TB.cof_split tp_a [phi_a, (fun prf -> TB.ap fn_a [prf]); phi_sub, (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])]
+        Splice.term @@ TB.lam @@ fun _ ->
+        TB.cof_split tp_a
+          [phi_a, TB.ap fn_a [TB.prf];
+           phi_sub, TB.sub_out @@ TB.ap fn_sub [TB.prf]]
       in
       let+ tm = tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
@@ -255,8 +257,8 @@ struct
         Splice.foreign psi_fn @@ fun psi_fn ->
         Splice.foreign phi0_fn @@ fun phi0_fn ->
         Splice.term @@
-        TB.lam @@ fun prf ->
-        TB.cof_split tp [phi0, (fun prf -> TB.ap phi0_fn [prf]); psi, (fun prf -> TB.ap psi_fn [prf])]
+        TB.lam @@ fun _ ->
+        TB.cof_split tp [phi0, TB.ap phi0_fn [TB.prf]; psi, TB.ap psi_fn [TB.prf]]
       in
       T.abstract (D.TpPrf phi1) @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
@@ -442,7 +444,7 @@ struct
       univ
     in
     let* fam = tac_fam piuniv in
-    let* vfam = EM.lift_ev (Sem.eval fam) in
+    let* vfam = EM.lift_ev @@ Sem.eval fam in
     let* bdry_tp =
       EM.lift_cmp @@
       Sem.splice_tp @@
@@ -450,7 +452,7 @@ struct
       Splice.foreign vfam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+      TB.pi (TB.tp_prf @@ TB.boundary i) @@ fun prf ->
       TB.el @@ TB.ap fam [i]
     in
     let* bdry = tac_bdry bdry_tp in

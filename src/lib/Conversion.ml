@@ -120,6 +120,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
       TB.univ
     in
     equate_con tp_bdy bdy0 bdy1
+  | D.ElUnstable (`V (r0, pcode0, code0, pequiv0)), D.ElUnstable (`V (r1, pcode1, code1, pequiv1)) ->
+    equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
@@ -195,6 +197,9 @@ and equate_con tp con0 con1 =
   | _, D.CodeUniv, D.CodeUniv ->
     ret ()
 
+  | _, D.CodeV (r0, pcode0, code0, pequiv0), D.CodeV (r1, pcode1, code1, pequiv1) ->
+    equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
+
   | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
   | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
     let* _ = equate_con univ base0 base1 in
@@ -234,6 +239,13 @@ and equate_con tp con0 con1 =
     let* () = equate_con tp_cap cap0 cap1 in
     QuM.left_invert_under_cofs [phi] @@
     equate_con hcom_tp con0 con1
+
+  | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
+    let* () = QuM.left_invert_under_cofs [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
+    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj r con0 in
+    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj r con1 in
+    let* tp_proj = lift_cmp @@ do_el code in
+    equate_con tp_proj proj0 proj1
 
   | _ ->
     conv_err @@ ExpectedConEq (tp, con0, con1)
@@ -372,8 +384,30 @@ and equate_hd hd0 hd1 =
       equate_con code_tp code0 code1
     in
     equate_cut box0 box1
+  | D.VProj (r0, pcode0, code0, pequiv0, cut0), D.VProj (r1, pcode1, code1, pequiv1, cut1) ->
+    let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
+    equate_cut cut0 cut1
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
+
+and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
+  let* () = equate_dim r0 r1 in
+  let* () =
+    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+    equate_con pcode_tp pcode0 pcode1
+  in
+  let* () = equate_con D.Univ code0 code1 in
+  let* pequiv_tp =
+    lift_cmp @@
+    Sem.splice_tp @@
+    Splice.foreign_dim r0 @@ fun r ->
+    Splice.foreign pcode0 @@ fun pcode ->
+    Splice.foreign code0 @@ fun code ->
+    Splice.term @@
+    TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+    TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
+  in
+  equate_con pequiv_tp pequiv0 pequiv1
 
 and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   let* () = equate_con D.Univ code0 code1 in

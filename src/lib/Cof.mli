@@ -15,4 +15,6 @@ val meet : ('a, 'v) cof list -> ('a, 'v) cof
 val bot : ('a, 'v) cof
 val top : ('a, 'v) cof
 
+val boundary : Dim.dim -> (Dim.dim, 'v) cof
+
 val reduce : ('a, 'v) cof -> ('a, 'v) cof

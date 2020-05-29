@@ -91,7 +91,11 @@ and pp_frame : frm Pp.printer =
    fun fmt ->
    function
    | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
-   | _ -> Format.fprintf fmt "<frm>"
+   | KFst -> Format.fprintf fmt "fst"
+   | KSnd -> Format.fprintf fmt "snd"
+   | KGoalProj -> Format.fprintf fmt "<goal-proj>"
+   | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
+   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
 and pp_cof : cof Pp.printer =
   fun fmt cof ->
@@ -173,5 +177,7 @@ and pp_tp fmt =
     Format.fprintf fmt "el-cut[%a]" pp_cut con
   | ElUnstable (`HCom _) ->
     Format.fprintf fmt "<Hcom>"
+  | ElUnstable (`V _) ->
+    Format.fprintf fmt "<V>"
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"

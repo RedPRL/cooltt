@@ -35,16 +35,18 @@ and con =
   | CodeSg of con * con
   | CodeNat
   | CodeUniv
+  | CodeV of dim * con * con * con
 
   | FHCom of [`Nat | `Univ] * dim * dim * cof * con
   | Box of dim * dim * cof * con * con
+  | VIn of dim * con * con * con
 
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
   | El of con
   | ElCut of cut
-  | ElUnstable of [`HCom of dim * dim * cof * con]
+  | ElUnstable of [`HCom of dim * dim * cof * con | `V of dim * con * con * con]
   | GoalTp of string option * tp
   | TpDim
   | TpCof
@@ -60,6 +62,7 @@ and hd =
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
   | Cap of dim * dim * cof * con * cut
+  | VProj of dim * con * con * con * cut
   | SubOut of cut * cof * tm_clo
   | Split of tp * (cof * tm_clo) list
 
