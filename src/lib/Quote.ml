@@ -108,6 +108,13 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tn = quote_con D.Nat n in
     S.Suc tn
 
+  | _, D.Base ->
+    ret S.Base
+
+  | _, D.Loop r ->
+    let+ tr = quote_dim r in
+    S.Loop tr
+
   | D.TpDim, D.DimCon0 ->
     ret @@ S.Dim0
 
