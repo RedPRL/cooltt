@@ -426,7 +426,7 @@ struct
         begin
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
-          cof_split (el @@ v.code)
+          cof_split (el v.code)
             [join [eq i r; phi], vproj v.r v.pequiv @@ ap bdy [i; prf];
              eq v.r dim0, ap (Equiv.equiv_fwd (ap v.pequiv [prf])) [ap o_tilde [ap v.pcode [prf]; bdy; i]];
              eq v.r dim1, ap o_tilde [v.code; bdy; i]]
