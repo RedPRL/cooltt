@@ -975,7 +975,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
     | D.Suc con' ->
       let* v = go con' in
       do_ap2 suc con' v
-    | D.Cut {cut} ->
+    | D.Cut {cut} as con ->
       let* fib = do_ap mot con in
       let+ elfib = do_el fib in
       cut_frm ~tp:elfib ~cut @@
@@ -1008,7 +1008,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
         TB.nat_elim mot zero suc @@ TB.ap bdy [i; prf]
       in
       TB.com fam r s phi bdy'
-    | _ ->
+    | con ->
       Format.eprintf "bad nat-elim: %a@." D.pp_con con;
       CM.throw @@ NbeFailed "Not a number"
 
