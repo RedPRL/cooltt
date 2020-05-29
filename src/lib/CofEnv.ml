@@ -56,6 +56,9 @@ sig
     * and the current [seq f l] would be [seq' (map f l)]. However, [List.for_all] and
     * [CoolBasis.Monad.Util.iter] directly fit into this type. *)
   val seq : ('a -> t) -> 'a list -> t
+
+  (** If the first component returns a "good" result, then don't bother with the second. (???) *)
+  val fast_track : (unit -> t) -> (unit -> t) -> t
 end
 
 module SearchHelper :
@@ -121,6 +124,7 @@ struct
       function
       | None -> M.vacuous
       | Some ({classes; true_vars; unreduced_joins} as env) ->
+        M.fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
         match unreduced_joins with
         | [] -> cont {classes; true_vars}
         | psis :: unreduced_joins ->
@@ -137,6 +141,7 @@ struct
     | `Inconsistent -> M.vacuous
     | `Consistent env -> left_invert' env phis cont
 end
+
 
 (* Invariant: local.classes must be consistent. *)
 let rec test (local : reduced_env) : cof -> bool =
@@ -161,6 +166,8 @@ struct
   type t = bool
   let vacuous = true
   let seq = List.for_all
+  let fast_track x y =
+    if x () then true else y ()
 end
 
 module BoolSearchAll = Search (BoolSeqAll)
@@ -191,7 +198,7 @@ end
 =
 struct
   module MU = CoolBasis.Monad.Util (M)
-  module Seq = struct type t = unit M.m let vacuous = M.ret () let seq = MU.iter end
+  module Seq = struct type t = unit M.m let vacuous = M.ret () let seq = MU.iter let fast_track _ x = x () end
   module S = Search (Seq)
 
   let left_invert_under_cofs env phis cont =
