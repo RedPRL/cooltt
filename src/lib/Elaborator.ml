@@ -158,99 +158,101 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 
 and bchk_tm : CS.con -> T.BChk.tac =
   fun con ->
-  T.BChk.update_span con.info @@
-  T.BChk.whnf @@
-  R.Tactic.intro_implicit_connectives @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
-  | CS.Underscore ->
-    R.Prf.intro
-  (* R.Hole.unleash_hole None `Flex *)
-  | CS.Lit n ->
-    begin
-      T.BChk.chk @@
-      R.Tactic.match_goal @@ function
-      | D.TpDim -> EM.ret @@ R.Dim.literal n
-      | _ -> EM.ret @@ R.Nat.literal n
-    end
-
-  | CS.Lam ([], body) ->
-    bchk_tm body
-
-  | CS.Lam (nm :: names, body) ->
-    R.Pi.intro ~ident:nm @@ fun _ ->
-    bchk_tm {con with node = CS.Lam (names, body)}
-
-  | CS.LamElim cases ->
-    R.Tactic.Elim.lam_elim @@ chk_cases cases
-  | CS.Pair (c0, c1) ->
-    begin
-      R.Tactic.bmatch_goal @@ function
-      | D.Sg _, _, _ ->
-        EM.ret @@ R.Sg.intro (bchk_tm c0) (bchk_tm c1)
-      | D.ElUnstable (`V _), _, _ ->
-        EM.ret @@ R.ElV.intro (bchk_tm c0) (bchk_tm c1)
-      | tp, _, _ ->
-        EM.expected_connective `Sg tp
-    end
-
-  | CS.Suc c ->
-    T.BChk.chk @@ R.Nat.suc (chk_tm c)
-  | CS.Base ->
-    T.BChk.chk @@ R.Circle.base
-  | CS.Loop c ->
-    T.BChk.chk @@ R.Circle.loop (chk_tm c)
-  | CS.Let (c, ident, body) ->
-    R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
-  | CS.Unfold (idents, c) ->
-    fun goal ->
-      unfold idents @@ bchk_tm c goal
-  | CS.Nat ->
-    T.BChk.chk R.Univ.nat
-  | CS.Circle ->
-    T.BChk.chk R.Univ.circle
-  | CS.Type ->
-    T.BChk.chk R.Univ.univ
-  | CS.Pi (cells, body) ->
-    let tac (CS.Cell cell) = cell.name, chk_tm cell.tp in
-    let tacs = cells |> List.map tac in
-    let quant base (nm, fam) = R.Univ.pi base (T.Chk.bchk @@ R.Pi.intro ~ident:nm @@ fun var -> T.BChk.chk (fam var)) in
-    T.BChk.chk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
-  | CS.Sg (cells, body) ->
-    let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
-    let quant base (nm, fam) = R.Univ.sg base (T.Chk.bchk @@ R.Pi.intro ~ident:nm @@ fun var -> T.BChk.chk (fam var)) in
-    T.BChk.chk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
-  | CS.V (r, pcode, code, pequiv) ->
-    T.BChk.chk @@ R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
-  | CS.CofEq (c0, c1) ->
-    T.BChk.chk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
-  | CS.Join cs ->
-    T.BChk.chk @@ R.Cof.join (List.map chk_tm cs)
-  | CS.BotC ->
-    T.BChk.chk @@ R.Cof.join []
-  | CS.Meet cs ->
-    T.BChk.chk @@ R.Cof.meet (List.map chk_tm cs)
-  | CS.TopC ->
-    T.BChk.chk @@ R.Cof.meet []
-  | CS.CofBoundary c ->
-    T.BChk.chk @@ R.Cof.boundary (chk_tm c)
-  | CS.CofSplit splits ->
-    let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
-    R.Cof.split branch_tacs
-  | CS.Path (tp, a, b) ->
-    T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
   | _ ->
-    R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
-    match tp with
-    | D.Pi _ ->
-      let* env = EM.read in
-      let lvl = ElabEnv.size env in
-      EM.ret @@ R.Pi.intro @@ fun _ -> bchk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
-    | D.Sg _ ->
-      EM.ret @@ R.Sg.intro (bchk_tm @@ CS.{node = CS.Fst con; info = None}) (bchk_tm @@ CS.{node = CS.Snd con; info = None})
+    T.BChk.update_span con.info @@
+    T.BChk.whnf @@
+    R.Tactic.intro_implicit_connectives @@
+    match con.node with
+    | CS.Underscore ->
+      R.Prf.intro
+    (* R.Hole.unleash_hole None `Flex *)
+    | CS.Lit n ->
+      begin
+        T.BChk.chk @@
+        R.Tactic.match_goal @@ function
+        | D.TpDim -> EM.ret @@ R.Dim.literal n
+        | _ -> EM.ret @@ R.Nat.literal n
+      end
+
+    | CS.Lam ([], body) ->
+      bchk_tm body
+
+    | CS.Lam (nm :: names, body) ->
+      R.Pi.intro ~ident:nm @@ fun _ ->
+      bchk_tm {con with node = CS.Lam (names, body)}
+
+    | CS.LamElim cases ->
+      R.Tactic.Elim.lam_elim @@ chk_cases cases
+    | CS.Pair (c0, c1) ->
+      begin
+        R.Tactic.bmatch_goal @@ function
+        | D.Sg _, _, _ ->
+          EM.ret @@ R.Sg.intro (bchk_tm c0) (bchk_tm c1)
+        | D.ElUnstable (`V _), _, _ ->
+          EM.ret @@ R.ElV.intro (bchk_tm c0) (bchk_tm c1)
+        | tp, _, _ ->
+          EM.expected_connective `Sg tp
+      end
+
+    | CS.Suc c ->
+      T.BChk.chk @@ R.Nat.suc (chk_tm c)
+    | CS.Base ->
+      T.BChk.chk @@ R.Circle.base
+    | CS.Loop c ->
+      T.BChk.chk @@ R.Circle.loop (chk_tm c)
+    | CS.Let (c, ident, body) ->
+      R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
+    | CS.Unfold (idents, c) ->
+      fun goal ->
+        unfold idents @@ bchk_tm c goal
+    | CS.Nat ->
+      T.BChk.chk R.Univ.nat
+    | CS.Circle ->
+      T.BChk.chk R.Univ.circle
+    | CS.Type ->
+      T.BChk.chk R.Univ.univ
+    | CS.Pi (cells, body) ->
+      let tac (CS.Cell cell) = cell.name, chk_tm cell.tp in
+      let tacs = cells |> List.map tac in
+      let quant base (nm, fam) = R.Univ.pi base (T.Chk.bchk @@ R.Pi.intro ~ident:nm @@ fun var -> T.BChk.chk (fam var)) in
+      T.BChk.chk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+    | CS.Sg (cells, body) ->
+      let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
+      let quant base (nm, fam) = R.Univ.sg base (T.Chk.bchk @@ R.Pi.intro ~ident:nm @@ fun var -> T.BChk.chk (fam var)) in
+      T.BChk.chk @@ R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+    | CS.V (r, pcode, code, pequiv) ->
+      T.BChk.chk @@ R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
+    | CS.CofEq (c0, c1) ->
+      T.BChk.chk @@ R.Cof.eq (chk_tm c0) (chk_tm c1)
+    | CS.Join cs ->
+      T.BChk.chk @@ R.Cof.join (List.map chk_tm cs)
+    | CS.BotC ->
+      T.BChk.chk @@ R.Cof.join []
+    | CS.Meet cs ->
+      T.BChk.chk @@ R.Cof.meet (List.map chk_tm cs)
+    | CS.TopC ->
+      T.BChk.chk @@ R.Cof.meet []
+    | CS.CofBoundary c ->
+      T.BChk.chk @@ R.Cof.boundary (chk_tm c)
+    | CS.CofSplit splits ->
+      let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
+      R.Cof.split branch_tacs
+    | CS.Path (tp, a, b) ->
+      T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
     | _ ->
-      EM.ret @@ T.BChk.syn @@ syn_tm con
+      R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
+      match tp with
+      | D.Pi _ ->
+        let* env = EM.read in
+        let lvl = ElabEnv.size env in
+        EM.ret @@ R.Pi.intro @@ fun _ -> bchk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
+      | D.Sg _ ->
+        EM.ret @@ R.Sg.intro (bchk_tm @@ CS.{node = CS.Fst con; info = None}) (bchk_tm @@ CS.{node = CS.Snd con; info = None})
+      | _ ->
+        EM.ret @@ T.BChk.syn @@ syn_tm con
 
 and syn_tm : CS.con -> T.Syn.tac =
   function con ->
