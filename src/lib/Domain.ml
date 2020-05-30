@@ -113,8 +113,8 @@ and pp_clo : tm_clo Pp.printer =
 and pp_con : con Pp.printer =
   fun fmt ->
   function
-  | Cut {cut} ->
-    Format.fprintf fmt "cut[%a]" pp_cut cut
+  | Cut {cut;tp} ->
+    Format.fprintf fmt "cut[%a :: %a]" pp_cut cut pp_tp tp
   | Zero ->
     Format.fprintf fmt "zero"
   | Suc con ->
