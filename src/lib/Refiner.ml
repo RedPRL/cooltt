@@ -672,23 +672,36 @@ end
 module ElHCom =
 struct
   let intro (tac_cap : T.BChk.tac) (tac_walls : T.BChk.tac) : T.BChk.tac =
-    raise CJHM
+    function
+    | D.ElUnstable (`HCom (r, r', phi, bdy)), psi, psi_clo ->
+      let* cap =
+        tac_cap (raise CJHM, raise CJHM, raise CJHM)
+      in
+      let+ walls =
+        tac_walls (raise CJHM, raise CJHM, raise CJHM)
+      and+ tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r
+      and+ tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r'
+      and+ tphi = EM.lift_qu @@ Quote.quote_cof phi in
+      S.Box (tr, tr', tphi, cap, walls)
+
+    | tp, _, _ ->
+      EM.expected_connective `ElHCom tp
 
   let elim (tac_box : T.Syn.tac) : T.Syn.tac =
     let* box, box_tp = tac_box in
     match box_tp with
     | D.ElUnstable (`HCom (r, r', phi, bdy)) ->
-      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
-      let* tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r' in
-      let* tphi = EM.lift_qu @@ Quote.quote_cof phi in
-      let* tbdy =
+      let+ tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r
+      and+ tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r'
+      and+ tphi = EM.lift_qu @@ Quote.quote_cof phi
+      and+ tbdy =
         let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) phi in
         EM.lift_qu @@ Quote.quote_con tp_bdy bdy
+      and+ tp_cap =
+        let* code_fib = EM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
+        EM.lift_cmp @@ Sem.do_el code_fib
       in
-      let cap = S.Cap (tr, tr', tphi, tbdy, box) in
-      let* code_fib = EM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
-      let* tp_cap = EM.lift_cmp @@ Sem.do_el code_fib in
-      EM.ret (cap, tp_cap)
+      S.Cap (tr, tr', tphi, tbdy, box), tp_cap
     | _ ->
       EM.expected_connective `ElHCom box_tp
 end
