@@ -962,9 +962,10 @@ struct
         Pi.intro @@ fun var -> (* of inductive type *)
         T.BChk.chk @@ fun goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
-        match fib with
-        | D.El code ->
-          EM.lift_qu @@ Qu.quote_con D.Univ code
+        let* tfib = EM.lift_qu @@ Quote.quote_tp fib in
+        match tfib with
+        | S.El code ->
+          EM.ret code
         | _ ->
           EM.expected_connective `El fib
       in
