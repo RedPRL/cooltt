@@ -216,6 +216,18 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tm = quote_hcom D.CodeNat r s phi bdy' in
     S.ElOut tm
 
+  | D.Univ, D.FHCom (`Univ, r, s, phi, bdy) ->
+    (* bdy : (i : 𝕀) (_ : [...]) → nat *)
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeUniv r s phi bdy' in
+    S.ElOut tm
+
   | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
     let* bdy' =
       lift_cmp @@ splice_tm @@
