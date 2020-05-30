@@ -278,13 +278,13 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ phi = subst_cof r x phi
     and+ bdy = subst_con r x bdy in
     D.FHCom (tag, s, s', phi, bdy)
-  | D.Box (s, s', phi, sides, bdy) ->
+  | D.Box (s, s', phi, sides, cap) ->
     let+ s = subst_dim r x s
     and+ s' = subst_dim r x s'
     and+ phi = subst_cof r x phi
     and+ sides = subst_con r x sides
-    and+ bdy = subst_con r x bdy in
-    D.Box (s, s', phi, sides, bdy)
+    and+ bdy = subst_con r x cap in
+    D.Box (s, s', phi, sides, cap)
   | D.CodeV (s, pcode, code, pequiv) ->
     let+ s = subst_dim r x s
     and+ pcode = subst_con r x pcode
