@@ -130,7 +130,7 @@ let snd m =
 let cof_abort =
   ret S.CofAbort
 
-let const (m : S.t m) : S.t b =
+let const (m : 'a m) : 'a b =
   fun _ -> m
 
 
@@ -140,6 +140,12 @@ let cof_split mtp mbranches =
   and+ phis = MU.commute_list mphis
   and+ tms = MU.map scope @@ List.map const mtms in
   S.CofSplit (tp, List.combine phis tms)
+
+let tp_cof_split (mbranches : (S.t m * S.tp m) list)=
+  let mphis, mtps = List.split mbranches in
+  let+ phis = MU.commute_list mphis
+  and+ tps = MU.map scope @@ List.map const mtps in
+  S.TpCofSplit (List.combine phis tps)
 
 let sub_out mtm =
   let+ tm = mtm in

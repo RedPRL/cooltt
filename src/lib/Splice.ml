@@ -13,6 +13,17 @@ let foreign con k : _ t =
   let var = TB.lvl @@ Bwd.length env.conenv in
   k var env'
 
+let foreign_list (cons : D.con list) k : _ t =
+  let rec go cons k =
+    match cons with
+    | [] -> k []
+    | con :: cons ->
+      foreign con @@ fun tm ->
+      go cons @@ fun tms ->
+      k (tm :: tms)
+  in
+  go cons k
+
 let foreign_cof phi = foreign @@ D.cof_to_con phi
 let foreign_dim r = foreign @@ D.dim_to_con r
 let foreign_clo clo = foreign @@ D.Lam (`Anon, clo)

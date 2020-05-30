@@ -276,6 +276,19 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | _, D.LetSym (r, x, con) ->
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
 
+  | D.TpSplit branches as tp, _ ->
+    let* ttp = quote_tp tp in
+    let branch_body (phi, tp_clo) : S.t m =
+      begin
+        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        let* tp = lift_cmp @@ inst_tp_clo tp_clo prf in
+        quote_con tp con
+      end
+    in
+    let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
+    and+ tms = MU.map branch_body branches in
+    S.CofSplit (ttp, List.combine tphis tms)
+
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
@@ -374,6 +387,16 @@ and quote_tp (tp : D.tp) =
   | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
     S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
+  | D.TpSplit branches ->
+    let branch_body (phi, clo) : S.tp m =
+      begin
+        bind_var ~abort:(S.El S.CofAbort) (D.TpPrf phi) @@ fun prf ->
+        quote_tp @<< lift_cmp @@ inst_tp_clo clo prf
+      end
+    in
+    let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
+    and+ tps = MU.map branch_body branches in
+    S.TpCofSplit (List.combine tphis tps)
 
 and quote_hd =
   function

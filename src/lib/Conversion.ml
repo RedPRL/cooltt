@@ -78,6 +78,11 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
   let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
   match tp0, tp1 with
+  | D.TpSplit branches, _
+  | _, D.TpSplit branches ->
+    let phis = List.map (fun (phi, _) -> phi) branches in
+    QuM.left_invert_under_cofs [Cof.join phis] @@
+    equate_tp tp0 tp1
   | D.TpAbort, _ | _, D.TpAbort -> ret ()
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
@@ -136,6 +141,10 @@ and equate_con tp con0 con1 =
   | D.TpPrf _, _, _ -> ret ()
   | _, D.Abort, _ -> ret ()
   | _, _, D.Abort -> ret ()
+  | D.TpSplit branches, _, _ ->
+    let phis = List.map (fun (phi, _) -> phi) branches in
+    QuM.left_invert_under_cofs [Cof.join phis] @@
+    equate_con tp con0 con1
   | _, D.Cut {cut = D.Split (_, branches), _}, _
   | _, _, D.Cut {cut = D.Split (_, branches), _} ->
     let phis = List.map (fun (phi, _) -> phi) branches in
@@ -266,6 +275,7 @@ and equate_con tp con0 con1 =
     equate_con tp_proj proj0 proj1
 
   | _ ->
+    Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
     conv_err @@ ExpectedConEq (tp, con0, con1)
 
 (* Invariant: cut0, cut1 are whnf *)

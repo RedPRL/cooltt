@@ -382,6 +382,14 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ code = subst_con r x code
     and+ pequiv = subst_con r x pequiv in
     D.ElUnstable (`V (s, pcode, code, pequiv))
+  | D.TpSplit branches ->
+    let go_branch (phi, clo) =
+      let+ phi = subst_cof r x phi
+      and+ clo = subst_tp_clo r x clo in
+      (phi, clo)
+    in
+    let+ branches = MU.map go_branch branches in
+    D.TpSplit branches
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
   fun r x (hd, sp) ->
@@ -497,6 +505,12 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.TpPrf phi
   | S.TpVar ix ->
     get_local_tp ix
+  | S.TpCofSplit branches ->
+    let tphis, tps = List.split branches in
+    let* phis = MU.map eval_cof tphis in
+    let+ env = read_local in
+    let pclos = List.map (fun tp -> D.TpClo (tp, env)) tps in
+    D.TpSplit (List.combine phis pclos)
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -1232,13 +1246,24 @@ and do_el_out con =
   let open CM in
   abort_if_inconsistent D.Abort @@
   begin
-    inspect_con con |>>
+    inspect_con ~style:{unfolding = true} con |>>
     function
     | D.ElIn con ->
       ret con
     | D.Cut {tp = D.El con; cut} ->
       let+ tp = unfold_el con in
       cut_frm ~tp ~cut D.KElOut
+    | D.Cut {tp = D.ElCut (D.Split (D.Univ, branches), spine); cut} as con ->
+      let phis, code_clos = List.split branches in
+      let code_fns = List.map (fun clo -> D.Lam (`Anon, clo)) code_clos in
+      splice_tm @@
+      Splice.foreign con @@ fun tm ->
+      Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
+      Splice.foreign_list code_fns @@ fun code_fns ->
+      Splice.term @@
+      let tp = TB.tp_cof_split @@ List.combine phis @@ List.map (fun code_fn -> TB.el @@ TB.ap code_fn [TB.prf]) code_fns in
+      TB.cof_split tp @@
+      List.map (fun phi -> phi, TB.el_out tm) phis
     | D.Cut {tp; cut} ->
       Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
       throw @@ NbeFailed "do_el_out"

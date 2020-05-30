@@ -292,6 +292,12 @@ let rec pp env fmt tm =
 
 and pp_tp env fmt tp =
   match tp with
+  | TpCofSplit branches ->
+    let sep fmt () = Format.fprintf fmt "@ | " in
+    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+      (pp_tp_cof_split_branch env)
+      fmt
+      branches
   | Pi (base, ident, fam) ->
     let x, envx = ppenv_bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
@@ -343,6 +349,10 @@ and pp_atomic_tp env fmt tp =
 and pp_cof_split_branch env fmt (phi, tm) =
   let x, envx = ppenv_bind env `Anon in
   Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp envx) tm
+
+and pp_tp_cof_split_branch env fmt (phi, tm) =
+  let x, envx = ppenv_bind env `Anon in
+  Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp_tp envx) tm
 
 and pp_atomic env fmt tm =
   match tm with

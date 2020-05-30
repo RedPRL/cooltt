@@ -14,7 +14,9 @@ module D := Domain
 module TB := TermBuilder
 
 type 'a t
+
 val foreign : D.con -> (S.t TB.m -> 'a t) -> 'a t
+val foreign_list : D.con list -> (S.t TB.m list -> 'a t) -> 'a t
 val foreign_dim : D.dim -> (S.t TB.m -> 'a t) -> 'a t
 val foreign_cof : D.cof -> (S.t TB.m -> 'a t) -> 'a t
 val foreign_clo : D.tm_clo -> (S.t TB.m -> 'a t) -> 'a t

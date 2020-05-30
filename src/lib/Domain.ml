@@ -196,3 +196,5 @@ and pp_tp fmt =
     Format.fprintf fmt "<V>"
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"
+  | TpSplit _ ->
+    Format.fprintf fmt "<split>"

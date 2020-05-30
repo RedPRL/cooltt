@@ -56,6 +56,7 @@ and tp =
   | TpDim
   | TpCof
   | TpPrf of t
+  | TpCofSplit of (t * tp) list
   | Sub of tp * t * t
   | Pi of tp * Ident.t * tp
   | Sg of tp * Ident.t * tp

@@ -54,6 +54,7 @@ and tp =
   | TpDim
   | TpCof
   | TpPrf of cof
+  | TpSplit of (cof * tp_clo) list
   | Pi of tp * Ident.t * tp_clo
   | Sg of tp * Ident.t * tp_clo
   | Nat
