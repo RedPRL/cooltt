@@ -503,7 +503,8 @@ and eval : S.t -> D.con EvM.m =
   fun tm ->
     match tm with
     | S.Var i ->
-      get_local i
+      let* con = get_local i in
+      lift_cmp @@ whnf_inspect_con con
     | S.Global sym ->
       let* st = EvM.read_global in
       let tp, _ = ElabState.get_global sym st in
@@ -639,17 +640,10 @@ and eval : S.t -> D.con EvM.m =
       let* tp = eval_tp ttp in
       let tphis, tms = List.split branches in
       let* phis = MU.map eval_cof tphis in
-      let* con =
-        let+ env = read_local in
-        let pclos = List.map (fun tm -> D.Clo (tm, env)) tms in
-        let hd = D.Split (tp, List.combine phis pclos) in
-        D.Cut {tp; cut = hd, []}
-      in
-      begin
-        lift_cmp @@ whnf_con con |>> function
-        | `Done -> ret con
-        | `Reduce con -> ret con
-      end
+      let+ env = read_local in
+      let pclos = List.map (fun tm -> D.Clo (tm, env)) tms in
+      let hd = D.Split (tp, List.combine phis pclos) in
+      D.Cut {tp; cut = hd, []}
     | S.CofAbort ->
       ret D.Abort
     | S.Prf ->
@@ -711,23 +705,18 @@ and eval : S.t -> D.con EvM.m =
       and+ vbase = eval base in
       D.VIn (vr, vequiv, vpivot, vbase)
 
-    | S.VProj (r, pequiv, v) ->
+    | S.VProj (r, pcode, code, pequiv, v) ->
       let* vr = eval_dim r in
       let* vv = eval v in
+      let* vpcode = eval pcode in
+      let* vcode = eval code in
+      let* vpequiv = eval pequiv in
       begin
-        CM.test_sequent [] (Cof.eq vr Dim0) |> lift_cmp |>> function
-        | true -> (* r=0 *)
-          let* vpequiv = eval pequiv in
-          lift_cmp @@
-          let open CM in
-          let* f = do_ap vpequiv D.Prf |>> do_el_out |>> do_fst |>> do_el_out in
-          do_ap f vv
+        CM.test_sequent [] (Cof.boundary vr) |> lift_cmp |>> function
+        | true ->
+          lift_cmp @@ splice_tm @@ vproj_boundary vr vpcode vcode vpequiv vv
         | false ->
-          CM.test_sequent [] (Cof.eq vr Dim1) |> lift_cmp |>> function
-          | true -> (* r=1 *)
-            ret vv
-          | false ->
-            lift_cmp @@ do_rigid_vproj vv
+          lift_cmp @@ do_rigid_vproj vv
       end
 
     | S.CodeV (r, pcode, code, pequiv) ->
@@ -1212,6 +1201,17 @@ and do_rigid_cap box =
       throw @@ NbeFailed "do_rigid_cap"
   end
 
+and assert_dim_var r =
+  let open CM in
+  test_sequent [] (Cof.eq r D.Dim0) |>>
+  function
+  | true -> failwith "assertion failed"
+  | false ->
+    test_sequent [] (Cof.eq r D.Dim1) |>>
+    function
+    | true -> failwith "assertion failed"
+    | false -> ret ()
+
 and do_rigid_vproj v =
   let open CM in
   abort_if_inconsistent D.Abort @@
@@ -1224,6 +1224,7 @@ and do_rigid_vproj v =
     | D.VIn (_, _, _, base) ->
       ret base
     | _ ->
+      Format.eprintf "bad vproj: %a@." D.pp_con v;
       throw @@ NbeFailed "do_rigid_vproj"
   end
 

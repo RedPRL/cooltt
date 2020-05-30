@@ -630,11 +630,11 @@ struct
           Splice.foreign code @@ fun code ->
           Splice.foreign pequiv @@ fun pequiv ->
           Splice.term @@
-          TB.lam @@ fun _ ->
+          TB.lam @@ fun _ -> (* [r=0 ∨ phi] *)
           let vtp = TB.el @@ TB.code_v r pcode code pequiv in
           TB.cof_split vtp
             [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
-             phi, TB.vproj r pequiv @@ TB.ap clo [TB.prf]]
+             phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
         in
         tac_tot (tp, Cofibration.join [Cofibration.eq r D.Dim0; phi], D.un_lam bdry_fn)
       in
@@ -655,6 +655,8 @@ struct
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
       let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let* tpcode = EM.lift_qu @@ Quote.quote_con (D.Pi (D.TpPrf (Cofibration.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+      let* tcode = EM.lift_qu @@ Quote.quote_con D.Univ code in
       let* t_pequiv =
         let* tp_pequiv =
           EM.lift_cmp @@ Sem.splice_tp @@
@@ -662,7 +664,7 @@ struct
         in
         EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
       in
-      let vproj = S.VProj (tr, t_pequiv, tm) in
+      let vproj = S.VProj (tr, tpcode, tcode, t_pequiv, tm) in
       let* tp_vproj = EM.lift_cmp @@ Sem.do_el code in
       EM.ret (vproj, tp_vproj)
     | _ ->

@@ -279,12 +279,14 @@ let rec pp env fmt tm =
       (pp_atomic env) base
   | VIn (_, _, pivot, base) ->
     pp_tuple (pp env) fmt [pivot; base]
-  | VProj (r, equiv, v) when debug_mode ->
-    Format.fprintf fmt "@[<hv2>vproj %a %a %a@]"
+  | VProj (r, pcode, code, pequiv, v) when debug_mode ->
+    Format.fprintf fmt "@[<hv2>vproj %a %a %a %a %a@]"
       (pp_atomic env) r
-      (pp_atomic env) equiv
+      (pp_atomic env) pcode
+      (pp_atomic env) code
+      (pp_atomic env) pequiv
       (pp_atomic env) v
-  | VProj (r, equiv, v) ->
+  | VProj (_, _, _, _, v) ->
     Format.fprintf fmt "@[<hv2>vproj %a@]"
       (pp_atomic env) v
 

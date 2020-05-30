@@ -290,11 +290,13 @@ let vin mr mpequiv mpivot mbase =
   and+ base = mbase in
   S.VIn (r, pequiv, pivot, base)
 
-let vproj mr mpequiv mv =
+let vproj mr mpcode mcode mpequiv mv =
   let+ r = mr
+  and+ pcode = mpcode
+  and+ code = mcode
   and+ pequiv = mpequiv
   and+ v = mv in
-  S.VProj (r, pequiv, v)
+  S.VProj (r, pcode, code, pequiv, v)
 
 let code_path' mfam ml mr : _ m =
   code_path mfam @@ lam @@ fun i ->
@@ -448,7 +450,7 @@ struct
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
           cof_split (el v.code)
-            [join [eq i r; phi], vproj v.r v.pequiv @@ ap bdy [i; prf];
+            [join [eq i r; phi], vproj v.r v.pcode v.code v.pequiv @@ ap bdy [i; prf];
              eq v.r dim0, ap (Equiv.equiv_fwd (ap v.pequiv [prf])) [ap o_tilde [ap v.pcode [prf]; bdy; i]];
              eq v.r dim1, ap o_tilde [v.code; bdy; i]]
         end
@@ -470,7 +472,7 @@ struct
       @@ fun f_tilde ->
       let_ ~ident:(`Machine "O")
         begin
-          coe (lam code_) r r' @@ vproj (s_ r) (pequiv_ r) bdy
+          coe (lam code_) r r' @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy
         end
       @@ fun o_tilde ->
       let_ ~ident:(`Machine "Fiber'")
@@ -500,7 +502,7 @@ struct
                (coe (lam @@ fun j -> ap (pcode_ j) [prf]) r r' bdy)
                (ap r_tilde [prf]);
              eq r r', el_in @@ pair bdy
-               (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pequiv_ r) bdy)]
+               (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy)]
         end
       @@ fun s_tilde ->
       let_ ~ident:(`Machine "T")

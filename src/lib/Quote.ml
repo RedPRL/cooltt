@@ -428,6 +428,8 @@ and quote_hd =
     S.Cap (tr, ts, tphi, tcode, tbox)
   | D.VProj (r, pcode, code, pequiv, v) ->
     let* tr = quote_dim r in
+    let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+    let* tcode = quote_con D.Univ code in
     let* t_pequiv =
       let* tp_pequiv =
         lift_cmp @@ Sem.splice_tp @@
@@ -436,7 +438,7 @@ and quote_hd =
       quote_con tp_pequiv pequiv
     in
     let+ tv = quote_cut v in
-    S.VProj (tr, t_pequiv, tv)
+    S.VProj (tr, tpcode, tcode, t_pequiv, tv)
 
 
 and quote_dim d =
