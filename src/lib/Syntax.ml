@@ -251,20 +251,24 @@ let rec pp env fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp env) tm
       (pp envx) bdy
-  | Box (r, s, phi, sides, cap) ->
+  | Box (r, s, phi, sides, cap) when debug_mode ->
     Format.fprintf fmt "@[<hv2>box %a %a %a %a %a@]"
       (pp_atomic env) r
       (pp_atomic env) s
       (pp_atomic env) phi
       (pp_atomic env) sides
       (pp_atomic env) cap
-  | Cap (r, s, phi, code, box) ->
+  | Box (r, s, phi, sides, cap) ->
+    pp_tuple (pp env) fmt [sides; cap]
+  | Cap (r, s, phi, code, box) when debug_mode->
     Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
       (pp_atomic env) r
       (pp_atomic env) s
       (pp_atomic env) phi
       (pp_atomic env) code
       (pp_atomic env) box
+  | Cap (r, s, phi, code, box) ->
+    Format.fprintf fmt "@[<hv2>cap %a@]" (pp_atomic env) box
   | CodeV (r, pcode, code, pequiv) ->
     Format.fprintf fmt "@[<hv2>V %a %a %a %a@]"
       (pp_atomic env) r
