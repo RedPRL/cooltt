@@ -130,8 +130,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 and equate_con tp con0 con1 =
   QuM.abort_if_inconsistent () @@
   let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
-  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con con0 in
-  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con con1 in
+  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con0 in
+  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con1 in
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
   | _, D.Abort, _ -> ret ()
@@ -280,8 +280,8 @@ and equate_cut cut0 cut1 =
   | _, D.Split (tp, branches) ->
     let phis = List.map (fun (phi, _) -> phi) branches in
     QuM.left_invert_under_cofs [Cof.join phis] @@
-    let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut cut0 in
-    let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut cut1 in
+    let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut0 in
+    let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut1 in
     equate_con tp con0 con1
   | _ ->
     let* () = equate_hd hd0 hd1 in
@@ -359,13 +359,13 @@ and equate_frm k0 k1 =
     conv_err @@ ExpectedFrmEq (k0, k1)
 
 and assert_done_hd hd =
-  let* w = lift_cmp @@ whnf_hd hd in
+  let* w = lift_cmp @@ whnf_hd ~style:{unfolding = true} hd in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_hd failed"
 
 and assert_done_cut cut =
-  let* w = lift_cmp @@ whnf_cut cut in
+  let* w = lift_cmp @@ whnf_cut ~style:{unfolding = true} cut in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_cut failed"

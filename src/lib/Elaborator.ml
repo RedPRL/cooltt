@@ -159,8 +159,8 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 and bchk_tm : CS.con -> T.BChk.tac =
   fun con ->
   T.BChk.update_span con.info @@
-  R.Tactic.intro_implicit_connectives @@
   T.BChk.whnf @@
+  R.Tactic.intro_implicit_connectives @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid

@@ -20,6 +20,13 @@ module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) modul
 
 type 'a whnf = [`Done | `Reduce of 'a]
 
+type whnf_style =
+  {unfolding : bool}
+
+let default_whnf_style =
+  {unfolding = false}
+
+
 let cut_frm ~tp ~cut frm =
   D.Cut {tp; cut = D.push frm cut}
 
@@ -496,22 +503,11 @@ and eval : S.t -> D.con EvM.m =
   fun tm ->
     match tm with
     | S.Var i ->
-      let* con = get_local i in
-      begin
-        lift_cmp @@ whnf_con con |>> function
-        | `Done -> ret con
-        | `Reduce con -> ret con
-      end
+      get_local i
     | S.Global sym ->
       let* st = EvM.read_global in
-      let* veil = EvM.read_veil in
-      let tp, ocon = ElabState.get_global sym st in
-      begin
-        match ocon, Veil.policy sym veil with
-        | Some con, `Transparent -> ret con
-        | _ ->
-          ret @@ D.Cut {tp; cut = (D.Global sym, [])}
-      end
+      let tp, _ = ElabState.get_global sym st in
+      ret @@ D.Cut {tp; cut = (D.Global sym, [])}
     | S.Let (def, _, body) ->
       let* vdef = eval def in
       append [vdef] @@ eval body
@@ -753,8 +749,7 @@ and eval_cof tphi =
 
 
 
-
-and whnf_con : D.con -> D.con whnf CM.m =
+and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
@@ -762,15 +757,15 @@ and whnf_con : D.con -> D.con whnf CM.m =
   | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeCircle | D.CodeUniv ->
     ret `Done
   | D.LetSym (r, x, con) ->
-    reduce_to @<< push_subst_con r x con
+    reduce_to ~style @<< push_subst_con r x con
   | D.Cut {cut} ->
-    whnf_cut cut
+    whnf_cut ~style cut
   | D.FHCom (_, r, s, phi, bdy) ->
     begin
       test_sequent [] (Cof.join [Cof.eq r s; phi]) |>>
       function
       | true ->
-        reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+        reduce_to ~style @<< do_ap2 bdy (D.dim_to_con s) D.Prf
       | false ->
         ret `Done
     end
@@ -779,12 +774,12 @@ and whnf_con : D.con -> D.con whnf CM.m =
       test_sequent [] (Cof.eq r s) |>>
       function
       | true ->
-        reduce_to cap
+        reduce_to ~style cap
       | false ->
         test_sequent [] phi |>>
         function
         | true ->
-          reduce_to @<< do_ap sides D.Prf
+          reduce_to ~style @<< do_ap sides D.Prf
         | false ->
           ret `Done
     end
@@ -792,18 +787,18 @@ and whnf_con : D.con -> D.con whnf CM.m =
     begin
       test_sequent [] (Cof.boundary r) |>>
       function
-      | true -> reduce_to @<< splice_tm @@ v_boundary r pcode code
+      | true -> reduce_to ~style @<< splice_tm @@ v_boundary r pcode code
       | false -> ret `Done
     end
   | D.VIn (r, pequiv, pivot, base) ->
     begin
       test_sequent [] (Cof.eq r Dim0) |>>
       function
-      | true -> reduce_to @<< do_ap pivot D.Prf
+      | true -> reduce_to ~style @<< do_ap pivot D.Prf
       | false ->
         test_sequent [] (Cof.eq r Dim1) |>>
         function
-        | true -> reduce_to base
+        | true -> reduce_to ~style base
         | false -> ret `Done
     end
   | D.Loop r ->
@@ -815,36 +810,39 @@ and whnf_con : D.con -> D.con whnf CM.m =
     end
 
 
-and reduce_to con =
+and reduce_to ~style con =
   let open CM in
-  whnf_con con |>> function
+  whnf_con ~style con |>> function
   | `Done -> ret @@ `Reduce con
   | `Reduce con -> ret @@ `Reduce con
 
-and plug_into sp con =
+and plug_into ~style sp con =
   let open CM in
   let* res = do_spine con sp in
-  whnf_con res |>> function
+  whnf_con ~style res |>> function
   | `Done -> ret @@ `Reduce res
   | `Reduce res -> ret @@ `Reduce res
 
-and whnf_hd hd =
+and whnf_hd ?(style = default_whnf_style) hd =
   let open CM in
   match hd with
   | D.Global sym ->
-    let* st = CM.read_global in
-    begin
-      match ElabState.get_global sym st with
-      | tp, Some con ->
-        reduce_to con
-      | _, None | exception _ ->
-        ret `Done
-    end
+    if style.unfolding then
+      let* st = CM.read_global in
+      begin
+        match ElabState.get_global sym st with
+        | tp, Some con ->
+          ret @@ `Reduce con
+        | _, None | exception _ ->
+          ret `Done
+      end
+    else
+      ret `Done
   | D.Var _ -> ret `Done
   | D.Coe (abs, r, s, con) ->
     begin
       test_sequent [] (Cof.eq r s) |>> function
-      | true -> reduce_to con
+      | true -> reduce_to ~style con
       | false ->
         begin
           dispatch_rigid_coe abs |>>
@@ -852,16 +850,16 @@ and whnf_hd hd =
           | `Done ->
             ret `Done
           | `Reduce tag ->
-            reduce_to @<< enact_rigid_coe abs r s con tag
+            reduce_to ~style @<< enact_rigid_coe abs r s con tag
         end
     end
   | D.HCom (cut, r, s, phi, bdy) ->
     begin
       Cof.join [Cof.eq r s; phi] |> test_sequent [] |>> function
       | true ->
-        reduce_to @<< do_ap2 bdy (D.dim_to_con s) D.Prf
+        reduce_to ~style @<< do_ap2 bdy (D.dim_to_con s) D.Prf
       | false ->
-        whnf_cut cut |>> function
+        whnf_cut ~style cut |>> function
         | `Done ->
           ret `Done
         | `Reduce code ->
@@ -871,20 +869,20 @@ and whnf_hd hd =
             | `Done _ ->
               ret `Done
             | `Reduce tag ->
-              reduce_to @<< enact_rigid_hcom code r s phi bdy tag
+              reduce_to ~style @<< enact_rigid_hcom code r s phi bdy tag
           end
     end
   | D.SubOut (cut, phi, clo) ->
     begin
       test_sequent [] phi |>> function
       | true ->
-        reduce_to @<< inst_tm_clo clo D.Prf
+        reduce_to ~style @<< inst_tm_clo clo D.Prf
       | false ->
-        whnf_cut cut |>> function
+        whnf_cut ~style cut |>> function
         | `Done ->
           ret `Done
         | `Reduce con ->
-          reduce_to @<< do_sub_out con
+          reduce_to ~style @<< do_sub_out con
     end
   | D.Split (tp, branches) ->
     let rec go =
@@ -893,7 +891,7 @@ and whnf_hd hd =
       | (phi, clo) :: branches ->
         test_sequent [] phi |>> function
         | true ->
-          reduce_to @<< inst_tm_clo clo D.Prf
+          reduce_to ~style @<< inst_tm_clo clo D.Prf
         | false ->
           go branches
     in
@@ -903,13 +901,13 @@ and whnf_hd hd =
       test_sequent [] (Cof.join [Cof.eq r s; phi]) |>> function
       | true ->
         let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, s, phi, code))} in
-        reduce_to @<< splice_tm @@ cap_boundary r s phi code box
+        reduce_to ~style @<< splice_tm @@ cap_boundary r s phi code box
       | false ->
-        whnf_cut cut |>> function
+        whnf_cut ~style cut |>> function
         | `Done ->
           ret `Done
         | `Reduce box ->
-          reduce_to @<< do_rigid_cap box
+          reduce_to ~style @<< do_rigid_cap box
     end
   | D.VProj (r, pcode, code, pequiv, cut) ->
     begin
@@ -917,27 +915,27 @@ and whnf_hd hd =
       function
       | true ->
         let v = D.Cut {cut; tp = D.ElUnstable (`V (r, pcode, code, pequiv))} in
-        reduce_to @<< splice_tm @@ vproj_boundary r pcode code pequiv v
+        reduce_to ~style @<< splice_tm @@ vproj_boundary r pcode code pequiv v
       | false ->
-        whnf_cut cut |>> function
+        whnf_cut ~style cut |>> function
         | `Done -> ret `Done
-        | `Reduce v -> reduce_to @<< do_rigid_vproj v
+        | `Reduce v -> reduce_to ~style @<< do_rigid_vproj v
     end
 
-and whnf_cut cut : D.con whnf CM.m =
+and whnf_cut ?(style = default_whnf_style) : D.cut -> D.con whnf CM.m =
   let open CM in
-  let hd, sp = cut in
-  whnf_hd hd |>>
+  fun (hd, sp) ->
+  whnf_hd ~style hd |>>
   function
   | `Done -> ret `Done
-  | `Reduce con -> plug_into sp con
+  | `Reduce con -> plug_into ~style sp con
 
 and whnf_tp =
   let open CM in
   function
   | D.El con ->
     begin
-      whnf_con con |>>
+      whnf_con ~style:{unfolding = true} con |>>
       function
       | `Done -> ret `Done
       | `Reduce con ->
@@ -946,7 +944,7 @@ and whnf_tp =
     end
   | D.ElCut cut ->
     begin
-      whnf_cut cut |>>
+      whnf_cut ~style:{unfolding = true} cut |>>
       function
       | `Done -> ret `Done
       | `Reduce con ->
@@ -970,6 +968,13 @@ and whnf_tp =
     end
   | tp ->
     ret `Done
+
+and whnf_tp_ tp =
+  let open CM in
+  whnf_tp tp |>>
+  function
+  | `Done -> ret tp
+  | `Reduce tp -> ret tp
 
 and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
   let open CM in
@@ -1084,18 +1089,18 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     eval bdy
 
 (* reduces a constructor to something that is stable to pattern match on *)
-and whnf_inspect_con con =
+and whnf_inspect_con ?(style = {unfolding = false}) con =
   let open CM in
-  whnf_con con |>>
+  whnf_con ~style con |>>
   function
   | `Done -> ret con
   | `Reduce con' -> ret con'
 
 (* reduces a constructor to something that is stable to pattern match on,
  * _including_ type annotations on cuts *)
-and inspect_con con =
+and inspect_con ?(style = {unfolding = false}) con =
   let open CM in
-  whnf_inspect_con con |>>
+  whnf_inspect_con ~style con |>>
   function
   | D.Cut {tp; cut} as con ->
     begin
@@ -1247,7 +1252,7 @@ and do_el : D.con -> D.tp CM.m =
   fun con ->
     abort_if_inconsistent D.TpAbort @@
     begin
-      inspect_con con |>>
+      inspect_con ~style:{unfolding = true} con |>>
       function
       | D.Cut {cut} ->
         ret @@ D.ElCut cut
@@ -1264,7 +1269,7 @@ and unfold_el : D.con -> D.tp CM.m =
   fun con ->
     abort_if_inconsistent D.TpAbort @@
     begin
-      inspect_con con |>>
+      inspect_con ~style:{unfolding = true} con |>>
       function
 
       | D.Cut {cut} ->
@@ -1343,7 +1348,7 @@ and dispatch_rigid_coe line =
   in
   let peek line =
     let x = Symbol.named "do_rigid_coe" in
-    go x <@> whnf_inspect_con @<< do_ap line @@ D.dim_to_con @@ D.DimProbe x |>>
+    go x <@> whnf_inspect_con ~style:{unfolding = true} @<< do_ap line @@ D.dim_to_con @@ D.DimProbe x |>>
     function
     | `Reduce _ | `Done as res -> ret res
     | `Unknown ->
@@ -1384,7 +1389,7 @@ and dispatch_rigid_hcom code =
     | _ ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_hcom"
   in
-  go @<< whnf_inspect_con code
+  go @<< whnf_inspect_con ~style:{unfolding = true} code
 
 and enact_rigid_coe line r r' con tag =
   let open CM in
