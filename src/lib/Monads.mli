@@ -16,7 +16,6 @@ module CmpM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a compute
 
-  val read_veil : Veil.t m
   val read_global : ElabState.t m
   val read_cof_env : CofEnv.env m
 

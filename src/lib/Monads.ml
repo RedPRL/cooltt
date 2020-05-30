@@ -9,7 +9,6 @@ module CmpL =
 struct
   type local =
     {state : St.t;
-     veil : Veil.t;
      cof_env : CofEnv.env}
 end
 
@@ -17,7 +16,6 @@ module EvL =
 struct
   type local =
     {state : St.t;
-     veil : Veil.t;
      cof_env : CofEnv.env;
      env : D.env}
 end
@@ -26,8 +24,8 @@ module QuL =
 struct
   type local =
     {state : St.t;
-     cof_env : CofEnv.env;
      veil : Veil.t;
+     cof_env : CofEnv.env;
      size : int}
 end
 
@@ -41,12 +39,8 @@ struct
     let+ {state} = M.read in
     state
 
-  let lift_ev env m CmpL.{state; cof_env; veil} =
-    m EvL.{state; cof_env; veil; env}
-
-  let read_veil =
-    let+ {veil} = M.read in
-    veil
+  let lift_ev env m CmpL.{state; cof_env} =
+    m EvL.{state; cof_env; env}
 
   let read_cof_env =
     let+ {cof_env} = M.read in
@@ -87,17 +81,13 @@ struct
     let+ {env} = M.read in
     env
 
-  let read_veil =
-    let+ {veil} = M.read in
-    veil
-
   let append cells =
     M.scope @@ fun local ->
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
-    fun {state; cof_env; veil} ->
-    m {state; cof_env; veil}
+    fun {state; cof_env} ->
+    m {state; cof_env}
 
   let abort_if_inconsistent : 'a -> 'a m -> 'a m =
     fun abort m ->
@@ -145,8 +135,8 @@ struct
     | `Inconsistent -> M.ret abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun {state; veil; cof_env} ->
-    m {state; veil; cof_env}
+    fun {state; cof_env} ->
+    m {state; cof_env}
 
   let replace_env cof_env m =
     M.scope (fun local -> {local with cof_env}) @@
@@ -226,13 +216,13 @@ struct
 
   let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->
-    match EvM.run {state; veil = Env.get_veil env; cof_env = Env.cof_env env; env = Env.sem_env env} m with
+    match EvM.run {state; cof_env = Env.cof_env env; env = Env.sem_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun (state, env) ->
-    match CmpM.run {state; veil = Env.get_veil env; cof_env = Env.cof_env env} m with
+    match CmpM.run {state; cof_env = Env.cof_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
