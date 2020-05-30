@@ -63,7 +63,7 @@ struct
         let ident =
           match name with
           | None -> `Anon
-          | Some str -> `Machine str
+          | Some str -> `Machine ("?" ^ str)
         in
         EM.add_global ident vtp None
     in
