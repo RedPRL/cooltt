@@ -159,9 +159,3 @@ end
 
 type var = Var.tac
 type tp_tac = Tp.tac
-
-type chk_tac = Chk.tac
-type bchk_tac = BChk.tac
-type syn_tac = Syn.tac
-
-
