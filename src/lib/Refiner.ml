@@ -700,7 +700,7 @@ struct
           Splice.foreign_dim r @@ fun r ->
           Splice.term @@ TB.el @@ TB.ap bdy [r; TB.prf]
         in
-        let* bdry_fun =
+        let* bdry_fn =
           EM.lift_cmp @@ Sem.splice_tm @@
           Splice.foreign_dim r @@ fun r ->
           Splice.foreign_dim r' @@ fun r' ->
@@ -716,7 +716,7 @@ struct
             [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
              phi, TB.coe (TB.lam ~ident:(`Machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
-        tac_cap (tp_cap, Cofibration.join [phi; psi], D.un_lam bdry_fun)
+        tac_cap (tp_cap, Cofibration.join [phi; psi], D.un_lam bdry_fn)
       and+ tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r
       and+ tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r'
       and+ tphi = EM.lift_qu @@ Quote.quote_cof phi in
