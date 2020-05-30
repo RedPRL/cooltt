@@ -1,25 +1,30 @@
 (* Due to Conchon & Filliatre *)
 
+(* Redone using Map.Make *)
+
 module type S =
 sig
-  type ('k, 'a) t
+  type key
+  type 'a t
 
-  val init : size:int -> ('k, 'a) t
-  val size : ('k, 'a) t -> int
-  val get : 'k -> ('k, 'a) t -> 'a
-  val set : 'k -> 'a -> ('k, 'a) t -> ('k, 'a) t
-  val mem : 'k -> ('k, 'a) t -> bool
-  val remove : 'k -> ('k, 'a) t -> ('k, 'a) t
-  val set_opt : 'k -> 'a option -> ('k, 'a) t -> ('k, 'a) t
-  val find : 'k -> ('k, 'a) t -> 'a option
-  val fold : ('k -> 'a -> 'b -> 'b) -> ('k, 'a) t -> 'b -> 'b
+  val init : 'a t
+  val size : 'a t -> int
+  val get : key -> 'a t -> 'a
+  val set : key -> 'a -> 'a t -> 'a t
+  val mem : key -> 'a t -> bool
+  val remove : key -> 'a t -> 'a t
+  val set_opt : key -> 'a option -> 'a t -> 'a t
+  val find : key -> 'a t -> 'a option
+  val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
 
   (** entries from the first argument overwrite the ones from the second. *)
-  val merge : ('k, 'a) t -> ('k, 'a) t -> ('k, 'a) t
+  val merge : 'a t -> 'a t -> 'a t
 
-  val to_list : ('k, 'a) t -> ('k * 'a) list
-  val to_list_keys : ('k, 'a) t -> 'k list
-  val to_list_values : ('k, 'a) t -> 'a list
+  val to_list : 'a t -> (key * 'a) list
+  val to_list_keys : 'a t -> key list
+  val to_list_values : 'a t -> 'a list
 end
 
-module M : S
+module type MAKER = functor (O : Map.OrderedType) -> S with type key = O.t
+
+module M : MAKER

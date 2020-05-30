@@ -4,18 +4,18 @@ open Dim
 
 type cof = (Dim.dim, int) Cof.cof
 
-module UF = DisjointSet.Make (PersistentTable.M)
+module UF = DisjointSet.Make (struct type t = dim let compare = compare end)
 module VarSet = Set.Make (Int)
 
 type reduced_env =
-  { classes : dim UF.t;
+  { classes : UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
     true_vars : VarSet.t
   }
 
 type env' =
-  { classes : dim UF.t;
+  { classes : UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
     true_vars : VarSet.t;
@@ -29,7 +29,7 @@ type env = [ `Consistent of env' | `Inconsistent ]
 
 let init () =
   `Consistent
-    {classes = UF.init ~size:100;
+    {classes = UF.init;
      true_vars = VarSet.empty;
      unreduced_joins = []}
 
