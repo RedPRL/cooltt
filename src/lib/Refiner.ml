@@ -669,6 +669,21 @@ struct
       EM.expected_connective `ElV tp
 end
 
+module ElHCom =
+struct
+  let intro (tac_cap : T.BChk.tac) (tac_walls : T.BChk.tac) : T.BChk.tac =
+    raise CJHM
+
+  let elim (tac_box : T.Syn.tac) : T.Syn.tac =
+    let* tm, tp = tac_box in
+    match tp with
+    | D.ElUnstable (`HCom (r, r', phi, code)) ->
+      raise CJHM
+    | _ ->
+      EM.expected_connective `ElHCom tp
+end
+
+
 module Structural =
 struct
   let lookup_var id : T.Syn.tac =
