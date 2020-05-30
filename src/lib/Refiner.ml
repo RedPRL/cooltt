@@ -675,12 +675,22 @@ struct
     raise CJHM
 
   let elim (tac_box : T.Syn.tac) : T.Syn.tac =
-    let* tm, tp = tac_box in
-    match tp with
-    | D.ElUnstable (`HCom (r, r', phi, code)) ->
-      raise CJHM
+    let* box, box_tp = tac_box in
+    match box_tp with
+    | D.ElUnstable (`HCom (r, r', phi, bdy)) ->
+      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let* tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r' in
+      let* tphi = EM.lift_qu @@ Quote.quote_cof phi in
+      let* tbdy =
+        let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) phi in
+        EM.lift_qu @@ Quote.quote_con tp_bdy bdy
+      in
+      let cap = S.Cap (tr, tr', tphi, tbdy, box) in
+      let* code_fib = EM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
+      let* tp_cap = EM.lift_cmp @@ Sem.do_el code_fib in
+      EM.ret (cap, tp_cap)
     | _ ->
-      EM.expected_connective `ElHCom tp
+      EM.expected_connective `ElHCom box_tp
 end
 
 
