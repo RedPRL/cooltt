@@ -139,11 +139,11 @@ and chk_tp_in_tele (args : CS.cell list) (con : CS.con) : T.tp_tac =
   in
   CoolTp.as_tp @@ loop args
 
-and chk_tm : CS.con -> T.chk_tac =
+and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.bchk @@ bchk_tm con
 
-and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.chk_tac =
+and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
   let rec loop args =
     match args with
     | [] -> bchk_tm con
@@ -156,7 +156,7 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.chk_tac =
   in
   T.Chk.bchk @@ loop args
 
-and bchk_tm : CS.con -> T.bchk_tac =
+and bchk_tm : CS.con -> T.BChk.tac =
   fun con ->
   T.BChk.update_span con.info @@
   R.Tactic.intro_implicit_connectives @@
@@ -252,7 +252,7 @@ and bchk_tm : CS.con -> T.bchk_tac =
     | _ ->
       EM.ret @@ T.BChk.syn @@ syn_tm con
 
-and syn_tm : CS.con -> T.syn_tac =
+and syn_tm : CS.con -> T.Syn.tac =
   function con ->
     T.Syn.update_span con.info @@
     R.Tactic.elim_implicit_connectives @@
