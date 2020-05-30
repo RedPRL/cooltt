@@ -671,18 +671,18 @@ end
 
 module ElHCom =
 struct
-  let intro (tac_cap : T.BChk.tac) (tac_walls : T.BChk.tac) : T.BChk.tac =
+  let intro (tac_walls : T.BChk.tac) (tac_cap : T.BChk.tac) : T.BChk.tac =
     function
     | D.ElUnstable (`HCom (r, r', phi, bdy)), psi, psi_clo ->
-      let* cap =
-        tac_cap (raise CJHM, raise CJHM, raise CJHM)
-      in
-      let+ walls =
+      let* twalls =
         tac_walls (raise CJHM, raise CJHM, raise CJHM)
+      in
+      let+ tcap =
+        tac_cap (raise CJHM, raise CJHM, raise CJHM)
       and+ tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r
       and+ tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r'
       and+ tphi = EM.lift_qu @@ Quote.quote_cof phi in
-      S.Box (tr, tr', tphi, cap, walls)
+      S.Box (tr, tr', tphi, twalls, tcap)
 
     | tp, _, _ ->
       EM.expected_connective `ElHCom tp
