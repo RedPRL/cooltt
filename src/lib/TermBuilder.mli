@@ -34,6 +34,9 @@ val loop : t m -> t m
 
 val prf : t m
 
+val cap : t m -> t m -> t m -> t m -> t m -> t m
+val box : t m -> t m -> t m -> t m -> t m -> t m
+
 val cof_split : tp m -> (t m * t m) list -> t m
 val cof_abort : t m
 val sub_out : t m -> t m

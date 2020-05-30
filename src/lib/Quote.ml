@@ -231,13 +231,13 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tr = quote_dim r
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
+    and+ tsides =
+      QTB.lam (D.TpPrf phi) @@ fun prf ->
+      quote_con tp con
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
       let* el_bdy_r = lift_cmp @@ do_el bdy_r in
       quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap con
-    and+ tsides =
-      QTB.lam (D.TpPrf phi) @@ fun prf ->
-      quote_con tp con
     in
     S.Box (tr, ts, tphi, tsides, tcap)
 

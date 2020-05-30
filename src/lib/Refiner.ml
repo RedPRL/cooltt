@@ -675,10 +675,48 @@ struct
     function
     | D.ElUnstable (`HCom (r, r', phi, bdy)), psi, psi_clo ->
       let* twalls =
-        tac_walls (raise CJHM, raise CJHM, raise CJHM)
+        let* tp_walls =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.foreign_cof phi @@ fun phi ->
+          Splice.foreign bdy @@ fun bdy ->
+          Splice.foreign_dim r' @@ fun r' ->
+          Splice.term @@ TB.pi (TB.tp_prf phi) @@ fun _ -> TB.el @@ TB.ap bdy [r'; TB.prf]
+        in
+        let* bdry_fn =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_clo psi_clo @@ fun psi_clo ->
+          Splice.term @@
+          TB.lam @@ fun _ -> (* [psi] *)
+          TB.lam @@ fun _ -> (* [phi] *)
+          TB.ap psi_clo [TB.prf]
+        in
+        tac_walls (tp_walls, psi, D.un_lam bdry_fn)
       in
       let+ tcap =
-        tac_cap (raise CJHM, raise CJHM, raise CJHM)
+        let* walls = EM.lift_ev @@ Sem.eval twalls in
+        let* tp_cap =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.foreign bdy @@ fun bdy ->
+          Splice.foreign_dim r @@ fun r ->
+          Splice.term @@ TB.el @@ TB.ap bdy [r; TB.prf]
+        in
+        let* bdry_fun =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_dim r @@ fun r ->
+          Splice.foreign_dim r' @@ fun r' ->
+          Splice.foreign_cof phi @@ fun phi ->
+          Splice.foreign_cof psi @@ fun psi ->
+          Splice.foreign_clo psi_clo @@ fun psi_clo ->
+          Splice.foreign walls @@ fun walls ->
+          Splice.foreign bdy @@ fun bdy ->
+          Splice.term @@
+          TB.lam @@ fun _ -> (* [phi ∨ psi] *)
+          TB.cof_split
+            (TB.el @@ TB.ap bdy [r; TB.prf])
+            [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
+             phi, TB.coe (TB.lam ~ident:(`Machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
+        in
+        tac_cap (tp_cap, Cofibration.join [phi; psi], D.un_lam bdry_fun)
       and+ tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r
       and+ tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r'
       and+ tphi = EM.lift_qu @@ Quote.quote_cof phi in
