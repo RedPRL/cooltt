@@ -39,6 +39,8 @@ val cof_abort : t m
 val sub_out : t m -> t m
 val sub_in : t m -> t m
 
+val goal_proj : t m -> t m
+
 val el_in : t m -> t m
 val el_out : t m -> t m
 

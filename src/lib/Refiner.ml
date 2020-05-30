@@ -69,12 +69,12 @@ struct
     in
 
     let cut = go_tm (D.Global sym, []) @@ Env.locals env in
-    EM.ret (D.SubOut (D.push KGoalProj cut, phi, clo), [])
+    EM.ret (D.SubOut (D.push KGoalProj cut, tp, phi, clo), [])
 
   let unleash_hole name flexity : T.BChk.tac =
     fun (tp, phi, clo) ->
     let* cut = make_hole name flexity (tp, phi, clo) in
-    EM.lift_qu @@ Qu.quote_cut cut
+    EM.lift_qu @@ Qu.quote_cut tp cut
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@

@@ -67,8 +67,8 @@ and hd =
   | HCom of cut * dim * dim * cof * con
   | Cap of dim * dim * cof * con * cut
   | VProj of dim * con * con * con * cut
-  | SubOut of cut * cof * tm_clo
-  | Split of tp * (cof * tm_clo) list
+  | SubOut of cut * tp * cof * tm_clo
+  | Split of (cof * tm_clo) list
 
 and cut = hd * frm list
 

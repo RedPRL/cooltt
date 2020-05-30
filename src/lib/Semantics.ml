@@ -422,20 +422,20 @@ and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
     and+ pequiv = subst_con r x pequiv
     and+ v = subst_cut r x v in
     D.VProj (s, pcode, code, pequiv, v)
-  | D.SubOut (cut, phi, clo) ->
-    let+ cut = subst_cut r x cut
+  | D.SubOut (cut, tp, phi, clo) ->
+    let+ tp = subst_tp r x tp
+    and+ cut = subst_cut r x cut
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
-    D.SubOut (cut, phi, clo)
-  | D.Split (tp, branches) ->
+    D.SubOut (cut, tp, phi, clo)
+  | D.Split branches ->
     let go_branch (phi, clo) =
       let+ phi = subst_cof r x phi
       and+ clo = subst_clo r x clo in
       (phi, clo)
     in
-    let+ tp = subst_tp r x tp
-    and+ branches = MU.map go_branch branches in
-    D.Split (tp, branches)
+    let+ branches = MU.map go_branch branches in
+    D.Split branches
 
 and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
   fun r x ->
@@ -642,7 +642,7 @@ and eval : S.t -> D.con EvM.m =
       let* con =
         let+ env = read_local in
         let pclos = List.map (fun tm -> D.Clo (tm, env)) tms in
-        let hd = D.Split (tp, List.combine phis pclos) in
+        let hd = D.Split (List.combine phis pclos) in
         D.Cut {tp; cut = hd, []}
       in
       begin
@@ -872,7 +872,7 @@ and whnf_hd ?(style = default_whnf_style) hd =
               reduce_to ~style @<< enact_rigid_hcom code r s phi bdy tag
           end
     end
-  | D.SubOut (cut, phi, clo) ->
+  | D.SubOut (cut, _, phi, clo) ->
     begin
       test_sequent [] phi |>> function
       | true ->
@@ -884,7 +884,7 @@ and whnf_hd ?(style = default_whnf_style) hd =
         | `Reduce con ->
           reduce_to ~style @<< do_sub_out con
     end
-  | D.Split (tp, branches) ->
+  | D.Split branches ->
     let rec go =
       function
       | [] -> ret `Done
@@ -1121,7 +1121,11 @@ and do_goal_proj con =
     | D.GoalRet con -> ret con
     | D.Cut {tp = D.GoalTp (_, tp); cut} ->
       ret @@ cut_frm ~tp ~cut D.KGoalProj
-    | _ ->
+    | D.Cut {tp; cut} ->
+      Format.eprintf "bad: %a @." D.pp_tp tp;
+      CM.throw @@ NbeFailed "do_goal_proj"
+    | con ->
+      Format.eprintf "bad: %a@." D.pp_con con;
       CM.throw @@ NbeFailed "do_goal_proj"
   end
 
@@ -1191,7 +1195,7 @@ and do_sub_out con =
     | D.SubIn con ->
       ret con
     | D.Cut {tp = D.Sub (tp, phi, clo); cut} ->
-      ret @@ D.Cut {tp; cut = D.SubOut (cut, phi, clo), []}
+      ret @@ D.Cut {tp; cut = D.SubOut (cut, tp, phi, clo), []}
     | _ ->
       throw @@ NbeFailed "do_sub_out"
   end

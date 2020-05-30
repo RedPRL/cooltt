@@ -71,13 +71,13 @@ and pp_hd : hd Pp.printer =
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl
-  | Split (tp, branches) ->
+  | Split branches ->
     let sep fmt () = Format.fprintf fmt "@ | " in
     pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
       pp_split_branch
       fmt
       branches
-  | SubOut (cut, phi, clo) ->
+  | SubOut (cut, _, phi, clo) ->
     Format.fprintf fmt "sub/out[(%a), %a, %a]" pp_cut cut pp_cof phi pp_clo clo
   | _ ->
     Format.fprintf fmt "<hd>"

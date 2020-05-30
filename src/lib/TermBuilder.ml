@@ -71,6 +71,10 @@ let el_out m : _ m =
   let+ tm = m in
   S.ElOut tm
 
+let goal_proj m : _ m =
+  let+ tm = m in
+  S.GoalProj tm
+
 let lam ?(ident = `Anon) mbdy : _ m =
   scope @@ fun var ->
   let+ bdy = mbdy var in
@@ -132,7 +136,6 @@ let cof_abort =
 
 let const (m : S.t m) : S.t b =
   fun _ -> m
-
 
 let cof_split mtp mbranches =
   let mphis, mtms = List.split mbranches in

@@ -13,11 +13,13 @@ open Monads
 
 module Error =
 struct
-  type t = IllTypedQuotationProblem of D.tp * D.con
+  type t = IllTypedQuotationProblem of D.tp * D.con | UnexpectedSplit
   let pp fmt =
     function
     | IllTypedQuotationProblem (tp, con) ->
       Format.fprintf fmt "Ill-typed quotation problem %a : %a" D.pp_con con D.pp_tp tp
+    | UnexpectedSplit ->
+      Format.fprintf fmt "Unexpected cofibration split"
 end
 
 exception QuotationError of Error.t
@@ -75,12 +77,12 @@ let rec quote_con (tp : D.tp) con : S.t m =
           let* con' = lift_cmp @@ Sem.do_spine con sp in
           quote_con tp con'
         | _ ->
-          quote_cut cut
+          quote_cut tp cut
       end
     end
 
   | _, D.Cut {cut = (hd, sp); tp} ->
-    quote_cut (hd, sp)
+    quote_cut tp (hd, sp)
 
   | D.Pi (base, _, fam), D.Lam (ident, clo) ->
     QTB.lam ~ident base @@ fun arg ->
@@ -320,7 +322,7 @@ and quote_tp (tp : D.tp) =
     let+ tm = quote_con D.Univ con in
     S.El tm
   | D.ElCut cut ->
-    let+ tm = quote_cut cut in
+    let+ tm = quote_cut D.Univ cut in
     S.El tm
   | D.GoalTp (lbl, tp) ->
     let+ tp = quote_tp tp in
@@ -382,21 +384,9 @@ and quote_hd =
   | D.HCom (cut, r, s, phi, bdy) ->
     let code = D.Cut {cut; tp = D.Univ} in
     quote_hcom code r s phi bdy
-  | D.SubOut (cut, phi, clo) ->
-    let+ tm = quote_cut cut in
+  | D.SubOut (cut, tp, phi, clo) ->
+    let+ tm = quote_cut tp cut in
     S.SubOut tm
-  | D.Split (tp, branches) ->
-    let branch_body (phi, clo) =
-      begin
-        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
-        let* body = lift_cmp @@ inst_tm_clo clo prf in
-        quote_con tp body
-      end
-    in
-    let* ttp = quote_tp tp in
-    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
-    let* tms = MU.map branch_body branches in
-    ret @@ S.CofSplit (ttp, List.combine tphis tms)
   | D.Cap (r, s, phi, code, box) ->
     let* tr = quote_dim r in
     let* ts = quote_dim s in
@@ -412,7 +402,7 @@ and quote_hd =
       TB.univ
     in
     let+ tcode = quote_con code_tp code
-    and+ tbox = quote_cut box in
+    and+ tbox = quote_cut (D.ElUnstable (`HCom (r, s, phi, code))) box in
     S.Cap (tr, ts, tphi, tcode, tbox)
   | D.VProj (r, pcode, code, pequiv, v) ->
     let* tr = quote_dim r in
@@ -423,8 +413,10 @@ and quote_hd =
       in
       quote_con tp_pequiv pequiv
     in
-    let+ tv = quote_cut v in
+    let+ tv = quote_cut (D.ElUnstable (`V (r, pcode, code, pequiv))) v in
     S.VProj (tr, t_pequiv, tv)
+  | D.Split _ ->
+    throw @@ QuotationError Error.UnexpectedSplit
 
 
 and quote_dim d =
@@ -456,9 +448,39 @@ and quote_var lvl =
   let+ n = read_local in
   n - (lvl + 1)
 
-and quote_cut (hd, spine) =
-  let* tm = quote_hd hd in
-  quote_spine tm spine
+and quote_cut tp (hd, spine) =
+  match hd with
+
+  | D.Split branches ->
+    let go_branch (phi, clo) =
+      let* bdy =
+        lift_cmp @@ Sem.splice_tm @@
+        Splice.foreign_clo clo @@ fun clo ->
+        Splice.foreign_spine spine @@ fun spine ->
+        Splice.term @@
+        TB.lam @@ fun _ ->
+        TB.ap spine [TB.ap clo [TB.prf]]
+      in
+      let clo' = D.un_lam bdy in
+      ret (phi, clo')
+    in
+    let* branches = MU.map go_branch branches in
+
+    let branch_body (phi, clo) =
+      begin
+        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        let* body = lift_cmp @@ inst_tm_clo clo prf in
+        quote_con tp body
+      end
+    in
+    let* ttp = quote_tp tp in
+    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
+    let* tms = MU.map branch_body branches in
+    ret @@ S.CofSplit (ttp, List.combine tphis tms)
+
+  | _ ->
+    let* tm = quote_hd hd in
+    quote_spine tm spine
 
 and quote_spine tm =
   function

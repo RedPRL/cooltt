@@ -105,7 +105,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.El con0, D.El con1 ->
     equate_con D.Univ con0 con1
   | D.ElCut cut0, D.ElCut cut1 ->
-    equate_cut cut0 cut1
+    equate_cut D.Univ cut0 cut1
   | D.ElUnstable (`HCom (r0, s0, phi0, bdy0)), D.ElUnstable (`HCom (r1, s1, phi1, bdy1)) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
@@ -136,8 +136,8 @@ and equate_con tp con0 con1 =
   | D.TpPrf _, _, _ -> ret ()
   | _, D.Abort, _ -> ret ()
   | _, _, D.Abort -> ret ()
-  | _, D.Cut {cut = D.Split (_, branches), _}, _
-  | _, _, D.Cut {cut = D.Split (_, branches), _} ->
+  | _, D.Cut {cut = D.Split  branches, _}, _
+  | _, _, D.Cut {cut = D.Split branches, _} ->
     let phis = List.map (fun (phi, _) -> phi) branches in
     QuM.left_invert_under_cofs [Cof.join phis] @@
     equate_con tp con0 con1
@@ -184,8 +184,8 @@ and equate_con tp con0 con1 =
     let* phi0 = lift_cmp @@ con_to_cof con0 in
     let* phi1 = lift_cmp @@ con_to_cof con1 in
     equate_cof phi0 phi1
-  | _, D.Cut {cut = cut0}, D.Cut {cut = cut1} ->
-    equate_cut cut0 cut1
+  | _, D.Cut {cut = cut0; tp}, D.Cut {cut = cut1} ->
+    equate_cut tp cut0 cut1
   | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
     let fix_body bdy =
       lift_cmp @@ splice_tm @@
@@ -269,15 +269,15 @@ and equate_con tp con0 con1 =
     conv_err @@ ExpectedConEq (tp, con0, con1)
 
 (* Invariant: cut0, cut1 are whnf *)
-and equate_cut cut0 cut1 =
+and equate_cut tp cut0 cut1 =
   QuM.abort_if_inconsistent () @@
   let* () = assert_done_cut cut0 in
   let* () = assert_done_cut cut1 in
   let hd0, sp0 = cut0 in
   let hd1, sp1 = cut1 in
   match hd0, hd1 with
-  | D.Split (tp, branches), _
-  | _, D.Split (tp, branches) ->
+  | D.Split branches, _
+  | _, D.Split branches ->
     let phis = List.map (fun (phi, _) -> phi) branches in
     QuM.left_invert_under_cofs [Cof.join phis] @@
     let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut0 in
@@ -394,15 +394,8 @@ and equate_hd hd0 hd1 =
     let code0 = D.Cut {tp = D.Univ; cut = cut0} in
     let code1 = D.Cut {tp = D.Univ; cut = cut1} in
     equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
-  | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
-    equate_cut cut0 cut1
-  | hd, D.Split (tp, branches)
-  | D.Split (tp, branches), hd ->
-    let equate_branch (phi, clo) =
-      QuM.left_invert_under_cofs [phi] @@
-      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo D.Prf
-    in
-    MU.iter equate_branch branches
+  | D.SubOut (cut0, tp0, phi0, clo0), D.SubOut (cut1, tp1, phi1, clo1) ->
+    equate_cut (D.Sub (tp0, phi0, clo0)) cut0 cut1
   | D.Cap (r0, s0, phi0, code0, box0), D.Cap (r1, s1, phi1, code1, box1) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
@@ -420,10 +413,10 @@ and equate_hd hd0 hd1 =
       in
       equate_con code_tp code0 code1
     in
-    equate_cut box0 box1
+    equate_cut (D.ElUnstable (`HCom (r0, s0, phi0, code0))) box0 box1
   | D.VProj (r0, pcode0, code0, pequiv0, cut0), D.VProj (r1, pcode1, code1, pequiv1, cut1) ->
     let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
-    equate_cut cut0 cut1
+    equate_cut (D.ElUnstable (`V (r0, pcode0, code0, pequiv0))) cut0 cut1
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
 
@@ -477,11 +470,11 @@ let equal_tp tp0 tp1 : [`Ok | `Err of Error.t] quote =
   | Error exn -> throw exn
   | Ok _ -> ret `Ok
 
-let equal_cut cut0 cut1 =
+let equal_cut tp cut0 cut1 =
   trap
     begin
       QuM.left_invert_under_current_cof @@
-      equate_cut cut0 cut1
+      equate_cut tp cut0 cut1
     end |>>
   function
   | Error (ConversionError err) -> ret @@ `Err err
