@@ -150,7 +150,6 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
     | CS.Cell {name; tp} :: args ->
       T.BChk.update_span tp.info @@
       R.Tactic.intro_implicit_connectives @@
-      T.BChk.whnf @@
       R.Pi.intro ~ident:name @@ fun _ ->
       loop args
   in
@@ -163,7 +162,6 @@ and bchk_tm : CS.con -> T.BChk.tac =
     R.Hole.unleash_hole name `Rigid
   | _ ->
     T.BChk.update_span con.info @@
-    T.BChk.whnf @@
     R.Tactic.intro_implicit_connectives @@
     match con.node with
     | CS.Underscore ->

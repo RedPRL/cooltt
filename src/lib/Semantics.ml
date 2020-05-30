@@ -845,7 +845,7 @@ and whnf_hd ?(style = default_whnf_style) hd =
       | true -> reduce_to ~style con
       | false ->
         begin
-          dispatch_rigid_coe abs |>>
+          dispatch_rigid_coe ~style abs |>>
           function
           | `Done ->
             ret `Done
@@ -864,7 +864,7 @@ and whnf_hd ?(style = default_whnf_style) hd =
           ret `Done
         | `Reduce code ->
           begin
-            dispatch_rigid_hcom code |>>
+            dispatch_rigid_hcom ~style code |>>
             function
             | `Done _ ->
               ret `Done
@@ -1252,7 +1252,7 @@ and do_el : D.con -> D.tp CM.m =
   fun con ->
     abort_if_inconsistent D.TpAbort @@
     begin
-      inspect_con ~style:{unfolding = true} con |>>
+      inspect_con con |>>
       function
       | D.Cut {cut} ->
         ret @@ D.ElCut cut
@@ -1321,7 +1321,7 @@ and do_coe r s (abs : D.con) con =
   | _ -> do_rigid_coe abs r s con
 
 
-and dispatch_rigid_coe line =
+and dispatch_rigid_coe ?(style = default_whnf_style) line =
   let open CM in
   let go x codex =
     match codex with
@@ -1348,7 +1348,7 @@ and dispatch_rigid_coe line =
   in
   let peek line =
     let x = Symbol.named "do_rigid_coe" in
-    go x <@> whnf_inspect_con ~style:{unfolding = true} @<< do_ap line @@ D.dim_to_con @@ D.DimProbe x |>>
+    go x <@> whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ D.DimProbe x |>>
     function
     | `Reduce _ | `Done as res -> ret res
     | `Unknown ->
@@ -1364,7 +1364,7 @@ and dispatch_rigid_coe line =
   | _ ->
     peek line
 
-and dispatch_rigid_hcom code =
+and dispatch_rigid_hcom ?(style = default_whnf_style) code =
   let open CM in
   let go code =
     match code with
@@ -1389,7 +1389,7 @@ and dispatch_rigid_hcom code =
     | _ ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_hcom"
   in
-  go @<< whnf_inspect_con ~style:{unfolding = true} code
+  go @<< whnf_inspect_con ~style code
 
 and enact_rigid_coe line r r' con tag =
   let open CM in

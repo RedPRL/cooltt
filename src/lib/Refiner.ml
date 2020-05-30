@@ -875,6 +875,7 @@ struct
 
   let rec intro_implicit_connectives : T.BChk.tac -> T.BChk.tac =
     fun tac ->
+    T.BChk.whnf @@
     match_goal @@ function
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ intro_implicit_connectives tac
