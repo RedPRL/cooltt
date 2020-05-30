@@ -452,7 +452,8 @@ and quote_cut tp (hd, spine) =
   match hd with
 
   | D.Split branches ->
-    let go_branch (phi, clo) =
+
+    let push_frame frame (phi, clo) =
       let* bdy =
         lift_cmp @@ Sem.splice_tm @@
         Splice.foreign_clo clo @@ fun clo ->
@@ -464,7 +465,18 @@ and quote_cut tp (hd, spine) =
       let clo' = D.un_lam bdy in
       ret (phi, clo')
     in
-    let* branches = MU.map go_branch branches in
+
+
+    let rec push_branches branches spine =
+      match spine with
+      | [] -> ret (branches, [])
+      | D.KAp _ :: _ -> ret (branches, spine)
+      | frm :: spine ->
+        let* branches = MU.map (push_frame frm) branches in
+        push_branches branches spine
+    in
+
+    let* branches, spine = push_branches branches spine in
 
     let branch_body (phi, clo) =
       begin
@@ -476,7 +488,7 @@ and quote_cut tp (hd, spine) =
     let* ttp = quote_tp tp in
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
-    ret @@ S.CofSplit (ttp, List.combine tphis tms)
+    quote_spine (S.CofSplit (ttp, List.combine tphis tms)) spine
 
   | _ ->
     let* tm = quote_hd hd in
