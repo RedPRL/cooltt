@@ -1,0 +1,20 @@
+def v-test (r : 𝕀) (A : type) : type =
+  V r {_ => A} A {_ =>
+    [ x => x
+    , x =>
+      [ [x, _ => x]
+      , p i =>
+        let aux = hfill A 1 {∂ i} {k _ => [ k=1 => x | i=1 => {snd p} k | i=0 => x ] } in
+        [aux 0, aux]
+      ]
+    ]
+  }
+
+def hcom-type (i : 𝕀) : type =
+  hcom type 0 1 {∂ i} {j _ => [j=0 => v-test i nat | ∂ i => nat]}
+
+def hcom-box (i : 𝕀) : hcom-type i =
+  [_ => 4, [_ => 4,4]]
+
+normalize hcom-box
+
