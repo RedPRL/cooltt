@@ -1121,9 +1121,6 @@ and do_goal_proj con =
     | D.GoalRet con -> ret con
     | D.Cut {tp = D.GoalTp (_, tp); cut} ->
       ret @@ cut_frm ~tp ~cut D.KGoalProj
-    | D.Cut {tp; cut} ->
-      Format.eprintf "bad: %a @." D.pp_tp tp;
-      CM.throw @@ NbeFailed "do_goal_proj"
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       CM.throw @@ NbeFailed "do_goal_proj"
