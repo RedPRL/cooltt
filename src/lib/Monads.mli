@@ -35,7 +35,6 @@ module EvM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
-  val read_veil : Veil.t m
   val read_global : ElabState.t m
   val read_local : D.env m
 
