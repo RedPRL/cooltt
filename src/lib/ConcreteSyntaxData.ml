@@ -61,6 +61,7 @@ and con_ =
   | Com of con * con * con * con * con
   | V of con * con * con * con
   | VProj of con
+  | Cap of con
 [@@deriving show]
 
 and case = pat * con

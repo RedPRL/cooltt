@@ -67,6 +67,11 @@ module ElV : sig
   val elim : Syn.tac -> Syn.tac
 end
 
+module ElHCom : sig
+  val intro : BChk.tac -> BChk.tac -> BChk.tac
+  val elim : Syn.tac -> Syn.tac
+end
+
 module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
   val intro : ?ident:Ident.t -> (var -> BChk.tac) -> BChk.tac

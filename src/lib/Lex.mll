@@ -52,6 +52,7 @@ let keywords =
     ("V", V);
     ("🥦", V);
     ("vproj", VPROJ);
+    ("cap", CAP);
   ]
 }
 
