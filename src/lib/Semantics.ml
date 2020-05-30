@@ -980,6 +980,15 @@ and whnf_tp =
       | false ->
         ret `Done
     end
+  | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
+    begin
+      test_sequent [] (Cof.boundary r) |>>
+      function
+      | true ->
+        reduce_to_tp @<< do_el @<< splice_tm @@ v_boundary r pcode code
+      | false ->
+        ret `Done
+    end
   | D.UnfoldElSplit (branches, spine) ->
     let rec go =
       function
