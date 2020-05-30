@@ -390,6 +390,16 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     in
     let+ branches = MU.map go_branch branches in
     D.TpSplit branches
+  | D.UnfoldElSplit (branches, sp) ->
+    let go_branch (phi, clo) =
+      let+ phi = subst_cof r x phi
+      and+ clo = subst_clo r x clo in
+      (phi, clo)
+    in
+    let+ branches = MU.map go_branch branches
+    and+ sp = subst_sp r x sp in
+    D.UnfoldElSplit (branches, sp)
+
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
   fun r x (hd, sp) ->
@@ -819,6 +829,13 @@ and reduce_to ~style con =
   | `Done -> ret @@ `Reduce con
   | `Reduce con -> ret @@ `Reduce con
 
+and reduce_to_tp tp =
+  let open CM in
+  whnf_tp tp |>> function
+  | `Done -> ret @@ `Reduce tp
+  | `Reduce tp -> ret @@ `Reduce tp
+
+
 and plug_into ~style sp con =
   let open CM in
   let* res = do_spine con sp in
@@ -959,16 +976,35 @@ and whnf_tp =
       Cof.join [Cof.eq r s; phi] |> test_sequent [] |>>
       function
       | true ->
-        let* tp  = do_el @<< do_ap2 bdy (D.dim_to_con s) D.Prf in
-        begin
-          whnf_tp tp |>>
-          function
-          | `Done -> ret @@ `Reduce tp
-          | `Reduce tp -> ret @@ `Reduce tp
-        end
+        reduce_to_tp @<< do_el @<< do_ap2 bdy (D.dim_to_con s) D.Prf
       | false ->
         ret `Done
     end
+  | D.UnfoldElSplit (branches, spine) ->
+    let rec go =
+      function
+      | [] -> ret `Done
+      | (phi, tm_clo) :: branches ->
+        test_sequent [] phi |>> function
+        | true ->
+          let* con = inst_tm_clo tm_clo D.Prf in
+          reduce_to_tp @<< unfold_el @<< do_spine con spine
+        | false ->
+          go branches
+    in
+    go branches
+  | D.TpSplit branches ->
+    let rec go =
+      function
+      | [] -> ret `Done
+      | (phi, tp_clo) :: branches ->
+        test_sequent [] phi |>> function
+        | true ->
+          reduce_to_tp @<< inst_tp_clo tp_clo D.Prf
+        | false ->
+          go branches
+    in
+    go branches
   | tp ->
     ret `Done
 
@@ -1235,6 +1271,9 @@ and do_rigid_vproj v =
     | D.Cut {tp = D.ElUnstable (`V (r, pcode, code, pequiv)); cut} ->
       let* tp = do_el code in
       ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
+    | D.Cut {tp; cut} ->
+      Format.eprintf "vproj tp: %a      |     %a@." D.pp_tp tp D.pp_cut cut;
+      failwith "foo"
     | D.VIn (_, _, _, base) ->
       ret base
     | _ ->

@@ -49,6 +49,7 @@ and tp =
   | Univ
   | El of con
   | ElCut of cut
+  | UnfoldElSplit of (cof * tm_clo) list * frm list
   | ElUnstable of [`HCom of dim * dim * cof * con | `V of dim * con * con * con]
   | GoalTp of string option * tp
   | TpDim

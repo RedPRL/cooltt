@@ -14,7 +14,6 @@ def hcom-type (i : 𝕀) : type =
   hcom type 0 1 {∂ i} {j _ => [j=0 => v-test i nat | ∂ i => nat]}
 
 def hcom-box (i : 𝕀) : hcom-type i =
-  [_ => 4, [_ => 4,4]]
+  [_ => ?asdf, ?]
 
-normalize hcom-box
 

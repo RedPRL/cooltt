@@ -278,15 +278,28 @@ let rec quote_con (tp : D.tp) con : S.t m =
 
   | D.TpSplit branches as tp, _ ->
     let* ttp = quote_tp tp in
-    let branch_body (phi, tp_clo) : S.t m =
+    let branch_body phi : S.t m =
       begin
         bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
-        let* tp = lift_cmp @@ inst_tp_clo tp_clo prf in
         quote_con tp con
       end
     in
-    let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
-    and+ tms = MU.map branch_body branches in
+    let phis = List.map fst branches in
+    let+ tphis = MU.map quote_cof phis
+    and+ tms = MU.map branch_body phis in
+    S.CofSplit (ttp, List.combine tphis tms)
+
+  | D.UnfoldElSplit (branches, _) as tp, _ ->
+    let* ttp = quote_tp tp in
+    let branch_body phi : S.t m =
+      begin
+        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        quote_con tp con
+      end
+    in
+    let phis = List.map fst branches in
+    let+ tphis = MU.map quote_cof phis
+    and+ tms = MU.map branch_body phis in
     S.CofSplit (ttp, List.combine tphis tms)
 
   | _ ->
@@ -387,6 +400,15 @@ and quote_tp (tp : D.tp) =
   | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
     S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
+  | D.UnfoldElSplit (branches, spine) as tp ->
+    let branch_body phi : S.tp m =
+      bind_var ~abort:(S.El S.CofAbort) (D.TpPrf phi) @@ fun prf ->
+      quote_tp tp
+    in
+    let phis = List.map fst branches in
+    let+ tphis = MU.map quote_cof phis
+    and+ tps = MU.map branch_body phis in
+    S.TpCofSplit (List.combine tphis tps)
   | D.TpSplit branches ->
     let branch_body (phi, clo) : S.tp m =
       begin
