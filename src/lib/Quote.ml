@@ -239,7 +239,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
       QTB.lam (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
     in
-    S.Box (tr, ts, tphi, tcap, tsides)
+    S.Box (tr, ts, tphi, tsides, tcap)
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)), _ ->
     let+ tr = quote_dim r
