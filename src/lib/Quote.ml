@@ -64,6 +64,21 @@ let rec quote_con (tp : D.tp) con : S.t m =
           S.Var ix
     end
 
+  | _, D.Cut {cut = (D.Global sym, sp) as cut; tp} ->
+    let* st = QuM.read_global in
+    let* veil = QuM.read_veil in
+    begin
+      let _, ocon = ElabState.get_global sym st in
+      begin
+        match ocon, Veil.policy sym veil with
+        | Some con, `Transparent ->
+          let* con' = lift_cmp @@ Sem.do_spine con sp in
+          quote_con tp con'
+        | _ ->
+          quote_cut cut
+      end
+    end
+
   | _, D.Cut {cut = (hd, sp); tp} ->
     quote_cut (hd, sp)
 

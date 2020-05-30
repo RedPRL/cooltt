@@ -63,7 +63,7 @@ struct
         let ident =
           match name with
           | None -> `Anon
-          | Some str -> `Machine str
+          | Some str -> `Machine ("?" ^ str)
         in
         EM.add_global ident vtp None
     in
@@ -875,6 +875,7 @@ struct
 
   let rec intro_implicit_connectives : T.BChk.tac -> T.BChk.tac =
     fun tac ->
+    T.BChk.whnf @@
     match_goal @@ function
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ intro_implicit_connectives tac
@@ -962,9 +963,10 @@ struct
         Pi.intro @@ fun var -> (* of inductive type *)
         T.BChk.chk @@ fun goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
-        match fib with
-        | D.El code ->
-          EM.lift_qu @@ Qu.quote_con D.Univ code
+        let* tfib = EM.lift_qu @@ Quote.quote_tp fib in
+        match tfib with
+        | S.El code ->
+          EM.ret code
         | _ ->
           EM.expected_connective `El fib
       in

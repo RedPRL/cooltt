@@ -28,3 +28,4 @@ def hSet : type = hLevel 2
 def hGroupoid : type = hLevel 3
 
 print hProp
+normalize hProp
