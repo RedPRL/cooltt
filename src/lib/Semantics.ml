@@ -1280,9 +1280,6 @@ and do_rigid_vproj v =
     | D.Cut {tp = D.ElUnstable (`V (r, pcode, code, pequiv)); cut} ->
       let* tp = do_el code in
       ret @@ D.Cut {tp; cut = D.VProj (r, pcode, code, pequiv, cut), []}
-    | D.Cut {tp; cut} ->
-      Format.eprintf "vproj tp: %a      |     %a@." D.pp_tp tp D.pp_cut cut;
-      failwith "foo"
     | D.VIn (_, _, _, base) ->
       ret base
     | _ ->
@@ -1298,23 +1295,12 @@ and do_el_out con =
     function
     | D.ElIn con ->
       ret con
-    | D.Cut {tp = D.El con; cut} ->
-      let+ tp = unfold_el con in
+    | D.Cut {tp = D.El code; cut} ->
+      let+ tp = unfold_el code in
       cut_frm ~tp ~cut D.KElOut
-    | D.Cut {tp = D.ElCut (D.Split (D.Univ, branches), spine); cut} as con ->
-      let phis, code_clos = List.split branches in
-      let code_fns = List.map (fun clo -> D.Lam (`Anon, clo)) code_clos in
-      splice_tm @@
-      Splice.foreign con @@ fun tm ->
-      Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
-      Splice.foreign_list code_fns @@ fun code_fns ->
-      Splice.term @@
-      let tp = TB.tp_cof_split @@ List.combine phis @@ List.map (fun code_fn -> TB.el @@ TB.ap code_fn [TB.prf]) code_fns in
-      TB.cof_split tp @@
-      List.map (fun phi -> phi, TB.el_out tm) phis
-    | D.Cut {tp; cut} ->
-      Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
-      throw @@ NbeFailed "do_el_out"
+    | D.Cut {tp = D.ElCut (D.Split (_, branches), spine); cut} ->
+      let tp = D.UnfoldElSplit (branches, spine) in
+      ret @@ cut_frm ~tp ~cut D.KElOut
     | _ ->
       Format.eprintf "bad el/out: %a@." D.pp_con con;
       throw @@ NbeFailed "do_el_out"

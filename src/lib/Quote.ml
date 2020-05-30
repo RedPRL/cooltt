@@ -253,30 +253,57 @@ let rec quote_con (tp : D.tp) con : S.t m =
     in
     S.Box (tr, ts, tphi, tsides, tcap)
 
-  | D.ElUnstable (`V (r, pcode, code, pequiv)), _ ->
-    let+ tr = quote_dim r
-    and+ part =
-      QTB.lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
-      let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
-      let* tp = lift_cmp @@ do_el pcode_fib in
-      quote_con tp con
-    and+ tot =
-      let* tp = lift_cmp @@ do_el code in
-      let* proj = lift_cmp @@ do_rigid_vproj con in
-      quote_con tp proj
-    and+ t_pequiv =
-      let* tp_pequiv =
-        lift_cmp @@ Sem.splice_tp @@
-        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
-      in
-      quote_con tp_pequiv pequiv
-    in
-    S.VIn (tr, t_pequiv, part, tot)
+  | D.ElUnstable (`V (r, pcode, code, pequiv)) as tp, _ ->
+    begin
+      lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
+      | true ->
+        let* ttp = quote_tp tp in
+        let branch phi : (S.t * S.t) m =
+          let* tphi = quote_cof phi in
+          bind_var ~abort:(tphi, S.CofAbort) (D.TpPrf phi) @@ fun prf ->
+          Format.eprintf "quoting: %a |= %a / %a@." D.pp_cof phi D.pp_tp tp D.pp_con con;
+          let+ tm = quote_con tp con in
+          tphi, tm
+        in
+        let phis = [Cof.eq r D.Dim0; Cof.eq r D.Dim1] in
+        let+ branches = MU.map branch phis in
+        S.CofSplit (ttp, branches)
+      | false ->
+        let+ tr = quote_dim r
+        and+ part =
+          QTB.lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
+          let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
+          let* tp = lift_cmp @@ do_el pcode_fib in
+          quote_con tp con
+        and+ tot =
+          let* tp = lift_cmp @@ do_el code in
+          let* proj = lift_cmp @@ do_rigid_vproj con in
+          quote_con tp proj
+        and+ t_pequiv =
+          let* tp_pequiv =
+            lift_cmp @@ Sem.splice_tp @@
+            Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+          in
+          quote_con tp_pequiv pequiv
+        in
+        S.VIn (tr, t_pequiv, part, tot)
+    end
 
   | _, D.LetSym (r, x, con) ->
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
 
   | D.TpSplit branches as tp, _ ->
+    let* ttp = quote_tp tp in
+    let branch_body phi : S.t m =
+      bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+      quote_con tp con
+    in
+    let phis = List.map fst branches in
+    let+ tphis = MU.map quote_cof phis
+    and+ tms = MU.map branch_body phis in
+    S.CofSplit (ttp, List.combine tphis tms)
+
+  | D.UnfoldElSplit (branches, _) as tp, _ ->
     let* ttp = quote_tp tp in
     let branch_body phi : S.t m =
       begin
@@ -289,7 +316,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ tms = MU.map branch_body phis in
     S.CofSplit (ttp, List.combine tphis tms)
 
-  | D.UnfoldElSplit (branches, _) as tp, _ ->
+  | D.ElCut (D.Split (_, branches), _), _ ->
     let* ttp = quote_tp tp in
     let branch_body phi : S.t m =
       begin
