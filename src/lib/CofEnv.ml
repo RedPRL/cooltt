@@ -7,7 +7,7 @@ type cof = (Dim.dim, int) Cof.cof
 module UF = DisjointSet.Make (PersistentTable.M)
 module VarSet = Set.Make (Int)
 
-type reduced_env =
+type reduced_env' =
   { classes : dim UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
@@ -25,7 +25,16 @@ type env' =
     (** a stack of unreduced joins, each represented by a list of cofibrations *)
   }
 
+type reduced_env = [ `Consistent of reduced_env' | `Inconsistent ]
 type env = [ `Consistent of env' | `Inconsistent ]
+
+let env'_of_reduced_env' : reduced_env' -> env' =
+  fun {classes; true_vars} -> {classes; true_vars; unreduced_joins = []}
+
+let env_of_reduced_env : reduced_env -> env =
+  function
+  | `Consistent reduced_env' ->  `Consistent (env'_of_reduced_env' reduced_env')
+  | `Inconsistent -> `Inconsistent
 
 let init () =
   `Consistent
@@ -108,11 +117,11 @@ end
 module Search (M : SEQ) :
 sig
   (** Search all branches assuming more cofibrations. *)
-  val left_invert : env -> cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert : env -> cof list -> (reduced_env' -> M.t) -> M.t
 
   (** Search all branches assuming more cofibrations.
       Invariant: [env.classes] must be consistent *)
-  val left_invert' : env' -> cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert' : env' -> cof list -> (reduced_env' -> M.t) -> M.t
 end =
 struct
   let left_invert' env phis cont =
@@ -140,7 +149,7 @@ end
 
 
 (* Invariant: local.classes must be consistent. *)
-let rec test (local : reduced_env) : cof -> bool =
+let rec test (local : reduced_env') : cof -> bool =
   function
   | Cof.Cof phi ->
     begin
@@ -200,8 +209,8 @@ struct
   module S = Search (Seq)
 
   let left_invert_under_cofs env phis cont =
-    S.left_invert env phis @@ fun {classes; true_vars} ->
-    cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
+    S.left_invert env phis @@ fun reduced_env' ->
+    cont @@ `Consistent (env'_of_reduced_env' reduced_env')
 end
 
 (** Monadic interface *)
@@ -216,4 +225,47 @@ struct
   end
 
   include (Monoid (M))
+end
+
+module Reduced =
+struct
+  let consistency =
+    function
+    | `Consistent _ -> `Consistent
+    | `Inconsistent -> `Inconsistent
+
+  let to_env = env_of_reduced_env
+
+  (** Monoidal interface *)
+  module Monoid (M : CoolBasis.Monoid.S with type key := cof) :
+  sig
+    (** Search all branches induced by unreduced joins under additional cofibrations. *)
+    val left_invert_under_cofs : reduced_env -> cof list -> (reduced_env -> M.t) -> M.t
+  end
+  =
+  struct
+    module Seq = struct
+      include M
+      let fast_track _ x = x ()
+    end
+    module S = Search (Seq)
+
+    let left_invert_under_cofs reduced_env phis cont =
+      S.left_invert (to_env reduced_env) phis @@ fun reduced_env' ->
+      cont @@ `Consistent reduced_env'
+  end
+
+  (** Monadic interface *)
+  module Monad (M : CoolBasis.Monad.S) =
+  struct
+    module MU = CoolBasis.Monad.Util (M)
+    module M =
+    struct
+      type t = unit M.m
+      let zero = M.ret ()
+      let seq f l = MU.iter f l
+    end
+
+    include (Monoid (M))
+  end
 end

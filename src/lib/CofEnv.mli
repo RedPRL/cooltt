@@ -1,3 +1,4 @@
+type reduced_env
 type env
 type cof = (Dim.dim, int) Cof.cof
 
@@ -16,6 +17,13 @@ val assume : env -> cof -> env
     the conjunction of the context and then testing truth. *)
 val test_sequent : env -> cof list -> cof -> bool
 
+(** Monoidal interface *)
+module Monoid (M : CoolBasis.Monoid.S with type key := cof) :
+sig
+  (** Search all branches induced by unreduced joins under additional cofibrations. *)
+  val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
+end
+
 (** Monadic interface *)
 module Monad (M : CoolBasis.Monad.S) :
 sig
@@ -23,9 +31,25 @@ sig
   val left_invert_under_cofs : env -> cof list -> (env -> unit M.m) -> unit M.m
 end
 
-(** Monoidal interface *)
-module Monoid (M : CoolBasis.Monoid.S with type key := cof) :
+module Reduced :
 sig
-  (** Search all branches induced by unreduced joins under additional cofibrations. *)
-  val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
+  (** Create an environment with no unreduced joins. *)
+  val to_env : reduced_env -> env
+
+  (** Returns the consistency of the environment. *)
+  val consistency : reduced_env -> [`Consistent | `Inconsistent]
+
+  (** Monoidal interface *)
+  module Monoid (M : CoolBasis.Monoid.S with type key := cof) :
+  sig
+    (** Search all branches induced by unreduced joins under additional cofibrations. *)
+    val left_invert_under_cofs : reduced_env -> cof list -> (reduced_env -> M.t) -> M.t
+  end
+
+  (** Monadic interface *)
+  module Monad (M : CoolBasis.Monad.S) :
+  sig
+    (** Search all branches induced by unreduced joins under additional cofibrations. *)
+    val left_invert_under_cofs : reduced_env -> cof list -> (reduced_env -> unit M.m) -> unit M.m
+  end
 end
