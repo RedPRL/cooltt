@@ -240,6 +240,11 @@ struct
     | `Inconsistent -> `Inconsistent
 
   let to_env = env_of_reduced_env
+  let partition_env =
+    function
+    | `Inconsistent -> `Inconsistent , []
+    | `Consistent {classes; true_vars; unreduced_joins} ->
+      `Consistent {classes; true_vars} , List.map Cof.join unreduced_joins 
 
   module type S =
   sig

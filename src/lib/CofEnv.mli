@@ -37,6 +37,9 @@ sig
   (** Create an environment with no unreduced joins. *)
   val to_env : reduced_env -> env
 
+  (** Partition an env into reduced parts and unreduced parts. *)
+  val partition_env : env -> reduced_env * cof list
+
   (** Returns the consistency of the environment. *)
   val consistency : reduced_env -> [`Consistent | `Inconsistent]
 
