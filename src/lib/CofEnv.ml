@@ -210,7 +210,6 @@ struct
   module MU = CoolBasis.Monad.Util (M)
   module M =
   struct
-    type key = cof
     type t = unit M.m
     let zero = M.ret ()
     let seq f l = MU.iter f l
