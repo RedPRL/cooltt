@@ -46,16 +46,12 @@ let find_class classes r =
 (* minimum requirement to do the search *)
 module type SEQ =
 sig
-  (** The type of the result of the search. *)
-  type t
-
-  (** The default value for vacuous cases. Should be the same as [seq id []]. *)
-  val vacuous : t
-
-  (** The sequencing operator. Technically, we can demand [seq' : t list -> t] instead
+  include CoolBasis.Monoid.S with type key := cof
+  (** [type t] is the type of the result of the search. *)
+  (** [val zero] is the default value for vacuous cases. Should be the same as [seq id []]. *)
+  (** [val seq] is the sequencing operator. Technically, we can demand [seq' : t list -> t] instead
     * and the current [seq f l] would be [seq' (map f l)]. However, [List.for_all] and
     * [CoolBasis.Monad.Util.iter] directly fit into this type. *)
-  val seq : (cof -> t) -> cof list -> t
 
   (** If the first component returns a "good" result, then don't bother with the second. (???) *)
   val fast_track : (unit -> t) -> (unit -> t) -> t
@@ -122,7 +118,7 @@ struct
   let left_invert' env phis cont =
     let rec go =
       function
-      | None -> M.vacuous
+      | None -> M.zero
       | Some ({classes; true_vars; unreduced_joins} as env) ->
         M.fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
         match unreduced_joins with
@@ -132,13 +128,13 @@ struct
             psis |> M.seq @@ fun psi ->
             go @@ SearchHelper.pushes' {env with unreduced_joins} [psi]
           else
-            M.vacuous
+            M.zero
     in
     go @@ SearchHelper.pushes' env phis
 
   let left_invert env phis cont =
     match env with
-    | `Inconsistent -> M.vacuous
+    | `Inconsistent -> M.zero
     | `Consistent env -> left_invert' env phis cont
 end
 
@@ -164,7 +160,7 @@ let rec test (local : reduced_env) : cof -> bool =
 module BoolSeqAll : SEQ with type t = bool =
 struct
   type t = bool
-  let vacuous = true
+  let zero = true
   let seq = List.for_all
   let fast_track x y =
     if x () then true else y ()
@@ -190,7 +186,7 @@ let assume env phi =
       else `Inconsistent
 
 (** Monoidal interface *)
-module Monoid (M : CoolBasis.Monoid.S with type key = cof) :
+module Monoid (M : CoolBasis.Monoid.S with type key := cof) :
 sig
   (** Search all branches induced by unreduced joins under additional cofibrations. *)
   val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
@@ -198,9 +194,7 @@ end
 =
 struct
   module Seq = struct
-    type t = M.t
-    let vacuous = M.zero
-    let seq f l = M.seq f l
+    include M
     let fast_track _ x = x ()
   end
   module S = Search (Seq)
