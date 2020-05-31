@@ -47,18 +47,18 @@ let find_class classes r =
 module type SEQ =
 sig
   (** The type of the result of the search. *)
-  type t
+  type 'a t
 
   (** The default value for vacuous cases. Should be the same as [seq id []]. *)
-  val vacuous : t
+  val vacuous : 'a t
 
   (** The sequencing operator. Technically, we can demand [seq' : t list -> t] instead
     * and the current [seq f l] would be [seq' (map f l)]. However, [List.for_all] and
     * [CoolBasis.Monad.Util.iter] directly fit into this type. *)
-  val seq : ('a -> t) -> 'a list -> t
+  val seq : ('a -> 'b t) -> 'a list -> 'b t
 
   (** If the first component returns a "good" result, then don't bother with the second. (???) *)
-  val fast_track : (unit -> t) -> (unit -> t) -> t
+  val fast_track : (unit -> 'a t) -> (unit -> 'a t) -> 'a t
 end
 
 module SearchHelper :
@@ -112,11 +112,11 @@ end
 module Search (M : SEQ) :
 sig
   (** Search all branches assuming more cofibrations. *)
-  val left_invert : env -> cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert : env -> cof list -> (reduced_env -> 'a M.t) -> 'a M.t
 
   (** Search all branches assuming more cofibrations.
       Invariant: [env.classes] must be consistent *)
-  val left_invert' : env' -> cof list -> (reduced_env -> M.t) -> M.t
+  val left_invert' : env' -> cof list -> (reduced_env -> 'a M.t) -> 'a M.t
 end =
 struct
   let left_invert' env phis cont =
@@ -161,9 +161,9 @@ let rec test (local : reduced_env) : cof -> bool =
   | Cof.Var v ->
     VarSet.mem v local.true_vars
 
-module BoolSeqAll : SEQ with type t = bool =
+module BoolSeqAll : SEQ with type 'a t = bool =
 struct
-  type t = bool
+  type 'a t = bool
   let vacuous = true
   let seq = List.for_all
   let fast_track x y =
@@ -198,7 +198,7 @@ end
 =
 struct
   module MU = CoolBasis.Monad.Util (M)
-  module Seq = struct type t = unit M.m let vacuous = M.ret () let seq = MU.iter let fast_track _ x = x () end
+  module Seq = struct type 'a t = unit M.m let vacuous = M.ret () let seq = MU.iter let fast_track _ x = x () end
   module S = Search (Seq)
 
   let left_invert_under_cofs env phis cont =
