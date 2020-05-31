@@ -190,7 +190,7 @@ let assume env phi =
       else `Inconsistent
 
 (** Monoidal interface *)
-module Monoid (M : CoolBasis.Monoid.S) :
+module Monoid (M : CoolBasis.Monoid.S with type key = cof) :
 sig
   (** Search all branches induced by unreduced joins under additional cofibrations. *)
   val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
@@ -214,8 +214,9 @@ end
 module Monad (M : CoolBasis.Monad.S) =
 struct
   module MU = CoolBasis.Monad.Util (M)
-  module M : CoolBasis.Monoid.S with type t = unit M.m =
+  module M =
   struct
+    type key = cof
     type t = unit M.m
     let zero = M.ret ()
     let seq f l = MU.iter f l

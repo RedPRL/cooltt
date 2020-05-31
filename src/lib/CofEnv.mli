@@ -24,7 +24,7 @@ sig
 end
 
 (** Monoidal interface *)
-module Monoid (M : CoolBasis.Monoid.S) :
+module Monoid (M : CoolBasis.Monoid.S with type key = cof) :
 sig
   (** Search all branches induced by unreduced joins under additional cofibrations. *)
   val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
