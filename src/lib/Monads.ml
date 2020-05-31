@@ -108,7 +108,7 @@ struct
 
   module M = Monad.MonadReaderResult (QuL)
   module MU = Monad.Util (M)
-  module CM = CofEnv.M (M)
+  module CM = CofEnv.Monad (M)
   open Monad.Notation (M)
 
   let read_global =

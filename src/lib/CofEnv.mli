@@ -17,8 +17,15 @@ val assume : env -> cof -> env
 val test_sequent : env -> cof list -> cof -> bool
 
 (** Monadic interface *)
-module M (M : CoolBasis.Monad.S) :
+module Monad (M : CoolBasis.Monad.S) :
 sig
   (** Search all branches induced by unreduced joins under additional cofibrations. *)
   val left_invert_under_cofs : env -> cof list -> (env -> unit M.m) -> unit M.m
+end
+
+(** Monoidal interface *)
+module Monoid (M : CoolBasis.Monoid.S) :
+sig
+  (** Search all branches induced by unreduced joins under additional cofibrations. *)
+  val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
 end

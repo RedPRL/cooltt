@@ -47,18 +47,18 @@ let find_class classes r =
 module type SEQ =
 sig
   (** The type of the result of the search. *)
-  type 'a t
+  type t
 
   (** The default value for vacuous cases. Should be the same as [seq id []]. *)
-  val vacuous : 'a t
+  val vacuous : t
 
   (** The sequencing operator. Technically, we can demand [seq' : t list -> t] instead
     * and the current [seq f l] would be [seq' (map f l)]. However, [List.for_all] and
     * [CoolBasis.Monad.Util.iter] directly fit into this type. *)
-  val seq : ('a -> 'b t) -> 'a list -> 'b t
+  val seq : (cof -> t) -> cof list -> t
 
   (** If the first component returns a "good" result, then don't bother with the second. (???) *)
-  val fast_track : (unit -> 'a t) -> (unit -> 'a t) -> 'a t
+  val fast_track : (unit -> t) -> (unit -> t) -> t
 end
 
 module SearchHelper :
@@ -112,11 +112,11 @@ end
 module Search (M : SEQ) :
 sig
   (** Search all branches assuming more cofibrations. *)
-  val left_invert : env -> cof list -> (reduced_env -> 'a M.t) -> 'a M.t
+  val left_invert : env -> cof list -> (reduced_env -> M.t) -> M.t
 
   (** Search all branches assuming more cofibrations.
       Invariant: [env.classes] must be consistent *)
-  val left_invert' : env' -> cof list -> (reduced_env -> 'a M.t) -> 'a M.t
+  val left_invert' : env' -> cof list -> (reduced_env -> M.t) -> M.t
 end =
 struct
   let left_invert' env phis cont =
@@ -161,9 +161,9 @@ let rec test (local : reduced_env) : cof -> bool =
   | Cof.Var v ->
     VarSet.mem v local.true_vars
 
-module BoolSeqAll : SEQ with type 'a t = bool =
+module BoolSeqAll : SEQ with type t = bool =
 struct
-  type 'a t = bool
+  type t = bool
   let vacuous = true
   let seq = List.for_all
   let fast_track x y =
@@ -189,19 +189,37 @@ let assume env phi =
       then `Consistent env
       else `Inconsistent
 
-(** Monadic interface *)
-module M (M : CoolBasis.Monad.S) :
+(** Monoidal interface *)
+module Monoid (M : CoolBasis.Monoid.S) :
 sig
   (** Search all branches induced by unreduced joins under additional cofibrations. *)
-  val left_invert_under_cofs : env -> cof list -> (env -> unit M.m) -> unit M.m
+  val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
 end
 =
 struct
-  module MU = CoolBasis.Monad.Util (M)
-  module Seq = struct type 'a t = unit M.m let vacuous = M.ret () let seq = MU.iter let fast_track _ x = x () end
+  module Seq = struct
+    type t = M.t
+    let vacuous = M.zero
+    let seq f l = M.seq f l
+    let fast_track _ x = x ()
+  end
   module S = Search (Seq)
 
   let left_invert_under_cofs env phis cont =
     S.left_invert env phis @@ fun {classes; true_vars} ->
     cont @@ `Consistent {classes; true_vars; unreduced_joins = []}
+end
+
+(** Monadic interface *)
+module Monad (M : CoolBasis.Monad.S) =
+struct
+  module MU = CoolBasis.Monad.Util (M)
+  module M : CoolBasis.Monoid.S with type t = unit M.m =
+  struct
+    type t = unit M.m
+    let zero = M.ret ()
+    let seq f l = MU.iter f l
+  end
+
+  include (Monoid (M))
 end
