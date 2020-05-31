@@ -52,10 +52,12 @@ let consistency =
 let find_class classes r =
   try UF.find r classes with _ -> r
 
+module type PARAM = CoolBasis.Monoid.S with type key := cof
+
 (* minimum requirement to do the search *)
-module type SEQ =
+module type PARAM' =
 sig
-  include CoolBasis.Monoid.S with type key := cof
+  include PARAM
   (** [type t] is the type of the result of the search. *)
   (** [val zero] is the default value for vacuous cases. Should be the same as [seq id []]. *)
   (** [val seq] is the sequencing operator. Technically, we can demand [seq' : t list -> t] instead
@@ -114,7 +116,7 @@ struct
       pushes' {env with unreduced_joins} [psi]
 end
 
-module Search (M : SEQ) :
+module Search (M : PARAM') :
 sig
   (** Search all branches assuming more cofibrations. *)
   val left_invert : env -> cof list -> (reduced_env' -> M.t) -> M.t
@@ -166,7 +168,7 @@ let rec test (local : reduced_env') : cof -> bool =
   | Cof.Var v ->
     VarSet.mem v local.true_vars
 
-module BoolSeqAll : SEQ with type t = bool =
+module BoolSeqAll : PARAM' with type t = bool =
 struct
   type t = bool
   let zero = true
@@ -194,19 +196,22 @@ let assume env phi =
       then `Consistent env
       else `Inconsistent
 
-(** Monoidal interface *)
-module Monoid (M : CoolBasis.Monoid.S with type key := cof) :
+module type S =
 sig
+  type t
   (** Search all branches induced by unreduced joins under additional cofibrations. *)
-  val left_invert_under_cofs : env -> cof list -> (env -> M.t) -> M.t
+  val left_invert_under_cofs : env -> cof list -> (env -> t) -> t
 end
+
+(** Monoidal interface *)
+module Monoid (M : PARAM) : S with type t := M.t
 =
 struct
-  module Seq = struct
+  module Param' = struct
     include M
     let fast_track _ x = x ()
   end
-  module S = Search (Seq)
+  module S = Search (Param')
 
   let left_invert_under_cofs env phis cont =
     S.left_invert env phis @@ fun reduced_env' ->
@@ -236,13 +241,15 @@ struct
 
   let to_env = env_of_reduced_env
 
-  (** Monoidal interface *)
-  module Monoid (M : CoolBasis.Monoid.S with type key := cof) :
+  module type S =
   sig
+    type t
     (** Search all branches induced by unreduced joins under additional cofibrations. *)
-    val left_invert_under_cofs : reduced_env -> cof list -> (reduced_env -> M.t) -> M.t
+    val left_invert_under_cofs : reduced_env -> cof list -> (reduced_env -> t) -> t
   end
-  =
+
+  (** Monoidal interface *)
+  module Monoid (M : PARAM) : S with type t := M.t =
   struct
     module Seq = struct
       include M
