@@ -73,6 +73,9 @@ struct
     function
     | [] -> M.ret ()
     | x :: xs -> let* () = f x in iter f xs
+
+  let ignore m =
+    let+ _ = m in ()
 end
 
 module type MonadReaderResult = sig

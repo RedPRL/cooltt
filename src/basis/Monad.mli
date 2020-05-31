@@ -28,6 +28,7 @@ module Util (M : S) : sig
   val map : ('a -> 'b M.m) -> 'a list -> 'b list M.m
   val map_bwd : ('a -> 'b M.m) -> 'a bwd -> 'b bwd M.m
   val iter : ('a -> unit M.m) -> 'a list -> unit M.m
+  val ignore : 'a M.m -> unit M.m
 end
 
 module type MonadReaderResult = sig
