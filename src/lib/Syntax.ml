@@ -31,7 +31,7 @@ let rec dump fmt =
   | Loop _ -> Format.fprintf fmt "<loop>"
   | CircleElim _ -> Format.fprintf fmt "<circle/elim>"
 
-  | Lam _ -> Format.fprintf fmt "<lam>"
+  | Lam (ident, tm) -> Format.fprintf fmt "lam[%a, %a]" Ident.pp ident dump tm
   | Ap (tm0, tm1) -> Format.fprintf fmt "ap[%a, %a]" dump tm0 dump tm1
 
   | Pair (tm0, tm1) -> Format.fprintf fmt "pair[%a, %a]" dump tm0 dump tm1
@@ -57,7 +57,7 @@ let rec dump fmt =
   | Prf -> Format.fprintf fmt "prf"
 
   | ElIn _ -> Format.fprintf fmt "<el/in>"
-  | ElOut _ -> Format.fprintf fmt "<el/out>"
+  | ElOut tm -> Format.fprintf fmt "el/out[%a]" dump tm
 
   | Box _ -> Format.fprintf fmt "<box>"
   | Cap _ -> Format.fprintf fmt "<cap>"
