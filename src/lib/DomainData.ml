@@ -44,6 +44,8 @@ and con =
   | Box of dim * dim * cof * con * con
   | VIn of dim * con * con * con
 
+  | Split of (cof * tm_clo) list
+
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
@@ -70,7 +72,6 @@ and hd =
   | Cap of dim * dim * cof * con * cut
   | VProj of dim * con * con * con * cut
   | SubOut of cut * cof * tm_clo
-  | Split of tp * (cof * tm_clo) list
 
 and cut = hd * frm list
 

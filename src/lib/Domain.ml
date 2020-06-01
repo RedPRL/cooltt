@@ -71,12 +71,6 @@ and pp_hd : hd Pp.printer =
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl
-  | Split (tp, branches) ->
-    let sep fmt () = Format.fprintf fmt "@ | " in
-    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
-      pp_split_branch
-      fmt
-      branches
   | SubOut (cut, phi, clo) ->
     Format.fprintf fmt "sub/out[(%a), %a, %a]" pp_cut cut pp_cof phi pp_clo clo
   | _ ->
@@ -163,6 +157,12 @@ and pp_con : con Pp.printer =
   | CodeV _ -> Format.fprintf fmt "<code-v>"
   | Box _ -> Format.fprintf fmt "<box>"
   | VIn _ -> Format.fprintf fmt "<vin>"
+  | Split branches ->
+    let sep fmt () = Format.fprintf fmt "@ | " in
+    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+      pp_split_branch
+      fmt
+      branches
 
 and pp_tp fmt =
   function

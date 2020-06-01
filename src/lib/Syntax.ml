@@ -86,7 +86,7 @@ let rec pp env fmt tm =
     pp_tuple (pp env) fmt [tm0; tm1]
   | CofAbort ->
     Format.fprintf fmt "[]"
-  | CofSplit (_, branches) ->
+  | CofSplit branches ->
     let sep fmt () = Format.fprintf fmt "@ | " in
     pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
       (pp_cof_split_branch env)

@@ -141,7 +141,6 @@ let cap_boundary r s phi code box =
   Splice.foreign box @@ fun box ->
   Splice.term @@
   TB.cof_split
-    (TB.el @@ TB.ap code [s; TB.prf])
     [TB.eq r s, box;
      phi, TB.coe code s r box]
 
@@ -150,7 +149,7 @@ let v_boundary r pcode code =
   Splice.foreign pcode @@ fun pcode ->
   Splice.foreign code @@ fun code ->
   Splice.term @@
-  TB.cof_split TB.univ
+  TB.cof_split
     [TB.eq r TB.dim0, TB.ap pcode [TB.prf];
      TB.eq r TB.dim1, code]
 
@@ -162,7 +161,6 @@ let vproj_boundary r pcode code pequiv v =
   Splice.foreign v @@ fun v ->
   Splice.term @@
   TB.cof_split
-    (TB.el (TB.code_v r pcode code pequiv))
     [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
      TB.eq r TB.dim1, v]
 
@@ -310,6 +308,14 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     let+ tp = subst_tp r x tp
     and+ cut = subst_cut r x cut in
     D.Cut {tp; cut}
+  | D.Split branches ->
+    let go_branch (phi, clo) =
+      let+ phi = subst_cof r x phi
+      and+ clo = subst_clo r x clo in
+      (phi, clo)
+    in
+    let+ branches = MU.map go_branch branches in
+    D.Split branches
 
 and subst_dim : D.dim -> Symbol.t -> D.dim -> D.dim CM.m =
   fun r x s ->
@@ -445,15 +451,6 @@ and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.SubOut (cut, phi, clo)
-  | D.Split (tp, branches) ->
-    let go_branch (phi, clo) =
-      let+ phi = subst_cof r x phi
-      and+ clo = subst_clo r x clo in
-      (phi, clo)
-    in
-    let+ tp = subst_tp r x tp
-    and+ branches = MU.map go_branch branches in
-    D.Split (tp, branches)
 
 and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
   fun r x ->
@@ -660,14 +657,12 @@ and eval : S.t -> D.con EvM.m =
       let i = D.DimProbe sym in
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
-    | S.CofSplit (ttp, branches) ->
-      let* tp = eval_tp ttp in
+    | S.CofSplit (branches) ->
       let tphis, tms = List.split branches in
       let* phis = MU.map eval_cof tphis in
       let+ env = read_local in
       let pclos = List.map (fun tm -> D.Clo (tm, env)) tms in
-      let hd = D.Split (tp, List.combine phis pclos) in
-      D.Cut {tp; cut = hd, []}
+      D.Split (List.combine phis pclos)
     | S.CofAbort ->
       ret D.Abort
     | S.Prf ->
@@ -821,6 +816,18 @@ and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
       | true -> ret (`Reduce D.Base)
       | false -> ret `Done
     end
+  | D.Split branches ->
+    let rec go =
+      function
+      | [] -> ret `Done
+      | (phi, clo) :: branches ->
+        test_sequent [] phi |>> function
+        | true ->
+          reduce_to ~style @<< inst_tm_clo clo D.Prf
+        | false ->
+          go branches
+    in
+    go branches
 
 
 and reduce_to ~style con =
@@ -904,18 +911,6 @@ and whnf_hd ?(style = default_whnf_style) hd =
         | `Reduce con ->
           reduce_to ~style @<< do_sub_out con
     end
-  | D.Split (tp, branches) ->
-    let rec go =
-      function
-      | [] -> ret `Done
-      | (phi, clo) :: branches ->
-        test_sequent [] phi |>> function
-        | true ->
-          reduce_to ~style @<< inst_tm_clo clo D.Prf
-        | false ->
-          go branches
-    in
-    go branches
   | D.Cap (r, s, phi, code, cut) ->
     begin
       test_sequent [] (Cof.join [Cof.eq r s; phi]) |>> function
@@ -1298,9 +1293,18 @@ and do_el_out con =
     | D.Cut {tp = D.El code; cut} ->
       let+ tp = unfold_el code in
       cut_frm ~tp ~cut D.KElOut
+    | D.Split branches as con ->
+      let phis = List.map fst branches in
+      splice_tm @@
+      Splice.foreign con @@ fun tm ->
+      Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
+      Splice.term @@
+      TB.cof_split @@ List.map (fun phi -> phi, TB.el_out tm) phis
+        (*
     | D.Cut {tp = D.ElCut (D.Split (_, branches), spine); cut} ->
       let tp = D.UnfoldElSplit (branches, spine) in
       ret @@ cut_frm ~tp ~cut D.KElOut
+           *)
     | _ ->
       Format.eprintf "bad el/out: %a@." D.pp_con con;
       throw @@ NbeFailed "do_el_out"
@@ -1320,6 +1324,13 @@ and do_el : D.con -> D.tp CM.m =
         ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
       | D.CodeV (r, pcode, code, pequiv) ->
         ret @@ D.ElUnstable (`V (r, pcode, code, pequiv))
+      | D.Split branches as con ->
+        let phis = List.map fst branches in
+        splice_tp @@
+        Splice.foreign con @@ fun tm ->
+        Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
+        Splice.term @@
+        TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
       | _ ->
         ret @@ D.El con
     end
