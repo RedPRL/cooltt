@@ -103,8 +103,6 @@ rule token = parse
     { PIPE }
   | ','
     { COMMA }
-  | '.'
-    { DOT }
   | '*'
     { TIMES }
   | "×"

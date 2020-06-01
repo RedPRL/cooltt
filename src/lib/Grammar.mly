@@ -22,7 +22,8 @@
 
 %token <int> NUMERAL
 %token <string> ATOM
-%token <string> UPATH_ELEM (* todo i want to restrict this type *)
+%token <string list> IMPORT
+/* %token <string> UPATH_ELEM (* todo i want to restrict this type *) */
 
 (* in the lexer i'd put something like this but i don't know how to use it
 there or if it belongs here or what:
@@ -31,7 +32,7 @@ let upath_elem =
   [ 'a'-'z' 'A'-'Z' '0'-'9' ]+
 *)
 %token <string option> HOLE_NAME
-%token COLON PIPE COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY DOT
+%token COLON PIPE COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -41,7 +42,7 @@ let upath_elem =
 %token CIRCLE BASE LOOP
 %token PATHD
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF IMPORT
+%token QUIT NORMALIZE PRINT DEF
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
@@ -96,8 +97,8 @@ decl:
     { NormalizeTerm tm }
   | PRINT; name = name
     { Print name }
-  | IMPORT; upath = separated_nonempty_list(DOT, UPATH_ELEM)
-    { Import upath }
+  | path = IMPORT
+    { Import path }
 
 
 sign:
