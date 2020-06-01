@@ -184,8 +184,8 @@ struct
     restrict ~splitter phis @@ m var
 
   let bind_var_ tp m =
-    bind'_var tp @@
-    fun var phis -> restrict_ phis @@ m var
+    bind'_var tp @@ fun var phis ->
+    restrict_ phis @@ m var
 
   include QuL
   include M

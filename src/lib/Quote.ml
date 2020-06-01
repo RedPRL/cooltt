@@ -38,11 +38,9 @@ let rec quote'_con (tp : D.tp) con phis : S.t m =
   match tp, con with
   | _, D.Split branches ->
     let branch_body (phi, clo) =
-      begin
-        bind'_var (D.TpPrf phi) @@ fun prf phis ->
-        let* body = lift_cmp @@ inst_tm_clo clo prf in
-        quote'_con tp body phis
-      end
+      bind'_var (D.TpPrf phi) @@ fun prf phis ->
+      let* body = lift_cmp_under_cofs phis @@ inst_tm_clo clo prf in
+      quote'_con tp body phis
     in
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
