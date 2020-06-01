@@ -47,6 +47,7 @@ let contractum_or x =
 let rec quote_con (tp : D.tp) con : S.t m =
   QuM.abort_if_inconsistent S.CofAbort @@
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
+  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
   match tp, con with
   | _, D.Abort -> ret S.CofAbort
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
@@ -61,6 +62,21 @@ let rec quote_con (tp : D.tp) con : S.t m =
         | false ->
           let+ ix = quote_var lvl in
           S.Var ix
+    end
+
+  | _, D.Cut {cut = (D.Global sym, sp) as cut; tp} ->
+    let* st = QuM.read_global in
+    let* veil = QuM.read_veil in
+    begin
+      let _, ocon = ElabState.get_global sym st in
+      begin
+        match ocon, Veil.policy sym veil with
+        | Some con, `Transparent ->
+          let* con' = lift_cmp @@ Sem.do_spine con sp in
+          quote_con tp con'
+        | _ ->
+          quote_cut cut
+      end
     end
 
   | _, D.Cut {cut = (hd, sp); tp} ->
@@ -108,6 +124,13 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tn = quote_con D.Nat n in
     S.Suc tn
 
+  | _, D.Base ->
+    ret S.Base
+
+  | _, D.Loop r ->
+    let+ tr = quote_dim r in
+    S.Loop tr
+
   | D.TpDim, D.DimCon0 ->
     ret @@ S.Dim0
 
@@ -123,6 +146,9 @@ let rec quote_con (tp : D.tp) con : S.t m =
 
   | _, D.CodeNat ->
     ret S.CodeNat
+
+  | _, D.CodeCircle ->
+    ret S.CodeCircle
 
   | _, D.CodeUniv ->
     ret S.CodeUniv
@@ -174,6 +200,10 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tbdry = quote_con bdry_tp bdry in
     S.CodePath (tfam, tbdry)
 
+  | univ, D.CodeV (r, pcode, code, pequiv) ->
+    let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
+    S.CodeV (tr, t_pcode, tcode, t_pequiv)
+
   | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
     let* bdy' =
@@ -186,6 +216,17 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tm = quote_hcom D.CodeNat r s phi bdy' in
     S.ElOut tm
 
+  | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeCircle r s phi bdy' in
+    S.ElOut tm
+
   | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
     let+ tr = quote_dim r
     and+ ts = quote_dim s
@@ -193,19 +234,53 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
       let* el_bdy_r = lift_cmp @@ do_el bdy_r in
-      quote_con el_bdy_r @<<
-      lift_cmp @@ do_rigid_cap r s phi bdy con
+      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap con
     and+ tsides =
       QTB.lam (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
     in
     S.Box (tr, ts, tphi, tcap, tsides)
 
+  | D.ElUnstable (`V (r, pcode, code, pequiv)), _ ->
+    let+ tr = quote_dim r
+    and+ part =
+      QTB.lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
+      let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
+      let* tp = lift_cmp @@ do_el pcode_fib in
+      quote_con tp con
+    and+ tot =
+      let* tp = lift_cmp @@ do_el code in
+      let* proj = lift_cmp @@ do_rigid_vproj con in
+      quote_con tp proj
+    and+ t_pequiv =
+      let* tp_pequiv =
+        lift_cmp @@ Sem.splice_tp @@
+        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+      in
+      quote_con tp_pequiv pequiv
+    in
+    S.VIn (tr, t_pequiv, part, tot)
+
   | _, D.LetSym (r, x, con) ->
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
 
   | _ ->
+    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
+
+and quote_v_data r pcode code pequiv =
+  let+ tr = quote_dim r
+  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
+  and+ tcode = quote_con D.Univ code
+  and+ t_pequiv =
+    let* tp_pequiv =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+    in
+    quote_con tp_pequiv pequiv
+  in
+  tr, t_pcode, tcode, t_pequiv
+
 
 and quote_hcom code r s phi bdy =
   let* tcode = quote_con D.Univ code in
@@ -230,6 +305,7 @@ and quote_tp (tp : D.tp) =
   match tp with
   | D.TpAbort -> ret @@ S.El S.CofAbort
   | D.Nat -> ret S.Nat
+  | D.Circle -> ret S.Circle
   | D.Pi (base, ident, fam) ->
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
@@ -283,6 +359,9 @@ and quote_tp (tp : D.tp) =
       quote_con tp_bdy bdy
     in
     S.El (S.HCom (S.CodeUniv, tr, ts, tphi, tbdy))
+  | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
+    let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
+    S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
 
 and quote_hd =
   function
@@ -335,6 +414,17 @@ and quote_hd =
     let+ tcode = quote_con code_tp code
     and+ tbox = quote_cut box in
     S.Cap (tr, ts, tphi, tcode, tbox)
+  | D.VProj (r, pcode, code, pequiv, v) ->
+    let* tr = quote_dim r in
+    let* t_pequiv =
+      let* tp_pequiv =
+        lift_cmp @@ Sem.splice_tp @@
+        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+      in
+      quote_con tp_pequiv pequiv
+    in
+    let+ tv = quote_cut v in
+    S.VProj (tr, t_pequiv, tv)
 
 
 and quote_dim d =
@@ -400,6 +490,26 @@ and quote_frm tm =
     in
     let* tsuc_case = quote_con suc_tp suc_case in
     ret @@ S.NatElim (tmot, tzero_case, tsuc_case, tm)
+  | D.KCircleElim (mot, base_case, loop_case) ->
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.circle @@ fun _ -> TB.univ
+    in
+    let* tmot = quote_con mot_tp mot in
+    let* tbase_case =
+      let* mot_base = lift_cmp @@ do_ap mot D.Base in
+      let* tp_mot_base = lift_cmp @@ do_el mot_base in
+      quote_con tp_mot_base base_case
+    in
+    let* loop_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun x ->
+      TB.el @@ TB.ap mot [TB.loop x]
+    in
+    let* tloop_case = quote_con loop_tp loop_case in
+    ret @@ S.CircleElim (tmot, tbase_case, tloop_case, tm)
   | D.KFst ->
     ret @@ S.Fst tm
   | D.KSnd ->

@@ -27,6 +27,9 @@ and con_ =
   | Nat
   | Suc of con
   | Lit of int
+  | Circle
+  | Base
+  | Loop of con
   | Pi of cell list * con
   | Lam of Ident.t list * con
   | Ap of con * con list
@@ -57,6 +60,8 @@ and con_ =
   | HCom of con * con * con * con * con
   | HFill of con * con * con * con
   | Com of con * con * con * con * con
+  | V of con * con * con * con
+  | VProj of con
 [@@deriving show]
 
 and case = pat * con

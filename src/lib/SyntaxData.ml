@@ -8,6 +8,9 @@ type t =
   | Zero
   | Suc of t
   | NatElim of t * t * t * t
+  | Base
+  | Loop of t
+  | CircleElim of t * t * t * t
   | Lam of Ident.t * t
   | Ap of t * t
   | Pair of t * t
@@ -34,11 +37,16 @@ type t =
   | Box of t * t * t * t * t
   | Cap of t * t * t * t * t
 
+  | VIn of t * t * t * t
+  | VProj of t * t * t
+
   | CodePath of t * t
   | CodePi of t * t
   | CodeSg of t * t
   | CodeNat
   | CodeUniv
+  | CodeV of t * t * t * t
+  | CodeCircle
 
 and tp =
   | Univ
@@ -52,5 +60,6 @@ and tp =
   | Pi of tp * Ident.t * tp
   | Sg of tp * Ident.t * tp
   | Nat
+  | Circle
 
 type env = tp list

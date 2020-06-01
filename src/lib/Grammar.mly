@@ -38,16 +38,18 @@ let upath_elem =
 %token TIMES FST SND
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD
+%token CIRCLE BASE LOOP
 %token PATHD
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF IMPORT
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
+%token V VPROJ
 
 %nonassoc IN RRIGHT_ARROW
 %nonassoc COLON
-%nonassoc FST SND SUC RIGHT_ARROW TIMES
+%nonassoc FST SND VPROJ SUC LOOP RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -155,6 +157,10 @@ plain_atomic_term_except_name:
     { Lit n }
   | NAT
     { Nat }
+  | BASE
+    { Base }
+  | CIRCLE
+    { Circle }
   | TYPE
     { Type }
   | name = HOLE_NAME
@@ -222,6 +228,8 @@ plain_term_except_cof_case:
     { Ann {term = t; tp} }
   | SUC; t = term
     { Suc t }
+  | LOOP; t = term
+    { Loop t }
   | t = plain_lambda_except_cof_case
     { t }
   | ELIM; cases = cases
@@ -240,6 +248,10 @@ plain_term_except_cof_case:
     { Fst t }
   | SND; t = term
     { Snd t }
+  | V; r = atomic_term; a = atomic_term; b = atomic_term; e = atomic_term
+    { V (r, a, b, e) }
+  | VPROJ; t = term
+    { VProj t }
 
   | PATHD; tp = atomic_term; left = atomic_term; right = atomic_term
     { Path (tp, left, right) }
@@ -272,6 +284,10 @@ pat_lbl:
     { "zero" }
   | SUC
     { "suc" }
+  | BASE
+    { "base" }
+  | LOOP
+    { "loop" }
   | lbl = ATOM
     { lbl }
 

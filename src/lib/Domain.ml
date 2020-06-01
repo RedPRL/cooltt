@@ -91,7 +91,12 @@ and pp_frame : frm Pp.printer =
    fun fmt ->
    function
    | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
-   | _ -> Format.fprintf fmt "<frm>"
+   | KFst -> Format.fprintf fmt "fst"
+   | KSnd -> Format.fprintf fmt "snd"
+   | KGoalProj -> Format.fprintf fmt "<goal-proj>"
+   | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
+   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
+   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
 and pp_cof : cof Pp.printer =
   fun fmt cof ->
@@ -114,6 +119,10 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "zero"
   | Suc con ->
     Format.fprintf fmt "suc[%a]" pp_con con
+  | Base ->
+    Format.fprintf fmt "base"
+  | Loop r ->
+    Format.fprintf fmt "loop[%a]" pp_dim r
   | Pair (con0, con1) ->
     Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
   | Prf ->
@@ -138,14 +147,22 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "el/in[%a]" pp_con con
   | CodeNat ->
     Format.fprintf fmt "nat/code"
+  | CodeCircle ->
+    Format.fprintf fmt "circle/code"
   | SubIn _ ->
     Format.fprintf fmt "<sub/in>"
   | FHCom _ ->
     Format.fprintf fmt "<fhcom>"
   | LetSym _ ->
     Format.fprintf fmt "<let-sym>"
-  | _ ->
-    Format.fprintf fmt "<don't know how to print>"
+  | CodeUniv -> Format.fprintf fmt "<code-univ>"
+  | BindSym _ -> Format.fprintf fmt "<bind-sym>"
+  | CodePath _ -> Format.fprintf fmt "<code-path>"
+  | CodePi _ -> Format.fprintf fmt "<code-pi>"
+  | CodeSg _ -> Format.fprintf fmt "<code-sg>"
+  | CodeV _ -> Format.fprintf fmt "<code-v>"
+  | Box _ -> Format.fprintf fmt "<box>"
+  | VIn _ -> Format.fprintf fmt "<vin>"
 
 and pp_tp fmt =
   function
@@ -165,6 +182,8 @@ and pp_tp fmt =
     Format.fprintf fmt "<univ>"
   | Nat ->
     Format.fprintf fmt "<nat>"
+  | Circle ->
+    Format.fprintf fmt "<circle>"
   | TpAbort ->
     Format.fprintf fmt "<abort>"
   | El con ->
@@ -173,5 +192,7 @@ and pp_tp fmt =
     Format.fprintf fmt "el-cut[%a]" pp_cut con
   | ElUnstable (`HCom _) ->
     Format.fprintf fmt "<Hcom>"
+  | ElUnstable (`V _) ->
+    Format.fprintf fmt "<V>"
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"

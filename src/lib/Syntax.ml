@@ -1,6 +1,8 @@
 open CoolBasis open Bwd
 include SyntaxData
 
+let debug_mode = false
+
 let rec to_numeral =
   function
   | Zero -> Some 0
@@ -143,10 +145,6 @@ let rec pp env fmt tm =
       | Some n -> Format.fprintf fmt "%i" (n + 1)
       | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
     end
-  | CodeNat ->
-    Format.fprintf fmt "<nat>"
-  | CodeUniv ->
-    Format.fprintf fmt "<type>"
   | NatElim (mot, zero, suc, tm) ->
     Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
       (pp_atomic env) tm
@@ -154,22 +152,91 @@ let rec pp env fmt tm =
       (pp_atomic env) mot
       (pp env) zero
       (pp env) suc
+  | Base ->
+    Format.fprintf fmt "base"
+  | Loop tm ->
+    Format.fprintf fmt "loop %a" (pp_atomic env) tm
+  | CircleElim (mot, base, loop, tm) ->
+    Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
+      (pp_atomic env) tm
+      "@"
+      (pp_atomic env) mot
+      (pp env) base
+      (pp env) loop
+  | SubIn tm when debug_mode ->
+    Format.fprintf fmt "sub/in %a" (pp_atomic env) tm
+  | SubOut tm when debug_mode ->
+    Format.fprintf fmt "sub/out %a" (pp_atomic env) tm
+  | ElIn tm when debug_mode ->
+    Format.fprintf fmt "el/in %a" (pp_atomic env) tm
+  | ElOut tm when debug_mode ->
+    Format.fprintf fmt "el/out %a" (pp_atomic env) tm
+  | GoalRet tm when debug_mode ->
+    Format.fprintf fmt "goal/in %a" (pp_atomic env) tm
+  | GoalProj tm when debug_mode ->
+    Format.fprintf fmt "goal/out %a" (pp_atomic env) tm
   | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
     pp env fmt tm
-  | CodePi (base, fam) ->
+
+  | CodePi (base, fam) when debug_mode ->
+    Format.fprintf fmt "@[%a %a %a@]"
+      Uuseg_string.pp_utf_8 "<∏>"
+      (pp_atomic env) base
+      (pp_atomic env) fam
+  | CodePi (base, Lam (ident, fam)) ->
+    let x, envx = ppenv_bind env ident in
+    Format.fprintf fmt "(%a : %a) %a %a"
+      Uuseg_string.pp_utf_8 x
+      (pp env) base
+      Uuseg_string.pp_utf_8 "→"
+      (pp envx) fam
+  | CodePi (base, tm) ->
     Format.fprintf fmt "@[%a %a %a@]"
       Uuseg_string.pp_utf_8 "∏"
       (pp_atomic env) base
+      (pp_atomic env) tm
+
+  | CodeSg (base, fam) when debug_mode ->
+    Format.fprintf fmt "@[%a %a %a@]"
+      Uuseg_string.pp_utf_8 "<Σ>"
+      (pp_atomic env) base
       (pp_atomic env) fam
-  | CodeSg (base, fam) ->
+  | CodeSg (base, Lam (ident, fam)) ->
+    let x, envx = ppenv_bind env ident in
+    Format.fprintf fmt "(%a : %a) %a %a"
+      Uuseg_string.pp_utf_8 x
+      (pp env) base
+      Uuseg_string.pp_utf_8 "×"
+      (pp envx) fam
+  | CodeSg (base, tm) ->
     Format.fprintf fmt "@[%a %a %a@]"
       Uuseg_string.pp_utf_8 "Σ"
       (pp_atomic env) base
-      (pp_atomic env) fam
-  | CodePath (fam, bdry) ->
-    Format.fprintf fmt "@[prim-path %a %a@]"
+      (pp_atomic env) tm
+
+  | CodePath (fam, bdry) when debug_mode ->
+    Format.fprintf fmt "@[`path %a %a@]"
       (pp_atomic env) fam
       (pp_atomic env) bdry
+
+  | CodePath (fam, bdry) ->
+    Format.fprintf fmt "@[ext {i => ∂ i} %a %a@]"
+      (pp_atomic env) fam
+      (pp_atomic env) bdry
+
+  | CodeNat when debug_mode ->
+    Format.fprintf fmt "`nat"
+  | CodeCircle when debug_mode ->
+    Format.fprintf fmt "`circle"
+  | CodeUniv when debug_mode ->
+    Format.fprintf fmt "`type"
+  | CodeNat ->
+    Format.fprintf fmt "nat"
+  | CodeCircle ->
+    Format.fprintf fmt "circle"
+  | CodeUniv ->
+    Format.fprintf fmt "type"
+
   | Dim0 ->
     Format.fprintf fmt "0"
   | Dim1 ->
@@ -198,6 +265,28 @@ let rec pp env fmt tm =
       (pp_atomic env) phi
       (pp_atomic env) code
       (pp_atomic env) box
+  | CodeV (r, pcode, code, pequiv) ->
+    Format.fprintf fmt "@[<hv2>V %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) pcode
+      (pp_atomic env) code
+      (pp_atomic env) pequiv
+  | VIn (r, equiv, pivot, base) when debug_mode ->
+    Format.fprintf fmt "@[<hv2>vin %a %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) equiv
+      (pp_atomic env) pivot
+      (pp_atomic env) base
+  | VIn (_, _, pivot, base) ->
+    pp_tuple (pp env) fmt [pivot; base]
+  | VProj (r, equiv, v) when debug_mode ->
+    Format.fprintf fmt "@[<hv2>vproj %a %a %a@]"
+      (pp_atomic env) r
+      (pp_atomic env) equiv
+      (pp_atomic env) v
+  | VProj (r, equiv, v) ->
+    Format.fprintf fmt "@[<hv2>vproj %a@]"
+      (pp_atomic env) v
 
 and pp_tp env fmt tp =
   match tp with
@@ -229,8 +318,12 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "type"
   | Nat ->
     Format.fprintf fmt "nat"
-  | El tm ->
+  | Circle ->
+    Format.fprintf fmt "circle"
+  | El tm when debug_mode ->
     Format.fprintf fmt "el %a" (pp_atomic env) tm
+  | El tm ->
+    Format.fprintf fmt "%a" (pp env) tm
   | TpVar ix ->
     Format.fprintf fmt "#var[%i]" ix
   | GoalTp (_, tp) ->
@@ -251,10 +344,10 @@ and pp_cof_split_branch env fmt (phi, tm) =
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeUniv
-  | Zero | Prf ->
+  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
+  | Zero | Base | Prf ->
     pp env fmt tm
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
+  | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
     pp_atomic env fmt tm
   | _ ->
     pp_braced (pp env) fmt tm
@@ -263,7 +356,7 @@ and pp_applications env fmt tm =
   match tm with
   | Ap (tm0, tm1) ->
     Format.fprintf fmt "%a %a" (pp_applications env) tm0 (pp_atomic env) tm1
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
+  | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
     pp_applications env fmt tm
   | _ ->
     pp env fmt tm
@@ -275,14 +368,11 @@ and pp_lambdas env fmt tm =
     Format.fprintf fmt "%a %a"
       Uuseg_string.pp_utf_8 x
       (pp_lambdas envx) tm
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
+  | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
     pp_lambdas env fmt tm
   | _ ->
     Format.fprintf fmt "=>@ @[%a@]"
       (pp env) tm
-
-
-
 
 
 

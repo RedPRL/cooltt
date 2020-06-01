@@ -97,6 +97,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* con1 = lift_cmp @@ inst_tm_clo clo1 prf in
     equate_con tp0 con0 con1
   | D.Nat, D.Nat
+  | D.Circle, D.Circle
   | D.Univ, D.Univ ->
     ret ()
   | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
@@ -120,6 +121,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
       TB.univ
     in
     equate_con tp_bdy bdy0 bdy1
+  | D.ElUnstable (`V (r0, pcode0, code0, pequiv0)), D.ElUnstable (`V (r1, pcode1, code1, pequiv1)) ->
+    equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
@@ -127,8 +130,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 and equate_con tp con0 con1 =
   QuM.abort_if_inconsistent () @@
   let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
-  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con con0 in
-  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con con1 in
+  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con0 in
+  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con1 in
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
   | _, D.Abort, _ -> ret ()
@@ -169,6 +172,10 @@ and equate_con tp con0 con1 =
     ret ()
   | _, D.Suc con0, D.Suc con1 ->
     equate_con tp con0 con1
+  | _, D.Base, D.Base ->
+    ret ()
+  | _, D.Loop r0, D.Loop r1 ->
+    equate_dim r0 r1
   | D.TpDim, _, _ ->
     let* r0 = lift_cmp @@ con_to_dim con0 in
     let* r1 = lift_cmp @@ con_to_dim con1 in
@@ -190,10 +197,26 @@ and equate_con tp con0 con1 =
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
     equate_hcom (D.CodeNat, r0, s0, phi0, bdy0') (D.CodeNat, r1, s1, phi1, bdy1')
+  | _, D.FHCom (`Circle, r0, s0, phi0, bdy0), D.FHCom (`Circle, r1, s1, phi1, bdy1) ->
+    let fix_body bdy =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let* bdy0' = fix_body bdy0 in
+    let* bdy1' = fix_body bdy1 in
+    equate_hcom (D.CodeCircle, r0, s0, phi0, bdy0') (D.CodeCircle, r1, s1, phi1, bdy1')
   | _, D.CodeNat, D.CodeNat ->
+    ret ()
+  | _, D.CodeCircle, D.CodeCircle ->
     ret ()
   | _, D.CodeUniv, D.CodeUniv ->
     ret ()
+
+  | _, D.CodeV (r0, pcode0, code0, pequiv0), D.CodeV (r1, pcode1, code1, pequiv1) ->
+    equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
 
   | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
   | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
@@ -227,13 +250,20 @@ and equate_con tp con0 con1 =
     equate_con bdry_tp bdry0 bdry1
 
   | D.ElUnstable (`HCom (r, s, phi, bdy)) as hcom_tp, _, _ ->
-    let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
-    let* cap1 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con1 in
+    let* cap0 = lift_cmp @@ Sem.do_rigid_cap con0 in
+    let* cap1 = lift_cmp @@ Sem.do_rigid_cap con1 in
     let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
     let* tp_cap = lift_cmp @@ do_el code_cap in
     let* () = equate_con tp_cap cap0 cap1 in
     QuM.left_invert_under_cofs [phi] @@
     equate_con hcom_tp con0 con1
+
+  | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
+    let* () = QuM.left_invert_under_cofs [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
+    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj con0 in
+    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj con1 in
+    let* tp_proj = lift_cmp @@ do_el code in
+    equate_con tp_proj proj0 proj1
 
   | _ ->
     conv_err @@ ExpectedConEq (tp, con0, con1)
@@ -250,8 +280,8 @@ and equate_cut cut0 cut1 =
   | _, D.Split (tp, branches) ->
     let phis = List.map (fun (phi, _) -> phi) branches in
     QuM.left_invert_under_cofs [Cof.join phis] @@
-    let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut cut0 in
-    let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut cut1 in
+    let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut0 in
+    let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut1 in
     equate_con tp con0 con1
   | _ ->
     let* () = equate_hd hd0 hd1 in
@@ -302,6 +332,25 @@ and equate_frm k0 k1 =
       TB.el @@ TB.ap mot [TB.suc x]
     in
     equate_con suc_tp suc_case0 suc_case1
+  | D.KCircleElim (mot0, base_case0, loop_case0), D.KCircleElim (mot1, base_case1, loop_case1) ->
+    let* mot_tp =
+      lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.circle @@ fun _ -> TB.univ
+    in
+    let* () = equate_con mot_tp mot0 mot1 in
+    let* () =
+      let* mot_base = lift_cmp @@ do_ap mot0 D.Base in
+      let* tp_mot_base = lift_cmp @@ do_el mot_base in
+      equate_con tp_mot_base base_case0 base_case1
+    in
+    let* loop_tp =
+      lift_cmp @@ Sem.splice_tp @@
+      Splice.foreign mot0 @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun x ->
+      TB.el @@ TB.ap mot [TB.loop x]
+    in
+    equate_con loop_tp loop_case0 loop_case1
   | D.KGoalProj, D.KGoalProj ->
     ret ()
   | D.KElOut, D.KElOut ->
@@ -310,13 +359,13 @@ and equate_frm k0 k1 =
     conv_err @@ ExpectedFrmEq (k0, k1)
 
 and assert_done_hd hd =
-  let* w = lift_cmp @@ whnf_hd hd in
+  let* w = lift_cmp @@ whnf_hd ~style:{unfolding = true} hd in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_hd failed"
 
 and assert_done_cut cut =
-  let* w = lift_cmp @@ whnf_cut cut in
+  let* w = lift_cmp @@ whnf_cut ~style:{unfolding = true} cut in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_cut failed"
@@ -372,8 +421,25 @@ and equate_hd hd0 hd1 =
       equate_con code_tp code0 code1
     in
     equate_cut box0 box1
+  | D.VProj (r0, pcode0, code0, pequiv0, cut0), D.VProj (r1, pcode1, code1, pequiv1, cut1) ->
+    let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
+    equate_cut cut0 cut1
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
+
+and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
+  let* () = equate_dim r0 r1 in
+  let* () =
+    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+    equate_con pcode_tp pcode0 pcode1
+  in
+  let* () = equate_con D.Univ code0 code1 in
+  let* pequiv_tp =
+    lift_cmp @@
+    Sem.splice_tp @@
+    Splice.Macro.tp_pequiv_in_v ~r:r0 ~pcode:pcode0 ~code:code0
+  in
+  equate_con pequiv_tp pequiv0 pequiv1
 
 and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   let* () = equate_con D.Univ code0 code1 in

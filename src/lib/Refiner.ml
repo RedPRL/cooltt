@@ -22,9 +22,9 @@ open Bwd
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 module Hole : sig
-  val unleash_hole : string option -> [`Flex | `Rigid] -> T.bchk_tac
+  val unleash_hole : string option -> [`Flex | `Rigid] -> T.BChk.tac
   val unleash_tp_hole : string option -> [`Flex | `Rigid] -> T.tp_tac
-  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> T.syn_tac
+  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> T.Syn.tac
 end =
 struct
   let make_hole name flexity (tp, phi, clo) : D.cut m =
@@ -63,7 +63,7 @@ struct
         let ident =
           match name with
           | None -> `Anon
-          | Some str -> `Machine str
+          | Some str -> `Machine ("?" ^ str)
         in
         EM.add_global ident vtp None
     in
@@ -71,7 +71,7 @@ struct
     let cut = go_tm (D.Global sym, []) @@ Env.locals env in
     EM.ret (D.SubOut (D.push KGoalProj cut, phi, clo), [])
 
-  let unleash_hole name flexity : T.bchk_tac =
+  let unleash_hole name flexity : T.BChk.tac =
     fun (tp, phi, clo) ->
     let* cut = make_hole name flexity (tp, phi, clo) in
     EM.lift_qu @@ Qu.quote_cut cut
@@ -81,7 +81,7 @@ struct
     let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
     EM.lift_qu @@ Qu.quote_tp @@ D.ElCut cut
 
-  let unleash_syn_hole name flexity : T.syn_tac =
+  let unleash_syn_hole name flexity : T.Syn.tac =
     let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
     let+ tm = T.Chk.bchk (unleash_hole name flexity) tp in
@@ -100,7 +100,7 @@ end
 
 module Sub =
 struct
-  let formation (tac_base : T.tp_tac) (tac_phi : T.chk_tac) (tac_tm : T.var -> T.chk_tac) : T.tp_tac =
+  let formation (tac_base : T.tp_tac) (tac_phi : T.Chk.tac) (tac_tm : T.var -> T.Chk.tac) : T.tp_tac =
     T.Tp.make @@
     let* base = T.Tp.run tac_base in
     let* vbase = EM.lift_ev @@ Sem.eval_tp base in
@@ -112,7 +112,7 @@ struct
     in
     S.Sub (base, phi, tm)
 
-  let intro (tac : T.bchk_tac) : T.bchk_tac =
+  let intro (tac : T.BChk.tac) : T.BChk.tac =
     function
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub ->
       let phi = Cof.join [phi_a; phi_sub] in
@@ -123,15 +123,17 @@ struct
         Splice.foreign_cof phi_sub @@ fun phi_sub ->
         Splice.foreign_clo clo_a @@ fun fn_a ->
         Splice.foreign_clo clo_sub @@ fun fn_sub ->
-        Splice.term @@ TB.lam @@ fun prf ->
-        TB.cof_split tp_a [phi_a, (fun prf -> TB.ap fn_a [prf]); phi_sub, (fun prf -> TB.sub_out @@ TB.ap fn_sub [prf])]
+        Splice.term @@ TB.lam @@ fun _ ->
+        TB.cof_split tp_a
+          [phi_a, TB.ap fn_a [TB.prf];
+           phi_sub, TB.sub_out @@ TB.ap fn_sub [TB.prf]]
       in
       let+ tm = tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
     | tp, _, _ ->
       EM.expected_connective `Sub tp
 
-  let elim (tac : T.syn_tac) : T.syn_tac =
+  let elim (tac : T.Syn.tac) : T.Syn.tac =
     let* tm, subtp = tac in
     match subtp with
     | D.Sub (tp, _, _) ->
@@ -146,21 +148,21 @@ struct
     T.Tp.make_virtual @@
     EM.ret S.TpDim
 
-  let dim0 : T.chk_tac =
+  let dim0 : T.Chk.tac =
     function
     | D.TpDim ->
       EM.ret S.Dim0
     | tp ->
       EM.expected_connective `Dim tp
 
-  let dim1 : T.chk_tac =
+  let dim1 : T.Chk.tac =
     function
     | D.TpDim ->
       EM.ret S.Dim1
     | tp ->
       EM.expected_connective `Dim tp
 
-  let literal : int -> T.chk_tac =
+  let literal : int -> T.Chk.tac =
     function
     | 0 -> dim0
     | 1 -> dim1
@@ -214,9 +216,9 @@ struct
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
 
-  type branch_tac = T.chk_tac * (T.var -> T.bchk_tac)
+  type branch_tac = T.Chk.tac * (T.var -> T.BChk.tac)
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.bchk_tac) list) m =
+  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.BChk.tac) list) m =
     match branches with
     | [] -> EM.ret ([], [])
     | (tac_phi, tac_tm) :: branches ->
@@ -225,17 +227,17 @@ struct
       let+ phis, tacs = gather_cofibrations branches in
       (vphi :: phis), tac_tm :: tacs
 
-  let split0 : T.bchk_tac =
+  let split0 : T.BChk.tac =
     fun _ ->
     let* _ = assert_true Cof.bot in
     EM.ret S.CofAbort
 
-  let split1 (phi : D.cof) (tac : T.var -> T.bchk_tac) : T.bchk_tac =
+  let split1 (phi : D.cof) (tac : T.var -> T.BChk.tac) : T.BChk.tac =
     fun goal ->
     let* _ = assert_true phi in
     tac (T.Var.prf phi) goal
 
-  let split2 (phi0 : D.cof) (tac0 : T.var -> T.bchk_tac) (phi1 : D.cof) (tac1 : T.var -> T.bchk_tac) : T.bchk_tac =
+  let split2 (phi0 : D.cof) (tac0 : T.var -> T.BChk.tac) (phi1 : D.cof) (tac1 : T.var -> T.BChk.tac) : T.BChk.tac =
     fun (tp, psi, psi_clo) ->
     let* ttp = EM.lift_qu @@ Qu.quote_tp tp in
     let* _ = assert_true @@ Cof.join [phi0; phi1] in
@@ -255,8 +257,8 @@ struct
         Splice.foreign psi_fn @@ fun psi_fn ->
         Splice.foreign phi0_fn @@ fun phi0_fn ->
         Splice.term @@
-        TB.lam @@ fun prf ->
-        TB.cof_split tp [phi0, (fun prf -> TB.ap phi0_fn [prf]); psi, (fun prf -> TB.ap psi_fn [prf])]
+        TB.lam @@ fun _ ->
+        TB.cof_split tp [phi0, TB.ap phi0_fn [TB.prf]; psi, TB.ap psi_fn [TB.prf]]
       in
       T.abstract (D.TpPrf phi1) @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
@@ -266,7 +268,7 @@ struct
 
 
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.bchk_tac) list) m =
+  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.BChk.tac) list) m =
     match branches with
     | [] -> EM.ret ([], [])
     | (tac_phi, tac_tm) :: branches ->
@@ -275,12 +277,12 @@ struct
       let+ phis, tacs = gather_cofibrations branches in
       (vphi :: phis), tac_tm :: tacs
 
-  let split (branches : branch_tac list) : T.bchk_tac =
+  let split (branches : branch_tac list) : T.BChk.tac =
     fun goal ->
     let* phis, tacs = gather_cofibrations branches in
     let disj_phi = Cof.join phis in
     let* _ = assert_true disj_phi in
-    let rec go phis (tacs : (T.var -> T.bchk_tac) list) : T.bchk_tac =
+    let rec go phis (tacs : (T.var -> T.BChk.tac) list) : T.BChk.tac =
       match phis, tacs with
       | [phi], [tac] ->
         split1 phi tac
@@ -325,7 +327,7 @@ struct
       let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
       S.Pi (base, nm, fam)
 
-  let intro ?(ident = `Anon) (tac_body : T.var -> T.bchk_tac) : T.bchk_tac =
+  let intro ?(ident = `Anon) (tac_body : T.var -> T.BChk.tac) : T.BChk.tac =
     function
     | D.Pi (base, _, fam), phi, phi_clo ->
       T.abstract ~ident base @@ fun var ->
@@ -335,7 +337,7 @@ struct
     | tp, _, _ ->
       EM.expected_connective `Pi tp
 
-  let apply tac_fun tac_arg : T.syn_tac =
+  let apply tac_fun tac_arg : T.Syn.tac =
     let* tfun, tp = tac_fun in
     let* base, fam = EM.dest_pi tp in
     let* targ = tac_arg base in
@@ -356,7 +358,7 @@ struct
       let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
       S.Sg (base, nm, fam)
 
-  let intro (tac_fst : T.bchk_tac) (tac_snd : T.bchk_tac) : T.bchk_tac =
+  let intro (tac_fst : T.BChk.tac) (tac_snd : T.BChk.tac) : T.BChk.tac =
     function
     | D.Sg (base, _, fam), phi, phi_clo ->
       let* tfst = tac_fst (base, phi, D.un_lam @@ D.compose D.fst @@ D.Lam (`Anon, phi_clo)) in
@@ -369,12 +371,12 @@ struct
     | tp , _, _ ->
       EM.expected_connective `Sg tp
 
-  let pi1 tac : T.syn_tac =
+  let pi1 tac : T.Syn.tac =
     let* tpair, tp = tac in
     let+ base, _ = EM.dest_sg tp in
     S.Fst tpair, base
 
-  let pi2 tac : T.syn_tac =
+  let pi2 tac : T.Syn.tac =
     let* tpair, tp = tac in
     let+ fib =
       let* vfst = EM.lift_ev @@ Sem.eval @@ S.Fst tpair in
@@ -392,20 +394,23 @@ struct
     T.Tp.make @@
     EM.ret S.Univ
 
-  let univ_tac : T.chk_tac -> T.chk_tac =
+  let univ_tac : T.Chk.tac -> T.Chk.tac =
     fun m ->
     function
     | D.Univ -> m D.Univ
     | tp ->
       EM.expected_connective `Univ tp
 
-  let univ : T.chk_tac =
+  let univ : T.Chk.tac =
     univ_tac @@ fun _ ->
     EM.ret S.CodeUniv
 
 
-  let nat : T.chk_tac =
+  let nat : T.Chk.tac =
     univ_tac @@ fun _ -> EM.ret S.CodeNat
+
+  let circle : T.Chk.tac =
+    univ_tac @@ fun _ -> EM.ret S.CodeCircle
 
   let quantifier tac_base tac_fam =
     fun univ ->
@@ -421,17 +426,17 @@ struct
     let+ fam = tac_fam famtp in
     base, fam
 
-  let pi tac_base tac_fam : T.chk_tac =
+  let pi tac_base tac_fam : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodePi (tp, fam)
 
-  let sg tac_base tac_fam : T.chk_tac =
+  let sg tac_base tac_fam : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
-  let path (tac_fam : T.chk_tac) (tac_bdry : T.chk_tac) : T.chk_tac =
+  let path (tac_fam : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let* piuniv =
       EM.lift_cmp @@
@@ -442,7 +447,7 @@ struct
       univ
     in
     let* fam = tac_fam piuniv in
-    let* vfam = EM.lift_ev (Sem.eval fam) in
+    let* vfam = EM.lift_ev @@ Sem.eval fam in
     let* bdry_tp =
       EM.lift_cmp @@
       Sem.splice_tp @@
@@ -450,13 +455,13 @@ struct
       Splice.foreign vfam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+      TB.pi (TB.tp_prf @@ TB.boundary i) @@ fun prf ->
       TB.el @@ TB.ap fam [i]
     in
     let* bdry = tac_bdry bdry_tp in
     EM.ret @@ S.CodePath (fam, bdry)
 
-  let path_with_endpoints (tac_fam : T.chk_tac) (tac_a : T.bchk_tac) (tac_b : T.bchk_tac) : T.chk_tac =
+  let path_with_endpoints (tac_fam : T.Chk.tac) (tac_a : T.BChk.tac) (tac_b : T.BChk.tac) : T.Chk.tac =
     path tac_fam @@
     T.Chk.bchk @@
     Pi.intro @@ fun i ->
@@ -465,10 +470,32 @@ struct
       [(Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
-  let topc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Meet []), D.TpCof)
-  let botc : T.syn_tac = EM.ret @@ (S.Cof (Cofibration.Join []), D.TpCof)
+  let topc : T.Syn.tac = EM.ret @@ (S.Cof (Cofibration.Meet []), D.TpCof)
+  let botc : T.Syn.tac = EM.ret @@ (S.Cof (Cofibration.Join []), D.TpCof)
 
-  let coe tac_fam tac_src tac_trg tac_tm : T.syn_tac =
+  let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
+    univ_tac @@ fun univ ->
+    let* r = tac_dim D.TpDim in
+    let* vr : D.dim =
+      let* vr_con = EM.lift_ev @@ Sem.eval r in
+      EM.lift_cmp @@ Sem.con_to_dim vr_con
+    in
+    let* pcode =
+      let tp_pcode = D.Pi (D.TpPrf (Cofibration.eq vr D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+      tac_pcode tp_pcode
+    in
+    let* code = tac_code D.Univ in
+    let+ pequiv =
+      tac_pequiv @<<
+      let* vpcode = EM.lift_ev @@ Sem.eval pcode in
+      let* vcode = EM.lift_ev @@ Sem.eval code in
+      EM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.Macro.tp_pequiv_in_v ~r:vr ~pcode:vpcode ~code:vcode
+    in
+    S.CodeV (r, pcode, code, pequiv)
+
+  let coe tac_fam tac_src tac_trg tac_tm : T.Syn.tac =
     let* piuniv =
       EM.lift_cmp @@
       Sem.splice_tp @@
@@ -496,7 +523,7 @@ struct
     TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
     vtp
 
-  let hcom tac_code tac_src tac_trg tac_cof tac_tm : T.syn_tac =
+  let hcom tac_code tac_src tac_trg tac_cof tac_tm : T.Syn.tac =
     let* code = tac_code D.Univ in
     let* src = tac_src D.TpDim in
     let* trg = tac_trg D.TpDim in
@@ -508,7 +535,7 @@ struct
     let+ tm = tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
     S.HCom (code, src, trg, cof, tm), vtp
 
-  let com tac_fam tac_src tac_trg tac_cof tac_tm : T.syn_tac =
+  let com tac_fam tac_src tac_trg tac_cof tac_tm : T.Syn.tac =
     let* piuniv =
       EM.lift_cmp @@
       Sem.splice_tp @@
@@ -566,9 +593,85 @@ struct
 end
 
 
+module ElV =
+struct
+  let intro (tac_part : T.BChk.tac) (tac_tot : T.BChk.tac) : T.BChk.tac =
+    function
+    | D.ElUnstable (`V (r, pcode, code, pequiv)), phi, clo ->
+      let* part =
+        let* tp_part =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign_dim r @@ fun r ->
+          Splice.term @@
+          TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
+          TB.el @@ TB.ap pcode [TB.prf]
+        in
+        let* bdry_fn =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_clo clo @@ fun clo ->
+          Splice.term @@
+          TB.lam @@ fun _ ->
+          TB.lam @@ fun _ ->
+          TB.ap clo [TB.prf]
+        in
+        tac_part (tp_part, phi, D.un_lam bdry_fn)
+      in
+      let* tot =
+        let* tp = EM.lift_cmp @@ Sem.do_el code in
+        let* vpart = EM.lift_ev @@ Sem.eval part in
+        let* bdry_fn =
+          EM.lift_cmp @@ Sem.splice_tm @@
+          Splice.foreign_cof phi @@ fun phi ->
+          Splice.foreign_clo clo @@ fun clo ->
+          Splice.foreign vpart @@ fun part ->
+          Splice.foreign_dim r @@ fun r ->
+          Splice.foreign pcode @@ fun pcode ->
+          Splice.foreign code @@ fun code ->
+          Splice.foreign pequiv @@ fun pequiv ->
+          Splice.term @@
+          TB.lam @@ fun _ ->
+          let vtp = TB.el @@ TB.code_v r pcode code pequiv in
+          TB.cof_split vtp
+            [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
+             phi, TB.vproj r pequiv @@ TB.ap clo [TB.prf]]
+        in
+        tac_tot (tp, Cofibration.join [Cofibration.eq r D.Dim0; phi], D.un_lam bdry_fn)
+      in
+      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let+ t_pequiv =
+        let* tp_pequiv =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+        in
+        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+      in
+      S.VIn (tr, t_pequiv, part, tot)
+    | tp, _, _ ->
+      EM.expected_connective `ElV tp
+
+  let elim (tac_v : T.Syn.tac) : T.Syn.tac =
+    let* tm, tp = tac_v in
+    match tp with
+    | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
+      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let* t_pequiv =
+        let* tp_pequiv =
+          EM.lift_cmp @@ Sem.splice_tp @@
+          Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+        in
+        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+      in
+      let vproj = S.VProj (tr, t_pequiv, tm) in
+      let* tp_vproj = EM.lift_cmp @@ Sem.do_el code in
+      EM.ret (vproj, tp_vproj)
+    | _ ->
+      EM.expected_connective `ElV tp
+end
+
 module Structural =
 struct
-  let lookup_var id : T.syn_tac =
+  let lookup_var id : T.Syn.tac =
     let* res = EM.resolve id in
     match res with
     | `Local ix ->
@@ -589,7 +692,7 @@ struct
     let ix = ElabEnv.size env - lvl - 1 in
     index ix
 
-  let let_ ?(ident = `Anon) tac_def (tac_bdy : T.var -> T.bchk_tac) : T.bchk_tac =
+  let let_ ?(ident = `Anon) tac_def (tac_bdy : T.var -> T.BChk.tac) : T.BChk.tac =
     fun goal ->
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Sem.eval tdef in
@@ -603,7 +706,7 @@ struct
     in
     EM.ret @@ S.Let (S.SubIn tdef, ident, tbdy)
 
-  let let_syn ?(ident = `Anon) tac_def (tac_bdy : T.var -> T.syn_tac) : T.syn_tac =
+  let let_syn ?(ident = `Anon) tac_def (tac_bdy : T.var -> T.Syn.tac) : T.Syn.tac =
     let* tdef, tp_def = tac_def in
     let* vdef = EM.lift_ev @@ Sem.eval tdef in
     let* tbdy, tbdytp =
@@ -637,18 +740,18 @@ struct
     | 0 -> S.Zero
     | n -> S.Suc (int_to_term (n - 1))
 
-  let literal n : T.chk_tac =
+  let literal n : T.Chk.tac =
     fun tp ->
     let+ () = assert_nat tp in
     int_to_term n
 
-  let suc tac : T.chk_tac =
+  let suc tac : T.Chk.tac =
     fun tp ->
     let* () = assert_nat tp in
     let+ t = tac tp in
     S.Suc t
 
-  let elim (tac_mot : T.chk_tac) (tac_case_zero : T.chk_tac) (tac_case_suc : T.chk_tac) tac_scrut : T.syn_tac =
+  let elim (tac_mot : T.Chk.tac) (tac_case_zero : T.Chk.tac) (tac_case_suc : T.Chk.tac) tac_scrut : T.Syn.tac =
     EM.push_problem "elim" @@
     let* tscrut, nattp = tac_scrut in
     let* () = assert_nat nattp in
@@ -687,6 +790,66 @@ struct
 end
 
 
+module Circle =
+struct
+  let formation =
+    T.Tp.make @@
+    EM.ret S.Circle
+
+  let assert_circle =
+    function
+    | D.Circle -> EM.ret ()
+    | tp -> EM.expected_connective `Circle tp
+
+  let base =
+    fun tp ->
+    let+ () = assert_circle tp in
+    S.Base
+
+  let loop tac : T.Chk.tac =
+    fun tp ->
+    let* () = assert_circle tp in
+    let+ r = tac D.TpDim in
+    S.Loop r
+
+  let elim (tac_mot : T.Chk.tac) (tac_case_base : T.Chk.tac) (tac_case_loop : T.Chk.tac) tac_scrut : T.Syn.tac =
+    EM.push_problem "elim" @@
+    let* tscrut, circletp = tac_scrut in
+    let* () = assert_circle circletp in
+    let* tmot =
+      tac_mot @<<
+      EM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+      TB.pi TB.circle @@ fun _ -> TB.univ
+    in
+    let* vmot = EM.lift_ev @@ Sem.eval tmot in
+
+    let* tcase_base =
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot D.Base in
+      let* tp = EM.lift_cmp @@ Sem.do_el code in
+      tac_case_base tp
+    in
+
+    let* tcase_loop =
+      let* loop_tp =
+        EM.lift_cmp @@ Sem.splice_tp @@
+        Splice.foreign vmot @@ fun mot ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun x ->
+        TB.el @@ TB.ap mot [TB.loop x]
+      in
+      tac_case_loop loop_tp
+    in
+
+    let+ fib_scrut =
+      let* vscrut = EM.lift_ev @@ Sem.eval tscrut in
+      let* code = EM.lift_cmp @@ Sem.do_ap vmot vscrut in
+      EM.lift_cmp @@ Sem.do_el code
+    in
+
+    S.CircleElim (tmot, tcase_base, tcase_loop, tscrut), fib_scrut
+end
+
+
 module Tactic =
 struct
   let match_goal tac =
@@ -696,7 +859,7 @@ struct
 
   let bmatch_goal = match_goal
 
-  let elim_implicit_connectives : T.syn_tac -> T.syn_tac =
+  let elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
     fun tac ->
     let rec go (tm, tp) =
       match tp with
@@ -710,8 +873,9 @@ struct
     in
     go @<< tac
 
-  let rec intro_implicit_connectives : T.bchk_tac -> T.bchk_tac =
+  let rec intro_implicit_connectives : T.BChk.tac -> T.BChk.tac =
     fun tac ->
+    T.BChk.whnf @@
     match_goal @@ function
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ intro_implicit_connectives tac
@@ -728,9 +892,9 @@ struct
 
   module Elim =
   struct
-    type case_tac = CS.pat * T.chk_tac
+    type case_tac = CS.pat * T.Chk.tac
 
-    let rec find_case (lbl : string) (cases : case_tac list) : (CS.pat_arg list * T.chk_tac) option =
+    let rec find_case (lbl : string) (cases : case_tac list) : (CS.pat_arg list * T.Chk.tac) option =
       match cases with
       | (CS.Pat pat, tac) :: _ when pat.lbl = lbl ->
         Some (pat.args, tac)
@@ -739,12 +903,12 @@ struct
       | [] ->
         None
 
-    let elim (mot : T.chk_tac) (cases : case_tac list) (scrut : T.syn_tac) : T.syn_tac =
+    let elim (mot : T.Chk.tac) (cases : case_tac list) (scrut : T.Syn.tac) : T.Syn.tac =
       let* tscrut, ind_tp = scrut in
       let scrut = EM.ret (tscrut, ind_tp) in
       match ind_tp, mot with
       | D.Nat, mot ->
-        let* tac_zero : T.chk_tac =
+        let* tac_zero : T.Chk.tac =
           match find_case "zero" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
@@ -760,6 +924,21 @@ struct
           | None -> EM.ret @@ Hole.unleash_hole (Some "suc") `Rigid
         in
         Nat.elim mot tac_zero (T.Chk.bchk tac_suc) scrut
+      | D.Circle, mot ->
+        let* tac_base : T.Chk.tac =
+          match find_case "base" cases with
+          | Some ([], tac) -> EM.ret tac
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ T.Chk.bchk @@ Hole.unleash_hole (Some "base") `Rigid
+        in
+        let* tac_loop =
+          match find_case "loop" cases with
+          | Some ([`Simple nm_x], tac) ->
+            EM.ret @@ Pi.intro ~ident:nm_x @@ fun _ -> T.BChk.chk tac
+          | Some _ -> EM.elab_err Err.MalformedCase
+          | None -> EM.ret @@ Hole.unleash_hole (Some "loop") `Rigid
+        in
+        Circle.elim mot tac_base (T.Chk.bchk tac_loop) scrut
       | _ ->
         EM.with_pp @@ fun ppenv ->
         let* tp = EM.lift_qu @@ Qu.quote_tp ind_tp in
@@ -769,22 +948,25 @@ struct
       function
       | D.Nat ->
         EM.ret ()
+      | D.Circle ->
+        EM.ret ()
       | tp ->
         EM.with_pp @@ fun ppenv ->
         let* tp = EM.lift_qu @@ Qu.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
-    let lam_elim cases : T.bchk_tac =
+    let lam_elim cases : T.BChk.tac =
       match_goal @@ fun (tp, _, _) ->
       let* base, fam = EM.dest_pi tp in
-      let mot_tac : T.chk_tac =
+      let mot_tac : T.Chk.tac =
         T.Chk.bchk @@
-        Pi.intro @@ fun var -> (* of type nat *)
+        Pi.intro @@ fun var -> (* of inductive type *)
         T.BChk.chk @@ fun goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
-        match fib with
-        | D.El code ->
-          EM.lift_qu @@ Qu.quote_con D.Univ code
+        let* tfib = EM.lift_qu @@ Quote.quote_tp fib in
+        match tfib with
+        | S.El code ->
+          EM.ret code
         | _ ->
           EM.expected_connective `El fib
       in

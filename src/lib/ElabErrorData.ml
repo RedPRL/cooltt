@@ -9,12 +9,14 @@ struct
     [ `Pi
     | `Sg
     | `Nat
+    | `Circle
     | `Univ
     | `Dim
     | `Cof
     | `Sub
     | `Prf
     | `El
+    | `ElV
     ]
 
   type t =

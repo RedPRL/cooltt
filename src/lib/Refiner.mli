@@ -11,9 +11,9 @@ open Tactic
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
 module Hole : sig
-  val unleash_hole : string option -> [`Flex | `Rigid] -> bchk_tac
+  val unleash_hole : string option -> [`Flex | `Rigid] -> BChk.tac
   val unleash_tp_hole : string option -> [`Flex | `Rigid] -> tp_tac
-  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> syn_tac
+  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> Syn.tac
 end
 
 module Goal : sig
@@ -22,104 +22,122 @@ end
 
 module Dim : sig
   val formation : tp_tac
-  val dim0 : chk_tac
-  val dim1 : chk_tac
-  val literal : int -> chk_tac
+  val dim0 : Chk.tac
+  val dim1 : Chk.tac
+  val literal : int -> Chk.tac
 end
 
 module Cof : sig
   val formation : tp_tac
-  val eq : chk_tac -> chk_tac -> chk_tac
-  val join : chk_tac list -> chk_tac
-  val meet : chk_tac list -> chk_tac
-  val boundary : chk_tac -> chk_tac
+  val eq : Chk.tac -> Chk.tac -> Chk.tac
+  val join : Chk.tac list -> Chk.tac
+  val meet : Chk.tac list -> Chk.tac
+  val boundary : Chk.tac -> Chk.tac
 
-  val split : (chk_tac * (var -> bchk_tac)) list -> bchk_tac
+  val split : (Chk.tac * (var -> BChk.tac)) list -> BChk.tac
 end
 
 module Prf : sig
-  val formation : chk_tac -> tp_tac
-  val intro : bchk_tac
+  val formation : Chk.tac -> tp_tac
+  val intro : BChk.tac
 end
 
 module Univ : sig
   val formation : tp_tac
-  val univ : chk_tac
-  val nat : chk_tac
-  val pi : chk_tac -> chk_tac -> chk_tac
-  val sg : chk_tac -> chk_tac -> chk_tac
-  val path : chk_tac -> chk_tac -> chk_tac
-  val path_with_endpoints : chk_tac -> bchk_tac -> bchk_tac -> chk_tac
-  val coe : chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
-  val hcom : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
-  val com : chk_tac -> chk_tac -> chk_tac -> chk_tac -> chk_tac -> syn_tac
+  val univ : Chk.tac
+  val nat : Chk.tac
+  val circle : Chk.tac
+  val pi : Chk.tac -> Chk.tac -> Chk.tac
+  val sg : Chk.tac -> Chk.tac -> Chk.tac
+  val path_with_endpoints : Chk.tac -> BChk.tac -> BChk.tac -> Chk.tac
+  val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
+  val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
+  val hcom : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
+  val com : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
 end
 
 module El : sig
-  val formation : chk_tac -> tp_tac
-  val intro : bchk_tac -> bchk_tac
-  val elim : syn_tac -> syn_tac
+  val formation : Chk.tac -> tp_tac
+  val intro : BChk.tac -> BChk.tac
+  val elim : Syn.tac -> Syn.tac
+end
+
+module ElV : sig
+  val intro : BChk.tac -> BChk.tac -> BChk.tac
+  val elim : Syn.tac -> Syn.tac
 end
 
 module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : ?ident:Ident.t -> (var -> bchk_tac) -> bchk_tac
-  val apply : syn_tac -> chk_tac -> syn_tac
+  val intro : ?ident:Ident.t -> (var -> BChk.tac) -> BChk.tac
+  val apply : Syn.tac -> Chk.tac -> Syn.tac
 end
 
 module Sg : sig
   val formation : (tp_tac, tp_tac) quantifier
-  val intro : bchk_tac -> bchk_tac -> bchk_tac
+  val intro : BChk.tac -> BChk.tac -> BChk.tac
 
-  val pi1 : syn_tac -> syn_tac
-  val pi2 : syn_tac -> syn_tac
+  val pi1 : Syn.tac -> Syn.tac
+  val pi2 : Syn.tac -> Syn.tac
 end
 
 module Sub : sig
-  val formation : tp_tac -> chk_tac -> (var -> chk_tac) -> tp_tac
-  val intro : bchk_tac -> bchk_tac
-  val elim : syn_tac -> syn_tac
+  val formation : tp_tac -> Chk.tac -> (var -> Chk.tac) -> tp_tac
+  val intro : BChk.tac -> BChk.tac
+  val elim : Syn.tac -> Syn.tac
 end
 
 module Nat : sig
   val formation : tp_tac
-  val literal : int -> chk_tac
-  val suc : chk_tac -> chk_tac
+  val literal : int -> Chk.tac
+  val suc : Chk.tac -> Chk.tac
   val elim
-    : chk_tac
-    -> chk_tac
-    -> chk_tac
-    -> syn_tac
-    -> syn_tac
+    : Chk.tac
+    -> Chk.tac
+    -> Chk.tac
+    -> Syn.tac
+    -> Syn.tac
+end
+
+module Circle : sig
+  val formation : tp_tac
+  val base : Chk.tac
+  val loop : Chk.tac -> Chk.tac
+  val elim
+    : Chk.tac
+    -> Chk.tac
+    -> Chk.tac
+    -> Syn.tac
+    -> Syn.tac
 end
 
 module Structural : sig
-  val let_ : ?ident:Ident.t -> syn_tac -> (var -> bchk_tac) -> bchk_tac
-  val let_syn : ?ident:Ident.t -> syn_tac -> (var -> syn_tac) -> syn_tac
-  val lookup_var : Ident.t -> syn_tac
-  val level : int -> syn_tac
+  val let_ : ?ident:Ident.t -> Syn.tac -> (var -> BChk.tac) -> BChk.tac
+  val let_syn : ?ident:Ident.t -> Syn.tac -> (var -> Syn.tac) -> Syn.tac
+  val lookup_var : Ident.t -> Syn.tac
+  val level : int -> Syn.tac
 end
 
 module Tactic : sig
-  val intro_implicit_connectives : bchk_tac -> bchk_tac
-  val elim_implicit_connectives : syn_tac -> syn_tac
+  val intro_implicit_connectives : BChk.tac -> BChk.tac
+  val elim_implicit_connectives : Syn.tac -> Syn.tac
 
   val tac_nary_quantifier : ('a, 'b) quantifier -> (Ident.t * 'a) list -> 'b -> 'b
 
-  val match_goal : (D.tp -> chk_tac EM.m) -> chk_tac
-  val bmatch_goal : (D.tp * D.cof * D.tm_clo -> bchk_tac EM.m) -> bchk_tac
+  val match_goal : (D.tp -> Chk.tac EM.m) -> Chk.tac
+  val bmatch_goal : (D.tp * D.cof * D.tm_clo -> BChk.tac EM.m) -> BChk.tac
 
   module Elim : sig
-    type case_tac = CS.pat * chk_tac
+    type case_tac = CS.pat * Chk.tac
 
     val elim
-      : chk_tac
+      : Chk.tac
       -> case_tac list
-      -> syn_tac
-      -> syn_tac
+      -> Syn.tac
+      -> Syn.tac
 
     val lam_elim
       : case_tac list
-      -> bchk_tac
+      -> BChk.tac
   end
 end

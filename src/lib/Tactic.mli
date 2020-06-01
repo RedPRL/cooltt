@@ -4,10 +4,6 @@ module S := Syntax
 module D := Domain
 module EM := ElabBasics
 
-type chk_tac = D.tp -> S.t EM.m
-type bchk_tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
-type syn_tac = (S.t * D.tp) EM.m
-
 module type Tactic =
 sig
   type tac
@@ -36,7 +32,7 @@ end
 
 module rec Chk :
 sig
-  include Tactic with type tac = chk_tac
+  include Tactic with type tac = D.tp -> S.t EM.m
 
   (** Converts a boundary-checking tactic to a checking tactic by change of base. *)
   val bchk : BChk.tac -> tac
@@ -44,7 +40,7 @@ sig
 end
 and BChk :
 sig
-  include Tactic with type tac = bchk_tac
+  include Tactic with type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
 
   (** Converts a checking tactic to a boundary-checking tactic by a chkhronous check. *)
   val chk : Chk.tac -> tac
@@ -52,7 +48,7 @@ sig
 end
 and Syn :
 sig
-  include Tactic with type tac = syn_tac
+  include Tactic with type tac = (S.t * D.tp) EM.m
   val ann : Chk.tac -> Tp.tac -> tac
 end
 
@@ -63,7 +59,7 @@ sig
 
   val prf : D.cof -> tac
   val con : tac -> D.con
-  val syn : tac -> syn_tac
+  val syn : tac -> Syn.tac
 end
 
 type tp_tac = Tp.tac

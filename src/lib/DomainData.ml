@@ -20,6 +20,8 @@ and con =
   | Cut of {tp : tp; cut : cut}
   | Zero
   | Suc of con
+  | Base
+  | Loop of dim
   | Pair of con * con
   | GoalRet of con
   | Abort
@@ -34,17 +36,20 @@ and con =
   | CodePi of con * con
   | CodeSg of con * con
   | CodeNat
+  | CodeCircle
   | CodeUniv
+  | CodeV of dim * con * con * con
 
-  | FHCom of [`Nat | `Univ] * dim * dim * cof * con
+  | FHCom of [`Nat | `Circle | `Univ] * dim * dim * cof * con
   | Box of dim * dim * cof * con * con
+  | VIn of dim * con * con * con
 
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
   | El of con
   | ElCut of cut
-  | ElUnstable of [`HCom of dim * dim * cof * con]
+  | ElUnstable of [`HCom of dim * dim * cof * con | `V of dim * con * con * con]
   | GoalTp of string option * tp
   | TpDim
   | TpCof
@@ -52,6 +57,7 @@ and tp =
   | Pi of tp * Ident.t * tp_clo
   | Sg of tp * Ident.t * tp_clo
   | Nat
+  | Circle
   | TpAbort
 
 and hd =
@@ -60,6 +66,7 @@ and hd =
   | Coe of con * dim * dim * con
   | HCom of cut * dim * dim * cof * con
   | Cap of dim * dim * cof * con * cut
+  | VProj of dim * con * con * con * cut
   | SubOut of cut * cof * tm_clo
   | Split of tp * (cof * tm_clo) list
 
@@ -70,5 +77,6 @@ and frm =
   | KFst
   | KSnd
   | KNatElim of con * con * con
+  | KCircleElim of con * con * con
   | KGoalProj
   | KElOut

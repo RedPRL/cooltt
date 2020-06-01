@@ -46,3 +46,5 @@ let rec reduce =
   | Cof (Meet phis) -> meet @@ List.map reduce phis
   | Cof (Eq (r, s)) -> eq r s
   | Var v -> var v
+
+let boundary r = join [eq r Dim.Dim0; eq r Dim.Dim1]
