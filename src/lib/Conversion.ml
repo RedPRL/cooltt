@@ -74,7 +74,7 @@ let contractum_or x =
 
 (* Invariant: tp0 and tp1 not necessarily whnf *)
 let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
-  QuM.abort_if_inconsistent () @@
+  QuM.abort_if_inconsistent (ret ()) @@
   let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
   let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
   match tp0, tp1 with
@@ -133,7 +133,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
-  QuM.abort_if_inconsistent () @@
+  QuM.abort_if_inconsistent (ret ()) @@
   let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
   let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con0 in
   let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con1 in
@@ -280,7 +280,7 @@ and equate_con tp con0 con1 =
 
 (* Invariant: cut0, cut1 are whnf *)
 and equate_cut cut0 cut1 =
-  QuM.abort_if_inconsistent () @@
+  QuM.abort_if_inconsistent (ret ()) @@
   let* () = assert_done_cut cut0 in
   let* () = assert_done_cut cut1 in
   let hd0, sp0 = cut0 in
@@ -382,7 +382,7 @@ and assert_done_cut cut =
 
 (* Invariant: hd0, hd1 are whnf *)
 and equate_hd hd0 hd1 =
-  QuM.abort_if_inconsistent () @@
+  QuM.abort_if_inconsistent (ret ()) @@
   let* () = assert_done_hd hd0 in
   let* () = assert_done_hd hd1 in
   match hd0, hd1 with
@@ -476,35 +476,8 @@ and approx_cof phi psi =
   | true ->
     ret ()
 
-let equal_tp tp0 tp1 : [`Ok | `Err of Error.t] quote =
-  trap
-    begin
-      QuM.left_invert_under_current_cof @@
-      equate_tp tp0 tp1
-    end |>>
-  function
-  | Error (ConversionError err) -> ret @@ `Err err
-  | Error exn -> throw exn
-  | Ok _ -> ret `Ok
-
-let equal_cut cut0 cut1 =
-  trap
-    begin
-      QuM.left_invert_under_current_cof @@
-      equate_cut cut0 cut1
-    end |>>
-  function
-  | Error (ConversionError err) -> ret @@ `Err err
-  | Error exn -> throw exn
-  | Ok _ -> ret `Ok
-
-let equal_con tp con0 con1 =
-  trap
-    begin
-      QuM.left_invert_under_current_cof @@
-      equate_con tp con0 con1
-    end |>>
-  function
-  | Error (ConversionError err) -> ret @@ `Err err
-  | Error exn -> throw exn
-  | Ok _ -> ret `Ok
+let trap_err (m : unit ElabM.m) : [`Ok | `Err of Error.t] ElabM.m =
+  ElabM.bind (ElabM.trap m) @@ function
+  | Error (ConversionError err) -> ElabM.ret @@ `Err err
+  | Error exn -> ElabM.throw exn
+  | Ok _ -> ElabM.ret `Ok

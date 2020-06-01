@@ -73,31 +73,31 @@ let execute_decl =
     Ok `Continue
   | CS.NormalizeTerm term ->
     EM.veil (Veil.const `Transparent)
-    begin
-      EM.trap (Elaborator.syn_tm term) |>>
-      function
-      | Ok (tm, vtp) ->
-        let* vtm = EM.lift_ev @@ Sem.eval tm in
-        let* tm' = EM.lift_qu @@ Qu.quote_con vtp vtm in
-        let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
-        Ok `Continue
-      | Error (Err.ElabError (err, info)) ->
-        let+ () = EM.emit ~lvl:`Error info ElabError.pp err in
-        Error `Continue
-      | Error err -> EM.throw err
-    end
+      begin
+        EM.trap (Elaborator.syn_tm term) |>>
+        function
+        | Ok (tm, vtp) ->
+          let* vtm = EM.lift_ev @@ Sem.eval tm in
+          let* tm' = EM.quote_con' vtp vtm in
+          let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
+          Ok `Continue
+        | Error (Err.ElabError (err, info)) ->
+          let+ () = EM.emit ~lvl:`Error info ElabError.pp err in
+          Error `Continue
+        | Error err -> EM.throw err
+      end
   | CS.Print ident ->
     begin
       EM.resolve ident.node |>>
       function
       | `Global sym ->
         let* vtp, con = EM.get_global sym in
-        let* tp = EM.lift_qu @@ Qu.quote_tp vtp in
+        let* tp = EM.quote_tp vtp in
         let* tm =
           match con with
           | None -> EM.ret None
           | Some con ->
-            let* tm = EM.lift_qu @@ Qu.quote_con vtp con in
+            let* tm = EM.quote_con vtp tp con in
             EM.ret @@ Some tm
         in
         let+ () = EM.emit ident.info pp_message @@ Definition {ident = ident.node; tp; tm} in

@@ -24,7 +24,7 @@ module CmpM : sig
 
   val restore_cof_env : CofEnv.env -> 'a m -> 'a m
 
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
 (** The "evaluation" monad; like the computation monad but keeps a variable environment. *)
@@ -39,7 +39,7 @@ module EvM : sig
 
   val append : D.con list -> 'a m -> 'a m
 
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
 
@@ -56,13 +56,15 @@ module QuM : sig
 
   val binder : int -> 'a m -> 'a m
 
-  val bind_var : abort:'a -> D.tp -> (D.con -> 'a m) -> 'a m
-  val bind_var_ : D.tp -> (D.con -> unit m ) -> unit m
+  val restrict : splitter:((D.cof * 'a m) list -> 'a m) -> D.cof list -> 'a m -> 'a m
+
+  val bind_var : splitter:((D.cof * 'a m) list -> 'a m) -> D.tp -> (D.con -> 'a m) -> 'a m
+  val bind_var_ : D.tp -> (D.con -> unit m) -> unit m
 
   val left_invert_under_cofs : D.cof list -> unit m -> unit m
   val left_invert_under_current_cof : unit m -> unit m
 
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
 (** The elaboration monad is the "maximal" monad that can run code from any of the other monads. *)
@@ -71,7 +73,10 @@ module ElabM : sig
     with type global := St.t
     with type local := ElabEnv.t
 
-  val lift_qu : 'a quote -> 'a m
+  val lift_qu : splitter:((D.cof * 'a quote) list -> 'a quote) -> 'a quote -> 'a m
+  val lift_unit_qu : unit quote -> unit m
+  val drop_joins_and_lift_qu : 'a quote -> 'a m
+
   val lift_ev : 'a evaluate -> 'a m
   val lift_cmp : 'a compute -> 'a m
 
@@ -80,5 +85,5 @@ module ElabM : sig
   val globally : 'a m -> 'a m
   val emit : ?lvl:Log.level -> LexingUtil.span option -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
 
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end

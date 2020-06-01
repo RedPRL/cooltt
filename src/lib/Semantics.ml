@@ -186,25 +186,25 @@ let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
 and con_to_cof =
   let open CM in
   fun con ->
-  whnf_inspect_con con |>>
-  function
-  | D.Cof cof -> cof_con_to_cof cof
-  | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
-  | _ -> throw @@ NbeFailed "con_to_cof"
+    whnf_inspect_con con |>>
+    function
+    | D.Cof cof -> cof_con_to_cof cof
+    | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
+    | _ -> throw @@ NbeFailed "con_to_cof"
 
 and con_to_dim =
   let open CM in
   fun con ->
-  whnf_inspect_con con |>>
-  function
-  | D.DimCon0 -> ret D.Dim0
-  | D.DimCon1 -> ret D.Dim1
-  | D.Abort -> ret D.Dim0
-  | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
-  | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
-  | con ->
-    Format.eprintf "bad: %a@." D.pp_con con;
-    throw @@ NbeFailed "con_to_dim"
+    whnf_inspect_con con |>>
+    function
+    | D.DimCon0 -> ret D.Dim0
+    | D.DimCon1 -> ret D.Dim1
+    | D.Abort -> ret D.Dim0
+    | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
+    | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
+    | con ->
+      Format.eprintf "bad: %a@." D.pp_con con;
+      throw @@ NbeFailed "con_to_dim"
 
 
 and subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
@@ -945,10 +945,10 @@ and whnf_hd ?(style = default_whnf_style) hd =
 and whnf_cut ?(style = default_whnf_style) : D.cut -> D.con whnf CM.m =
   let open CM in
   fun (hd, sp) ->
-  whnf_hd ~style hd |>>
-  function
-  | `Done -> ret `Done
-  | `Reduce con -> plug_into ~style sp con
+    whnf_hd ~style hd |>>
+    function
+    | `Done -> ret `Done
+    | `Reduce con -> plug_into ~style sp con
 
 and whnf_tp =
   let open CM in
@@ -1074,12 +1074,12 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
 
   in
   fun con ->
-  abort_if_inconsistent D.Abort @@
-  go con
+    abort_if_inconsistent (ret D.Abort) @@
+    go con
 
 and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   whnf_inspect_con c |>>
   function
   | D.Base ->
@@ -1162,7 +1162,7 @@ and inspect_con ?(style = {unfolding = false}) con =
 
 and do_goal_proj con =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con con |>>
     function
@@ -1175,7 +1175,7 @@ and do_goal_proj con =
 
 and do_fst con : D.con CM.m =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con con |>>
     function
@@ -1188,7 +1188,7 @@ and do_fst con : D.con CM.m =
 
 and do_snd con : D.con CM.m =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con con |>>
     function
@@ -1210,7 +1210,7 @@ and do_ap2 f a b =
 
 and do_ap con arg =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con con |>>
     function
@@ -1232,7 +1232,7 @@ and do_ap con arg =
 
 and do_sub_out con =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con con |>>
     function
@@ -1246,7 +1246,7 @@ and do_sub_out con =
 
 and do_rigid_cap box =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con box |>>
     function
@@ -1273,7 +1273,7 @@ and assert_dim_var r =
 
 and do_rigid_vproj v =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con v |>>
     function
@@ -1289,7 +1289,7 @@ and do_rigid_vproj v =
 
 and do_el_out con =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   begin
     inspect_con ~style:{unfolding = true} con |>>
     function
@@ -1310,7 +1310,7 @@ and do_el_out con =
 and do_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
-    abort_if_inconsistent D.TpAbort @@
+    abort_if_inconsistent (ret D.TpAbort) @@
     begin
       inspect_con con |>>
       function
@@ -1327,7 +1327,7 @@ and do_el : D.con -> D.tp CM.m =
 and unfold_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
-    abort_if_inconsistent D.TpAbort @@
+    abort_if_inconsistent (ret D.TpAbort) @@
     begin
       inspect_con ~style:{unfolding = true} con |>>
       function
@@ -1453,7 +1453,7 @@ and dispatch_rigid_hcom ?(style = default_whnf_style) code =
 
 and enact_rigid_coe line r r' con tag =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   match tag with
   | `CoeNat | `CoeCircle | `CoeUniv ->
     ret con
@@ -1506,7 +1506,7 @@ and enact_rigid_coe line r r' con tag =
 
 and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in
-  abort_if_inconsistent D.Abort @@
+  abort_if_inconsistent (ret D.Abort) @@
   match tag with
   | `HComPi (base, fam) ->
     splice_tm @@
@@ -1581,7 +1581,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
 
 and do_rigid_coe (line : D.con) r s con =
   let open CM in
-  CM.abort_if_inconsistent D.Abort @@
+  CM.abort_if_inconsistent (ret D.Abort) @@
   begin
     dispatch_rigid_coe line |>>
     function
@@ -1596,7 +1596,7 @@ and do_rigid_coe (line : D.con) r s con =
 
 and do_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
-  CM.abort_if_inconsistent D.Abort @@
+  CM.abort_if_inconsistent (ret D.Abort) @@
   begin
     dispatch_rigid_hcom code |>>
     function

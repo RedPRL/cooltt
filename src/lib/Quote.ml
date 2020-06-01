@@ -33,7 +33,7 @@ sig
 end =
 struct
   let lam ?(ident = `Anon) tp mbdy =
-    bind_var ~abort:S.CofAbort tp @@ fun arg ->
+    bind_var ~splitter:(fun _ -> ret S.CofAbort) tp @@ fun arg ->
     let+ bdy = mbdy arg in
     S.Lam (ident, bdy)
 end
@@ -43,9 +43,8 @@ let contractum_or x =
   | `Done -> x
   | `Reduce y -> y
 
-
 let rec quote_con (tp : D.tp) con : S.t m =
-  QuM.abort_if_inconsistent S.CofAbort @@
+  QuM.abort_if_inconsistent (ret S.CofAbort) @@
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
   let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
   match tp, con with
@@ -258,16 +257,9 @@ let rec quote_con (tp : D.tp) con : S.t m =
       lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
       | true ->
         let* ttp = quote_tp tp in
-        let branch phi : (S.t * S.t) m =
-          let* tphi = quote_cof phi in
-          bind_var ~abort:(tphi, S.CofAbort) (D.TpPrf phi) @@ fun prf ->
-          Format.eprintf "quoting: %a |= %a / %a@." D.pp_cof phi D.pp_tp tp D.pp_con con;
-          let+ tm = quote_con tp con in
-          tphi, tm
-        in
-        let phis = [Cof.eq r D.Dim0; Cof.eq r D.Dim1] in
-        let+ branches = MU.map branch phis in
-        S.CofSplit (ttp, branches)
+        restrict ~splitter:(con_splitter ttp) [Cof.boundary r] @@
+        (* Format.eprintf "quoting: %a |= %a / %a@." D.pp_cof phi D.pp_tp tp D.pp_con con; *)
+        quote_con tp con
       | false ->
         let+ tr = quote_dim r
         and+ part =
@@ -295,7 +287,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | D.TpSplit branches as tp, _ ->
     let* ttp = quote_tp tp in
     let branch_body phi : S.t m =
-      bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+      bind_var ~splitter:(con_splitter ttp) (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
     in
     let phis = List.map fst branches in
@@ -307,7 +299,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let* ttp = quote_tp tp in
     let branch_body phi : S.t m =
       begin
-        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        bind_var ~splitter:(con_splitter ttp) (D.TpPrf phi) @@ fun prf ->
         quote_con tp con
       end
     in
@@ -320,7 +312,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let* ttp = quote_tp tp in
     let branch_body phi : S.t m =
       begin
-        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        bind_var ~splitter:(con_splitter ttp) (D.TpPrf phi) @@ fun prf ->
         quote_con tp con
       end
     in
@@ -332,6 +324,33 @@ let rec quote_con (tp : D.tp) con : S.t m =
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
+
+and con_splitter ttp tbranches =
+  let run_branch (cof, m) =
+    let+ tm = binder 1 m
+    and+ tcof = quote_cof cof in
+    tcof, tm
+  in
+  let+ tbranches = MU.map run_branch tbranches in
+  S.CofSplit (ttp, tbranches)
+
+and tp_splitter tbranches =
+  let run_branch (cof, m) =
+    let+ tm = binder 1 m
+    and+ tcof = quote_cof cof in
+    tcof, tm
+  in
+  let+ tbranches = MU.map run_branch tbranches in
+  S.TpCofSplit tbranches
+
+and cof_splitter tbranches =
+  let run_branch (key_cof, cof) =
+    let+ key_cof = quote_cof key_cof
+    and+ cof = cof in
+    S.Cof (Cof.Meet [key_cof; cof])
+  in
+  let+ cofs = MU.map run_branch tbranches in
+  S.Cof (Cof.Join cofs)
 
 and quote_v_data r pcode code pequiv =
   let+ tr = quote_dim r
@@ -363,7 +382,7 @@ and quote_hcom code r s phi bdy =
   S.HCom (tcode, tr, ts, tphi, tbdy)
 
 and quote_tp_clo base fam =
-  bind_var ~abort:(S.El S.CofAbort) base @@ fun var ->
+  bind_var ~splitter:tp_splitter base @@ fun var ->
   quote_tp @<< lift_cmp @@ inst_tp_clo fam var
 
 and quote_tp (tp : D.tp) =
@@ -394,7 +413,7 @@ and quote_tp (tp : D.tp) =
     let* ttp = quote_tp tp in
     let+ tphi = quote_cof phi
     and+ tm =
-      bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+      bind_var ~splitter:(con_splitter ttp) (D.TpPrf phi) @@ fun prf ->
       let* body = lift_cmp @@ inst_tm_clo cl prf in
       quote_con tp body
     in
@@ -429,7 +448,7 @@ and quote_tp (tp : D.tp) =
     S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
   | D.UnfoldElSplit (branches, spine) as tp ->
     let branch_body phi : S.tp m =
-      bind_var ~abort:(S.El S.CofAbort) (D.TpPrf phi) @@ fun prf ->
+      bind_var ~splitter:tp_splitter (D.TpPrf phi) @@ fun prf ->
       quote_tp tp
     in
     let phis = List.map fst branches in
@@ -439,7 +458,7 @@ and quote_tp (tp : D.tp) =
   | D.TpSplit branches ->
     let branch_body (phi, clo) : S.tp m =
       begin
-        bind_var ~abort:(S.El S.CofAbort) (D.TpPrf phi) @@ fun prf ->
+        bind_var ~splitter:tp_splitter (D.TpPrf phi) @@ fun prf ->
         quote_tp @<< lift_cmp @@ inst_tp_clo clo prf
       end
     in
@@ -470,14 +489,14 @@ and quote_hd =
     let+ tm = quote_cut cut in
     S.SubOut tm
   | D.Split (tp, branches) ->
+    let* ttp = quote_tp tp in
     let branch_body (phi, clo) =
       begin
-        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+        bind_var ~splitter:(con_splitter ttp) (D.TpPrf phi) @@ fun prf ->
         let* body = lift_cmp @@ inst_tm_clo clo prf in
         quote_con tp body
       end
     in
-    let* ttp = quote_tp tp in
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
     ret @@ S.CofSplit (ttp, List.combine tphis tms)

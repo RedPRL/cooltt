@@ -31,11 +31,11 @@ struct
     let rec go_tp : Env.cell list -> S.tp m =
       function
       | [] ->
-        EM.lift_qu @@ Qu.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
+        EM.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
       | cell :: cells ->
         let ctp, _ = Env.Cell.contents cell in
         let ident = Env.Cell.ident cell in
-        let+ base = EM.lift_qu @@ Qu.quote_tp ctp
+        let+ base = EM.quote_tp ctp
         and+ fam = EM.abstract ident ctp @@ fun _ -> go_tp cells in
         S.Pi (base, ident, fam)
     in
@@ -74,12 +74,13 @@ struct
   let unleash_hole name flexity : T.BChk.tac =
     fun (tp, phi, clo) ->
     let* cut = make_hole name flexity (tp, phi, clo) in
-    EM.lift_qu @@ Qu.quote_cut cut
+    let* ttp = EM.quote_tp tp in
+    EM.quote_cut ttp cut
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
     let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
-    EM.lift_qu @@ Qu.quote_tp @@ D.ElCut cut
+    EM.quote_tp @@ D.ElCut cut
 
   let unleash_syn_hole name flexity : T.Syn.tac =
     let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
@@ -212,7 +213,7 @@ struct
     | true -> EM.ret ()
     | false ->
       EM.with_pp @@ fun ppenv ->
-      let* tphi = EM.lift_qu @@ Qu.quote_cof vphi in
+      let* tphi = EM.quote_cof vphi in
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
 
@@ -239,7 +240,7 @@ struct
 
   let split2 (phi0 : D.cof) (tac0 : T.var -> T.BChk.tac) (phi1 : D.cof) (tac1 : T.var -> T.BChk.tac) : T.BChk.tac =
     fun (tp, psi, psi_clo) ->
-    let* ttp = EM.lift_qu @@ Qu.quote_tp tp in
+    let* ttp = EM.quote_tp tp in
     let* _ = assert_true @@ Cof.join [phi0; phi1] in
     let* tm0 =
       T.abstract (D.TpPrf phi0) @@ fun prf ->
@@ -262,8 +263,8 @@ struct
       in
       T.abstract (D.TpPrf phi1) @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
-    and+ tphi0 = EM.lift_qu @@ Qu.quote_cof phi0
-    and+ tphi1 = EM.lift_qu @@ Qu.quote_cof phi1 in
+    and+ tphi0 = EM.quote_cof phi0
+    and+ tphi1 = EM.quote_cof phi1 in
     S.CofSplit (ttp, [tphi0, tm0; tphi1, tm1])
 
 
@@ -310,7 +311,7 @@ struct
         | true -> EM.ret S.Prf
         | false ->
           EM.with_pp @@ fun ppenv ->
-          let* tphi = EM.lift_qu @@ Qu.quote_cof phi in
+          let* tphi = EM.quote_cof phi in
           EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
       end
     | tp, _, _ ->
@@ -638,13 +639,14 @@ struct
         in
         tac_tot (tp, Cofibration.join [Cofibration.eq r D.Dim0; phi], D.un_lam bdry_fn)
       in
-      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
+      let* tr = EM.quote_dim r in
       let+ t_pequiv =
         let* tp_pequiv =
           EM.lift_cmp @@ Sem.splice_tp @@
           Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
         in
-        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+        let* ttp_pequiv = EM.quote_tp tp_pequiv in
+        EM.quote_con tp_pequiv ttp_pequiv pequiv
       in
       S.VIn (tr, t_pequiv, part, tot)
     | tp, _, _ ->
@@ -654,15 +656,15 @@ struct
     let* tm, tp = tac_v in
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
-      let* tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r in
-      let* tpcode = EM.lift_qu @@ Quote.quote_con (D.Pi (D.TpPrf (Cofibration.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
-      let* tcode = EM.lift_qu @@ Quote.quote_con D.Univ code in
+      let* tr = EM.quote_dim r in
+      let* tpcode = EM.quote_con' (D.Pi (D.TpPrf (Cofibration.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+      let* tcode = EM.quote_con' D.Univ code in
       let* t_pequiv =
         let* tp_pequiv =
           EM.lift_cmp @@ Sem.splice_tp @@
           Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
         in
-        EM.lift_qu @@ Quote.quote_con tp_pequiv pequiv
+        EM.quote_con' tp_pequiv pequiv
       in
       let vproj = S.VProj (tr, tpcode, tcode, t_pequiv, tm) in
       let* tp_vproj = EM.lift_cmp @@ Sem.do_el code in
@@ -719,9 +721,9 @@ struct
              phi, TB.coe (TB.lam ~ident:(`Machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
         tac_cap (tp_cap, Cofibration.join [phi; psi], D.un_lam bdry_fn)
-      and+ tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r
-      and+ tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r'
-      and+ tphi = EM.lift_qu @@ Quote.quote_cof phi in
+      and+ tr = EM.quote_dim r
+      and+ tr' = EM.quote_dim r'
+      and+ tphi = EM.quote_cof phi in
       S.Box (tr, tr', tphi, twalls, tcap)
 
     | tp, _, _ ->
@@ -731,12 +733,12 @@ struct
     let* box, box_tp = tac_box in
     match box_tp with
     | D.ElUnstable (`HCom (r, r', phi, bdy)) ->
-      let+ tr = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r
-      and+ tr' = EM.lift_qu @@ Quote.quote_con D.TpDim @@ D.dim_to_con r'
-      and+ tphi = EM.lift_qu @@ Quote.quote_cof phi
+      let+ tr = EM.quote_dim r
+      and+ tr' = EM.quote_dim r'
+      and+ tphi = EM.quote_cof phi
       and+ tbdy =
         let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) phi in
-        EM.lift_qu @@ Quote.quote_con tp_bdy bdy
+        EM.quote_con' tp_bdy bdy
       and+ tp_cap =
         let* code_fib = EM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
         EM.lift_cmp @@ Sem.do_el code_fib
@@ -794,7 +796,7 @@ struct
       in
       T.abstract ~ident (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) @@ fun var ->
       let* tbdy, bdytp = tac_bdy var in
-      let* tbdytp = EM.lift_qu @@ Qu.quote_tp bdytp in
+      let* tbdytp = EM.quote_tp bdytp in
       EM.ret (tbdy, tbdytp)
     in
     let* bdytp = EM.lift_ev @@ EvM.append [D.SubIn vdef] @@ Sem.eval_tp tbdytp in
@@ -1019,7 +1021,7 @@ struct
         Circle.elim mot tac_base (T.Chk.bchk tac_loop) scrut
       | _ ->
         EM.with_pp @@ fun ppenv ->
-        let* tp = EM.lift_qu @@ Qu.quote_tp ind_tp in
+        let* tp = EM.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (ppenv, tp)
 
     let assert_simple_inductive =
@@ -1030,7 +1032,7 @@ struct
         EM.ret ()
       | tp ->
         EM.with_pp @@ fun ppenv ->
-        let* tp = EM.lift_qu @@ Qu.quote_tp tp in
+        let* tp = EM.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
     let lam_elim cases : T.BChk.tac =
@@ -1041,7 +1043,7 @@ struct
         Pi.intro @@ fun var -> (* of inductive type *)
         T.BChk.chk @@ fun goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
-        let* tfib = EM.lift_qu @@ Quote.quote_tp fib in
+        let* tfib = EM.quote_tp fib in
         match tfib with
         | S.El code ->
           EM.ret code

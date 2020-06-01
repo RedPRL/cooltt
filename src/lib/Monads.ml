@@ -5,6 +5,10 @@ open CoolBasis
 open Bwd
 open BwdNotation
 
+exception CCHM
+exception CJHM
+exception CFHM
+
 module CmpL =
 struct
   type local =
@@ -25,7 +29,7 @@ struct
   type local =
     {state : St.t;
      veil : Veil.t;
-     cof_env : CofEnv.env;
+     cof_reduced_env : CofEnv.reduced_env;
      size : int}
 end
 
@@ -54,12 +58,12 @@ struct
     M.scope @@ fun local ->
     {local with cof_env}
 
-  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+  let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
     match CofEnv.consistency st.cof_env with
     | `Consistent -> m st
-    | `Inconsistent -> M.ret abort st
+    | `Inconsistent -> abort st
 
   include M
   include CmpL
@@ -89,12 +93,12 @@ struct
     fun {state; cof_env} ->
     m {state; cof_env}
 
-  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+  let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
     match CofEnv.consistency st.cof_env with
     | `Consistent -> m st
-    | `Inconsistent -> M.ret abort st
+    | `Inconsistent -> abort st
 
 
   include EvL
@@ -108,7 +112,6 @@ struct
 
   module M = Monad.MonadReaderResult (QuL)
   module MU = Monad.Util (M)
-  module CM = CofEnv.Monad (M)
   open Monad.Notation (M)
 
   let read_global =
@@ -127,60 +130,65 @@ struct
     M.scope @@ fun local ->
     {local with size = i + local.size}
 
-  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+  let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.consistency st.cof_env with
+    match CofEnv.Reduced.consistency st.cof_reduced_env with
     | `Consistent -> m st
-    | `Inconsistent -> M.ret abort st
+    | `Inconsistent -> abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun {state; cof_env} ->
-    m {state; cof_env}
+    fun {state; cof_reduced_env} ->
+    m {state; cof_env = CofEnv.Reduced.to_env cof_reduced_env}
 
-  let replace_env cof_env m =
-    M.scope (fun local -> {local with cof_env}) @@
-    abort_if_inconsistent `Abort @@
-    let+ x = m in
-    `Ret x
+  let replace_env ~(abort : 'a m) (cof_reduced_env : CofEnv.reduced_env) (m : 'a m) : 'a m =
+    M.scope (fun local -> {local with cof_reduced_env}) @@
+    abort_if_inconsistent abort m
 
-  let restrict phi m =
-    let* {cof_env} = M.read in
-    replace_env (CofEnv.assume cof_env phi) m
-
-  let left_invert_under_cofs phis m =
-    let* {cof_env} = M.read in
-    CM.left_invert_under_cofs cof_env phis @@
-    fun cof_env ->
-    let+ _ = replace_env cof_env m in ()
-
-  let left_invert_under_current_cof m = left_invert_under_cofs [] m
-
-  let bind_cof_proof phi m =
-    restrict phi @@ binder 1 m
+  let restrict (type a) ~(splitter:(D.cof * a m) list -> a m) phis (m : a m) : a m =
+    let module P = struct
+      type t = a m
+      let zero = splitter []
+      let seq f cofs =
+        let l = List.map (fun cof -> cof , f cof) cofs in
+        splitter l
+    end in
+    let module MyCM = CofEnv.Reduced.Monoid (P) in
+    let* {cof_reduced_env} = M.read in
+    MyCM.left_invert_under_cofs cof_reduced_env phis @@ fun reduced_env ->
+    replace_env ~abort:(splitter []) reduced_env m
 
   let top_var tp =
     let+ n = read_local in
     D.mk_var tp @@ n - 1
 
-  let bind_var ~abort tp m =
+  let bind_cof_proof ~splitter phi m =
+    binder 1 @@ (* CJHM: tricky!!! *)
+    let* var = top_var (D.TpPrf phi) in
+    restrict ~splitter [phi] (m var)
+
+  let bind_var ~splitter tp m =
     match tp with
     | D.TpPrf phi ->
-      begin
-        begin
-          bind_cof_proof phi @@
-          let* var = top_var tp in
-          m var
-        end |>> function
-        | `Ret tm -> M.ret tm
-        | `Abort -> M.ret abort
-      end
+      bind_cof_proof ~splitter phi m
     | _ ->
       binder 1 @@
       let* var = top_var tp in
       m var
 
-  let bind_var_ = bind_var ~abort:()
+  let bind_var_ = bind_var ~splitter:(fun _ -> M.ret ())
+
+
+  module CM = CofEnv.Reduced.Monad (M)
+
+  let left_invert_under_cofs phis m =
+    let* {cof_reduced_env} = M.read in
+    CM.left_invert_under_cofs cof_reduced_env phis @@
+    fun reduced_env ->
+    replace_env ~abort:(M.ret ()) reduced_env @@ MU.ignore m
+
+  let left_invert_under_current_cof m = left_invert_under_cofs [] m
+
 
   include QuL
   include M
@@ -208,9 +216,38 @@ struct
     M.scope @@ fun env ->
     Env.set_veil v env
 
-  let lift_qu (m : 'a quote) : 'a m =
+  let lift_qu ~splitter (m : 'a quote) : 'a m =
     fun (state, env) ->
-    match QuM.run {state; cof_env = Env.cof_env env; veil = Env.get_veil env; size = Env.size env} m with
+    let cof_reduced_env, unreduced_phis =
+      CofEnv.Reduced.partition_env @@ Env.cof_env env
+    in
+    match
+      QuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} @@
+      QuM.restrict ~splitter unreduced_phis m
+    with
+    | Ok v -> Ok v, state
+    | Error exn -> Error exn, state
+
+  let lift_unit_qu (m : unit quote) : unit m =
+    fun (state, env) ->
+    let cof_reduced_env, unreduced_phis =
+      CofEnv.Reduced.partition_env @@ Env.cof_env env
+    in
+    match
+      QuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} @@
+      QuM.left_invert_under_cofs unreduced_phis m
+    with
+    | Ok v -> Ok v, state
+    | Error exn -> Error exn, state
+
+  let drop_joins_and_lift_qu (m : 'a quote) : 'a m =
+    fun (state, env) ->
+    let cof_reduced_env, _ =
+      CofEnv.Reduced.partition_env @@ Env.cof_env env
+    in
+    match
+      QuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} m
+    with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
@@ -226,10 +263,10 @@ struct
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
-  let abort_if_inconsistent : 'a -> 'a m -> 'a m =
+  let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun (state, env) ->
     match CofEnv.consistency (Env.cof_env env) with
     | `Consistent -> m (state, env)
-    | `Inconsistent -> M.ret abort (state, env)
+    | `Inconsistent -> abort (state, env)
 end
