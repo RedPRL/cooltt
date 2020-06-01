@@ -73,6 +73,16 @@ let atom_subsequent =
 let number = ['0'-'9']['0'-'9']*
 let atom = atom_initial atom_subsequent*
 
+let hole_atom_initial
+  = atom_initial
+  | '?'
+
+let hole_atom_subsequent
+  = atom_subsequent
+  | '?'
+
+let hole_atom = hole_atom_initial hole_atom_subsequent*
+
 rule token = parse
   | number
     { (NUMERAL (int_of_string (Lexing.lexeme lexbuf))) }
@@ -124,14 +134,15 @@ rule token = parse
     { RRIGHT_ARROW }
   | '_'
     { UNDERSCORE }
-  | "?" atom
+  | "?" hole_atom
     {
-      match String.split_on_char '?' @@ lexeme lexbuf with
-      | [] ->
+      let str = lexeme lexbuf in
+      let len = String.length str in
+      if len = 1 then
         HOLE_NAME None
-      | _ :: input ->
-        let name = String.concat "" input in
-        HOLE_NAME (Some name)
+      else
+        let hole_name = String.sub str 1 (String.length str - 1) in
+        HOLE_NAME (Some hole_name)
     }
   | "?"
     { HOLE_NAME None }
