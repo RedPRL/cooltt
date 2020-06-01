@@ -50,8 +50,9 @@ def trans-left-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {t
     | i=1 => p j
     | k=0 =>
       hcom A 0 1 {∂ i ∨ ∂ j} {l _ =>
-        [ l=0 ∨ i=0 ∨ j=1 => trans/filler A {_ => p 0} p i l
-        | l=0 ∨ i=1 ∨ j=0 => trans/filler A {_ => p 0} p j l
+        let filler : 𝕀 → A = k => trans/filler A {_ => p 0} p k l in
+        [ l=0 ∨ i=0 ∨ j=1 => filler i
+        | i=1 ∨ j=0 => filler j
         ]
       }
     ]
