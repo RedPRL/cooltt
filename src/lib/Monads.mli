@@ -8,7 +8,7 @@ open CoolBasis
 type 'a compute
 type 'a evaluate
 type 'a quote
-
+type 'a quote' = D.cof list -> 'a quote
 
 (** The "computation" monad; contains enough state to run computations in the semantic domain,
     does not contain a variable environment or anything that would be needed for evaluation. *)
@@ -47,8 +47,10 @@ end
 module QuM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a quote
+  type 'a m' = 'a quote'
 
   val lift_cmp : 'a compute -> 'a m
+  val lift_cmp_under_cofs : D.cof list -> 'a compute -> 'a m
 
   val read_global : ElabState.t m
   val read_local : int m
@@ -57,12 +59,11 @@ module QuM : sig
   val binder : int -> 'a m -> 'a m
 
   val restrict : splitter:((D.cof * 'a m) list -> 'a m) -> D.cof list -> 'a m -> 'a m
+  val restrict_ : D.cof list -> unit m -> unit m
 
+  val bind'_var : D.tp -> (D.con -> 'a m') -> 'a m
   val bind_var : splitter:((D.cof * 'a m) list -> 'a m) -> D.tp -> (D.con -> 'a m) -> 'a m
   val bind_var_ : D.tp -> (D.con -> unit m) -> unit m
-
-  val left_invert_under_cofs : D.cof list -> unit m -> unit m
-  val left_invert_under_current_cof : unit m -> unit m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
@@ -73,9 +74,8 @@ module ElabM : sig
     with type global := St.t
     with type local := ElabEnv.t
 
-  val lift_qu : splitter:((D.cof * 'a quote) list -> 'a quote) -> 'a quote -> 'a m
-  val lift_unit_qu : unit quote -> unit m
-  val drop_joins_and_lift_qu : 'a quote -> 'a m
+  val lift_qu : 'a quote' -> 'a m
+  val lift_qu_ : unit quote -> unit m
 
   val lift_ev : 'a evaluate -> 'a m
   val lift_cmp : 'a compute -> 'a m

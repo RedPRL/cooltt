@@ -52,22 +52,6 @@ let consistency =
 let find_class classes r =
   try UF.find r classes with _ -> r
 
-module type PARAM = CoolBasis.Monoid.S with type key := cof
-
-(* minimum requirement to do the search *)
-module type PARAM' =
-sig
-  include PARAM
-  (** [type t] is the type of the result of the search. *)
-  (** [val zero] is the default value for vacuous cases. Should be the same as [seq id []]. *)
-  (** [val seq] is the sequencing operator. Technically, we can demand [seq' : t list -> t] instead
-    * and the current [seq f l] would be [seq' (map f l)]. However, [List.for_all] and
-    * [CoolBasis.Monad.Util.iter] directly fit into this type. *)
-
-  (** If the first component returns a "good" result, then don't bother with the second. (???) *)
-  val fast_track : (unit -> t) -> (unit -> t) -> t
-end
-
 module SearchHelper :
 sig
   (** Pushes cofibrations into the environment.
@@ -116,37 +100,52 @@ struct
       pushes' {env with unreduced_joins} [psi]
 end
 
-module Search (M : PARAM') :
+module Search :
 sig
   (** Search all branches assuming more cofibrations. *)
-  val left_invert : env -> cof list -> (reduced_env' -> M.t) -> M.t
+  val left_invert : zero:'a
+    (** [zero] is the default value for vacuous cases. *)
+    -> seq:((cof -> 'a) -> cof list -> 'a)
+    (** [seq] is the sequencing operator. *)
+    -> fast_track:((unit -> 'a) -> (unit -> 'a) -> 'a)
+    (** If the first component returns a "good" result, then don't bother with the second. (???) *)
+    -> env
+    -> cof list
+    -> (reduced_env' -> 'a)
+    -> 'a
 
   (** Search all branches assuming more cofibrations.
       Invariant: [env.classes] must be consistent *)
-  val left_invert' : env' -> cof list -> (reduced_env' -> M.t) -> M.t
+  val left_invert' : zero:'a
+    -> seq:((cof -> 'a) -> cof list -> 'a)
+    -> fast_track:((unit -> 'a) -> (unit -> 'a) -> 'a)
+    -> env'
+    -> cof list
+    -> (reduced_env' -> 'a)
+    -> 'a
 end =
 struct
-  let left_invert' env phis cont =
+  let left_invert' ~zero ~seq ~fast_track (env : env') phis cont =
     let rec go =
       function
-      | None -> M.zero
+      | None -> zero
       | Some ({classes; true_vars; unreduced_joins} as env) ->
-        M.fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
+        fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
         match unreduced_joins with
         | [] -> cont {classes; true_vars}
         | psis :: unreduced_joins ->
           if SearchHelper.is_consistent env then
-            psis |> M.seq @@ fun psi ->
+            psis |> seq @@ fun psi ->
             go @@ SearchHelper.pushes' {env with unreduced_joins} [psi]
           else
-            M.zero
+            zero
     in
     go @@ SearchHelper.pushes' env phis
 
-  let left_invert env phis cont =
+  let left_invert ~zero ~seq ~fast_track env phis cont =
     match env with
-    | `Inconsistent -> M.zero
-    | `Consistent env -> left_invert' env phis cont
+    | `Inconsistent -> zero
+    | `Consistent env -> left_invert' ~zero ~seq ~fast_track env phis cont
 end
 
 
@@ -168,27 +167,21 @@ let rec test (local : reduced_env') : cof -> bool =
   | Cof.Var v ->
     VarSet.mem v local.true_vars
 
-module BoolSeqAll : PARAM' with type t = bool =
-struct
-  type t = bool
-  let zero = true
-  let seq = List.for_all
-  let fast_track x y =
-    if x () then true else y ()
-end
-
-module BoolSearchAll = Search (BoolSeqAll)
-
 let test_sequent env cx phi =
-  BoolSearchAll.left_invert env cx @@ fun env ->
+  Search.left_invert
+    ~zero:true
+    ~seq:List.for_all
+    ~fast_track:(fun x y -> if x () then true else y ())
+    env cx
+  @@ fun env ->
   test env phi
 
-let assume env phi =
+let assumes env phis =
   match env with
-  | `Inconsistent -> env
+  | `Inconsistent -> `Inconsistent
   | `Consistent env ->
     match
-      SearchHelper.pushes' env [Cof.reduce phi] (* do we want Cof.reduce here? *)
+      SearchHelper.pushes' env @@ List.map Cof.reduce phis (* do we want Cof.reduce here? *)
     with
     | None -> `Inconsistent
     | Some env ->
@@ -196,41 +189,12 @@ let assume env phi =
       then `Consistent env
       else `Inconsistent
 
-module type S =
-sig
-  type t
-  (** Search all branches induced by unreduced joins under additional cofibrations. *)
-  val left_invert_under_cofs : env -> cof list -> (env -> t) -> t
-end
+let assume env phi = assumes env [phi]
 
-(** Monoidal interface *)
-module Monoid (M : PARAM) : S with type t := M.t
-=
-struct
-  module Param' = struct
-    include M
-    let fast_track _ x = x ()
-  end
-  module S = Search (Param')
 
-  let left_invert_under_cofs env phis cont =
-    S.left_invert env phis @@ fun reduced_env' ->
-    cont @@ `Consistent (env'_of_reduced_env' reduced_env')
-end
-
-(** Monadic interface *)
-module Monad (M : CoolBasis.Monad.S) =
-struct
-  module MU = CoolBasis.Monad.Util (M)
-  module M =
-  struct
-    type t = unit M.m
-    let zero = M.ret ()
-    let seq f l = MU.iter f l
-  end
-
-  include (Monoid (M))
-end
+let left_invert_under_cofs ~zero ~seq env phis cont =
+  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) env phis @@ fun reduced_env' ->
+  cont @@ `Consistent (env'_of_reduced_env' reduced_env')
 
 module Reduced =
 struct
@@ -240,44 +204,17 @@ struct
     | `Inconsistent -> `Inconsistent
 
   let to_env = env_of_reduced_env
+
   let partition_env =
     function
     | `Inconsistent -> `Inconsistent , []
     | `Consistent {classes; true_vars; unreduced_joins} ->
       `Consistent {classes; true_vars} , List.map Cof.join unreduced_joins 
 
-  module type S =
-  sig
-    type t
-    (** Search all branches induced by unreduced joins under additional cofibrations. *)
-    val left_invert_under_cofs : reduced_env -> cof list -> (reduced_env -> t) -> t
-  end
+  let assemble_env reduced_env phis =
+    assumes (to_env reduced_env) phis
 
-  (** Monoidal interface *)
-  module Monoid (M : PARAM) : S with type t := M.t =
-  struct
-    module Seq = struct
-      include M
-      let fast_track _ x = x ()
-    end
-    module S = Search (Seq)
-
-    let left_invert_under_cofs reduced_env phis cont =
-      S.left_invert (to_env reduced_env) phis @@ fun reduced_env' ->
-      cont @@ `Consistent reduced_env'
-  end
-
-  (** Monadic interface *)
-  module Monad (M : CoolBasis.Monad.S) =
-  struct
-    module MU = CoolBasis.Monad.Util (M)
-    module M =
-    struct
-      type t = unit M.m
-      let zero = M.ret ()
-      let seq f l = MU.iter f l
-    end
-
-    include (Monoid (M))
-  end
+  let left_invert_under_cofs ~zero ~seq reduced_env phis cont =
+    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (to_env reduced_env) phis @@ fun reduced_env' ->
+    cont @@ `Consistent reduced_env'
 end

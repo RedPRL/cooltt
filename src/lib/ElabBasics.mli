@@ -23,10 +23,9 @@ val get_global : Symbol.t -> (D.tp * D.con option) m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 
-val quote_con : D.tp -> S.tp -> D.con -> S.t m (* CJHM XXX This is taking the [tp] twice to save one quotation. *)
-val quote_con' : D.tp -> D.con -> S.t m
+val quote_con : D.tp -> D.con -> S.t m
 val quote_tp : D.tp -> S.tp m
-val quote_cut : S.tp -> D.cut -> S.t m
+val quote_cut : D.tp -> D.cut -> S.t m
 val quote_cof : D.cof -> S.t m
 val quote_dim : D.dim -> S.t m
 

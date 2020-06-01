@@ -113,6 +113,7 @@ struct
   module M = Monad.MonadReaderResult (QuL)
   module MU = Monad.Util (M)
   open Monad.Notation (M)
+  type 'a m' = CofEnv.cof list -> 'a m
 
   let read_global =
     let+ {state} = M.read in
@@ -141,60 +142,58 @@ struct
     fun {state; cof_reduced_env} ->
     m {state; cof_env = CofEnv.Reduced.to_env cof_reduced_env}
 
+  let lift_cmp_under_cofs phis (m : 'a compute) : 'a m =
+    fun {state; cof_reduced_env} ->
+    m {state; cof_env = CofEnv.Reduced.assemble_env cof_reduced_env phis}
+
   let replace_env ~(abort : 'a m) (cof_reduced_env : CofEnv.reduced_env) (m : 'a m) : 'a m =
     M.scope (fun local -> {local with cof_reduced_env}) @@
     abort_if_inconsistent abort m
 
   let restrict (type a) ~(splitter:(D.cof * a m) list -> a m) phis (m : a m) : a m =
-    let module P = struct
-      type t = a m
-      let zero = splitter []
-      let seq f cofs =
-        let l = List.map (fun cof -> cof , f cof) cofs in
-        splitter l
-    end in
-    let module MyCM = CofEnv.Reduced.Monoid (P) in
+    let seq f cofs =
+      splitter @@ List.map (fun cof -> cof , f cof) cofs
+    in
     let* {cof_reduced_env} = M.read in
-    MyCM.left_invert_under_cofs cof_reduced_env phis @@ fun reduced_env ->
+    CofEnv.Reduced.left_invert_under_cofs
+      ~zero:(splitter []) ~seq
+      cof_reduced_env phis @@ fun reduced_env ->
     replace_env ~abort:(splitter []) reduced_env m
+
+  let restrict_ phis m =
+    let* {cof_reduced_env} = M.read in
+    CofEnv.Reduced.left_invert_under_cofs
+      ~zero:(M.ret ()) ~seq:MU.iter
+      cof_reduced_env phis @@
+    fun reduced_env ->
+    replace_env ~abort:(M.ret ()) reduced_env @@ MU.ignore m
 
   let top_var tp =
     let+ n = read_local in
     D.mk_var tp @@ n - 1
 
-  let bind_cof_proof ~splitter phi m =
-    binder 1 @@ (* CJHM: tricky!!! *)
-    let* var = top_var (D.TpPrf phi) in
-    restrict ~splitter [phi] (m var)
+  let bind'_var tp m =
+    binder 1 @@
+    let* var = top_var tp in
+    m var @@
+    match tp with
+    | D.TpPrf phi -> [phi]
+    | _ -> []
 
   let bind_var ~splitter tp m =
-    match tp with
-    | D.TpPrf phi ->
-      bind_cof_proof ~splitter phi m
-    | _ ->
-      binder 1 @@
-      let* var = top_var tp in
-      m var
+    bind'_var tp @@ fun var phis ->
+    restrict ~splitter phis @@ m var
 
-  let bind_var_ = bind_var ~splitter:(fun _ -> M.ret ())
-
-
-  module CM = CofEnv.Reduced.Monad (M)
-
-  let left_invert_under_cofs phis m =
-    let* {cof_reduced_env} = M.read in
-    CM.left_invert_under_cofs cof_reduced_env phis @@
-    fun reduced_env ->
-    replace_env ~abort:(M.ret ()) reduced_env @@ MU.ignore m
-
-  let left_invert_under_current_cof m = left_invert_under_cofs [] m
-
+  let bind_var_ tp m =
+    bind'_var tp @@
+    fun var phis -> restrict_ phis @@ m var
 
   include QuL
   include M
 end
 
 type 'a quote = 'a QuM.m
+type 'a quote' = CofEnv.cof list -> 'a quote
 
 
 module ElabM =
@@ -216,40 +215,20 @@ struct
     M.scope @@ fun env ->
     Env.set_veil v env
 
-  let lift_qu ~splitter (m : 'a quote) : 'a m =
+  let lift_qu (m : 'a quote') : 'a m =
     fun (state, env) ->
     let cof_reduced_env, unreduced_phis =
       CofEnv.Reduced.partition_env @@ Env.cof_env env
     in
     match
       QuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} @@
-      QuM.restrict ~splitter unreduced_phis m
+      m unreduced_phis
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
-  let lift_unit_qu (m : unit quote) : unit m =
-    fun (state, env) ->
-    let cof_reduced_env, unreduced_phis =
-      CofEnv.Reduced.partition_env @@ Env.cof_env env
-    in
-    match
-      QuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} @@
-      QuM.left_invert_under_cofs unreduced_phis m
-    with
-    | Ok v -> Ok v, state
-    | Error exn -> Error exn, state
-
-  let drop_joins_and_lift_qu (m : 'a quote) : 'a m =
-    fun (state, env) ->
-    let cof_reduced_env, _ =
-      CofEnv.Reduced.partition_env @@ Env.cof_env env
-    in
-    match
-      QuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} m
-    with
-    | Ok v -> Ok v, state
-    | Error exn -> Error exn, state
+  let lift_qu_ (m : unit quote) : unit m =
+    lift_qu @@ fun phis -> QuM.restrict_ phis m
 
   let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->

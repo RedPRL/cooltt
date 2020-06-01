@@ -74,8 +74,7 @@ struct
   let unleash_hole name flexity : T.BChk.tac =
     fun (tp, phi, clo) ->
     let* cut = make_hole name flexity (tp, phi, clo) in
-    let* ttp = EM.quote_tp tp in
-    EM.quote_cut ttp cut
+    EM.quote_cut tp cut
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
@@ -645,8 +644,7 @@ struct
           EM.lift_cmp @@ Sem.splice_tp @@
           Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
         in
-        let* ttp_pequiv = EM.quote_tp tp_pequiv in
-        EM.quote_con tp_pequiv ttp_pequiv pequiv
+        EM.quote_con tp_pequiv pequiv
       in
       S.VIn (tr, t_pequiv, part, tot)
     | tp, _, _ ->
@@ -657,14 +655,14 @@ struct
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
       let* tr = EM.quote_dim r in
-      let* tpcode = EM.quote_con' (D.Pi (D.TpPrf (Cofibration.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
-      let* tcode = EM.quote_con' D.Univ code in
+      let* tpcode = EM.quote_con (D.Pi (D.TpPrf (Cofibration.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+      let* tcode = EM.quote_con D.Univ code in
       let* t_pequiv =
         let* tp_pequiv =
           EM.lift_cmp @@ Sem.splice_tp @@
           Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
         in
-        EM.quote_con' tp_pequiv pequiv
+        EM.quote_con tp_pequiv pequiv
       in
       let vproj = S.VProj (tr, tpcode, tcode, t_pequiv, tm) in
       let* tp_vproj = EM.lift_cmp @@ Sem.do_el code in
@@ -738,7 +736,7 @@ struct
       and+ tphi = EM.quote_cof phi
       and+ tbdy =
         let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) phi in
-        EM.quote_con' tp_bdy bdy
+        EM.quote_con tp_bdy bdy
       and+ tp_cap =
         let* code_fib = EM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
         EM.lift_cmp @@ Sem.do_el code_fib

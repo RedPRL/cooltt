@@ -17,20 +17,12 @@ val assume : env -> cof -> env
     the conjunction of the context and then testing truth. *)
 val test_sequent : env -> cof list -> cof -> bool
 
-module type PARAM = CoolBasis.Monoid.S with type key := cof
-
-module type S =
-sig
-  type t
-  (** Search all branches induced by unreduced joins under additional cofibrations. *)
-  val left_invert_under_cofs : env -> cof list -> (env -> t) -> t
-end
-
-(** Monoidal interface *)
-module Monoid (M : PARAM) : S with type t := M.t
-
-(** Monadic interface *)
-module Monad (M : CoolBasis.Monad.S) : S with type t := unit M.m
+(** Search all branches induced by unreduced joins under additional cofibrations. *)
+val left_invert_under_cofs : zero:'a  
+  (** [zero] is the default value for vacuous cases. *)
+  -> seq:((cof -> 'a) -> cof list -> 'a)
+  (** [seq] is the sequencing operator. *)
+  -> env -> cof list -> (env -> 'a) -> 'a
 
 module Reduced :
 sig
@@ -40,19 +32,16 @@ sig
   (** Partition an env into reduced parts and unreduced parts. *)
   val partition_env : env -> reduced_env * cof list
 
+  (** Assemble reduced parts and unreduced parts. *)
+  val assemble_env : reduced_env -> cof list -> env
+
   (** Returns the consistency of the environment. *)
   val consistency : reduced_env -> [`Consistent | `Inconsistent]
 
-  module type S =
-  sig
-    type t
-    (** Search all branches induced by unreduced joins under additional cofibrations. *)
-    val left_invert_under_cofs : reduced_env -> cof list -> (reduced_env -> t) -> t
-  end
-
-  (** Monoidal interface *)
-  module Monoid (M : PARAM) : S with type t := M.t
-
-  (** Monadic interface *)
-  module Monad (M : CoolBasis.Monad.S) : S with type t := unit M.m
+  (** Search all branches induced by unreduced joins under additional cofibrations. *)
+  val left_invert_under_cofs : zero:'a  
+    (** [zero] is the default value for vacuous cases. *)
+    -> seq:((cof -> 'a) -> cof list -> 'a)
+    (** [seq] is the sequencing operator. *)
+    -> reduced_env -> cof list -> (reduced_env -> 'a) -> 'a
 end

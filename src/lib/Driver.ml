@@ -78,7 +78,7 @@ let execute_decl =
         function
         | Ok (tm, vtp) ->
           let* vtm = EM.lift_ev @@ Sem.eval tm in
-          let* tm' = EM.quote_con' vtp vtm in
+          let* tm' = EM.quote_con vtp vtm in
           let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
           Ok `Continue
         | Error (Err.ElabError (err, info)) ->
@@ -97,7 +97,7 @@ let execute_decl =
           match con with
           | None -> EM.ret None
           | Some con ->
-            let* tm = EM.quote_con vtp tp con in
+            let* tm = EM.quote_con vtp con in
             EM.ret @@ Some tm
         in
         let+ () = EM.emit ident.info pp_message @@ Definition {ident = ident.node; tp; tm} in

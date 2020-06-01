@@ -62,7 +62,7 @@ struct
   let prf phi = {tp = D.TpPrf phi; con = D.Prf}
   let con {tp; con} = con
   let syn {tp; con} =
-    let+ tm = EM.quote_con' tp con in
+    let+ tm = EM.quote_con tp con in
     tm, tp
 end
 
