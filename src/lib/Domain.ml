@@ -13,8 +13,8 @@ let mk_var tp lvl =
   Cut {tp; cut = Var lvl, []}
 
 let un_lam con =
-  Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
   (* y, x |= y(x) *)
+  Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
 
 let compose f g =
   Lam (`Anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
@@ -88,15 +88,15 @@ and pp_spine : frm list Pp.printer =
   Format.pp_print_list ~pp_sep:comma pp_frame fmt sp
 
 and pp_frame : frm Pp.printer =
-   fun fmt ->
-   function
-   | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
-   | KFst -> Format.fprintf fmt "fst"
-   | KSnd -> Format.fprintf fmt "snd"
-   | KGoalProj -> Format.fprintf fmt "<goal-proj>"
-   | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
-   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
-   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
+  fun fmt ->
+  function
+  | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
+  | KFst -> Format.fprintf fmt "fst"
+  | KSnd -> Format.fprintf fmt "snd"
+  | KGoalProj -> Format.fprintf fmt "<goal-proj>"
+  | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
+  | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
+  | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
 and pp_cof : cof Pp.printer =
   fun fmt cof ->
@@ -109,6 +109,10 @@ and pp_dim : dim Pp.printer =
 and pp_clo : tm_clo Pp.printer =
   fun fmt (Clo (tm, env)) ->
   Format.fprintf fmt "clo[%a ; <env>]" S.dump tm
+
+and pp_tp_clo : tp_clo Pp.printer =
+  fun fmt (TpClo (tp, env)) ->
+  Format.fprintf fmt "tpclo[%a ; <env>]" S.pp_sequent tp
 
 and pp_con : con Pp.printer =
   fun fmt ->
@@ -166,8 +170,8 @@ and pp_con : con Pp.printer =
 
 and pp_tp fmt =
   function
-  | Pi _ ->
-    Format.fprintf fmt "<pi>"
+  | Pi (base, ident, fam) ->
+    Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
   | Sg _ ->
     Format.fprintf fmt "<sg>"
   | Sub _ ->

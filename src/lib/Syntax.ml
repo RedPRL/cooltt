@@ -14,33 +14,90 @@ let rec to_numeral =
 
 module Fmt = Format
 
-let rec dump fmt tm =
-  match tm with
-  | CodePi _ -> Format.fprintf fmt "<pi>"
-  | CodePath _ -> Format.fprintf fmt "<?>"
-  | CodeSg _ -> Format.fprintf fmt "<?>"
-  | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
-  | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
-  | Pair (tm0, tm1) -> Format.fprintf fmt "pair[%a, %a]" dump tm0 dump tm1
+let pp_sep_list pp fmt = Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") pp fmt
+
+let rec dump fmt =
+  function
   | Var i -> Format.fprintf fmt "var[%i]" i
+  | Global _ -> Format.fprintf fmt "<global>"
+  | Let _ -> Format.fprintf fmt "<let>"
+  | Ann _ -> Format.fprintf fmt "<ann>"
+
+  | Zero -> Format.fprintf fmt "<zero>"
+  | Suc _ -> Format.fprintf fmt "<suc>"
+  | NatElim _ -> Format.fprintf fmt "<nat-elam>"
+
+  | Base -> Format.fprintf fmt "base"
+  | Loop _ -> Format.fprintf fmt "<loop>"
+  | CircleElim _ -> Format.fprintf fmt "<circle/elim>"
+
   | Lam _ -> Format.fprintf fmt "<lam>"
   | Ap (tm0, tm1) -> Format.fprintf fmt "ap[%a, %a]" dump tm0 dump tm1
-  | GoalRet _ -> Format.fprintf fmt "<goal-ret>"
-  | GoalProj _ -> Format.fprintf fmt "<goal-proj>"
+
+  | Pair (tm0, tm1) -> Format.fprintf fmt "pair[%a, %a]" dump tm0 dump tm1
+  | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
+  | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
+
+  | GoalRet _ -> Format.fprintf fmt "<goal/ret>"
+  | GoalProj _ -> Format.fprintf fmt "<goal/proj>"
+
   | Coe _ -> Format.fprintf fmt "<coe>"
   | HCom _ -> Format.fprintf fmt "<hcom>"
   | Com _ -> Format.fprintf fmt "<com>"
+
   | SubIn _ -> Format.fprintf fmt "<sub/in>"
   | SubOut _ -> Format.fprintf fmt "<sub/out>"
-  | ElIn _ -> Format.fprintf fmt "<el/in>"
-  | ElOut _ -> Format.fprintf fmt "<el/out>"
-  | Cof _ -> Format.fprintf fmt "<cof>"
-  | CofSplit _ -> Format.fprintf fmt "<cof/split>"
-  | Zero -> Format.fprintf fmt "<zero>"
-  | Suc _ -> Format.fprintf fmt "<suc>"
+
   | Dim0 -> Format.fprintf fmt "<dim0>"
   | Dim1 -> Format.fprintf fmt "<dim1>"
-  | _ -> Format.fprintf fmt "<??>"
+  | Cof cof -> Format.fprintf fmt "cof[%a]" dump_cof cof
+  | ForallCof _ -> Format.fprintf fmt "<dim1>"
+  | CofSplit (tp, branches) -> Format.fprintf fmt "cof/split[%a; %a]" dump_tp tp (pp_sep_list dump_branch) branches
+  | CofAbort -> Format.fprintf fmt "cof/abort"
+  | Prf -> Format.fprintf fmt "prf"
+
+  | ElIn _ -> Format.fprintf fmt "<el/in>"
+  | ElOut _ -> Format.fprintf fmt "<el/out>"
+
+  | Box _ -> Format.fprintf fmt "<box>"
+  | Cap _ -> Format.fprintf fmt "<cap>"
+
+  | VIn _ -> Format.fprintf fmt "<vin>"
+  | VProj _ -> Format.fprintf fmt "<vproj>"
+
+  | CodePath _ -> Format.fprintf fmt "<path>"
+  | CodePi _ -> Format.fprintf fmt "<pi>"
+  | CodeSg _ -> Format.fprintf fmt "<sg>"
+  | CodeNat -> Format.fprintf fmt "nat"
+  | CodeUniv -> Format.fprintf fmt "univ"
+  | CodeV _ -> Format.fprintf fmt "<v>"
+  | CodeCircle -> Format.fprintf fmt "circle"
+
+and dump_tp fmt =
+  function
+  | Univ -> Format.fprintf fmt "univ"
+  | El t -> Format.fprintf fmt "el[%a]" dump t
+  | TpVar i -> Format.fprintf fmt "tp/var[%i]" i
+  | GoalTp _ -> Format.fprintf fmt "<goal>"
+  | TpDim -> Format.fprintf fmt "tp/dim"
+  | TpCof -> Format.fprintf fmt "tp/cof"
+  | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
+  | TpCofSplit _ -> Format.fprintf fmt "<tp/cof/split>"
+  | Sub _ -> Format.fprintf fmt "<sub>"
+  | Pi _ -> Format.fprintf fmt "<pi>"
+  | Sg _ -> Format.fprintf fmt "<sg>"
+  | Nat -> Format.fprintf fmt "nat"
+  | Circle -> Format.fprintf fmt "circle"
+
+and dump_cof fmt =
+  function
+  | Cof.Eq (r1, r2) -> Format.fprintf fmt "eq[%a, %a]" dump r1 dump r2
+  | Cof.Join cofs -> Format.fprintf fmt "join[%a]" (pp_sep_list dump) cofs
+  | Cof.Meet cofs -> Format.fprintf fmt "meet[%a]" (pp_sep_list dump) cofs
+
+and dump_branch fmt (cof, bdy) =
+  Format.fprintf fmt "[%a, %a]" dump cof dump bdy
+
 
 let pp_var env fmt ix =
   Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env

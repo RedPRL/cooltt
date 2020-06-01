@@ -11,3 +11,4 @@ val pp_atomic_tp : Pp.env -> tp Pp.printer
 val pp_sequent : tp Pp.printer
 
 val dump : t Pp.printer
+val dump_tp : tp Pp.printer

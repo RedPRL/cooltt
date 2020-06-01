@@ -5,24 +5,32 @@ type t =
   | Global of Symbol.t
   | Let of t * Ident.t * t
   | Ann of t * tp
+
   | Zero
   | Suc of t
   | NatElim of t * t * t * t
+
   | Base
   | Loop of t
   | CircleElim of t * t * t * t
+
   | Lam of Ident.t * t
   | Ap of t * t
+
   | Pair of t * t
   | Fst of t
   | Snd of t
+
   | GoalRet of t
   | GoalProj of t
+
   | Coe of t * t * t * t
   | HCom of t * t * t * t * t
   | Com of t * t * t * t * t
+
   | SubIn of t
   | SubOut of t
+
   | Dim0
   | Dim1
   | Cof of (t, t) Cof.cof_f
