@@ -767,7 +767,7 @@ and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.CodePath _ | CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeCircle | D.CodeUniv ->
+  | D.CodePath _ | D.CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeCircle | D.CodeUniv ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
