@@ -1222,9 +1222,15 @@ and do_ap con arg =
     | D.Lam (_, clo) ->
       inst_tm_clo clo arg
 
-    | D.BindSym (x, con) ->
-      let* r = con_to_dim arg in
-      subst_con r x con
+    | D.BindSym (x, conx) as con ->
+      begin
+        match arg with
+        | D.Split branches ->
+          splitter con @@ List.map fst branches
+        | _ ->
+          let* r = con_to_dim arg in
+          subst_con r x conx
+      end
 
     | D.Cut {tp = D.Pi (base, _, fam); cut} ->
       let+ fib = inst_tp_clo fam arg in
