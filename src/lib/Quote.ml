@@ -439,8 +439,8 @@ and quote'_tp tp phis =
 and quote_hd =
   function
   | D.Var lvl ->
-    let+ n = read_local in
-    S.Var (n - (lvl + 1))
+    let+ i = quote_var lvl in
+    S.Var i
   | D.Global sym ->
     ret @@ S.Global sym
   | D.Coe (code, r, s, con) ->
