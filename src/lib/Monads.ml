@@ -150,7 +150,7 @@ struct
     M.scope (fun local -> {local with cof_reduced_env}) @@
     abort_if_inconsistent abort m
 
-  let restrict (type a) ~(splitter:(D.cof * a m) list -> a m) phis (m : a m) : a m =
+  let restrict ~(splitter:(D.cof * 'a m) list -> 'a m) phis (m : 'a m) : 'a m =
     let seq f cofs =
       splitter @@ List.map (fun cof -> cof , f cof) cofs
     in
@@ -164,9 +164,8 @@ struct
     let* {cof_reduced_env} = M.read in
     CofEnv.Reduced.left_invert_under_cofs
       ~zero:(M.ret ()) ~seq:MU.iter
-      cof_reduced_env phis @@
-    fun reduced_env ->
-    replace_env ~abort:(M.ret ()) reduced_env @@ MU.ignore m
+      cof_reduced_env phis @@ fun reduced_env ->
+    replace_env ~abort:(M.ret ()) reduced_env m
 
   let top_var tp =
     let+ n = read_local in
