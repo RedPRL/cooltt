@@ -198,6 +198,11 @@ let left_invert_under_cofs ~zero ~seq env phis cont =
 
 module Reduced =
 struct
+  let init () =
+    `Consistent
+      {classes = UF.init ~size:100;
+       true_vars = VarSet.empty}
+
   let consistency =
     function
     | `Consistent _ -> `Consistent

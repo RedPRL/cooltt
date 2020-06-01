@@ -26,6 +26,8 @@ val left_invert_under_cofs : zero:'a
 
 module Reduced :
 sig
+  val init : unit -> reduced_env
+
   (** Create an environment with no unreduced joins. *)
   val to_env : reduced_env -> env
 
