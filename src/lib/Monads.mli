@@ -58,6 +58,8 @@ module QuM : sig
 
   val binder : int -> 'a m -> 'a m
 
+  (* [restrict ~splitter cofs m] creates splits when needed. [splitter] is in charge of
+   * shifting the de Bruijn indexes if the branches are placed under a binder. *)
   val restrict : splitter:((D.cof * 'a m) list -> 'a m) -> D.cof list -> 'a m -> 'a m
   val restrict_ : D.cof list -> unit m -> unit m
 
