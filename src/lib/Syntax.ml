@@ -23,8 +23,8 @@ let rec dump fmt =
   | Let _ -> Format.fprintf fmt "<let>"
   | Ann _ -> Format.fprintf fmt "<ann>"
 
-  | Zero -> Format.fprintf fmt "<zero>"
-  | Suc _ -> Format.fprintf fmt "<suc>"
+  | Zero -> Format.fprintf fmt "zero"
+  | Suc tm -> Format.fprintf fmt "suc[%a]" dump tm
   | NatElim _ -> Format.fprintf fmt "<nat-elam>"
 
   | Base -> Format.fprintf fmt "base"
@@ -56,7 +56,7 @@ let rec dump fmt =
   | CofAbort -> Format.fprintf fmt "cof/abort"
   | Prf -> Format.fprintf fmt "prf"
 
-  | ElIn _ -> Format.fprintf fmt "<el/in>"
+  | ElIn tm -> Format.fprintf fmt "el/in[%a]" dump tm
   | ElOut tm -> Format.fprintf fmt "el/out[%a]" dump tm
 
   | Box _ -> Format.fprintf fmt "<box>"
@@ -65,7 +65,7 @@ let rec dump fmt =
   | VIn _ -> Format.fprintf fmt "<vin>"
   | VProj _ -> Format.fprintf fmt "<vproj>"
 
-  | CodePath _ -> Format.fprintf fmt "<path>"
+  | CodePath (tm0, tm1) -> Format.fprintf fmt "path[%a, %a]" dump tm0 dump tm1
   | CodePi _ -> Format.fprintf fmt "<pi>"
   | CodeSg _ -> Format.fprintf fmt "<sg>"
   | CodeNat -> Format.fprintf fmt "nat"
@@ -84,7 +84,7 @@ and dump_tp fmt =
   | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
   | TpCofSplit _ -> Format.fprintf fmt "<tp/cof/split>"
   | Sub _ -> Format.fprintf fmt "<sub>"
-  | Pi _ -> Format.fprintf fmt "<pi>"
+  | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
   | Sg _ -> Format.fprintf fmt "<sg>"
   | Nat -> Format.fprintf fmt "nat"
   | Circle -> Format.fprintf fmt "circle"
