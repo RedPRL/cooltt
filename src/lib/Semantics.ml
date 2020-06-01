@@ -1347,7 +1347,7 @@ and do_el_out con =
   in
   abort_if_inconsistent D.Abort @@
   begin
-    inspect_con ~style:{unfolding = true} con |>>
+    inspect_con con |>>
     function
     | D.ElIn con ->
       ret con
