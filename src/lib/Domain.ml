@@ -188,8 +188,6 @@ and pp_tp fmt =
     Format.fprintf fmt "<abort>"
   | El con ->
     Format.fprintf fmt "el[%a]" pp_con con
-  | UnfoldElSplit _ ->
-    Format.fprintf fmt "<unfold-el-split>"
   | ElCut con ->
     Format.fprintf fmt "el-cut[%a]" pp_cut con
   | ElUnstable (`HCom _) ->

@@ -396,15 +396,6 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     in
     let+ branches = MU.map go_branch branches in
     D.TpSplit branches
-  | D.UnfoldElSplit (branches, sp) ->
-    let go_branch (phi, clo) =
-      let+ phi = subst_cof r x phi
-      and+ clo = subst_clo r x clo in
-      (phi, clo)
-    in
-    let+ branches = MU.map go_branch branches
-    and+ sp = subst_sp r x sp in
-    D.UnfoldElSplit (branches, sp)
 
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
@@ -984,19 +975,6 @@ and whnf_tp =
       | false ->
         ret `Done
     end
-  | D.UnfoldElSplit (branches, spine) ->
-    let rec go =
-      function
-      | [] -> ret `Done
-      | (phi, tm_clo) :: branches ->
-        test_sequent [] phi |>> function
-        | true ->
-          let* con = inst_tm_clo tm_clo D.Prf in
-          reduce_to_tp @<< unfold_el @<< do_spine con spine
-        | false ->
-          go branches
-    in
-    go branches
   | D.TpSplit branches ->
     let rec go =
       function
