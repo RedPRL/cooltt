@@ -101,12 +101,20 @@ and pp_dim : dim Pp.printer =
   pp_con fmt @@ dim_to_con r
 
 and pp_clo : tm_clo Pp.printer =
-  fun fmt (Clo (tm, env)) ->
-  Format.fprintf fmt "clo[%a ; <env>]" S.dump tm
+  let sep fmt () = Format.fprintf fmt "," in
+  fun fmt (Clo (tm, {tpenv; conenv})) ->
+    Format.fprintf fmt "clo[%a ; [%a ; %a]]"
+      S.dump tm
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
 and pp_tp_clo : tp_clo Pp.printer =
-  fun fmt (TpClo (tp, env)) ->
-  Format.fprintf fmt "tpclo[%a ; <env>]" S.pp_sequent tp
+  let sep fmt () = Format.fprintf fmt "," in
+  fun fmt (TpClo (tp, {tpenv; conenv})) ->
+    Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
+      S.dump_tp tp
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
 and pp_con : con Pp.printer =
   fun fmt ->
