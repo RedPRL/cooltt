@@ -76,6 +76,10 @@ let rec quote'_con (tp : D.tp) con phis : S.t m =
   | D.TpDim, D.DimCon1 ->
     ret @@ S.Dim1
 
+  | D.TpCof, D.Cof cof ->
+    let* cof = lift_cmp_under_cofs phis @@ cof_con_to_cof cof in
+    quote'_cof cof phis
+
   | D.TpPrf _, _ ->
     ret S.Prf
 
@@ -94,8 +98,7 @@ let rec quote'_con (tp : D.tp) con phis : S.t m =
 and quote_con tp con = quote'_con tp con []
 
 and quote_lam ?(ident = `Anon) tp mbdy =
-  bind_var ~splitter:con_splitter tp @@ fun arg ->
-  let+ bdy = mbdy arg in
+  let+ bdy = bind_var ~splitter:con_splitter tp mbdy in
   S.Lam (ident, bdy)
 
 
@@ -166,10 +169,6 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
   | _, D.Loop r ->
     let+ tr = quote_dim r in
     S.Loop tr
-
-  | D.TpCof, D.Cof cof ->
-    let* phi = lift_cmp @@ cof_con_to_cof cof in
-    quote_cof phi
 
   | univ, D.CodePi (base, fam) ->
     let+ tbase = quote_con univ base
@@ -497,17 +496,17 @@ and quote'_dim d phis =
   phis |> quote'_con D.TpDim @@
   D.dim_to_con d
 
-and quote_cof phi =
+and quote'_cof phi joins =
   let rec go =
     function
     | Cof.Var lvl ->
-      let+ ix = quote_var lvl in
+      let+ ix = quote'_var lvl joins in
       S.Var ix
     | Cof.Cof phi ->
       match phi with
       | Cof.Eq (r, s) ->
-        let+ tr = quote_dim r
-        and+ ts = quote_dim s in
+        let+ tr = quote'_dim r joins
+        and+ ts = quote'_dim s joins in
         S.Cof (Cof.Eq (tr, ts))
       | Cof.Join phis ->
         let+ tphis = MU.map go phis in
@@ -518,8 +517,7 @@ and quote_cof phi =
   in
   go @<< lift_cmp @@ Sem.normalize_cof phi
 
-and quote'_cof cof phis =
-  restrict ~splitter:con_splitter phis @@ quote_cof cof
+and quote_cof cof = quote'_cof cof []
 
 and quote_var lvl =
   let+ n = read_local in
