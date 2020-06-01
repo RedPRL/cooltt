@@ -260,9 +260,9 @@ struct
       in
       T.abstract (D.TpPrf phi1) @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
-      and+ tphi0 = EM.quote_cof phi0
-      and+ tphi1 = EM.quote_cof phi1 in
-      S.CofSplit [tphi0, tm0; tphi1, tm1]
+    and+ tphi0 = EM.quote_cof phi0
+    and+ tphi1 = EM.quote_cof phi1 in
+    S.CofSplit [tphi0, tm0; tphi1, tm1]
 
 
 

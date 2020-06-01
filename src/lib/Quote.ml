@@ -274,7 +274,6 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
     begin
       lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
       | true ->
-        let* ttp = quote_tp tp in
         restrict ~splitter:con_splitter [Cof.boundary r] @@
         (* Format.eprintf "quoting: %a |= %a / %a@." D.pp_cof phi D.pp_tp tp D.pp_con con; *)
         quote_con tp con
