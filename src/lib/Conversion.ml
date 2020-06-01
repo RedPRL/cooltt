@@ -145,8 +145,8 @@ and equate_con tp con0 con1 =
     let phis = List.map (fun (phi, _) -> phi) branches in
     QuM.restrict_ [Cof.join phis] @@
     equate_con tp con0 con1
-  | _, D.Cut {cut = D.Split (_, branches), _}, _
-  | _, _, D.Cut {cut = D.Split (_, branches), _} ->
+  | _, D.Split branches, _
+  | _, _, D.Split branches ->
     let phis = List.map (fun (phi, _) -> phi) branches in
     QuM.restrict_ [Cof.join phis] @@
     equate_con tp con0 con1
@@ -259,8 +259,8 @@ and equate_con tp con0 con1 =
     equate_con bdry_tp bdry0 bdry1
 
   | D.ElUnstable (`HCom (r, s, phi, bdy)) as hcom_tp, _, _ ->
-    let* cap0 = lift_cmp @@ Sem.do_rigid_cap con0 in
-    let* cap1 = lift_cmp @@ Sem.do_rigid_cap con1 in
+    let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
+    let* cap1 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con1 in
     let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
     let* tp_cap = lift_cmp @@ do_el code_cap in
     let* () = equate_con tp_cap cap0 cap1 in
@@ -269,8 +269,8 @@ and equate_con tp con0 con1 =
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
     let* () = QuM.restrict_ [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
-    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj con0 in
-    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj con1 in
+    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con0 in
+    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con1 in
     let* tp_proj = lift_cmp @@ do_el code in
     equate_con tp_proj proj0 proj1
 
@@ -285,17 +285,8 @@ and equate_cut cut0 cut1 =
   let* () = assert_done_cut cut1 in
   let hd0, sp0 = cut0 in
   let hd1, sp1 = cut1 in
-  match hd0, hd1 with
-  | D.Split (tp, branches), _
-  | _, D.Split (tp, branches) ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    QuM.restrict_ [Cof.join phis] @@
-    let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut0 in
-    let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut1 in
-    equate_con tp con0 con1
-  | _ ->
-    let* () = equate_hd hd0 hd1 in
-    equate_spine sp0 sp1
+  let* () = equate_hd hd0 hd1 in
+  equate_spine sp0 sp1
 
 (* Invariant: sp0, sp1 are whnf *)
 and equate_spine sp0 sp1 =
@@ -406,13 +397,6 @@ and equate_hd hd0 hd1 =
     equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
   | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
     equate_cut cut0 cut1
-  | hd, D.Split (tp, branches)
-  | D.Split (tp, branches), hd ->
-    let equate_branch (phi, clo) =
-      QuM.restrict_ [phi] @@
-      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo D.Prf
-    in
-    MU.iter equate_branch branches
   | D.Cap (r0, s0, phi0, code0, box0), D.Cap (r1, s1, phi1, code1, box1) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in

@@ -52,7 +52,7 @@ let rec dump fmt =
   | Dim1 -> Format.fprintf fmt "<dim1>"
   | Cof cof -> Format.fprintf fmt "cof[%a]" dump_cof cof
   | ForallCof _ -> Format.fprintf fmt "<dim1>"
-  | CofSplit (tp, branches) -> Format.fprintf fmt "cof/split[%a; %a]" dump_tp tp (pp_sep_list dump_branch) branches
+  | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (pp_sep_list dump_branch) branches
   | CofAbort -> Format.fprintf fmt "cof/abort"
   | Prf -> Format.fprintf fmt "prf"
 
@@ -143,7 +143,7 @@ let rec pp env fmt tm =
     pp_tuple (pp env) fmt [tm0; tm1]
   | CofAbort ->
     Format.fprintf fmt "[]"
-  | CofSplit (_, branches) ->
+  | CofSplit branches ->
     let sep fmt () = Format.fprintf fmt "@ | " in
     pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
       (pp_cof_split_branch env)

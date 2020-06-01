@@ -24,6 +24,8 @@ val foreign_tp : D.tp -> (S.tp TB.m -> 'a t) -> 'a t
 val compile : 'a t -> D.env * 'a
 val term : 'a TB.m -> 'a t
 
+val commute_split : D.con -> D.cof list -> (S.t TB.m -> S.t TB.m) -> S.t t
+
 module Macro :
 sig
   val tp_pequiv_in_v : r:D.dim -> pcode:D.con -> code:D.con -> S.tp t

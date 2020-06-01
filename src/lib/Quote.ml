@@ -26,18 +26,6 @@ open Monad.Notation (QuM)
 module MU = Monad.Util (QuM)
 open Sem
 
-module QTB :
-sig
-  val lam : ?ident:Ident.t -> D.tp -> (D.con -> S.t m) -> S.t m
-end =
-struct
-  let lam ?(ident = `Anon) tp mbdy =
-    (* FIXME needs the type to do splitting *)
-    bind_var ~splitter:(fun _ -> Format.printf "#ot3t2n@."; failwith "#ot3t2n") tp @@ fun arg ->
-    let+ bdy = mbdy arg in
-    S.Lam (ident, bdy)
-end
-
 let contractum_or x =
   function
   | `Done -> x
@@ -48,6 +36,17 @@ let rec quote'_con (tp : D.tp) con phis : S.t m =
   let* tp = contractum_or tp <@> lift_cmp_under_cofs phis @@ Sem.whnf_tp tp in
   let* con = contractum_or con <@> lift_cmp_under_cofs phis @@ Sem.whnf_con con in
   match tp, con with
+  | _, D.Split branches ->
+    let branch_body (phi, clo) =
+      begin
+        bind'_var (D.TpPrf phi) @@ fun prf phis ->
+        let* body = lift_cmp @@ inst_tm_clo clo prf in
+        quote'_con tp body phis
+      end
+    in
+    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
+    let* tms = MU.map branch_body branches in
+    ret @@ S.CofSplit (List.combine tphis tms)
   | _, D.Abort -> ret S.CofAbort
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
     (* for dimension variables, check to see if we can prove them to be
@@ -94,18 +93,24 @@ let rec quote'_con (tp : D.tp) con phis : S.t m =
   | _ ->
     (* XXX the ttp is re-quoted all the time. should be cached. *)
     let* ttp = quote'_tp tp phis in
-    restrict ~splitter:(con_splitter ttp) phis @@ quote_whnf_con tp con
+    restrict ~splitter:con_splitter phis @@ quote_whnf_con tp con
 
 and quote_con tp con = quote'_con tp con []
 
-and con_splitter ttp tbranches =
+and quote_lam ?(ident = `Anon) tp mbdy =
+  bind_var ~splitter:con_splitter tp @@ fun arg ->
+  let+ bdy = mbdy arg in
+  S.Lam (ident, bdy)
+
+
+and con_splitter tbranches =
   let run_branch (cof, m) =
     let+ tm = binder 1 m
     and+ tcof = quote_cof cof in
     tcof, tm
   in
   let+ tbranches = MU.map run_branch tbranches in
-  S.CofSplit (ttp, tbranches)
+  S.CofSplit tbranches
 
 and quote_whnf_con (tp : D.tp) con : S.t m =
   match tp, con with
@@ -128,13 +133,13 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
     quote_cut (hd, sp)
 
   | D.Pi (base, _, fam), D.Lam (ident, clo) ->
-    QTB.lam ~ident base @@ fun arg ->
+    quote_lam ~ident base @@ fun arg ->
     let* fib = lift_cmp @@ inst_tp_clo fam arg in
     let* ap = lift_cmp @@ inst_tm_clo clo arg in
     quote_con fib ap
 
   | D.Pi (base, ident, fam), con ->
-    QTB.lam ~ident base @@ fun arg ->
+    quote_lam ~ident base @@ fun arg ->
     let* fib = lift_cmp @@ inst_tp_clo fam arg in
     let* ap = lift_cmp @@ do_ap con arg in
     quote_con fib ap
@@ -174,7 +179,7 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
     let+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
-      QTB.lam elbase @@ fun var ->
+      quote_lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -184,7 +189,7 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
     let+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
-      QTB.lam elbase @@ fun var ->
+      quote_lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -261,12 +266,12 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
     and+ tsides =
-      QTB.lam (D.TpPrf phi) @@ fun prf ->
+      quote_lam (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
       let* el_bdy_r = lift_cmp @@ do_el bdy_r in
-      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap con
+      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap r s phi bdy con
     in
     S.Box (tr, ts, tphi, tsides, tcap)
 
@@ -275,19 +280,19 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
       lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
       | true ->
         let* ttp = quote_tp tp in
-        restrict ~splitter:(con_splitter ttp) [Cof.boundary r] @@
+        restrict ~splitter:con_splitter [Cof.boundary r] @@
         (* Format.eprintf "quoting: %a |= %a / %a@." D.pp_cof phi D.pp_tp tp D.pp_con con; *)
         quote_con tp con
       | false ->
         let+ tr = quote_dim r
         and+ part =
-          QTB.lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
+          quote_lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
           let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
           let* tp = lift_cmp @@ do_el pcode_fib in
           quote_con tp con
         and+ tot =
           let* tp = lift_cmp @@ do_el code in
-          let* proj = lift_cmp @@ do_rigid_vproj con in
+          let* proj = lift_cmp @@ do_rigid_vproj r pcode code pequiv con in
           quote_con tp proj
         and+ t_pequiv =
           let* tp_pequiv =
@@ -303,7 +308,6 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
 
   | D.TpSplit branches as tp, _ ->
-    let* ttp = quote_tp tp in
     let branch_body phi : S.t m =
       bind'_var (D.TpPrf phi) @@ fun prf ->
       quote'_con tp con
@@ -311,33 +315,7 @@ and quote_whnf_con (tp : D.tp) con : S.t m =
     let phis = List.map fst branches in
     let+ tphis = MU.map quote_cof phis
     and+ tms = MU.map branch_body phis in
-    S.CofSplit (ttp, List.combine tphis tms)
-
-  | D.UnfoldElSplit (branches, _) as tp, _ ->
-    let* ttp = quote_tp tp in
-    let branch_body phi : S.t m =
-      begin
-        bind'_var (D.TpPrf phi) @@ fun prf ->
-        quote'_con tp con
-      end
-    in
-    let phis = List.map fst branches in
-    let+ tphis = MU.map quote_cof phis
-    and+ tms = MU.map branch_body phis in
-    S.CofSplit (ttp, List.combine tphis tms)
-
-  | D.ElCut (D.Split (_, branches), _), _ ->
-    let* ttp = quote_tp tp in
-    let branch_body phi : S.t m =
-      begin
-        bind'_var (D.TpPrf phi) @@ fun prf ->
-        quote'_con tp con
-      end
-    in
-    let phis = List.map fst branches in
-    let+ tphis = MU.map quote_cof phis
-    and+ tms = MU.map branch_body phis in
-    S.CofSplit (ttp, List.combine tphis tms)
+    S.CofSplit (List.combine tphis tms)
 
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
@@ -363,9 +341,9 @@ and quote_hcom code r s phi bdy =
   let* ts = quote_dim s in
   let* tphi = quote_cof phi in
   let+ tbdy =
-    QTB.lam D.TpDim @@ fun i ->
+    quote_lam D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    QTB.lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
+    quote_lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     let* tp = lift_cmp @@ do_el code in
     quote_con tp body
@@ -438,15 +416,6 @@ and quote_tp (tp : D.tp) =
   | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
     S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
-  | D.UnfoldElSplit (branches, spine) as tp ->
-    let branch_body phi : S.tp m =
-      bind'_var (D.TpPrf phi) @@ fun prf ->
-      quote'_tp tp
-    in
-    let phis = List.map fst branches in
-    let+ tphis = MU.map quote_cof phis
-    and+ tps = MU.map branch_body phis in
-    S.TpCofSplit (List.combine tphis tps)
   | D.TpSplit branches ->
     let branch_body (phi, clo) : S.tp m =
       begin
@@ -493,18 +462,6 @@ and quote_hd =
   | D.SubOut (cut, phi, clo) ->
     let+ tm = quote_cut cut in
     S.SubOut tm
-  | D.Split (tp, branches) ->
-    let* ttp = quote_tp tp in
-    let branch_body (phi, clo) =
-      begin
-        bind'_var (D.TpPrf phi) @@ fun prf phis ->
-        let* body = lift_cmp @@ inst_tm_clo clo prf in
-        quote'_con tp body phis
-      end
-    in
-    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
-    let* tms = MU.map branch_body branches in
-    ret @@ S.CofSplit (ttp, List.combine tphis tms)
   | D.Cap (r, s, phi, code, box) ->
     let* tr = quote_dim r in
     let* ts = quote_dim s in
@@ -589,8 +546,7 @@ and quote_cut (hd, spine) =
   quote_spine tm spine
 
 and quote'_cut tp cut phis =
-  let* ttp = quote'_tp tp phis in
-  restrict ~splitter:(con_splitter ttp) phis @@ quote_cut cut
+  restrict ~splitter:con_splitter phis @@ quote_cut cut
 
 and quote_spine tm =
   function

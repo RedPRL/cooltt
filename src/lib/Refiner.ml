@@ -118,13 +118,12 @@ struct
       let phi = Cof.join [phi_a; phi_sub] in
       let* partial =
         EM.lift_cmp @@ Sem.splice_tm @@
-        Splice.foreign_tp tp_a @@ fun tp_a ->
         Splice.foreign_cof phi_a @@ fun phi_a ->
         Splice.foreign_cof phi_sub @@ fun phi_sub ->
         Splice.foreign_clo clo_a @@ fun fn_a ->
         Splice.foreign_clo clo_sub @@ fun fn_sub ->
         Splice.term @@ TB.lam @@ fun _ ->
-        TB.cof_split tp_a
+        TB.cof_split
           [phi_a, TB.ap fn_a [TB.prf];
            phi_sub, TB.sub_out @@ TB.ap fn_sub [TB.prf]]
       in
@@ -251,20 +250,19 @@ struct
       let psi' = Cof.join [phi0; psi] in
       let* psi'_fn =
         EM.lift_cmp @@ Sem.splice_tm @@
-        Splice.foreign_tp tp @@ fun tp ->
         Splice.foreign_cof phi0 @@ fun phi0 ->
         Splice.foreign_cof psi @@ fun psi ->
         Splice.foreign psi_fn @@ fun psi_fn ->
         Splice.foreign phi0_fn @@ fun phi0_fn ->
         Splice.term @@
         TB.lam @@ fun _ ->
-        TB.cof_split tp [phi0, TB.ap phi0_fn [TB.prf]; psi, TB.ap psi_fn [TB.prf]]
+        TB.cof_split [phi0, TB.ap phi0_fn [TB.prf]; psi, TB.ap psi_fn [TB.prf]]
       in
       T.abstract (D.TpPrf phi1) @@ fun prf ->
       tac1 prf (tp, psi', D.un_lam psi'_fn)
-    and+ tphi0 = EM.quote_cof phi0
-    and+ tphi1 = EM.quote_cof phi1 in
-    S.CofSplit (ttp, [tphi0, tm0; tphi1, tm1])
+      and+ tphi0 = EM.quote_cof phi0
+      and+ tphi1 = EM.quote_cof phi1 in
+      S.CofSplit [tphi0, tm0; tphi1, tm1]
 
 
 
@@ -631,8 +629,7 @@ struct
           Splice.foreign pequiv @@ fun pequiv ->
           Splice.term @@
           TB.lam @@ fun _ -> (* [r=0 ∨ phi] *)
-          let vtp = TB.el @@ TB.code_v r pcode code pequiv in
-          TB.cof_split vtp
+          TB.cof_split
             [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
              phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
         in
@@ -714,7 +711,6 @@ struct
           Splice.term @@
           TB.lam @@ fun _ -> (* [phi ∨ psi] *)
           TB.cof_split
-            (TB.el @@ TB.ap bdy [r; TB.prf])
             [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
              phi, TB.coe (TB.lam ~ident:(`Machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
