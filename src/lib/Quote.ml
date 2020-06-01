@@ -522,17 +522,8 @@ and quote_cof phi =
   in
   go @<< lift_cmp @@ Sem.normalize_cof phi
 
-and cof_splitter tbranches =
-  let run_branch (key_cof, cof) =
-    let+ key_cof = quote_cof key_cof
-    and+ cof = cof in
-    S.Cof (Cof.Meet [key_cof; cof])
-  in
-  let+ cofs = MU.map run_branch tbranches in
-  S.Cof (Cof.Join cofs)
-
 and quote'_cof cof phis =
-  restrict ~splitter:cof_splitter phis @@ quote_cof cof
+  restrict ~splitter:con_splitter phis @@ quote_cof cof
 
 and quote_var lvl =
   let+ n = read_local in
