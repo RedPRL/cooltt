@@ -1,6 +1,7 @@
 {
 open Lexing
 open Grammar
+open CoolBasis.Bwd
 
 exception SyntaxError of string
 
@@ -45,7 +46,6 @@ let keywords =
     ("hcom", HCOM);
     ("hfill", HFILL);
     ("com", COM);
-    ("import", IMPORT)
   ]
 }
 
@@ -61,6 +61,8 @@ let atom_initial =
   [^ '0'-'9' '-' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']
 let atom_subsequent =
   [^                     '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' ' ' '\t' '\n' '\r']
+let module_name =
+  [^ '/' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '\\' '*' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r' ]+
 
 let number = ['0'-'9']['0'-'9']*
 let atom = atom_initial atom_subsequent*
@@ -133,6 +135,8 @@ rule token = parse
     { TOPC }
   | "#f"
     { BOTC }
+  | "import" whitespace
+    { read_import (ref Emp) lexbuf }
   | line_ending
     { new_line lexbuf; token lexbuf }
   | whitespace
@@ -163,3 +167,25 @@ and block_comment kont = parse
     { new_line lexbuf; block_comment kont lexbuf }
   | _
     { block_comment kont lexbuf }
+
+and read_import_before_dot cells = parse
+  | whitespace
+    { read_import_before_dot cells lexbuf }
+  | "."
+    { read_import cells lexbuf }
+  | "--"
+    { line_comment (fun _ -> IMPORT (Bwd.to_list !cells)) lexbuf }
+  | line_ending
+    { new_line lexbuf;
+      IMPORT (Bwd.to_list !cells) }
+  | eof
+    { IMPORT (Bwd.to_list !cells) }
+  | _ { failwith @@ "Invalid path component character: " ^ lexeme lexbuf }
+
+and read_import cells = parse
+  | module_name
+    { cells := Snoc (!cells, lexeme lexbuf);
+      read_import_before_dot cells lexbuf }
+  | whitespace
+    { read_import cells lexbuf }
+  | _ { failwith @@ "Invalid path component character: " ^ lexeme lexbuf }
