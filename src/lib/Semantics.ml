@@ -1347,7 +1347,7 @@ and do_el_out con =
     TB.cof_split @@ List.map (fun phi -> phi, TB.el_out tm) phis
   in
   begin
-    inspect_con ~style:{unfolding = true} con |>>
+    inspect_con con |>>
     function
     | D.ElIn con ->
       ret con
