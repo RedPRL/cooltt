@@ -1063,6 +1063,12 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
         TB.nat_elim mot zero suc @@ TB.ap bdy [i; prf]
       in
       TB.com fam r s phi bdy'
+    | D.Split branches ->
+      splice_tm @@
+      Splice.foreign mot @@ fun mot ->
+      Splice.foreign zero @@ fun zero ->
+      Splice.foreign suc @@ fun suc ->
+      commute_split branches @@ TB.nat_elim mot zero suc
     | con ->
       Format.eprintf "bad nat-elim: %a@." D.pp_con con;
       CM.throw @@ NbeFailed "Not a number"
@@ -1113,6 +1119,12 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
       TB.circle_elim mot base loop @@ TB.ap bdy [i; prf]
     in
     TB.com fam r s phi bdy'
+  | D.Split branches ->
+    splice_tm @@
+    Splice.foreign mot @@ fun mot ->
+    Splice.foreign base @@ fun base ->
+    Splice.foreign loop @@ fun loop ->
+    commute_split branches @@ TB.circle_elim mot base loop
   | c ->
     Format.eprintf "bad circle-elim: %a@." D.pp_con c;
     CM.throw @@ NbeFailed "Not an element of the circle"
@@ -1177,9 +1189,18 @@ and do_fst con : D.con CM.m =
     | D.Pair (con0, _) -> ret con0
     | D.Cut {tp = D.Sg (base, _, _); cut} ->
       ret @@ cut_frm ~tp:base ~cut D.KFst
+    | D.Split branches ->
+      splice_tm @@ commute_split branches TB.fst
     | _ ->
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
   end
+
+and commute_split (branches : (D.cof * D.tm_clo) list) (action : S.t TB.b) =
+  let split = D.Split branches in
+  let phis = List.map (fun (phi, _) -> D.cof_to_con phi) branches in
+  Splice.foreign split @@ fun split ->
+  Splice.foreign_list phis @@ fun phis ->
+  Splice.term @@ TB.cof_split @@ List.map (fun phi -> phi, action split) phis
 
 and do_snd con : D.con CM.m =
   let open CM in
@@ -1192,6 +1213,8 @@ and do_snd con : D.con CM.m =
       let* fst = do_fst con in
       let+ fib = inst_tp_clo fam fst in
       cut_frm ~tp:fib ~cut D.KSnd
+    | D.Split branches ->
+      splice_tm @@ commute_split branches TB.snd
     | _ ->
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
@@ -1219,6 +1242,11 @@ and do_ap con arg =
     | D.Cut {tp = D.Pi (base, _, fam); cut} ->
       let+ fib = inst_tp_clo fam arg in
       cut_frm ~tp:fib ~cut @@ D.KAp (base, arg)
+
+    | D.Split branches ->
+      splice_tm @@
+      Splice.foreign arg @@ fun arg ->
+      commute_split branches @@ fun f -> TB.ap f [arg]
 
     | con ->
       Format.eprintf "bad function: %a / %a@." D.pp_con con D.pp_con arg;
@@ -1300,11 +1328,6 @@ and do_el_out con =
       Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
       Splice.term @@
       TB.cof_split @@ List.map (fun phi -> phi, TB.el_out tm) phis
-        (*
-    | D.Cut {tp = D.ElCut (D.Split (_, branches), spine); cut} ->
-      let tp = D.UnfoldElSplit (branches, spine) in
-      ret @@ cut_frm ~tp ~cut D.KElOut
-           *)
     | _ ->
       Format.eprintf "bad el/out: %a@." D.pp_con con;
       throw @@ NbeFailed "do_el_out"
