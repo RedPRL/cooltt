@@ -76,6 +76,10 @@ let lam ?(ident = `Anon) mbdy : _ m =
   let+ bdy = mbdy var in
   S.Lam (ident, bdy)
 
+let goal_proj m =
+  let+ t = m in
+  S.GoalProj t
+
 let rec ap m0 ms : _ m =
   match ms with
   | [] -> m0

@@ -44,6 +44,12 @@ let term (m : 'a TB.m) : 'a t =
   fun env ->
   m, env
 
+let commute_split (self : D.con) (phis : D.cof list) (action : 'a TB.m -> 'b TB.m) =
+  let phis = List.map D.cof_to_con phis in
+  foreign self @@ fun self ->
+  foreign_list phis @@ fun phis ->
+  term @@ TB.cof_split @@ List.map (fun phi -> phi, action self) phis
+
 module Macro =
 struct
   let tp_pequiv_in_v ~r ~pcode ~code =

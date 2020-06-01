@@ -26,6 +26,9 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
+val goal_proj : t m -> t m
+
+
 val zero : t m
 val suc : t m -> t m
 
