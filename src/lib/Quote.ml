@@ -91,8 +91,6 @@ let rec quote'_con (tp : D.tp) con phis : S.t m =
     ret S.CodeUniv
 
   | _ ->
-    (* XXX the ttp is re-quoted all the time. should be cached. *)
-    let* ttp = quote'_tp tp phis in
     restrict ~splitter:con_splitter phis @@ quote_whnf_con tp con
 
 and quote_con tp con = quote'_con tp con []
