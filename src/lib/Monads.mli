@@ -7,7 +7,7 @@ open CoolBasis
 
 type 'a compute
 type 'a evaluate
-type 'a split_quote
+type 'a conversion
 type 'a quote
 
 (** The "computation" monad; contains enough state to run computations in the semantic domain,
@@ -43,10 +43,10 @@ module EvM : sig
 end
 
 
-(** The quotation environment keeps track of De Bruijn indices for use in conversion checking. *)
-module SplitQuM : sig
+(** The conversion environment keeps track of De Bruijn indices for use in conversion checking. *)
+module ConvM : sig
   include Monad.MonadReaderResult
-    with type 'a m = 'a split_quote
+    with type 'a m = 'a conversion
 
   val lift_cmp : 'a compute -> 'a m
 
@@ -80,7 +80,7 @@ module ElabM : sig
     with type local := ElabEnv.t
 
   val lift_qu : 'a quote -> 'a m
-  val lift_sp_qu_ : unit split_quote -> unit m
+  val lift_conv_ : unit conversion -> unit m
 
   val lift_ev : 'a evaluate -> 'a m
   val lift_cmp : 'a compute -> 'a m

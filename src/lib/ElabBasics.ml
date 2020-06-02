@@ -73,7 +73,7 @@ let quote_dim con =
   lift_qu @@ Qu.quote_dim con
 
 let equate tp l r =
-  Conv.trap_err @@ lift_sp_qu_ @@ Conv.equate_con tp l r |>>
+  Conv.trap_err @@ lift_conv_ @@ Conv.equate_con tp l r |>>
   function
   | `Ok -> ret ()
   | `Err err ->
@@ -84,7 +84,7 @@ let equate tp l r =
     elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
 
 let equate_tp tp tp' =
-  Conv.trap_err @@ lift_sp_qu_ @@ Conv.equate_tp tp tp' |>>
+  Conv.trap_err @@ lift_conv_ @@ Conv.equate_tp tp tp' |>>
   function
   | `Ok -> ret ()
   | `Err err ->
