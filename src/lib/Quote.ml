@@ -106,13 +106,28 @@ and con_splitter tbranches =
   let open SplitQuM in
   let open Monad.Notation (SplitQuM) in
   let module MU = Monad.Util (SplitQuM) in
-  let run_branch (cof, m) =
-    let+ tm = binder 1 m
-    and+ tcof = split_quote_cof cof in
-    tcof, tm
+  let* filtered =
+    List.flatten <@>
+    begin
+      tbranches |> MU.map @@ fun (cof, m) ->
+      lift_cmp (CmpM.test_sequent [cof] Cof.bot) |>> function
+      | true ->
+        ret []
+      | false ->
+        ret [cof,m]
+    end
   in
-  let+ tbranches = MU.map run_branch tbranches in
-  S.CofSplit tbranches
+
+  match filtered with
+  | [cof,m] -> m
+  | _ ->
+    let run_branch (cof, m) =
+      let+ tm = binder 1 m
+      and+ tcof = split_quote_cof cof in
+      tcof, tm
+    in
+    let+ branches = MU.map run_branch filtered in
+    S.CofSplit branches
 
 and split_quote_whnf_con (tp : D.tp) con =
   let open SplitQuM in
@@ -313,10 +328,28 @@ and split_quote_whnf_con (tp : D.tp) con =
       QuM.bind_var (D.TpPrf phi) @@ fun prf ->
       quote_con tp con
     in
-    let phis = List.map fst branches in
-    let+ tphis = MU.map split_quote_cof phis
-    and+ tms = MU.map branch_body phis in
-    S.CofSplit (List.combine tphis tms)
+    let* branches =
+      List.flatten <@>
+      begin
+        branches |> MU.map @@ fun (phi, clo) ->
+        lift_cmp (CmpM.test_sequent [phi] Cof.bot) |>> function
+        | true ->
+          ret []
+        | false ->
+          ret [phi,clo]
+      end
+    in
+    begin
+      match branches with
+      | [phi, tp_clo] ->
+        let* tp = lift_cmp @@ inst_tp_clo tp_clo D.Prf in
+        split_quote_con tp con
+      | _ ->
+        let phis = List.map fst branches in
+        let+ tphis = MU.map split_quote_cof phis
+        and+ tms = MU.map branch_body phis in
+        S.CofSplit (List.combine tphis tms)
+    end
 
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
