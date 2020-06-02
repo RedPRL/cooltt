@@ -244,6 +244,7 @@ struct
 
   let globally m =
     m |> scope @@ fun env ->
+    Env.set_location (Env.location env) @@
     Env.set_veil (Env.get_veil env) Env.init
 
   let emit ?(lvl = `Info) loc pp a : unit m =

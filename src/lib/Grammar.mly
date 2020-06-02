@@ -29,7 +29,7 @@
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
-%token SUC NAT ZERO UNFOLD
+%token SUC NAT ZERO UNFOLD GENERALIZE
 %token CIRCLE BASE LOOP
 %token PATHD
 %token COE COM HCOM HFILL
@@ -209,6 +209,8 @@ plain_term_except_cof_case:
     { t }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
+  | GENERALIZE; name = plain_name; IN; body = term;
+    { Generalize (name, body) }
   | LET; name = plain_name; COLON; tp = term; EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
   | LET; name = plain_name; EQUALS; def = term; IN; body = term

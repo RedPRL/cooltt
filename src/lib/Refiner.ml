@@ -21,6 +21,30 @@ open Bwd
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
+module GlobalUtil : sig
+  val multi_pi : Env.cell list -> S.tp m -> S.tp m
+  val multi_ap : Env.cell bwd -> D.cut -> D.cut
+end =
+struct
+  let rec multi_pi (cells : Env.cell list) (finally : S.tp m) : S.tp m =
+    match cells with
+    | [] -> finally
+    | cell :: cells ->
+      let ctp, _ = Env.Cell.contents cell in
+      let ident = Env.Cell.ident cell in
+      let+ base = EM.quote_tp ctp
+      and+ fam = EM.abstract ident ctp @@ fun _ -> multi_pi cells finally in
+      S.Pi (base, ident, fam)
+
+  let rec multi_ap (cells : Env.cell bwd) (finally : D.cut) : D.cut =
+    match cells with
+    | Emp -> finally
+    | Snoc (cells, cell) ->
+      let tp, con = Env.Cell.contents cell in
+      multi_ap cells finally |> D.push @@ D.KAp (tp, con)
+end
+
+
 module Hole : sig
   val unleash_hole : string option -> [`Flex | `Rigid] -> T.BChk.tac
   val unleash_tp_hole : string option -> [`Flex | `Rigid] -> T.tp_tac
@@ -28,30 +52,12 @@ module Hole : sig
 end =
 struct
   let make_hole name flexity (tp, phi, clo) : D.cut m =
-    let rec go_tp : Env.cell list -> S.tp m =
-      function
-      | [] ->
-        EM.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo))
-      | cell :: cells ->
-        let ctp, _ = Env.Cell.contents cell in
-        let ident = Env.Cell.ident cell in
-        let+ base = EM.quote_tp ctp
-        and+ fam = EM.abstract ident ctp @@ fun _ -> go_tp cells in
-        S.Pi (base, ident, fam)
-    in
-
-    let rec go_tm cut : Env.cell bwd -> D.cut =
-      function
-      | Emp -> cut
-      | Snoc (cells, cell) ->
-        let tp, con = Env.Cell.contents cell in
-        go_tm cut cells |> D.push @@ D.KAp (tp, con)
-    in
-
     let* env = EM.read in
+    let cells = Env.locals env in
+
     EM.globally @@
     let* sym =
-      let* tp = go_tp @@ Bwd.to_list @@ Env.locals env in
+      let* tp = GlobalUtil.multi_pi (Bwd.to_list cells) @@ EM.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo)) in
       let* () =
         () |> EM.emit (ElabEnv.location env) @@ fun fmt () ->
         Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." S.pp_sequent tp
@@ -68,8 +74,9 @@ struct
         EM.add_global ident vtp None
     in
 
-    let cut = go_tm (D.Global sym, []) @@ Env.locals env in
+    let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
     EM.ret (D.SubOut (D.push KGoalProj cut, phi, clo), [])
+
 
   let unleash_hole name flexity : T.BChk.tac =
     fun (tp, phi, clo) ->
@@ -745,6 +752,8 @@ end
 
 module Structural =
 struct
+
+
   let lookup_var id : T.Syn.tac =
     let* res = EM.resolve id in
     match res with
@@ -765,6 +774,49 @@ struct
     let* env = EM.read in
     let ix = ElabEnv.size env - lvl - 1 in
     index ix
+
+  let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
+    let rec intros cells tac : T.Chk.tac =
+      match cells with
+      | [] ->
+        tac
+      | cell :: cells ->
+        let ident = Env.Cell.ident cell in
+        T.Chk.bchk @@
+        Pi.intro ~ident @@ fun _ ->
+        T.BChk.chk @@
+        intros cells tac
+    in
+
+    fun tp ->
+      let* env = EM.read in
+      let* lvl =
+        EM.resolve ident |>>
+        function
+        | `Local ix -> EM.ret @@ ElabEnv.size env - ix - 1
+        | _ -> EM.elab_err @@ Err.UnboundVariable ident
+      in
+
+      let cells = Env.locals env in
+      let cells_fwd = Bwd.to_list cells in
+
+      let* cut =
+        EM.globally @@
+        let* global_tp =
+          let* tp = GlobalUtil.multi_pi cells_fwd @@ EM.quote_tp tp in
+          EM.lift_ev @@ Sem.eval_tp tp
+        in
+        let* def =
+          let prefix = ListUtil.take lvl cells_fwd in
+          let* tm = intros prefix tac global_tp in
+          EM.lift_ev @@ Sem.eval tm
+        in
+        let* sym = EM.add_global `Anon global_tp @@ Some def in
+        EM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
+      in
+      EM.quote_cut cut
+
+
 
   let let_ ?(ident = `Anon) tac_def (tac_bdy : T.var -> T.BChk.tac) : T.BChk.tac =
     fun goal ->
