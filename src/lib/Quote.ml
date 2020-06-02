@@ -322,30 +322,6 @@ and quote_lam ?(ident = `Anon) tp mbdy =
   let+ bdy = bind_var tp mbdy in
   S.Lam (ident, bdy)
 
-and con_splitter tbranches =
-  let* filtered =
-    List.flatten <@>
-    begin
-      tbranches |> MU.map @@ fun (cof, m) ->
-      lift_cmp (CmpM.test_sequent [cof] Cof.bot) |>> function
-      | true ->
-        ret []
-      | false ->
-        ret [cof,m]
-    end
-  in
-
-  match filtered with
-  | [_cof,m] -> m
-  | _ ->
-    let run_branch (cof, m) =
-      let+ tm = binder 1 m
-      and+ tcof = quote_cof cof in
-      tcof, tm
-    in
-    let+ branches = MU.map run_branch filtered in
-    S.CofSplit branches
-
 and quote_v_data r pcode code pequiv =
   let+ tr = quote_dim r
   and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
@@ -358,6 +334,7 @@ and quote_v_data r pcode code pequiv =
     quote_con tp_pequiv pequiv
   in
   tr, t_pcode, tcode, t_pequiv
+
 
 and quote_hcom code r s phi bdy =
   let* tcode = quote_con D.Univ code in
@@ -375,7 +352,7 @@ and quote_hcom code r s phi bdy =
   S.HCom (tcode, tr, ts, tphi, tbdy)
 
 and quote_tp_clo base fam =
-  QuM.bind_var base @@ fun var ->
+  bind_var base @@ fun var ->
   let* tp = lift_cmp @@ inst_tp_clo fam var in
   quote_tp tp
 
@@ -406,7 +383,7 @@ and quote_tp (tp : D.tp) =
     let* ttp = quote_tp tp in
     let+ tphi = quote_cof phi
     and+ tm =
-      QuM.bind_var (D.TpPrf phi) @@ fun prf ->
+      bind_var (D.TpPrf phi) @@ fun prf ->
       let* body = lift_cmp @@ inst_tm_clo cl prf in
       quote_con tp body
     in
@@ -448,15 +425,6 @@ and quote_tp (tp : D.tp) =
     let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
     and+ tps = MU.map branch_body branches in
     S.TpCofSplit (List.combine tphis tps)
-
-and tp_splitter tbranches =
-  let run_branch (cof, m) =
-    let+ tm = binder 1 m
-    and+ tcof = quote_cof cof in
-    tcof, tm
-  in
-  let+ tbranches = MU.map run_branch tbranches in
-  S.TpCofSplit tbranches
 
 and quote_hd =
   function
