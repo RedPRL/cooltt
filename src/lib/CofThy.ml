@@ -8,7 +8,7 @@ module UF = DisjointSet.Make (PersistentTable.M)
 module VarSet = Set.Make (Int)
 
 (** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
-type alg_pres =
+type alg_thy' =
   { classes : dim UF.t;
     (** equivalence classes of dimensions *)
 
@@ -16,7 +16,7 @@ type alg_pres =
   }
 
 (** A presentation of a disjunctive theory over the language of intervals and cofibrations. *)
-type disj_pres =
+type disj_thy' =
   { classes : dim UF.t;
     (** equivalence classes of dimensions *)
 
@@ -29,15 +29,15 @@ type disj_pres =
 
 (* As an optimization, we remember when a theory is consistent or not. *)
 
-type alg_thy = [ `Consistent of alg_pres | `Inconsistent ]
-type disj_thy = [ `Consistent of disj_pres | `Inconsistent ]
+type alg_thy = [ `Consistent of alg_thy' | `Inconsistent ]
+type disj_thy = [ `Consistent of disj_thy' | `Inconsistent ]
 
-let disj_pres_of_alg_pres : alg_pres -> disj_pres =
+let disj_thy'_of_alg_thy' : alg_thy' -> disj_thy' =
   fun {classes; true_vars} -> {classes; true_vars; irreducible_joins = []}
 
 let disj_thy_of_alg_thy : alg_thy -> disj_thy =
   function
-  | `Consistent alg_pres ->  `Consistent (disj_pres_of_alg_pres alg_pres)
+  | `Consistent alg_thy' -> `Consistent (disj_thy'_of_alg_thy' alg_thy')
   | `Inconsistent -> `Inconsistent
 
 let init () =
@@ -61,34 +61,34 @@ sig
 
       @return If the [thy.classes] would be inconsistent, [None] is returned.
       Otherwise, [Some thy] is returned and [thy.classes] will be consistent. *)
-  val pushes' : disj_pres -> cof list -> disj_pres option
+  val push_cofs : disj_thy' -> cof list -> disj_thy' option
 
-  (** Checking whether the [disj_pres] is consistent.
+  (** Checking whether the [disj_thy'] is consistent.
       Invariant: intput [thy.classes] must be consistent;
       the inconsistency can only come from [thy.irreducible_joins.] *)
-  val is_consistent : disj_pres -> bool
+  val is_consistent : disj_thy' -> bool
 end
 =
 struct
-  let rec pushes' ({classes; true_vars; irreducible_joins} as thy) =
+  let rec push_cofs ({classes; true_vars; irreducible_joins} as thy) =
     function
     | [] -> Some thy
     | phi :: phis ->
       match phi with
       | Cof.Var v ->
-        pushes' {thy with true_vars = VarSet.add v true_vars} phis
+        push_cofs {thy with true_vars = VarSet.add v true_vars} phis
       | Cof.Cof phi ->
         match phi with
         | Cof.Meet psis ->
-          pushes' thy @@ psis @ phis
+          push_cofs thy @@ psis @ phis
         | Cof.Join psis ->
-          pushes' {thy with irreducible_joins = psis :: irreducible_joins} phis
+          push_cofs {thy with irreducible_joins = psis :: irreducible_joins} phis
         | Cof.Eq (r, s) ->
           let classes = UF.union r s classes in
           if UF.find Dim0 classes = UF.find Dim1 classes then
             None
           else
-            pushes' {thy with classes} phis
+            push_cofs {thy with classes} phis
 
   (** [is_consistent] is almost a duplicate of the most general search. It exists because
     * (1) it's a clean way to avoid checking consistency within consistency and
@@ -99,13 +99,14 @@ struct
     | psis :: irreducible_joins ->
       psis |> List.exists @@ fun psi ->
       Option.fold ~none:false ~some:is_consistent @@
-      pushes' {thy with irreducible_joins} [psi]
+      push_cofs {thy with irreducible_joins} [psi]
 end
 
 module Search :
 sig
   (** Search all branches assuming more cofibrations. *)
-  val left_invert : zero:'a
+  val left_invert
+    : zero:'a
     (** [zero] is the default value for vacuous cases. *)
     -> seq:((cof -> 'a) -> cof list -> 'a)
     (** [seq] is the sequencing operator. *)
@@ -113,11 +114,11 @@ sig
     (** If the first component returns a "good" result, then don't bother with the second. (???) *)
     -> disj_thy
     -> cof list
-    -> (alg_pres -> 'a)
+    -> (alg_thy' -> 'a)
     -> 'a
 end =
 struct
-  let left_invert' ~zero ~seq ~fast_track (thy : disj_pres) phis cont =
+  let left_invert' ~zero ~seq ~fast_track (thy : disj_thy') phis cont =
     let rec go =
       function
       | None -> zero
@@ -125,14 +126,13 @@ struct
         fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
         match irreducible_joins with
         | [] -> cont {classes; true_vars}
-        | psis :: irreducible_joins ->
-          if SearchHelper.is_consistent thy then
-            psis |> seq @@ fun psi ->
-            go @@ SearchHelper.pushes' {thy with irreducible_joins} [psi]
-          else
-            zero
+        | psis :: irreducible_joins when SearchHelper.is_consistent thy ->
+          psis |> seq @@ fun psi ->
+          go @@ SearchHelper.push_cofs {thy with irreducible_joins} [psi]
+        | _ ->
+          zero
     in
-    go @@ SearchHelper.pushes' thy phis
+    go @@ SearchHelper.push_cofs thy phis
 
   let left_invert ~zero ~seq ~fast_track thy phis cont =
     match thy with
@@ -142,7 +142,7 @@ end
 
 
 (* Invariant: local.classes must be consistent. *)
-let rec test (local : alg_pres) : cof -> bool =
+let rec test (local : alg_thy') : cof -> bool =
   function
   | Cof.Cof phi ->
     begin
@@ -160,21 +160,15 @@ let rec test (local : alg_pres) : cof -> bool =
     VarSet.mem v local.true_vars
 
 let test_sequent thy cx phi =
-  Search.left_invert
-    ~zero:true
-    ~seq:List.for_all
-    ~fast_track:(fun x y -> if x () then true else y ())
-    thy cx
-  @@ fun thy ->
+  let fast_track x y = if x () then true else y () in
+  Search.left_invert ~zero:true ~seq:List.for_all ~fast_track thy cx @@ fun thy ->
   test thy phi
 
 let assumes thy phis =
   match thy with
   | `Inconsistent -> `Inconsistent
   | `Consistent thy ->
-    match
-      SearchHelper.pushes' thy @@ List.map Cof.reduce phis (* do we want Cof.reduce here? *)
-    with
+    match SearchHelper.push_cofs thy @@ List.map Cof.reduce phis (* do we want Cof.reduce here? *) with
     | None -> `Inconsistent
     | Some thy ->
       if SearchHelper.is_consistent thy
@@ -183,10 +177,10 @@ let assumes thy phis =
 
 let assume thy phi = assumes thy [phi]
 
-
 let left_invert_under_cofs ~zero ~seq thy phis cont =
-  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) thy phis @@ fun alg_pres ->
-  cont @@ `Consistent (disj_pres_of_alg_pres alg_pres)
+  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) thy phis @@ fun alg_thy' ->
+  cont @@ `Consistent (disj_thy'_of_alg_thy' alg_thy')
+
 
 module Algebraic =
 struct
@@ -204,14 +198,14 @@ struct
 
   let partition_thy =
     function
-    | `Inconsistent -> `Inconsistent , []
+    | `Inconsistent -> `Inconsistent, []
     | `Consistent {classes; true_vars; irreducible_joins} ->
-      `Consistent {classes; true_vars} , List.map Cof.join irreducible_joins
+      `Consistent {classes; true_vars}, List.map Cof.join irreducible_joins
 
   let assemble_thy alg_thy =
     assumes @@ disj_envelope alg_thy
 
   let left_invert_under_cofs ~zero ~seq alg_thy phis cont =
-    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (disj_envelope alg_thy) phis @@ fun alg_pres ->
-    cont @@ `Consistent alg_pres
+    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (disj_envelope alg_thy) phis @@ fun alg_thy' ->
+    cont @@ `Consistent alg_thy'
 end
