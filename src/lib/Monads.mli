@@ -43,7 +43,7 @@ module EvM : sig
 end
 
 
-(** The quotation environment keeps track of De Bruijn indices for use in quotation and conversion checking. *)
+(** The quotation environment keeps track of De Bruijn indices for use in conversion checking. *)
 module SplitQuM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a split_quote
@@ -56,6 +56,7 @@ module SplitQuM : sig
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
+(** The quotation environment keeps track of De Bruijn indices for quotation. *)
 module QuM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a quote
