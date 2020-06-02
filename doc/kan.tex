@@ -259,16 +259,15 @@ $\IsTp{A}$ means that $A$ is a \emph{cubical set}, not that $A$ is Kan.)
   }
 \end{mathparpagebreakable}
 
-Truth of each $\phi:\COF$ has the expected meaning; in particular, $0=1$ is the
-false proposition, and under a hypothesis $\TpPrf{r=s}$ we have $r=s:\DIM$. We
-will make particular use of the \emph{boundary} cofibration:
-
-\[
-  \begin{array}{l}
-    \Boundary{\bullet} : \DIM\to\COF\\
-    \Boundary{r} \coloneq \prn{r=0 \lor r=1}
-  \end{array}
-\]
+Truth of each $\phi:\COF$ has the expected meaning. In particular:
+\begin{enumerate}
+  \item under a hypothesis $\TpPrf{r=s}$, we have $r=s:\DIM$;
+  \item elimination for a disjunction $*:\TpPrf{\phi\lor\psi}$ is a case split
+  $\brk{\phi \to c_\phi \delimmid \psi \to c_\psi}$ whose branches must agree on
+  $\phi\land\psi$; and
+  \item $0=1$ is the false proposition, whose elimination is the empty case
+  split $\brk{}$.
+\end{enumerate}
 
 \begin{cool}
 Although this presentation allows for terms $\DIM\to\COF$, etc., it is important
@@ -279,26 +278,23 @@ theory of $\DIM$ and $\COF$ do not depend on the equational theory of general
 terms. It also allows us to define $\forall i.\phi(i)$ by cases on $\phi$.
 \end{cool}
 
-\todo{thought wave}
+We will make particular use of the \emph{boundary} cofibration:
 
-%the structure and algorithms of univalent Kan universes of Kan types,
+\[
+  \begin{array}{l}
+    \Boundary{\bullet} : \DIM\to\COF\\
+    \Boundary{r} \coloneq \prn{r=0 \lor r=1}
+  \end{array}
+\]
 
-mention XTT
+\todo{sub types}
+\todo{sub judgment}
 
-\begin{remark}
-  The artificial separation of ``cap'' and ``tube'' and the lack of elaboration support of cubical subtypes led to the unfortunate discrepency between the types of arguments of \textsf{hfill} and those of \textsf{hcomp} in Cubical Agda. The main design challenge is that the coherence between ``cap'' and ``tube'' should be mentioned somewhere. One can use cubical subtypes to impose the coherence condition, but cubical subtypes are clumsy without a good elaborator. As a result, Agda removes cubical subtypes from the type of the primitive operator \textsf{hcomp}, using a special checker for the coherence condition beyond its typing. However, the derived function \textsf{hfill} could not enjoy the special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other words, the operators are either semantically correct but clumsy (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}). There are at least two ways to fix this:
-  \begin{enumerate}
-    \item Consolidate ``cap'' and ``tube'' into one system.
-    \item Good elaboration support for cubical subtypes.
-  \end{enumerate}
-  We did both in \texttt{cooltt}.
-\end{remark}
+\section{The universe}
 
-\section{Basic rules for the universe}
-
-We begin by a basic weak universe \`a la Tarski closed under dependent product
-and sum and, for the sake of simplicity, \emph{itself}; this inconsistent
-universe would be replaced by a hierarchy of universes.
+We consider a weak universe \`a la Tarski closed under dependent product and sum
+and, for the sake of simplicity, \emph{itself}; this inconsistent universe would
+be replaced by a hierarchy of universes.
 
 \begin{mathparpagebreakable}
   \inferrule[univ formation]{
@@ -400,12 +396,22 @@ Kan operations are a structure on codes of types.
 In the above, $\mathsf{com}$ is definitionally equal to its standard
 decomposition into $\mathsf{hcom}$ and $\mathsf{coe}$.
 
+\begin{remark}
+  The artificial separation of ``cap'' and ``tube'' and the lack of elaboration support of cubical subtypes led to the unfortunate discrepency between the types of arguments of \textsf{hfill} and those of \textsf{hcomp} in Cubical Agda. The main design challenge is that the coherence between ``cap'' and ``tube'' should be mentioned somewhere. One can use cubical subtypes to impose the coherence condition, but cubical subtypes are clumsy without a good elaborator. As a result, Agda removes cubical subtypes from the type of the primitive operator \textsf{hcomp}, using a special checker for the coherence condition beyond its typing. However, the derived function \textsf{hfill} could not enjoy the special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other words, the operators are either semantically correct but clumsy (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}). There are at least two ways to fix this:
+  \begin{enumerate}
+    \item Consolidate ``cap'' and ``tube'' into one system.
+    \item Good elaboration support for cubical subtypes.
+  \end{enumerate}
+  We did both in \texttt{cooltt}.
+\end{remark}
+
 \subsection{Rules for composite types}
 
-The homogeneous composition structure on the universe corresponds to a code for
-composite types; we characterize the elements of this code \emph{directly}
-rather than via some isomorphism (this is simplest in the case of cubically
-unstable type codes).
+We proceed by equipping the universe with composite types and V types, which
+ensure it is Kan and univalent, respectively. The homogeneous composition
+structure on the universe corresponds to a code for composite types; we
+characterize the elements of this code \emph{directly} rather than via some
+isomorphism (this is simplest in the case of cubically unstable type codes).
 
 \begin{mathparpagebreakable}
   \inferrule[formal hcom code]{
@@ -641,11 +647,8 @@ We may now specify the rules for the V types.
 \end{mathparpagebreakable}
 
 
-\clearpage
-\nocite{*}
-\printbibliography
 
-\end{document}
+
 
 \begin{landscape}
 
