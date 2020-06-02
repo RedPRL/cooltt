@@ -191,6 +191,10 @@ type 'a split_quote = 'a SplitQuM.m
 module QuM =
 struct
 
+  (* XXX In a separate PR, this should be using [Cof.env]
+   * instead of [Cof.reduced_env * D.cof list]. The code
+   * is correct now but is very low-ch'i. *)
+
   module M = struct
     type 'a m = CofEnv.cof list -> 'a SplitQuM.m
     let bind m1 m2 cofs = SplitQuM.bind (m1 cofs) @@ fun x -> m2 x cofs
