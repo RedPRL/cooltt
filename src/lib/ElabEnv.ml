@@ -13,7 +13,7 @@ struct
     {contents : 'a;
      ident : Ident.t}
 
-  (* let make nm c = {contents = c; ident = nm} *)
+  let make nm c = {contents = c; ident = nm}
   let ident cell = cell.ident
   let contents cell = cell.contents
 end

@@ -13,12 +13,10 @@ open Monads
 module Error =
 struct
   type t = IllTypedQuotationProblem of D.tp * D.con
-  (*
   let pp fmt =
     function
     | IllTypedQuotationProblem (tp, con) ->
       Format.fprintf fmt "Ill-typed quotation problem %a : %a" D.pp_con con D.pp_tp tp
-  *)
 end
 
 exception QuotationError of Error.t

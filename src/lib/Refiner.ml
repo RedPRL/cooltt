@@ -224,7 +224,6 @@ struct
 
   type branch_tac = T.Chk.tac * (T.var -> T.BChk.tac)
 
-  (*
   let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.BChk.tac) list) m =
     match branches with
     | [] -> EM.ret ([], [])
@@ -233,7 +232,6 @@ struct
       let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
       let+ phis, tacs = gather_cofibrations branches in
       (vphi :: phis), tac_tm :: tacs
-  *)
 
   let split0 : T.BChk.tac =
     fun _ ->
@@ -1068,7 +1066,6 @@ struct
         let* tp = EM.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (ppenv, tp)
 
-    (*
     let assert_simple_inductive =
       function
       | D.Nat ->
@@ -1079,7 +1076,6 @@ struct
         EM.with_pp @@ fun ppenv ->
         let* tp = EM.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
-    *)
 
     let lam_elim cases : T.BChk.tac =
       match_goal @@ fun (tp, _, _) ->
