@@ -13,14 +13,14 @@ module CmpL =
 struct
   type local =
     {state : St.t;
-     cof_thy : CofEnv.disj_thy}
+     cof_thy : CofThy.disj_thy}
 end
 
 module EvL =
 struct
   type local =
     {state : St.t;
-     cof_thy : CofEnv.disj_thy;
+     cof_thy : CofThy.disj_thy;
      env : D.env}
 end
 
@@ -29,7 +29,7 @@ struct
   type local =
     {state : St.t;
      veil : Veil.t;
-     cof_thy : CofEnv.alg_thy;
+     cof_thy : CofThy.alg_thy;
      size : int}
 end
 
@@ -52,7 +52,7 @@ struct
 
   let test_sequent cx phi =
     let+ {cof_thy; _} = M.read in
-    CofEnv.test_sequent cof_thy cx phi
+    CofThy.test_sequent cof_thy cx phi
 
   let restore_cof_thy cof_thy =
     M.scope @@ fun local ->
@@ -61,7 +61,7 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.consistency st.cof_thy with
+    match CofThy.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
@@ -96,7 +96,7 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.consistency st.cof_thy with
+    match CofThy.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
@@ -136,15 +136,15 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.Algebraic.consistency st.cof_thy with
+    match CofThy.Algebraic.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun {state; cof_thy; _} ->
-    m {state; cof_thy = CofEnv.Algebraic.disj_envelope cof_thy}
+    m {state; cof_thy = CofThy.Algebraic.disj_envelope cof_thy}
 
-  let replace_env ~(abort : 'a m) (cof_thy : CofEnv.alg_thy) (m : 'a m) : 'a m =
+  let replace_env ~(abort : 'a m) (cof_thy : CofThy.alg_thy) (m : 'a m) : 'a m =
     M.scope (fun local -> {local with cof_thy}) @@
     abort_if_inconsistent abort m
 
@@ -153,14 +153,14 @@ struct
       splitter @@ List.map (fun cof -> cof , f cof) cofs
     in
     let* {cof_thy; _} = M.read in
-    CofEnv.Algebraic.left_invert_under_cofs
+    CofThy.Algebraic.left_invert_under_cofs
       ~zero:(splitter []) ~seq
       cof_thy phis @@ fun alg_thy ->
     replace_env ~abort:(splitter []) alg_thy m
 
   let restrict_ phis m =
     let* {cof_thy; _} = M.read in
-    CofEnv.Algebraic.left_invert_under_cofs
+    CofThy.Algebraic.left_invert_under_cofs
       ~zero:(M.ret ()) ~seq:MU.iter
       cof_thy phis @@ fun alg_thy ->
     replace_env ~abort:(M.ret ()) alg_thy m
@@ -199,7 +199,7 @@ struct
    * is correct now but is extremely low-ch'i. *)
 
   module M = struct
-    type 'a m = CofEnv.cof list -> 'a ConvM.m
+    type 'a m = CofThy.cof list -> 'a ConvM.m
     let bind m1 m2 cofs = ConvM.bind (m1 cofs) @@ fun x -> m2 x cofs
     let ret x _cofs = ConvM.ret x
   end
@@ -225,7 +225,7 @@ struct
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun phis {state; cof_thy; _} ->
-    m {state; cof_thy = CofEnv.Algebraic.assemble_thy cof_thy phis}
+    m {state; cof_thy = CofThy.Algebraic.assemble_thy cof_thy phis}
 
   let read _ =
     ConvM.read
@@ -259,8 +259,8 @@ struct
     fun abort m cofs ->
     fun st ->
     match
-      CofEnv.consistency @@
-      CofEnv.Algebraic.assemble_thy st.cof_thy cofs
+      CofThy.consistency @@
+      CofThy.Algebraic.assemble_thy st.cof_thy cofs
     with
     | `Consistent -> m cofs st
     | `Inconsistent -> abort cofs st
@@ -268,7 +268,7 @@ struct
   include M
 end
 
-type 'a quote = CofEnv.cof list -> 'a conversion
+type 'a quote = CofThy.cof list -> 'a conversion
 
 
 module ElabM =
@@ -294,7 +294,7 @@ struct
   let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
     let cof_thy, irreducible_phis =
-      CofEnv.Algebraic.partition_thy @@ Env.cof_thy env
+      CofThy.Algebraic.partition_thy @@ Env.cof_thy env
     in
     match
       ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} @@
@@ -321,7 +321,7 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun (state, env) ->
-    match CofEnv.consistency (Env.cof_thy env) with
+    match CofThy.consistency (Env.cof_thy env) with
     | `Consistent -> m (state, env)
     | `Inconsistent -> abort (state, env)
 end
