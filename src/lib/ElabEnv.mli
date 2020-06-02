@@ -20,7 +20,7 @@ val size : t -> int
 val locals : t -> cell bwd
 val sem_env : t -> D.env
 val pp_env : t -> Pp.env
-val cof_env : t -> CofEnv.env
+val cof_thy : t -> CofThy.disj_thy
 val get_veil : t -> Veil.t
 val problem : t -> string bwd
 

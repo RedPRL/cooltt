@@ -20,6 +20,7 @@ val el_out : con
 
 
 val pp_dim : dim Pp.printer
+val pp_clo : tm_clo Pp.printer
 val pp_cof : cof Pp.printer
 val pp_tp : tp Pp.printer
 val pp_con : con Pp.printer

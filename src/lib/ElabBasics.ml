@@ -57,25 +57,40 @@ let get_local ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
+let quote_con tp con =
+  lift_qu @@ Qu.quote_con tp con
+
+let quote_tp tp =
+  lift_qu @@ Qu.quote_tp tp
+
+let quote_cut cut =
+  lift_qu @@ Qu.quote_cut cut
+
+let quote_cof cof =
+  lift_qu @@ Qu.quote_cof cof
+
+let quote_dim con =
+  lift_qu @@ Qu.quote_dim con
+
 let equate tp l r =
-  let* env = read in
-  lift_qu @@ Conv.equal_con tp l r |>>
+  Conv.trap_err @@ lift_conv_ @@ Conv.equate_con tp l r |>>
   function
   | `Ok -> ret ()
   | `Err err ->
-    let* ttp = lift_qu @@ Qu.quote_tp tp in
-    let* tl = lift_qu @@ Qu.quote_con tp l in
-    let* tr = lift_qu @@ Qu.quote_con tp r in
+    let* env = read in
+    let* ttp = quote_tp tp in
+    let* tl = quote_con tp l in
+    let* tr = quote_con tp r in
     elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
 
 let equate_tp tp tp' =
-  let* env = read in
-  lift_qu @@ Conv.equal_tp tp tp' |>>
+  Conv.trap_err @@ lift_conv_ @@ Conv.equate_tp tp tp' |>>
   function
   | `Ok -> ret ()
   | `Err err ->
-    let* ttp = lift_qu @@ Qu.quote_tp tp in
-    let* ttp' = lift_qu @@ Qu.quote_tp tp' in
+    let* env = read in
+    let* ttp = quote_tp tp in
+    let* ttp' = quote_tp tp' in
     elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp', err)
 
 
@@ -85,7 +100,7 @@ let with_pp k =
 
 let expected_connective conn tp =
   with_pp @@ fun ppenv ->
-  let* ttp = lift_qu @@ Qu.quote_tp tp in
+  let* ttp = quote_tp tp in
   elab_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
 
 let dest_pi =

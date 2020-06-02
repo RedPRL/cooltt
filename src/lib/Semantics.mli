@@ -39,8 +39,8 @@ val con_to_dim : D.con -> D.dim compute
 val con_to_cof : D.con -> D.cof compute
 val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof compute
 
-val do_rigid_cap : D.con -> D.con compute
-val do_rigid_vproj : D.con -> D.con compute
+val do_rigid_cap : D.dim -> D.dim -> D.cof -> D.con -> D.con -> D.con compute
+val do_rigid_vproj : D.dim -> D.con -> D.con -> D.con -> D.con -> D.con compute
 
 val splice_tm : S.t Splice.t -> D.con compute
 val splice_tp : S.tp Splice.t -> D.tp compute

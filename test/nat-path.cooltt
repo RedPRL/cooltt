@@ -50,9 +50,9 @@ def trans-left-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {t
     | i=1 => p j
     | k=0 =>
       hcom A 0 1 {∂ i ∨ ∂ j} {l _ =>
-        [ l=0 ∨ j=0 ∨ i=0 => p 0
-        | j=1 => trans/filler A {_ => p 0} p i l
-        | i=1 => trans/filler A {_ => p 0} p j l
+        let filler : 𝕀 → A = k => trans/filler A {_ => p 0} p k l in
+        [ l=0 ∨ i=0 ∨ j=1 => filler i
+        | i=1 ∨ j=0 => filler j
         ]
       }
     ]
@@ -61,16 +61,16 @@ def trans-left-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {t
 def trans-right-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A p {_ => p 1}} =
   trans/filler A p {_ => p 1}
 
+
 def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ => p 0} {trans A p {symm A p}} =
   k i =>
   hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
-    [ j=0 ∨ i=0 => p i
-    | k=0 ∨ i=1 => symm/filler A p j i
-    ]
+    symm/filler A p j i
   }
 
-def cong (A : type) (B : type) (f : A → B) (p : 𝕀 → A) : path B {f {p 0}} {f {p 1}} =
-  i => f {p i}
+normalize trans-left-unit
+normalize trans-right-unit
+normalize trans-symm-refl
 
 def + : nat → nat → nat =
   elim [

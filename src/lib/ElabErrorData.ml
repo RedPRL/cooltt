@@ -17,6 +17,7 @@ struct
     | `Prf
     | `El
     | `ElV
+    | `ElHCom
     ]
 
   type t =

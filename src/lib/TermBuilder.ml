@@ -76,6 +76,10 @@ let lam ?(ident = `Anon) mbdy : _ m =
   let+ bdy = mbdy var in
   S.Lam (ident, bdy)
 
+let goal_proj m =
+  let+ t = m in
+  S.GoalProj t
+
 let rec ap m0 ms : _ m =
   match ms with
   | [] -> m0
@@ -127,19 +131,24 @@ let snd m =
   let+ x = m in
   S.Snd x
 
-let cof_abort =
-  ret S.CofAbort
+let tm_abort =
+  ret @@ S.tm_abort
 
-let const (m : S.t m) : S.t b =
+let const (m : 'a m) : 'a b =
   fun _ -> m
 
 
-let cof_split mtp mbranches =
+let cof_split mbranches =
   let mphis, mtms = List.split mbranches in
-  let+ tp = mtp
-  and+ phis = MU.commute_list mphis
+  let+ phis = MU.commute_list mphis
   and+ tms = MU.map scope @@ List.map const mtms in
-  S.CofSplit (tp, List.combine phis tms)
+  S.CofSplit (List.combine phis tms)
+
+let tp_cof_split (mbranches : (S.t m * S.tp m) list)=
+  let mphis, mtps = List.split mbranches in
+  let+ phis = MU.commute_list mphis
+  and+ tps = MU.map scope @@ List.map const mtps in
+  S.TpCofSplit (List.combine phis tps)
 
 let sub_out mtm =
   let+ tm = mtm in
@@ -290,16 +299,18 @@ let vin mr mpequiv mpivot mbase =
   and+ base = mbase in
   S.VIn (r, pequiv, pivot, base)
 
-let vproj mr mpequiv mv =
+let vproj mr mpcode mcode mpequiv mv =
   let+ r = mr
+  and+ pcode = mpcode
+  and+ code = mcode
   and+ pequiv = mpequiv
   and+ v = mv in
-  S.VProj (r, pequiv, v)
+  S.VProj (r, pcode, code, pequiv, v)
 
 let code_path' mfam ml mr : _ m =
   code_path mfam @@ lam @@ fun i ->
   lam @@ fun _ ->
-  cof_split (el @@ ap mfam [i])
+  cof_split
     [eq i dim0, ml;
      eq i dim1, mr]
 
@@ -356,7 +367,8 @@ struct
     coe fib_line r r' @@
     ap (el_out bdy) [ap coe_base_line [r]]
 
-  let hcom_pi ~base ~fam ~r ~r' ~phi ~bdy : _ m =
+  (* CJHM: we are not using base? *)
+  let hcom_pi ~base:_ ~fam ~r ~r' ~phi ~bdy : _ m =
     el_in @@
     lam @@ fun arg ->
     let tfib = ap fam [arg] in
@@ -405,7 +417,6 @@ struct
     lam @@ fun i ->
     lam @@ fun _ ->
     cof_split
-      (el @@ ap fam_line [i; j])
       [ d_j, ap bdry_line [i; j; prf]
       ; eq i r, sub_out @@ ap (el_out bdy) [j]
       ]
@@ -418,9 +429,8 @@ struct
     let_ (ap fam [i]) @@ fun fam_i ->
     hcom fam_i r r' (join [phi; d_i]) @@
     lam @@ fun k ->
-    lam @@ fun p ->
+    lam @@ fun _p ->
     cof_split
-      (el fam_i)
       [ d_i , ap bdry [i; prf]
       ; join [phi; eq k r] , sub_out (ap (el_out (ap bdy [k;prf])) [i])
       ]
@@ -447,8 +457,8 @@ struct
         begin
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
-          cof_split (el v.code)
-            [join [eq i r; phi], vproj v.r v.pequiv @@ ap bdy [i; prf];
+          cof_split
+            [join [eq i r; phi], vproj v.r v.pcode v.code v.pequiv @@ ap bdy [i; prf];
              eq v.r dim0, ap (Equiv.equiv_fwd (ap v.pequiv [prf])) [ap o_tilde [ap v.pcode [prf]; bdy; i]];
              eq v.r dim1, ap o_tilde [v.code; bdy; i]]
         end
@@ -470,7 +480,7 @@ struct
       @@ fun f_tilde ->
       let_ ~ident:(`Machine "O")
         begin
-          coe (lam code_) r r' @@ vproj (s_ r) (pequiv_ r) bdy
+          coe (lam code_) r r' @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy
         end
       @@ fun o_tilde ->
       let_ ~ident:(`Machine "Fiber'")
@@ -495,12 +505,12 @@ struct
           lam @@ fun _ ->
           (* NB: el_in is inside the cof_split, unlike in the TeX *)
           Equiv.equiv_inv_path (ap (pequiv_ r') [prf]) o_tilde @@ (* "q_tilde" *)
-          cof_split (el @@ ap fibercode [prf])
+          cof_split
             [forall (fun i -> eq (s_ i) dim0), el_in @@ pair
                (coe (lam @@ fun j -> ap (pcode_ j) [prf]) r r' bdy)
                (ap r_tilde [prf]);
              eq r r', el_in @@ pair bdy
-               (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pequiv_ r) bdy)]
+               (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy)]
         end
       @@ fun s_tilde ->
       let_ ~ident:(`Machine "T")
@@ -509,7 +519,7 @@ struct
           hcom (ap fibercode [prf]) dim0 dim1 (join [forall (fun i -> eq (s_ i) dim0); eq r r']) @@
           lam ~ident:(`Machine "j") @@ fun j ->
           lam @@ fun _ ->
-          cof_split (el @@ ap fibercode [prf])
+          cof_split
             [eq j dim0, Equiv.equiv_inv (ap (pequiv_ r') [prf]) o_tilde; (* "p_tilde" *)
              join [forall (fun i -> eq (s_ i) dim0); eq r r'], sub_out @@ ap (el_out @@ ap s_tilde [prf]) [j]]
         end
@@ -519,7 +529,7 @@ struct
           hcom (code_ r') dim1 (s_ r') (join [eq r r'; eq (s_ r') dim0]) @@
           lam ~ident:(`Machine "k") @@ fun k ->
           lam @@ fun _ ->
-          cof_split (el @@ code_ r')
+          cof_split
             [join [eq k dim1; eq r r'], o_tilde;
              eq (s_ r') dim0, sub_out @@ ap (el_out @@ snd @@ el_out @@ ap t_tilde [prf]) [k]]
         end
@@ -556,7 +566,6 @@ struct
       lam ~ident:(`Machine "i") @@ fun i ->
       lam @@ fun _ ->
       cof_split
-        (el @@ ap fhcom.bdy [fhcom.r'; prf])
         [join [eq i r; phi], ap o_tilde [i; prf];
          fhcom.phi, coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]);
          eq fhcom.r fhcom.r', ap p_tilde [i; prf]]
@@ -582,7 +591,7 @@ struct
           hcom (ap (code_ r) [s_ r; prf]) (s'_ r) j (phi_ r) @@
           lam ~ident:(`Machine "k") @@ fun k ->
           lam @@ fun _ ->
-          cof_split (el (ap (code_ r) [s_ r; prf]))
+          cof_split
             [eq k (s'_ r), cap (s_ r) (s'_ r) (phi_ r) (code_ r) bdy;
              phi_ r,
              coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) k (s_ r) @@
@@ -596,7 +605,7 @@ struct
           com line r r' cof @@
           lam ~ident:(`Machine "i") @@ fun i ->
           lam @@ fun _ ->
-          cof_split (el @@ ap (code_ r') [s_ r'; prf])
+          cof_split
             [eq i r, ap o_tilde [s_ r];
              forall phi_, ap n_tilde [i; s_ i; prf];
              forall (fun i -> eq (s_ i) (s'_ i)), coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s_ k; prf]) r i bdy]
@@ -610,7 +619,7 @@ struct
           com line (s_ r') j (join [eq r r'; forall phi_]) @@
           lam ~ident:(`Machine "k") @@ fun k ->
           lam @@ fun _ ->
-          cof_split (el @@ ap (code_ r') [j; prf])
+          cof_split
             [eq k (s_ r'), p_tilde;
              eq r r', coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) (s'_ r') k bdy;
              forall phi_, ap n_tilde [r'; k; prf]]
@@ -622,7 +631,7 @@ struct
           hcom (code_ r') (s_ r') (s'_ r') (join [phi_ r'; eq r r']) @@
           lam @@ fun j ->
           lam @@ fun _ ->
-          cof_split (el @@ code_ r')
+          cof_split
             [eq j (s_ r'), p_tilde;
              phi_ r', coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) j (s_ r') (ap q_tilde [j; prf]);
              eq r r', ap o_tilde [j]]

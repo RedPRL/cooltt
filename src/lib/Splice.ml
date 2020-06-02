@@ -13,6 +13,17 @@ let foreign con k : _ t =
   let var = TB.lvl @@ Bwd.length env.conenv in
   k var env'
 
+let foreign_list (cons : D.con list) k : _ t =
+  let rec go cons k =
+    match cons with
+    | [] -> k []
+    | con :: cons ->
+      foreign con @@ fun tm ->
+      go cons @@ fun tms ->
+      k (tm :: tms)
+  in
+  go cons k
+
 let foreign_cof phi = foreign @@ D.cof_to_con phi
 let foreign_dim r = foreign @@ D.dim_to_con r
 let foreign_clo clo = foreign @@ D.Lam (`Anon, clo)
@@ -32,6 +43,12 @@ let compile (t : 'a t) : D.env *'a  =
 let term (m : 'a TB.m) : 'a t =
   fun env ->
   m, env
+
+let commute_split (self : D.con) (phis : D.cof list) (action : 'a TB.m -> 'b TB.m) =
+  let phis = List.map D.cof_to_con phis in
+  foreign self @@ fun self ->
+  foreign_list phis @@ fun phis ->
+  term @@ TB.cof_split @@ List.map (fun phi -> phi, action self) phis
 
 module Macro =
 struct

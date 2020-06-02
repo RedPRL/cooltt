@@ -191,6 +191,8 @@ and bchk_tm : CS.con -> T.BChk.tac =
           EM.ret @@ R.Sg.intro (bchk_tm c0) (bchk_tm c1)
         | D.ElUnstable (`V _), _, _ ->
           EM.ret @@ R.ElV.intro (bchk_tm c0) (bchk_tm c1)
+        | D.ElUnstable (`HCom _), _, _ ->
+          EM.ret @@ R.ElHCom.intro (bchk_tm c0) (bchk_tm c1)
         | tp, _, _ ->
           EM.expected_connective `Sg tp
       end
@@ -206,6 +208,8 @@ and bchk_tm : CS.con -> T.BChk.tac =
     | CS.Unfold (idents, c) ->
       fun goal ->
         unfold idents @@ bchk_tm c goal
+    | CS.Generalize (ident, c) ->
+      T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
     | CS.Nat ->
       T.BChk.chk R.Univ.nat
     | CS.Circle ->
@@ -281,6 +285,8 @@ and syn_tm : CS.con -> T.Syn.tac =
       R.Sg.pi2 @@ syn_tm t
     | CS.VProj t ->
       R.ElV.elim @@ syn_tm t
+    | CS.Cap t ->
+      R.ElHCom.elim @@ syn_tm t
     | CS.Elim {mot; cases; scrut} ->
       R.Tactic.Elim.elim
         (chk_tm mot)

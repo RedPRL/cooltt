@@ -67,6 +67,11 @@ module ElV : sig
   val elim : Syn.tac -> Syn.tac
 end
 
+module ElHCom : sig
+  val intro : BChk.tac -> BChk.tac -> BChk.tac
+  val elim : Syn.tac -> Syn.tac
+end
+
 module Pi : sig
   val formation : (tp_tac, tp_tac) quantifier
   val intro : ?ident:Ident.t -> (var -> BChk.tac) -> BChk.tac
@@ -116,6 +121,7 @@ module Structural : sig
   val let_syn : ?ident:Ident.t -> Syn.tac -> (var -> Syn.tac) -> Syn.tac
   val lookup_var : Ident.t -> Syn.tac
   val level : int -> Syn.tac
+  val generalize : Ident.t -> Chk.tac -> Chk.tac
 end
 
 module Tactic : sig

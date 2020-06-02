@@ -26,6 +26,9 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
+val goal_proj : t m -> t m
+
+
 val zero : t m
 val suc : t m -> t m
 
@@ -34,8 +37,12 @@ val loop : t m -> t m
 
 val prf : t m
 
-val cof_split : tp m -> (t m * t m) list -> t m
-val cof_abort : t m
+val cap : t m -> t m -> t m -> t m -> t m -> t m
+val box : t m -> t m -> t m -> t m -> t m -> t m
+
+val cof_split : (t m * t m) list -> t m
+val tp_cof_split : (t m * tp m) list -> tp m
+val tm_abort : t m
 val sub_out : t m -> t m
 val sub_in : t m -> t m
 
@@ -62,7 +69,7 @@ val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
 val code_path : t m -> t m -> t m
 val code_v : t m -> t m -> t m -> t m -> t m
-val vproj : t m -> t m -> t m -> t m
+val vproj : t m -> t m -> t m -> t m -> t m -> t m
 
 val dim0 : t m
 val dim1 : t m

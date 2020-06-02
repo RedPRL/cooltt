@@ -6,7 +6,7 @@ exception ParseError of string * span
 
 let parse_with_error parser lexbuf =
   try Ok (parser Lex.token lexbuf) with
-  | SyntaxError msg ->
+  | SyntaxError _msg ->
     let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
     Error (LexingError span)
   | Grammar.Error ->
@@ -32,7 +32,7 @@ let load_file input =
 let prepare_repl () = create_lexbuf `Stdin
 
 (* Favonia: still thinking about the line numbers. *)
-let reset_pos lexbuf = ()
+let reset_pos _lexbuf = ()
 
 let load_cmd lexbuf =
   reset_pos lexbuf;
