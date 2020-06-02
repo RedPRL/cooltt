@@ -121,6 +121,7 @@ module Structural : sig
   val let_syn : ?ident:Ident.t -> Syn.tac -> (var -> Syn.tac) -> Syn.tac
   val lookup_var : Ident.t -> Syn.tac
   val level : int -> Syn.tac
+  val generalize : Ident.t -> Chk.tac -> Chk.tac
 end
 
 module Tactic : sig

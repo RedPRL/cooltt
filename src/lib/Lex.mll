@@ -32,6 +32,7 @@ let keywords =
     ("snd", SND);
     ("elim", ELIM);
     ("unfold", UNFOLD);
+    ("generalize", GENERALIZE);
     ("def", DEF);
     ("normalize", NORMALIZE);
     ("print", PRINT);

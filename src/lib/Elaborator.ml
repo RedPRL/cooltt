@@ -208,6 +208,8 @@ and bchk_tm : CS.con -> T.BChk.tac =
     | CS.Unfold (idents, c) ->
       fun goal ->
         unfold idents @@ bchk_tm c goal
+    | CS.Generalize (ident, c) ->
+      T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
     | CS.Nat ->
       T.BChk.chk R.Univ.nat
     | CS.Circle ->
