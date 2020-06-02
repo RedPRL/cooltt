@@ -236,6 +236,9 @@ struct
   let read_veil _ =
     SplitQuM.read_veil
 
+  let binder i m cofs =
+    SplitQuM.binder i @@ m cofs
+
   let split cofs m = m cofs
 
   let seq ~splitter m cofs =

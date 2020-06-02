@@ -75,6 +75,8 @@ module QuM : sig
   val read_local : int m
   val read_veil : Veil.t m
 
+  val binder : int -> 'a m -> 'a m
+
   val split : D.cof list -> 'a m -> 'a split_quote
 
   val seq : splitter:((D.cof * 'a split_quote) list -> 'a split_quote) -> 'a split_quote -> 'a m
