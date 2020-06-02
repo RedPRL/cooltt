@@ -7,14 +7,16 @@ type cof = (Dim.dim, int) Cof.cof
 module UF = DisjointSet.Make (PersistentTable.M)
 module VarSet = Set.Make (Int)
 
-type reduced_env' =
+(** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
+type algebraic_thy =
   { classes : dim UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
     true_vars : VarSet.t
   }
 
-type env' =
+(** A presentation of a disjunctive theory over the language of intervals and cofibrations. *)
+type disjunctive_thy =
   { classes : dim UF.t;
     (** equivalence classes of dimensions from reduced cofibrations *)
 
@@ -25,15 +27,15 @@ type env' =
     (** a stack of unreduced joins, each represented by a list of cofibrations *)
   }
 
-type reduced_env = [ `Consistent of reduced_env' | `Inconsistent ]
-type env = [ `Consistent of env' | `Inconsistent ]
+type reduced_env = [ `Consistent of algebraic_thy | `Inconsistent ]
+type env = [ `Consistent of disjunctive_thy | `Inconsistent ]
 
-let env'_of_reduced_env' : reduced_env' -> env' =
+let disjunctive_thy_of_algebraic_thy : algebraic_thy -> disjunctive_thy =
   fun {classes; true_vars} -> {classes; true_vars; unreduced_joins = []}
 
 let env_of_reduced_env : reduced_env -> env =
   function
-  | `Consistent reduced_env' ->  `Consistent (env'_of_reduced_env' reduced_env')
+  | `Consistent algebraic_thy ->  `Consistent (disjunctive_thy_of_algebraic_thy algebraic_thy)
   | `Inconsistent -> `Inconsistent
 
 let init () =
@@ -57,12 +59,12 @@ sig
 
       @return If the [env.classes] would be inconsistent, [None] is returned.
       Otherwise, [Some env] is returned and [env.classes] will be consistent. *)
-  val pushes' : env' -> cof list -> env' option
+  val pushes' : disjunctive_thy -> cof list -> disjunctive_thy option
 
-  (** Checking whether the [env'] is consistent.
+  (** Checking whether the [disjunctive_thy] is consistent.
       Invariant: intput [env.classes] must be consistent;
       the inconsistency can only come from [env.unreduced_joins.] *)
-  val is_consistent : env' -> bool
+  val is_consistent : disjunctive_thy -> bool
 end
 =
 struct
@@ -109,11 +111,11 @@ sig
     (** If the first component returns a "good" result, then don't bother with the second. (???) *)
     -> env
     -> cof list
-    -> (reduced_env' -> 'a)
+    -> (algebraic_thy -> 'a)
     -> 'a
 end =
 struct
-  let left_invert' ~zero ~seq ~fast_track (env : env') phis cont =
+  let left_invert' ~zero ~seq ~fast_track (env : disjunctive_thy) phis cont =
     let rec go =
       function
       | None -> zero
@@ -138,7 +140,7 @@ end
 
 
 (* Invariant: local.classes must be consistent. *)
-let rec test (local : reduced_env') : cof -> bool =
+let rec test (local : algebraic_thy) : cof -> bool =
   function
   | Cof.Cof phi ->
     begin
@@ -181,8 +183,8 @@ let assume env phi = assumes env [phi]
 
 
 let left_invert_under_cofs ~zero ~seq env phis cont =
-  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) env phis @@ fun reduced_env' ->
-  cont @@ `Consistent (env'_of_reduced_env' reduced_env')
+  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) env phis @@ fun algebraic_thy ->
+  cont @@ `Consistent (disjunctive_thy_of_algebraic_thy algebraic_thy)
 
 module Reduced =
 struct
@@ -202,12 +204,12 @@ struct
     function
     | `Inconsistent -> `Inconsistent , []
     | `Consistent {classes; true_vars; unreduced_joins} ->
-      `Consistent {classes; true_vars} , List.map Cof.join unreduced_joins 
+      `Consistent {classes; true_vars} , List.map Cof.join unreduced_joins
 
   let assemble_env reduced_env phis =
     assumes (to_env reduced_env) phis
 
   let left_invert_under_cofs ~zero ~seq reduced_env phis cont =
-    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (to_env reduced_env) phis @@ fun reduced_env' ->
-    cont @@ `Consistent reduced_env'
+    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (to_env reduced_env) phis @@ fun algebraic_thy ->
+    cont @@ `Consistent algebraic_thy
 end
