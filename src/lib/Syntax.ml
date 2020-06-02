@@ -366,7 +366,7 @@ and pp_sub env fmt =
     Format.fprintf fmt "id"
   | SbE (sb, tm) ->
     Format.fprintf fmt "%a, %a"
-      (pp_sub env) sb
+      (pp_atomic_sub env) sb
       (pp env) tm
   | SbC (sb0, sb1) ->
     Format.fprintf fmt "%a %a %a"
