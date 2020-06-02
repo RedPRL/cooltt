@@ -287,8 +287,60 @@ We will make particular use of the \emph{boundary} cofibration:
   \end{array}
 \]
 
-\todo{sub types}
-\todo{sub judgment}
+The role of $\COF$ is to allow us to specify the boundary of elements. If $M :
+\TpPrf{\phi}\to A$, we write $N : A \mid \phi \to M\prn{*}$ when $N$ is an
+element of $A$ that under $\TpPrf{\phi}$ restricts to $M\prn{*}$:
+
+\begin{mathparpagebreakable}
+  \mprset{fraction={===}}
+  \inferrule{
+    \IsTp{A} \\
+    \phi : \COF \\
+    M : \TpPrf{\phi}\to A \\
+    N : A \\
+    p : \TpPrf{\phi}\to \prn{M\prn{*} = N}
+  }{
+    N : A \mid \phi \to M\prn{*}
+  }
+\end{mathparpagebreakable}
+
+We internalize this judgment as the \emph{cubical subtype} connective.
+
+\begin{mathparpagebreakable}
+  \inferrule[sub formation]{
+    \IsTp{A} \\
+    \phi : \COF \\
+    M : \TpPrf{\phi}\to A
+  }{
+    \IsTp{\prn{A \mid \phi \to M\prn{*}}}
+  }
+  \and
+  \inferrule[sub intro]{
+    \Hint{\IsTp{A}} \\
+    \Hint{\phi : \COF} \\
+    \Hint{M : \TpPrf{\phi}\to A} \\
+    N : A \mid \phi \to M\prn{*}
+  }{
+    \SubIn{N} : \prn{A \mid \phi \to M\prn{*}}
+  }
+  \and
+  \inferrule[sub elimination]{
+    \Hint{\IsTp{A}} \\
+    \Hint{\phi : \COF} \\
+    \Hint{M : \TpPrf{\phi}\to A} \\
+    N : \prn{A \mid \phi \to M\prn{*}}
+  }{
+    \SubOut{N} : A \mid \phi \to M\prn{*}
+  }
+\end{mathparpagebreakable}
+
+We extend all the above notations to $n$-ary disjunctions as needed:
+
+\[
+  \prn{A \mid \phi \to M\prn{*} \mid \psi \to N\prn{*}}
+  \coloneq
+  \prn{A \mid \phi\lor\psi \to \brk{\phi \to M\prn{*} \mid \psi \to N\prn{*}}}
+\]
 
 \section{The universe}
 
@@ -702,6 +754,68 @@ We may now specify the rules for the V types.
   }
 \]
 
+
+\subsection{Composition in composite types}
+\[
+  \inferrule{
+    \Hint{s,s' : \DIM}\\
+    \Hint{\psi : \COF}\\
+    \Hint{\Code{A} : \Prod{j:\DIM}{\TpPrf{j=s\lor\psi}\to\TpUniv}}\\\\
+    \Hint{r,r' : \DIM}\\
+    \Hint{\phi : \COF}\\
+    \Hint{
+      M : \Prod{i:\DIM}{
+        \Prod{*:\TpPrf{i=r\lor\phi}}{
+          \TpEl{
+            \CodeHCom{s}{s'}{\psi}{\Code{A}}
+          }
+        }
+      }
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{O} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor \phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{O}\prn{i,*} \coloneq \TmCap{s}{s'}{\psi}{\Code{A}}{M\prn{i,*}}
+      \end{array}
+    }
+    \and
+    {
+      \begin{array}{l}
+        \tilde{P} : \Prod{i:\DIM}{\Prod{*:\TpPrf{s=s'\lor \psi}}{\TpEl{\Code{A}\prn{s',*}}}}\\
+        \tilde{P}\prn{i,*} = \HCom{\Code{A}\prn{s',*}}{r}{i}{\phi}{M}
+      \end{array}
+    }
+    \\\\\\
+    {
+      \begin{array}{l}
+        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
+        \tilde{T}\prn{i,*} \coloneq
+        \brk{
+          i=r\lor\phi \to \tilde{O}\prn{i,*}
+          \delimmid
+          \psi \to \Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}
+          \delimmid
+          s=s' \to \tilde{P}\prn{i,*}
+        }
+      \end{array}
+    }
+  }{
+    \HCom{
+      \CodeHCom{s}{s'}{\psi}{\Code{A}}
+    }{r}{r'}{\phi}{M}
+    =
+    \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{
+      \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
+    }
+    :
+    \TpEl{
+      \CodeHCom{s}{s'}{\psi}{\Code{A}}
+    }
+  }
+\]
+
+
 \subsection{Coercion in V types}
 
 \NewDocumentCommand{\CodeFiberAlt}{g}{\widehat{\mathsf{Fiber'}}\IfValueT{#1}{\prn{#1}}}
@@ -916,66 +1030,6 @@ We may now specify the rules for the V types.
     \TmVin{s_{r'}}{E_{r'}}{\lambda{*}.\TmFst{\ElOut{\tilde{T}\prn{*}}}}{\tilde{U}}
     :
     \TpEl{\CodeV{s_{r'}}{\Code{A}_{r'}}{\Code{B}_{r'}}{E_{r'}}}
-  }
-\]
-
-\subsection{Composition in composite types}
-\[
-  \inferrule{
-    \Hint{s,s' : \DIM}\\
-    \Hint{\psi : \COF}\\
-    \Hint{\Code{A} : \Prod{j:\DIM}{\TpPrf{j=s\lor\psi}\to\TpUniv}}\\\\
-    \Hint{r,r' : \DIM}\\
-    \Hint{\phi : \COF}\\
-    \Hint{
-      M : \Prod{i:\DIM}{
-        \Prod{*:\TpPrf{i=r\lor\phi}}{
-          \TpEl{
-            \CodeHCom{s}{s'}{\psi}{\Code{A}}
-          }
-        }
-      }
-    }
-    \\\\\\
-    {
-      \begin{array}{l}
-        \tilde{O} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor \phi}}{\TpEl{\Code{A}\prn{s,*}}}}\\
-        \tilde{O}\prn{i,*} \coloneq \TmCap{s}{s'}{\psi}{\Code{A}}{M\prn{i,*}}
-      \end{array}
-    }
-    \and
-    {
-      \begin{array}{l}
-        \tilde{P} : \Prod{i:\DIM}{\Prod{*:\TpPrf{s=s'\lor \psi}}{\TpEl{\Code{A}\prn{s',*}}}}\\
-        \tilde{P}\prn{i,*} = \HCom{\Code{A}\prn{s',*}}{r}{i}{\phi}{M}
-      \end{array}
-    }
-    \\\\\\
-    {
-      \begin{array}{l}
-        \tilde{T} : \Prod{i:\DIM}{\Prod{*:\TpPrf{i=r\lor\phi\lor\psi\lor{s=s'}}}{\TpEl{\Code{A}\prn{s,*}}}}\\
-        \tilde{T}\prn{i,*} \coloneq
-        \brk{
-          i=r\lor\phi \to \tilde{O}\prn{i,*}
-          \delimmid
-          \psi \to \Coe{\lambda j. \Code{A}\prn{j,*}}{s'}{s}{\tilde{P}\prn{i,*}}
-          \delimmid
-          s=s' \to \tilde{P}\prn{i,*}
-        }
-      \end{array}
-    }
-  }{
-    \HCom{
-      \CodeHCom{s}{s'}{\psi}{\Code{A}}
-    }{r}{r'}{\phi}{M}
-    =
-    \TmBox{s}{s'}{\psi}{\lambda{*}.\tilde{P}\prn{r',*}}{
-      \HCom{\Code{A}\prn{s,*}}{r}{r'}{\phi\lor\psi\lor{s=s'}}{\tilde{T}}
-    }
-    :
-    \TpEl{
-      \CodeHCom{s}{s'}{\psi}{\Code{A}}
-    }
   }
 \]
 
