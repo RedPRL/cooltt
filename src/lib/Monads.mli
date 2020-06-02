@@ -7,8 +7,8 @@ open CoolBasis
 
 type 'a compute
 type 'a evaluate
+type 'a split_quote
 type 'a quote
-type 'a quote' = D.cof list -> 'a quote
 
 (** The "computation" monad; contains enough state to run computations in the semantic domain,
     does not contain a variable environment or anything that would be needed for evaluation. *)
@@ -44,13 +44,11 @@ end
 
 
 (** The quotation environment keeps track of De Bruijn indices for use in quotation and conversion checking. *)
-module QuM : sig
+module SplitQuM : sig
   include Monad.MonadReaderResult
-    with type 'a m = 'a quote
-  type 'a m' = 'a quote'
+    with type 'a m = 'a split_quote
 
   val lift_cmp : 'a compute -> 'a m
-  val lift_cmp_under_cofs : D.cof list -> 'a compute -> 'a m
 
   val read_global : ElabState.t m
   val read_local : int m
@@ -58,14 +56,27 @@ module QuM : sig
 
   val binder : int -> 'a m -> 'a m
 
-  (* [restrict ~splitter cofs m] creates splits when needed. [splitter] is in charge of
-   * shifting the de Bruijn indexes if the branches are placed under a binder. *)
   val restrict : splitter:((D.cof * 'a m) list -> 'a m) -> D.cof list -> 'a m -> 'a m
   val restrict_ : D.cof list -> unit m -> unit m
 
-  val bind'_var : D.tp -> (D.con -> 'a m') -> 'a m
   val bind_var : splitter:((D.cof * 'a m) list -> 'a m) -> D.tp -> (D.con -> 'a m) -> 'a m
   val bind_var_ : D.tp -> (D.con -> unit m) -> unit m
+
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
+end
+
+module QuM : sig
+  include Monad.S with type 'a m = 'a quote
+  val lift_cmp : 'a compute -> 'a m
+
+  val read_local : int m
+
+  val split : D.cof list -> 'a m -> 'a split_quote
+
+  val seq : splitter:((D.cof * 'a split_quote) list -> 'a split_quote) -> 'a split_quote -> 'a m
+  val seq_ : unit split_quote -> unit m
+
+  val bind_var : D.tp -> (D.con -> 'a m) -> 'a m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
@@ -76,8 +87,8 @@ module ElabM : sig
     with type global := St.t
     with type local := ElabEnv.t
 
-  val lift_qu : 'a quote' -> 'a m
-  val lift_qu_ : unit quote -> unit m
+  val lift_qu : 'a quote -> 'a m
+  val lift_sp_qu_ : unit split_quote -> unit m
 
   val lift_ev : 'a evaluate -> 'a m
   val lift_cmp : 'a compute -> 'a m

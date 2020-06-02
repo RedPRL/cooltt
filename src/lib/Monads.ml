@@ -24,7 +24,7 @@ struct
      env : D.env}
 end
 
-module QuL =
+module SplitQuL =
 struct
   type local =
     {state : St.t;
@@ -107,13 +107,12 @@ end
 
 type 'a evaluate = 'a EvM.m
 
-module QuM =
+module SplitQuM =
 struct
 
-  module M = Monad.MonadReaderResult (QuL)
+  module M = Monad.MonadReaderResult (SplitQuL)
   module MU = Monad.Util (M)
   open Monad.Notation (M)
-  type 'a m' = CofEnv.cof list -> 'a m
 
   let read_global =
     let+ {state} = M.read in
@@ -187,12 +186,54 @@ struct
     bind'_var tp @@ fun var phis ->
     restrict_ phis @@ m var
 
-  include QuL
+  include SplitQuL
   include M
 end
 
-type 'a quote = 'a QuM.m
-type 'a quote' = CofEnv.cof list -> 'a quote
+type 'a split_quote = 'a SplitQuM.m
+
+module QuM =
+struct
+
+  module M = struct
+    type 'a m = CofEnv.cof list -> 'a SplitQuM.m
+    let bind m1 m2 cofs = SplitQuM.bind (m1 cofs) @@ fun x -> m2 x cofs
+    let ret x cofs = SplitQuM.ret x
+  end
+  module MU = Monad.Util (M)
+  open Monad.Notation (M)
+
+  let lift_cmp (m : 'a compute) : 'a m =
+    fun phis {state; cof_reduced_env} ->
+    m {state; cof_env = CofEnv.Reduced.assemble_env cof_reduced_env phis}
+
+  let read_local _ =
+    SplitQuM.read_local
+
+  let split cofs m = m cofs
+
+  let seq ~splitter m cofs =
+    SplitQuM.restrict ~splitter cofs m
+
+  let seq_ m : 'a m =
+    fun cofs ->
+    SplitQuM.restrict_ cofs m
+
+  let bind_var tp m cofs =
+    SplitQuM.bind'_var tp @@ fun var cofs' ->
+    m var @@ cofs @ cofs'
+
+  let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
+    fun abort m cofs ->
+    fun st ->
+    match CofEnv.Reduced.consistency st.cof_reduced_env with
+    | `Consistent -> m cofs st
+    | `Inconsistent -> abort cofs st
+
+  include M
+end
+
+type 'a quote = CofEnv.cof list -> 'a split_quote
 
 
 module ElabM =
@@ -214,20 +255,20 @@ struct
     M.scope @@ fun env ->
     Env.set_veil v env
 
-  let lift_qu (m : 'a quote') : 'a m =
+  let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
     let cof_reduced_env, unreduced_phis =
       CofEnv.Reduced.partition_env @@ Env.cof_env env
     in
     match
-      QuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} @@
+      SplitQuM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} @@
       m unreduced_phis
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
-  let lift_qu_ (m : unit quote) : unit m =
-    lift_qu @@ fun phis -> QuM.restrict_ phis m
+  let lift_sp_qu_ (m : unit split_quote) : unit m =
+    lift_qu @@ QuM.seq_ m
 
   let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->

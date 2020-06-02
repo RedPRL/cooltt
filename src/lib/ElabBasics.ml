@@ -58,22 +58,22 @@ let get_local ix =
   | exception exn -> throw exn
 
 let quote_con tp con =
-  lift_qu @@ Qu.quote'_con tp con
+  lift_qu @@ Qu.quote_con tp con
 
 let quote_tp tp =
-  lift_qu @@ Qu.quote'_tp tp
+  lift_qu @@ Qu.quote_tp tp
 
 let quote_cut tp cut =
-  lift_qu @@ Qu.quote'_cut tp cut
+  lift_qu @@ Qu.quote_cut tp cut
 
 let quote_cof cof =
-  lift_qu @@ Qu.quote'_cof cof
+  lift_qu @@ Qu.quote_cof cof
 
 let quote_dim con =
-  lift_qu @@ Qu.quote'_dim con
+  lift_qu @@ Qu.quote_dim con
 
 let equate tp l r =
-  Conv.trap_err @@ lift_qu_ @@ Conv.equate_con tp l r |>>
+  Conv.trap_err @@ lift_sp_qu_ @@ Conv.equate_con tp l r |>>
   function
   | `Ok -> ret ()
   | `Err err ->
@@ -84,7 +84,7 @@ let equate tp l r =
     elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
 
 let equate_tp tp tp' =
-  Conv.trap_err @@ lift_qu_ @@ Conv.equate_tp tp tp' |>>
+  Conv.trap_err @@ lift_sp_qu_ @@ Conv.equate_tp tp tp' |>>
   function
   | `Ok -> ret ()
   | `Err err ->

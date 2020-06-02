@@ -47,9 +47,9 @@ exception ConversionError of Error.t
 module Splice = Splice
 module TB = TermBuilder
 
-open QuM
-open Monad.Notation (QuM)
-module MU = Monad.Util (QuM)
+open SplitQuM
+open Monad.Notation (SplitQuM)
+module MU = Monad.Util (SplitQuM)
 open Sem
 
 (* duplicated *)
@@ -74,14 +74,14 @@ let contractum_or x =
 
 (* Invariant: tp0 and tp1 not necessarily whnf *)
 let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
-  QuM.abort_if_inconsistent (ret ()) @@
+  SplitQuM.abort_if_inconsistent (ret ()) @@
   let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
   let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
   match tp0, tp1 with
   | D.TpSplit branches, _
   | _, D.TpSplit branches ->
     let phis = List.map (fun (phi, _) -> phi) branches in
-    QuM.restrict_ [Cof.join phis] @@
+    SplitQuM.restrict_ [Cof.join phis] @@
     equate_tp tp0 tp1
   | D.TpAbort, _ | _, D.TpAbort -> ret ()
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
@@ -133,7 +133,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
-  QuM.abort_if_inconsistent (ret ()) @@
+  SplitQuM.abort_if_inconsistent (ret ()) @@
   let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
   let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con0 in
   let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con1 in
@@ -143,12 +143,12 @@ and equate_con tp con0 con1 =
   | _, _, D.Abort -> ret ()
   | D.TpSplit branches, _, _ ->
     let phis = List.map (fun (phi, _) -> phi) branches in
-    QuM.restrict_ [Cof.join phis] @@
+    SplitQuM.restrict_ [Cof.join phis] @@
     equate_con tp con0 con1
   | _, D.Split branches, _
   | _, _, D.Split branches ->
     let phis = List.map (fun (phi, _) -> phi) branches in
-    QuM.restrict_ [Cof.join phis] @@
+    SplitQuM.restrict_ [Cof.join phis] @@
     equate_con tp con0 con1
   | D.Pi (base, _, fam), _, _ ->
     bind_var_ base @@ fun x ->
@@ -264,11 +264,11 @@ and equate_con tp con0 con1 =
     let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
     let* tp_cap = lift_cmp @@ do_el code_cap in
     let* () = equate_con tp_cap cap0 cap1 in
-    QuM.restrict_ [phi] @@
+    SplitQuM.restrict_ [phi] @@
     equate_con hcom_tp con0 con1
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
-    let* () = QuM.restrict_ [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
+    let* () = SplitQuM.restrict_ [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
     let* proj0 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con0 in
     let* proj1 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con1 in
     let* tp_proj = lift_cmp @@ do_el code in
@@ -280,7 +280,7 @@ and equate_con tp con0 con1 =
 
 (* Invariant: cut0, cut1 are whnf *)
 and equate_cut cut0 cut1 =
-  QuM.abort_if_inconsistent (ret ()) @@
+  SplitQuM.abort_if_inconsistent (ret ()) @@
   let* () = assert_done_cut cut0 in
   let* () = assert_done_cut cut1 in
   let hd0, sp0 = cut0 in
@@ -373,7 +373,7 @@ and assert_done_cut cut =
 
 (* Invariant: hd0, hd1 are whnf *)
 and equate_hd hd0 hd1 =
-  QuM.abort_if_inconsistent (ret ()) @@
+  SplitQuM.abort_if_inconsistent (ret ()) @@
   let* () = assert_done_hd hd0 in
   let* () = assert_done_hd hd1 in
   match hd0, hd1 with
