@@ -388,12 +388,12 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ pequiv = subst_con r x pequiv in
     D.ElUnstable (`V (s, pcode, code, pequiv))
   | D.TpSplit branches ->
-    let go_branch (phi, clo) =
+    let subst_branch (phi, clo) =
       let+ phi = subst_cof r x phi
       and+ clo = subst_tp_clo r x clo in
-      (phi, clo)
+      phi, clo
     in
-    let+ branches = MU.map go_branch branches in
+    let+ branches = MU.map subst_branch branches in
     D.TpSplit branches
 
 
@@ -1373,22 +1373,26 @@ and do_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
     abort_if_inconsistent (ret D.tp_abort) @@
+    let splitter con phis =
+      splice_tp @@
+      Splice.foreign con @@ fun tm ->
+      Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
+      Splice.term @@
+      TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
+    in
     begin
       inspect_con con |>>
       function
-      | D.Cut {cut; _} ->
-        ret @@ D.ElCut cut
       | D.FHCom (`Univ, r, s, phi, bdy) ->
         ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
       | D.CodeV (r, pcode, code, pequiv) ->
         ret @@ D.ElUnstable (`V (r, pcode, code, pequiv))
       | D.Split branches as con ->
-        let phis = List.map fst branches in
-        splice_tp @@
-        Splice.foreign con @@ fun tm ->
-        Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
-        Splice.term @@
-        TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
+        splitter con @@ List.map fst branches
+      | D.Cut {tp = D.TpSplit branches; _} as con ->
+        splitter con @@ List.map fst branches
+      | D.Cut {cut; tp = D.Univ} ->
+        ret @@ D.ElCut cut
       | _ ->
         ret @@ D.El con
     end
