@@ -131,8 +131,8 @@ let snd m =
   let+ x = m in
   S.Snd x
 
-let cof_abort =
-  ret S.CofAbort
+let tm_abort =
+  ret @@ S.tm_abort
 
 let const (m : 'a m) : 'a b =
   fun _ -> m

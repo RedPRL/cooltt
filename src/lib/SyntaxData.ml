@@ -36,7 +36,6 @@ type t =
   | Cof of (t, t) Cof.cof_f
   | ForallCof of t
   | CofSplit of (t * t) list
-  | CofAbort
   | Prf
 
   | ElIn of t
@@ -72,3 +71,6 @@ and tp =
   | Circle
 
 type env = tp list
+
+let tm_abort = CofSplit []
+let tp_abort = TpCofSplit []

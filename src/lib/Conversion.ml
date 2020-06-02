@@ -83,7 +83,6 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let phis = List.map (fun (phi, _) -> phi) branches in
     SplitQuM.restrict_ [Cof.join phis] @@
     equate_tp tp0 tp1
-  | D.TpAbort, _ | _, D.TpAbort -> ret ()
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
@@ -139,8 +138,6 @@ and equate_con tp con0 con1 =
   let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con1 in
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
-  | _, D.Abort, _ -> ret ()
-  | _, _, D.Abort -> ret ()
   | D.TpSplit branches, _, _ ->
     let phis = List.map (fun (phi, _) -> phi) branches in
     SplitQuM.restrict_ [Cof.join phis] @@

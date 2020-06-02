@@ -197,7 +197,6 @@ and con_to_dim =
     function
     | D.DimCon0 -> ret D.Dim0
     | D.DimCon1 -> ret D.Dim1
-    | D.Abort -> ret D.Dim0
     | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
     | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
     | con ->
@@ -213,7 +212,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Base | D.Abort | D.CodeNat | D.CodeCircle | D.CodeUniv as con -> ret con
+  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Base | D.CodeNat | D.CodeCircle | D.CodeUniv as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -363,7 +362,7 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof | D.TpAbort as con -> ret con
+  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -654,8 +653,6 @@ and eval : S.t -> D.con EvM.m =
       let+ env = read_local in
       let pclos = List.map (fun tm -> D.Clo (tm, env)) tms in
       D.Split (List.combine phis pclos)
-    | S.CofAbort ->
-      ret D.Abort
     | S.Prf ->
       ret D.Prf
 
@@ -751,7 +748,7 @@ and eval_cof tphi =
 and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.Abort | D.SubIn _ | D.ElIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
   | D.CodePath _ | D.CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeCircle | D.CodeUniv ->
     ret `Done
@@ -1053,12 +1050,12 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
 
   in
   fun con ->
-    abort_if_inconsistent (ret D.Abort) @@
+    abort_if_inconsistent (ret D.tm_abort) @@
     go con
 
 and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   whnf_inspect_con c |>>
   function
   | D.Base ->
@@ -1147,7 +1144,7 @@ and inspect_con ?(style = {unfolding = false}) con =
 
 and do_goal_proj con =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.goal_proj in
   begin
     inspect_con con |>>
@@ -1165,7 +1162,7 @@ and do_goal_proj con =
 
 and do_fst con : D.con CM.m =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.fst in
   begin
     inspect_con con |>>
@@ -1183,7 +1180,7 @@ and do_fst con : D.con CM.m =
 
 and do_snd con : D.con CM.m =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.snd in
   begin
     inspect_con con |>>
@@ -1210,7 +1207,7 @@ and do_ap2 f a b =
 
 and do_ap con arg =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@
     Splice.foreign arg @@ fun arg ->
@@ -1250,7 +1247,7 @@ and do_ap con arg =
 
 and do_sub_out con =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@ Splice.commute_split con phis TB.sub_out
   in
@@ -1279,7 +1276,7 @@ and do_rigid_cap r s phi code box =
     Splice.commute_split con phis @@ TB.cap r s phi code
   in
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   begin
     inspect_con box |>>
     function
@@ -1310,7 +1307,7 @@ and assert_dim_var r =
 
 and do_rigid_vproj r pcode code pequiv v =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@
     Splice.foreign_dim r @@ fun r ->
@@ -1338,7 +1335,7 @@ and do_rigid_vproj r pcode code pequiv v =
 
 and do_el_out con =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@
     Splice.foreign con @@ fun tm ->
@@ -1367,7 +1364,7 @@ and do_el_out con =
 and do_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
-    abort_if_inconsistent (ret D.TpAbort) @@
+    abort_if_inconsistent (ret D.tp_abort) @@
     begin
       inspect_con con |>>
       function
@@ -1391,7 +1388,7 @@ and do_el : D.con -> D.tp CM.m =
 and unfold_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
-    abort_if_inconsistent (ret D.TpAbort) @@
+    abort_if_inconsistent (ret D.tp_abort) @@
     begin
       inspect_con ~style:{unfolding = true} con |>>
       function
@@ -1526,7 +1523,7 @@ and dispatch_rigid_hcom ?(style = default_whnf_style) code =
 
 and enact_rigid_coe line r r' con tag =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   match tag with
   | `CoeNat | `CoeCircle | `CoeUniv ->
     ret con
@@ -1589,7 +1586,7 @@ and enact_rigid_coe line r r' con tag =
 
 and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in
-  abort_if_inconsistent (ret D.Abort) @@
+  abort_if_inconsistent (ret D.tm_abort) @@
   match tag with
   | `HComPi (base, fam) ->
     splice_tm @@
@@ -1677,7 +1674,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
 
 and do_rigid_coe (line : D.con) r s con =
   let open CM in
-  CM.abort_if_inconsistent (ret D.Abort) @@
+  CM.abort_if_inconsistent (ret D.tm_abort) @@
   begin
     dispatch_rigid_coe line |>>
     function
@@ -1692,7 +1689,7 @@ and do_rigid_coe (line : D.con) r s con =
 
 and do_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
-  CM.abort_if_inconsistent (ret D.Abort) @@
+  CM.abort_if_inconsistent (ret D.tm_abort) @@
   begin
     dispatch_rigid_hcom code |>>
     function

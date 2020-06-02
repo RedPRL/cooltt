@@ -42,7 +42,7 @@ val box : t m -> t m -> t m -> t m -> t m -> t m
 
 val cof_split : (t m * t m) list -> t m
 val tp_cof_split : (t m * tp m) list -> tp m
-val cof_abort : t m
+val tm_abort : t m
 val sub_out : t m -> t m
 val sub_in : t m -> t m
 

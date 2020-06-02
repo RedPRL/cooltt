@@ -53,7 +53,6 @@ let rec dump fmt =
   | Cof cof -> Format.fprintf fmt "cof[%a]" dump_cof cof
   | ForallCof _ -> Format.fprintf fmt "<dim1>"
   | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (pp_sep_list dump_branch) branches
-  | CofAbort -> Format.fprintf fmt "cof/abort"
   | Prf -> Format.fprintf fmt "prf"
 
   | ElIn tm -> Format.fprintf fmt "el/in[%a]" dump tm
@@ -141,8 +140,6 @@ let rec pp env fmt tm =
     pp_applications env fmt tm
   | Pair (tm0, tm1) ->
     pp_tuple (pp env) fmt [tm0; tm1]
-  | CofAbort ->
-    Format.fprintf fmt "[]"
   | CofSplit branches ->
     let sep fmt () = Format.fprintf fmt "@ | " in
     pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
@@ -417,7 +414,7 @@ and pp_tp_cof_split_branch env fmt (phi, tm) =
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
+  | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
   | Zero | Base | Prf ->
     pp env fmt tm
   | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->

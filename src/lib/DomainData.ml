@@ -24,7 +24,6 @@ and con =
   | Loop of dim
   | Pair of con * con
   | GoalRet of con
-  | Abort
   | SubIn of con
   | ElIn of con
   | DimCon0
@@ -61,7 +60,6 @@ and tp =
   | Sg of tp * Ident.t * tp_clo
   | Nat
   | Circle
-  | TpAbort
 
 and hd =
   | Global of Symbol.t
@@ -82,3 +80,6 @@ and frm =
   | KCircleElim of con * con * con
   | KGoalProj
   | KElOut
+
+let tm_abort = Split []
+let tp_abort = TpSplit []

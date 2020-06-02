@@ -32,7 +32,7 @@ let rec quote_con (tp : D.tp) con =
   let open QuM in
   let open Monad.Notation (QuM) in
   let module MU = Monad.Util (QuM) in
-  QuM.abort_if_inconsistent (ret S.CofAbort) @@
+  QuM.abort_if_inconsistent (ret S.tm_abort) @@
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
   let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
   match tp, con with
@@ -45,7 +45,6 @@ let rec quote_con (tp : D.tp) con =
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
     ret @@ S.CofSplit (List.combine tphis tms)
-  | _, D.Abort -> ret S.CofAbort
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
@@ -368,7 +367,6 @@ and split_quote_tp (tp : D.tp) =
   let open Monad.Notation (SplitQuM) in
   let module MU = Monad.Util (SplitQuM) in
   match tp with
-  | D.TpAbort -> ret @@ S.El S.CofAbort
   | D.Nat -> ret S.Nat
   | D.Circle -> ret S.Circle
   | D.Pi (base, ident, fam) ->

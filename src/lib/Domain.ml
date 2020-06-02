@@ -143,8 +143,6 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "goal-ret[%a]" pp_con con
   | Lam (_, clo) ->
     Format.fprintf fmt "lam[%a]" pp_clo clo
-  | Abort ->
-    Format.fprintf fmt "<abort>"
   | DimCon0 ->
     Format.fprintf fmt "dim0"
   | DimCon1 ->
@@ -196,8 +194,6 @@ and pp_tp fmt =
     Format.fprintf fmt "<nat>"
   | Circle ->
     Format.fprintf fmt "<circle>"
-  | TpAbort ->
-    Format.fprintf fmt "<abort>"
   | El con ->
     Format.fprintf fmt "el[%a]" pp_con con
   | ElCut con ->

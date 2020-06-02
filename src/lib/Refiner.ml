@@ -78,11 +78,11 @@ struct
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
-    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     EM.quote_tp @@ D.ElCut cut
 
   let unleash_syn_hole name flexity : T.Syn.tac =
-    let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
     let+ tm = T.Chk.bchk (unleash_hole name flexity) tp in
     tm, tp
@@ -229,7 +229,7 @@ struct
   let split0 : T.BChk.tac =
     fun _ ->
     let* _ = assert_true Cof.bot in
-    EM.ret S.CofAbort
+    EM.ret S.tm_abort
 
   let split1 (phi : D.cof) (tac : T.var -> T.BChk.tac) : T.BChk.tac =
     fun goal ->
