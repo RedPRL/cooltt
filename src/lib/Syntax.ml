@@ -72,6 +72,8 @@ let rec dump fmt =
   | CodeV _ -> Format.fprintf fmt "<v>"
   | CodeCircle -> Format.fprintf fmt "circle"
 
+  | ESub _ -> Format.fprintf fmt "<esub>"
+
 and dump_tp fmt =
   function
   | Univ -> Format.fprintf fmt "univ"
@@ -87,6 +89,7 @@ and dump_tp fmt =
   | Sg _ -> Format.fprintf fmt "<sg>"
   | Nat -> Format.fprintf fmt "nat"
   | Circle -> Format.fprintf fmt "circle"
+  | TpESub _ -> Format.fprintf fmt "<esub>"
 
 and dump_cof fmt =
   function
@@ -348,6 +351,37 @@ let rec pp env fmt tm =
     Format.fprintf fmt "@[<hv2>vproj %a@]"
       (pp_atomic env) v
 
+  | ESub (sub, tm) ->
+    Format.fprintf fmt "[%a]%a"
+      (pp_sub env) sub
+      (pp_atomic env) tm
+
+and pp_sub env fmt =
+  function
+  | Sb0 ->
+    Uuseg_string.pp_utf_8 fmt "ε"
+  | SbP ->
+    Format.fprintf fmt "p"
+  | SbI ->
+    Format.fprintf fmt "id"
+  | SbE (sb, tm) ->
+    Format.fprintf fmt "%a, %a"
+      (pp_sub env) sb
+      (pp env) tm
+  | SbC (sb0, sb1) ->
+    Format.fprintf fmt "%a %a %a"
+      (pp_atomic_sub env) sb0
+      Uuseg_string.pp_utf_8 "∘"
+      (pp_atomic_sub env) sb1
+
+and pp_atomic_sub env fmt sb =
+  match sb with
+  | Sb0 | SbP | SbI ->
+    pp_sub env fmt sb
+  | _ ->
+    pp_braced (pp_sub env) fmt sb
+
+
 and pp_tp env fmt tp =
   match tp with
   | TpCofSplit branches ->
@@ -396,6 +430,10 @@ and pp_tp env fmt tp =
     pp_tp env fmt tp
   | TpPrf cof ->
     Format.fprintf fmt "[%a]" (pp env) cof
+  | TpESub (sub, tp) ->
+    Format.fprintf fmt "[%a]%a"
+      (pp_sub env) sub
+      (pp_atomic_tp env) tp
 
 and pp_atomic_tp env fmt tp =
   match tp with

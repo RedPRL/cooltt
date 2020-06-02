@@ -55,6 +55,8 @@ type t =
   | CodeV of t * t * t * t
   | CodeCircle
 
+  | ESub of sub * t
+
 and tp =
   | Univ
   | El of t
@@ -69,6 +71,14 @@ and tp =
   | Sg of tp * Ident.t * tp
   | Nat
   | Circle
+  | TpESub of sub * tp
+
+and sub =
+  | Sb0
+  | SbI
+  | SbE of sub * t
+  | SbP
+  | SbC of sub * sub
 
 type env = tp list
 

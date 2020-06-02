@@ -508,6 +508,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local in
     let pclos = List.map (fun tp -> D.TpClo (tp, env)) tps in
     D.TpSplit (List.combine phis pclos)
+  | S.TpESub (sb, tp) ->
+    eval_sub sb @@ eval_tp tp
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -733,6 +735,24 @@ and eval : S.t -> D.con EvM.m =
       and+ vpequiv = eval pequiv in
       D.CodeV (vr, vpcode, vcode, vpequiv)
 
+    | S.ESub (sb, tm) ->
+      eval_sub sb @@ eval tm
+
+and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
+  fun sb kont ->
+  let open EvM in
+  match sb with
+  | S.Sb0 ->
+    drop_all_cons kont
+  | S.SbP ->
+    drop_con kont
+  | S.SbI -> kont
+  | S.SbE (sb, tm) ->
+    let* con = eval tm in
+    append [con] @@ eval_sub sb kont
+  | S.SbC (sb0, sb1) ->
+    eval_sub sb0 @@ eval_sub sb1 kont
+
 and eval_dim tr =
   let open EvM in
   let* con = eval tr in
@@ -742,7 +762,6 @@ and eval_cof tphi =
   let open EvM in
   let* vphi = eval tphi in
   lift_cmp @@ con_to_cof vphi
-
 
 
 and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
