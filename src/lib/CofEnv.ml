@@ -8,41 +8,43 @@ module UF = DisjointSet.Make (PersistentTable.M)
 module VarSet = Set.Make (Int)
 
 (** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
-type algebraic_thy =
+type alg_pres =
   { classes : dim UF.t;
-    (** equivalence classes of dimensions from reduced cofibrations *)
+    (** equivalence classes of dimensions *)
 
     true_vars : VarSet.t
   }
 
 (** A presentation of a disjunctive theory over the language of intervals and cofibrations. *)
-type disjunctive_thy =
+type disj_pres =
   { classes : dim UF.t;
-    (** equivalence classes of dimensions from reduced cofibrations *)
+    (** equivalence classes of dimensions *)
 
     true_vars : VarSet.t;
     (** set of cofibration variables assumed to be true *)
 
-    unreduced_joins : cof list list;
-    (** a stack of unreduced joins, each represented by a list of cofibrations *)
+    irreducible_joins : cof list list;
+    (** a stack of irreducible joins, each represented by a list of cofibrations *)
   }
 
-type reduced_env = [ `Consistent of algebraic_thy | `Inconsistent ]
-type env = [ `Consistent of disjunctive_thy | `Inconsistent ]
+(* As an optimization, we remember when a theory is consistent or not. *)
 
-let disjunctive_thy_of_algebraic_thy : algebraic_thy -> disjunctive_thy =
-  fun {classes; true_vars} -> {classes; true_vars; unreduced_joins = []}
+type alg_thy = [ `Consistent of alg_pres | `Inconsistent ]
+type disj_thy = [ `Consistent of disj_pres | `Inconsistent ]
 
-let env_of_reduced_env : reduced_env -> env =
+let disj_pres_of_alg_pres : alg_pres -> disj_pres =
+  fun {classes; true_vars} -> {classes; true_vars; irreducible_joins = []}
+
+let disj_thy_of_alg_thy : alg_thy -> disj_thy =
   function
-  | `Consistent algebraic_thy ->  `Consistent (disjunctive_thy_of_algebraic_thy algebraic_thy)
+  | `Consistent alg_pres ->  `Consistent (disj_pres_of_alg_pres alg_pres)
   | `Inconsistent -> `Inconsistent
 
 let init () =
   `Consistent
     {classes = UF.init ~size:100;
      true_vars = VarSet.empty;
-     unreduced_joins = []}
+     irreducible_joins = []}
 
 let consistency =
   function
@@ -54,50 +56,50 @@ let find_class classes r =
 
 module SearchHelper :
 sig
-  (** Pushes cofibrations into the environment.
-      Invariant: input env.classes must be consistent.
+  (** Pushes cofibrations into the theory.
+      Invariant: input thy.classes must be consistent.
 
-      @return If the [env.classes] would be inconsistent, [None] is returned.
-      Otherwise, [Some env] is returned and [env.classes] will be consistent. *)
-  val pushes' : disjunctive_thy -> cof list -> disjunctive_thy option
+      @return If the [thy.classes] would be inconsistent, [None] is returned.
+      Otherwise, [Some thy] is returned and [thy.classes] will be consistent. *)
+  val pushes' : disj_pres -> cof list -> disj_pres option
 
-  (** Checking whether the [disjunctive_thy] is consistent.
-      Invariant: intput [env.classes] must be consistent;
-      the inconsistency can only come from [env.unreduced_joins.] *)
-  val is_consistent : disjunctive_thy -> bool
+  (** Checking whether the [disj_pres] is consistent.
+      Invariant: intput [thy.classes] must be consistent;
+      the inconsistency can only come from [thy.irreducible_joins.] *)
+  val is_consistent : disj_pres -> bool
 end
 =
 struct
-  let rec pushes' ({classes; true_vars; unreduced_joins} as env) =
+  let rec pushes' ({classes; true_vars; irreducible_joins} as thy) =
     function
-    | [] -> Some env
+    | [] -> Some thy
     | phi :: phis ->
       match phi with
       | Cof.Var v ->
-        pushes' {env with true_vars = VarSet.add v true_vars} phis
+        pushes' {thy with true_vars = VarSet.add v true_vars} phis
       | Cof.Cof phi ->
         match phi with
         | Cof.Meet psis ->
-          pushes' env @@ psis @ phis
+          pushes' thy @@ psis @ phis
         | Cof.Join psis ->
-          pushes' {env with unreduced_joins = psis :: unreduced_joins} phis
+          pushes' {thy with irreducible_joins = psis :: irreducible_joins} phis
         | Cof.Eq (r, s) ->
           let classes = UF.union r s classes in
           if UF.find Dim0 classes = UF.find Dim1 classes then
             None
           else
-            pushes' {env with classes} phis
+            pushes' {thy with classes} phis
 
   (** [is_consistent] is almost a duplicate of the most general search. It exists because
     * (1) it's a clean way to avoid checking consistency within consistency and
     * (2) it's a clean way to avoid recursive modules. *)
-  let rec is_consistent ({unreduced_joins; _} as env) =
-    match unreduced_joins with
+  let rec is_consistent ({irreducible_joins; _} as thy) =
+    match irreducible_joins with
     | [] -> true
-    | psis :: unreduced_joins ->
+    | psis :: irreducible_joins ->
       psis |> List.exists @@ fun psi ->
       Option.fold ~none:false ~some:is_consistent @@
-      pushes' {env with unreduced_joins} [psi]
+      pushes' {thy with irreducible_joins} [psi]
 end
 
 module Search :
@@ -109,38 +111,38 @@ sig
     (** [seq] is the sequencing operator. *)
     -> fast_track:((unit -> 'a) -> (unit -> 'a) -> 'a)
     (** If the first component returns a "good" result, then don't bother with the second. (???) *)
-    -> env
+    -> disj_thy
     -> cof list
-    -> (algebraic_thy -> 'a)
+    -> (alg_pres -> 'a)
     -> 'a
 end =
 struct
-  let left_invert' ~zero ~seq ~fast_track (env : disjunctive_thy) phis cont =
+  let left_invert' ~zero ~seq ~fast_track (thy : disj_pres) phis cont =
     let rec go =
       function
       | None -> zero
-      | Some ({classes; true_vars; unreduced_joins} as env) ->
+      | Some ({classes; true_vars; irreducible_joins} as thy) ->
         fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
-        match unreduced_joins with
+        match irreducible_joins with
         | [] -> cont {classes; true_vars}
-        | psis :: unreduced_joins ->
-          if SearchHelper.is_consistent env then
+        | psis :: irreducible_joins ->
+          if SearchHelper.is_consistent thy then
             psis |> seq @@ fun psi ->
-            go @@ SearchHelper.pushes' {env with unreduced_joins} [psi]
+            go @@ SearchHelper.pushes' {thy with irreducible_joins} [psi]
           else
             zero
     in
-    go @@ SearchHelper.pushes' env phis
+    go @@ SearchHelper.pushes' thy phis
 
-  let left_invert ~zero ~seq ~fast_track env phis cont =
-    match env with
+  let left_invert ~zero ~seq ~fast_track thy phis cont =
+    match thy with
     | `Inconsistent -> zero
-    | `Consistent env -> left_invert' ~zero ~seq ~fast_track env phis cont
+    | `Consistent thy -> left_invert' ~zero ~seq ~fast_track thy phis cont
 end
 
 
 (* Invariant: local.classes must be consistent. *)
-let rec test (local : algebraic_thy) : cof -> bool =
+let rec test (local : alg_pres) : cof -> bool =
   function
   | Cof.Cof phi ->
     begin
@@ -157,36 +159,36 @@ let rec test (local : algebraic_thy) : cof -> bool =
   | Cof.Var v ->
     VarSet.mem v local.true_vars
 
-let test_sequent env cx phi =
+let test_sequent thy cx phi =
   Search.left_invert
     ~zero:true
     ~seq:List.for_all
     ~fast_track:(fun x y -> if x () then true else y ())
-    env cx
-  @@ fun env ->
-  test env phi
+    thy cx
+  @@ fun thy ->
+  test thy phi
 
-let assumes env phis =
-  match env with
+let assumes thy phis =
+  match thy with
   | `Inconsistent -> `Inconsistent
-  | `Consistent env ->
+  | `Consistent thy ->
     match
-      SearchHelper.pushes' env @@ List.map Cof.reduce phis (* do we want Cof.reduce here? *)
+      SearchHelper.pushes' thy @@ List.map Cof.reduce phis (* do we want Cof.reduce here? *)
     with
     | None -> `Inconsistent
-    | Some env ->
-      if SearchHelper.is_consistent env
-      then `Consistent env
+    | Some thy ->
+      if SearchHelper.is_consistent thy
+      then `Consistent thy
       else `Inconsistent
 
-let assume env phi = assumes env [phi]
+let assume thy phi = assumes thy [phi]
 
 
-let left_invert_under_cofs ~zero ~seq env phis cont =
-  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) env phis @@ fun algebraic_thy ->
-  cont @@ `Consistent (disjunctive_thy_of_algebraic_thy algebraic_thy)
+let left_invert_under_cofs ~zero ~seq thy phis cont =
+  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) thy phis @@ fun alg_pres ->
+  cont @@ `Consistent (disj_pres_of_alg_pres alg_pres)
 
-module Reduced =
+module Algebraic =
 struct
   let init () =
     `Consistent
@@ -198,18 +200,18 @@ struct
     | `Consistent _ -> `Consistent
     | `Inconsistent -> `Inconsistent
 
-  let to_env = env_of_reduced_env
+  let disj_envelope = disj_thy_of_alg_thy
 
-  let partition_env =
+  let partition_thy =
     function
     | `Inconsistent -> `Inconsistent , []
-    | `Consistent {classes; true_vars; unreduced_joins} ->
-      `Consistent {classes; true_vars} , List.map Cof.join unreduced_joins
+    | `Consistent {classes; true_vars; irreducible_joins} ->
+      `Consistent {classes; true_vars} , List.map Cof.join irreducible_joins
 
-  let assemble_env reduced_env phis =
-    assumes (to_env reduced_env) phis
+  let assemble_thy alg_thy =
+    assumes @@ disj_envelope alg_thy
 
-  let left_invert_under_cofs ~zero ~seq reduced_env phis cont =
-    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (to_env reduced_env) phis @@ fun algebraic_thy ->
-    cont @@ `Consistent algebraic_thy
+  let left_invert_under_cofs ~zero ~seq alg_thy phis cont =
+    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (disj_envelope alg_thy) phis @@ fun alg_pres ->
+    cont @@ `Consistent alg_pres
 end

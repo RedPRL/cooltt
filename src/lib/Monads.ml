@@ -13,14 +13,14 @@ module CmpL =
 struct
   type local =
     {state : St.t;
-     cof_env : CofEnv.env}
+     cof_thy : CofEnv.disj_thy}
 end
 
 module EvL =
 struct
   type local =
     {state : St.t;
-     cof_env : CofEnv.env;
+     cof_thy : CofEnv.disj_thy;
      env : D.env}
 end
 
@@ -29,7 +29,7 @@ struct
   type local =
     {state : St.t;
      veil : Veil.t;
-     cof_reduced_env : CofEnv.reduced_env;
+     cof_thy : CofEnv.alg_thy;
      size : int}
 end
 
@@ -43,25 +43,25 @@ struct
     let+ {state; _} = M.read in
     state
 
-  let lift_ev env m CmpL.{state; cof_env} =
-    m EvL.{state; cof_env; env}
+  let lift_ev env m CmpL.{state; cof_thy} =
+    m EvL.{state; cof_thy; env}
 
-  let read_cof_env =
-    let+ {cof_env; _} = M.read in
-    cof_env
+  let read_cof_thy =
+    let+ {cof_thy; _} = M.read in
+    cof_thy
 
   let test_sequent cx phi =
-    let+ {cof_env; _} = M.read in
-    CofEnv.test_sequent cof_env cx phi
+    let+ {cof_thy; _} = M.read in
+    CofEnv.test_sequent cof_thy cx phi
 
-  let restore_cof_env cof_env =
+  let restore_cof_thy cof_thy =
     M.scope @@ fun local ->
-    {local with cof_env}
+    {local with cof_thy}
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.consistency st.cof_env with
+    match CofEnv.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
@@ -90,13 +90,13 @@ struct
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
-    fun {state; cof_env; _} ->
-    m {state; cof_env}
+    fun {state; cof_thy; _} ->
+    m {state; cof_thy}
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.consistency st.cof_env with
+    match CofEnv.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
@@ -136,34 +136,34 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofEnv.Reduced.consistency st.cof_reduced_env with
+    match CofEnv.Algebraic.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun {state; cof_reduced_env; _} ->
-    m {state; cof_env = CofEnv.Reduced.to_env cof_reduced_env}
+    fun {state; cof_thy; _} ->
+    m {state; cof_thy = CofEnv.Algebraic.disj_envelope cof_thy}
 
-  let replace_env ~(abort : 'a m) (cof_reduced_env : CofEnv.reduced_env) (m : 'a m) : 'a m =
-    M.scope (fun local -> {local with cof_reduced_env}) @@
+  let replace_env ~(abort : 'a m) (cof_thy : CofEnv.alg_thy) (m : 'a m) : 'a m =
+    M.scope (fun local -> {local with cof_thy}) @@
     abort_if_inconsistent abort m
 
   let restrict ~(splitter:(D.cof * 'a m) list -> 'a m) phis (m : 'a m) : 'a m =
     let seq f cofs =
       splitter @@ List.map (fun cof -> cof , f cof) cofs
     in
-    let* {cof_reduced_env; _} = M.read in
-    CofEnv.Reduced.left_invert_under_cofs
+    let* {cof_thy; _} = M.read in
+    CofEnv.Algebraic.left_invert_under_cofs
       ~zero:(splitter []) ~seq
-      cof_reduced_env phis @@ fun reduced_env ->
-    replace_env ~abort:(splitter []) reduced_env m
+      cof_thy phis @@ fun alg_thy ->
+    replace_env ~abort:(splitter []) alg_thy m
 
   let restrict_ phis m =
-    let* {cof_reduced_env; _} = M.read in
-    CofEnv.Reduced.left_invert_under_cofs
+    let* {cof_thy; _} = M.read in
+    CofEnv.Algebraic.left_invert_under_cofs
       ~zero:(M.ret ()) ~seq:MU.iter
-      cof_reduced_env phis @@ fun reduced_env ->
-    replace_env ~abort:(M.ret ()) reduced_env m
+      cof_thy phis @@ fun alg_thy ->
+    replace_env ~abort:(M.ret ()) alg_thy m
 
   let top_var tp =
     let+ n = read_local in
@@ -195,7 +195,7 @@ module QuM =
 struct
 
   (* XXX In a separate PR, this should be using [Cof.env]
-   * instead of [Cof.reduced_env * D.cof list]. The code
+   * instead of [Cof.alg_thy * D.cof list]. The code
    * is correct now but is extremely low-ch'i. *)
 
   module M = struct
@@ -224,8 +224,8 @@ struct
     ConvM.scope f @@ m cofs
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun phis {state; cof_reduced_env; _} ->
-    m {state; cof_env = CofEnv.Reduced.assemble_env cof_reduced_env phis}
+    fun phis {state; cof_thy; _} ->
+    m {state; cof_thy = CofEnv.Algebraic.assemble_thy cof_thy phis}
 
   let read _ =
     ConvM.read
@@ -260,7 +260,7 @@ struct
     fun st ->
     match
       CofEnv.consistency @@
-      CofEnv.Reduced.assemble_env st.cof_reduced_env cofs
+      CofEnv.Algebraic.assemble_thy st.cof_thy cofs
     with
     | `Consistent -> m cofs st
     | `Inconsistent -> abort cofs st
@@ -293,12 +293,12 @@ struct
 
   let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
-    let cof_reduced_env, unreduced_phis =
-      CofEnv.Reduced.partition_env @@ Env.cof_env env
+    let cof_thy, irreducible_phis =
+      CofEnv.Algebraic.partition_thy @@ Env.cof_thy env
     in
     match
-      ConvM.run {state; cof_reduced_env; veil = Env.get_veil env; size = Env.size env} @@
-      m unreduced_phis
+      ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} @@
+      m irreducible_phis
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
@@ -308,20 +308,20 @@ struct
 
   let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->
-    match EvM.run {state; cof_env = Env.cof_env env; env = Env.sem_env env} m with
+    match EvM.run {state; cof_thy = Env.cof_thy env; env = Env.sem_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun (state, env) ->
-    match CmpM.run {state; cof_env = Env.cof_env env} m with
+    match CmpM.run {state; cof_thy = Env.cof_thy env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun (state, env) ->
-    match CofEnv.consistency (Env.cof_env env) with
+    match CofEnv.consistency (Env.cof_thy env) with
     | `Consistent -> m (state, env)
     | `Inconsistent -> abort (state, env)
 end

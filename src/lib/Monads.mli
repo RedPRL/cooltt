@@ -17,12 +17,12 @@ module CmpM : sig
     with type 'a m = 'a compute
 
   val read_global : ElabState.t m
-  val read_cof_env : CofEnv.env m
+  val read_cof_thy : CofEnv.disj_thy m
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val test_sequent : D.cof list -> D.cof -> bool m
 
-  val restore_cof_env : CofEnv.env -> 'a m -> 'a m
+  val restore_cof_thy : CofEnv.disj_thy -> 'a m -> 'a m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
