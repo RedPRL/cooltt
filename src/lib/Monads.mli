@@ -50,16 +50,7 @@ module SplitQuM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
-  val read_global : ElabState.t m
-  val read_local : int m
-  val read_veil : Veil.t m
-
-  val binder : int -> 'a m -> 'a m
-
-  val restrict : splitter:((D.cof * 'a m) list -> 'a m) -> D.cof list -> 'a m -> 'a m
   val restrict_ : D.cof list -> unit m -> unit m
-
-  val bind_var : splitter:((D.cof * 'a m) list -> 'a m) -> D.tp -> (D.con -> 'a m) -> 'a m
   val bind_var_ : D.tp -> (D.con -> unit m) -> unit m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
@@ -76,12 +67,6 @@ module QuM : sig
   val read_veil : Veil.t m
 
   val binder : int -> 'a m -> 'a m
-
-  val split : D.cof list -> 'a m -> 'a split_quote
-
-  val seq : splitter:((D.cof * 'a split_quote) list -> 'a split_quote) -> 'a split_quote -> 'a m
-  val seq_ : unit split_quote -> unit m
-
   val bind_var : D.tp -> (D.con -> 'a m) -> 'a m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
