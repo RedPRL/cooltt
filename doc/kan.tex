@@ -260,13 +260,29 @@ $\IsTp{A}$ means that $A$ is a \emph{cubical set}, not that $A$ is Kan.)
 \end{mathparpagebreakable}
 
 Truth of each $\phi:\COF$ has the expected meaning. In particular:
+%
 \begin{enumerate}
   \item under a hypothesis $\TpPrf{r=s}$, we have $r=s:\DIM$;
+
+  \item $\TpPrf{0=1}$ is the false proposition, whose elimination is the empty
+  case split $\brk{}$; and
+
   \item elimination for a disjunction $*:\TpPrf{\phi\lor\psi}$ is a case split
   $\brk{\phi \to c_\phi \delimmid \psi \to c_\psi}$ whose branches must agree on
-  $\phi\land\psi$; and
-  \item $0=1$ is the false proposition, whose elimination is the empty case
-  split $\brk{}$.
+  $\phi\land\psi$:
+
+  \begin{mathparpagebreakable}
+    \inferrule{
+      \Hint{\phi,\psi : \COF} \\
+      \IsTrue{\phi\lor\psi} \\
+      \IsTp{C} \\
+      \IsTrue{\phi} \vdash c_\phi : C \\
+      \IsTrue{\psi} \vdash c_\psi : C \\
+      \IsTrue{\phi\land\psi} \vdash c_\phi = c_\psi : C
+    }{
+      \brk{\phi \to c_\phi \delimmid \psi \to c_\psi} : C
+    }
+  \end{mathparpagebreakable}
 \end{enumerate}
 
 \begin{cool}
@@ -298,7 +314,7 @@ element of $A$ that under $\TpPrf{\phi}$ restricts to $M\prn{*}$:
     \phi : \COF \\
     M : \TpPrf{\phi}\to A \\
     N : A \\
-    p : \TpPrf{\phi}\to \prn{M\prn{*} = N}
+    \IsTrue{\phi} \vdash M\prn{*} = N : A
   }{
     N : A \mid \phi \to M\prn{*}
   }
@@ -334,7 +350,7 @@ We internalize this judgment as the \emph{cubical subtype} connective.
   }
 \end{mathparpagebreakable}
 
-We extend all the above notations to $n$-ary disjunctions as needed:
+We extend all above notations to $n$-ary disjunctions as needed:
 
 \[
   \prn{A \mid \phi \to M\prn{*} \mid \psi \to N\prn{*}}
