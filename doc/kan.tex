@@ -3,7 +3,7 @@
 \usepackage{jon-todo}
 \usepackage{mathpartir}
 \usepackage{mathtools}
-\usepackage[landscape]{geometry}
+\usepackage{pdflscape}
 
 \addbibresource{refs.bib}
 
@@ -22,6 +22,7 @@
 \NewDocumentCommand\COF{}{\vvmathbb{F}}
 \NewDocumentCommand\TpPrf{m}{\brk{#1}}
 \NewDocumentCommand\Boundary{m}{\partial{#1}}
+\NewDocumentCommand\IsTrue{m}{#1\ \mathit{true}}
 
 % types, universe(s), and El
 \NewDocumentCommand\IsTp{m}{#1\ \mathit{type}}
@@ -129,18 +130,21 @@
   \mathsf{cap}\brc{#1\leftsquigarrow #2;#3}\prn{#4;#5}
 }
 
-\title{Universes}
+\newtheorem{cool}[theorem]{Cool Remark}
+\SetupFleuron{cool}
+
+\title{A cool Cartesian cubical type theory}
 \author{St.~Facaan}
 
 \begin{document}
 \maketitle
 
-This note gives a semantic version of the structure and algorithms of univalent
-Kan universes of Kan types, previously encoded in syntactic form by
-\citet{angiuli:2019}. By \emph{semantic} we mean using ordinary families and
-functions (as in \citep{orton-pitts:2016,abcfhl:2019}) instead of syntactic
-substitutions. We differ from \citep{orton-pitts:2016,abcfhl:2019} in the
-following ways:
+We present a semantic version of Cartesian cubical type theory, previously
+encoded in syntactic form by \citet{angiuli:2019}, corresponding to an idealized
+\texttt{cooltt} \citep{cooltt:2020}. By \emph{semantic} we mean that we use
+ordinary families and functions (as in \citep{orton-pitts:2016,abcfhl:2019})
+instead of syntactic substitutions. We differ from
+\citep{orton-pitts:2016,abcfhl:2019} in the following ways:
 
 \begin{enumerate}
 
@@ -170,6 +174,116 @@ following ways:
     (It will be next to impossible with extension types or other fancy types.)
 
 \end{enumerate}
+
+\section{Cubical structure}
+
+We leave implicit the basic rules of type theory, including pi and sigma types
+equipped with $\eta$ rules. As in \citep{orton-pitts:2016,abcfhl:2019}, we
+expose the cubical nature of our setting through $\DIM$, the Yoneda embedding of
+the interval, and $\COF$, a universe of strict propositions. (Note that
+$\IsTp{A}$ means that $A$ is a \emph{cubical set}, not that $A$ is Kan.)
+
+\begin{mathparpagebreakable}
+  \inferrule[interval formation]{
+  }{
+    \IsTp{\DIM}
+  }
+  \and
+  \inferrule[interval intro]{
+  }{
+    0,1 : \DIM
+  }
+  \and
+  \inferrule[cofibration formation]{
+  }{
+    \IsTp{\COF}
+  }
+  \\
+  \inferrule[cofibration intro]{
+    r,s : \DIM
+  }{
+    r = s : \COF
+  }
+  \and
+  \inferrule{
+    \phi,\psi : \COF
+  }{
+    \phi\lor\psi : \COF
+  }
+  \and
+  \inferrule{
+    \phi,\psi : \COF
+  }{
+    \phi\land\psi : \COF
+  }
+  \and
+  \inferrule{
+    \phi : \DIM\to\COF
+  }{
+    \forall i.\phi(i) : \COF
+  }
+  \\
+  \inferrule[prf formation]{
+    \phi : \COF
+  }{
+    \IsTp{\TpPrf{\phi}}
+  }
+  \and
+  \inferrule[prf intro]{
+    \Hint{\phi:\COF} \\
+    \IsTrue{\phi}
+  }{
+    * : \TpPrf{\phi}
+  }
+  \and
+  \inferrule[prf elim]{
+    \Hint{\phi:\COF} \\
+    p : \TpPrf{\phi}
+  }{
+    \IsTrue{\phi}
+  }
+  \and
+  \inferrule[prf uniqueness]{
+    \Hint{\phi : \COF} \\
+    p : \TpPrf{\phi}
+  }{
+    p = * : \TpPrf{\phi}
+  }
+  \and
+  \inferrule[prf extensionality]{
+    \Hint{\phi,\psi : \COF} \\
+    f : \TpPrf{\phi}\to\TpPrf{\psi} \\
+    g : \TpPrf{\psi}\to\TpPrf{\phi}
+  }{
+    \phi = \psi : \COF
+  }
+\end{mathparpagebreakable}
+
+Truth of each $\phi:\COF$ has the expected meaning; in particular, $0=1$ is the
+false proposition, and under a hypothesis $\TpPrf{r=s}$ we have $r=s:\DIM$. We
+will make particular use of the \emph{boundary} cofibration:
+
+\[
+  \begin{array}{l}
+    \Boundary{\bullet} : \DIM\to\COF\\
+    \Boundary{r} \coloneq \prn{r=0 \lor r=1}
+  \end{array}
+\]
+
+\begin{cool}
+Although this presentation allows for terms $\DIM\to\COF$, etc., it is important
+for our implementation that we disallow $\DIM$ and $\COF$ from appearing ``on
+the right'' in connectives. That is, while \texttt{cooltt} users can write
+$\DIM\to A$, they cannot write $A\to\DIM$. This ensures that the equational
+theory of $\DIM$ and $\COF$ do not depend on the equational theory of general
+terms. It also allows us to define $\forall i.\phi(i)$ by cases on $\phi$.
+\end{cool}
+
+\todo{thought wave}
+
+%the structure and algorithms of univalent Kan universes of Kan types,
+
+mention XTT
 
 \begin{remark}
   The artificial separation of ``cap'' and ``tube'' and the lack of elaboration support of cubical subtypes led to the unfortunate discrepency between the types of arguments of \textsf{hfill} and those of \textsf{hcomp} in Cubical Agda. The main design challenge is that the coherence between ``cap'' and ``tube'' should be mentioned somewhere. One can use cubical subtypes to impose the coherence condition, but cubical subtypes are clumsy without a good elaborator. As a result, Agda removes cubical subtypes from the type of the primitive operator \textsf{hcomp}, using a special checker for the coherence condition beyond its typing. However, the derived function \textsf{hfill} could not enjoy the special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other words, the operators are either semantically correct but clumsy (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}). There are at least two ways to fix this:
@@ -526,6 +640,14 @@ We may now specify the rules for the V types.
   \and
 \end{mathparpagebreakable}
 
+
+\clearpage
+\nocite{*}
+\printbibliography
+
+\end{document}
+
+\begin{landscape}
 
 \section{Composition and coercion algorithms}
 
@@ -979,6 +1101,7 @@ We may now specify the rules for the V types.
     }
   }
 \]
+\end{landscape}
 
 \clearpage
 \nocite{*}
