@@ -42,8 +42,6 @@ let init () =
      true_vars = VarSet.empty;
      unreduced_joins = []}
 
-let inconsistent = `Inconsistent
-
 let consistency =
   function
   | `Consistent _ -> `Consistent
@@ -91,7 +89,7 @@ struct
   (** [is_consistent] is almost a duplicate of the most general search. It exists because
     * (1) it's a clean way to avoid checking consistency within consistency and
     * (2) it's a clean way to avoid recursive modules. *)
-  let rec is_consistent ({classes; true_vars; unreduced_joins} as env) =
+  let rec is_consistent ({unreduced_joins; _} as env) =
     match unreduced_joins with
     | [] -> true
     | psis :: unreduced_joins ->
@@ -110,16 +108,6 @@ sig
     -> fast_track:((unit -> 'a) -> (unit -> 'a) -> 'a)
     (** If the first component returns a "good" result, then don't bother with the second. (???) *)
     -> env
-    -> cof list
-    -> (reduced_env' -> 'a)
-    -> 'a
-
-  (** Search all branches assuming more cofibrations.
-      Invariant: [env.classes] must be consistent *)
-  val left_invert' : zero:'a
-    -> seq:((cof -> 'a) -> cof list -> 'a)
-    -> fast_track:((unit -> 'a) -> (unit -> 'a) -> 'a)
-    -> env'
     -> cof list
     -> (reduced_env' -> 'a)
     -> 'a

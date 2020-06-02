@@ -121,7 +121,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
       Splice.foreign_cof phi0 @@ fun phi ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
       TB.univ
     in
     equate_con tp_bdy bdy0 bdy1
@@ -165,7 +165,7 @@ and equate_con tp con0 con1 =
     let* con0 = lift_cmp @@ do_goal_proj con0 in
     let* con1 = lift_cmp @@ do_goal_proj con1 in
     equate_con tp con0 con1
-  | D.Sub (tp, phi, _), _, _ ->
+  | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
     equate_con tp out0 out1
@@ -190,7 +190,7 @@ and equate_con tp con0 con1 =
     let* phi0 = lift_cmp @@ con_to_cof con0 in
     let* phi1 = lift_cmp @@ con_to_cof con1 in
     equate_cof phi0 phi1
-  | _, D.Cut {cut = cut0}, D.Cut {cut = cut1} ->
+  | _, D.Cut {cut = cut0; _}, D.Cut {cut = cut1; _} ->
     equate_cut cut0 cut1
   | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
     let fix_body bdy =
@@ -250,7 +250,7 @@ and equate_con tp con0 con1 =
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       let phi = TB.boundary i in
-      TB.pi (TB.tp_prf phi) @@ fun prf ->
+      TB.pi (TB.tp_prf phi) @@ fun _prf ->
       TB.el @@ TB.ap fam [i]
     in
     equate_con bdry_tp bdry0 bdry1
@@ -326,7 +326,7 @@ and equate_frm k0 k1 =
       Splice.foreign mot0 @@ fun mot ->
       Splice.term @@
       TB.pi TB.nat @@ fun x ->
-      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
       TB.el @@ TB.ap mot [TB.suc x]
     in
     equate_con suc_tp suc_case0 suc_case1
@@ -406,7 +406,7 @@ and equate_hd hd0 hd1 =
         Splice.foreign_cof phi0 @@ fun phi ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
-        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
         TB.univ
       in
       equate_con code_tp code0 code1
