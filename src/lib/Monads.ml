@@ -141,10 +141,6 @@ struct
     fun {state; cof_reduced_env} ->
     m {state; cof_env = CofEnv.Reduced.to_env cof_reduced_env}
 
-  let lift_cmp_under_cofs phis (m : 'a compute) : 'a m =
-    fun {state; cof_reduced_env} ->
-    m {state; cof_env = CofEnv.Reduced.assemble_env cof_reduced_env phis}
-
   let replace_env ~(abort : 'a m) (cof_reduced_env : CofEnv.reduced_env) (m : 'a m) : 'a m =
     M.scope (fun local -> {local with cof_reduced_env}) @@
     abort_if_inconsistent abort m

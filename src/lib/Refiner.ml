@@ -245,7 +245,6 @@ struct
 
   let split2 (phi0 : D.cof) (tac0 : T.var -> T.BChk.tac) (phi1 : D.cof) (tac1 : T.var -> T.BChk.tac) : T.BChk.tac =
     fun (tp, psi, psi_clo) ->
-    let* ttp = EM.quote_tp tp in
     let* _ = assert_true @@ Cof.join [phi0; phi1] in
     let* tm0 =
       T.abstract (D.TpPrf phi0) @@ fun prf ->
@@ -474,9 +473,6 @@ struct
     Cof.split
       [(Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
-
-  let topc : T.Syn.tac = EM.ret @@ (S.Cof (Cofibration.Meet []), D.TpCof)
-  let botc : T.Syn.tac = EM.ret @@ (S.Cof (Cofibration.Join []), D.TpCof)
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun univ ->

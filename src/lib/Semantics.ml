@@ -280,7 +280,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ s' = subst_dim r x s'
     and+ phi = subst_cof r x phi
     and+ sides = subst_con r x sides
-    and+ bdy = subst_con r x cap in
+    and+ cap = subst_con r x cap in
     D.Box (s, s', phi, sides, cap)
   | D.CodeV (s, pcode, code, pequiv) ->
     let+ s = subst_dim r x s
@@ -1294,17 +1294,6 @@ and do_rigid_cap r s phi code box =
       throw @@ NbeFailed "do_rigid_cap"
   end
 
-and assert_dim_var r =
-  let open CM in
-  test_sequent [] (Cof.eq r D.Dim0) |>>
-  function
-  | true -> failwith "assertion failed"
-  | false ->
-    test_sequent [] (Cof.eq r D.Dim1) |>>
-    function
-    | true -> failwith "assertion failed"
-    | false -> ret ()
-
 and do_rigid_vproj r pcode code pequiv v =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
@@ -1433,13 +1422,6 @@ and unfold_el : D.con -> D.tp CM.m =
       | con ->
         CM.throw @@ NbeFailed "unfold_el failed"
     end
-
-
-and do_coe r s (abs : D.con) con =
-  let open CM in
-  test_sequent [] (Cof.eq r s) |>> function
-  | true -> ret con
-  | _ -> do_rigid_coe abs r s con
 
 
 and dispatch_rigid_coe ?(style = default_whnf_style) line =

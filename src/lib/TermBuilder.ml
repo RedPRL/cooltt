@@ -367,7 +367,8 @@ struct
     coe fib_line r r' @@
     ap (el_out bdy) [ap coe_base_line [r]]
 
-  let hcom_pi ~base ~fam ~r ~r' ~phi ~bdy : _ m =
+  (* CJHM: we are not using base? *)
+  let hcom_pi ~base:_ ~fam ~r ~r' ~phi ~bdy : _ m =
     el_in @@
     lam @@ fun arg ->
     let tfib = ap fam [arg] in

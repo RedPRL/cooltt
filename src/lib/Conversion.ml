@@ -52,11 +52,6 @@ open Monad.Notation (SplitQuM)
 module MU = Monad.Util (SplitQuM)
 open Sem
 
-(* duplicated *)
-let top_var tp =
-  let+ n = read_local in
-  D.mk_var tp @@ n - 1
-
 let conv_err err =
   throw @@ ConversionError err
 
