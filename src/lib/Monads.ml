@@ -40,18 +40,18 @@ struct
   open Monad.Notation (M)
 
   let read_global =
-    let+ {state} = M.read in
+    let+ {state; _} = M.read in
     state
 
   let lift_ev env m CmpL.{state; cof_env} =
     m EvL.{state; cof_env; env}
 
   let read_cof_env =
-    let+ {cof_env} = M.read in
+    let+ {cof_env; _} = M.read in
     cof_env
 
   let test_sequent cx phi =
-    let+ {cof_env} = M.read in
+    let+ {cof_env; _} = M.read in
     CofEnv.test_sequent cof_env cx phi
 
   let restore_cof_env cof_env =
@@ -78,11 +78,11 @@ struct
   open Monad.Notation (M)
 
   let read_global =
-    let+ {state} = M.read in
+    let+ {state; _} = M.read in
     state
 
   let read_local =
-    let+ {env} = M.read in
+    let+ {env; _} = M.read in
     env
 
   let append cells =
@@ -90,7 +90,7 @@ struct
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
-    fun {state; cof_env} ->
+    fun {state; cof_env; _} ->
     m {state; cof_env}
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
@@ -115,15 +115,15 @@ struct
   open Monad.Notation (M)
 
   let read_global =
-    let+ {state} = M.read in
+    let+ {state; _} = M.read in
     state
 
   let read_local =
-    let+ {size} = M.read in
+    let+ {size; _} = M.read in
     size
 
   let read_veil =
-    let+ {veil} = M.read in
+    let+ {veil; _} = M.read in
     veil
 
   let binder i =
@@ -138,7 +138,7 @@ struct
     | `Inconsistent -> abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun {state; cof_reduced_env} ->
+    fun {state; cof_reduced_env; _} ->
     m {state; cof_env = CofEnv.Reduced.to_env cof_reduced_env}
 
   let replace_env ~(abort : 'a m) (cof_reduced_env : CofEnv.reduced_env) (m : 'a m) : 'a m =
@@ -149,14 +149,14 @@ struct
     let seq f cofs =
       splitter @@ List.map (fun cof -> cof , f cof) cofs
     in
-    let* {cof_reduced_env} = M.read in
+    let* {cof_reduced_env; _} = M.read in
     CofEnv.Reduced.left_invert_under_cofs
       ~zero:(splitter []) ~seq
       cof_reduced_env phis @@ fun reduced_env ->
     replace_env ~abort:(splitter []) reduced_env m
 
   let restrict_ phis m =
-    let* {cof_reduced_env} = M.read in
+    let* {cof_reduced_env; _} = M.read in
     CofEnv.Reduced.left_invert_under_cofs
       ~zero:(M.ret ()) ~seq:MU.iter
       cof_reduced_env phis @@ fun reduced_env ->
@@ -194,13 +194,13 @@ struct
   module M = struct
     type 'a m = CofEnv.cof list -> 'a SplitQuM.m
     let bind m1 m2 cofs = SplitQuM.bind (m1 cofs) @@ fun x -> m2 x cofs
-    let ret x cofs = SplitQuM.ret x
+    let ret x _cofs = SplitQuM.ret x
   end
   module MU = Monad.Util (M)
   open Monad.Notation (M)
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun phis {state; cof_reduced_env} ->
+    fun phis {state; cof_reduced_env; _} ->
     m {state; cof_env = CofEnv.Reduced.assemble_env cof_reduced_env phis}
 
   let read_local _ =

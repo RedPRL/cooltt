@@ -429,7 +429,7 @@ struct
     let_ (ap fam [i]) @@ fun fam_i ->
     hcom fam_i r r' (join [phi; d_i]) @@
     lam @@ fun k ->
-    lam @@ fun p ->
+    lam @@ fun _p ->
     cof_split
       [ d_i , ap bdry [i; prf]
       ; join [phi; eq k r] , sub_out (ap (el_out (ap bdy [k;prf])) [i])

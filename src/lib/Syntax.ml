@@ -1,4 +1,5 @@
-open CoolBasis open Bwd
+open CoolBasis
+(* open Bwd *)
 include SyntaxData
 
 let debug_mode = false
@@ -101,11 +102,12 @@ and dump_branch fmt (cof, bdy) =
 let pp_var env fmt ix =
   Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
 
+(*
 and pp_problem fmt problem =
   let lbls = Bwd.to_list problem in
   let dot fmt () = Fmt.fprintf fmt "." in
   Fmt.pp_print_list ~pp_sep:dot Uuseg_string.pp_utf_8 fmt lbls
-
+*)
 
 let pp_lsq fmt () = Format.fprintf fmt "["
 let pp_rsq fmt () = Format.fprintf fmt "]"
@@ -312,7 +314,7 @@ let rec pp env fmt tm =
       (pp_atomic env) phi
       (pp_atomic env) sides
       (pp_atomic env) cap
-  | Box (r, s, phi, sides, cap) ->
+  | Box (_r, _s, _phi, sides, cap) ->
     pp_tuple (pp env) fmt [sides; cap]
   | Cap (r, s, phi, code, box) when debug_mode->
     Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
@@ -321,7 +323,7 @@ let rec pp env fmt tm =
       (pp_atomic env) phi
       (pp_atomic env) code
       (pp_atomic env) box
-  | Cap (r, s, phi, code, box) ->
+  | Cap (_r, _s, _phi, _code, box) ->
     Format.fprintf fmt "@[<hv2>cap %a@]" (pp_atomic env) box
   | CodeV (r, pcode, code, pequiv) ->
     Format.fprintf fmt "@[<hv2>V %a %a %a %a@]"
@@ -371,7 +373,7 @@ and pp_tp env fmt tp =
       Uuseg_string.pp_utf_8 "×"
       (pp_tp envx) fam
   | Sub (tp, phi, tm) ->
-    let x, envx = ppenv_bind env `Anon in
+    let _x, envx = ppenv_bind env `Anon in
     Format.fprintf fmt "@[sub %a %a@ %a@]"
       (pp_atomic_tp env) tp
       (pp_atomic env) phi
@@ -405,11 +407,11 @@ and pp_atomic_tp env fmt tp =
     pp_braced (pp_tp env) fmt tp
 
 and pp_cof_split_branch env fmt (phi, tm) =
-  let x, envx = ppenv_bind env `Anon in
+  let _x, envx = ppenv_bind env `Anon in
   Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp envx) tm
 
 and pp_tp_cof_split_branch env fmt (phi, tm) =
-  let x, envx = ppenv_bind env `Anon in
+  let _x, envx = ppenv_bind env `Anon in
   Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp_tp envx) tm
 
 and pp_atomic env fmt tm =
@@ -455,7 +457,7 @@ let pp_sequent_goal env fmt tp  =
       (pp_tp env) tp
   | GoalTp (olbl, Sub (tp, phi, tm)) ->
     let lbl = match olbl with Some lbl -> lbl | None -> "" in
-    let x, envx = Pp.Env.bind env (Some "_") in
+    let _x, envx = Pp.Env.bind env (Some "_") in
     Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp

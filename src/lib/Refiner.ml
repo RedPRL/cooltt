@@ -224,6 +224,7 @@ struct
 
   type branch_tac = T.Chk.tac * (T.var -> T.BChk.tac)
 
+  (*
   let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.BChk.tac) list) m =
     match branches with
     | [] -> EM.ret ([], [])
@@ -232,6 +233,7 @@ struct
       let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
       let+ phis, tacs = gather_cofibrations branches in
       (vphi :: phis), tac_tm :: tacs
+  *)
 
   let split0 : T.BChk.tac =
     fun _ ->
@@ -447,7 +449,7 @@ struct
       Sem.splice_tp @@
       Splice.foreign_tp univ @@ fun univ ->
       Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi TB.tp_dim @@ fun _i ->
       univ
     in
     let* fam = tac_fam piuniv in
@@ -455,11 +457,11 @@ struct
     let* bdry_tp =
       EM.lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.foreign_tp univ @@ fun _univ ->
       Splice.foreign vfam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf @@ TB.boundary i) @@ fun prf ->
+      TB.pi (TB.tp_prf @@ TB.boundary i) @@ fun _prf ->
       TB.el @@ TB.ap fam [i]
     in
     let* bdry = tac_bdry bdry_tp in
@@ -469,13 +471,13 @@ struct
     path tac_fam @@
     T.Chk.bchk @@
     Pi.intro @@ fun i ->
-    Pi.intro @@ fun pf ->
+    Pi.intro @@ fun _prf ->
     Cof.split
       [(Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
        (Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
-    univ_tac @@ fun univ ->
+    univ_tac @@ fun _univ ->
     let* r = tac_dim D.TpDim in
     let* vr : D.dim =
       let* vr_con = EM.lift_ev @@ Sem.eval r in
@@ -501,7 +503,7 @@ struct
       EM.lift_cmp @@
       Sem.splice_tp @@
       Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi TB.tp_dim @@ fun _i ->
       TB.univ
     in
     let* fam = tac_fam piuniv in
@@ -541,7 +543,7 @@ struct
       EM.lift_cmp @@
       Sem.splice_tp @@
       Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi TB.tp_dim @@ fun _i ->
       TB.univ
     in
     let* fam = tac_fam piuniv in
@@ -896,7 +898,7 @@ struct
         Splice.foreign vmot @@ fun mot ->
         Splice.term @@
         TB.pi TB.nat @@ fun x ->
-        TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+        TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
         TB.el @@ TB.ap mot [TB.suc x]
       in
       tac_case_suc suc_tp
@@ -1066,6 +1068,7 @@ struct
         let* tp = EM.quote_tp ind_tp in
         EM.elab_err @@ Err.CannotEliminate (ppenv, tp)
 
+    (*
     let assert_simple_inductive =
       function
       | D.Nat ->
@@ -1076,14 +1079,15 @@ struct
         EM.with_pp @@ fun ppenv ->
         let* tp = EM.quote_tp tp in
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
+    *)
 
     let lam_elim cases : T.BChk.tac =
       match_goal @@ fun (tp, _, _) ->
-      let* base, fam = EM.dest_pi tp in
+      let* _base, fam = EM.dest_pi tp in
       let mot_tac : T.Chk.tac =
         T.Chk.bchk @@
         Pi.intro @@ fun var -> (* of inductive type *)
-        T.BChk.chk @@ fun goal ->
+        T.BChk.chk @@ fun _goal ->
         let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
         let* tfib = EM.quote_tp fib in
         match tfib with

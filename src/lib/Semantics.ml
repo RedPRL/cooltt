@@ -79,13 +79,13 @@ let rec normalize_cof phi =
 module FaceLattice :
 sig
   (** An atomic formula *)
-  type atom = [`CofEq of D.dim * D.dim]
+  (* type atom = [`CofEq of D.dim * D.dim] *)
 
   (** A generator for a lattice homomorphism *)
-  type gen = atom -> D.cof CM.m
+  (* type gen = atom -> D.cof CM.m *)
 
   (** Extend a generator to a lattice homomorphism *)
-  val extend : gen -> D.cof -> D.cof CM.m
+  (* val extend : gen -> D.cof -> D.cof CM.m *)
 
   (** Quantifier elimination *)
   val forall : Symbol.t -> D.cof -> D.cof CM.m
@@ -93,8 +93,8 @@ end =
 struct
   open CM
 
-  type atom = [`CofEq of D.dim * D.dim]
-  type gen = atom -> D.cof CM.m
+  (* type atom = [`CofEq of D.dim * D.dim] *)
+  (* type gen = atom -> D.cof CM.m *)
 
   let extend gen =
     let rec loop =
@@ -155,8 +155,8 @@ let v_boundary r pcode code =
 
 let vproj_boundary r pcode code pequiv v =
   Splice.foreign_dim r @@ fun r ->
-  Splice.foreign pcode @@ fun pcode ->
-  Splice.foreign code @@ fun code ->
+  Splice.foreign pcode @@ fun _pcode ->
+  Splice.foreign code @@ fun _code ->
   Splice.foreign pequiv @@ fun pequiv ->
   Splice.foreign v @@ fun v ->
   Splice.term @@
@@ -187,7 +187,7 @@ and con_to_cof =
     whnf_inspect_con con |>>
     function
     | D.Cof cof -> cof_con_to_cof cof
-    | D.Cut {cut = D.Var l, []} -> ret @@ Cof.var l
+    | D.Cut {cut = D.Var l, []; _} -> ret @@ Cof.var l
     | _ -> throw @@ NbeFailed "con_to_cof"
 
 and con_to_dim =
@@ -197,8 +197,8 @@ and con_to_dim =
     function
     | D.DimCon0 -> ret D.Dim0
     | D.DimCon1 -> ret D.Dim1
-    | D.Cut {cut = Var l, []} -> ret @@ D.DimVar l
-    | D.Cut {cut = Global sym, []} -> ret @@ D.DimProbe sym
+    | D.Cut {cut = Var l, []; _} -> ret @@ D.DimVar l
+    | D.Cut {cut = Global sym, []; _} -> ret @@ D.DimProbe sym
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
@@ -754,7 +754,7 @@ and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
-  | D.Cut {cut} ->
+  | D.Cut {cut; _} ->
     whnf_cut ~style cut
   | D.FHCom (_, r, s, phi, bdy) ->
     begin
@@ -779,14 +779,14 @@ and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
         | false ->
           ret `Done
     end
-  | D.CodeV (r, pcode, code, pequiv) ->
+  | D.CodeV (r, pcode, code, _pequiv) ->
     begin
       test_sequent [] (Cof.boundary r) |>>
       function
       | true -> reduce_to ~style @<< splice_tm @@ v_boundary r pcode code
       | false -> ret `Done
     end
-  | D.VIn (r, pequiv, pivot, base) ->
+  | D.VIn (r, _pequiv, pivot, base) ->
     begin
       test_sequent [] (Cof.eq r Dim0) |>>
       function
@@ -846,7 +846,7 @@ and whnf_hd ?(style = default_whnf_style) hd =
       let* st = CM.read_global in
       begin
         match ElabState.get_global sym st with
-        | tp, Some con ->
+        | _tp, Some con ->
           ret @@ `Reduce con
         | _, None | exception _ ->
           ret `Done
@@ -963,7 +963,7 @@ and whnf_tp =
       | false ->
         ret `Done
     end
-  | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
+  | D.ElUnstable (`V (r, pcode, code, _pequiv)) ->
     begin
       test_sequent [] (Cof.boundary r) |>>
       function
@@ -984,7 +984,7 @@ and whnf_tp =
           go branches
     in
     go branches
-  | tp ->
+  | _tp ->
     ret `Done
 
 and whnf_tp_ tp =
@@ -1005,7 +1005,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
     | D.Suc con' ->
       let* v = go con' in
       do_ap2 suc con' v
-    | D.Cut {cut} as con ->
+    | D.Cut {cut; _} as con ->
       let* fib = do_ap mot con in
       let+ elfib = do_el fib in
       cut_frm ~tp:elfib ~cut @@
@@ -1062,7 +1062,7 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
     ret base
   | D.Loop r ->
     do_ap loop (D.dim_to_con r)
-  | D.Cut {cut} as c ->
+  | D.Cut {cut; _} as c ->
     let* fib = do_ap mot c in
     let+ elfib = do_el fib in
     cut_frm ~tp:elfib ~cut @@
@@ -1152,7 +1152,7 @@ and do_goal_proj con =
     | D.GoalRet con -> ret con
     | D.Split branches as con ->
       splitter con @@ List.map fst branches
-    | D.Cut {tp = D.TpSplit branches} as con ->
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.GoalTp (_, tp); cut} ->
       ret @@ cut_frm ~tp ~cut D.KGoalProj
@@ -1170,7 +1170,7 @@ and do_fst con : D.con CM.m =
     | D.Pair (con0, _) -> ret con0
     | D.Split branches as con ->
       splitter con @@ List.map fst branches
-    | D.Cut {tp = D.TpSplit branches} as con ->
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.Sg (base, _, _); cut} ->
       ret @@ cut_frm ~tp:base ~cut D.KFst
@@ -1188,7 +1188,7 @@ and do_snd con : D.con CM.m =
     | D.Pair (_, con1) -> ret con1
     | D.Split branches ->
       splitter con @@ List.map fst branches
-    | D.Cut {tp = D.TpSplit branches} as con ->
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.Sg (_, _, fam); cut} ->
       let* fst = do_fst con in
@@ -1286,7 +1286,7 @@ and do_rigid_cap r s phi code box =
       let* code_fib = do_ap2 code (D.dim_to_con r) D.Prf in
       let* tp = do_el code_fib in
       ret @@ D.Cut {tp; cut = D.Cap (r, s, phi, code, cut), []}
-    | D.Cut {tp = D.TpSplit branches} as con ->
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Split branches as con ->
       splitter con @@ List.map fst branches
@@ -1312,7 +1312,7 @@ and do_rigid_vproj r pcode code pequiv v =
       ret base
     | D.Split branches as con ->
       splitter con @@ List.map fst branches
-    | D.Cut {tp = D.TpSplit branches} as con ->
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.ElUnstable (`V (r, pcode, code, pequiv)); cut} ->
       let* tp = do_el code in
@@ -1339,7 +1339,7 @@ and do_el_out con =
       ret con
     | D.Split branches as con ->
       splitter con @@ List.map fst branches
-    | D.Cut {tp = D.TpSplit branches} as con ->
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.El code; cut} ->
       let+ tp = unfold_el code in
@@ -1357,7 +1357,7 @@ and do_el : D.con -> D.tp CM.m =
     begin
       inspect_con con |>>
       function
-      | D.Cut {cut} ->
+      | D.Cut {cut; _} ->
         ret @@ D.ElCut cut
       | D.FHCom (`Univ, r, s, phi, bdy) ->
         ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
@@ -1382,7 +1382,7 @@ and unfold_el : D.con -> D.tp CM.m =
       inspect_con ~style:{unfolding = true} con |>>
       function
 
-      | D.Cut {cut} ->
+      | D.Cut _ ->
         CM.throw @@ NbeFailed "unfold_el on cut !!!"
 
       | D.CodeNat ->
@@ -1419,7 +1419,7 @@ and unfold_el : D.con -> D.tp CM.m =
         TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
         TB.ap bdry [i; prf]
 
-      | con ->
+      | _con ->
         CM.throw @@ NbeFailed "unfold_el failed"
     end
 
@@ -1450,7 +1450,7 @@ and dispatch_rigid_coe ?(style = default_whnf_style) line =
         FaceLattice.forall x phix
       in
       ret @@ `Reduce (`Split phis)
-    | D.Cut {cut} ->
+    | D.Cut _ ->
       ret @@ `Done
     | _ ->
       ret @@ `Unknown
@@ -1494,7 +1494,7 @@ and dispatch_rigid_hcom ?(style = default_whnf_style) code =
       ret @@ `Reduce (`HComFHCom (r, s, phi, bdy))
     | D.CodeV (r, a, b, e) ->
       ret @@ `Reduce (`HComV (r, a, b, e))
-    | D.Cut {cut} ->
+    | D.Cut {cut; _} ->
       ret @@ `Done cut
     | D.Split branches ->
       ret @@ `Reduce (`Split (List.map fst branches))

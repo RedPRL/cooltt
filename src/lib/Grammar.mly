@@ -17,7 +17,7 @@
   let name_to_term {node; info} =
     {node = plain_name_to_term node; info}
 
-  let forget_location {node; info} = node
+  let forget_location {node; info = _} = node
 %}
 
 %token <int> NUMERAL

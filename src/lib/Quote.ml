@@ -13,10 +13,12 @@ open Monads
 module Error =
 struct
   type t = IllTypedQuotationProblem of D.tp * D.con
+  (*
   let pp fmt =
     function
     | IllTypedQuotationProblem (tp, con) ->
       Format.fprintf fmt "Ill-typed quotation problem %a : %a" D.pp_con con D.pp_tp tp
+  *)
 end
 
 exception QuotationError of Error.t
@@ -119,7 +121,7 @@ and con_splitter tbranches =
   in
 
   match filtered with
-  | [cof,m] -> m
+  | [_cof,m] -> m
   | _ ->
     let run_branch (cof, m) =
       let+ tm = binder 1 m
@@ -149,7 +151,7 @@ and split_quote_whnf_con (tp : D.tp) con =
       end
     end
 
-  | _, D.Cut {cut = (hd, sp); tp} ->
+  | _, D.Cut {cut = (hd, sp); tp = _} ->
     split_quote_cut (hd, sp)
 
   | D.Pi (base, _, fam), D.Lam (ident, clo) ->
@@ -172,7 +174,7 @@ and split_quote_whnf_con (tp : D.tp) con =
     and+ tsnd = split_quote_con fib snd in
     S.Pair (tfst, tsnd)
 
-  | D.Sub (tp, phi, clo), _ ->
+  | D.Sub (tp, _phi, _clo), _ ->
     let+ tout =
       let* out = lift_cmp @@ do_sub_out con in
       split_quote_con tp out
@@ -220,7 +222,7 @@ and split_quote_whnf_con (tp : D.tp) con =
       splice_tp @@
       Splice.foreign_tp univ @@ fun univ ->
       Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi TB.tp_dim @@ fun _i ->
       univ
     in
     let* tfam = split_quote_con piuniv fam in
@@ -228,17 +230,17 @@ and split_quote_whnf_con (tp : D.tp) con =
     let* bdry_tp =
       lift_cmp @@
       splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.foreign_tp univ @@ fun _univ ->
       Splice.foreign fam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
       TB.el @@ TB.ap fam [i]
     in
     let+ tbdry = split_quote_con bdry_tp bdry in
     S.CodePath (tfam, tbdry)
 
-  | univ, D.CodeV (r, pcode, code, pequiv) ->
+  | _univ, D.CodeV (r, pcode, code, pequiv) ->
     let+ tr, t_pcode, tcode, t_pequiv = split_quote_v_data r pcode code pequiv in
     S.CodeV (tr, t_pcode, tcode, t_pequiv)
 
@@ -282,7 +284,7 @@ and split_quote_whnf_con (tp : D.tp) con =
     and+ ts = split_quote_dim s
     and+ tphi = split_quote_cof phi
     and+ tsides =
-      split_quote_lam (D.TpPrf phi) @@ fun prf ->
+      split_quote_lam (D.TpPrf phi) @@ fun _prf ->
       split_quote_con tp con
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
@@ -325,7 +327,7 @@ and split_quote_whnf_con (tp : D.tp) con =
   | D.TpSplit branches as tp, _ ->
     let branch_body phi : S.t m =
       QuM.split [] @@
-      QuM.bind_var (D.TpPrf phi) @@ fun prf ->
+      QuM.bind_var (D.TpPrf phi) @@ fun _prf ->
       quote_con tp con
     in
     let* branches =
@@ -341,7 +343,7 @@ and split_quote_whnf_con (tp : D.tp) con =
     in
     begin
       match branches with
-      | [phi, tp_clo] ->
+      | [_phi, tp_clo] ->
         let* tp = lift_cmp @@ inst_tp_clo tp_clo D.Prf in
         split_quote_con tp con
       | _ ->
@@ -452,7 +454,7 @@ and split_quote_tp (tp : D.tp) =
         Splice.foreign_cof phi @@ fun phi ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
-        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
         TB.univ
       in
       split_quote_con tp_bdy bdy
@@ -510,7 +512,7 @@ and split_quote_hd =
   | D.HCom (cut, r, s, phi, bdy) ->
     let code = D.Cut {cut; tp = D.Univ} in
     split_quote_hcom code r s phi bdy
-  | D.SubOut (cut, phi, clo) ->
+  | D.SubOut (cut, _phi, _clo) ->
     let+ tm = split_quote_cut cut in
     S.SubOut tm
   | D.Cap (r, s, phi, code, box) ->
@@ -524,7 +526,7 @@ and split_quote_hd =
       Splice.foreign_cof phi @@ fun phi ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
       TB.univ
     in
     let+ tcode = split_quote_con code_tp code
@@ -626,7 +628,7 @@ and split_quote_frm tm =
       Splice.foreign mot @@ fun mot ->
       Splice.term @@
       TB.pi TB.nat @@ fun x ->
-      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
       TB.el @@ TB.ap mot [TB.suc x]
     in
     let* tsuc_case = split_quote_con suc_tp suc_case in

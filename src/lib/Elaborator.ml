@@ -33,9 +33,9 @@ sig
   val sg : tac -> Ident.t -> tac -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val path : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
-  val nat : tac
-  val circle : tac
-  val univ : tac
+  (* val nat : tac *)
+  (* val circle : tac *)
+  (* val univ : tac *)
   val dim : tac
   val cof : tac
   val prf : T.Chk.tac -> tac
@@ -92,9 +92,9 @@ struct
     let tac = R.Univ.path_with_endpoints tac_tp (T.BChk.chk tac_l) (T.BChk.chk tac_r) in
     Code tac
 
-  let nat = Code R.Univ.nat
-  let circle = Code R.Univ.circle
-  let univ = Code R.Univ.univ
+  (* let nat = Code R.Univ.nat *)
+  (* let circle = Code R.Univ.circle *)
+  (* let univ = Code R.Univ.univ *)
   let dim = Tp R.Dim.formation
   let cof = Tp R.Cof.formation
   let prf tac = Tp (R.Prf.formation tac)
