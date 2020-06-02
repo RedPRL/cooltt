@@ -66,10 +66,14 @@ module SplitQuM : sig
 end
 
 module QuM : sig
-  include Monad.S with type 'a m = 'a quote
+  include Monad.MonadReaderResult
+    with type 'a m = 'a quote
+
   val lift_cmp : 'a compute -> 'a m
 
+  val read_global : ElabState.t m
   val read_local : int m
+  val read_veil : Veil.t m
 
   val split : D.cof list -> 'a m -> 'a split_quote
 

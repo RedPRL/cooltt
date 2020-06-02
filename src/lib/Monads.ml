@@ -199,12 +199,38 @@ struct
   module MU = Monad.Util (M)
   open Monad.Notation (M)
 
+  type local = SplitQuM.local
+
+  let run local m =
+    SplitQuM.run local @@ m []
+
+  let run_exn local m =
+    SplitQuM.run_exn local @@ m []
+
+  let trap m cofs =
+    SplitQuM.trap @@ m cofs
+
+  let throw exn _ =
+    SplitQuM.throw exn
+
+  let scope f m cofs =
+    SplitQuM.scope f @@ m cofs
+
   let lift_cmp (m : 'a compute) : 'a m =
     fun phis {state; cof_reduced_env; _} ->
     m {state; cof_env = CofEnv.Reduced.assemble_env cof_reduced_env phis}
 
+  let read _ =
+    SplitQuM.read
+
+  let read_global _ =
+    SplitQuM.read_global
+
   let read_local _ =
     SplitQuM.read_local
+
+  let read_veil _ =
+    SplitQuM.read_veil
 
   let split cofs m = m cofs
 

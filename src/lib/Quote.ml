@@ -45,6 +45,7 @@ let rec quote_con (tp : D.tp) con =
     let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
     let* tms = MU.map branch_body branches in
     ret @@ S.CofSplit (List.combine tphis tms)
+
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
@@ -59,6 +60,59 @@ let rec quote_con (tp : D.tp) con =
           S.Var ix
     end
 
+  | _, D.Cut {cut = (D.Global sym, sp) as cut; tp} ->
+    let* st = read_global in
+    let* veil = read_veil in
+    begin
+      let _, ocon = ElabState.get_global sym st in
+      begin
+        match ocon, Veil.policy sym veil with
+        | Some con, `Transparent ->
+          let* con' = lift_cmp @@ Sem.do_spine con sp in
+          quote_con tp con'
+        | _ ->
+          quote_cut cut
+      end
+    end
+
+  | _, D.Cut {cut = (hd, sp); tp = _} ->
+    quote_cut (hd, sp)
+
+  | D.Pi (base, _, fam), D.Lam (ident, clo) ->
+    quote_lam ~ident base @@ fun arg ->
+    let* fib = lift_cmp @@ inst_tp_clo fam arg in
+    let* ap = lift_cmp @@ inst_tm_clo clo arg in
+    quote_con fib ap
+
+  | D.Pi (base, ident, fam), con ->
+    quote_lam ~ident base @@ fun arg ->
+    let* fib = lift_cmp @@ inst_tp_clo fam arg in
+    let* ap = lift_cmp @@ do_ap con arg in
+    quote_con fib ap
+
+  | D.Sg (base, _, fam), _ ->
+    let* fst = lift_cmp @@ do_fst con in
+    let* snd = lift_cmp @@ do_snd con in
+    let* fib = lift_cmp @@ inst_tp_clo fam fst in
+    let+ tfst = quote_con base fst
+    and+ tsnd = quote_con fib snd in
+    S.Pair (tfst, tsnd)
+
+  | D.Sub (tp, _phi, _clo), _ ->
+    let+ tout =
+      let* out = lift_cmp @@ do_sub_out con in
+      quote_con tp out
+    in
+    S.SubIn tout
+
+  | D.El code, _ ->
+    let+ tout =
+      let* unfolded = lift_cmp @@ unfold_el code in
+      let* out = lift_cmp @@ do_el_out con in
+      quote_con unfolded out
+    in
+    S.ElIn tout
+
   | _, D.Zero ->
     ret S.Zero
 
@@ -68,6 +122,10 @@ let rec quote_con (tp : D.tp) con =
 
   | _, D.Base ->
     ret S.Base
+
+  | _, D.Loop r ->
+    let+ tr = quote_dim r in
+    S.Loop tr
 
   | D.TpDim, D.DimCon0 ->
     ret @@ S.Dim0
@@ -91,8 +149,174 @@ let rec quote_con (tp : D.tp) con =
   | _, D.CodeUniv ->
     ret S.CodeUniv
 
+  | univ, D.CodePi (base, fam) ->
+    let+ tbase = quote_con univ base
+    and+ tfam =
+      let* elbase = lift_cmp @@ do_el base in
+      quote_lam elbase @@ fun var ->
+      quote_con univ @<<
+      lift_cmp @@ do_ap fam var
+    in
+    S.CodePi (tbase, tfam)
+
+  | univ, D.CodeSg (base, fam) ->
+    let+ tbase = quote_con univ base
+    and+ tfam =
+      let* elbase = lift_cmp @@ do_el base in
+      quote_lam elbase @@ fun var ->
+      quote_con univ @<<
+      lift_cmp @@ do_ap fam var
+    in
+    S.CodeSg (tbase, tfam)
+
+    (*
+    *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
+    * *)
+  | univ, D.CodePath (fam, bdry) -> (* check *)
+    let* piuniv =
+      lift_cmp @@
+      splice_tp @@
+      Splice.foreign_tp univ @@ fun univ ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun _i ->
+      univ
+    in
+    let* tfam = quote_con piuniv fam in
+    (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
+    let* bdry_tp =
+      lift_cmp @@
+      splice_tp @@
+      Splice.foreign_tp univ @@ fun _univ ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
+      TB.el @@ TB.ap fam [i]
+    in
+    let+ tbdry = quote_con bdry_tp bdry in
+    S.CodePath (tfam, tbdry)
+
+  | _univ, D.CodeV (r, pcode, code, pequiv) ->
+    let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
+    S.CodeV (tr, t_pcode, tcode, t_pequiv)
+
+  | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
+    (* bdy : (i : 𝕀) (_ : [...]) → nat *)
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeNat r s phi bdy' in
+    S.ElOut tm
+
+  | D.Univ, D.FHCom (`Univ, r, s, phi, bdy) ->
+    (* bdy : (i : 𝕀) (_ : [...]) → nat *)
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeUniv r s phi bdy' in
+    S.ElOut tm
+
+  | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeCircle r s phi bdy' in
+    S.ElOut tm
+
+  | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
+    let+ tr = quote_dim r
+    and+ ts = quote_dim s
+    and+ tphi = quote_cof phi
+    and+ tsides =
+      quote_lam (D.TpPrf phi) @@ fun _prf ->
+      quote_con tp con
+    and+ tcap =
+      let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
+      let* el_bdy_r = lift_cmp @@ do_el bdy_r in
+      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap r s phi bdy con
+    in
+    S.Box (tr, ts, tphi, tsides, tcap)
+
+  | D.ElUnstable (`V (r, pcode, code, pequiv)) as tp, _ ->
+    begin
+      lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
+      | true ->
+        let branch phi : (S.t * S.t) m =
+          let* tphi = quote_cof phi in
+          bind_var (D.TpPrf phi) @@ fun _prf ->
+          let+ tm = quote_con tp con in
+          tphi, tm
+        in
+        let phis = [Cof.eq r D.Dim0; Cof.eq r D.Dim1] in
+        let+ branches = MU.map branch phis in
+        S.CofSplit branches
+      | false ->
+        let+ tr = quote_dim r
+        and+ part =
+          quote_lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
+          let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
+          let* tp = lift_cmp @@ do_el pcode_fib in
+          quote_con tp con
+        and+ tot =
+          let* tp = lift_cmp @@ do_el code in
+          let* proj = lift_cmp @@ do_rigid_vproj r pcode code pequiv con in
+          quote_con tp proj
+        and+ t_pequiv =
+          let* tp_pequiv =
+            lift_cmp @@ Sem.splice_tp @@
+            Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+          in
+          quote_con tp_pequiv pequiv
+        in
+        S.VIn (tr, t_pequiv, part, tot)
+    end
+
+  | _, D.LetSym (r, x, con) ->
+    quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
+
+  | D.TpSplit branches as tp, _ ->
+    let branch_body phi : S.t m =
+      bind_var (D.TpPrf phi) @@ fun _prf ->
+      quote_con tp con
+    in
+    let* branches =
+      List.flatten <@>
+      begin
+        branches |> MU.map @@ fun (phi, clo) ->
+        lift_cmp (CmpM.test_sequent [phi] Cof.bot) |>> function
+        | true ->
+          ret []
+        | false ->
+          ret [phi,clo]
+      end
+    in
+    begin
+      match branches with
+      | [_phi, tp_clo] ->
+        let* tp = lift_cmp @@ inst_tp_clo tp_clo D.Prf in
+        quote_con tp con
+      | _ ->
+        let phis = List.map fst branches in
+        let+ tphis = MU.map quote_cof phis
+        and+ tms = MU.map branch_body phis in
+        S.CofSplit (List.combine tphis tms)
+    end
+
   | _ ->
-    seq ~splitter:con_splitter @@ split_quote_whnf_con tp con
+    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
+    throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
 and split_quote_con tp con = QuM.split [] @@ quote_con tp con
 
@@ -100,6 +324,12 @@ and split_quote_lam ?(ident = `Anon) tp mbdy =
   let open SplitQuM in
   let open Monad.Notation (SplitQuM) in
   let+ bdy = bind_var ~splitter:con_splitter tp mbdy in
+  S.Lam (ident, bdy)
+
+and quote_lam ?(ident = `Anon) tp mbdy =
+  let open QuM in
+  let open Monad.Notation (QuM) in
+  let+ bdy = bind_var tp mbdy in
   S.Lam (ident, bdy)
 
 and con_splitter tbranches =
@@ -129,264 +359,43 @@ and con_splitter tbranches =
     let+ branches = MU.map run_branch filtered in
     S.CofSplit branches
 
-and split_quote_whnf_con (tp : D.tp) con =
-  let open SplitQuM in
-  let open Monad.Notation (SplitQuM) in
-  let module MU = Monad.Util (SplitQuM) in
-  match tp, con with
-  | _, D.Cut {cut = (D.Global sym, sp) as cut; tp} ->
-    let* st = SplitQuM.read_global in
-    let* veil = SplitQuM.read_veil in
-    begin
-      let _, ocon = ElabState.get_global sym st in
-      begin
-        match ocon, Veil.policy sym veil with
-        | Some con, `Transparent ->
-          let* con' = lift_cmp @@ Sem.do_spine con sp in
-          split_quote_con tp con'
-        | _ ->
-          split_quote_cut cut
-      end
-    end
-
-  | _, D.Cut {cut = (hd, sp); tp = _} ->
-    split_quote_cut (hd, sp)
-
-  | D.Pi (base, _, fam), D.Lam (ident, clo) ->
-    split_quote_lam ~ident base @@ fun arg ->
-    let* fib = lift_cmp @@ inst_tp_clo fam arg in
-    let* ap = lift_cmp @@ inst_tm_clo clo arg in
-    split_quote_con fib ap
-
-  | D.Pi (base, ident, fam), con ->
-    split_quote_lam ~ident base @@ fun arg ->
-    let* fib = lift_cmp @@ inst_tp_clo fam arg in
-    let* ap = lift_cmp @@ do_ap con arg in
-    split_quote_con fib ap
-
-  | D.Sg (base, _, fam), _ ->
-    let* fst = lift_cmp @@ do_fst con in
-    let* snd = lift_cmp @@ do_snd con in
-    let* fib = lift_cmp @@ inst_tp_clo fam fst in
-    let+ tfst = split_quote_con base fst
-    and+ tsnd = split_quote_con fib snd in
-    S.Pair (tfst, tsnd)
-
-  | D.Sub (tp, _phi, _clo), _ ->
-    let+ tout =
-      let* out = lift_cmp @@ do_sub_out con in
-      split_quote_con tp out
-    in
-    S.SubIn tout
-
-  | D.El code, _ ->
-    let+ tout =
-      let* unfolded = lift_cmp @@ unfold_el code in
-      let* out = lift_cmp @@ do_el_out con in
-      split_quote_con unfolded out
-    in
-    S.ElIn tout
-
-  | _, D.Loop r ->
-    let+ tr = split_quote_dim r in
-    S.Loop tr
-
-  | univ, D.CodePi (base, fam) ->
-    let+ tbase = split_quote_con univ base
-    and+ tfam =
-      let* elbase = lift_cmp @@ do_el base in
-      split_quote_lam elbase @@ fun var ->
-      split_quote_con univ @<<
-      lift_cmp @@ do_ap fam var
-    in
-    S.CodePi (tbase, tfam)
-
-  | univ, D.CodeSg (base, fam) ->
-    let+ tbase = split_quote_con univ base
-    and+ tfam =
-      let* elbase = lift_cmp @@ do_el base in
-      split_quote_lam elbase @@ fun var ->
-      split_quote_con univ @<<
-      lift_cmp @@ do_ap fam var
-    in
-    S.CodeSg (tbase, tfam)
-
-    (*
-    *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
-    * *)
-  | univ, D.CodePath (fam, bdry) -> (* check *)
-    let* piuniv =
-      lift_cmp @@
-      splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun _i ->
-      univ
-    in
-    let* tfam = split_quote_con piuniv fam in
-    (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
-    let* bdry_tp =
-      lift_cmp @@
-      splice_tp @@
-      Splice.foreign_tp univ @@ fun _univ ->
-      Splice.foreign fam @@ fun fam ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
-      TB.el @@ TB.ap fam [i]
-    in
-    let+ tbdry = split_quote_con bdry_tp bdry in
-    S.CodePath (tfam, tbdry)
-
-  | _univ, D.CodeV (r, pcode, code, pequiv) ->
-    let+ tr, t_pcode, tcode, t_pequiv = split_quote_v_data r pcode code pequiv in
-    S.CodeV (tr, t_pcode, tcode, t_pequiv)
-
-  | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
-    (* bdy : (i : 𝕀) (_ : [...]) → nat *)
-    let* bdy' =
-      lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
-      Splice.term @@
-      TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
-    in
-    let+ tm = split_quote_hcom D.CodeNat r s phi bdy' in
-    S.ElOut tm
-
-  | D.Univ, D.FHCom (`Univ, r, s, phi, bdy) ->
-    (* bdy : (i : 𝕀) (_ : [...]) → nat *)
-    let* bdy' =
-      lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
-      Splice.term @@
-      TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
-    in
-    let+ tm = split_quote_hcom D.CodeUniv r s phi bdy' in
-    S.ElOut tm
-
-  | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
-    let* bdy' =
-      lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
-      Splice.term @@
-      TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
-    in
-    let+ tm = split_quote_hcom D.CodeCircle r s phi bdy' in
-    S.ElOut tm
-
-  | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
-    let+ tr = split_quote_dim r
-    and+ ts = split_quote_dim s
-    and+ tphi = split_quote_cof phi
-    and+ tsides =
-      split_quote_lam (D.TpPrf phi) @@ fun _prf ->
-      split_quote_con tp con
-    and+ tcap =
-      let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
-      let* el_bdy_r = lift_cmp @@ do_el bdy_r in
-      split_quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap r s phi bdy con
-    in
-    S.Box (tr, ts, tphi, tsides, tcap)
-
-  | D.ElUnstable (`V (r, pcode, code, pequiv)) as tp, _ ->
-    begin
-      lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
-      | true ->
-        restrict ~splitter:con_splitter [Cof.boundary r] @@
-        (* Format.eprintf "quoting: %a |= %a / %a@." D.pp_cof phi D.pp_tp tp D.pp_con con; *)
-        split_quote_con tp con
-      | false ->
-        let+ tr = split_quote_dim r
-        and+ part =
-          split_quote_lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
-          let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
-          let* tp = lift_cmp @@ do_el pcode_fib in
-          split_quote_con tp con
-        and+ tot =
-          let* tp = lift_cmp @@ do_el code in
-          let* proj = lift_cmp @@ do_rigid_vproj r pcode code pequiv con in
-          split_quote_con tp proj
-        and+ t_pequiv =
-          let* tp_pequiv =
-            lift_cmp @@ Sem.splice_tp @@
-            Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
-          in
-          split_quote_con tp_pequiv pequiv
-        in
-        S.VIn (tr, t_pequiv, part, tot)
-    end
-
-  | _, D.LetSym (r, x, con) ->
-    split_quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
-
-  | D.TpSplit branches as tp, _ ->
-    let branch_body phi : S.t m =
-      QuM.split [] @@
-      QuM.bind_var (D.TpPrf phi) @@ fun _prf ->
-      quote_con tp con
-    in
-    let* branches =
-      List.flatten <@>
-      begin
-        branches |> MU.map @@ fun (phi, clo) ->
-        lift_cmp (CmpM.test_sequent [phi] Cof.bot) |>> function
-        | true ->
-          ret []
-        | false ->
-          ret [phi,clo]
-      end
-    in
-    begin
-      match branches with
-      | [_phi, tp_clo] ->
-        let* tp = lift_cmp @@ inst_tp_clo tp_clo D.Prf in
-        split_quote_con tp con
-      | _ ->
-        let phis = List.map fst branches in
-        let+ tphis = MU.map split_quote_cof phis
-        and+ tms = MU.map branch_body phis in
-        S.CofSplit (List.combine tphis tms)
-    end
-
-  | _ ->
-    Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
-    throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
-
-and split_quote_v_data r pcode code pequiv =
-  let open SplitQuM in
-  let open Monad.Notation (SplitQuM) in
-  let+ tr = split_quote_dim r
-  and+ t_pcode = split_quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
-  and+ tcode = split_quote_con D.Univ code
+and quote_v_data r pcode code pequiv =
+  let open QuM in
+  let open Monad.Notation (QuM) in
+  let+ tr = quote_dim r
+  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
+  and+ tcode = quote_con D.Univ code
   and+ t_pequiv =
     let* tp_pequiv =
       lift_cmp @@ Sem.splice_tp @@
       Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
     in
-    split_quote_con tp_pequiv pequiv
+    quote_con tp_pequiv pequiv
   in
   tr, t_pcode, tcode, t_pequiv
 
+and split_quote_v_data r pcode code pequiv =
+  QuM.split [] @@ quote_v_data r pcode code pequiv
 
-and split_quote_hcom code r s phi bdy =
-  let open SplitQuM in
-  let open Monad.Notation (SplitQuM) in
-  let* tcode = split_quote_con D.Univ code in
-  let* tr = split_quote_dim r in
-  let* ts = split_quote_dim s in
-  let* tphi = split_quote_cof phi in
+and quote_hcom code r s phi bdy =
+  let open QuM in
+  let open Monad.Notation (QuM) in
+  let* tcode = quote_con D.Univ code in
+  let* tr = quote_dim r in
+  let* ts = quote_dim s in
+  let* tphi = quote_cof phi in
   let+ tbdy =
-    split_quote_lam D.TpDim @@ fun i ->
+    quote_lam D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    split_quote_lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
+    quote_lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     let* tp = lift_cmp @@ do_el code in
-    split_quote_con tp body
+    quote_con tp body
   in
   S.HCom (tcode, tr, ts, tphi, tbdy)
+
+and split_quote_hcom code r s phi bdy =
+  QuM.split [] @@ quote_hcom code r s phi bdy
 
 and split_quote_tp_clo base fam =
   let open QuM in

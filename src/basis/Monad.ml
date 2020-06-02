@@ -74,6 +74,16 @@ struct
     | [] -> M.ret ()
     | x :: xs -> let* () = f x in iter f xs
 
+  let rec filter_map f =
+    function
+    | [] -> M.ret []
+    | (x :: xs) ->
+      let+ y = f x
+      and+ ys = filter_map f xs in
+      match y with
+      | None -> ys
+      | Some y -> y :: ys
+
   let ignore m =
     let+ _ = m in ()
 end
