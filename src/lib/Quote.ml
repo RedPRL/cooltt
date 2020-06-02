@@ -563,7 +563,7 @@ and split_quote_cut (hd, spine) =
   let* tm = split_quote_hd hd in
   split_quote_spine tm spine
 
-and quote_cut tp cut =
+and quote_cut cut =
   QuM.seq ~splitter:con_splitter @@ split_quote_cut cut
 
 and split_quote_spine tm =

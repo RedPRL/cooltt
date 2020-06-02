@@ -63,8 +63,8 @@ let quote_con tp con =
 let quote_tp tp =
   lift_qu @@ Qu.quote_tp tp
 
-let quote_cut tp cut =
-  lift_qu @@ Qu.quote_cut tp cut
+let quote_cut cut =
+  lift_qu @@ Qu.quote_cut cut
 
 let quote_cof cof =
   lift_qu @@ Qu.quote_cof cof

@@ -74,7 +74,7 @@ struct
   let unleash_hole name flexity : T.BChk.tac =
     fun (tp, phi, clo) ->
     let* cut = make_hole name flexity (tp, phi, clo) in
-    EM.quote_cut tp cut
+    EM.quote_cut cut
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
