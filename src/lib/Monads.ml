@@ -248,7 +248,10 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m cofs ->
     fun st ->
-    match CofEnv.Reduced.consistency st.cof_reduced_env with
+    match
+      CofEnv.consistency @@
+      CofEnv.Reduced.assemble_env st.cof_reduced_env cofs
+    with
     | `Consistent -> m cofs st
     | `Inconsistent -> abort cofs st
 
