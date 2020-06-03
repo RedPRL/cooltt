@@ -38,6 +38,8 @@ module EvM : sig
   val read_local : D.env m
 
   val append : D.con list -> 'a m -> 'a m
+  val drop_con : 'a m -> 'a m
+  val drop_all_cons : 'a m -> 'a m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
