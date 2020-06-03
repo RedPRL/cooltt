@@ -388,12 +388,12 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ pequiv = subst_con r x pequiv in
     D.ElUnstable (`V (s, pcode, code, pequiv))
   | D.TpSplit branches ->
-    let go_branch (phi, clo) =
+    let subst_branch (phi, clo) =
       let+ phi = subst_cof r x phi
       and+ clo = subst_tp_clo r x clo in
-      (phi, clo)
+      phi, clo
     in
-    let+ branches = MU.map go_branch branches in
+    let+ branches = MU.map subst_branch branches in
     D.TpSplit branches
 
 
@@ -508,6 +508,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local in
     let pclos = List.map (fun tp -> D.TpClo (tp, env)) tps in
     D.TpSplit (List.combine phis pclos)
+  | S.TpESub (sb, tp) ->
+    eval_sub sb @@ eval_tp tp
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -733,6 +735,24 @@ and eval : S.t -> D.con EvM.m =
       and+ vpequiv = eval pequiv in
       D.CodeV (vr, vpcode, vcode, vpequiv)
 
+    | S.ESub (sb, tm) ->
+      eval_sub sb @@ eval tm
+
+and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
+  fun sb kont ->
+  let open EvM in
+  match sb with
+  | S.Sb0 ->
+    drop_all_cons kont
+  | S.SbP ->
+    drop_con kont
+  | S.SbI -> kont
+  | S.SbE (sb, tm) ->
+    let* con = eval tm in
+    append [con] @@ eval_sub sb kont
+  | S.SbC (sb0, sb1) ->
+    eval_sub sb0 @@ eval_sub sb1 kont
+
 and eval_dim tr =
   let open EvM in
   let* con = eval tr in
@@ -742,7 +762,6 @@ and eval_cof tphi =
   let open EvM in
   let* vphi = eval tphi in
   lift_cmp @@ con_to_cof vphi
-
 
 
 and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
@@ -1354,22 +1373,26 @@ and do_el : D.con -> D.tp CM.m =
   let open CM in
   fun con ->
     abort_if_inconsistent (ret D.tp_abort) @@
+    let splitter con phis =
+      splice_tp @@
+      Splice.foreign con @@ fun tm ->
+      Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
+      Splice.term @@
+      TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
+    in
     begin
       inspect_con con |>>
       function
-      | D.Cut {cut; _} ->
-        ret @@ D.ElCut cut
       | D.FHCom (`Univ, r, s, phi, bdy) ->
         ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
       | D.CodeV (r, pcode, code, pequiv) ->
         ret @@ D.ElUnstable (`V (r, pcode, code, pequiv))
       | D.Split branches as con ->
-        let phis = List.map fst branches in
-        splice_tp @@
-        Splice.foreign con @@ fun tm ->
-        Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
-        Splice.term @@
-        TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
+        splitter con @@ List.map fst branches
+      | D.Cut {tp = D.TpSplit branches; _} as con ->
+        splitter con @@ List.map fst branches
+      | D.Cut {cut; tp = D.Univ} ->
+        ret @@ D.ElCut cut
       | _ ->
         ret @@ D.El con
     end

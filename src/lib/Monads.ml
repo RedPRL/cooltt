@@ -85,6 +85,19 @@ struct
     let+ {env; _} = M.read in
     env
 
+  exception Drop
+
+  let drop_con (k : 'a m) : 'a m =
+    let* {env; _} = M.read in
+    match env.conenv with
+    | Snoc (conenv, _) ->
+      M.scope (fun local -> {local with env = {local.env with conenv}}) k
+    | Emp ->
+      M.throw Drop
+
+  let drop_all_cons (k : 'a m) : 'a m =
+    M.scope (fun local -> {local with env = {local.env with conenv = Emp}}) k
+
   let append cells =
     M.scope @@ fun local ->
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
