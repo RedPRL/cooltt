@@ -168,7 +168,8 @@ instead of syntactic substitutions. We differ from
     The strict equations lose too much information too early, such as the Kan-ness
     and universe levels. For example, it is difficult to recognize
     \[
-      \Prod{i:\DIM}{\prn{A\prn{i} \mid i=0 \to M \mid i=1 \to N}}
+      \Prod{i : \DIM}{\prn{\TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
+        \brk{i=0 \to M \delimmid i=1 \to N}}}}
     \]
     as a path type ``$\TpPath{A}{M}{N}$'' and infer its Kan operators.
     (It will be next to impossible with extension types or other fancy types.)
