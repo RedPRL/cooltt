@@ -523,7 +523,11 @@ We proceed by equipping the universe with composite types and V types, which
 ensure it is Kan and univalent, respectively. The homogeneous composition
 structure on the universe corresponds to a code for composite types; we
 characterize the elements of this code \emph{directly} rather than via some
-isomorphism (this is simplest in the case of cubically unstable type codes).
+isomorphism (this is simplest in the case of cubically unstable type
+codes).\footnote{A constructor is considered \emph{cubically unstable} when the action
+of a cubical substitution may change its head constructor: this is the case for
+the codes of V and composite types, as well as path constructors in higher
+inductive types.}
 
 \begin{mathparpagebreakable}
   \inferrule[formal hcom code]{
