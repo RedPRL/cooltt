@@ -9,6 +9,13 @@
 
 
 \mprset{flushleft}
+\NewDocumentCommand\redtt{}{%
+  \texttt{\textcolor[rgb]{.91,.31,.27}{red}tt}%
+}
+\NewDocumentCommand\RedPRL{}{%
+  \textsf{\textcolor[rgb]{.91,.31,.27}{Red}PRL}%
+}
+
 
 \NewDocumentCommand\delimmid{}{\mathrel{\delimsep{\vert}}}
 
@@ -473,12 +480,36 @@ $\TpEl{\Code{A}}$ and evidence that $\TpEl{\Code{A}}$ is Kan.
 \end{cool}
 
 \begin{cool}
-  The artificial separation of ``cap'' and ``tube'' and the lack of elaboration support of cubical subtypes led to the unfortunate discrepency between the types of arguments of \textsf{hfill} and those of \textsf{hcomp} in Cubical Agda. The main design challenge is that the coherence between ``cap'' and ``tube'' should be mentioned somewhere. One can use cubical subtypes to impose the coherence condition, but cubical subtypes are clumsy without a good elaborator. As a result, Agda removes cubical subtypes from the type of the primitive operator \textsf{hcomp}, using a special checker for the coherence condition beyond its typing. However, the derived function \textsf{hfill} could not enjoy the special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other words, the operators are either semantically correct but clumsy (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}). There are at least two ways to fix this:
+  %
+  Prior implementations\footnote{Namely \texttt{cubicaltt}, \RedPRL{}, Cubical Agda, and \redtt{}\citep{cchm:cubicaltt,
+  vezzosi-mortberg-abel:2019,redtt:2018,redprl:2018}.} have
+  inherited the artificial separation of the ``cap'' and the ``tube'' parts of
+  the composition data, inspired by the the cubical type theoretic
+  literature~\citep{cchm:2017,angiuli-favonia-harper:2017,orton-pitts:2016,abcfhl:2019}.
+  While this is unnecessary and inelegant in general, the situation is
+  particularly worsened in the context of Agda where the comparatively
+  under-developed judgmental support for cubical subtypes leads to a
+  discrepency between the types of arguments passed to \textsf{hcomp}
+  (primitive) and \textsf{hfill} (derived).
+%
+  The main design challenge is to express the fact that the cap \emph{fits}
+  onto the tube; one can use cubical subtypes to impose this coherence
+  condition, but cubical subtypes are clumsy without good judgmental support
+  during elaboration.
+
+  Consequently, Agda over-approximates the type of the primitive operator
+  \textsf{hcomp} and then employs an ad hoc check for the coherence condition.
+  However, the \emph{derived} function \textsf{hfill} does not enjoy the
+  special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other
+  words, the operators are either semantically correct but clumsy
+  (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}).
+  There are at least two ways to fix this:
   \begin{enumerate}
     \item Consolidate ``cap'' and ``tube'' into one system.
-    \item Good elaboration support for cubical subtypes.
+    \item Good judgmental support for cubical subtypes.
   \end{enumerate}
-  We did both in \texttt{cooltt}.
+
+  We have done both in \texttt{cooltt}.
 \end{cool}
 
 \subsection{Rules for composite types}
