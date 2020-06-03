@@ -110,7 +110,10 @@ let execute_decl =
     end
   | CS.Quit ->
     EM.ret @@ Ok `Quit
-  | CS.Import p -> raise Todo
+  | CS.Import p ->
+    let () = print_string (String.concat "<>" p) in
+    let () = print_string "\n" in
+    raise Todo
 
 
 (* Favonia: I haven't decided to extend the environment to hold past errors. *)

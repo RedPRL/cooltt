@@ -6,7 +6,7 @@
 
 (library
  (name Core)
- (libraries cooltt.basis menhirLib)
+ (libraries cooltt.basis menhirLib ezjsonm ezgzip)
  (preprocess
   (pps ppx_deriving.std))
  (flags
