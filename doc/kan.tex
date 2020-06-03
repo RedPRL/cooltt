@@ -651,19 +651,17 @@ isomorphism (this is simplest in the case of cubically unstable type codes).
 \subsection{Rules for V types}
 
 We begin by defining some definitional extensions for equivalences.
-\[
+\begin{gather*}
   \begin{array}{l}
     \CodeIsContr : \TpUniv\to\TpUniv\\
     \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
   \end{array}
-\]
-\[
+  \\
   \begin{array}{l}
     \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\prn{\TpEl{\Code{A}}\to\TpEl{\Code{B}}}\to\TpEl{\Code{B}}\to\TpUniv}}\\
     \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeSum{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{f\prn{x}}{y}}
   \end{array}
-\]
-\[
+  \\
   \begin{array}{l}
     \CodeEquiv : \TpUniv\to\TpUniv\to\TpUniv\\
     \CodeEquiv{\Code{A}}{\Code{B}} \coloneq
@@ -675,13 +673,12 @@ We begin by defining some definitional extensions for equivalences.
       }
     }
   \end{array}
-\]
-\[
+  \\
   \begin{array}{l}
     \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}\to\TpEl{\Code{A}}\to\TpEl{\Code{B}}}}\\
     \TmEquivApp{\Code{A}}{\Code{B}}{E} \coloneq \ElOut{\TmFst{\ElOut{E}}}
   \end{array}
-\]
+\end{gather*}
 
 We may now specify the rules for the V types.
 \begin{mathparpagebreakable}
@@ -871,7 +868,6 @@ We may now specify the rules for the V types.
 
 
 \subsection{Coercion in V types}
-
 \NewDocumentCommand{\CodeFiberAlt}{g}{\widehat{\mathsf{Fiber'}}\IfValueT{#1}{\prn{#1}}}
 \NewDocumentCommand{\TooLong}{}{\textcolor{RedDevil}{\cdots\text{\textit{too long}}\cdots}}
 
@@ -1086,6 +1082,7 @@ We may now specify the rules for the V types.
     \TpEl{\CodeV{s_{r'}}{\Code{A}_{r'}}{\Code{B}_{r'}}{E_{r'}}}
   }
 \]
+
 
 
 \subsection{Coercion in composite types}
