@@ -1,4 +1,4 @@
-\documentclass[draft]{amsart}
+\documentclass[final]{amsart}
 \usepackage{jon-note}
 \usepackage{jon-todo}
 \usepackage{mathpartir}
@@ -9,6 +9,13 @@
 
 
 \mprset{flushleft}
+\NewDocumentCommand\redtt{}{%
+  \texttt{\textcolor[rgb]{.91,.31,.27}{red}tt}%
+}
+\NewDocumentCommand\RedPRL{}{%
+  \textsf{\textcolor[rgb]{.91,.31,.27}{Red}PRL}%
+}
+
 
 \NewDocumentCommand\delimmid{}{\mathrel{\delimsep{\vert}}}
 
@@ -55,7 +62,7 @@
   {\textstyle\prod}_{#1}\IfValueT{#2}{#2}
 }
 \NewDocumentCommand\TpSub{mmm}{
-  \mindelim{1}{\mathsf{sub}\ #1\ #2\ #3}
+  \mathsf{Sub}\prn{#1; #2; #3}
 }
 
 % pairs
@@ -134,26 +141,30 @@
 \SetupFleuron{cool}
 
 \title{A cool Cartesian cubical type theory}
-\author{St.~Facaan}
+\author{Carlo Angiuli}
+\author{Evan Cavallo}
+\author{Kuen-Bang Hou (Favonia)}
+\author{Jonathan Sterling}
 
 \begin{document}
 \maketitle
 
 We present a semantic version of Cartesian cubical type theory, previously
 encoded in syntactic form by \citet{angiuli:2019}, corresponding to an idealized
-\texttt{cooltt} \citep{cooltt:2020}. By \emph{semantic} we mean that we use
-ordinary families and functions (as in \citep{orton-pitts:2016,abcfhl:2019})
-instead of syntactic substitutions. We differ from
+version of \texttt{cooltt} \citep{cooltt:2020}. By \emph{semantic} we mean that we use
+ordinary families and functions (as in \citep{orton-pitts:2016})
+instead of syntactic substitutions. We differ from the Orton--Pitts-style developments
 \citep{orton-pitts:2016,abcfhl:2019} in the following ways:
 
 \begin{enumerate}
 
   \item The developments in the style of Orton--Pitts construct various notions
-    in the internal language of a topos, but do not carefully check that they
-    may be combined in a coherent way. In contrast, we are defining an
-    equational theory for a \emph{general} coercion and composition operator,
-    which can be \emph{modeled} by a carefully executed Orton--Pitts
-    construction.
+    in the internal language of a topos, but do not always carefully check that
+    they may be combined in a coherent way, nor whether they are expressible purely in
+    the language of finite limits (a pre-requisite for defining a type theory).
+    In contrast, we are defining an equational theory for a \emph{general}
+    coercion and composition operator, which can be \emph{modeled} by a
+    carefully executed Orton--Pitts construction.
 
   \item The artificial distinction between ``cap'' and ``tube'' maintained in
     the Orton--Pitts developments is replaced by the more semantic use of
@@ -168,11 +179,14 @@ instead of syntactic substitutions. We differ from
     The strict equations lose too much information too early, such as the Kan-ness
     and universe levels. For example, it is difficult to recognize
     \[
-      \Prod{i : \DIM}{\prn{\TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
-        \brk{i=0 \to M \delimmid i=1 \to N}}}}
+      \Prod{i : \DIM}{
+        \TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
+          \brk{i=0 \to M \delimmid i=1 \to N}
+        }
+      }
     \]
     as a path type ``$\TpPath{A}{M}{N}$'' and infer its Kan operators.
-    (It will be next to impossible with extension types or other fancy types.)
+    (It will be next to impossible with extension types or other more sophisticated type formers.)
 
 \end{enumerate}
 
@@ -185,17 +199,17 @@ the interval, and $\COF$, a universe of strict propositions. (Note that
 $\IsTp{A}$ means that $A$ is a \emph{cubical set}, not that $A$ is Kan.)
 
 \begin{mathparpagebreakable}
-  \inferrule[interval formation]{
+  \inferrule[$\DIM$-formation]{
   }{
     \IsTp{\DIM}
   }
   \and
-  \inferrule[interval intro]{
+  \inferrule[$\DIM$-intro]{
   }{
     0,1 : \DIM
   }
   \and
-  \inferrule[cofibration formation]{
+  \inferrule[$\COF$-formation]{
   }{
     \IsTp{\COF}
   }
@@ -253,8 +267,8 @@ $\IsTp{A}$ means that $A$ is a \emph{cubical set}, not that $A$ is Kan.)
   \and
   \inferrule[prf extensionality]{
     \Hint{\phi,\psi : \COF} \\
-    f : \TpPrf{\phi}\to\TpPrf{\psi} \\
-    g : \TpPrf{\psi}\to\TpPrf{\phi}
+    \IsTrue{\phi}\vdash\IsTrue{\psi}\\
+    \IsTrue{\psi}\vdash\IsTrue{\phi}
   }{
     \phi = \psi : \COF
   }
@@ -413,8 +427,11 @@ be replaced by a hierarchy of universes.
     N : \TpEl{\Code{A}\prn{1}}
   }{
     \ElInOut : \TpEl{\CodePath{\Code{A}}{M}{N}} \cong
-    \Prod{i : \DIM}{\prn{\TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
-      \brk{i=0 \to M \delimmid i=1 \to N}}}}
+    \Prod{i : \DIM}{
+      \TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
+        \brk{i=0 \to M \delimmid i=1 \to N}
+      }
+    }
   }
   \and
   \inferrule[universe code decoding]{
@@ -463,19 +480,41 @@ decomposition into $\mathsf{hcom}$ and $\mathsf{coe}$.
 
 \begin{cool}
 We intend for the bureaucracy of $\ElInOut$ (and $\SubIn{-},\SubOut{-}$) to be
-handled by \texttt{cooltt}'s elaborator; internally, however, we maintain a
-distinction between type and code in order to distinguish between Kan types and
-pretypes. One might informally imagine $\Code{A}:\TpUniv$ as a pair of a type
+handled by \texttt{cooltt}'s elaborator. One might informally imagine $\Code{A}:\TpUniv$ as a pair of a type
 $\TpEl{\Code{A}}$ and evidence that $\TpEl{\Code{A}}$ is Kan.
 \end{cool}
 
 \begin{cool}
-  The artificial separation of ``cap'' and ``tube'' and the lack of elaboration support of cubical subtypes led to the unfortunate discrepency between the types of arguments of \textsf{hfill} and those of \textsf{hcomp} in Cubical Agda. The main design challenge is that the coherence between ``cap'' and ``tube'' should be mentioned somewhere. One can use cubical subtypes to impose the coherence condition, but cubical subtypes are clumsy without a good elaborator. As a result, Agda removes cubical subtypes from the type of the primitive operator \textsf{hcomp}, using a special checker for the coherence condition beyond its typing. However, the derived function \textsf{hfill} could not enjoy the special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other words, the operators are either semantically correct but clumsy (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}). There are at least two ways to fix this:
+  %
+  Prior implementations\footnote{Namely \texttt{cubicaltt}, \RedPRL{}, Cubical Agda, and \redtt{}~\citep{cchm:cubicaltt,
+  vezzosi-mortberg-abel:2019,redtt:2018,redprl:2018}.} have
+  inherited the artificial separation of the ``cap'' ($i=r$) and ``tube'' ($\phi$)
+  parts of the composition data, inspired by the cubical type theoretic
+  literature~\citep{cchm:2017,angiuli-favonia-harper:2017,orton-pitts:2016,abcfhl:2019}.
+  While this is unnecessary and inelegant in general, the situation is
+  particularly worsened in the context of Agda where the comparatively
+  under-developed judgmental support for cubical subtypes leads to a
+  discrepency between the types of arguments passed to \textsf{hcomp}
+  (primitive) and \textsf{hfill} (derived).
+%
+  The main design challenge is to express the fact that the cap \emph{fits}
+  onto the tube; one can use cubical subtypes to impose this coherence
+  condition, but cubical subtypes are clumsy without good judgmental support
+  during elaboration.
+
+  Consequently, Agda over-approximates the type of the primitive operator
+  \textsf{hcomp} and then employs an ad hoc check for the coherence condition.
+  However, the \emph{derived} function \textsf{hfill} does not enjoy the
+  special treatment of \textsf{hcomp}, and therefore must use cubical subtypes. In other
+  words, the operators are either semantically correct but clumsy
+  (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}).
+  There are at least two ways to fix this:
   \begin{enumerate}
     \item Consolidate ``cap'' and ``tube'' into one system.
-    \item Good elaboration support for cubical subtypes.
+    \item Good judgmental support for cubical subtypes.
   \end{enumerate}
-  We did both in \texttt{cooltt}.
+
+  We have done both in \texttt{cooltt}.
 \end{cool}
 
 \subsection{Rules for composite types}
@@ -484,7 +523,11 @@ We proceed by equipping the universe with composite types and V types, which
 ensure it is Kan and univalent, respectively. The homogeneous composition
 structure on the universe corresponds to a code for composite types; we
 characterize the elements of this code \emph{directly} rather than via some
-isomorphism (this is simplest in the case of cubically unstable type codes).
+isomorphism (this is simplest in the case of cubically unstable type
+codes).\footnote{A constructor is considered \emph{cubically unstable} when the action
+of a cubical substitution may change its head constructor: this is the case for
+the codes of V and composite types, as well as path constructors in higher
+inductive types.}
 
 \begin{mathparpagebreakable}
   \inferrule[formal hcom code]{
@@ -613,19 +656,17 @@ isomorphism (this is simplest in the case of cubically unstable type codes).
 \subsection{Rules for V types}
 
 We begin by defining some definitional extensions for equivalences.
-\[
+\begin{gather*}
   \begin{array}{l}
     \CodeIsContr : \TpUniv\to\TpUniv\\
     \CodeIsContr{\Code{C}} \coloneq \CodeSum{x:\Code{C}}{\CodeProd{y:\Code{C}}{\CodePath{\lambda\Dummy.\Code{C}}{x}{y}}}
   \end{array}
-\]
-\[
+  \\
   \begin{array}{l}
     \CodeFiber : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\prn{\TpEl{\Code{A}}\to\TpEl{\Code{B}}}\to\TpEl{\Code{B}}\to\TpUniv}}\\
     \CodeFiber{\Code{A}}{\Code{B}}{f}{y} \coloneq \CodeSum{x:\Code{A}}{\CodePath{\lambda\Dummy.\Code{B}}{f\prn{x}}{y}}
   \end{array}
-\]
-\[
+  \\
   \begin{array}{l}
     \CodeEquiv : \TpUniv\to\TpUniv\to\TpUniv\\
     \CodeEquiv{\Code{A}}{\Code{B}} \coloneq
@@ -637,13 +678,12 @@ We begin by defining some definitional extensions for equivalences.
       }
     }
   \end{array}
-\]
-\[
+  \\
   \begin{array}{l}
     \TmEquivApp : \Prod{\Code{A}:\TpUniv}{\Prod{\Code{B}:\TpUniv}{\TpEl{\CodeEquiv{\Code{A}}{\Code{B}}}\to\TpEl{\Code{A}}\to\TpEl{\Code{B}}}}\\
     \TmEquivApp{\Code{A}}{\Code{B}}{E} \coloneq \ElOut{\TmFst{\ElOut{E}}}
   \end{array}
-\]
+\end{gather*}
 
 We may now specify the rules for the V types.
 \begin{mathparpagebreakable}
@@ -663,12 +703,7 @@ We may now specify the rules for the V types.
     \to
     \Code{B}
   }
-\end{mathparpagebreakable}
-
-
-\hfill
-
-\begin{mathparpagebreakable}
+  \\
   \inferrule[v type introduction]{
     \Hint{r:\DIM}\\
     \Hint{\Code{A} : \TpPrf{r=0}\to\TpUniv}\\
@@ -838,7 +873,6 @@ We may now specify the rules for the V types.
 
 
 \subsection{Coercion in V types}
-
 \NewDocumentCommand{\CodeFiberAlt}{g}{\widehat{\mathsf{Fiber'}}\IfValueT{#1}{\prn{#1}}}
 \NewDocumentCommand{\TooLong}{}{\textcolor{RedDevil}{\cdots\text{\textit{too long}}\cdots}}
 
@@ -1053,6 +1087,7 @@ We may now specify the rules for the V types.
     \TpEl{\CodeV{s_{r'}}{\Code{A}_{r'}}{\Code{B}_{r'}}{E_{r'}}}
   }
 \]
+
 
 
 \subsection{Coercion in composite types}
