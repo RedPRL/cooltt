@@ -55,7 +55,7 @@
   {\textstyle\prod}_{#1}\IfValueT{#2}{#2}
 }
 \NewDocumentCommand\TpSub{mmm}{
-  \brk{#1 \mathrel{\delimsep{\vert}} #2 \to #3}
+  \mindelim{1}{\mathsf{sub}\ #1\ #2\ #3}
 }
 
 % pairs
@@ -284,6 +284,8 @@ Truth of each $\phi:\COF$ has the expected meaning. In particular:
     }
   \end{mathparpagebreakable}
 \end{enumerate}
+%
+We extend the case split notation to $n$-ary disjunctions as needed.
 
 \begin{cool}
 Although this presentation allows for terms $\DIM\to\COF$, etc., it is important
@@ -303,20 +305,21 @@ We will make particular use of the \emph{boundary} cofibration:
   \end{array}
 \]
 
-The role of $\COF$ is to allow us to specify the boundary of elements. If $M :
-\TpPrf{\phi}\to A$, we write $N : A \mid \phi \to M\prn{*}$ when $N$ is an
-element of $A$ that under $\TpPrf{\phi}$ restricts to $M\prn{*}$:
+The role of $\COF$ is to allow us to (partially) specify the boundaries of
+elements. If $M$ is a partial element of $A$ defined under $\IsTrue{\phi}$, we
+write $N : A \mid \phi \to M$ to express that $N$ is a total element of $A$ that
+restricts under $\phi$ to $M$:
 
 \begin{mathparpagebreakable}
   \mprset{fraction={===}}
   \inferrule{
     \IsTp{A} \\
     \phi : \COF \\
-    M : \TpPrf{\phi}\to A \\
+    \IsTrue{\phi} \vdash M : A \\
     N : A \\
-    \IsTrue{\phi} \vdash M\prn{*} = N : A
+    \IsTrue{\phi} \vdash M = N : A
   }{
-    N : A \mid \phi \to M\prn{*}
+    N : A \mid \phi \to M
   }
 \end{mathparpagebreakable}
 
@@ -326,37 +329,29 @@ We internalize this judgment as the \emph{cubical subtype} connective.
   \inferrule[sub formation]{
     \IsTp{A} \\
     \phi : \COF \\
-    M : \TpPrf{\phi}\to A
+    \IsTrue{\phi} \vdash M : A
   }{
-    \IsTp{\prn{A \mid \phi \to M\prn{*}}}
+    \IsTp{\TpSub{A}{\phi}{M}}
   }
   \and
   \inferrule[sub intro]{
     \Hint{\IsTp{A}} \\
     \Hint{\phi : \COF} \\
-    \Hint{M : \TpPrf{\phi}\to A} \\
-    N : A \mid \phi \to M\prn{*}
+    \Hint{\IsTrue{\phi} \vdash M : A} \\
+    N : A \mid \phi \to M
   }{
-    \SubIn{N} : \prn{A \mid \phi \to M\prn{*}}
+    \SubIn{N} : \TpSub{A}{\phi}{M}
   }
   \and
   \inferrule[sub elimination]{
     \Hint{\IsTp{A}} \\
     \Hint{\phi : \COF} \\
-    \Hint{M : \TpPrf{\phi}\to A} \\
-    N : \prn{A \mid \phi \to M\prn{*}}
+    \Hint{\IsTrue{\phi} \vdash M : A} \\
+    N : \TpSub{A}{\phi}{M}
   }{
-    \SubOut{N} : A \mid \phi \to M\prn{*}
+    \SubOut{N} : A \mid \phi \to M
   }
 \end{mathparpagebreakable}
-
-We extend all above notations to $n$-ary disjunctions as needed:
-
-\[
-  \prn{A \mid \phi \to M\prn{*} \mid \psi \to N\prn{*}}
-  \coloneq
-  \prn{A \mid \phi\lor\psi \to \brk{\phi \to M\prn{*} \mid \psi \to N\prn{*}}}
-\]
 
 \section{The universe}
 
@@ -417,7 +412,8 @@ be replaced by a hierarchy of universes.
     N : \TpEl{\Code{A}\prn{1}}
   }{
     \ElInOut : \TpEl{\CodePath{\Code{A}}{M}{N}} \cong
-    \Prod{i : \DIM}{\prn{\TpEl{\Code{A}\prn{i}} \mid i=0 \to M \mid i=1 \to N}}
+    \Prod{i : \DIM}{\prn{\TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
+      \brk{i=0 \to M \delimmid i=1 \to N}}}}
   }
   \and
   \inferrule[universe code decoding]{
@@ -464,14 +460,22 @@ Kan operations are a structure on codes of types.
 In the above, $\mathsf{com}$ is definitionally equal to its standard
 decomposition into $\mathsf{hcom}$ and $\mathsf{coe}$.
 
-\begin{remark}
+\begin{cool}
+We intend for the bureaucracy of $\ElInOut$ (and $\SubIn{-},\SubOut{-}$) to be
+handled by \texttt{cooltt}'s elaborator; internally, however, we maintain a
+distinction between type and code in order to distinguish between Kan types and
+pretypes. One might informally imagine $\Code{A}:\TpUniv$ as a pair of a type
+$\TpEl{\Code{A}}$ and evidence that $\TpEl{\Code{A}}$ is Kan.
+\end{cool}
+
+\begin{cool}
   The artificial separation of ``cap'' and ``tube'' and the lack of elaboration support of cubical subtypes led to the unfortunate discrepency between the types of arguments of \textsf{hfill} and those of \textsf{hcomp} in Cubical Agda. The main design challenge is that the coherence between ``cap'' and ``tube'' should be mentioned somewhere. One can use cubical subtypes to impose the coherence condition, but cubical subtypes are clumsy without a good elaborator. As a result, Agda removes cubical subtypes from the type of the primitive operator \textsf{hcomp}, using a special checker for the coherence condition beyond its typing. However, the derived function \textsf{hfill} could not enjoy the special treatment of \textsf{hcomp}, thus needing cubical subtypes. In other words, the operators are either semantically correct but clumsy (\textsf{hfill}) or convenient but semantically broken (\textsf{hcomp}). There are at least two ways to fix this:
   \begin{enumerate}
     \item Consolidate ``cap'' and ``tube'' into one system.
     \item Good elaboration support for cubical subtypes.
   \end{enumerate}
   We did both in \texttt{cooltt}.
-\end{remark}
+\end{cool}
 
 \subsection{Rules for composite types}
 
