@@ -266,8 +266,8 @@ $\IsTp{A}$ means that $A$ is a \emph{cubical set}, not that $A$ is Kan.)
   \and
   \inferrule[prf extensionality]{
     \Hint{\phi,\psi : \COF} \\
-    f : \TpPrf{\phi}\to\TpPrf{\psi} \\
-    g : \TpPrf{\psi}\to\TpPrf{\phi}
+    \IsTrue{\phi}\vdash\IsTrue{\psi}\\
+    \IsTrue{\psi}\vdash\IsTrue{\phi}
   }{
     \phi = \psi : \COF
   }
