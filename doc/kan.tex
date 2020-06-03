@@ -62,7 +62,7 @@
   {\textstyle\prod}_{#1}\IfValueT{#2}{#2}
 }
 \NewDocumentCommand\TpSub{mmm}{
-  \mindelim{1}{\mathsf{sub}\ #1\ #2\ #3}
+  \mathsf{Sub}\prn{#1; #2; #3}
 }
 
 % pairs
@@ -178,8 +178,11 @@ instead of syntactic substitutions. We differ from
     The strict equations lose too much information too early, such as the Kan-ness
     and universe levels. For example, it is difficult to recognize
     \[
-      \Prod{i : \DIM}{\prn{\TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
-        \brk{i=0 \to M \delimmid i=1 \to N}}}}
+      \Prod{i : \DIM}{
+        \TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
+          \brk{i=0 \to M \delimmid i=1 \to N}
+        }
+      }
     \]
     as a path type ``$\TpPath{A}{M}{N}$'' and infer its Kan operators.
     (It will be next to impossible with extension types or other fancy types.)
@@ -423,8 +426,11 @@ be replaced by a hierarchy of universes.
     N : \TpEl{\Code{A}\prn{1}}
   }{
     \ElInOut : \TpEl{\CodePath{\Code{A}}{M}{N}} \cong
-    \Prod{i : \DIM}{\prn{\TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
-      \brk{i=0 \to M \delimmid i=1 \to N}}}}
+    \Prod{i : \DIM}{
+      \TpSub{\TpEl{\Code{A}\prn{i}}}{\Boundary{i}}{
+        \brk{i=0 \to M \delimmid i=1 \to N}
+      }
+    }
   }
   \and
   \inferrule[universe code decoding]{
