@@ -64,7 +64,7 @@ sig
   val push_cofs : disj_thy' -> cof list -> disj_thy' option
 
   (** Checking whether the [disj_thy'] is consistent.
-      Invariant: intput [thy.classes] must be consistent;
+      Invariant: input [thy.classes] must be consistent;
       the inconsistency can only come from [thy.irreducible_joins.] *)
   val is_consistent : disj_thy' -> bool
 end
