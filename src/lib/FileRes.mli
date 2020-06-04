@@ -6,4 +6,4 @@ val cool_to_stem : filepath -> filepath
 val stem_to_cool : filepath -> filepath
 val stem_to_slush : filepath -> filepath
 
-val pp_selector : selector Pp.t0
+(* val pp_selector : selector Pp.t0 *)

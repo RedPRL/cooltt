@@ -5,14 +5,15 @@ let src_extention = ".cooltt"
 let cache_extention = ".slush"
 
 type filepath = string
-type selector = string list
+type selector = string list (* todo/iev this is upath in my terminology *)
 
-let pp_selector =
-  let pp_sep fmt () = Format.eprintf "." in
-  Format.pp_print_list ~pp_sep Format.pp_print_string
+(* todo *)
+(* let pp_selector =
+ *   let pp_sep fmt () = Format.eprintf "." in
+ *   Format.pp_print_list ~pp_sep Format.pp_print_string *)
 
 let find_lib_root (base_dir : string) : string option =
-  SysUtil.protect_cwd @@ fun cur ->
+  SysUtil.protect_cwd @@ fun _ -> (* todo used to be cur here *)
   let rec go cur =
     if Sys.file_exists lib_name then
       Some cur
@@ -22,7 +23,6 @@ let find_lib_root (base_dir : string) : string option =
       if up = cur then begin
         Log.pp_message ~loc:None ~lvl:`Warn
           Format.pp_print_string
-          Format.std_formatter
           "You are using the special local import mode. This is not recommended. You have been warned.";
         None
       end else
