@@ -164,7 +164,7 @@ let test_sequent thy cx phi =
   Search.left_invert ~zero:true ~seq:List.for_all ~fast_track thy cx @@ fun thy ->
   test thy phi
 
-let assumes thy phis =
+let assume thy phis =
   match thy with
   | `Inconsistent -> `Inconsistent
   | `Consistent thy ->
@@ -174,8 +174,6 @@ let assumes thy phis =
       if SearchHelper.is_consistent thy
       then `Consistent thy
       else `Inconsistent
-
-let assume thy phi = assumes thy [phi]
 
 let left_invert_under_cofs ~zero ~seq thy phis cont =
   Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) thy phis @@ fun alg_thy' ->
@@ -203,7 +201,7 @@ struct
       `Consistent {classes; true_vars}, List.map Cof.join irreducible_joins
 
   let assemble_thy alg_thy =
-    assumes @@ disj_envelope alg_thy
+    assume @@ disj_envelope alg_thy
 
   let left_invert_under_cofs ~zero ~seq alg_thy phis cont =
     Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (disj_envelope alg_thy) phis @@ fun alg_thy' ->

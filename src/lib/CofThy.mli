@@ -11,7 +11,7 @@ val consistency : disj_thy -> [`Consistent | `Inconsistent]
 (** Assumes the truth of a cofibration; if it can be decomposed eagerly (conjunction of equations),
     then it does so immediately. Otherwise, it is held "on deck" and repeatedly decomposed when testing
     sequents. The function [consistency] will consider cofibrations on deck. *)
-val assume : disj_thy -> cof -> disj_thy
+val assume : disj_thy -> cof list -> disj_thy
 
 (** Tests the validity of a sequent against the supplied theory. Equivalent to assuming
     the conjunction of the context and then testing truth. *)

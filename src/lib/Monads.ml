@@ -33,6 +33,15 @@ struct
      size : int}
 end
 
+module QuL =
+struct
+  type local =
+    {state : St.t;
+     veil : Veil.t;
+     cof_thy : CofThy.disj_thy;
+     size : int}
+end
+
 
 module CmpM =
 struct
@@ -123,24 +132,13 @@ type 'a evaluate = 'a EvM.m
 module ConvM =
 struct
 
-  (* XXX In a separate PR, many things in this module should
-   * be moved to [QuM]. *)
-
   module M = Monad.MonadReaderResult (ConvL)
   module MU = Monad.Util (M)
   open Monad.Notation (M)
 
-  let read_global =
-    let+ {state; _} = M.read in
-    state
-
   let read_local =
     let+ {size; _} = M.read in
     size
-
-  let read_veil =
-    let+ {veil; _} = M.read in
-    veil
 
   let binder i =
     M.scope @@ fun local ->
@@ -157,26 +155,15 @@ struct
     fun {state; cof_thy; _} ->
     m {state; cof_thy = CofThy.Algebraic.disj_envelope cof_thy}
 
-  let replace_env ~(abort : 'a m) (cof_thy : CofThy.alg_thy) (m : 'a m) : 'a m =
-    M.scope (fun local -> {local with cof_thy}) @@
-    abort_if_inconsistent abort m
-
-  let restrict ~(splitter:(D.cof * 'a m) list -> 'a m) phis (m : 'a m) : 'a m =
-    let seq f cofs =
-      splitter @@ List.map (fun cof -> cof , f cof) cofs
-    in
-    let* {cof_thy; _} = M.read in
-    CofThy.Algebraic.left_invert_under_cofs
-      ~zero:(splitter []) ~seq
-      cof_thy phis @@ fun alg_thy ->
-    replace_env ~abort:(splitter []) alg_thy m
+  let replace_env cof_thy m =
+    M.scope (fun local -> {local with cof_thy}) m
 
   let restrict_ phis m =
     let* {cof_thy; _} = M.read in
     CofThy.Algebraic.left_invert_under_cofs
       ~zero:(M.ret ()) ~seq:MU.iter
       cof_thy phis @@ fun alg_thy ->
-    replace_env ~abort:(M.ret ()) alg_thy m
+    replace_env alg_thy m
 
   let top_var tp =
     let+ n = read_local in
@@ -189,10 +176,6 @@ struct
     match tp with
     | D.TpPrf phi -> [phi]
     | _ -> []
-
-  let bind_var ~splitter tp m =
-    bind'_var tp @@ fun var phis ->
-    restrict ~splitter phis @@ m var
 
   let bind_var_ tp m =
     bind'_var tp @@ fun var phis ->
@@ -207,82 +190,60 @@ type 'a conversion = 'a ConvM.m
 module QuM =
 struct
 
-  (* XXX In a separate PR, this should be using [Cof.env]
-   * instead of [Cof.alg_thy * D.cof list]. The code
-   * is correct now but is extremely low-ch'i. *)
-
-  module M = struct
-    type 'a m = CofThy.cof list -> 'a ConvM.m
-    let bind m1 m2 cofs = ConvM.bind (m1 cofs) @@ fun x -> m2 x cofs
-    let ret x _cofs = ConvM.ret x
-  end
+  module M = Monad.MonadReaderResult (QuL)
   module MU = Monad.Util (M)
   open Monad.Notation (M)
 
-  type local = ConvM.local
+  let read_global =
+    let+ {state; _} = M.read in
+    state
 
-  let run local m =
-    ConvM.run local @@ m []
+  let read_local =
+    let+ {size; _} = M.read in
+    size
 
-  let run_exn local m =
-    ConvM.run_exn local @@ m []
-
-  let trap m cofs =
-    ConvM.trap @@ m cofs
-
-  let throw exn _ =
-    ConvM.throw exn
-
-  let scope f m cofs =
-    ConvM.scope f @@ m cofs
+  let read_veil =
+    let+ {veil; _} = M.read in
+    veil
 
   let lift_cmp (m : 'a compute) : 'a m =
-    fun phis {state; cof_thy; _} ->
-    m {state; cof_thy = CofThy.Algebraic.assemble_thy cof_thy phis}
+    fun {state; cof_thy; _} ->
+    m {state; cof_thy}
 
-  let read _ =
-    ConvM.read
+  let replace_env cof_thy m =
+    M.scope (fun local -> {local with cof_thy}) m
 
-  let read_global _ =
-    ConvM.read_global
+  let restrict phis m =
+    let* {cof_thy; _} = M.read in
+    replace_env (CofThy.assume cof_thy phis) m
 
-  let read_local _ =
-    ConvM.read_local
+  let binder i =
+    M.scope @@ fun local ->
+    {local with size = i + local.size}
 
-  let read_veil _ =
-    ConvM.read_veil
+  let top_var tp =
+    let+ n = read_local in
+    D.mk_var tp @@ n - 1
 
-  let binder i m cofs =
-    ConvM.binder i @@ m cofs
-
-  let split cofs m = m cofs
-
-  let seq ~splitter m cofs =
-    ConvM.restrict ~splitter cofs m
-
-  let seq_ m : 'a m =
-    fun cofs ->
-    ConvM.restrict_ cofs m
-
-  let bind_var tp m cofs =
-    ConvM.bind'_var tp @@ fun var cofs' ->
-    m var @@ cofs @ cofs'
+  let bind_var tp m =
+    binder 1 @@
+    let* var = top_var tp in
+    match tp with
+    | D.TpPrf phi -> restrict [phi] @@ m var
+    | _ -> m var
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
-    fun abort m cofs ->
+    fun abort m ->
     fun st ->
-    match
-      CofThy.consistency @@
-      CofThy.Algebraic.assemble_thy st.cof_thy cofs
-    with
-    | `Consistent -> m cofs st
-    | `Inconsistent -> abort cofs st
+    match CofThy.consistency st.cof_thy with
+    | `Consistent -> m st
+    | `Inconsistent -> abort st
 
+  include QuL
   include M
 end
 
-type 'a quote = CofThy.cof list -> 'a conversion
-
+type 'a quote = 'a QuM.m
 
 module ElabM =
 struct
@@ -304,20 +265,25 @@ struct
     M.scope @@ fun env ->
     Env.set_veil v env
 
-  let lift_qu (m : 'a quote) : 'a m =
+  let lift_conv_ (m : unit conversion) : unit m =
     fun (state, env) ->
     let cof_thy, irreducible_phis =
       CofThy.Algebraic.partition_thy @@ Env.cof_thy env
     in
     match
       ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} @@
-      m irreducible_phis
+      ConvM.restrict_ irreducible_phis m
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
-  let lift_conv_ (m : unit conversion) : unit m =
-    lift_qu @@ QuM.seq_ m
+  let lift_qu (m : 'a quote) : 'a m =
+    fun (state, env) ->
+    match
+      QuM.run {state; cof_thy = Env.cof_thy env; veil = Env.get_veil env; size = Env.size env} m
+    with
+    | Ok v -> Ok v, state
+    | Error exn -> Error exn, state
 
   let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->
