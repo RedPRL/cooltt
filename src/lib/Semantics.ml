@@ -1138,7 +1138,7 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     eval bdy
 
 (* reduces a constructor to something that is stable to pattern match on *)
-and whnf_inspect_con ?(style = {unfolding = false}) con =
+and whnf_inspect_con ?(style = default_whnf_style) con =
   let open CM in
   whnf_con ~style con |>>
   function
@@ -1147,7 +1147,7 @@ and whnf_inspect_con ?(style = {unfolding = false}) con =
 
 (* reduces a constructor to something that is stable to pattern match on,
  * _including_ type annotations on cuts *)
-and inspect_con ?(style = {unfolding = false}) con =
+and inspect_con ?(style = default_whnf_style) con =
   let open CM in
   whnf_inspect_con ~style con |>>
   function
