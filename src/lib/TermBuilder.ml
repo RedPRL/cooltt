@@ -503,13 +503,12 @@ struct
       let_ ~ident:(`Machine "S")
         begin
           lam @@ fun _ ->
-          (* NB: el_in is inside the cof_split, unlike in the TeX *)
           Equiv.equiv_inv_path (ap (pequiv_ r') [prf]) o_tilde @@ (* "q_tilde" *)
-          cof_split
-            [forall (fun i -> eq (s_ i) dim0), el_in @@ pair
+          el_in @@ cof_split
+            [forall (fun i -> eq (s_ i) dim0), pair
                (coe (lam @@ fun j -> ap (pcode_ j) [prf]) r r' bdy)
                (ap r_tilde [prf]);
-             eq r r', el_in @@ pair bdy
+             eq r r', pair bdy
                (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy)]
         end
       @@ fun s_tilde ->
