@@ -86,7 +86,7 @@ let append_con ident con tp env =
    locals = env.locals <>< [{contents = tp, con; ident}];
    cof_thy =
      match tp with
-     | D.TpPrf phi -> CofThy.assume env.cof_thy phi
+     | D.TpPrf phi -> CofThy.assume env.cof_thy [phi]
      | _ -> env.cof_thy
   }
 
