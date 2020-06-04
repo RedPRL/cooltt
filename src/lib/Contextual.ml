@@ -1,6 +1,5 @@
 open Dev
-open RedTT_Core
-open RedBasis
+open CoolBasis
 open Bwd open BwdNotation
 
 

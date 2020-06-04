@@ -4,9 +4,9 @@ module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
 
-module M = Monad.Notation (Contextual)
-open M
-module MU = Monad.Util (Contextual)
+(* module M = Monad.Notation (Contextual)
+ * open M
+ * module MU = Monad.Util (Contextual) *)
 module J = Ezjsonm
 
 exception Todo

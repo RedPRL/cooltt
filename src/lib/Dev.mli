@@ -1,8 +1,9 @@
-open RedBasis.Bwd
-open RedTT_Core
+open CoolBasis.Bwd
 
-type tm = Tm.tm
-type ty = Tm.tm
+exception Todo
+
+type tm = int (* todo *)
+type ty = int
 
 type 'a decl =
   | Hole of [`Rigid | `Flex]
