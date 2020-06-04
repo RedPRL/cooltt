@@ -214,7 +214,7 @@ struct
 
   let restrict phis m =
     let* {cof_thy; _} = M.read in
-    replace_env (CofThy.assumes cof_thy phis) m
+    replace_env (CofThy.assume cof_thy phis) m
 
   let binder i =
     M.scope @@ fun local ->
