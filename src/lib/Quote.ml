@@ -34,7 +34,7 @@ let contractum_or x =
 let rec quote_con (tp : D.tp) con =
   QuM.abort_if_inconsistent (ret S.tm_abort) @@
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
-  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con ~style:{unfolding = true} con in
+  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
   match tp, con with
   | _, D.Split branches ->
     let branch_body (phi, clo) =
