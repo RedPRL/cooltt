@@ -24,7 +24,7 @@ type t =
   {resolver : Symbol.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
-   cof_env : CofEnv.env;
+   cof_thy : CofThy.disj_thy;
    locals : cell bwd;
    problem : string bwd;
    location : LexingUtil.span option}
@@ -35,7 +35,7 @@ let init =
   {resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
-   cof_env = CofEnv.init ();
+   cof_thy = CofThy.init ();
    locals = Emp;
    problem = Emp;
    location = None}
@@ -84,10 +84,10 @@ let append_con ident con tp env =
   {env with
    pp = snd @@ Pp.Env.bind env.pp pp_name;
    locals = env.locals <>< [{contents = tp, con; ident}];
-   cof_env =
+   cof_thy =
      match tp with
-     | D.TpPrf phi -> CofEnv.assume env.cof_env phi
-     | _ -> env.cof_env
+     | D.TpPrf phi -> CofThy.assume env.cof_thy [phi]
+     | _ -> env.cof_thy
   }
 
 let sem_env (env : t) : D.env =
@@ -99,7 +99,7 @@ let sem_env (env : t) : D.env =
 
 let pp_env env = env.pp
 
-let cof_env env = env.cof_env
+let cof_thy env = env.cof_thy
 
 let get_veil env = env.veil
 let set_veil v env = {env with veil = v}

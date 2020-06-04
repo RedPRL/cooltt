@@ -60,9 +60,9 @@ struct
   type tac = {tp : D.tp; con : D.con}
 
   let prf phi = {tp = D.TpPrf phi; con = D.Prf}
-  let con {tp; con} = con
+  let con {tp = _; con} = con
   let syn {tp; con} =
-    let+ tm = EM.lift_qu @@ Qu.quote_con tp con in
+    let+ tm = EM.quote_con tp con in
     tm, tp
 end
 
@@ -84,7 +84,7 @@ struct
 
   let bchk : BChk.tac -> tac =
     fun btac tp ->
-    let triv = D.Clo (S.CofAbort, {tpenv = Emp; conenv = Emp}) in
+    let triv = D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp}) in
     btac (tp, Cof.bot, triv)
 
   let syn (tac : Syn.tac) : tac =
@@ -148,12 +148,12 @@ struct
     let+ tm = tac_tm vtp in
     tm, vtp
 
-let whnf tac =
-  let* tm, tp = tac in
-  EM.lift_cmp @@ Sem.whnf_tp tp |>>
-  function
-  | `Done -> EM.ret (tm, tp)
-  | `Reduce tp' -> EM.ret (tm, tp')
+  let whnf tac =
+    let* tm, tp = tac in
+    EM.lift_cmp @@ Sem.whnf_tp tp |>>
+    function
+    | `Done -> EM.ret (tm, tp)
+    | `Reduce tp' -> EM.ret (tm, tp')
 end
 
 

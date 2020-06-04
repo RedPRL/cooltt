@@ -17,7 +17,7 @@
   let name_to_term {node; info} =
     {node = plain_name_to_term node; info}
 
-  let forget_location {node; info} = node
+  let forget_location {node; info = _} = node
 %}
 
 %token <int> NUMERAL
@@ -38,7 +38,7 @@ let upath_elem =
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
-%token SUC NAT ZERO UNFOLD
+%token SUC NAT ZERO UNFOLD GENERALIZE
 %token CIRCLE BASE LOOP
 %token PATHD
 %token COE COM HCOM HFILL
@@ -46,11 +46,11 @@ let upath_elem =
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
-%token V VPROJ
+%token V VPROJ CAP
 
 %nonassoc IN RRIGHT_ARROW
 %nonassoc COLON
-%nonassoc FST SND VPROJ SUC LOOP RIGHT_ARROW TIMES
+%nonassoc FST SND VPROJ CAP SUC LOOP RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -221,6 +221,8 @@ plain_term_except_cof_case:
     { t }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
+  | GENERALIZE; name = plain_name; IN; body = term;
+    { Generalize (name, body) }
   | LET; name = plain_name; COLON; tp = term; EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
   | LET; name = plain_name; EQUALS; def = term; IN; body = term
@@ -253,6 +255,8 @@ plain_term_except_cof_case:
     { V (r, a, b, e) }
   | VPROJ; t = term
     { VProj t }
+  | CAP; t = term
+    { Cap t }
 
   | PATHD; tp = atomic_term; left = atomic_term; right = atomic_term
     { Path (tp, left, right) }

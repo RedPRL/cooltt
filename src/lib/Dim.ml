@@ -6,4 +6,3 @@ type dim =
   | DimVar of int
   | DimProbe of Symbol.t
 
-

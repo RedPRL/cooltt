@@ -7,8 +7,8 @@ open CoolBasis
 
 type 'a compute
 type 'a evaluate
+type 'a conversion
 type 'a quote
-
 
 (** The "computation" monad; contains enough state to run computations in the semantic domain,
     does not contain a variable environment or anything that would be needed for evaluation. *)
@@ -17,14 +17,14 @@ module CmpM : sig
     with type 'a m = 'a compute
 
   val read_global : ElabState.t m
-  val read_cof_env : CofEnv.env m
+  val read_cof_thy : CofThy.disj_thy m
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
   val test_sequent : D.cof list -> D.cof -> bool m
 
-  val restore_cof_env : CofEnv.env -> 'a m -> 'a m
+  val restore_cof_thy : CofThy.disj_thy -> 'a m -> 'a m
 
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
 (** The "evaluation" monad; like the computation monad but keeps a variable environment. *)
@@ -38,12 +38,27 @@ module EvM : sig
   val read_local : D.env m
 
   val append : D.con list -> 'a m -> 'a m
+  val drop_con : 'a m -> 'a m
+  val drop_all_cons : 'a m -> 'a m
 
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
 
-(** The quotation environment keeps track of De Bruijn indices for use in quotation and conversion checking. *)
+(** The conversion environment keeps track of De Bruijn indices for use in conversion checking. *)
+module ConvM : sig
+  include Monad.MonadReaderResult
+    with type 'a m = 'a conversion
+
+  val lift_cmp : 'a compute -> 'a m
+
+  val restrict_ : D.cof list -> unit m -> unit m
+  val bind_var_ : D.tp -> (D.con -> unit m) -> unit m
+
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
+end
+
+(** The quotation environment keeps track of De Bruijn indices for quotation. *)
 module QuM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a quote
@@ -55,14 +70,9 @@ module QuM : sig
   val read_veil : Veil.t m
 
   val binder : int -> 'a m -> 'a m
+  val bind_var : D.tp -> (D.con -> 'a m) -> 'a m
 
-  val bind_var : abort:'a -> D.tp -> (D.con -> 'a m) -> 'a m
-  val bind_var_ : D.tp -> (D.con -> unit m ) -> unit m
-
-  val left_invert_under_cofs : D.cof list -> unit m -> unit m
-  val left_invert_under_current_cof : unit m -> unit m
-
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
 (** The elaboration monad is the "maximal" monad that can run code from any of the other monads. *)
@@ -72,6 +82,8 @@ module ElabM : sig
     with type local := ElabEnv.t
 
   val lift_qu : 'a quote -> 'a m
+  val lift_conv_ : unit conversion -> unit m
+
   val lift_ev : 'a evaluate -> 'a m
   val lift_cmp : 'a compute -> 'a m
 
@@ -80,5 +92,5 @@ module ElabM : sig
   val globally : 'a m -> 'a m
   val emit : ?lvl:Log.level -> LexingUtil.span option -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
 
-  val abort_if_inconsistent : 'a -> 'a m -> 'a m
+  val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end

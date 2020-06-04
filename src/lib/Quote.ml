@@ -3,7 +3,6 @@ module D = Domain
 module Sem = Semantics
 module TB = TermBuilder
 
-exception Todo
 exception CCHM
 exception CJHM
 exception CFHM
@@ -27,29 +26,26 @@ open Monad.Notation (QuM)
 module MU = Monad.Util (QuM)
 open Sem
 
-module QTB :
-sig
-  val lam : ?ident:Ident.t -> D.tp -> (D.con -> S.t m) -> S.t m
-end =
-struct
-  let lam ?(ident = `Anon) tp mbdy =
-    bind_var ~abort:S.CofAbort tp @@ fun arg ->
-    let+ bdy = mbdy arg in
-    S.Lam (ident, bdy)
-end
-
 let contractum_or x =
   function
   | `Done -> x
   | `Reduce y -> y
 
-
-let rec quote_con (tp : D.tp) con : S.t m =
-  QuM.abort_if_inconsistent S.CofAbort @@
+let rec quote_con (tp : D.tp) con =
+  QuM.abort_if_inconsistent (ret S.tm_abort) @@
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
   let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
   match tp, con with
-  | _, D.Abort -> ret S.CofAbort
+  | _, D.Split branches ->
+    let branch_body (phi, clo) =
+      bind_var (D.TpPrf phi) @@ fun prf ->
+      let* body = lift_cmp @@ inst_tm_clo clo prf in
+      quote_con tp body
+    in
+    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
+    let* tms = MU.map branch_body branches in
+    ret @@ S.CofSplit (List.combine tphis tms)
+
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
@@ -79,17 +75,17 @@ let rec quote_con (tp : D.tp) con : S.t m =
       end
     end
 
-  | _, D.Cut {cut = (hd, sp); tp} ->
+  | _, D.Cut {cut = (hd, sp); tp = _} ->
     quote_cut (hd, sp)
 
   | D.Pi (base, _, fam), D.Lam (ident, clo) ->
-    QTB.lam ~ident base @@ fun arg ->
+    quote_lam ~ident base @@ fun arg ->
     let* fib = lift_cmp @@ inst_tp_clo fam arg in
     let* ap = lift_cmp @@ inst_tm_clo clo arg in
     quote_con fib ap
 
   | D.Pi (base, ident, fam), con ->
-    QTB.lam ~ident base @@ fun arg ->
+    quote_lam ~ident base @@ fun arg ->
     let* fib = lift_cmp @@ inst_tp_clo fam arg in
     let* ap = lift_cmp @@ do_ap con arg in
     quote_con fib ap
@@ -102,7 +98,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
 
-  | D.Sub (tp, phi, clo), _ ->
+  | D.Sub (tp, _phi, _clo), _ ->
     let+ tout =
       let* out = lift_cmp @@ do_sub_out con in
       quote_con tp out
@@ -138,8 +134,8 @@ let rec quote_con (tp : D.tp) con : S.t m =
     ret @@ S.Dim1
 
   | D.TpCof, D.Cof cof ->
-    let* phi = lift_cmp @@ cof_con_to_cof cof in
-    quote_cof phi
+    let* cof = lift_cmp @@ cof_con_to_cof cof in
+    quote_cof cof
 
   | D.TpPrf _, _ ->
     ret S.Prf
@@ -157,7 +153,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
-      QTB.lam elbase @@ fun var ->
+      quote_lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -167,7 +163,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
-      QTB.lam elbase @@ fun var ->
+      quote_lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -182,7 +178,7 @@ let rec quote_con (tp : D.tp) con : S.t m =
       splice_tp @@
       Splice.foreign_tp univ @@ fun univ ->
       Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi TB.tp_dim @@ fun _i ->
       univ
     in
     let* tfam = quote_con piuniv fam in
@@ -190,17 +186,17 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let* bdry_tp =
       lift_cmp @@
       splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.foreign_tp univ @@ fun _univ ->
       Splice.foreign fam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun prf ->
+      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
       TB.el @@ TB.ap fam [i]
     in
     let+ tbdry = quote_con bdry_tp bdry in
     S.CodePath (tfam, tbdry)
 
-  | univ, D.CodeV (r, pcode, code, pequiv) ->
+  | _univ, D.CodeV (r, pcode, code, pequiv) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
     S.CodeV (tr, t_pcode, tcode, t_pequiv)
 
@@ -214,6 +210,18 @@ let rec quote_con (tp : D.tp) con : S.t m =
       TB.el_in @@ TB.ap bdy [i; prf]
     in
     let+ tm = quote_hcom D.CodeNat r s phi bdy' in
+    S.ElOut tm
+
+  | D.Univ, D.FHCom (`Univ, r, s, phi, bdy) ->
+    (* bdy : (i : 𝕀) (_ : [...]) → nat *)
+    let* bdy' =
+      lift_cmp @@ splice_tm @@
+      Splice.foreign bdy @@ fun bdy ->
+      Splice.term @@
+      TB.lam @@ fun i -> TB.lam @@ fun prf ->
+      TB.el_in @@ TB.ap bdy [i; prf]
+    in
+    let+ tm = quote_hcom D.CodeUniv r s phi bdy' in
     S.ElOut tm
 
   | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
@@ -231,42 +239,88 @@ let rec quote_con (tp : D.tp) con : S.t m =
     let+ tr = quote_dim r
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
+    and+ tsides =
+      quote_lam (D.TpPrf phi) @@ fun _prf ->
+      quote_con tp con
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
       let* el_bdy_r = lift_cmp @@ do_el bdy_r in
-      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap con
-    and+ tsides =
-      QTB.lam (D.TpPrf phi) @@ fun prf ->
-      quote_con tp con
+      quote_con el_bdy_r @<< lift_cmp @@ do_rigid_cap r s phi bdy con
     in
-    S.Box (tr, ts, tphi, tcap, tsides)
+    S.Box (tr, ts, tphi, tsides, tcap)
 
-  | D.ElUnstable (`V (r, pcode, code, pequiv)), _ ->
-    let+ tr = quote_dim r
-    and+ part =
-      QTB.lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
-      let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
-      let* tp = lift_cmp @@ do_el pcode_fib in
-      quote_con tp con
-    and+ tot =
-      let* tp = lift_cmp @@ do_el code in
-      let* proj = lift_cmp @@ do_rigid_vproj con in
-      quote_con tp proj
-    and+ t_pequiv =
-      let* tp_pequiv =
-        lift_cmp @@ Sem.splice_tp @@
-        Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
-      in
-      quote_con tp_pequiv pequiv
-    in
-    S.VIn (tr, t_pequiv, part, tot)
+  | D.ElUnstable (`V (r, pcode, code, pequiv)) as tp, _ ->
+    begin
+      lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
+      | true ->
+        let branch phi : (S.t * S.t) m =
+          let* tphi = quote_cof phi in
+          bind_var (D.TpPrf phi) @@ fun _prf ->
+          let+ tm = quote_con tp con in
+          tphi, tm
+        in
+        let phis = [Cof.eq r D.Dim0; Cof.eq r D.Dim1] in
+        let+ branches = MU.map branch phis in
+        S.CofSplit branches
+      | false ->
+        let+ tr = quote_dim r
+        and+ part =
+          quote_lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
+          let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
+          let* tp = lift_cmp @@ do_el pcode_fib in
+          quote_con tp con
+        and+ tot =
+          let* tp = lift_cmp @@ do_el code in
+          let* proj = lift_cmp @@ do_rigid_vproj r pcode code pequiv con in
+          quote_con tp proj
+        and+ t_pequiv =
+          let* tp_pequiv =
+            lift_cmp @@ Sem.splice_tp @@
+            Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+          in
+          quote_con tp_pequiv pequiv
+        in
+        S.VIn (tr, t_pequiv, part, tot)
+    end
 
   | _, D.LetSym (r, x, con) ->
     quote_con tp @<< lift_cmp @@ Sem.push_subst_con r x con
 
+  | D.TpSplit branches as tp, _ ->
+    let branch_body phi : S.t m =
+      bind_var (D.TpPrf phi) @@ fun _prf ->
+      quote_con tp con
+    in
+    let* branches =
+      List.flatten <@>
+      begin
+        branches |> MU.map @@ fun (phi, clo) ->
+        lift_cmp (CmpM.test_sequent [phi] Cof.bot) |>> function
+        | true ->
+          ret []
+        | false ->
+          ret [phi,clo]
+      end
+    in
+    begin
+      match branches with
+      | [_phi, tp_clo] ->
+        let* tp = lift_cmp @@ inst_tp_clo tp_clo D.Prf in
+        quote_con tp con
+      | _ ->
+        let phis = List.map fst branches in
+        let+ tphis = MU.map quote_cof phis
+        and+ tms = MU.map branch_body phis in
+        S.CofSplit (List.combine tphis tms)
+    end
+
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
+
+and quote_lam ?(ident = `Anon) tp mbdy =
+  let+ bdy = bind_var tp mbdy in
+  S.Lam (ident, bdy)
 
 and quote_v_data r pcode code pequiv =
   let+ tr = quote_dim r
@@ -288,9 +342,9 @@ and quote_hcom code r s phi bdy =
   let* ts = quote_dim s in
   let* tphi = quote_cof phi in
   let+ tbdy =
-    QTB.lam D.TpDim @@ fun i ->
+    quote_lam D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    QTB.lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
+    quote_lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     let* tp = lift_cmp @@ do_el code in
     quote_con tp body
@@ -298,12 +352,12 @@ and quote_hcom code r s phi bdy =
   S.HCom (tcode, tr, ts, tphi, tbdy)
 
 and quote_tp_clo base fam =
-  bind_var ~abort:(S.El S.CofAbort) base @@ fun var ->
-  quote_tp @<< lift_cmp @@ inst_tp_clo fam var
+  bind_var base @@ fun var ->
+  let* tp = lift_cmp @@ inst_tp_clo fam var in
+  quote_tp tp
 
 and quote_tp (tp : D.tp) =
   match tp with
-  | D.TpAbort -> ret @@ S.El S.CofAbort
   | D.Nat -> ret S.Nat
   | D.Circle -> ret S.Circle
   | D.Pi (base, ident, fam) ->
@@ -329,7 +383,7 @@ and quote_tp (tp : D.tp) =
     let* ttp = quote_tp tp in
     let+ tphi = quote_cof phi
     and+ tm =
-      bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
+      bind_var (D.TpPrf phi) @@ fun prf ->
       let* body = lift_cmp @@ inst_tm_clo cl prf in
       quote_con tp body
     in
@@ -353,7 +407,7 @@ and quote_tp (tp : D.tp) =
         Splice.foreign_cof phi @@ fun phi ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
-        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
         TB.univ
       in
       quote_con tp_bdy bdy
@@ -362,12 +416,21 @@ and quote_tp (tp : D.tp) =
   | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
     S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
+  | D.TpSplit branches ->
+    let branch_body (phi, clo) : S.tp m =
+      QuM.bind_var (D.TpPrf phi) @@ fun prf ->
+      let* tp = lift_cmp @@ inst_tp_clo clo prf in
+      quote_tp tp
+    in
+    let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
+    and+ tps = MU.map branch_body branches in
+    S.TpCofSplit (List.combine tphis tps)
 
 and quote_hd =
   function
   | D.Var lvl ->
-    let+ n = read_local in
-    S.Var (n - (lvl + 1))
+    let+ i = quote_var lvl in
+    S.Var i
   | D.Global sym ->
     ret @@ S.Global sym
   | D.Coe (code, r, s, con) ->
@@ -382,21 +445,9 @@ and quote_hd =
   | D.HCom (cut, r, s, phi, bdy) ->
     let code = D.Cut {cut; tp = D.Univ} in
     quote_hcom code r s phi bdy
-  | D.SubOut (cut, phi, clo) ->
+  | D.SubOut (cut, _phi, _clo) ->
     let+ tm = quote_cut cut in
     S.SubOut tm
-  | D.Split (tp, branches) ->
-    let branch_body (phi, clo) =
-      begin
-        bind_var ~abort:S.CofAbort (D.TpPrf phi) @@ fun prf ->
-        let* body = lift_cmp @@ inst_tm_clo clo prf in
-        quote_con tp body
-      end
-    in
-    let* ttp = quote_tp tp in
-    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
-    let* tms = MU.map branch_body branches in
-    ret @@ S.CofSplit (ttp, List.combine tphis tms)
   | D.Cap (r, s, phi, code, box) ->
     let* tr = quote_dim r in
     let* ts = quote_dim s in
@@ -408,7 +459,7 @@ and quote_hd =
       Splice.foreign_cof phi @@ fun phi ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
       TB.univ
     in
     let+ tcode = quote_con code_tp code
@@ -416,6 +467,8 @@ and quote_hd =
     S.Cap (tr, ts, tphi, tcode, tbox)
   | D.VProj (r, pcode, code, pequiv, v) ->
     let* tr = quote_dim r in
+    let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+    let* tcode = quote_con D.Univ code in
     let* t_pequiv =
       let* tp_pequiv =
         lift_cmp @@ Sem.splice_tp @@
@@ -424,10 +477,9 @@ and quote_hd =
       quote_con tp_pequiv pequiv
     in
     let+ tv = quote_cut v in
-    S.VProj (tr, t_pequiv, tv)
+    S.VProj (tr, tpcode, tcode, t_pequiv, tv)
 
-
-and quote_dim d =
+and quote_dim d : S.t quote =
   quote_con D.TpDim @@
   D.dim_to_con d
 
@@ -485,7 +537,7 @@ and quote_frm tm =
       Splice.foreign mot @@ fun mot ->
       Splice.term @@
       TB.pi TB.nat @@ fun x ->
-      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
       TB.el @@ TB.ap mot [TB.suc x]
     in
     let* tsuc_case = quote_con suc_tp suc_case in

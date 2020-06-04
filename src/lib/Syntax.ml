@@ -14,33 +14,92 @@ let rec to_numeral =
 
 module Fmt = Format
 
-let rec dump fmt tm =
-  match tm with
-  | CodePi _ -> Format.fprintf fmt "<pi>"
-  | CodePath _ -> Format.fprintf fmt "<?>"
-  | CodeSg _ -> Format.fprintf fmt "<?>"
+let pp_sep_list pp fmt = Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") pp fmt
+
+let rec dump fmt =
+  function
+  | Var i -> Format.fprintf fmt "var[%i]" i
+  | Global _ -> Format.fprintf fmt "<global>"
+  | Let _ -> Format.fprintf fmt "<let>"
+  | Ann _ -> Format.fprintf fmt "<ann>"
+
+  | Zero -> Format.fprintf fmt "zero"
+  | Suc tm -> Format.fprintf fmt "suc[%a]" dump tm
+  | NatElim _ -> Format.fprintf fmt "<nat-elam>"
+
+  | Base -> Format.fprintf fmt "base"
+  | Loop _ -> Format.fprintf fmt "<loop>"
+  | CircleElim _ -> Format.fprintf fmt "<circle/elim>"
+
+  | Lam (ident, tm) -> Format.fprintf fmt "lam[%a, %a]" Ident.pp ident dump tm
+  | Ap (tm0, tm1) -> Format.fprintf fmt "ap[%a, %a]" dump tm0 dump tm1
+
+  | Pair (tm0, tm1) -> Format.fprintf fmt "pair[%a, %a]" dump tm0 dump tm1
   | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
   | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
-  | Pair (tm0, tm1) -> Format.fprintf fmt "pair[%a, %a]" dump tm0 dump tm1
-  | Var i -> Format.fprintf fmt "var[%i]" i
-  | Lam _ -> Format.fprintf fmt "<lam>"
-  | Ap (tm0, tm1) -> Format.fprintf fmt "ap[%a, %a]" dump tm0 dump tm1
-  | GoalRet _ -> Format.fprintf fmt "<goal-ret>"
-  | GoalProj _ -> Format.fprintf fmt "<goal-proj>"
+
+  | GoalRet _ -> Format.fprintf fmt "<goal/ret>"
+  | GoalProj _ -> Format.fprintf fmt "<goal/proj>"
+
   | Coe _ -> Format.fprintf fmt "<coe>"
   | HCom _ -> Format.fprintf fmt "<hcom>"
   | Com _ -> Format.fprintf fmt "<com>"
+
   | SubIn _ -> Format.fprintf fmt "<sub/in>"
   | SubOut _ -> Format.fprintf fmt "<sub/out>"
-  | ElIn _ -> Format.fprintf fmt "<el/in>"
-  | ElOut _ -> Format.fprintf fmt "<el/out>"
-  | Cof _ -> Format.fprintf fmt "<cof>"
-  | CofSplit _ -> Format.fprintf fmt "<cof/split>"
-  | Zero -> Format.fprintf fmt "<zero>"
-  | Suc _ -> Format.fprintf fmt "<suc>"
+
   | Dim0 -> Format.fprintf fmt "<dim0>"
   | Dim1 -> Format.fprintf fmt "<dim1>"
-  | _ -> Format.fprintf fmt "<??>"
+  | Cof cof -> Format.fprintf fmt "cof[%a]" dump_cof cof
+  | ForallCof _ -> Format.fprintf fmt "<dim1>"
+  | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (pp_sep_list dump_branch) branches
+  | Prf -> Format.fprintf fmt "prf"
+
+  | ElIn tm -> Format.fprintf fmt "el/in[%a]" dump tm
+  | ElOut tm -> Format.fprintf fmt "el/out[%a]" dump tm
+
+  | Box _ -> Format.fprintf fmt "<box>"
+  | Cap _ -> Format.fprintf fmt "<cap>"
+
+  | VIn _ -> Format.fprintf fmt "<vin>"
+  | VProj _ -> Format.fprintf fmt "<vproj>"
+
+  | CodePath (tm0, tm1) -> Format.fprintf fmt "path[%a, %a]" dump tm0 dump tm1
+  | CodePi _ -> Format.fprintf fmt "<pi>"
+  | CodeSg _ -> Format.fprintf fmt "<sg>"
+  | CodeNat -> Format.fprintf fmt "nat"
+  | CodeUniv -> Format.fprintf fmt "univ"
+  | CodeV _ -> Format.fprintf fmt "<v>"
+  | CodeCircle -> Format.fprintf fmt "circle"
+
+  | ESub _ -> Format.fprintf fmt "<esub>"
+
+and dump_tp fmt =
+  function
+  | Univ -> Format.fprintf fmt "univ"
+  | El t -> Format.fprintf fmt "el[%a]" dump t
+  | TpVar i -> Format.fprintf fmt "tp/var[%i]" i
+  | GoalTp _ -> Format.fprintf fmt "<goal>"
+  | TpDim -> Format.fprintf fmt "tp/dim"
+  | TpCof -> Format.fprintf fmt "tp/cof"
+  | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
+  | TpCofSplit _ -> Format.fprintf fmt "<tp/cof/split>"
+  | Sub _ -> Format.fprintf fmt "<sub>"
+  | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
+  | Sg _ -> Format.fprintf fmt "<sg>"
+  | Nat -> Format.fprintf fmt "nat"
+  | Circle -> Format.fprintf fmt "circle"
+  | TpESub _ -> Format.fprintf fmt "<esub>"
+
+and dump_cof fmt =
+  function
+  | Cof.Eq (r1, r2) -> Format.fprintf fmt "eq[%a, %a]" dump r1 dump r2
+  | Cof.Join cofs -> Format.fprintf fmt "join[%a]" (pp_sep_list dump) cofs
+  | Cof.Meet cofs -> Format.fprintf fmt "meet[%a]" (pp_sep_list dump) cofs
+
+and dump_branch fmt (cof, bdy) =
+  Format.fprintf fmt "[%a, %a]" dump cof dump bdy
+
 
 let pp_var env fmt ix =
   Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
@@ -84,9 +143,7 @@ let rec pp env fmt tm =
     pp_applications env fmt tm
   | Pair (tm0, tm1) ->
     pp_tuple (pp env) fmt [tm0; tm1]
-  | CofAbort ->
-    Format.fprintf fmt "[]"
-  | CofSplit (_, branches) ->
+  | CofSplit branches ->
     let sep fmt () = Format.fprintf fmt "@ | " in
     pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
       (pp_cof_split_branch env)
@@ -251,20 +308,24 @@ let rec pp env fmt tm =
       Uuseg_string.pp_utf_8 x
       (pp env) tm
       (pp envx) bdy
-  | Box (r, s, phi, sides, cap) ->
+  | Box (r, s, phi, sides, cap) when debug_mode ->
     Format.fprintf fmt "@[<hv2>box %a %a %a %a %a@]"
       (pp_atomic env) r
       (pp_atomic env) s
       (pp_atomic env) phi
       (pp_atomic env) sides
       (pp_atomic env) cap
-  | Cap (r, s, phi, code, box) ->
+  | Box (_r, _s, _phi, sides, cap) ->
+    pp_tuple (pp env) fmt [sides; cap]
+  | Cap (r, s, phi, code, box) when debug_mode->
     Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
       (pp_atomic env) r
       (pp_atomic env) s
       (pp_atomic env) phi
       (pp_atomic env) code
       (pp_atomic env) box
+  | Cap (_r, _s, _phi, _code, box) ->
+    Format.fprintf fmt "@[<hv2>cap %a@]" (pp_atomic env) box
   | CodeV (r, pcode, code, pequiv) ->
     Format.fprintf fmt "@[<hv2>V %a %a %a %a@]"
       (pp_atomic env) r
@@ -279,17 +340,56 @@ let rec pp env fmt tm =
       (pp_atomic env) base
   | VIn (_, _, pivot, base) ->
     pp_tuple (pp env) fmt [pivot; base]
-  | VProj (r, equiv, v) when debug_mode ->
-    Format.fprintf fmt "@[<hv2>vproj %a %a %a@]"
+  | VProj (r, pcode, code, pequiv, v) when debug_mode ->
+    Format.fprintf fmt "@[<hv2>vproj %a %a %a %a %a@]"
       (pp_atomic env) r
-      (pp_atomic env) equiv
+      (pp_atomic env) pcode
+      (pp_atomic env) code
+      (pp_atomic env) pequiv
       (pp_atomic env) v
-  | VProj (r, equiv, v) ->
+  | VProj (_, _, _, _, v) ->
     Format.fprintf fmt "@[<hv2>vproj %a@]"
       (pp_atomic env) v
 
+  | ESub (sub, tm) ->
+    Format.fprintf fmt "[%a]%a"
+      (pp_sub env) sub
+      (pp_atomic env) tm
+
+and pp_sub env fmt =
+  function
+  | Sb0 ->
+    Uuseg_string.pp_utf_8 fmt "ε"
+  | SbP ->
+    Format.fprintf fmt "p"
+  | SbI ->
+    Format.fprintf fmt "id"
+  | SbE (sb, tm) ->
+    Format.fprintf fmt "%a, %a"
+      (pp_atomic_sub env) sb
+      (pp env) tm
+  | SbC (sb0, sb1) ->
+    Format.fprintf fmt "%a %a %a"
+      (pp_atomic_sub env) sb0
+      Uuseg_string.pp_utf_8 "∘"
+      (pp_atomic_sub env) sb1
+
+and pp_atomic_sub env fmt sb =
+  match sb with
+  | Sb0 | SbP | SbI ->
+    pp_sub env fmt sb
+  | _ ->
+    pp_braced (pp_sub env) fmt sb
+
+
 and pp_tp env fmt tp =
   match tp with
+  | TpCofSplit branches ->
+    let sep fmt () = Format.fprintf fmt "@ | " in
+    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+      (pp_tp_cof_split_branch env)
+      fmt
+      branches
   | Pi (base, ident, fam) ->
     let x, envx = ppenv_bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
@@ -305,7 +405,7 @@ and pp_tp env fmt tp =
       Uuseg_string.pp_utf_8 "×"
       (pp_tp envx) fam
   | Sub (tp, phi, tm) ->
-    let x, envx = ppenv_bind env `Anon in
+    let _x, envx = ppenv_bind env `Anon in
     Format.fprintf fmt "@[sub %a %a@ %a@]"
       (pp_atomic_tp env) tp
       (pp_atomic env) phi
@@ -330,6 +430,10 @@ and pp_tp env fmt tp =
     pp_tp env fmt tp
   | TpPrf cof ->
     Format.fprintf fmt "[%a]" (pp env) cof
+  | TpESub (sub, tp) ->
+    Format.fprintf fmt "[%a]%a"
+      (pp_sub env) sub
+      (pp_atomic_tp env) tp
 
 and pp_atomic_tp env fmt tp =
   match tp with
@@ -339,12 +443,16 @@ and pp_atomic_tp env fmt tp =
     pp_braced (pp_tp env) fmt tp
 
 and pp_cof_split_branch env fmt (phi, tm) =
-  let x, envx = ppenv_bind env `Anon in
+  let _x, envx = ppenv_bind env `Anon in
   Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp envx) tm
+
+and pp_tp_cof_split_branch env fmt (phi, tm) =
+  let _x, envx = ppenv_bind env `Anon in
+  Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp_tp envx) tm
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofAbort | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
+  | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
   | Zero | Base | Prf ->
     pp env fmt tm
   | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
@@ -385,7 +493,7 @@ let pp_sequent_goal env fmt tp  =
       (pp_tp env) tp
   | GoalTp (olbl, Sub (tp, phi, tm)) ->
     let lbl = match olbl with Some lbl -> lbl | None -> "" in
-    let x, envx = Pp.Env.bind env (Some "_") in
+    let _x, envx = Pp.Env.bind env (Some "_") in
     Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp

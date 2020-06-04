@@ -24,7 +24,6 @@ and con =
   | Loop of dim
   | Pair of con * con
   | GoalRet of con
-  | Abort
   | SubIn of con
   | ElIn of con
   | DimCon0
@@ -44,6 +43,8 @@ and con =
   | Box of dim * dim * cof * con * con
   | VIn of dim * con * con * con
 
+  | Split of (cof * tm_clo) list
+
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
@@ -54,11 +55,11 @@ and tp =
   | TpDim
   | TpCof
   | TpPrf of cof
+  | TpSplit of (cof * tp_clo) list
   | Pi of tp * Ident.t * tp_clo
   | Sg of tp * Ident.t * tp_clo
   | Nat
   | Circle
-  | TpAbort
 
 and hd =
   | Global of Symbol.t
@@ -68,7 +69,6 @@ and hd =
   | Cap of dim * dim * cof * con * cut
   | VProj of dim * con * con * con * cut
   | SubOut of cut * cof * tm_clo
-  | Split of tp * (cof * tm_clo) list
 
 and cut = hd * frm list
 
@@ -80,3 +80,6 @@ and frm =
   | KCircleElim of con * con * con
   | KGoalProj
   | KElOut
+
+let tm_abort = Split []
+let tp_abort = TpSplit []

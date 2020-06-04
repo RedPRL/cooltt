@@ -13,8 +13,8 @@ let mk_var tp lvl =
   Cut {tp; cut = Var lvl, []}
 
 let un_lam con =
-  Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
   (* y, x |= y(x) *)
+  Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
 
 let compose f g =
   Lam (`Anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
@@ -71,12 +71,6 @@ and pp_hd : hd Pp.printer =
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl
-  | Split (tp, branches) ->
-    let sep fmt () = Format.fprintf fmt "@ | " in
-    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
-      pp_split_branch
-      fmt
-      branches
   | SubOut (cut, phi, clo) ->
     Format.fprintf fmt "sub/out[(%a), %a, %a]" pp_cut cut pp_cof phi pp_clo clo
   | _ ->
@@ -88,15 +82,15 @@ and pp_spine : frm list Pp.printer =
   Format.pp_print_list ~pp_sep:comma pp_frame fmt sp
 
 and pp_frame : frm Pp.printer =
-   fun fmt ->
-   function
-   | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
-   | KFst -> Format.fprintf fmt "fst"
-   | KSnd -> Format.fprintf fmt "snd"
-   | KGoalProj -> Format.fprintf fmt "<goal-proj>"
-   | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
-   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
-   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
+  fun fmt ->
+  function
+  | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
+  | KFst -> Format.fprintf fmt "fst"
+  | KSnd -> Format.fprintf fmt "snd"
+  | KGoalProj -> Format.fprintf fmt "<goal-proj>"
+  | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
+  | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
+  | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
 and pp_cof : cof Pp.printer =
   fun fmt cof ->
@@ -107,14 +101,26 @@ and pp_dim : dim Pp.printer =
   pp_con fmt @@ dim_to_con r
 
 and pp_clo : tm_clo Pp.printer =
-  fun fmt (Clo (tm, env)) ->
-  Format.fprintf fmt "clo[%a ; <env>]" S.dump tm
+  let sep fmt () = Format.fprintf fmt "," in
+  fun fmt (Clo (tm, {tpenv; conenv})) ->
+    Format.fprintf fmt "clo[%a ; [%a ; %a]]"
+      S.dump tm
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+
+and pp_tp_clo : tp_clo Pp.printer =
+  let sep fmt () = Format.fprintf fmt "," in
+  fun fmt (TpClo (tp, {tpenv; conenv})) ->
+    Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
+      S.dump_tp tp
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
 and pp_con : con Pp.printer =
   fun fmt ->
   function
-  | Cut {cut} ->
-    Format.fprintf fmt "cut[%a]" pp_cut cut
+  | Cut {cut;tp} ->
+    Format.fprintf fmt "cut[%a :: %a]" pp_cut cut pp_tp tp
   | Zero ->
     Format.fprintf fmt "zero"
   | Suc con ->
@@ -137,8 +143,6 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "goal-ret[%a]" pp_con con
   | Lam (_, clo) ->
     Format.fprintf fmt "lam[%a]" pp_clo clo
-  | Abort ->
-    Format.fprintf fmt "<abort>"
   | DimCon0 ->
     Format.fprintf fmt "dim0"
   | DimCon1 ->
@@ -163,11 +167,17 @@ and pp_con : con Pp.printer =
   | CodeV _ -> Format.fprintf fmt "<code-v>"
   | Box _ -> Format.fprintf fmt "<box>"
   | VIn _ -> Format.fprintf fmt "<vin>"
+  | Split branches ->
+    let sep fmt () = Format.fprintf fmt "@ | " in
+    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+      pp_split_branch
+      fmt
+      branches
 
 and pp_tp fmt =
   function
-  | Pi _ ->
-    Format.fprintf fmt "<pi>"
+  | Pi (base, ident, fam) ->
+    Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
   | Sg _ ->
     Format.fprintf fmt "<sg>"
   | Sub _ ->
@@ -184,8 +194,6 @@ and pp_tp fmt =
     Format.fprintf fmt "<nat>"
   | Circle ->
     Format.fprintf fmt "<circle>"
-  | TpAbort ->
-    Format.fprintf fmt "<abort>"
   | El con ->
     Format.fprintf fmt "el[%a]" pp_con con
   | ElCut con ->
@@ -196,3 +204,5 @@ and pp_tp fmt =
     Format.fprintf fmt "<V>"
   | GoalTp _ ->
     Format.fprintf fmt "<goal-tp>"
+  | TpSplit _ ->
+    Format.fprintf fmt "<split>"

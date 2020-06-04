@@ -47,15 +47,10 @@ exception ConversionError of Error.t
 module Splice = Splice
 module TB = TermBuilder
 
-open QuM
-open Monad.Notation (QuM)
-module MU = Monad.Util (QuM)
+open ConvM
+open Monad.Notation (ConvM)
+module MU = Monad.Util (ConvM)
 open Sem
-
-(* duplicated *)
-let top_var tp =
-  let+ n = read_local in
-  D.mk_var tp @@ n - 1
 
 let conv_err err =
   throw @@ ConversionError err
@@ -74,11 +69,15 @@ let contractum_or x =
 
 (* Invariant: tp0 and tp1 not necessarily whnf *)
 let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
-  QuM.abort_if_inconsistent () @@
+  ConvM.abort_if_inconsistent (ret ()) @@
   let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
   let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
   match tp0, tp1 with
-  | D.TpAbort, _ | _, D.TpAbort -> ret ()
+  | D.TpSplit branches, _
+  | _, D.TpSplit branches ->
+    let phis = List.map (fun (phi, _) -> phi) branches in
+    ConvM.restrict_ [Cof.join phis] @@
+    equate_tp tp0 tp1
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
@@ -117,7 +116,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
       Splice.foreign_cof phi0 @@ fun phi ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+      TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
       TB.univ
     in
     equate_con tp_bdy bdy0 bdy1
@@ -128,18 +127,20 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
-  QuM.abort_if_inconsistent () @@
+  ConvM.abort_if_inconsistent (ret ()) @@
   let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
   let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con0 in
   let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con1 in
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
-  | _, D.Abort, _ -> ret ()
-  | _, _, D.Abort -> ret ()
-  | _, D.Cut {cut = D.Split (_, branches), _}, _
-  | _, _, D.Cut {cut = D.Split (_, branches), _} ->
+  | D.TpSplit branches, _, _ ->
     let phis = List.map (fun (phi, _) -> phi) branches in
-    QuM.left_invert_under_cofs [Cof.join phis] @@
+    ConvM.restrict_ [Cof.join phis] @@
+    equate_con tp con0 con1
+  | _, D.Split branches, _
+  | _, _, D.Split branches ->
+    let phis = List.map (fun (phi, _) -> phi) branches in
+    ConvM.restrict_ [Cof.join phis] @@
     equate_con tp con0 con1
   | D.Pi (base, _, fam), _, _ ->
     bind_var_ base @@ fun x ->
@@ -159,7 +160,7 @@ and equate_con tp con0 con1 =
     let* con0 = lift_cmp @@ do_goal_proj con0 in
     let* con1 = lift_cmp @@ do_goal_proj con1 in
     equate_con tp con0 con1
-  | D.Sub (tp, phi, _), _, _ ->
+  | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
     equate_con tp out0 out1
@@ -184,7 +185,7 @@ and equate_con tp con0 con1 =
     let* phi0 = lift_cmp @@ con_to_cof con0 in
     let* phi1 = lift_cmp @@ con_to_cof con1 in
     equate_cof phi0 phi1
-  | _, D.Cut {cut = cut0}, D.Cut {cut = cut1} ->
+  | _, D.Cut {cut = cut0; _}, D.Cut {cut = cut1; _} ->
     equate_cut cut0 cut1
   | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
     let fix_body bdy =
@@ -244,48 +245,40 @@ and equate_con tp con0 con1 =
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       let phi = TB.boundary i in
-      TB.pi (TB.tp_prf phi) @@ fun prf ->
+      TB.pi (TB.tp_prf phi) @@ fun _prf ->
       TB.el @@ TB.ap fam [i]
     in
     equate_con bdry_tp bdry0 bdry1
 
   | D.ElUnstable (`HCom (r, s, phi, bdy)) as hcom_tp, _, _ ->
-    let* cap0 = lift_cmp @@ Sem.do_rigid_cap con0 in
-    let* cap1 = lift_cmp @@ Sem.do_rigid_cap con1 in
+    let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
+    let* cap1 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con1 in
     let* code_cap = lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
     let* tp_cap = lift_cmp @@ do_el code_cap in
     let* () = equate_con tp_cap cap0 cap1 in
-    QuM.left_invert_under_cofs [phi] @@
+    ConvM.restrict_ [phi] @@
     equate_con hcom_tp con0 con1
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
-    let* () = QuM.left_invert_under_cofs [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
-    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj con0 in
-    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj con1 in
+    let* () = ConvM.restrict_ [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
+    let* proj0 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con0 in
+    let* proj1 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con1 in
     let* tp_proj = lift_cmp @@ do_el code in
     equate_con tp_proj proj0 proj1
 
   | _ ->
+    Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
     conv_err @@ ExpectedConEq (tp, con0, con1)
 
 (* Invariant: cut0, cut1 are whnf *)
 and equate_cut cut0 cut1 =
-  QuM.abort_if_inconsistent () @@
+  ConvM.abort_if_inconsistent (ret ()) @@
   let* () = assert_done_cut cut0 in
   let* () = assert_done_cut cut1 in
   let hd0, sp0 = cut0 in
   let hd1, sp1 = cut1 in
-  match hd0, hd1 with
-  | D.Split (tp, branches), _
-  | _, D.Split (tp, branches) ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    QuM.left_invert_under_cofs [Cof.join phis] @@
-    let* con0 = contractum_or (D.Cut {tp; cut = cut0}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut0 in
-    let* con1 = contractum_or (D.Cut {tp; cut = cut1}) <@> lift_cmp @@ whnf_cut ~style:{unfolding = true} cut1 in
-    equate_con tp con0 con1
-  | _ ->
-    let* () = equate_hd hd0 hd1 in
-    equate_spine sp0 sp1
+  let* () = equate_hd hd0 hd1 in
+  equate_spine sp0 sp1
 
 (* Invariant: sp0, sp1 are whnf *)
 and equate_spine sp0 sp1 =
@@ -328,7 +321,7 @@ and equate_frm k0 k1 =
       Splice.foreign mot0 @@ fun mot ->
       Splice.term @@
       TB.pi TB.nat @@ fun x ->
-      TB.pi (TB.el (TB.ap mot [x])) @@ fun ih ->
+      TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
       TB.el @@ TB.ap mot [TB.suc x]
     in
     equate_con suc_tp suc_case0 suc_case1
@@ -372,7 +365,7 @@ and assert_done_cut cut =
 
 (* Invariant: hd0, hd1 are whnf *)
 and equate_hd hd0 hd1 =
-  QuM.abort_if_inconsistent () @@
+  ConvM.abort_if_inconsistent (ret ()) @@
   let* () = assert_done_hd hd0 in
   let* () = assert_done_hd hd1 in
   match hd0, hd1 with
@@ -396,13 +389,6 @@ and equate_hd hd0 hd1 =
     equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
   | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
     equate_cut cut0 cut1
-  | hd, D.Split (tp, branches)
-  | D.Split (tp, branches), hd ->
-    let equate_branch (phi, clo) =
-      QuM.left_invert_under_cofs [phi] @@
-      equate_con tp (D.Cut {tp; cut = hd,[]}) @<< lift_cmp @@ inst_tm_clo clo D.Prf
-    in
-    MU.iter equate_branch branches
   | D.Cap (r0, s0, phi0, code0, box0), D.Cap (r1, s1, phi1, code1, box1) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
@@ -415,7 +401,7 @@ and equate_hd hd0 hd1 =
         Splice.foreign_cof phi0 @@ fun phi ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
-        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun prf ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
         TB.univ
       in
       equate_con code_tp code0 code1
@@ -466,35 +452,10 @@ and approx_cof phi psi =
   | true ->
     ret ()
 
-let equal_tp tp0 tp1 : [`Ok | `Err of Error.t] quote =
-  trap
-    begin
-      QuM.left_invert_under_current_cof @@
-      equate_tp tp0 tp1
-    end |>>
-  function
-  | Error (ConversionError err) -> ret @@ `Err err
-  | Error exn -> throw exn
-  | Ok _ -> ret `Ok
-
-let equal_cut cut0 cut1 =
-  trap
-    begin
-      QuM.left_invert_under_current_cof @@
-      equate_cut cut0 cut1
-    end |>>
-  function
-  | Error (ConversionError err) -> ret @@ `Err err
-  | Error exn -> throw exn
-  | Ok _ -> ret `Ok
-
-let equal_con tp con0 con1 =
-  trap
-    begin
-      QuM.left_invert_under_current_cof @@
-      equate_con tp con0 con1
-    end |>>
-  function
-  | Error (ConversionError err) -> ret @@ `Err err
-  | Error exn -> throw exn
-  | Ok _ -> ret `Ok
+(* This is extremely low-ch'i.
+ * There should be a generic error-trapping function in src/basis/Monad. *)
+let trap_err (m : unit ElabM.m) : [`Ok | `Err of Error.t] ElabM.m =
+  ElabM.bind (ElabM.trap m) @@ function
+  | Error (ConversionError err) -> ElabM.ret @@ `Err err
+  | Error exn -> ElabM.throw exn
+  | Ok _ -> ElabM.ret `Ok

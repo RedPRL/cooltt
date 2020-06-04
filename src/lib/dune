@@ -10,5 +10,5 @@
  (preprocess
   (pps ppx_deriving.std))
  (flags
-  (:standard -w -9-32-37-38-39-27))
+  (:standard -w -32-38 -warn-error -a+31))
  (public_name cooltt.core))

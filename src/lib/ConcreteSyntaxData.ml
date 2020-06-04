@@ -42,6 +42,7 @@ and con_ =
   | Hole of string option
   | Underscore
   | Unfold of Ident.t list * con
+  | Generalize of Ident.t * con
   | Elim of {mot : con; cases : case list; scrut : con}
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
@@ -62,6 +63,7 @@ and con_ =
   | Com of con * con * con * con * con
   | V of con * con * con * con
   | VProj of con
+  | Cap of con
 [@@deriving show]
 
 and case = pat * con
