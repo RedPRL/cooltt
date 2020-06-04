@@ -15,5 +15,7 @@ depends: [
   "menhir" {>= "20180703"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
+  "ezjsonm" {>= "1.1.0"}
+  "ezgzip" {>= "0.2.3"}
 ]
 build: [["dune" "build" "-p" name "-j" jobs]]
