@@ -967,17 +967,16 @@ and whnf_tp =
       function
       | `Done -> ret `Done
       | `Reduce con ->
-        let+ tp = do_el con in
-        `Reduce tp
+        reduce_to_tp @<< do_el con
     end
   | D.ElCut cut ->
     begin
       whnf_cut ~style:`UnfoldAll cut |>>
       function
-      | `Done -> ret `Done
+      | `Done ->
+        ret `Done
       | `Reduce con ->
-        let+ tp = do_el con in
-        `Reduce tp
+        reduce_to_tp @<< do_el con
     end
   | D.ElUnstable (`HCom (r, s, phi, bdy)) ->
     begin
