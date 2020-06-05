@@ -154,6 +154,18 @@ let vproj_boundary r pcode code pequiv v =
     [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
      TB.eq r TB.dim1, v]
 
+let box_boundary r s phi cap sides =
+  Cof.join [Cof.eq r s; phi],
+  Splice.foreign_dim r @@ fun r ->
+  Splice.foreign_dim s @@ fun s ->
+  Splice.foreign_cof phi @@ fun phi ->
+  Splice.foreign cap @@ fun cap ->
+  Splice.foreign sides @@ fun sides ->
+  Splice.term @@
+  TB.cof_split
+    [TB.eq r s, cap;
+     phi, TB.ap sides [TB.prf]]
+
 let hcom_boundary r r' phi bdy =
   Cof.join [Cof.eq r r'; phi],
   Splice.foreign_dim r' @@ fun r' ->
@@ -795,27 +807,20 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   | D.Cut {cut; _} ->
     whnf_cut ~style cut
   | D.FHCom (_, r, s, phi, bdy) ->
+    let psi, bdry = hcom_boundary r s phi bdy in
     begin
-      test_sequent [] (Cof.join [Cof.eq r s; phi]) |>>
+      test_sequent [] psi |>>
       function
-      | true ->
-        reduce_to ~style @<< do_ap2 bdy (D.dim_to_con s) D.Prf
-      | false ->
-        ret `Done
+      | true -> reduce_to ~style @<< splice_tm bdry
+      | false -> ret `Done
     end
   | D.Box (r, s, phi, sides, cap) ->
+    let psi, bdry = box_boundary r s phi sides cap in
     begin
-      test_sequent [] (Cof.eq r s) |>>
+      test_sequent [] psi |>>
       function
-      | true ->
-        reduce_to ~style cap
-      | false ->
-        test_sequent [] phi |>>
-        function
-        | true ->
-          reduce_to ~style @<< do_ap sides D.Prf
-        | false ->
-          ret `Done
+      | true -> reduce_to ~style @<< splice_tm bdry
+      | false -> ret `Done
     end
   | D.UnstableCode code ->
     let phi, bdry = unstable_code_boundary code in
