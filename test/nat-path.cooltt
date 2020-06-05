@@ -1,20 +1,20 @@
 def path (A : type) (x : A) (y : A) : type =
-  pathd {_ => A} x y
+  pathd {_ ⇒ A} x y
 
 def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A =
-  hfill A 0 {∂ i} {j _ =>
-    [ j=0 ∨ i=1 => p 0
-    | i=0 => p j
+  hfill A 0 {∂ i} {j _ ⇒
+    [ j=0 ∨ i=1 ⇒ p 0
+    | i=0 ⇒ p j
     ]
   }
 
 def symm (A : type) (p : 𝕀 → A) : path A {p 1} {p 0} =
-  i => symm/filler A p i 1
+  i ⇒ symm/filler A p i 1
 
 def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A =
-  hcom A 0 j {∂ i} {j _ =>
-    [ j=0 ∨ i=0 => p i
-    | i=1 => q j
+  hcom A 0 j {∂ i} {j _ ⇒
+    [ j=0 ∨ i=0 ⇒ p i
+    | i=1 ⇒ q j
     ]
   }
 
@@ -22,9 +22,9 @@ def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : p
   trans/filler A p q 1
 
 
-def J (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) (d : C {_ => p 0}) : C p =
-  coe {i =>
-    C {hfill A 0 {∂ i} {k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}
+def J (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) (d : C {_ ⇒ p 0}) : C p =
+  coe {i ⇒
+    C {hfill A 0 {∂ i} {k _ ⇒ [k=0 ∨ i=0 ⇒ p 0 | i=1 ⇒ p k]}}
   } 0 1 d
 
 normalize J
@@ -33,38 +33,38 @@ def J/eq
   (A : type)
   (p : 𝕀 → A)
   (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type)
-  (d : C {_ => p 0})
-  : path {C {_ => p 0}} {J A {_ => p 0} C d} d
+  (d : C {_ ⇒ p 0})
+  : path {C {_ ⇒ p 0}} {J A {_ ⇒ p 0} C d} d
   =
-  let square : 𝕀 → 𝕀 → A = i => hfill A 0 {∂ i} {_ _ => p 0} in
-  k =>
+  let square : 𝕀 → 𝕀 → A = i ⇒ hfill A 0 {∂ i} {_ _ ⇒ p 0} in
+  k ⇒
   let mot : 𝕀 → type =
-    i => C {hfill A 0 {∂ k ∨ ∂ i} {j _ => [k=0 => square i j | j=0 ∨ k=1 ∨ ∂ i => p 0]}}
+    i ⇒ C {hfill A 0 {∂ k ∨ ∂ i} {j _ ⇒ [k=0 ⇒ square i j | j=0 ∨ k=1 ∨ ∂ i ⇒ p 0]}}
   in
-  com mot 0 1 {∂ k} {i _ => [k=0 => coe {j => C {square j}} 0 i d | k=1 ∨ i=0 => d]}
+  com mot 0 1 {∂ k} {i _ ⇒ [k=0 ⇒ coe {j ⇒ C {square j}} 0 i d | k=1 ∨ i=0 ⇒ d]}
 
-def trans-left-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A {_ => p 0} p} =
-  k i =>
-  hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
-    [ j=0 ∨ i=0 => p 0
-    | i=1 => p j
-    | k=0 =>
-      hcom A 0 1 {∂ i ∨ ∂ j} {l _ =>
-        let filler : 𝕀 → A = k => trans/filler A {_ => p 0} p k l in
-        [ l=0 ∨ i=0 ∨ j=1 => filler i
-        | i=1 ∨ j=0 => filler j
+def trans-left-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A {_ ⇒ p 0} p} =
+  k i ⇒
+  hcom A 0 1 {k=0 ∨ ∂ i} {j _ ⇒
+    [ j=0 ∨ i=0 ⇒ p 0
+    | i=1 ⇒ p j
+    | k=0 ⇒
+      hcom A 0 1 {∂ i ∨ ∂ j} {l _ ⇒
+        let filler : 𝕀 → A = k ⇒ trans/filler A {_ ⇒ p 0} p k l in
+        [ l=0 ∨ i=0 ∨ j=1 ⇒ filler i
+        | i=1 ∨ j=0 ⇒ filler j
         ]
       }
     ]
   }
 
-def trans-right-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A p {_ => p 1}} =
-  trans/filler A p {_ => p 1}
+def trans-right-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A p {_ ⇒ p 1}} =
+  trans/filler A p {_ ⇒ p 1}
 
 
-def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ => p 0} {trans A p {symm A p}} =
-  k i =>
-  hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
+def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ ⇒ p 0} {trans A p {symm A p}} =
+  k i ⇒
+  hcom A 0 1 {k=0 ∨ ∂ i} {j _ ⇒
     symm/filler A p j i
   }
 
@@ -74,63 +74,63 @@ normalize trans-symm-refl
 
 def + : nat → nat → nat =
   elim [
-  | zero => n => n
-  | suc {_ => ih} => n => suc {ih n}
+  | zero ⇒ n ⇒ n
+  | suc {_ ⇒ ih} ⇒ n ⇒ suc {ih n}
   ]
 
 def +-right-unit : (x : nat) → path nat {+ x 0} x =
   elim [
-  | zero =>
-    _ => 0
-  | suc {y => ih} =>
-    i => suc {ih i}
+  | zero ⇒
+    _ ⇒ 0
+  | suc {y ⇒ ih} ⇒
+    i ⇒ suc {ih i}
   ]
 
 def +-left-unit (x : nat) : path nat {+ 0 x} x =
-  _ => x
+  _ ⇒ x
 
 def +-suc-r : (x : nat) (y : nat) → path nat {+ x {suc y}} {suc {+ x y}} =
   elim [
-  | zero =>
-    x i => {suc x}
-  | suc {x => ih} =>
-    y i => suc {ih y i}
+  | zero ⇒
+    x i ⇒ {suc x}
+  | suc {x ⇒ ih} ⇒
+    y i ⇒ suc {ih y i}
   ]
 
 def +-comm : (x : nat) (y : nat) → path nat {+ y x} {+ x y} =
   elim [
-  | zero => +-right-unit
-  | suc {y => ih} =>
-    z =>
-    trans nat {+-suc-r z y} {j => suc {ih z j}}
+  | zero ⇒ +-right-unit
+  | suc {y ⇒ ih} ⇒
+    z ⇒
+    trans nat {+-suc-r z y} {j ⇒ suc {ih z j}}
   ]
 
 def +-assoc : (x : nat) (y : nat) (z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} =
   elim [
-  | zero => y z i => + y z
-  | suc {x => ih} => y z i => suc {ih y z i}
+  | zero ⇒ y z i ⇒ + y z
+  | suc {x ⇒ ih} ⇒ y z i ⇒ suc {ih y z i}
   ]
 
 
 def test (p : 𝕀 → nat) : (i : 𝕀) → nat =
   let fun : nat → nat =
     elim [
-    | zero => zero
-    | suc _ => zero
+    | zero ⇒ zero
+    | suc _ ⇒ zero
     ]
   in
-  i => fun {symm nat p i}
+  i ⇒ fun {symm nat p i}
 
 
 def test2 : (i : 𝕀) → nat =
   let fun : nat → nat =
     elim [
-    | zero => zero
-    | suc _ => zero
+    | zero ⇒ zero
+    | suc _ ⇒ zero
     ]
   in
-  i =>
-  fun {symm nat {_ => zero} i}
+  i ⇒
+  fun {symm nat {_ ⇒ zero} i}
 
 normalize test
 
@@ -142,4 +142,4 @@ normalize test2
 -- reduced as they could be, it is of no consequence for definitional
 -- equivalence. That is, we don't bother pushing eliminators through all the
 -- branches of a disjunction split, but our equational theory acts as if we do.
-def test2' : sub {𝕀 → nat} #t {i => hcom nat 0 1 {∂ i} {_ _ => 0}} = test2
+def test2' : sub {𝕀 → nat} #t {i ⇒ hcom nat 0 1 {∂ i} {_ _ ⇒ 0}} = test2

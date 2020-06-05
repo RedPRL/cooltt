@@ -1,5 +1,5 @@
 def path (C : type) (a : C) (b : C) : type =
-  pathd {_ => C} a b
+  pathd {_ ⇒ C} a b
 
 def is-contr (C : type) : type =
   (c : C) × {(c' : C) → path C c c'}
@@ -10,14 +10,14 @@ def is-prop (C : type) : type =
 def has-hlevel : nat → type → type =
   let aux : nat → type → type =
     elim [
-    | zero => is-prop
-    | suc {l => ih} =>
-      A => (a : A) (a' : A) → ih {path A a a'}
+    | zero ⇒ is-prop
+    | suc {l ⇒ ih} ⇒
+      A ⇒ (a : A) (a' : A) → ih {path A a a'}
     ]
   in
   elim [
-  | zero => is-contr
-  | suc l => aux l
+  | zero ⇒ is-contr
+  | suc l ⇒ aux l
   ]
 
 def hLevel (n : nat) : type =

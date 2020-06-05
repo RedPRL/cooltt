@@ -2,40 +2,40 @@
 -- (by carrying around cofibrations everywhere instead)
 
 def path (A : type) (x : A) (y : A) : type =
-  pathd {_ => A} x y
+  pathd {_ ⇒ A} x y
 
 -- pretend we have CCHM Id-types
 def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0 ∨ φ} x} → type)
-  (d : B #t {_ => x})
+  (d : B #t {_ ⇒ x})
   (φ : 𝔽) (p : (i : 𝕀) → sub A {i=0 ∨ φ} x)
   : sub {B φ p} φ d
   =
   let filler : 𝕀 → 𝕀 → A =
-    j i =>
-    hcom A 0 i {∂ j ∨ φ} {i _ =>
-      [ i=0 ∨ j=0 ∨ φ => p 0
-      | j=1 => p i
+    j i ⇒
+    hcom A 0 i {∂ j ∨ φ} {i _ ⇒
+      [ i=0 ∨ j=0 ∨ φ ⇒ p 0
+      | j=1 ⇒ p i
       ]
     }
   in
-  com {j => B {φ ∨ j=0} {filler j}} 0 1 {φ} {j _ => d}
+  com {j ⇒ B {φ ∨ j=0} {filler j}} 0 1 {φ} {j _ ⇒ d}
 
 def trans (A : type) (p : (i : 𝕀) → A)
   : (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
   → sub {path A {p 0} {q 1}} φ p
   =
-  special-j A {p 1} {_ q => path A {p 0} {q 1}} p
+  special-j A {p 1} {_ q ⇒ path A {p 0} {q 1}} p
 
 def assoc (A : type)
   (p : (i : 𝕀) → A)
   (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
   : (ψ : 𝔽) (r : (i : 𝕀) → sub A {i=0 ∨ ψ} {q 1})
   → sub {path {path A {p 0} {r 1}} {trans A p {φ ∧ ψ} {trans A q ψ r}} {trans A {trans A p φ q} ψ r}}
-    ψ {_ => trans A p φ q}
+    ψ {_ ⇒ trans A p φ q}
   =
   special-j A {q 1}
-    {ψ r => path {path A {p 0} {r 1}} {trans A p {φ ∧ ψ} {trans A q ψ r}} {trans A {trans A p φ q} ψ r}}
-    {_ => trans A p φ q}
+    {ψ r ⇒ path {path A {p 0} {r 1}} {trans A p {φ ∧ ψ} {trans A q ψ r}} {trans A {trans A p φ q} ψ r}}
+    {_ ⇒ trans A p φ q}
 
 -- get the standard functions by instantiating at #f everywhere
 

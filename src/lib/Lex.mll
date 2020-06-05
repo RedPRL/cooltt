@@ -133,6 +133,8 @@ rule token = parse
     { RIGHT_ARROW }
   | "=>"
     { RRIGHT_ARROW }
+  | "⇒"
+    { RRIGHT_ARROW }
   | '_'
     { UNDERSCORE }
   | "?" hole_atom

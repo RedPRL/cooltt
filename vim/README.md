@@ -25,6 +25,7 @@ there are ASCII equivalents.
 | ∨    | `C-k OR`  | `\/`  |
 | ×    | `C-k *X`  | `*`   |
 | →    | `C-k ->`  | `->`  |
+| ⇒    | `C-k =>`  | `=>`  |
 
 ## Setup
 
