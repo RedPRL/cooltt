@@ -20,11 +20,8 @@ module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) modul
 
 type 'a whnf = [`Done | `Reduce of 'a]
 
-type whnf_style =
-  {unfolding : bool}
 
-let default_whnf_style =
-  {unfolding = false}
+type whnf_style = [`UnfoldNone | `UnfoldAll | `Veil of Veil.t]
 
 
 let cut_frm ~tp ~cut frm =
@@ -184,7 +181,7 @@ let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
 and con_to_cof =
   let open CM in
   fun con ->
-    whnf_inspect_con con |>>
+    whnf_inspect_con ~style:`UnfoldAll con |>>
     function
     | D.Cof cof -> cof_con_to_cof cof
     | D.Cut {cut = D.Var l, []; _} -> ret @@ Cof.var l
@@ -193,7 +190,7 @@ and con_to_cof =
 and con_to_dim =
   let open CM in
   fun con ->
-    whnf_inspect_con con |>>
+    whnf_inspect_con ~style:`UnfoldAll con |>>
     function
     | D.DimCon0 -> ret D.Dim0
     | D.DimCon1 -> ret D.Dim1
@@ -517,7 +514,7 @@ and eval : S.t -> D.con EvM.m =
     match tm with
     | S.Var i ->
       let* con = get_local i in
-      lift_cmp @@ whnf_inspect_con con
+      lift_cmp @@ whnf_inspect_con ~style:`UnfoldNone con
     | S.Global sym ->
       let* st = EvM.read_global in
       let tp, _ = ElabState.get_global sym st in
@@ -764,7 +761,7 @@ and eval_cof tphi =
   lift_cmp @@ con_to_cof vphi
 
 
-and whnf_con ?(style = default_whnf_style) : D.con -> D.con whnf CM.m =
+and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.SubIn _ | D.ElIn _
@@ -857,11 +854,20 @@ and plug_into ~style sp con =
   | `Done -> ret @@ `Reduce res
   | `Reduce res -> ret @@ `Reduce res
 
-and whnf_hd ?(style = default_whnf_style) hd =
+and should_unfold_symbol style sym =
+  match style with
+  | `UnfoldNone -> false
+  | `UnfoldAll -> true
+  | `Veil veil ->
+    match Veil.policy sym veil with
+    | `Transparent -> true
+    | `Translucent -> false
+
+and whnf_hd ~style hd =
   let open CM in
   match hd with
   | D.Global sym ->
-    if style.unfolding then
+    if should_unfold_symbol style sym then
       let* st = CM.read_global in
       begin
         match ElabState.get_global sym st with
@@ -944,7 +950,7 @@ and whnf_hd ?(style = default_whnf_style) hd =
         | `Reduce v -> reduce_to ~style @<< do_rigid_vproj r pcode code pequiv v
     end
 
-and whnf_cut ?(style = default_whnf_style) : D.cut -> D.con whnf CM.m =
+and whnf_cut ~style : D.cut -> D.con whnf CM.m =
   let open CM in
   fun (hd, sp) ->
     whnf_hd ~style hd |>>
@@ -957,21 +963,20 @@ and whnf_tp =
   function
   | D.El con ->
     begin
-      whnf_con ~style:{unfolding = true} con |>>
+      whnf_con ~style:`UnfoldAll con |>>
       function
       | `Done -> ret `Done
       | `Reduce con ->
-        let+ tp = do_el con in
-        `Reduce tp
+        reduce_to_tp @<< do_el con
     end
   | D.ElCut cut ->
     begin
-      whnf_cut ~style:{unfolding = true} cut |>>
+      whnf_cut ~style:`UnfoldAll cut |>>
       function
-      | `Done -> ret `Done
+      | `Done ->
+        ret `Done
       | `Reduce con ->
-        let+ tp = do_el con in
-        `Reduce tp
+        reduce_to_tp @<< do_el con
     end
   | D.ElUnstable (`HCom (r, s, phi, bdy)) ->
     begin
@@ -1017,7 +1022,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
   let open CM in
 
   let rec go con =
-    whnf_inspect_con con |>>
+    whnf_inspect_con ~style:`UnfoldNone con |>>
     function
     | D.Zero ->
       ret zero
@@ -1075,7 +1080,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
 and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
-  whnf_inspect_con c |>>
+  whnf_inspect_con ~style:`UnfoldNone c |>>
   function
   | D.Base ->
     ret base
@@ -1138,7 +1143,7 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     eval bdy
 
 (* reduces a constructor to something that is stable to pattern match on *)
-and whnf_inspect_con ?(style = default_whnf_style) con =
+and whnf_inspect_con ~style con =
   let open CM in
   whnf_con ~style con |>>
   function
@@ -1147,7 +1152,7 @@ and whnf_inspect_con ?(style = default_whnf_style) con =
 
 (* reduces a constructor to something that is stable to pattern match on,
  * _including_ type annotations on cuts *)
-and inspect_con ?(style = default_whnf_style) con =
+and inspect_con ~style con =
   let open CM in
   whnf_inspect_con ~style con |>>
   function
@@ -1166,7 +1171,7 @@ and do_goal_proj con =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.goal_proj in
   begin
-    inspect_con con |>>
+    inspect_con ~style:`UnfoldNone con |>>
     function
     | D.GoalRet con -> ret con
     | D.Split branches as con ->
@@ -1184,7 +1189,7 @@ and do_fst con : D.con CM.m =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.fst in
   begin
-    inspect_con con |>>
+    inspect_con ~style:`UnfoldNone con |>>
     function
     | D.Pair (con0, _) -> ret con0
     | D.Split branches as con ->
@@ -1202,7 +1207,7 @@ and do_snd con : D.con CM.m =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.snd in
   begin
-    inspect_con con |>>
+    inspect_con ~style:`UnfoldNone con |>>
     function
     | D.Pair (_, con1) -> ret con1
     | D.Split branches ->
@@ -1233,7 +1238,7 @@ and do_ap con arg =
     Splice.commute_split con phis @@ fun f -> TB.ap f [arg]
   in
   begin
-    inspect_con con |>>
+    inspect_con ~style:`UnfoldNone con |>>
     function
     | D.Lam (_, clo) ->
       inst_tm_clo clo arg
@@ -1271,7 +1276,7 @@ and do_sub_out con =
     splice_tm @@ Splice.commute_split con phis TB.sub_out
   in
   begin
-    inspect_con con |>>
+    inspect_con ~style:`UnfoldNone con |>>
     function
     | D.SubIn con ->
       ret con
@@ -1297,7 +1302,7 @@ and do_rigid_cap r s phi code box =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   begin
-    inspect_con box |>>
+    inspect_con ~style:`UnfoldNone box |>>
     function
     | D.Box (_,_,_,_,cap) ->
       ret cap
@@ -1325,7 +1330,7 @@ and do_rigid_vproj r pcode code pequiv v =
     Splice.commute_split con phis @@ TB.vproj r pcode code pequiv
   in
   begin
-    inspect_con v |>>
+    inspect_con ~style:`UnfoldNone v |>>
     function
     | D.VIn (_, _, _, base) ->
       ret base
@@ -1352,7 +1357,7 @@ and do_el_out con =
     TB.cof_split @@ List.map (fun phi -> phi, TB.el_out tm) phis
   in
   begin
-    inspect_con con |>>
+    inspect_con ~style:`UnfoldNone con |>>
     function
     | D.ElIn con ->
       ret con
@@ -1381,7 +1386,7 @@ and do_el : D.con -> D.tp CM.m =
       TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
     in
     begin
-      inspect_con con |>>
+      inspect_con ~style:`UnfoldNone con |>>
       function
       | D.FHCom (`Univ, r, s, phi, bdy) ->
         ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
@@ -1402,7 +1407,7 @@ and unfold_el : D.con -> D.tp CM.m =
   fun con ->
     abort_if_inconsistent (ret D.tp_abort) @@
     begin
-      inspect_con ~style:{unfolding = true} con |>>
+      inspect_con ~style:`UnfoldAll con |>>
       function
 
       | D.Cut _ ->
@@ -1447,7 +1452,7 @@ and unfold_el : D.con -> D.tp CM.m =
     end
 
 
-and dispatch_rigid_coe ?(style = default_whnf_style) line =
+and dispatch_rigid_coe ~style line =
   let open CM in
   let go x codex =
     match codex with
@@ -1497,7 +1502,7 @@ and dispatch_rigid_coe ?(style = default_whnf_style) line =
   | _ ->
     peek line
 
-and dispatch_rigid_hcom ?(style = default_whnf_style) code =
+and dispatch_rigid_hcom ~style code =
   let open CM in
   let go code =
     match code with
@@ -1681,7 +1686,7 @@ and do_rigid_coe (line : D.con) r s con =
   let open CM in
   CM.abort_if_inconsistent (ret D.tm_abort) @@
   begin
-    dispatch_rigid_coe line |>>
+    dispatch_rigid_coe ~style:`UnfoldNone line |>>
     function
     | `Done ->
       let hd = D.Coe (line, r, s, con) in
@@ -1696,7 +1701,7 @@ and do_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
   CM.abort_if_inconsistent (ret D.tm_abort) @@
   begin
-    dispatch_rigid_hcom code |>>
+    dispatch_rigid_hcom ~style:`UnfoldNone code |>>
     function
     | `Done cut ->
       let tp = D.ElCut cut in
