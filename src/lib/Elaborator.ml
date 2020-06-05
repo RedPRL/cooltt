@@ -163,6 +163,8 @@ and bchk_tm : CS.con -> T.BChk.tac =
   | CS.Unfold (idents, c) ->
     fun goal ->
       unfold idents @@ bchk_tm c goal
+  | CS.Generalize (ident, c) ->
+    T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
   | _ ->
     T.BChk.update_span con.info @@
     R.Tactic.intro_implicit_connectives @@
@@ -208,8 +210,6 @@ and bchk_tm : CS.con -> T.BChk.tac =
       T.BChk.chk @@ R.Circle.loop (chk_tm c)
     | CS.Let (c, ident, body) ->
       R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
-    | CS.Generalize (ident, c) ->
-      T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
     | CS.Nat ->
       T.BChk.chk R.Univ.nat
     | CS.Circle ->
