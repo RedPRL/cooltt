@@ -992,19 +992,36 @@ struct
 
   let bmatch_goal = match_goal
 
-  let elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
+  (* This freezes the output of a syn-tactic in such a way that it can be called again in an arbitrary scope. *)
+  let freeze_syn : S.t * D.tp -> T.Syn.tac m =
+    fun (tm, tp) ->
+    let* con = EM.lift_ev @@ Sem.eval tm in
+    EM.ret @@
+    let+ tm = EM.quote_con tp con in
+    tm, tp
+
+  let match_syn tac kont =
+    let* tm, tp = tac in
+    let* tac = freeze_syn (tm, tp) in
+    kont tac (tm, tp)
+
+  let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
     fun tac ->
-    let rec go (tm, tp) =
-      match tp with
-      | D.Sub (tp, _, _) ->
-        go (S.SubOut tm, tp)
-      | D.El code ->
-        let* tp = EM.lift_cmp @@ Sem.unfold_el code in
-        go (S.ElOut tm, tp)
-      | _ ->
-        EM.ret (tm, tp)
-    in
-    go @<< T.Syn.whnf tac
+    match_syn tac @@ fun tac (tm, tp) ->
+    EM.lift_cmp @@ Sem.whnf_tp tp |>>
+    function
+    | `Done ->
+      begin
+        match tp with
+        | D.Sub _ ->
+          elim_implicit_connectives @@ Sub.elim tac
+        | D.El _ ->
+          elim_implicit_connectives @@ El.elim tac
+        | _ ->
+          tac
+      end
+    | `Reduce tp ->
+      elim_implicit_connectives @<< freeze_syn (tm, tp)
 
   let rec intro_implicit_connectives : T.BChk.tac -> T.BChk.tac =
     fun tac ->
@@ -1090,23 +1107,26 @@ struct
 
     let lam_elim cases : T.BChk.tac =
       match_goal @@ fun (tp, _, _) ->
-      let* _base, fam = EM.dest_pi tp in
-      let mot_tac : T.Chk.tac =
-        T.Chk.bchk @@
-        Pi.intro @@ fun var -> (* of inductive type *)
-        T.BChk.chk @@ fun _goal ->
-        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
-        let* tfib = EM.quote_tp fib in
-        match tfib with
-        | S.El code ->
-          EM.ret code
-        | _ ->
-          EM.expected_connective `El fib
-      in
-      EM.ret @@
-      Pi.intro @@ fun x ->
-      T.BChk.syn @@
-      elim mot_tac cases @@
-      El.elim @@ T.Var.syn x
+      match tp with
+      | D.Pi (_, _, fam) ->
+        let mot_tac : T.Chk.tac =
+          T.Chk.bchk @@
+          Pi.intro @@ fun var -> (* of inductive type *)
+          T.BChk.chk @@ fun _goal ->
+          let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
+          let* tfib = EM.quote_tp fib in
+          match tfib with
+          | S.El code ->
+            EM.ret code
+          | _ ->
+            EM.expected_connective `El fib
+        in
+        EM.ret @@
+        Pi.intro @@ fun x ->
+        T.BChk.syn @@
+        elim mot_tac cases @@
+        El.elim @@ T.Var.syn x
+      | _ ->
+        EM.expected_connective `Pi tp
   end
 end
