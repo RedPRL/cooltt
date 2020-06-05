@@ -248,7 +248,7 @@ and equate_con tp con0 con1 =
   | univ, D.StableCode code0, D.StableCode code1 ->
     equate_stable_code univ code0 code1
 
-  | _, D.CodeV (r0, pcode0, code0, pequiv0), D.CodeV (r1, pcode1, code1, pequiv1) ->
+  | _, D.UnstableCode (`V (r0, pcode0, code0, pequiv0)), D.UnstableCode (`V (r1, pcode1, code1, pequiv1)) ->
     equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
 
 

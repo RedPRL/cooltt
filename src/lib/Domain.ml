@@ -162,7 +162,7 @@ and pp_con : con Pp.printer =
   | StableCode `Univ -> Format.fprintf fmt "<code-univ>"
   | BindSym _ -> Format.fprintf fmt "<bind-sym>"
   | StableCode code -> pp_stable_code fmt code
-  | CodeV _ -> Format.fprintf fmt "<code-v>"
+  | UnstableCode _ -> Format.fprintf fmt "<unstable-code>"
   | Box _ -> Format.fprintf fmt "<box>"
   | VIn _ -> Format.fprintf fmt "<vin>"
   | Split branches ->

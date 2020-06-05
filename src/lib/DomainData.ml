@@ -46,10 +46,10 @@ and con =
   | Cof of (con, con) Cof.cof_f
   | Prf
 
-  | FHCom of [`Nat | `Circle | `Univ] * dim * dim * cof * con
+  | FHCom of [`Nat | `Circle] * dim * dim * cof * con
 
   | StableCode of con stable_code
-  | CodeV of dim * con * con * con
+  | UnstableCode of con unstable_code
 
   | Box of dim * dim * cof * con * con
   | VIn of dim * con * con * con

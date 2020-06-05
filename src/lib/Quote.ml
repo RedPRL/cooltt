@@ -130,10 +130,6 @@ let rec quote_con (tp : D.tp) con =
     quote_stable_code univ code
 
 
-  | _univ, D.CodeV (r, pcode, code, pequiv) ->
-    let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
-    S.CodeV (tr, t_pcode, tcode, t_pequiv)
-
   | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
     let* bdy' =
@@ -146,7 +142,11 @@ let rec quote_con (tp : D.tp) con =
     let+ tm = quote_hcom (D.StableCode `Nat) r s phi bdy' in
     S.ElOut tm
 
-  | D.Univ, D.FHCom (`Univ, r, s, phi, bdy) ->
+  | _univ, D.UnstableCode (`V (r, pcode, code, pequiv)) ->
+    let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
+    S.CodeV (tr, t_pcode, tcode, t_pequiv)
+
+  | _univ, D.UnstableCode (`HCom (r, s, phi, bdy)) ->
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
     let* bdy' =
       lift_cmp @@ splice_tm @@

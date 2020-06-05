@@ -270,12 +270,18 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ sides = subst_con r x sides
     and+ cap = subst_con r x cap in
     D.Box (s, s', phi, sides, cap)
-  | D.CodeV (s, pcode, code, pequiv) ->
+  | D.UnstableCode (`V (s, pcode, code, pequiv)) ->
     let+ s = subst_dim r x s
     and+ pcode = subst_con r x pcode
     and+ code = subst_con r x code
     and+ pequiv = subst_con r x pequiv in
-    D.CodeV (s, pcode, code, pequiv)
+    D.UnstableCode (`V (s, pcode, code, pequiv))
+  | D.UnstableCode (`HCom (s, s', phi, bdy)) ->
+    let+ s = subst_dim r x s
+    and+ s' = subst_dim r x s'
+    and+ phi = subst_cof r x phi
+    and+ bdy = subst_con r x bdy in
+    D.UnstableCode (`HCom (s, s', phi, bdy))
   | D.VIn (s, equiv, pivot, base) ->
     let+ s = subst_dim r x s
     and+ equiv = subst_con r x equiv
@@ -739,7 +745,7 @@ and eval : S.t -> D.con EvM.m =
       and+ vpcode = eval pcode
       and+ vcode = eval code
       and+ vpequiv = eval pequiv in
-      D.CodeV (vr, vpcode, vcode, vpequiv)
+      D.UnstableCode (`V (vr, vpcode, vcode, vpequiv))
 
     | S.ESub (sb, tm) ->
       eval_sub sb @@ eval tm
@@ -774,14 +780,13 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.SubIn _ | D.ElIn _
-  | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.StableCode _ ->
+  | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf | D.StableCode _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
   | D.Cut {cut; _} ->
     whnf_cut ~style cut
-  | D.FHCom (_, r, s, phi, bdy) ->
+  | D.FHCom (_, r, s, phi, bdy) | D.UnstableCode (`HCom (r, s, phi, bdy)) ->
     begin
       test_sequent [] (Cof.join [Cof.eq r s; phi]) |>>
       function
@@ -804,7 +809,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
         | false ->
           ret `Done
     end
-  | D.CodeV (r, pcode, code, _pequiv) ->
+  | D.UnstableCode (`V (r, pcode, code, _pequiv)) ->
     begin
       test_sequent [] (Cof.boundary r) |>>
       function
@@ -1389,10 +1394,8 @@ and do_el : D.con -> D.tp CM.m =
     begin
       inspect_con ~style:`UnfoldNone con |>>
       function
-      | D.FHCom (`Univ, r, s, phi, bdy) ->
-        ret @@ D.ElUnstable (`HCom (r, s, phi, bdy))
-      | D.CodeV (r, pcode, code, pequiv) ->
-        ret @@ D.ElUnstable (`V (r, pcode, code, pequiv))
+      | D.UnstableCode code ->
+        ret @@ D.ElUnstable code
       | D.Split branches as con ->
         splitter con @@ List.map fst branches
       | D.Cut {tp = D.TpSplit branches; _} as con ->
@@ -1453,10 +1456,8 @@ and dispatch_rigid_coe ~style line =
     match codex with
     | D.StableCode codex ->
       ret @@ `Reduce (`Stable (x, codex))
-    | D.FHCom (`Univ, sx, s'x, phix, bdyx) ->
-      ret @@ `Reduce (`CoeHCom (x, sx, s'x, phix, bdyx))
-    | D.CodeV (s, a, b, e) ->
-      ret @@ `Reduce (`V (x, s, a, b, e))
+    | D.UnstableCode code ->
+      ret @@ `Reduce (`Unstable (x, code))
     | D.Split branches ->
       let* phis =
         branches |> MU.map @@ fun (phix, _) ->
@@ -1493,10 +1494,8 @@ and dispatch_rigid_hcom ~style code =
     match code with
     | D.StableCode code ->
       ret @@ `Reduce (`Stable code)
-    | D.FHCom (`Univ, r, s, phi, bdy) ->
-      ret @@ `Reduce (`HComFHCom (r, s, phi, bdy))
-    | D.CodeV (r, a, b, e) ->
-      ret @@ `Reduce (`HComV (r, a, b, e))
+    | D.UnstableCode code ->
+      ret @@ `Reduce (`Unstable code)
     | D.Cut {cut; _} ->
       ret @@ `Done cut
     | D.Split branches ->
@@ -1539,28 +1538,32 @@ and enact_rigid_coe line r r' con tag =
         Splice.foreign con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
     end
-  | `CoeHCom (x, sx, s'x, phix, bdyx) ->
-    splice_tm @@
-    Splice.foreign (D.BindSym (x, D.dim_to_con sx)) @@ fun s ->
-    Splice.foreign (D.BindSym (x, D.dim_to_con s'x)) @@ fun s' ->
-    Splice.foreign (D.BindSym (x, D.cof_to_con phix)) @@ fun phi ->
-    Splice.foreign (D.BindSym (x, bdyx)) @@ fun code ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign con @@ fun bdy ->
-    let fhcom = TB.Kan.FHCom.{r = s; r' = s'; phi; bdy = code} in
-    Splice.term @@ TB.Kan.FHCom.coe_fhcom ~fhcom ~r ~r' ~bdy
-  | `V (x, s, pcode, code, pequiv) ->
-    splice_tm @@
-    Splice.foreign (D.BindSym (x, D.dim_to_con s)) @@ fun s ->
-    Splice.foreign (D.BindSym (x, pcode)) @@ fun pcode ->
-    Splice.foreign (D.BindSym (x, code)) @@ fun code ->
-    Splice.foreign (D.BindSym (x, pequiv)) @@ fun pequiv ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign con @@ fun bdy ->
-    let v = TB.Kan.V.{r = s; pcode; code; pequiv} in
-    Splice.term @@ TB.Kan.V.coe_v ~v ~r ~r' ~bdy
+  | `Unstable (x, codex) ->
+    begin
+      match codex with
+      | `HCom (sx, s'x, phix, bdyx) ->
+        splice_tm @@
+        Splice.foreign (D.BindSym (x, D.dim_to_con sx)) @@ fun s ->
+        Splice.foreign (D.BindSym (x, D.dim_to_con s'x)) @@ fun s' ->
+        Splice.foreign (D.BindSym (x, D.cof_to_con phix)) @@ fun phi ->
+        Splice.foreign (D.BindSym (x, bdyx)) @@ fun code ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign con @@ fun bdy ->
+        let fhcom = TB.Kan.FHCom.{r = s; r' = s'; phi; bdy = code} in
+        Splice.term @@ TB.Kan.FHCom.coe_fhcom ~fhcom ~r ~r' ~bdy
+      | `V (s, pcode, code, pequiv) ->
+        splice_tm @@
+        Splice.foreign (D.BindSym (x, D.dim_to_con s)) @@ fun s ->
+        Splice.foreign (D.BindSym (x, pcode)) @@ fun pcode ->
+        Splice.foreign (D.BindSym (x, code)) @@ fun code ->
+        Splice.foreign (D.BindSym (x, pequiv)) @@ fun pequiv ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign con @@ fun bdy ->
+        let v = TB.Kan.V.{r = s; pcode; code; pequiv} in
+        Splice.term @@ TB.Kan.V.coe_v ~v ~r ~r' ~bdy
+    end
   | `Split psis ->
     splice_tm @@
     Splice.foreign_dim r @@ fun r ->
@@ -1609,7 +1612,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.foreign bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
-      | `Circle | `Nat | `Univ as tag ->
+      | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@
           Splice.foreign bdy @@ fun bdy ->
@@ -1618,33 +1621,46 @@ and enact_rigid_hcom code r r' phi bdy tag =
           TB.el_out @@ TB.ap bdy [i; prf]
         in
         D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
+      | `Univ ->
+        let+ bdy' =
+          splice_tm @@
+          Splice.foreign bdy @@ fun bdy ->
+          Splice.term @@
+          TB.lam @@ fun i -> TB.lam @@ fun prf ->
+          TB.el_out @@ TB.ap bdy [i; prf]
+        in
+        D.ElIn (D.UnstableCode (`HCom (r, r', phi, bdy')))
     end
-  | `HComFHCom (h_r,h_r',h_phi,h_bdy) ->
-    splice_tm @@
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.foreign_dim h_r @@ fun h_r ->
-    Splice.foreign_dim h_r' @@ fun h_r' ->
-    Splice.foreign_cof h_phi @@ fun h_phi ->
-    Splice.foreign h_bdy @@ fun h_bdy ->
-    Splice.term @@
-    let fhcom = TB.Kan.FHCom.{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} in
-    TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~r' ~phi ~bdy
-  | `HComV (h_r,h_pcode,h_code,h_pequiv) ->
-    splice_tm @@
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.foreign_dim h_r @@ fun h_r ->
-    Splice.foreign h_pcode @@ fun h_pcode ->
-    Splice.foreign h_code @@ fun h_code ->
-    Splice.foreign h_pequiv @@ fun h_pequiv ->
-    Splice.term @@
-    let v = TB.Kan.V.{r = h_r; pcode = h_pcode; code = h_code; pequiv = h_pequiv} in
-    TB.Kan.V.hcom_v ~v ~r ~r' ~phi ~bdy
+  | `Unstable code ->
+    begin
+      match code with
+        `HCom (h_r,h_r',h_phi,h_bdy) ->
+        splice_tm @@
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign_cof phi @@ fun phi ->
+        Splice.foreign bdy @@ fun bdy ->
+        Splice.foreign_dim h_r @@ fun h_r ->
+        Splice.foreign_dim h_r' @@ fun h_r' ->
+        Splice.foreign_cof h_phi @@ fun h_phi ->
+        Splice.foreign h_bdy @@ fun h_bdy ->
+        Splice.term @@
+        let fhcom = TB.Kan.FHCom.{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} in
+        TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~r' ~phi ~bdy
+      | `V (h_r,h_pcode,h_code,h_pequiv) ->
+        splice_tm @@
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign_cof phi @@ fun phi ->
+        Splice.foreign bdy @@ fun bdy ->
+        Splice.foreign_dim h_r @@ fun h_r ->
+        Splice.foreign h_pcode @@ fun h_pcode ->
+        Splice.foreign h_code @@ fun h_code ->
+        Splice.foreign h_pequiv @@ fun h_pequiv ->
+        Splice.term @@
+        let v = TB.Kan.V.{r = h_r; pcode = h_pcode; code = h_code; pequiv = h_pequiv} in
+        TB.Kan.V.hcom_v ~v ~r ~r' ~phi ~bdy
+    end
 
   | `Split psis ->
     splice_tm @@
