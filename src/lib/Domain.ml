@@ -149,9 +149,9 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "dim1"
   | ElIn con ->
     Format.fprintf fmt "el/in[%a]" pp_con con
-  | CodeNat ->
+  | StableCode `Nat ->
     Format.fprintf fmt "nat/code"
-  | CodeCircle ->
+  | StableCode `Circle ->
     Format.fprintf fmt "circle/code"
   | SubIn _ ->
     Format.fprintf fmt "<sub/in>"
@@ -159,11 +159,9 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "<fhcom>"
   | LetSym _ ->
     Format.fprintf fmt "<let-sym>"
-  | CodeUniv -> Format.fprintf fmt "<code-univ>"
+  | StableCode `Univ -> Format.fprintf fmt "<code-univ>"
   | BindSym _ -> Format.fprintf fmt "<bind-sym>"
-  | CodePath _ -> Format.fprintf fmt "<code-path>"
-  | CodePi _ -> Format.fprintf fmt "<code-pi>"
-  | CodeSg _ -> Format.fprintf fmt "<code-sg>"
+  | StableCode code -> pp_stable_code fmt code
   | CodeV _ -> Format.fprintf fmt "<code-v>"
   | Box _ -> Format.fprintf fmt "<box>"
   | VIn _ -> Format.fprintf fmt "<vin>"
@@ -194,8 +192,8 @@ and pp_tp fmt =
     Format.fprintf fmt "<nat>"
   | Circle ->
     Format.fprintf fmt "<circle>"
-  | El con ->
-    Format.fprintf fmt "el[%a]" pp_con con
+  | El code ->
+    Format.fprintf fmt "el[%a]" pp_stable_code code
   | ElCut con ->
     Format.fprintf fmt "el-cut[%a]" pp_cut con
   | ElUnstable (`HCom _) ->
@@ -206,3 +204,12 @@ and pp_tp fmt =
     Format.fprintf fmt "<goal-tp>"
   | TpSplit _ ->
     Format.fprintf fmt "<split>"
+
+and pp_stable_code fmt =
+  function
+  | `Path _ -> Format.fprintf fmt "<code-path>"
+  | `Pi _ -> Format.fprintf fmt "<code-pi>"
+  | `Sg _ -> Format.fprintf fmt "<code-sg>"
+  | `Nat -> Format.fprintf fmt "<code-nat>"
+  | `Circle -> Format.fprintf fmt "<code-circle>"
+  | `Univ -> Format.fprintf fmt "<code-univ>"

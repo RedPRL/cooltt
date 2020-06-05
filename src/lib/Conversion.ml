@@ -101,8 +101,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     ret ()
   | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
     equate_tp tp0 tp1
-  | D.El con0, D.El con1 ->
-    equate_con D.Univ con0 con1
+  | D.El code0, D.El code1 ->
+    equate_stable_code D.Univ code0 code1
   | D.ElCut cut0, D.ElCut cut1 ->
     equate_cut cut0 cut1
   | D.ElUnstable (`HCom (r0, s0, phi0, bdy0)), D.ElUnstable (`HCom (r1, s1, phi1, bdy1)) ->
@@ -124,6 +124,42 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
+
+and equate_stable_code univ code0 code1 =
+  match code0, code1 with
+  | `Nat, `Nat | `Circle, `Circle | `Univ, `Univ -> ret ()
+  | `Pi (base0, fam0), `Pi (base1, fam1)
+  | `Sg (base0, fam0), `Sg (base1, fam1) ->
+    let* _ = equate_con univ base0 base1 in
+    let* fam_tp =
+      lift_cmp @@
+      splice_tp @@
+      Splice.foreign base0 @@ fun base ->
+      Splice.foreign_tp univ @@ fun univ ->
+      Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+    in
+    equate_con fam_tp fam0 fam1
+
+  | `Path (fam0, bdry0), `Path (fam1, bdry1) ->
+    let* famtp =
+      lift_cmp @@
+      splice_tp @@
+      Splice.foreign_tp univ @@ fun univ ->
+      Splice.term @@ TB.pi TB.tp_dim @@ fun _ -> univ
+    in
+    let* _ = equate_con famtp fam0 fam1 in
+    let* bdry_tp =
+      lift_cmp @@ splice_tp @@
+      Splice.foreign fam0 @@ fun fam ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      let phi = TB.boundary i in
+      TB.pi (TB.tp_prf phi) @@ fun _prf ->
+      TB.el @@ TB.ap fam [i]
+    in
+    equate_con bdry_tp bdry0 bdry1
+  | code0, code1 ->
+    conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
@@ -197,7 +233,7 @@ and equate_con tp con0 con1 =
     in
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
-    equate_hcom (D.CodeNat, r0, s0, phi0, bdy0') (D.CodeNat, r1, s1, phi1, bdy1')
+    equate_hcom (D.StableCode `Nat, r0, s0, phi0, bdy0') (D.StableCode `Nat, r1, s1, phi1, bdy1')
   | _, D.FHCom (`Circle, r0, s0, phi0, bdy0), D.FHCom (`Circle, r1, s1, phi1, bdy1) ->
     let fix_body bdy =
       lift_cmp @@ splice_tm @@
@@ -208,47 +244,13 @@ and equate_con tp con0 con1 =
     in
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
-    equate_hcom (D.CodeCircle, r0, s0, phi0, bdy0') (D.CodeCircle, r1, s1, phi1, bdy1')
-  | _, D.CodeNat, D.CodeNat ->
-    ret ()
-  | _, D.CodeCircle, D.CodeCircle ->
-    ret ()
-  | _, D.CodeUniv, D.CodeUniv ->
-    ret ()
+    equate_hcom (D.StableCode `Circle, r0, s0, phi0, bdy0') (D.StableCode `Circle, r1, s1, phi1, bdy1')
+  | univ, D.StableCode code0, D.StableCode code1 ->
+    equate_stable_code univ code0 code1
 
   | _, D.CodeV (r0, pcode0, code0, pequiv0), D.CodeV (r1, pcode1, code1, pequiv1) ->
     equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
 
-  | univ, D.CodePi (base0, fam0), D.CodePi (base1, fam1)
-  | univ, D.CodeSg (base0, fam0), D.CodeSg (base1, fam1) ->
-    let* _ = equate_con univ base0 base1 in
-    let* fam_tp =
-      lift_cmp @@
-      splice_tp @@
-      Splice.foreign base0 @@ fun base ->
-      Splice.foreign_tp univ @@ fun univ ->
-      Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
-    in
-    equate_con fam_tp fam0 fam1
-
-  | univ, D.CodePath (fam0, bdry0), D.CodePath (fam1, bdry1) ->
-    let* famtp =
-      lift_cmp @@
-      splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
-      Splice.term @@ TB.pi TB.tp_dim @@ fun _ -> univ
-    in
-    let* _ = equate_con famtp fam0 fam1 in
-    let* bdry_tp =
-      lift_cmp @@ splice_tp @@
-      Splice.foreign fam0 @@ fun fam ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      let phi = TB.boundary i in
-      TB.pi (TB.tp_prf phi) @@ fun _prf ->
-      TB.el @@ TB.ap fam [i]
-    in
-    equate_con bdry_tp bdry0 bdry1
 
   | D.ElUnstable (`HCom (r, s, phi, bdy)) as hcom_tp, _, _ ->
     let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in

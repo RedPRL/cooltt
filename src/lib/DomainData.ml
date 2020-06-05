@@ -3,7 +3,22 @@ open CoolBasis
 open Bwd
 
 include Dim
+
 type cof = (dim, int) Cof.cof
+
+type 'a stable_code =
+  [ `Path of 'a * 'a
+  | `Pi of 'a * 'a
+  | `Sg of 'a * 'a
+  | `Nat
+  | `Circle
+  | `Univ
+  ]
+
+type 'a unstable_code =
+  [ `HCom of dim * dim * cof * 'a
+  | `V of dim * 'a * 'a * 'a
+  ]
 
 type env = {tpenv : tp bwd; conenv: con bwd}
 
@@ -31,15 +46,11 @@ and con =
   | Cof of (con, con) Cof.cof_f
   | Prf
 
-  | CodePath of con * con
-  | CodePi of con * con
-  | CodeSg of con * con
-  | CodeNat
-  | CodeCircle
-  | CodeUniv
+  | FHCom of [`Nat | `Circle | `Univ] * dim * dim * cof * con
+
+  | StableCode of con stable_code
   | CodeV of dim * con * con * con
 
-  | FHCom of [`Nat | `Circle | `Univ] * dim * dim * cof * con
   | Box of dim * dim * cof * con * con
   | VIn of dim * con * con * con
 
@@ -48,9 +59,9 @@ and con =
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
-  | El of con
+  | El of con stable_code
   | ElCut of cut
-  | ElUnstable of [`HCom of dim * dim * cof * con | `V of dim * con * con * con]
+  | ElUnstable of con unstable_code
   | GoalTp of string option * tp
   | TpDim
   | TpCof

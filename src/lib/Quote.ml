@@ -126,61 +126,9 @@ let rec quote_con (tp : D.tp) con =
   | D.TpPrf _, _ ->
     ret S.Prf
 
-  | _, D.CodeNat ->
-    ret S.CodeNat
+  | univ, D.StableCode code ->
+    quote_stable_code univ code
 
-  | _, D.CodeCircle ->
-    ret S.CodeCircle
-
-  | _, D.CodeUniv ->
-    ret S.CodeUniv
-
-  | univ, D.CodePi (base, fam) ->
-    let+ tbase = quote_con univ base
-    and+ tfam =
-      let* elbase = lift_cmp @@ do_el base in
-      quote_lam elbase @@ fun var ->
-      quote_con univ @<<
-      lift_cmp @@ do_ap fam var
-    in
-    S.CodePi (tbase, tfam)
-
-  | univ, D.CodeSg (base, fam) ->
-    let+ tbase = quote_con univ base
-    and+ tfam =
-      let* elbase = lift_cmp @@ do_el base in
-      quote_lam elbase @@ fun var ->
-      quote_con univ @<<
-      lift_cmp @@ do_ap fam var
-    in
-    S.CodeSg (tbase, tfam)
-
-    (*
-    *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
-    * *)
-  | univ, D.CodePath (fam, bdry) -> (* check *)
-    let* piuniv =
-      lift_cmp @@
-      splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun _i ->
-      univ
-    in
-    let* tfam = quote_con piuniv fam in
-    (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
-    let* bdry_tp =
-      lift_cmp @@
-      splice_tp @@
-      Splice.foreign_tp univ @@ fun _univ ->
-      Splice.foreign fam @@ fun fam ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
-      TB.el @@ TB.ap fam [i]
-    in
-    let+ tbdry = quote_con bdry_tp bdry in
-    S.CodePath (tfam, tbdry)
 
   | _univ, D.CodeV (r, pcode, code, pequiv) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
@@ -195,7 +143,7 @@ let rec quote_con (tp : D.tp) con =
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom D.CodeNat r s phi bdy' in
+    let+ tm = quote_hcom (D.StableCode `Nat) r s phi bdy' in
     S.ElOut tm
 
   | D.Univ, D.FHCom (`Univ, r, s, phi, bdy) ->
@@ -207,7 +155,7 @@ let rec quote_con (tp : D.tp) con =
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom D.CodeUniv r s phi bdy' in
+    let+ tm = quote_hcom (D.StableCode `Univ) r s phi bdy' in
     S.ElOut tm
 
   | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
@@ -218,7 +166,7 @@ let rec quote_con (tp : D.tp) con =
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom D.CodeCircle r s phi bdy' in
+    let+ tm = quote_hcom (D.StableCode `Circle) r s phi bdy' in
     S.ElOut tm
 
   | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
@@ -304,6 +252,65 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
+and quote_stable_code univ =
+  function
+  | `Nat ->
+    ret S.CodeNat
+
+  | `Circle ->
+    ret S.CodeCircle
+
+  | `Univ ->
+    ret S.CodeUniv
+
+  | `Pi (base, fam) ->
+    let+ tbase = quote_con univ base
+    and+ tfam =
+      let* elbase = lift_cmp @@ do_el base in
+      quote_lam elbase @@ fun var ->
+      quote_con univ @<<
+      lift_cmp @@ do_ap fam var
+    in
+    S.CodePi (tbase, tfam)
+
+  | `Sg (base, fam) ->
+    let+ tbase = quote_con univ base
+    and+ tfam =
+      let* elbase = lift_cmp @@ do_el base in
+      quote_lam elbase @@ fun var ->
+      quote_con univ @<<
+      lift_cmp @@ do_ap fam var
+    in
+    S.CodeSg (tbase, tfam)
+
+    (*
+    *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
+    * *)
+  | `Path (fam, bdry) ->
+    let* piuniv =
+      lift_cmp @@
+      splice_tp @@
+      Splice.foreign_tp univ @@ fun univ ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun _i ->
+      univ
+    in
+    let* tfam = quote_con piuniv fam in
+    (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
+    let* bdry_tp =
+      lift_cmp @@
+      splice_tp @@
+      Splice.foreign_tp univ @@ fun _univ ->
+      Splice.foreign fam @@ fun fam ->
+      Splice.term @@
+      TB.pi TB.tp_dim @@ fun i ->
+      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
+      TB.el @@ TB.ap fam [i]
+    in
+    let+ tbdry = quote_con bdry_tp bdry in
+    S.CodePath (tfam, tbdry)
+
+
 and quote_lam ?(ident = `Anon) tp mbdy =
   let+ bdy = bind_var tp mbdy in
   S.Lam (ident, bdy)
@@ -356,8 +363,8 @@ and quote_tp (tp : D.tp) =
     S.Sg (tbase, ident, tfam)
   | D.Univ ->
     ret S.Univ
-  | D.El con ->
-    let+ tm = quote_con D.Univ con in
+  | D.El code ->
+    let+ tm = quote_stable_code D.Univ code in
     S.El tm
   | D.ElCut cut ->
     let+ tm = quote_cut cut in

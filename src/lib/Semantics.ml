@@ -209,7 +209,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Base | D.CodeNat | D.CodeCircle | D.CodeUniv as con -> ret con
+  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -235,18 +235,9 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
-  | D.CodePi (con0, con1) ->
-    let+ con0 = subst_con r x con0
-    and+ con1 = subst_con r x con1 in
-    D.CodePi (con0, con1)
-  | D.CodeSg (con0, con1) ->
-    let+ con0 = subst_con r x con0
-    and+ con1 = subst_con r x con1 in
-    D.CodeSg (con0, con1)
-  | D.CodePath (con0, con1) ->
-    let+ con0 = subst_con r x con0
-    and+ con1 = subst_con r x con1 in
-    D.CodePath (con0, con1)
+  | D.StableCode code ->
+    let+ code = subst_stable_code r x code in
+    D.StableCode code
   | D.ElIn con ->
     let+ con = subst_con r x con in
     D.ElIn con
@@ -367,7 +358,7 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     let+ tp = subst_tp r x tp in
     D.GoalTp (lbl, tp)
   | D.El code ->
-    let+ code = subst_con r x code in
+    let+ code = subst_stable_code r x code in
     D.El code
   | D.ElCut cut ->
     let+ cut = subst_cut r x cut in
@@ -393,6 +384,24 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     let+ branches = MU.map subst_branch branches in
     D.TpSplit branches
 
+and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stable_code CM.m =
+  fun r x ->
+  let open CM in
+  function
+  | `Pi (con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    `Pi (con0, con1)
+  | `Sg (con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    `Sg (con0, con1)
+  | `Path (con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    `Path (con0, con1)
+  | `Nat | `Circle | `Univ as code ->
+    ret code
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
   fun r x (hd, sp) ->
@@ -658,26 +667,26 @@ and eval : S.t -> D.con EvM.m =
     | S.CodePath (fam, bdry) ->
       let* vfam = eval fam in
       let* vbdry = eval bdry in
-      ret @@ D.CodePath (vfam, vbdry)
+      ret @@ D.StableCode (`Path (vfam, vbdry))
 
     | S.CodePi (base, fam) ->
       let+ vbase = eval base
       and+ vfam = eval fam in
-      D.CodePi (vbase, vfam)
+      D.StableCode (`Pi (vbase, vfam))
 
     | S.CodeSg (base, fam) ->
       let+ vbase = eval base
       and+ vfam = eval fam in
-      D.CodeSg (vbase, vfam)
+      D.StableCode (`Sg (vbase, vfam))
 
     | S.CodeNat ->
-      ret D.CodeNat
+      ret @@ D.StableCode `Nat
 
     | S.CodeCircle ->
-      ret D.CodeCircle
+      ret @@ D.StableCode `Circle
 
     | S.CodeUniv ->
-      ret D.CodeUniv
+      ret @@ D.StableCode `Univ
 
     | S.Box (r, s, phi, sides, cap) ->
       let+ vr = eval_dim r
@@ -766,7 +775,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf
-  | D.CodePath _ | D.CodePi _ | D.CodeSg _ | D.CodeNat | D.CodeCircle | D.CodeUniv ->
+  | D.StableCode _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
@@ -961,14 +970,6 @@ and whnf_cut ~style : D.cut -> D.con whnf CM.m =
 and whnf_tp =
   let open CM in
   function
-  | D.El con ->
-    begin
-      whnf_con ~style:`UnfoldAll con |>>
-      function
-      | `Done -> ret `Done
-      | `Reduce con ->
-        reduce_to_tp @<< do_el con
-    end
   | D.ElCut cut ->
     begin
       whnf_cut ~style:`UnfoldAll cut |>>
@@ -1398,31 +1399,28 @@ and do_el : D.con -> D.tp CM.m =
         splitter con @@ List.map fst branches
       | D.Cut {cut; tp = D.Univ} ->
         ret @@ D.ElCut cut
+      | D.StableCode code ->
+        ret @@ D.El code
       | _ ->
-        ret @@ D.El con
+        throw @@ NbeFailed "Invalid arguments to do_el"
     end
 
-and unfold_el : D.con -> D.tp CM.m =
+and unfold_el : D.con D.stable_code -> D.tp CM.m =
   let open CM in
-  fun con ->
+  fun code ->
     abort_if_inconsistent (ret D.tp_abort) @@
     begin
-      inspect_con ~style:`UnfoldAll con |>>
-      function
-
-      | D.Cut _ ->
-        CM.throw @@ NbeFailed "unfold_el on cut !!!"
-
-      | D.CodeNat ->
+      match code with
+      | `Nat ->
         ret D.Nat
 
-      | D.CodeCircle ->
+      | `Circle ->
         ret D.Circle
 
-      | D.CodeUniv ->
+      | `Univ ->
         ret D.Univ
 
-      | D.CodePi (base, fam) ->
+      | `Pi (base, fam) ->
         splice_tp @@
         Splice.foreign base @@ fun base ->
         Splice.foreign fam @@ fun fam ->
@@ -1430,7 +1428,7 @@ and unfold_el : D.con -> D.tp CM.m =
         TB.pi (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
 
-      | D.CodeSg (base, fam) ->
+      | `Sg (base, fam) ->
         splice_tp @@
         Splice.foreign base @@ fun base ->
         Splice.foreign fam @@ fun fam ->
@@ -1438,7 +1436,7 @@ and unfold_el : D.con -> D.tp CM.m =
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
 
-      | D.CodePath (fam, bdry) ->
+      | `Path (fam, bdry) ->
         splice_tp @@
         Splice.foreign fam @@ fun fam ->
         Splice.foreign bdry @@ fun bdry ->
@@ -1446,9 +1444,6 @@ and unfold_el : D.con -> D.tp CM.m =
         TB.pi TB.tp_dim @@ fun i ->
         TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
         TB.ap bdry [i; prf]
-
-      | _con ->
-        CM.throw @@ NbeFailed "unfold_el failed"
     end
 
 
@@ -1456,18 +1451,8 @@ and dispatch_rigid_coe ~style line =
   let open CM in
   let go x codex =
     match codex with
-    | D.CodePi (basex, famx) ->
-      ret @@ `Reduce (`CoePi (x, basex, famx))
-    | D.CodeSg (basex, famx) ->
-      ret @@ `Reduce (`CoeSg (x, basex, famx))
-    | D.CodePath (famx, bdryx) ->
-      ret @@ `Reduce (`CoePath (x, famx, bdryx))
-    | D.CodeNat ->
-      ret @@ `Reduce `CoeNat
-    | D.CodeCircle ->
-      ret @@ `Reduce `CoeCircle
-    | D.CodeUniv ->
-      ret @@ `Reduce `CoeUniv
+    | D.StableCode codex ->
+      ret @@ `Reduce (`Stable (x, codex))
     | D.FHCom (`Univ, sx, s'x, phix, bdyx) ->
       ret @@ `Reduce (`CoeHCom (x, sx, s'x, phix, bdyx))
     | D.CodeV (s, a, b, e) ->
@@ -1506,18 +1491,8 @@ and dispatch_rigid_hcom ~style code =
   let open CM in
   let go code =
     match code with
-    | D.CodePi (base, fam) ->
-      ret @@ `Reduce (`HComPi (base, fam))
-    | D.CodeSg (base, fam) ->
-      ret @@ `Reduce (`HComSg (base, fam))
-    | D.CodePath (fam, bdry) ->
-      ret @@ `Reduce (`HComPath (fam, bdry))
-    | D.CodeNat ->
-      ret @@ `Reduce (`FHCom `Nat)
-    | D.CodeCircle ->
-      ret @@ `Reduce (`FHCom `Circle)
-    | D.CodeUniv ->
-      ret @@ `Reduce (`FHCom `Univ)
+    | D.StableCode code ->
+      ret @@ `Reduce (`Stable code)
     | D.FHCom (`Univ, r, s, phi, bdy) ->
       ret @@ `Reduce (`HComFHCom (r, s, phi, bdy))
     | D.CodeV (r, a, b, e) ->
@@ -1535,32 +1510,35 @@ and enact_rigid_coe line r r' con tag =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   match tag with
-  | `CoeNat | `CoeCircle | `CoeUniv ->
-    ret con
-  | `CoePi (x, basex, famx) ->
-    splice_tm @@
-    Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
-    Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign con @@ fun bdy ->
-    Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
-  | `CoeSg (x, basex, famx) ->
-    splice_tm @@
-    Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
-    Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign con @@ fun bdy ->
-    Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
-  | `CoePath (x, famx, bdryx) ->
-    splice_tm @@
-    Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
-    Splice.foreign (D.BindSym (x, bdryx)) @@ fun bdry_line ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign con @@ fun bdy ->
-    Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
+  | `Stable (x, code) ->
+    begin
+      match code with
+      | `Nat | `Circle | `Univ -> ret con
+      | `Pi (basex, famx) ->
+        splice_tm @@
+        Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
+        Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign con @@ fun bdy ->
+        Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
+      | `Sg (basex, famx) ->
+        splice_tm @@
+        Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
+        Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign con @@ fun bdy ->
+        Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
+      | `Path ( famx, bdryx) ->
+        splice_tm @@
+        Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
+        Splice.foreign (D.BindSym (x, bdryx)) @@ fun bdry_line ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign con @@ fun bdy ->
+        Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
+    end
   | `CoeHCom (x, sx, s'x, phix, bdyx) ->
     splice_tm @@
     Splice.foreign (D.BindSym (x, D.dim_to_con sx)) @@ fun s ->
@@ -1598,46 +1576,49 @@ and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   match tag with
-  | `HComPi (base, fam) ->
-    splice_tm @@
-    Splice.foreign base @@ fun base ->
-    Splice.foreign fam @@ fun fam ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.term @@
-    TB.Kan.hcom_pi ~base ~fam ~r ~r' ~phi ~bdy
-  | `HComSg (base, fam) ->
-    splice_tm @@
-    Splice.foreign base @@ fun base ->
-    Splice.foreign fam @@ fun fam ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.term @@
-    TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
-  | `HComPath (fam, bdry) ->
-    splice_tm @@
-    Splice.foreign fam @@ fun fam ->
-    Splice.foreign bdry @@ fun bdry ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.term @@
-    TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
-  | `FHCom tag ->
-    (* bdy : (i : 𝕀) (_ : [...]) → el(<nat>) *)
-    let+ bdy' =
-      splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
-      Splice.term @@
-      TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_out @@ TB.ap bdy [i; prf]
-    in
-    D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
+  | `Stable code ->
+    begin
+      match code with
+      | `Pi (base, fam) ->
+        splice_tm @@
+        Splice.foreign base @@ fun base ->
+        Splice.foreign fam @@ fun fam ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign_cof phi @@ fun phi ->
+        Splice.foreign bdy @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.hcom_pi ~base ~fam ~r ~r' ~phi ~bdy
+      | `Sg (base, fam) ->
+        splice_tm @@
+        Splice.foreign base @@ fun base ->
+        Splice.foreign fam @@ fun fam ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign_cof phi @@ fun phi ->
+        Splice.foreign bdy @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
+      | `Path (fam, bdry) ->
+        splice_tm @@
+        Splice.foreign fam @@ fun fam ->
+        Splice.foreign bdry @@ fun bdry ->
+        Splice.foreign_dim r @@ fun r ->
+        Splice.foreign_dim r' @@ fun r' ->
+        Splice.foreign_cof phi @@ fun phi ->
+        Splice.foreign bdy @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
+      | `Circle | `Nat | `Univ as tag ->
+        let+ bdy' =
+          splice_tm @@
+          Splice.foreign bdy @@ fun bdy ->
+          Splice.term @@
+          TB.lam @@ fun i -> TB.lam @@ fun prf ->
+          TB.el_out @@ TB.ap bdy [i; prf]
+        in
+        D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
+    end
   | `HComFHCom (h_r,h_r',h_phi,h_bdy) ->
     splice_tm @@
     Splice.foreign_dim r @@ fun r ->
