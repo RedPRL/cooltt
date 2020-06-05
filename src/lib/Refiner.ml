@@ -343,13 +343,17 @@ struct
 
   let apply tac_fun tac_arg : T.Syn.tac =
     let* tfun, tp = tac_fun in
-    let* base, fam = EM.dest_pi tp in
-    let* targ = tac_arg base in
-    let+ fib =
-      let* varg = EM.lift_ev @@ Sem.eval targ in
-      EM.lift_cmp @@ Sem.inst_tp_clo fam varg
-    in
-    S.Ap (tfun, targ), fib
+    match tp with
+    | D.Pi (base, _, fam) ->
+      let* targ = tac_arg base in
+      let+ fib =
+        let* varg = EM.lift_ev @@ Sem.eval targ in
+        EM.lift_cmp @@ Sem.inst_tp_clo fam varg
+      in
+      S.Ap (tfun, targ), fib
+    | _ ->
+      Format.printf "Bad apply!! %a@." D.pp_tp tp;
+      EM.expected_connective `Pi tp
 end
 
 module Sg =
@@ -377,17 +381,24 @@ struct
 
   let pi1 tac : T.Syn.tac =
     let* tpair, tp = tac in
-    let+ base, _ = EM.dest_sg tp in
-    S.Fst tpair, base
+    match tp with
+    | D.Sg (base, _, _) ->
+      EM.ret (S.Fst tpair, base)
+    | _ ->
+      EM.expected_connective `Sg tp
+
 
   let pi2 tac : T.Syn.tac =
     let* tpair, tp = tac in
-    let+ fib =
-      let* vfst = EM.lift_ev @@ Sem.eval @@ S.Fst tpair in
-      let* _, fam = EM.dest_sg tp in
-      EM.lift_cmp @@ Sem.inst_tp_clo fam vfst
-    in
-    S.Snd tpair, fib
+    match tp with
+    | D.Sg (_, _, fam) ->
+      let+ fib =
+        let* vfst = EM.lift_ev @@ Sem.eval @@ S.Fst tpair in
+        EM.lift_cmp @@ Sem.inst_tp_clo fam vfst
+      in
+      S.Snd tpair, fib
+    | _ ->
+      EM.expected_connective `Sg tp
 end
 
 
@@ -981,19 +992,16 @@ struct
 
   let bmatch_goal = match_goal
 
-  let elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
+  let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
     fun tac ->
-    let rec go (tm, tp) =
-      match tp with
-      | D.Sub (tp, _, _) ->
-        go (S.SubOut tm, tp)
-      | D.El code ->
-        let* tp = EM.lift_cmp @@ Sem.unfold_el code in
-        go (S.ElOut tm, tp)
-      | _ ->
-        EM.ret (tm, tp)
-    in
-    go @<< tac
+    let* tm, tp = T.Syn.whnf tac in
+    match tp with
+    | D.Sub _ ->
+      elim_implicit_connectives @@ Sub.elim @@ EM.ret (tm, tp)
+    | D.El _ ->
+      elim_implicit_connectives @@ El.elim @@ EM.ret (tm, tp)
+    | _ ->
+      EM.ret (tm, tp)
 
   let rec intro_implicit_connectives : T.BChk.tac -> T.BChk.tac =
     fun tac ->
@@ -1079,23 +1087,26 @@ struct
 
     let lam_elim cases : T.BChk.tac =
       match_goal @@ fun (tp, _, _) ->
-      let* _base, fam = EM.dest_pi tp in
-      let mot_tac : T.Chk.tac =
-        T.Chk.bchk @@
-        Pi.intro @@ fun var -> (* of inductive type *)
-        T.BChk.chk @@ fun _goal ->
-        let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
-        let* tfib = EM.quote_tp fib in
-        match tfib with
-        | S.El code ->
-          EM.ret code
-        | _ ->
-          EM.expected_connective `El fib
-      in
-      EM.ret @@
-      Pi.intro @@ fun x ->
-      T.BChk.syn @@
-      elim mot_tac cases @@
-      El.elim @@ T.Var.syn x
+      match tp with
+      | D.Pi (_, _, fam) ->
+        let mot_tac : T.Chk.tac =
+          T.Chk.bchk @@
+          Pi.intro @@ fun var -> (* of inductive type *)
+          T.BChk.chk @@ fun _goal ->
+          let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
+          let* tfib = EM.quote_tp fib in
+          match tfib with
+          | S.El code ->
+            EM.ret code
+          | _ ->
+            EM.expected_connective `El fib
+        in
+        EM.ret @@
+        Pi.intro @@ fun x ->
+        T.BChk.syn @@
+        elim mot_tac cases @@
+        El.elim @@ T.Var.syn x
+      | _ ->
+        EM.expected_connective `Pi tp
   end
 end

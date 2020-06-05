@@ -160,6 +160,11 @@ and bchk_tm : CS.con -> T.BChk.tac =
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
+  | CS.Unfold (idents, c) ->
+    fun goal ->
+      unfold idents @@ bchk_tm c goal
+  | CS.Generalize (ident, c) ->
+    T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
   | _ ->
     T.BChk.update_span con.info @@
     R.Tactic.intro_implicit_connectives @@
@@ -205,11 +210,6 @@ and bchk_tm : CS.con -> T.BChk.tac =
       T.BChk.chk @@ R.Circle.loop (chk_tm c)
     | CS.Let (c, ident, body) ->
       R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
-    | CS.Unfold (idents, c) ->
-      fun goal ->
-        unfold idents @@ bchk_tm c goal
-    | CS.Generalize (ident, c) ->
-      T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
     | CS.Nat ->
       T.BChk.chk R.Univ.nat
     | CS.Circle ->
@@ -260,7 +260,6 @@ and syn_tm : CS.con -> T.Syn.tac =
   function con ->
     T.Syn.update_span con.info @@
     R.Tactic.elim_implicit_connectives @@
-    T.Syn.whnf @@
     match con.node with
     | CS.Hole name ->
       R.Hole.unleash_syn_hole name `Rigid
@@ -273,9 +272,9 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Ap (t, ts) ->
       let rec go acc ts =
         match ts with
-        | [] -> acc
+        | [] -> R.Tactic.elim_implicit_connectives acc
         | t :: ts ->
-          let tac = R.Tactic.elim_implicit_connectives @@ T.Syn.whnf @@ R.Pi.apply acc t in
+          let tac = R.Pi.apply (R.Tactic.elim_implicit_connectives acc) t in
           go tac ts
       in
       go (syn_tm t) @@ List.map chk_tm ts

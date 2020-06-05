@@ -1,6 +1,12 @@
 def path (A : type) (x : A) (y : A) : type =
   pathd {_ => A} x y
 
+def evan-test (A : type) (φ : 𝔽) (a : A)
+  (p : sub {path A a a} φ {_ => a})
+  : (j : 𝕀) → A
+  =
+  p
+
 def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A =
   hfill A 0 {∂ i} {j _ =>
     [ j=0 ∨ i=1 => p 0
@@ -134,8 +140,6 @@ def test2 : (i : 𝕀) → nat =
 
 normalize test
 
--- You can "normalize" test2; observe how on the inside, there is some eliminator
--- that ought to be computed away, but is blocked by a disjunction system.
 normalize test2
 
 -- The following illustrates that although cooltt's quasi-normal forms aren't as fully

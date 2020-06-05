@@ -51,3 +51,12 @@ def assoc' (A : type)
   : path {path A {p 0} {r 1}} {trans' A p {trans' A q r}} {trans' A {trans' A p q} r}
   =
   assoc A p #f q #f r
+
+def test (A : type)
+  (p : (i : 𝕀) → A)
+  (q : (i : 𝕀) → sub A {i=0} {p 1})
+  (r : (i : 𝕀) → sub A {i=0} {q 1})
+  (s : (i : 𝕀) → sub A {i=0} {r 1})
+  : (j : 𝕀) → path A {p 0} {r 1}
+  =
+  j => assoc A p #f q #f r j
