@@ -134,8 +134,7 @@ def test2 : (i : 𝕀) → nat =
 
 normalize test
 
--- You can "normalize" test2; observe how on the inside, there is some eliminator
--- that ought to be computed away, but is blocked by a disjunction system.
+-- You can "normalize" test2
 normalize test2
 
 -- The following illustrates that although cooltt's quasi-normal forms aren't as fully
