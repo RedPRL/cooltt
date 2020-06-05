@@ -140,7 +140,6 @@ def test2 : (i : 𝕀) → nat =
 
 normalize test
 
--- You can "normalize" test2
 normalize test2
 
 -- The following illustrates that although cooltt's quasi-normal forms aren't as fully
