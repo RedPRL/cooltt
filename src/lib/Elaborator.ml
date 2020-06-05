@@ -272,9 +272,9 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Ap (t, ts) ->
       let rec go acc ts =
         match ts with
-        | [] -> acc
+        | [] -> R.Tactic.elim_implicit_connectives acc
         | t :: ts ->
-          let tac = R.Tactic.elim_implicit_connectives @@ T.Syn.whnf @@ R.Pi.apply acc t in
+          let tac = R.Pi.apply (R.Tactic.elim_implicit_connectives acc) t in
           go tac ts
       in
       go (syn_tm t) @@ List.map chk_tm ts
