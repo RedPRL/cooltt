@@ -71,10 +71,10 @@ and pp_hd : hd Pp.printer =
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl
-  | SubOut (cut, phi, clo) ->
-    Format.fprintf fmt "sub/out[(%a), %a, %a]" pp_cut cut pp_cof phi pp_clo clo
-  | _ ->
-    Format.fprintf fmt "<hd>"
+  | UnstableCut _ ->
+    Format.fprintf fmt "<unstable>"
+  | Coe _ ->
+    Format.fprintf fmt "<coe>"
 
 and pp_spine : frm list Pp.printer =
   fun fmt sp ->

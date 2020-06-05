@@ -75,7 +75,7 @@ struct
     in
 
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
-    EM.ret (D.SubOut (D.push KGoalProj cut, phi, clo), [])
+    EM.ret (D.UnstableCut (D.push KGoalProj cut, D.KSubOut (phi, clo)), [])
 
 
   let unleash_hole name flexity : T.BChk.tac =

@@ -76,10 +76,7 @@ and hd =
   | Global of Symbol.t
   | Var of int (* De Bruijn level *)
   | Coe of con * dim * dim * con
-  | HCom of cut * dim * dim * cof * con
-  | Cap of dim * dim * cof * con * cut
-  | VProj of dim * con * con * con * cut
-  | SubOut of cut * cof * tm_clo
+  | UnstableCut of cut * unstable_frm
 
 and cut = hd * frm list
 
@@ -91,6 +88,12 @@ and frm =
   | KCircleElim of con * con * con
   | KGoalProj
   | KElOut
+
+and unstable_frm =
+  | KHCom of dim * dim * cof * con
+  | KCap of dim * dim * cof * con
+  | KVProj of dim * con * con * con
+  | KSubOut of cof * tm_clo
 
 let tm_abort = Split []
 let tp_abort = TpSplit []

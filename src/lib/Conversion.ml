@@ -385,13 +385,20 @@ and equate_hd hd0 hd1 =
     let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
     let* tp_code = lift_cmp @@ do_el code in
     equate_con tp_code con0 con1
-  | D.HCom (cut0, r0, s0, phi0, bdy0), D.HCom (cut1, r1, s1, phi1, bdy1) ->
+  | D.UnstableCut (cut0, ufrm0), D.UnstableCut (cut1, ufrm1) ->
+    equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1)
+  | _ ->
+    conv_err @@ HeadMismatch (hd0, hd1)
+
+and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
+  match ufrm0, ufrm1 with
+  | D.KHCom (r0, s0, phi0, bdy0), D.KHCom (r1, s1, phi1, bdy1) ->
     let code0 = D.Cut {tp = D.Univ; cut = cut0} in
     let code1 = D.Cut {tp = D.Univ; cut = cut1} in
     equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
-  | D.SubOut (cut0, _, _), D.SubOut (cut1, _, _) ->
+  | D.KSubOut _, D.KSubOut _ ->
     equate_cut cut0 cut1
-  | D.Cap (r0, s0, phi0, code0, box0), D.Cap (r1, s1, phi1, code1, box1) ->
+  | D.KCap (r0, s0, phi0, code0), D.KCap (r1, s1, phi1, code1) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
     let* () = equate_cof phi0 phi1 in
@@ -408,12 +415,12 @@ and equate_hd hd0 hd1 =
       in
       equate_con code_tp code0 code1
     in
-    equate_cut box0 box1
-  | D.VProj (r0, pcode0, code0, pequiv0, cut0), D.VProj (r1, pcode1, code1, pequiv1, cut1) ->
+    equate_cut cut0 cut1
+  | D.KVProj (r0, pcode0, code0, pequiv0), D.KVProj (r1, pcode1, code1, pequiv1) ->
     let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
     equate_cut cut0 cut1
   | _ ->
-    conv_err @@ HeadMismatch (hd0, hd1)
+    conv_err @@ HeadMismatch (D.UnstableCut (cut0, ufrm0), D.UnstableCut (cut1, ufrm1))
 
 and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   let* () = equate_dim r0 r1 in

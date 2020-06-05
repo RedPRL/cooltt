@@ -435,13 +435,18 @@ and quote_hd =
     let* tp_code_r = lift_cmp @@ do_el code_r in
     let+ tm = quote_con tp_code_r con in
     S.Coe (tpcode, tr, ts, tm)
-  | D.HCom (cut, r, s, phi, bdy) ->
+  | D.UnstableCut (cut, ufrm) ->
+    quote_unstable_cut cut ufrm
+
+and quote_unstable_cut cut ufrm =
+  match ufrm with
+  | D.KHCom (r, s, phi, bdy) ->
     let code = D.Cut {cut; tp = D.Univ} in
     quote_hcom code r s phi bdy
-  | D.SubOut (cut, _phi, _clo) ->
+  | D.KSubOut _ ->
     let+ tm = quote_cut cut in
     S.SubOut tm
-  | D.Cap (r, s, phi, code, box) ->
+  | D.KCap (r, s, phi, code) ->
     let* tr = quote_dim r in
     let* ts = quote_dim s in
     let* tphi = quote_cof phi in
@@ -456,9 +461,9 @@ and quote_hd =
       TB.univ
     in
     let+ tcode = quote_con code_tp code
-    and+ tbox = quote_cut box in
+    and+ tbox = quote_cut cut in
     S.Cap (tr, ts, tphi, tcode, tbox)
-  | D.VProj (r, pcode, code, pequiv, v) ->
+  | D.KVProj (r, pcode, code, pequiv) ->
     let* tr = quote_dim r in
     let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
     let* tcode = quote_con D.Univ code in
@@ -469,7 +474,7 @@ and quote_hd =
       in
       quote_con tp_pequiv pequiv
     in
-    let+ tv = quote_cut v in
+    let+ tv = quote_cut cut in
     S.VProj (tr, tpcode, tcode, t_pequiv, tv)
 
 and quote_dim d : S.t quote =
