@@ -260,7 +260,6 @@ and syn_tm : CS.con -> T.Syn.tac =
   function con ->
     T.Syn.update_span con.info @@
     R.Tactic.elim_implicit_connectives @@
-    T.Syn.whnf @@
     match con.node with
     | CS.Hole name ->
       R.Hole.unleash_syn_hole name `Rigid

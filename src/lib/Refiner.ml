@@ -993,7 +993,7 @@ struct
       | _ ->
         EM.ret (tm, tp)
     in
-    go @<< tac
+    go @<< T.Syn.whnf tac
 
   let rec intro_implicit_connectives : T.BChk.tac -> T.BChk.tac =
     fun tac ->
