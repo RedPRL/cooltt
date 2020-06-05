@@ -343,13 +343,17 @@ struct
 
   let apply tac_fun tac_arg : T.Syn.tac =
     let* tfun, tp = tac_fun in
-    let* base, fam = EM.dest_pi tp in
-    let* targ = tac_arg base in
-    let+ fib =
-      let* varg = EM.lift_ev @@ Sem.eval targ in
-      EM.lift_cmp @@ Sem.inst_tp_clo fam varg
-    in
-    S.Ap (tfun, targ), fib
+    match tp with
+    | D.Pi (base, _, fam) ->
+      let* targ = tac_arg base in
+      let+ fib =
+        let* varg = EM.lift_ev @@ Sem.eval targ in
+        EM.lift_cmp @@ Sem.inst_tp_clo fam varg
+      in
+      S.Ap (tfun, targ), fib
+    | _ ->
+      Format.printf "Bad apply!! %a@." D.pp_tp tp;
+      EM.expected_connective `Pi tp
 end
 
 module Sg =
@@ -377,17 +381,24 @@ struct
 
   let pi1 tac : T.Syn.tac =
     let* tpair, tp = tac in
-    let+ base, _ = EM.dest_sg tp in
-    S.Fst tpair, base
+    match tp with
+    | D.Sg (base, _, _) ->
+      EM.ret (S.Fst tpair, base)
+    | _ ->
+      EM.expected_connective `Sg tp
+
 
   let pi2 tac : T.Syn.tac =
     let* tpair, tp = tac in
-    let+ fib =
-      let* vfst = EM.lift_ev @@ Sem.eval @@ S.Fst tpair in
-      let* _, fam = EM.dest_sg tp in
-      EM.lift_cmp @@ Sem.inst_tp_clo fam vfst
-    in
-    S.Snd tpair, fib
+    match tp with
+    | D.Sg (_, _, fam) ->
+      let+ fib =
+        let* vfst = EM.lift_ev @@ Sem.eval @@ S.Fst tpair in
+        EM.lift_cmp @@ Sem.inst_tp_clo fam vfst
+      in
+      S.Snd tpair, fib
+    | _ ->
+      EM.expected_connective `Sg tp
 end
 
 
