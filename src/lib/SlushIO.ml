@@ -1,4 +1,5 @@
 open CoolBasis
+open Bwd
 
 module CS = ConcreteSyntax
 module S = Syntax
@@ -15,14 +16,15 @@ exception Todo
 module BasicJson =
 struct
 
-  let json_of_int i = `String (string_of_int i)
+  let json_of_int (i : int) : [> `String of string ] =
+    `String (string_of_int i)
 
-  let int_of_json =
+  let int_of_json : [> `String of string ] -> int =
     function
     | `String s -> int_of_string s
     | j -> J.parse_error j "int_of_json"
 
-  let json_of_string s = `String s
+  let json_of_string = `String (* todo/iev this may need to be η-expanded for ocaml reasons *)
 
   let string_of_json =
     function
@@ -40,13 +42,13 @@ struct
     | `String str -> Some str
     | j -> J.parse_error j "ostring_of_json"
 
-  let json_of_list json_of_item l =
-    MU.traverse json_of_item l <<@> fun l -> `A l
+  let json_of_list json_of_item l = raise Todo
+    (* MU.traverse json_of_item l <<@> fun l -> `A l *)
 
-  let list_of_json item_of_json =
-    function
-    | `A l -> MU.traverse item_of_json l
-    | j -> J.parse_error j "list_of_json"
+  let list_of_json item_of_json = raise Todo
+    (* function
+     * | `A l -> MU.traverse item_of_json l
+     * | j -> J.parse_error j "list_of_json" *)
 
   (* pure version *)
   let json_of_list_ json_of_item l =

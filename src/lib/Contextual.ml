@@ -1,7 +1,6 @@
-open Dev
+(* open Dev *) (* todo/iev: i don't think i need this file, it looks like it only has to do with pair types *)
 open CoolBasis
 open Bwd open BwdNotation
-
 
 module Map = Map.Make (Name)
 
@@ -10,7 +9,6 @@ type rotted_resolver = ResEnv.t * Digest.t
 (** this is the environment that will stay there for the entire thread *)
 type thread_env =
   {env : GlobalEnv.t; (** the mapping from names to associated definitions (if any). *)
-   rigidity : [`Flex | `Rigid] Map.t; (** whether a particular name is rigid. *)
    source : FileRes.filepath Map.t; (** the mapping from the name to the file path *)
    resolver_cache : (FileRes.filepath, [`Checked of rotted_resolver | `Checking]) Hashtbl.t (** the cache of all resolvers from fully elaborated modules *)
   }
@@ -409,7 +407,7 @@ let postpone s p =
       | Emp ->
         p
       | Snoc (ps, (x, param)) ->
-        go ps @@ All (param, Dev.bind x param p)
+        go ps @@ All (param, raise Todo) (* Dev.bind x param p *) (* todo/iev don't really konw what this does or if it matters to me right now *)
     in go ps p
   in
   pushr @@ Q (s, wrapped)

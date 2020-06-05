@@ -7,15 +7,11 @@ module Syn = SyntaxData
 type tm = Syn.t
 type ty = Syn.tp
 
-type twin = [`Only | `TwinL | `TwinR]
-
 type 'a decl =
   | Hole of [`Rigid | `Flex]
   | Auxiliary of 'a
   | UserDefn of
     {source : FileRes.filepath;
-     visibility : ResEnv.visibility;
-     opacity : [`Transparent | `Opaque];
      tm : 'a}
   | Guess of {ty : 'a; tm : 'a}
 
