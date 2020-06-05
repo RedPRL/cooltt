@@ -30,12 +30,53 @@ def assoc (A : type)
   (p : (i : 𝕀) → A)
   (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
   : (ψ : 𝔽) (r : (i : 𝕀) → sub A {i=0 ∨ ψ} {q 1})
-  → sub {path {path A {p 0} {r 1}} {trans A p {φ ∧ ψ} {trans A q ψ r}} {trans A {trans A p φ q} ψ r}}
+  → sub {path {path A {p 0} {r 1}} {trans A {trans A p φ q} ψ r} {trans A p {φ ∧ ψ} {trans A q ψ r}}}
     ψ {_ => trans A p φ q}
   =
   special-j A {q 1}
-    {ψ r => path {path A {p 0} {r 1}} {trans A p {φ ∧ ψ} {trans A q ψ r}} {trans A {trans A p φ q} ψ r}}
+    {ψ r => path {path A {p 0} {r 1}} {trans A {trans A p φ q} ψ r} {trans A p {φ ∧ ψ} {trans A q ψ r}}}
     {_ => trans A p φ q}
+
+def pentagonType (A : type)
+  (p : (i : 𝕀) → A)
+  (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
+  (ψ : 𝔽) (r : (i : 𝕀) → sub A {i=0 ∨ ψ} {q 1})
+  (χ : 𝔽) (s : (i : 𝕀) → sub A {i=0 ∨ χ} {r 1})
+  : type
+  =
+  path
+    {path
+      {path A {p 0} {s 1}}
+        {trans A {trans A {trans A p φ q} ψ r} χ s}
+        {trans A p {φ ∧ ψ ∧ χ} {trans A q {ψ ∧ χ} {trans A r χ s}}}}
+    {trans {path A {p 0} {s 1}}
+      {assoc A {trans A p φ q} ψ r χ s}
+      {ψ ∧ χ}
+      {assoc A p φ q {ψ ∧ χ} {trans A r χ s}}}
+    {trans {path A {p 0} {s 1}}
+      {j => trans A {assoc A p φ q ψ r j} χ s}
+      {φ ∧ ψ ∧ χ}
+      {trans {path A {p 0} {s 1}}
+        {assoc A p {φ ∧ ψ} {trans A q ψ r} χ s}
+        {φ ∧ ψ ∧ χ}
+        {j => trans A p {φ ∧ ψ ∧ χ} {assoc A q ψ r χ s j}}}}
+
+def pentagon (A : type)
+  (p : (i : 𝕀) → A)
+  (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
+  (ψ : 𝔽) (r : (i : 𝕀) → sub A {i=0 ∨ ψ} {q 1})
+  : (χ : 𝔽) (s : (i : 𝕀) → sub A {i=0 ∨ χ} {r 1})
+  → pentagonType A p φ q ψ r χ s
+  =
+  special-j A {r 1}
+    {pentagonType A p φ q ψ r}
+    {special-j A {q 1}
+      {ψ r => pentagonType A p φ q ψ r #t {_ => r 1}}
+      {special-j A {p 1}
+        {φ q => pentagonType A p φ q #t {_ => q 1} #t {_ => q 1}}
+        {_ _ => p}
+        φ q}
+      ψ r}
 
 -- get the standard functions by instantiating at #f everywhere
 
@@ -48,9 +89,30 @@ def assoc' (A : type)
   (p : (i : 𝕀) → A)
   (q : (i : 𝕀) → sub A {i=0} {p 1})
   (r : (i : 𝕀) → sub A {i=0} {q 1})
-  : path {path A {p 0} {r 1}} {trans' A p {trans' A q r}} {trans' A {trans' A p q} r}
+  : path {path A {p 0} {r 1}} {trans' A {trans' A p q} r} {trans' A p {trans' A q r}}
   =
   assoc A p #f q #f r
+
+def pentagon' (A : type)
+  (p : (i : 𝕀) → A)
+  (q : (i : 𝕀) → sub A {i=0} {p 1})
+  (r : (i : 𝕀) → sub A {i=0} {q 1})
+  (s : (i : 𝕀) → sub A {i=0} {r 1})
+  : path
+    {path
+      {path A {p 0} {s 1}}
+        {trans' A {trans' A {trans' A p q} r} s}
+        {trans' A p {trans' A q {trans' A r s}}}}
+    {trans' {path A {p 0} {s 1}}
+      {assoc' A {trans' A p q} r s}
+      {assoc' A p q {trans' A r s}}}
+    {trans' {path A {p 0} {s 1}}
+      {j => trans' A {assoc' A p q r j} s}
+      {trans' {path A {p 0} {s 1}}
+        {assoc' A p {trans' A q r} s}
+        {j => trans' A p {assoc' A q r s j}}}}
+  =
+  pentagon A p #f q #f r #f s
 
 def test (A : type)
   (p : (i : 𝕀) → A)
