@@ -31,3 +31,20 @@ module Macro :
 sig
   val tp_pequiv_in_v : r:D.dim -> pcode:D.con -> code:D.con -> S.tp t
 end
+
+module Bdry :
+sig
+  type bdry := D.cof * S.t t
+  val box : r:D.dim -> r':D.dim -> phi:D.cof -> sides:D.con -> cap:D.con -> bdry
+  val cap : r:D.dim -> r':D.dim -> phi:D.cof -> code:D.con -> box:D.con -> bdry
+
+  val vin : r:D.dim -> pivot:D.con -> base:D.con -> bdry
+  val vproj : r:D.dim -> pcode:D.con -> code:D.con -> pequiv:D.con -> v:D.con -> bdry
+
+  val hcom : r:D.dim -> r':D.dim -> phi:D.cof -> bdy:D.con -> bdry
+  val com : r:D.dim -> r':D.dim -> phi:D.cof -> bdy:D.con -> bdry
+  val coe : r:D.dim -> r':D.dim -> bdy:D.con -> bdry
+
+  val unstable_code : D.con D.unstable_code -> bdry
+  val unstable_frm : D.cut -> D.unstable_frm -> bdry
+end

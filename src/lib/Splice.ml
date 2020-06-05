@@ -72,3 +72,99 @@ struct
     TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
     TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
 end
+
+module Bdry =
+struct
+  let cap ~r ~r' ~phi ~code ~box =
+    Cof.join [Cof.eq r r'; phi],
+    foreign_dim r @@ fun r ->
+    foreign_dim r' @@ fun r' ->
+    foreign_cof phi @@ fun phi ->
+    foreign code @@ fun code ->
+    foreign box @@ fun box ->
+    term @@
+    TB.cof_split
+      [TB.eq r r', box;
+       phi, TB.coe code r' r box]
+
+  let vproj ~r ~pcode ~code ~pequiv ~v =
+    Cof.boundary r,
+    foreign_dim r @@ fun r ->
+    foreign pcode @@ fun _pcode ->
+    foreign code @@ fun _code ->
+    foreign pequiv @@ fun pequiv ->
+    foreign v @@ fun v ->
+    term @@
+    TB.cof_split
+      [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
+       TB.eq r TB.dim1, v]
+
+  let vin ~r ~pivot ~base =
+    Cof.boundary r,
+    foreign_dim r @@ fun r ->
+    foreign pivot @@ fun pivot ->
+    foreign base @@ fun base ->
+    term @@
+    TB.cof_split
+      [TB.eq r TB.dim0, TB.ap pivot [TB.prf];
+       TB.eq r TB.dim1, base]
+
+  let box ~r ~r' ~phi ~sides ~cap =
+    Cof.join [Cof.eq r r'; phi],
+    foreign_dim r @@ fun r ->
+    foreign_dim r' @@ fun r' ->
+    foreign_cof phi @@ fun phi ->
+    foreign cap @@ fun cap ->
+    foreign sides @@ fun sides ->
+    term @@
+    TB.cof_split
+      [TB.eq r r', cap;
+       phi, TB.ap sides [TB.prf]]
+
+  let hcom ~r ~r' ~phi ~bdy =
+    Cof.join [Cof.eq r r'; phi],
+    foreign_dim r' @@ fun r' ->
+    foreign bdy @@ fun bdy ->
+    term @@ TB.ap bdy [r'; TB.prf]
+
+  let com = hcom
+
+  let coe ~r ~r' ~bdy =
+    Cof.eq r r',
+    foreign bdy term
+
+  let unstable_code =
+    function
+    | `HCom (r, s, phi, bdy) ->
+      Cof.join [Cof.eq r s; phi],
+      foreign_dim s @@ fun s ->
+      foreign bdy @@ fun bdy ->
+      term @@ TB.ap bdy [s; TB.prf]
+    | `V (r, pcode, code, _) ->
+      Cof.boundary r,
+      foreign_dim r @@ fun r ->
+      foreign pcode @@ fun pcode ->
+      foreign code @@ fun code ->
+      term @@
+      TB.cof_split
+        [TB.eq r TB.dim0, TB.ap pcode [TB.prf];
+         TB.eq r TB.dim1, code]
+
+  let unstable_frm cut ufrm =
+    match ufrm with
+    | D.KHCom (r, s, phi, bdy) ->
+      Cof.join [Cof.eq r s; phi],
+      foreign_dim s @@ fun s ->
+      foreign bdy @@ fun bdy ->
+      term @@ TB.ap bdy [s; TB.prf]
+    | D.KSubOut (phi, clo) ->
+      phi,
+      foreign_clo clo @@ fun clo ->
+      term @@ TB.ap clo [TB.prf]
+    | D.KVProj (r, pcode, code, pequiv) ->
+      let v = D.Cut {cut; tp = D.ElUnstable (`V (r, pcode, code, pequiv))} in
+      vproj ~r ~pcode ~code ~pequiv ~v
+    | D.KCap (r, r', phi, code) ->
+      let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, r', phi, code))} in
+      cap ~r ~r' ~phi ~code ~box
+end
