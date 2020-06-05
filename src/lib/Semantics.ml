@@ -131,6 +131,7 @@ end
 
 
 let cap_boundary r s phi code box =
+  Cof.join [Cof.eq r s; phi],
   Splice.foreign_dim r @@ fun r ->
   Splice.foreign_dim s @@ fun s ->
   Splice.foreign_cof phi @@ fun phi ->
@@ -142,6 +143,7 @@ let cap_boundary r s phi code box =
      phi, TB.coe code s r box]
 
 let vproj_boundary r pcode code pequiv v =
+  Cof.boundary r,
   Splice.foreign_dim r @@ fun r ->
   Splice.foreign pcode @@ fun _pcode ->
   Splice.foreign code @@ fun _code ->
@@ -152,8 +154,18 @@ let vproj_boundary r pcode code pequiv v =
     [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
      TB.eq r TB.dim1, v]
 
+let hcom_boundary r r' phi bdy =
+  Cof.join [Cof.eq r r'; phi],
+  Splice.foreign_dim r' @@ fun r' ->
+  Splice.foreign bdy @@ fun bdy ->
+  Splice.term @@ TB.ap bdy [r'; TB.prf]
 
+let com_boundary r r' phi bdy =
+  hcom_boundary r r' phi bdy
 
+let coe_boundary r r' bdy =
+  Cof.eq r r',
+  Splice.foreign bdy Splice.term
 
 let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
   let open CM in
@@ -590,10 +602,10 @@ and eval : S.t -> D.con EvM.m =
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
       let* con = eval tm in
+      let psi, bdry = coe_boundary r r' con in
       begin
-        CM.test_sequent [] (Cof.eq r r') |> lift_cmp |>> function
-        | true ->
-          ret con
+        lift_cmp (CM.test_sequent [] psi) |>> function
+        | true -> lift_cmp @@ splice_tm bdry
         | false ->
           let* coe_abs = eval tpcode in
           lift_cmp @@ do_rigid_coe ~style:`UnfoldNone coe_abs r r' con
@@ -602,27 +614,27 @@ and eval : S.t -> D.con EvM.m =
       let* r = eval_dim tr in
       let* s = eval_dim ts in
       let* phi = eval_cof tphi in
-      let* vtpcode = eval tpcode in
       let* vbdy = eval tm in
+      let psi, bdry = hcom_boundary r s phi vbdy in
       begin
-        CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
-        | true ->
-          lift_cmp @@ do_ap2 vbdy (D.dim_to_con s) D.Prf
+        lift_cmp (CM.test_sequent [] psi) |>> function
+        | true -> lift_cmp @@ splice_tm bdry
         | false ->
+          let* vtpcode = eval tpcode in
           lift_cmp @@ do_rigid_hcom ~style:`UnfoldNone vtpcode r s phi vbdy
       end
     | S.Com (tpcode, tr, ts, tphi, tm) ->
       let* r = eval_dim tr in
       let* s = eval_dim ts in
       let* phi = eval_cof tphi in
+      let* vbdy = eval tm in
+      let psi, bdry = com_boundary r s phi vbdy in
       begin
-        CM.test_sequent [] (Cof.join [Cof.eq r s; phi]) |> lift_cmp |>> function
-        | true ->
-          append [D.dim_to_con s] @@ eval tm
+        lift_cmp (CM.test_sequent [] psi) |>> function
+        | true -> lift_cmp @@ splice_tm bdry
         | false ->
-          let* bdy = eval tm in
           let* vtpcode = eval tpcode in
-          lift_cmp @@ do_rigid_com vtpcode r s phi bdy
+          lift_cmp @@ do_rigid_com vtpcode r s phi vbdy
       end
     | S.SubOut tm ->
       let* con = eval tm in
@@ -704,15 +716,14 @@ and eval : S.t -> D.con EvM.m =
       let* vphi = eval_cof phi in
       let* vcode = eval code in
       let* vbox = eval box in
+      let psi, bdry = cap_boundary vr vs vphi vcode vbox in
       lift_cmp @@
       begin
         let open CM in
-        CM.test_sequent [] (Cof.join [Cof.eq vr vs; vphi]) |>>
+        CM.test_sequent [] psi |>>
         function
-        | true ->
-          splice_tm @@ cap_boundary vr vs vphi vcode vbox
-        | false ->
-          do_rigid_cap vr vs vphi vcode vbox
+        | true -> splice_tm bdry
+        | false -> do_rigid_cap vr vs vphi vcode vbox
       end
 
     | S.VIn (r, equiv, pivot, base) ->
@@ -728,12 +739,13 @@ and eval : S.t -> D.con EvM.m =
       let* vpcode = eval pcode in
       let* vcode = eval code in
       let* vpequiv = eval pequiv in
+      let psi, bdry = vproj_boundary vr vpcode vcode vpequiv vv in
+      lift_cmp @@
       begin
-        CM.test_sequent [] (Cof.boundary vr) |> lift_cmp |>> function
-        | true ->
-          lift_cmp @@ splice_tm @@ vproj_boundary vr vpcode vcode vpequiv vv
-        | false ->
-          lift_cmp @@ do_rigid_vproj vr vpcode vcode vpequiv vv
+        let open CM in
+        CM.test_sequent [] psi |>> function
+        | true -> splice_tm bdry
+        | false -> do_rigid_vproj vr vpcode vcode vpequiv vv
       end
 
     | S.CodeV (r, pcode, code, pequiv) ->
@@ -931,9 +943,6 @@ and do_rigid_unstable_frm ~style con ufrm =
 
 and unstable_frm_boundary cut ufrm =
   match ufrm with
-  | D.KVProj (r, pcode, code, pequiv) ->
-    let v = D.Cut {cut; tp = D.ElUnstable (`V (r, pcode, code, pequiv))} in
-    Cof.boundary r, vproj_boundary r pcode code pequiv v
   | D.KHCom (r, s, phi, bdy) ->
     Cof.join [Cof.eq r s; phi],
     Splice.foreign_dim s @@ fun s ->
@@ -943,10 +952,10 @@ and unstable_frm_boundary cut ufrm =
     phi,
     Splice.foreign_clo clo @@ fun clo ->
     Splice.term @@ TB.ap clo [TB.prf]
+  | D.KVProj (r, pcode, code, pequiv) ->
+    vproj_boundary r pcode code pequiv @@ D.Cut {cut; tp = D.ElUnstable (`V (r, pcode, code, pequiv))}
   | D.KCap (r, s, phi, code) ->
-    let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, s, phi, code))} in
-    Cof.join [Cof.eq r s; phi],
-    cap_boundary r s phi code box
+    cap_boundary r s phi code @@ D.Cut {cut; tp = D.ElUnstable (`HCom (r, s, phi, code))}
 
 and whnf_cut ~style : D.cut -> D.con whnf CM.m =
   let open CM in
