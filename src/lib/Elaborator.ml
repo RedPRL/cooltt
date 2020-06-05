@@ -160,6 +160,9 @@ and bchk_tm : CS.con -> T.BChk.tac =
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
+  | CS.Unfold (idents, c) ->
+    fun goal ->
+      unfold idents @@ bchk_tm c goal
   | _ ->
     T.BChk.update_span con.info @@
     R.Tactic.intro_implicit_connectives @@
@@ -205,9 +208,6 @@ and bchk_tm : CS.con -> T.BChk.tac =
       T.BChk.chk @@ R.Circle.loop (chk_tm c)
     | CS.Let (c, ident, body) ->
       R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
-    | CS.Unfold (idents, c) ->
-      fun goal ->
-        unfold idents @@ bchk_tm c goal
     | CS.Generalize (ident, c) ->
       T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
     | CS.Nat ->

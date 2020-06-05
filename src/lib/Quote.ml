@@ -33,8 +33,9 @@ let contractum_or x =
 
 let rec quote_con (tp : D.tp) con =
   QuM.abort_if_inconsistent (ret S.tm_abort) @@
+  let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
-  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con con in
+  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con ~style:(`Veil veil) con in
   match tp, con with
   | _, D.Split branches ->
     let branch_body (phi, clo) =
@@ -58,21 +59,6 @@ let rec quote_con (tp : D.tp) con =
         | false ->
           let+ ix = quote_var lvl in
           S.Var ix
-    end
-
-  | _, D.Cut {cut = (D.Global sym, sp) as cut; tp} ->
-    let* st = QuM.read_global in
-    let* veil = QuM.read_veil in
-    begin
-      let _, ocon = ElabState.get_global sym st in
-      begin
-        match ocon, Veil.policy sym veil with
-        | Some con, `Transparent ->
-          let* con' = lift_cmp @@ Sem.do_spine con sp in
-          quote_con tp con'
-        | _ ->
-          quote_cut cut
-      end
     end
 
   | _, D.Cut {cut = (hd, sp); tp = _} ->

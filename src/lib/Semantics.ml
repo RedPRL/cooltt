@@ -20,11 +20,10 @@ module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) modul
 
 type 'a whnf = [`Done | `Reduce of 'a]
 
-type whnf_style =
-  {unfolding : bool}
 
-let default_whnf_style =
-  {unfolding = false}
+type whnf_style = [`UnfoldNone | `UnfoldAll | `Veil of Veil.t]
+
+let default_whnf_style : whnf_style = `UnfoldNone
 
 
 let cut_frm ~tp ~cut frm =
@@ -857,11 +856,20 @@ and plug_into ~style sp con =
   | `Done -> ret @@ `Reduce res
   | `Reduce res -> ret @@ `Reduce res
 
+and should_unfold_symbol style sym =
+  match style with
+  | `UnfoldNone -> false
+  | `UnfoldAll -> true
+  | `Veil veil ->
+    match Veil.policy sym veil with
+    | `Transparent -> true
+    | `Translucent -> false
+
 and whnf_hd ?(style = default_whnf_style) hd =
   let open CM in
   match hd with
   | D.Global sym ->
-    if style.unfolding then
+    if should_unfold_symbol style sym then
       let* st = CM.read_global in
       begin
         match ElabState.get_global sym st with
@@ -957,7 +965,7 @@ and whnf_tp =
   function
   | D.El con ->
     begin
-      whnf_con ~style:{unfolding = true} con |>>
+      whnf_con ~style:`UnfoldAll con |>>
       function
       | `Done -> ret `Done
       | `Reduce con ->
@@ -966,7 +974,7 @@ and whnf_tp =
     end
   | D.ElCut cut ->
     begin
-      whnf_cut ~style:{unfolding = true} cut |>>
+      whnf_cut ~style:`UnfoldAll cut |>>
       function
       | `Done -> ret `Done
       | `Reduce con ->
@@ -1402,7 +1410,7 @@ and unfold_el : D.con -> D.tp CM.m =
   fun con ->
     abort_if_inconsistent (ret D.tp_abort) @@
     begin
-      inspect_con ~style:{unfolding = true} con |>>
+      inspect_con ~style:`UnfoldAll con |>>
       function
 
       | D.Cut _ ->
