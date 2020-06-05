@@ -992,36 +992,16 @@ struct
 
   let bmatch_goal = match_goal
 
-  (* This freezes the output of a syn-tactic in such a way that it can be called again in an arbitrary scope. *)
-  let freeze_syn : S.t * D.tp -> T.Syn.tac m =
-    fun (tm, tp) ->
-    let* con = EM.lift_ev @@ Sem.eval tm in
-    EM.ret @@
-    let+ tm = EM.quote_con tp con in
-    tm, tp
-
-  let match_syn tac kont =
-    let* tm, tp = tac in
-    let* tac = freeze_syn (tm, tp) in
-    kont tac (tm, tp)
-
   let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
     fun tac ->
-    match_syn tac @@ fun tac (tm, tp) ->
-    EM.lift_cmp @@ Sem.whnf_tp tp |>>
-    function
-    | `Done ->
-      begin
-        match tp with
-        | D.Sub _ ->
-          elim_implicit_connectives @@ Sub.elim tac
-        | D.El _ ->
-          elim_implicit_connectives @@ El.elim tac
-        | _ ->
-          tac
-      end
-    | `Reduce tp ->
-      elim_implicit_connectives @<< freeze_syn (tm, tp)
+    let* tm, tp = T.Syn.whnf tac in
+    match tp with
+    | D.Sub _ ->
+      elim_implicit_connectives @@ Sub.elim @@ EM.ret (tm, tp)
+    | D.El _ ->
+      elim_implicit_connectives @@ El.elim @@ EM.ret (tm, tp)
+    | _ ->
+      EM.ret (tm, tp)
 
   let rec intro_implicit_connectives : T.BChk.tac -> T.BChk.tac =
     fun tac ->
