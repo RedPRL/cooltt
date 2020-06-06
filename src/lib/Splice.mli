@@ -15,19 +15,34 @@ module TB := TermBuilder
 
 type 'a t
 
-val foreign : D.con -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_list : D.con list -> (S.t TB.m list -> 'a t) -> 'a t
-val foreign_tp_list : D.tp list -> (S.tp TB.m list -> 'a t) -> 'a t
-val foreign_dim : D.dim -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_cof : D.cof -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_clo : D.tm_clo -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_tp : D.tp -> (S.tp TB.m -> 'a t) -> 'a t
+val con : D.con -> (S.t TB.m -> 'a t) -> 'a t
+val cons : D.con list -> (S.t TB.m list -> 'a t) -> 'a t
+val dim : D.dim -> (S.t TB.m -> 'a t) -> 'a t
+val cof : D.cof -> (S.t TB.m -> 'a t) -> 'a t
+val clo : D.tm_clo -> (S.t TB.m -> 'a t) -> 'a t
+val tp : D.tp -> (S.tp TB.m -> 'a t) -> 'a t
 val compile : 'a t -> D.env * 'a
 val term : 'a TB.m -> 'a t
-
-val commute_split : D.con -> D.cof list -> (S.t TB.m -> S.t TB.m) -> S.t t
 
 module Macro :
 sig
   val tp_pequiv_in_v : r:D.dim -> pcode:D.con -> code:D.con -> S.tp t
+  val commute_split : D.con -> D.cof list -> (S.t TB.m -> S.t TB.m) -> S.t t
+end
+
+module Bdry :
+sig
+  type bdry := D.cof * S.t t
+  val box : r:D.dim -> r':D.dim -> phi:D.cof -> sides:D.con -> cap:D.con -> bdry
+  val cap : r:D.dim -> r':D.dim -> phi:D.cof -> code:D.con -> box:D.con -> bdry
+
+  val vin : r:D.dim -> pivot:D.con -> base:D.con -> bdry
+  val vproj : r:D.dim -> pcode:D.con -> code:D.con -> pequiv:D.con -> v:D.con -> bdry
+
+  val hcom : r:D.dim -> r':D.dim -> phi:D.cof -> bdy:D.con -> bdry
+  val com : r:D.dim -> r':D.dim -> phi:D.cof -> bdy:D.con -> bdry
+  val coe : r:D.dim -> r':D.dim -> bdy:D.con -> bdry
+
+  val unstable_code : D.con D.unstable_code -> bdry
+  val unstable_frm : D.cut -> D.unstable_frm -> bdry
 end
