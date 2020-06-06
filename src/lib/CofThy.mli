@@ -36,7 +36,7 @@ sig
   (** The type of a disjunctive theory. *)
   type t = disj_thy
 
-  (** Create an empty theory. *)
+  (** The empty theory. *)
   val init : t
 
   (** Returns the consistency of the theory. *)
