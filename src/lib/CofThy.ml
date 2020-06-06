@@ -65,12 +65,12 @@ struct
   type t = alg_thy
   type t' = alg_thy'
 
-  let init' =
-    {classes = UF.init;
+  let emp' =
+    {classes = UF.empty;
      true_vars = VarSet.empty}
 
-  let init =
-    `Consistent init'
+  let empty =
+    `Consistent emp'
 
   let consistency =
     function
@@ -204,7 +204,7 @@ module Disj =
 struct
   type t = disj_thy
 
-  let init : t = [Alg.init', (VarSet.empty, [])]
+  let empty : t = [Alg.emp', (VarSet.empty, [])]
 
   let consistency =
     function
@@ -247,9 +247,9 @@ struct
     cached_branches |> List.map @@ fun (thy', (vars, eqs)) ->
     thy', (VarSet.diff vars common_vars, List.filter useful eqs)
 
-  (** [split] incorporate a cofibration context and split an already split theory
-    * into more branches. This is similar to [Alg.split] in the spirit, but differs
-    * in lots of details. *)
+  (** [split thy cofs] adds to the theory [thy] the conjunction of a list of cofibrations [cofs]
+    * and calculate the branches accordingly. This is similar to [Alg.split] in the spirit but
+    * differs in detail. *)
   let split (thy : t) (cofs : cof list) : t =
     match dissect_cofibrations cofs with
     | [] -> []
@@ -261,7 +261,8 @@ struct
         thy', (VarSet.union vars sub_vars, eq @ sub_eqs)
       end
 
-  (** [assume] is the same as [split] except that it will refactor the branches. *)
+  (** [assume thy cofs] is the same as [split thy cofs] except that it further refactors the
+    * branches to optimize future searching. *)
   let assume (thy : t) (cofs : cof list) : t =
     refactor_branches @@ split thy cofs
 

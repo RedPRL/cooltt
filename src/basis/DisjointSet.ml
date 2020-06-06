@@ -3,7 +3,7 @@ sig
   type key
   type t
 
-  val init : t
+  val empty : t
   val test : key -> key -> t -> bool
   val union : key -> key -> t -> t
   val test_and_union : key -> key -> t -> bool * t
@@ -20,9 +20,9 @@ struct
     {rank : int T.t;
      mutable parent : key T.t}
 
-  let init =
-    {rank = T.init;
-     parent = T.init}
+  let empty =
+    {rank = T.empty;
+     parent = T.empty}
 
 
   let rec find_aux (x : key) (f : key T.t) =

@@ -5,7 +5,7 @@ sig
   type key
   type t
 
-  val init : t
+  val empty : t
   val test : key -> key -> t -> bool
   val union : key -> key -> t -> t
   val test_and_union : key -> key -> t -> bool * t

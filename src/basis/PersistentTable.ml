@@ -3,7 +3,7 @@ sig
   type key
   type 'a t
 
-  val init : 'a t
+  val empty : 'a t
   val size : 'a t -> int
   val get : key -> 'a t -> 'a
   val set : key -> 'a -> 'a t -> 'a t
@@ -32,7 +32,7 @@ struct
 
   type 'a t = 'a M.t
 
-  let init = M.empty
+  let empty = M.empty
 
   let size t = M.cardinal t
 

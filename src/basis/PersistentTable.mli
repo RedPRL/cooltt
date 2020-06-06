@@ -7,7 +7,7 @@ sig
   type key
   type 'a t
 
-  val init : 'a t
+  val empty : 'a t
   val size : 'a t -> int
   val get : key -> 'a t -> 'a
   val set : key -> 'a -> 'a t -> 'a t

@@ -7,8 +7,8 @@ sig
   (** The type of an algebraic theory (no unreduced joins). *)
   type t = alg_thy
 
-  (** Create an empty theory. *)
-  val init : t
+  (** The empty theory. *)
+  val empty : t
 
   (** Returns the consistency of the theory. *)
   val consistency : t -> [`Consistent | `Inconsistent]
@@ -37,7 +37,7 @@ sig
   type t = disj_thy
 
   (** The empty theory. *)
-  val init : t
+  val empty : t
 
   (** Returns the consistency of the theory. *)
   val consistency : t -> [`Consistent | `Inconsistent]
