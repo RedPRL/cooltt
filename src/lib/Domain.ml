@@ -71,10 +71,10 @@ and pp_hd : hd Pp.printer =
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl
-  | SubOut (cut, phi, clo) ->
-    Format.fprintf fmt "sub/out[(%a), %a, %a]" pp_cut cut pp_cof phi pp_clo clo
-  | _ ->
-    Format.fprintf fmt "<hd>"
+  | UnstableCut _ ->
+    Format.fprintf fmt "<unstable>"
+  | Coe _ ->
+    Format.fprintf fmt "<coe>"
 
 and pp_spine : frm list Pp.printer =
   fun fmt sp ->
@@ -149,9 +149,9 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "dim1"
   | ElIn con ->
     Format.fprintf fmt "el/in[%a]" pp_con con
-  | CodeNat ->
+  | StableCode `Nat ->
     Format.fprintf fmt "nat/code"
-  | CodeCircle ->
+  | StableCode `Circle ->
     Format.fprintf fmt "circle/code"
   | SubIn _ ->
     Format.fprintf fmt "<sub/in>"
@@ -159,12 +159,10 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "<fhcom>"
   | LetSym _ ->
     Format.fprintf fmt "<let-sym>"
-  | CodeUniv -> Format.fprintf fmt "<code-univ>"
+  | StableCode `Univ -> Format.fprintf fmt "<code-univ>"
   | BindSym _ -> Format.fprintf fmt "<bind-sym>"
-  | CodePath _ -> Format.fprintf fmt "<code-path>"
-  | CodePi _ -> Format.fprintf fmt "<code-pi>"
-  | CodeSg _ -> Format.fprintf fmt "<code-sg>"
-  | CodeV _ -> Format.fprintf fmt "<code-v>"
+  | StableCode code -> pp_stable_code fmt code
+  | UnstableCode _ -> Format.fprintf fmt "<unstable-code>"
   | Box _ -> Format.fprintf fmt "<box>"
   | VIn _ -> Format.fprintf fmt "<vin>"
   | Split branches ->
@@ -194,8 +192,8 @@ and pp_tp fmt =
     Format.fprintf fmt "<nat>"
   | Circle ->
     Format.fprintf fmt "<circle>"
-  | El con ->
-    Format.fprintf fmt "el[%a]" pp_con con
+  | ElStable code ->
+    Format.fprintf fmt "el[%a]" pp_stable_code code
   | ElCut con ->
     Format.fprintf fmt "el-cut[%a]" pp_cut con
   | ElUnstable (`HCom _) ->
@@ -206,3 +204,12 @@ and pp_tp fmt =
     Format.fprintf fmt "<goal-tp>"
   | TpSplit _ ->
     Format.fprintf fmt "<split>"
+
+and pp_stable_code fmt =
+  function
+  | `Path _ -> Format.fprintf fmt "<code-path>"
+  | `Pi _ -> Format.fprintf fmt "<code-pi>"
+  | `Sg _ -> Format.fprintf fmt "<code-sg>"
+  | `Nat -> Format.fprintf fmt "<code-nat>"
+  | `Circle -> Format.fprintf fmt "<code-circle>"
+  | `Univ -> Format.fprintf fmt "<code-univ>"
