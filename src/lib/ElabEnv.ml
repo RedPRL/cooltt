@@ -35,7 +35,7 @@ let init =
   {resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
-   cof_thy = CofThy.init ();
+   cof_thy = CofThy.Disj.init ();
    locals = Emp;
    problem = Emp;
    location = None}
@@ -86,7 +86,7 @@ let append_con ident con tp env =
    locals = env.locals <>< [{contents = tp, con; ident}];
    cof_thy =
      match tp with
-     | D.TpPrf phi -> CofThy.assume env.cof_thy [phi]
+     | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
      | _ -> env.cof_thy
   }
 
