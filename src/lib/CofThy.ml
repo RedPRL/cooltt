@@ -72,19 +72,35 @@ struct
 
   let assume_eq (thy : t') (r, s) =
     let classes = UF.union r s thy.classes in
-    if UF.find Dim0 classes = UF.find Dim1 classes then
+    if UF.test Dim0 Dim1 classes then
       `Inconsistent
     else
       `Consistent {thy with classes}
 
+  let assume_eqs (thy : t') eqs =
+    let classes =
+      List.fold_right (fun (r, s) -> UF.union r s) eqs thy.classes
+    in
+    if UF.test Dim0 Dim1 classes then
+      `Inconsistent
+    else
+      `Consistent {thy with classes}
+
+  let unsafe_assume_eqs (thy : t') eqs =
+    {thy with classes = List.fold_right (fun (r, s) -> UF.union r s) eqs thy.classes}
+
   let assume_vars (thy : t') vars =
     {thy with true_vars = VarSet.union vars thy.true_vars}
 
-  let find_class classes r =
-    try UF.find r classes with _ -> r
+  let assume_branch (thy : t') (vars, eqs) =
+    eqs |> assume_eqs @@ assume_vars thy vars
 
   let test_eq (thy : t') (r, s) =
-    r = s || find_class thy.classes r = find_class thy.classes s
+    UF.test r s thy.classes
+
+  let test_and_assume_eq (thy : t') (r, s) =
+    let testing, classes = UF.test_and_union r s thy.classes in
+    testing, {thy with classes}
 
   let test_eqs (thy : t') eqs =
     List.for_all (test_eq thy) eqs
@@ -98,30 +114,25 @@ struct
   let test_branch (thy : t') (vars, eqs) =
     test_vars thy vars && test_eqs thy eqs
 
-  let normalize_vars (thy : t') vars =
+  let reduce_vars (thy : t') vars =
     VarSet.diff vars thy.true_vars
 
-  let normalize_eqs (thy : t') eqs =
-    let go acc eq =
-      match acc with
-      | `Inconsistent -> `Inconsistent
-      | `Consistent (thy', eqs) ->
-        if test_eq thy' eq then
-          acc
-        else
-          match assume_eq thy' eq with
-          | `Inconsistent -> `Inconsistent
-          | `Consistent thy' -> `Consistent (thy', Snoc (eqs, eq))
+  let reduce_eqs (thy : t') eqs =
+    let go ((thy', eqs) as acc) eq =
+      match test_and_assume_eq thy' eq with
+      | true, _ -> acc
+      | false, thy' -> thy',  Snoc (eqs, eq)
     in
-    match List.fold_left go (`Consistent (thy, Emp)) eqs with
-    | `Inconsistent -> `Inconsistent
-    | `Consistent (thy', eqs) -> `Consistent (thy', Bwd.to_list eqs)
+    let thy', eqs = List.fold_left go (thy, Emp) eqs in
+    match test_eq thy' (Dim0, Dim1) with
+    | true -> `Inconsistent
+    | false -> `Consistent (thy', Bwd.to_list eqs)
 
-  let normalize_branch (thy' : t') (vars, eqs) =
-    match normalize_eqs thy' eqs with
+  let cache_branch (thy' : t') (vars, eqs) =
+    match reduce_eqs thy' eqs with
     | `Inconsistent -> `Inconsistent
     | `Consistent (thy', eqs) ->
-      `Consistent (assume_vars thy' vars, (normalize_vars thy' vars, eqs))
+      `Consistent (assume_vars thy' vars, (reduce_vars thy' vars, eqs))
 
   let rec test (thy' : alg_thy') : cof -> bool =
     function
@@ -138,10 +149,10 @@ struct
     | Cof.Var v ->
       test_var thy' v
 
-  let shrink_branches (thy' : t') branches : cached_branches =
+  let cache_branches (thy' : t') branches : cached_branches =
     (* stage 1.1: shrink branches *)
     let go branch =
-      match normalize_branch thy' branch with
+      match cache_branch thy' branch with
       | `Inconsistent -> None
       | `Consistent (thy', branch) -> Some (thy', branch)
     in
@@ -173,7 +184,7 @@ struct
       | dissected_cofs ->
         let cached_branches =
           drop_useless_branches @@
-          shrink_branches thy' dissected_cofs
+          cache_branches thy' dissected_cofs
         in
         List.map (fun (thy', _) -> `Consistent thy') cached_branches
 
@@ -214,7 +225,7 @@ struct
     | dissected_cofs ->
       let cached_branches =
         thy |> List.concat_map @@ fun (thy', (vars, eq)) ->
-        Alg.shrink_branches thy' dissected_cofs |> List.map @@ fun (thy', (sub_vars, sub_eqs)) ->
+        Alg.cache_branches thy' dissected_cofs |> List.map @@ fun (thy', (sub_vars, sub_eqs)) ->
         thy', (VarSet.union vars sub_vars, eq @ sub_eqs)
       in
       Alg.drop_useless_branches cached_branches
