@@ -2,11 +2,14 @@
 
 module type S =
 sig
-  type 'a t
+  type key
+  type t
 
-  val init : size:int -> 'a t
-  val union : 'a -> 'a -> 'a t -> 'a t
-  val find : 'a -> 'a t -> 'a
+  val init : t
+  val union : key -> key -> t -> t
+  val find : key -> t -> key
 end
 
-module Make (T : PersistentTable.S) : S
+module type MAKER = functor (O : Map.OrderedType) -> S with type key = O.t
+
+module Make : MAKER

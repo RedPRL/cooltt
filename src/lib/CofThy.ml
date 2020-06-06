@@ -4,12 +4,12 @@ open Dim
 
 type cof = (Dim.dim, int) Cof.cof
 
-module UF = DisjointSet.Make (PersistentTable.M)
+module UF = DisjointSet.Make (struct type t = dim let compare = compare end)
 module VarSet = Set.Make (Int)
 
 (** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
 type alg_thy' =
-  { classes : dim UF.t;
+  { classes : UF.t;
     (** equivalence classes of dimensions *)
 
     true_vars : VarSet.t
@@ -61,7 +61,7 @@ struct
   type t' = alg_thy'
 
   let init' () =
-    {classes = UF.init ~size:100;
+    {classes = UF.init;
      true_vars = VarSet.empty}
 
   let init () =
