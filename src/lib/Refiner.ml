@@ -125,10 +125,10 @@ struct
       let phi = Cof.join [phi_a; phi_sub] in
       let* partial =
         EM.lift_cmp @@ Sem.splice_tm @@
-        Splice.foreign_cof phi_a @@ fun phi_a ->
-        Splice.foreign_cof phi_sub @@ fun phi_sub ->
-        Splice.foreign_clo clo_a @@ fun fn_a ->
-        Splice.foreign_clo clo_sub @@ fun fn_sub ->
+        Splice.cof phi_a @@ fun phi_a ->
+        Splice.cof phi_sub @@ fun phi_sub ->
+        Splice.clo clo_a @@ fun fn_a ->
+        Splice.clo clo_sub @@ fun fn_sub ->
         Splice.term @@ TB.lam @@ fun _ ->
         TB.cof_split
           [phi_a, TB.ap fn_a [TB.prf];
@@ -256,10 +256,10 @@ struct
       let psi' = Cof.join [phi0; psi] in
       let* psi'_fn =
         EM.lift_cmp @@ Sem.splice_tm @@
-        Splice.foreign_cof phi0 @@ fun phi0 ->
-        Splice.foreign_cof psi @@ fun psi ->
-        Splice.foreign psi_fn @@ fun psi_fn ->
-        Splice.foreign phi0_fn @@ fun phi0_fn ->
+        Splice.cof phi0 @@ fun phi0 ->
+        Splice.cof psi @@ fun psi ->
+        Splice.con psi_fn @@ fun psi_fn ->
+        Splice.con phi0_fn @@ fun phi0_fn ->
         Splice.term @@
         TB.lam @@ fun _ ->
         TB.cof_split [phi0, TB.ap phi0_fn [TB.prf]; psi, TB.ap psi_fn [TB.prf]]
@@ -434,8 +434,8 @@ struct
     let* famtp =
       EM.lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign vbase @@ fun base ->
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.con vbase @@ fun base ->
+      Splice.tp univ @@ fun univ ->
       Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
     in
     let+ fam = tac_fam famtp in
@@ -456,7 +456,7 @@ struct
     let* piuniv =
       EM.lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.tp univ @@ fun univ ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun _i ->
       univ
@@ -466,8 +466,8 @@ struct
     let* bdry_tp =
       EM.lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign_tp univ @@ fun _univ ->
-      Splice.foreign vfam @@ fun fam ->
+      Splice.tp univ @@ fun _univ ->
+      Splice.con vfam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf @@ TB.boundary i) @@ fun _prf ->
@@ -527,9 +527,9 @@ struct
   let hcom_bdy_tp tp r phi =
     EM.lift_cmp @@
     Sem.splice_tp @@
-    Splice.foreign r @@ fun src ->
-    Splice.foreign_cof phi @@ fun cof ->
-    Splice.foreign_tp tp @@ fun vtp ->
+    Splice.con r @@ fun src ->
+    Splice.cof phi @@ fun cof ->
+    Splice.tp tp @@ fun vtp ->
     Splice.term @@
     TB.pi TB.tp_dim @@ fun i ->
     TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
@@ -567,9 +567,9 @@ struct
       tac_tm @<<
       EM.lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign vfam @@ fun vfam ->
-      Splice.foreign vsrc @@ fun src ->
-      Splice.foreign_cof vcof @@ fun cof ->
+      Splice.con vfam @@ fun vfam ->
+      Splice.con vsrc @@ fun src ->
+      Splice.cof vcof @@ fun cof ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
@@ -613,15 +613,15 @@ struct
       let* part =
         let* tp_part =
           EM.lift_cmp @@ Sem.splice_tp @@
-          Splice.foreign pcode @@ fun pcode ->
-          Splice.foreign_dim r @@ fun r ->
+          Splice.con pcode @@ fun pcode ->
+          Splice.dim r @@ fun r ->
           Splice.term @@
           TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
           TB.el @@ TB.ap pcode [TB.prf]
         in
         let* bdry_fn =
           EM.lift_cmp @@ Sem.splice_tm @@
-          Splice.foreign_clo clo @@ fun clo ->
+          Splice.clo clo @@ fun clo ->
           Splice.term @@
           TB.lam @@ fun _ ->
           TB.lam @@ fun _ ->
@@ -634,13 +634,13 @@ struct
         let* vpart = EM.lift_ev @@ Sem.eval part in
         let* bdry_fn =
           EM.lift_cmp @@ Sem.splice_tm @@
-          Splice.foreign_cof phi @@ fun phi ->
-          Splice.foreign_clo clo @@ fun clo ->
-          Splice.foreign vpart @@ fun part ->
-          Splice.foreign_dim r @@ fun r ->
-          Splice.foreign pcode @@ fun pcode ->
-          Splice.foreign code @@ fun code ->
-          Splice.foreign pequiv @@ fun pequiv ->
+          Splice.cof phi @@ fun phi ->
+          Splice.clo clo @@ fun clo ->
+          Splice.con vpart @@ fun part ->
+          Splice.dim r @@ fun r ->
+          Splice.con pcode @@ fun pcode ->
+          Splice.con code @@ fun code ->
+          Splice.con pequiv @@ fun pequiv ->
           Splice.term @@
           TB.lam @@ fun _ -> (* [r=0 ∨ phi] *)
           TB.cof_split
@@ -690,14 +690,14 @@ struct
       let* twalls =
         let* tp_walls =
           EM.lift_cmp @@ Sem.splice_tp @@
-          Splice.foreign_cof phi @@ fun phi ->
-          Splice.foreign bdy @@ fun bdy ->
-          Splice.foreign_dim r' @@ fun r' ->
+          Splice.cof phi @@ fun phi ->
+          Splice.con bdy @@ fun bdy ->
+          Splice.dim r' @@ fun r' ->
           Splice.term @@ TB.pi (TB.tp_prf phi) @@ fun _ -> TB.el @@ TB.ap bdy [r'; TB.prf]
         in
         let* bdry_fn =
           EM.lift_cmp @@ Sem.splice_tm @@
-          Splice.foreign_clo psi_clo @@ fun psi_clo ->
+          Splice.clo psi_clo @@ fun psi_clo ->
           Splice.term @@
           TB.lam @@ fun _ -> (* [psi] *)
           TB.lam @@ fun _ -> (* [phi] *)
@@ -709,19 +709,19 @@ struct
         let* walls = EM.lift_ev @@ Sem.eval twalls in
         let* tp_cap =
           EM.lift_cmp @@ Sem.splice_tp @@
-          Splice.foreign bdy @@ fun bdy ->
-          Splice.foreign_dim r @@ fun r ->
+          Splice.con bdy @@ fun bdy ->
+          Splice.dim r @@ fun r ->
           Splice.term @@ TB.el @@ TB.ap bdy [r; TB.prf]
         in
         let* bdry_fn =
           EM.lift_cmp @@ Sem.splice_tm @@
-          Splice.foreign_dim r @@ fun r ->
-          Splice.foreign_dim r' @@ fun r' ->
-          Splice.foreign_cof phi @@ fun phi ->
-          Splice.foreign_cof psi @@ fun psi ->
-          Splice.foreign_clo psi_clo @@ fun psi_clo ->
-          Splice.foreign walls @@ fun walls ->
-          Splice.foreign bdy @@ fun bdy ->
+          Splice.dim r @@ fun r ->
+          Splice.dim r' @@ fun r' ->
+          Splice.cof phi @@ fun phi ->
+          Splice.cof psi @@ fun psi ->
+          Splice.clo psi_clo @@ fun psi_clo ->
+          Splice.con walls @@ fun walls ->
+          Splice.con bdy @@ fun bdy ->
           Splice.term @@
           TB.lam @@ fun _ -> (* [phi ∨ psi] *)
           TB.cof_split
@@ -831,7 +831,7 @@ struct
     let* vdef = EM.lift_ev @@ Sem.eval tdef in
     let* tbdy =
       let* const_vdef =
-        EM.lift_cmp @@ Sem.splice_tm @@ Splice.foreign vdef @@ fun vdef ->
+        EM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
         Splice.term @@ TB.lam @@ fun _ -> vdef
       in
       T.abstract ~ident (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) @@ fun var ->
@@ -844,7 +844,7 @@ struct
     let* vdef = EM.lift_ev @@ Sem.eval tdef in
     let* tbdy, tbdytp =
       let* const_vdef =
-        EM.lift_cmp @@ Sem.splice_tm @@ Splice.foreign vdef @@ fun vdef ->
+        EM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
         Splice.term @@ TB.lam @@ fun _ -> vdef
       in
       T.abstract ~ident (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) @@ fun var ->
@@ -904,7 +904,7 @@ struct
     let* tcase_suc =
       let* suc_tp =
         EM.lift_cmp @@ Sem.splice_tp @@
-        Splice.foreign vmot @@ fun mot ->
+        Splice.con vmot @@ fun mot ->
         Splice.term @@
         TB.pi TB.nat @@ fun x ->
         TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
@@ -965,7 +965,7 @@ struct
     let* tcase_loop =
       let* loop_tp =
         EM.lift_cmp @@ Sem.splice_tp @@
-        Splice.foreign vmot @@ fun mot ->
+        Splice.con vmot @@ fun mot ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun x ->
         TB.el @@ TB.ap mot [TB.loop x]

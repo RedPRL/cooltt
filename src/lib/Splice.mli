@@ -15,21 +15,19 @@ module TB := TermBuilder
 
 type 'a t
 
-val foreign : D.con -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_list : D.con list -> (S.t TB.m list -> 'a t) -> 'a t
-val foreign_tp_list : D.tp list -> (S.tp TB.m list -> 'a t) -> 'a t
-val foreign_dim : D.dim -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_cof : D.cof -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_clo : D.tm_clo -> (S.t TB.m -> 'a t) -> 'a t
-val foreign_tp : D.tp -> (S.tp TB.m -> 'a t) -> 'a t
+val con : D.con -> (S.t TB.m -> 'a t) -> 'a t
+val cons : D.con list -> (S.t TB.m list -> 'a t) -> 'a t
+val dim : D.dim -> (S.t TB.m -> 'a t) -> 'a t
+val cof : D.cof -> (S.t TB.m -> 'a t) -> 'a t
+val clo : D.tm_clo -> (S.t TB.m -> 'a t) -> 'a t
+val tp : D.tp -> (S.tp TB.m -> 'a t) -> 'a t
 val compile : 'a t -> D.env * 'a
 val term : 'a TB.m -> 'a t
-
-val commute_split : D.con -> D.cof list -> (S.t TB.m -> S.t TB.m) -> S.t t
 
 module Macro :
 sig
   val tp_pequiv_in_v : r:D.dim -> pcode:D.con -> code:D.con -> S.tp t
+  val commute_split : D.con -> D.cof list -> (S.t TB.m -> S.t TB.m) -> S.t t
 end
 
 module Bdry :

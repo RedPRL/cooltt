@@ -112,8 +112,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* tp_bdy =
       lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign_dim r0 @@ fun r ->
-      Splice.foreign_cof phi0 @@ fun phi ->
+      Splice.dim r0 @@ fun r ->
+      Splice.cof phi0 @@ fun phi ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
@@ -134,8 +134,8 @@ and equate_stable_code univ code0 code1 =
     let* fam_tp =
       lift_cmp @@
       splice_tp @@
-      Splice.foreign base0 @@ fun base ->
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.con base0 @@ fun base ->
+      Splice.tp univ @@ fun univ ->
       Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
     in
     equate_con fam_tp fam0 fam1
@@ -144,13 +144,13 @@ and equate_stable_code univ code0 code1 =
     let* famtp =
       lift_cmp @@
       splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.tp univ @@ fun univ ->
       Splice.term @@ TB.pi TB.tp_dim @@ fun _ -> univ
     in
     let* _ = equate_con famtp fam0 fam1 in
     let* bdry_tp =
       lift_cmp @@ splice_tp @@
-      Splice.foreign fam0 @@ fun fam ->
+      Splice.con fam0 @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       let phi = TB.boundary i in
@@ -226,7 +226,7 @@ and equate_con tp con0 con1 =
   | _, D.FHCom (`Nat, r0, s0, phi0, bdy0), D.FHCom (`Nat, r1, s1, phi1, bdy1) ->
     let fix_body bdy =
       lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
+      Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
@@ -237,7 +237,7 @@ and equate_con tp con0 con1 =
   | _, D.FHCom (`Circle, r0, s0, phi0, bdy0), D.FHCom (`Circle, r1, s1, phi1, bdy1) ->
     let fix_body bdy =
       lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
+      Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
@@ -320,7 +320,7 @@ and equate_frm k0 k1 =
     in
     let* suc_tp =
       lift_cmp @@ Sem.splice_tp @@
-      Splice.foreign mot0 @@ fun mot ->
+      Splice.con mot0 @@ fun mot ->
       Splice.term @@
       TB.pi TB.nat @@ fun x ->
       TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
@@ -340,7 +340,7 @@ and equate_frm k0 k1 =
     in
     let* loop_tp =
       lift_cmp @@ Sem.splice_tp @@
-      Splice.foreign mot0 @@ fun mot ->
+      Splice.con mot0 @@ fun mot ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun x ->
       TB.el @@ TB.ap mot [TB.loop x]
@@ -406,8 +406,8 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
       let* code_tp =
         lift_cmp @@
         Sem.splice_tp @@
-        Splice.foreign_dim r0 @@ fun r ->
-        Splice.foreign_cof phi0 @@ fun phi ->
+        Splice.dim r0 @@ fun r ->
+        Splice.cof phi0 @@ fun phi ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->

@@ -134,7 +134,7 @@ let rec quote_con (tp : D.tp) con =
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
     let* bdy' =
       lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
+      Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
@@ -150,7 +150,7 @@ let rec quote_con (tp : D.tp) con =
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
     let* bdy' =
       lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
+      Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
@@ -161,7 +161,7 @@ let rec quote_con (tp : D.tp) con =
   | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
     let* bdy' =
       lift_cmp @@ splice_tm @@
-      Splice.foreign bdy @@ fun bdy ->
+      Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
@@ -290,7 +290,7 @@ and quote_stable_code univ =
     let* piuniv =
       lift_cmp @@
       splice_tp @@
-      Splice.foreign_tp univ @@ fun univ ->
+      Splice.tp univ @@ fun univ ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun _i ->
       univ
@@ -300,8 +300,8 @@ and quote_stable_code univ =
     let* bdry_tp =
       lift_cmp @@
       splice_tp @@
-      Splice.foreign_tp univ @@ fun _univ ->
-      Splice.foreign fam @@ fun fam ->
+      Splice.tp univ @@ fun _univ ->
+      Splice.con fam @@ fun fam ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
@@ -396,8 +396,8 @@ and quote_tp (tp : D.tp) =
       let* tp_bdy =
         lift_cmp @@
         Sem.splice_tp @@
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_cof phi @@ fun phi ->
+        Splice.dim r @@ fun r ->
+        Splice.cof phi @@ fun phi ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
@@ -453,8 +453,8 @@ and quote_unstable_cut cut ufrm =
     let* code_tp =
       lift_cmp @@
       Sem.splice_tp @@
-      Splice.foreign_dim r @@ fun r ->
-      Splice.foreign_cof phi @@ fun phi ->
+      Splice.dim r @@ fun r ->
+      Splice.cof phi @@ fun phi ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
@@ -532,7 +532,7 @@ and quote_frm tm =
     in
     let* suc_tp =
       lift_cmp @@ Sem.splice_tp @@
-      Splice.foreign mot @@ fun mot ->
+      Splice.con mot @@ fun mot ->
       Splice.term @@
       TB.pi TB.nat @@ fun x ->
       TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
@@ -553,7 +553,7 @@ and quote_frm tm =
     in
     let* loop_tp =
       lift_cmp @@ Sem.splice_tp @@
-      Splice.foreign mot @@ fun mot ->
+      Splice.con mot @@ fun mot ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun x ->
       TB.el @@ TB.ap mot [TB.loop x]

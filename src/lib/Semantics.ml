@@ -943,13 +943,13 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
     | D.FHCom (`Nat, r, s, phi, bdy) ->
       (* bdy : (i : 𝕀) (_ : [_]) → nat *)
       splice_tm @@
-      Splice.foreign mot @@ fun mot ->
-      Splice.foreign_dim r @@ fun r ->
-      Splice.foreign_dim s @@ fun s ->
-      Splice.foreign_cof phi @@ fun phi ->
-      Splice.foreign bdy @@ fun bdy ->
-      Splice.foreign zero @@ fun zero ->
-      Splice.foreign suc @@ fun suc ->
+      Splice.con mot @@ fun mot ->
+      Splice.dim r @@ fun r ->
+      Splice.dim s @@ fun s ->
+      Splice.cof phi @@ fun phi ->
+      Splice.con bdy @@ fun bdy ->
+      Splice.con zero @@ fun zero ->
+      Splice.con suc @@ fun suc ->
       Splice.term @@
       let fam =
         TB.lam @@ fun i ->
@@ -970,10 +970,10 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
       TB.com fam r s phi bdy'
     | D.Split branches as con ->
       splice_tm @@
-      Splice.foreign mot @@ fun mot ->
-      Splice.foreign zero @@ fun zero ->
-      Splice.foreign suc @@ fun suc ->
-      Splice.commute_split con (List.map fst branches) @@ TB.nat_elim mot zero suc
+      Splice.con mot @@ fun mot ->
+      Splice.con zero @@ fun zero ->
+      Splice.con suc @@ fun suc ->
+      Splice.Macro.commute_split con (List.map fst branches) @@ TB.nat_elim mot zero suc
     | con ->
       Format.eprintf "bad nat-elim: %a@." D.pp_con con;
       CM.throw @@ NbeFailed "Not a number"
@@ -999,13 +999,13 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
     D.KCircleElim (mot, base, loop)
   | D.FHCom (`Circle, r, s, phi, bdy) ->
     splice_tm @@
-    Splice.foreign mot @@ fun mot ->
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.foreign base @@ fun base ->
-    Splice.foreign loop @@ fun loop ->
+    Splice.con mot @@ fun mot ->
+    Splice.dim r @@ fun r ->
+    Splice.dim s @@ fun s ->
+    Splice.cof phi @@ fun phi ->
+    Splice.con bdy @@ fun bdy ->
+    Splice.con base @@ fun base ->
+    Splice.con loop @@ fun loop ->
     Splice.term @@
     let fam =
       TB.lam @@ fun i ->
@@ -1026,10 +1026,10 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
     TB.com fam r s phi bdy'
   | D.Split branches as con ->
     splice_tm @@
-    Splice.foreign mot @@ fun mot ->
-    Splice.foreign base @@ fun base ->
-    Splice.foreign loop @@ fun loop ->
-    Splice.commute_split con (List.map fst branches) @@ TB.circle_elim mot base loop
+    Splice.con mot @@ fun mot ->
+    Splice.con base @@ fun base ->
+    Splice.con loop @@ fun loop ->
+    Splice.Macro.commute_split con (List.map fst branches) @@ TB.circle_elim mot base loop
   | c ->
     Format.eprintf "bad circle-elim: %a@." D.pp_con c;
     CM.throw @@ NbeFailed "Not an element of the circle"
@@ -1075,7 +1075,7 @@ and inspect_con ~style con =
 and do_goal_proj con =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
-  let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.goal_proj in
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis TB.goal_proj in
   begin
     inspect_con ~style:`UnfoldNone con |>>
     function
@@ -1093,7 +1093,7 @@ and do_goal_proj con =
 and do_fst con : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
-  let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.fst in
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis TB.fst in
   begin
     inspect_con ~style:`UnfoldNone con |>>
     function
@@ -1111,7 +1111,7 @@ and do_fst con : D.con CM.m =
 and do_snd con : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
-  let splitter con phis = splice_tm @@ Splice.commute_split con phis TB.snd in
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis TB.snd in
   begin
     inspect_con ~style:`UnfoldNone con |>>
     function
@@ -1140,8 +1140,8 @@ and do_ap con arg =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@
-    Splice.foreign arg @@ fun arg ->
-    Splice.commute_split con phis @@ fun f -> TB.ap f [arg]
+    Splice.con arg @@ fun arg ->
+    Splice.Macro.commute_split con phis @@ fun f -> TB.ap f [arg]
   in
   begin
     inspect_con ~style:`UnfoldNone con |>>
@@ -1179,7 +1179,7 @@ and do_sub_out con =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
-    splice_tm @@ Splice.commute_split con phis TB.sub_out
+    splice_tm @@ Splice.Macro.commute_split con phis TB.sub_out
   in
   begin
     inspect_con ~style:`UnfoldNone con |>>
@@ -1199,11 +1199,11 @@ and do_sub_out con =
 and do_rigid_cap r s phi code box =
   let splitter con phis =
     splice_tm @@
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim s @@ fun s ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign code @@ fun code ->
-    Splice.commute_split con phis @@ TB.cap r s phi code
+    Splice.dim r @@ fun r ->
+    Splice.dim s @@ fun s ->
+    Splice.cof phi @@ fun phi ->
+    Splice.con code @@ fun code ->
+    Splice.Macro.commute_split con phis @@ TB.cap r s phi code
   in
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
@@ -1229,11 +1229,11 @@ and do_rigid_vproj r pcode code pequiv v =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign pcode @@ fun pcode ->
-    Splice.foreign code @@ fun code ->
-    Splice.foreign pequiv @@ fun pequiv ->
-    Splice.commute_split con phis @@ TB.vproj r pcode code pequiv
+    Splice.dim r @@ fun r ->
+    Splice.con pcode @@ fun pcode ->
+    Splice.con code @@ fun code ->
+    Splice.con pequiv @@ fun pequiv ->
+    Splice.Macro.commute_split con phis @@ TB.vproj r pcode code pequiv
   in
   begin
     inspect_con ~style:`UnfoldNone v |>>
@@ -1257,8 +1257,8 @@ and do_el_out con =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@
-    Splice.foreign con @@ fun tm ->
-    Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
+    Splice.con con @@ fun tm ->
+    Splice.cons (List.map D.cof_to_con phis) @@ fun phis ->
     Splice.term @@
     TB.cof_split @@ List.map (fun phi -> phi, TB.el_out tm) phis
   in
@@ -1286,8 +1286,8 @@ and do_el : D.con -> D.tp CM.m =
     abort_if_inconsistent (ret D.tp_abort) @@
     let splitter con phis =
       splice_tp @@
-      Splice.foreign con @@ fun tm ->
-      Splice.foreign_list (List.map D.cof_to_con phis) @@ fun phis ->
+      Splice.con con @@ fun tm ->
+      Splice.cons (List.map D.cof_to_con phis) @@ fun phis ->
       Splice.term @@
       TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
     in
@@ -1325,24 +1325,24 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
 
       | `Pi (base, fam) ->
         splice_tp @@
-        Splice.foreign base @@ fun base ->
-        Splice.foreign fam @@ fun fam ->
+        Splice.con base @@ fun base ->
+        Splice.con fam @@ fun fam ->
         Splice.term @@
         TB.pi (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
 
       | `Sg (base, fam) ->
         splice_tp @@
-        Splice.foreign base @@ fun base ->
-        Splice.foreign fam @@ fun fam ->
+        Splice.con base @@ fun base ->
+        Splice.con fam @@ fun fam ->
         Splice.term @@
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
 
       | `Path (fam, bdry) ->
         splice_tp @@
-        Splice.foreign fam @@ fun fam ->
-        Splice.foreign bdry @@ fun bdry ->
+        Splice.con fam @@ fun fam ->
+        Splice.con bdry @@ fun bdry ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
@@ -1415,27 +1415,27 @@ and enact_rigid_coe line r r' con tag =
       | `Nat | `Circle | `Univ -> ret con
       | `Pi (basex, famx) ->
         splice_tm @@
-        Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
-        Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign con @@ fun bdy ->
+        Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
+        Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
       | `Sg (basex, famx) ->
         splice_tm @@
-        Splice.foreign (D.BindSym (x, basex)) @@ fun base_line ->
-        Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign con @@ fun bdy ->
+        Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
+        Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
       | `Path (famx, bdryx) ->
         splice_tm @@
-        Splice.foreign (D.BindSym (x, famx)) @@ fun fam_line ->
-        Splice.foreign (D.BindSym (x, bdryx)) @@ fun bdry_line ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign con @@ fun bdy ->
+        Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
+        Splice.con (D.BindSym (x, bdryx)) @@ fun bdry_line ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
     end
   | `Unstable (x, codex) ->
@@ -1443,34 +1443,34 @@ and enact_rigid_coe line r r' con tag =
       match codex with
       | `HCom (sx, s'x, phix, bdyx) ->
         splice_tm @@
-        Splice.foreign (D.BindSym (x, D.dim_to_con sx)) @@ fun s ->
-        Splice.foreign (D.BindSym (x, D.dim_to_con s'x)) @@ fun s' ->
-        Splice.foreign (D.BindSym (x, D.cof_to_con phix)) @@ fun phi ->
-        Splice.foreign (D.BindSym (x, bdyx)) @@ fun code ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign con @@ fun bdy ->
+        Splice.con (D.BindSym (x, D.dim_to_con sx)) @@ fun s ->
+        Splice.con (D.BindSym (x, D.dim_to_con s'x)) @@ fun s' ->
+        Splice.con (D.BindSym (x, D.cof_to_con phix)) @@ fun phi ->
+        Splice.con (D.BindSym (x, bdyx)) @@ fun code ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
         let fhcom = TB.Kan.FHCom.{r = s; r' = s'; phi; bdy = code} in
         Splice.term @@ TB.Kan.FHCom.coe_fhcom ~fhcom ~r ~r' ~bdy
       | `V (s, pcode, code, pequiv) ->
         splice_tm @@
-        Splice.foreign (D.BindSym (x, D.dim_to_con s)) @@ fun s ->
-        Splice.foreign (D.BindSym (x, pcode)) @@ fun pcode ->
-        Splice.foreign (D.BindSym (x, code)) @@ fun code ->
-        Splice.foreign (D.BindSym (x, pequiv)) @@ fun pequiv ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign con @@ fun bdy ->
+        Splice.con (D.BindSym (x, D.dim_to_con s)) @@ fun s ->
+        Splice.con (D.BindSym (x, pcode)) @@ fun pcode ->
+        Splice.con (D.BindSym (x, code)) @@ fun code ->
+        Splice.con (D.BindSym (x, pequiv)) @@ fun pequiv ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
         let v = TB.Kan.V.{r = s; pcode; code; pequiv} in
         Splice.term @@ TB.Kan.V.coe_v ~v ~r ~r' ~bdy
     end
   | `Split psis ->
     splice_tm @@
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign con @@ fun bdy ->
-    Splice.foreign line @@ fun line  ->
-    Splice.foreign_list (List.map D.cof_to_con psis) @@ fun psis ->
+    Splice.dim r @@ fun r ->
+    Splice.dim r' @@ fun r' ->
+    Splice.con con @@ fun bdy ->
+    Splice.con line @@ fun line  ->
+    Splice.cons (List.map D.cof_to_con psis) @@ fun psis ->
     Splice.term @@
     let branch psi = psi, TB.coe line r r' bdy in
     TB.cof_split @@ List.map branch psis
@@ -1484,38 +1484,38 @@ and enact_rigid_hcom code r r' phi bdy tag =
       match code with
       | `Pi (base, fam) ->
         splice_tm @@
-        Splice.foreign base @@ fun base ->
-        Splice.foreign fam @@ fun fam ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign_cof phi @@ fun phi ->
-        Splice.foreign bdy @@ fun bdy ->
+        Splice.con base @@ fun base ->
+        Splice.con fam @@ fun fam ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_pi ~base ~fam ~r ~r' ~phi ~bdy
       | `Sg (base, fam) ->
         splice_tm @@
-        Splice.foreign base @@ fun base ->
-        Splice.foreign fam @@ fun fam ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign_cof phi @@ fun phi ->
-        Splice.foreign bdy @@ fun bdy ->
+        Splice.con base @@ fun base ->
+        Splice.con fam @@ fun fam ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
       | `Path (fam, bdry) ->
         splice_tm @@
-        Splice.foreign fam @@ fun fam ->
-        Splice.foreign bdry @@ fun bdry ->
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign_cof phi @@ fun phi ->
-        Splice.foreign bdy @@ fun bdy ->
+        Splice.con fam @@ fun fam ->
+        Splice.con bdry @@ fun bdry ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
       | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@
-          Splice.foreign bdy @@ fun bdy ->
+          Splice.con bdy @@ fun bdy ->
           Splice.term @@
           TB.lam @@ fun i -> TB.lam @@ fun prf ->
           TB.el_out @@ TB.ap bdy [i; prf]
@@ -1524,7 +1524,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
       | `Univ ->
         let+ bdy' =
           splice_tm @@
-          Splice.foreign bdy @@ fun bdy ->
+          Splice.con bdy @@ fun bdy ->
           Splice.term @@
           TB.lam @@ fun i -> TB.lam @@ fun prf ->
           TB.el_out @@ TB.ap bdy [i; prf]
@@ -1536,27 +1536,27 @@ and enact_rigid_hcom code r r' phi bdy tag =
       match code with
         `HCom (h_r,h_r',h_phi,h_bdy) ->
         splice_tm @@
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign_cof phi @@ fun phi ->
-        Splice.foreign bdy @@ fun bdy ->
-        Splice.foreign_dim h_r @@ fun h_r ->
-        Splice.foreign_dim h_r' @@ fun h_r' ->
-        Splice.foreign_cof h_phi @@ fun h_phi ->
-        Splice.foreign h_bdy @@ fun h_bdy ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
+        Splice.dim h_r @@ fun h_r ->
+        Splice.dim h_r' @@ fun h_r' ->
+        Splice.cof h_phi @@ fun h_phi ->
+        Splice.con h_bdy @@ fun h_bdy ->
         Splice.term @@
         let fhcom = TB.Kan.FHCom.{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} in
         TB.Kan.FHCom.hcom_fhcom ~fhcom ~r ~r' ~phi ~bdy
       | `V (h_r,h_pcode,h_code,h_pequiv) ->
         splice_tm @@
-        Splice.foreign_dim r @@ fun r ->
-        Splice.foreign_dim r' @@ fun r' ->
-        Splice.foreign_cof phi @@ fun phi ->
-        Splice.foreign bdy @@ fun bdy ->
-        Splice.foreign_dim h_r @@ fun h_r ->
-        Splice.foreign h_pcode @@ fun h_pcode ->
-        Splice.foreign h_code @@ fun h_code ->
-        Splice.foreign h_pequiv @@ fun h_pequiv ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
+        Splice.dim h_r @@ fun h_r ->
+        Splice.con h_pcode @@ fun h_pcode ->
+        Splice.con h_code @@ fun h_code ->
+        Splice.con h_pequiv @@ fun h_pequiv ->
         Splice.term @@
         let v = TB.Kan.V.{r = h_r; pcode = h_pcode; code = h_code; pequiv = h_pequiv} in
         TB.Kan.V.hcom_v ~v ~r ~r' ~phi ~bdy
@@ -1564,12 +1564,12 @@ and enact_rigid_hcom code r r' phi bdy tag =
 
   | `Split psis ->
     splice_tm @@
-    Splice.foreign_dim r @@ fun r ->
-    Splice.foreign_dim r' @@ fun r' ->
-    Splice.foreign_cof phi @@ fun phi ->
-    Splice.foreign bdy @@ fun bdy ->
-    Splice.foreign code @@ fun code ->
-    Splice.foreign_list (List.map D.cof_to_con psis) @@ fun psis ->
+    Splice.dim r @@ fun r ->
+    Splice.dim r' @@ fun r' ->
+    Splice.cof phi @@ fun phi ->
+    Splice.con bdy @@ fun bdy ->
+    Splice.con code @@ fun code ->
+    Splice.cons (List.map D.cof_to_con psis) @@ fun psis ->
     Splice.term @@
     let branch psi = psi, TB.hcom code r r' phi bdy in
     TB.cof_split @@ List.map branch psis
@@ -1613,9 +1613,9 @@ and do_rigid_com (line : D.con) r s phi bdy =
   let* code_s = do_ap line (D.dim_to_con s) in
   do_rigid_hcom ~style:`UnfoldAll code_s r s phi @<<
   splice_tm @@
-  Splice.foreign_dim s @@ fun s ->
-  Splice.foreign line @@ fun line ->
-  Splice.foreign bdy @@ fun bdy ->
+  Splice.dim s @@ fun s ->
+  Splice.con line @@ fun line ->
+  Splice.con bdy @@ fun bdy ->
   Splice.term @@
   TB.lam @@ fun i ->
   TB.lam @@ fun prf ->

@@ -23,7 +23,6 @@ let foreign_tp tp k : _ t =
   let var = TB.tplvl @@ Bwd.length env.tpenv in
   k var env'
 
-
 let foreign_list (cons : D.con list) k : _ t =
   let rec go cons k =
     match cons with
@@ -35,17 +34,6 @@ let foreign_list (cons : D.con list) k : _ t =
   in
   go cons k
 
-let foreign_tp_list (tps : D.tp list) k : _ t =
-  let rec go tps k =
-    match tps with
-    | [] -> k []
-    | tp :: tps ->
-      foreign_tp tp @@ fun tp ->
-      go tps @@ fun tps ->
-      k (tp :: tps)
-  in
-  go tps k
-
 let compile (t : 'a t) : D.env *'a  =
   let m, env = t {tpenv = Emp; conenv = Emp} in
   let tplen = Bwd.length env.tpenv in
@@ -56,18 +44,28 @@ let term (m : 'a TB.m) : 'a t =
   fun env ->
   m, env
 
-let commute_split (self : D.con) (phis : D.cof list) (action : 'a TB.m -> 'b TB.m) =
-  let phis = List.map D.cof_to_con phis in
-  foreign self @@ fun self ->
-  foreign_list phis @@ fun phis ->
-  term @@ TB.cof_split @@ List.map (fun phi -> phi, action self) phis
+module F =
+struct
+  let con = foreign
+  let tp = foreign_tp
+  let cons = foreign_list
+  let dim = foreign_dim
+  let cof = foreign_cof
+  let clo = foreign_clo
+end
 
 module Macro =
 struct
+  let commute_split (self : D.con) (phis : D.cof list) (action : 'a TB.m -> 'b TB.m) =
+    let phis = List.map D.cof_to_con phis in
+    F.con self @@ fun self ->
+    F.cons phis @@ fun phis ->
+    term @@ TB.cof_split @@ List.map (fun phi -> phi, action self) phis
+
   let tp_pequiv_in_v ~r ~pcode ~code =
-    foreign_dim r @@ fun r ->
-    foreign pcode @@ fun pcode ->
-    foreign code @@ fun code ->
+    F.dim r @@ fun r ->
+    F.con pcode @@ fun pcode ->
+    F.con code @@ fun code ->
     term @@
     TB.pi (TB.tp_prf (TB.eq r TB.dim0)) @@ fun _ ->
     TB.el @@ TB.Equiv.code_equiv (TB.ap pcode [TB.prf]) code
@@ -77,9 +75,9 @@ module Bdry =
 struct
   let cap ~r ~r' ~phi ~code ~box =
     Cof.join [Cof.eq r r'; phi],
-    foreign_dim r @@ fun r ->
-    foreign_dim r' @@ fun r' ->
-    foreign_cof phi @@ fun phi ->
+    F.dim r @@ fun r ->
+    F.dim r' @@ fun r' ->
+    F.cof phi @@ fun phi ->
     foreign code @@ fun code ->
     foreign box @@ fun box ->
     term @@
@@ -89,11 +87,11 @@ struct
 
   let vproj ~r ~pcode ~code ~pequiv ~v =
     Cof.boundary r,
-    foreign_dim r @@ fun r ->
-    foreign pcode @@ fun _pcode ->
-    foreign code @@ fun _code ->
-    foreign pequiv @@ fun pequiv ->
-    foreign v @@ fun v ->
+    F.dim r @@ fun r ->
+    F.con pcode @@ fun _pcode ->
+    F.con code @@ fun _code ->
+    F.con pequiv @@ fun pequiv ->
+    F.con v @@ fun v ->
     term @@
     TB.cof_split
       [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [v];
@@ -101,9 +99,9 @@ struct
 
   let vin ~r ~pivot ~base =
     Cof.boundary r,
-    foreign_dim r @@ fun r ->
-    foreign pivot @@ fun pivot ->
-    foreign base @@ fun base ->
+    F.dim r @@ fun r ->
+    F.con pivot @@ fun pivot ->
+    F.con base @@ fun base ->
     term @@
     TB.cof_split
       [TB.eq r TB.dim0, TB.ap pivot [TB.prf];
@@ -111,11 +109,11 @@ struct
 
   let box ~r ~r' ~phi ~sides ~cap =
     Cof.join [Cof.eq r r'; phi],
-    foreign_dim r @@ fun r ->
-    foreign_dim r' @@ fun r' ->
-    foreign_cof phi @@ fun phi ->
-    foreign cap @@ fun cap ->
-    foreign sides @@ fun sides ->
+    F.dim r @@ fun r ->
+    F.dim r' @@ fun r' ->
+    F.cof phi @@ fun phi ->
+    F.con cap @@ fun cap ->
+    F.con sides @@ fun sides ->
     term @@
     TB.cof_split
       [TB.eq r r', cap;
@@ -123,28 +121,28 @@ struct
 
   let hcom ~r ~r' ~phi ~bdy =
     Cof.join [Cof.eq r r'; phi],
-    foreign_dim r' @@ fun r' ->
-    foreign bdy @@ fun bdy ->
+    F.dim r' @@ fun r' ->
+    F.con bdy @@ fun bdy ->
     term @@ TB.ap bdy [r'; TB.prf]
 
   let com = hcom
 
   let coe ~r ~r' ~bdy =
     Cof.eq r r',
-    foreign bdy term
+    F.con bdy term
 
   let unstable_code =
     function
     | `HCom (r, s, phi, bdy) ->
       Cof.join [Cof.eq r s; phi],
-      foreign_dim s @@ fun s ->
-      foreign bdy @@ fun bdy ->
+      F.dim s @@ fun s ->
+      F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [s; TB.prf]
     | `V (r, pcode, code, _) ->
       Cof.boundary r,
-      foreign_dim r @@ fun r ->
-      foreign pcode @@ fun pcode ->
-      foreign code @@ fun code ->
+      F.dim r @@ fun r ->
+      F.con pcode @@ fun pcode ->
+      F.con code @@ fun code ->
       term @@
       TB.cof_split
         [TB.eq r TB.dim0, TB.ap pcode [TB.prf];
@@ -154,8 +152,8 @@ struct
     match ufrm with
     | D.KHCom (r, s, phi, bdy) ->
       Cof.join [Cof.eq r s; phi],
-      foreign_dim s @@ fun s ->
-      foreign bdy @@ fun bdy ->
+      F.dim s @@ fun s ->
+      F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [s; TB.prf]
     | D.KSubOut (phi, clo) ->
       phi,
@@ -168,3 +166,5 @@ struct
       let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, r', phi, code))} in
       cap ~r ~r' ~phi ~code ~box
 end
+
+include F
