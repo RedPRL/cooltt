@@ -232,7 +232,7 @@ struct
      * branch 1: r=0
      * branch 2: r=i, i=0
      *
-     * r=0 will be factored out, but then a=0 should also be removed. Here is a more
+     * r=0 will be factored out, but then i=0 should also be removed. Here is a more
      * complicated example:
      *
      * branch 1: r=i, i=0
