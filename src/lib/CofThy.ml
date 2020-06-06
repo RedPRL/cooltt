@@ -26,24 +26,24 @@ type cached_branches = cached_branch list
 type alg_thy = [ `Consistent of alg_thy' | `Inconsistent ]
 type disj_thy = cached_branches
 
-let rec disect_cofibrations : cof list -> branches =
+let rec dissect_cofibrations : cof list -> branches =
   function
   | [] -> [VarSet.empty, []]
   | cof :: cofs ->
     match cof with
     | Cof.Var v ->
       List.map (fun (vars, eqs) -> VarSet.add v vars, eqs) @@
-      disect_cofibrations cofs
+      dissect_cofibrations cofs
     | Cof.Cof cof ->
       match cof with
       | Cof.Meet meet_cofs ->
-        disect_cofibrations @@ meet_cofs @ cofs
+        dissect_cofibrations @@ meet_cofs @ cofs
       | Cof.Join join_cofs ->
         join_cofs |> List.concat_map @@ fun join_cof ->
-        disect_cofibrations @@ join_cof :: cofs
+        dissect_cofibrations @@ join_cof :: cofs
       | Cof.Eq (r, s) ->
         List.map (fun (vars, eqs) -> vars, (r, s) :: eqs) @@
-        disect_cofibrations cofs
+        dissect_cofibrations cofs
 
 module Alg =
 struct
@@ -167,13 +167,14 @@ struct
     match thy with
     | `Inconsistent -> []
     | `Consistent thy' ->
-      match disect_cofibrations cofs with
+      match dissect_cofibrations cofs with
       | [] -> []
       | [vars, []] when VarSet.is_empty vars -> [`Consistent thy']
-      | disected_cofs ->
+      | dissected_cofs ->
         let cached_branches =
           drop_useless_branches @@
-          shrink_branches thy' disected_cofs in
+          shrink_branches thy' dissected_cofs
+        in
         List.map (fun (thy', _) -> `Consistent thy') cached_branches
 
   let left_invert_under_cofs ~zero ~seq (thy : t) cofs cont =
@@ -194,8 +195,8 @@ struct
     | [] -> `Inconsistent
     | _ -> `Consistent
 
-  (* favonia: this optimization seems to be too costly? *)
-  let rebase_branch cached_branches : t =
+  (* favonia: this optimization seems to be expensive? *)
+  let refactor_branches cached_branches : t =
     let common_vars =
       let go vars0 (_, (vars1, _)) = VarSet.inter vars0 vars1 in
       match cached_branches with
@@ -207,19 +208,19 @@ struct
     thy', (VarSet.diff vars common_vars, List.filter useful eqs)
 
   let split (thy : t) (cofs : cof list) : cached_branches =
-    match disect_cofibrations cofs with
+    match dissect_cofibrations cofs with
     | [] -> []
     | [vars, []] when VarSet.is_empty vars -> thy
-    | disected_cofs ->
+    | dissected_cofs ->
       let cached_branches =
         thy |> List.concat_map @@ fun (thy', (vars, eq)) ->
-        Alg.shrink_branches thy' disected_cofs |> List.map @@ fun (thy', (sub_vars, sub_eqs)) ->
+        Alg.shrink_branches thy' dissected_cofs |> List.map @@ fun (thy', (sub_vars, sub_eqs)) ->
         thy', (VarSet.union vars sub_vars, eq @ sub_eqs)
       in
       Alg.drop_useless_branches cached_branches
 
   let assume (thy : t) (cofs : cof list) : t =
-    rebase_branch @@ split thy cofs
+    refactor_branches @@ split thy cofs
 
   let test_sequent thy cx cof =
     let thy's = List.map (fun (thy', _) -> thy') @@ split thy cx in
