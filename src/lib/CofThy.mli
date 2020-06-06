@@ -4,6 +4,7 @@ type disj_thy
 
 module Alg :
 sig
+  (** The type of an algebraic theory (no unreduced joins). *)
   type t = alg_thy
 
   (** Create an empty theory. *)
@@ -22,24 +23,26 @@ sig
     -> seq:((t -> 'a) -> t list -> 'a)
     (** [seq] is the sequencing operator. *)
     -> t
+    (** the theory *)
     -> cof list
+    (** the cofibration context *)
     -> (t -> 'a)
+    (** the continuation *)
     -> 'a
 end
 
 module Disj :
 sig
+  (** The type of a disjunctive theory. *)
   type t = disj_thy
 
-  (** Create an empty theory (uses a benign effect for now). *)
+  (** Create an empty theory. *)
   val init : t
 
   (** Returns the consistency of the theory. *)
   val consistency : t -> [`Consistent | `Inconsistent]
 
-  (** Assumes the truth of a cofibration; if it can be decomposed eagerly (conjunction of equations),
-      then it does so immediately. Otherwise, it is held "on deck" and repeatedly decomposed when testing
-      sequents. The function [consistency] will consider cofibrations on deck. *)
+  (** Assumes the truth of a cofibration. *)
   val assume : t -> cof list -> disj_thy
 
   (** Tests the validity of a sequent against the supplied theory. Equivalent to assuming
@@ -53,7 +56,9 @@ sig
     -> seq:((alg_thy -> 'a) -> alg_thy list -> 'a)
     (** [seq] is the sequencing operator. *)
     -> t
+    (** the theory *)
     -> (alg_thy -> 'a)
+    (** the continuation *)
     -> 'a
 end
 
