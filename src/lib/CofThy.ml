@@ -77,10 +77,6 @@ struct
     else
       `Consistent {thy with classes}
 
-  (* this is unsafe because it assumes the resulting thy is consistent *)
-  let unsafe_assume_eq (thy : t') (r, s) =
-    {thy with classes = UF.union r s thy.classes}
-
   let assume_vars (thy : t') vars =
     {thy with true_vars = VarSet.union vars thy.true_vars}
 
@@ -121,26 +117,11 @@ struct
     | `Inconsistent -> `Inconsistent
     | `Consistent (thy', eqs) -> `Consistent (thy', Bwd.to_list eqs)
 
-  (* this is unsafe because it assumes the resulting thy is consistent *)
-  let unsafe_normalize_eqs (thy' : t') eqs =
-    let go (thy', eqs) eq =
-      if test_eq thy' eq then
-        thy', eqs
-      else
-        unsafe_assume_eq thy' eq, Snoc (eqs, eq)
-    in
-    let _, eqs = List.fold_left go (thy', Emp) eqs in
-    Bwd.to_list eqs
-
   let normalize_branch (thy' : t') (vars, eqs) =
     match normalize_eqs thy' eqs with
     | `Inconsistent -> `Inconsistent
     | `Consistent (thy', eqs) ->
       `Consistent (assume_vars thy' vars, (normalize_vars thy' vars, eqs))
-
-  (* this is unsafe because it assumes the resulting thy is consistent *)
-  let unsafe_normalize_branch (thy' : t') (vars, eqs) =
-    normalize_vars thy' vars, unsafe_normalize_eqs thy' eqs
 
   let rec test (thy' : alg_thy') : cof -> bool =
     function
