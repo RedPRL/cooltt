@@ -103,20 +103,6 @@ let expected_connective conn tp =
   let* ttp = quote_tp tp in
   elab_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
 
-let dest_pi =
-  function
-  | D.Pi (base, _, fam) ->
-    ret (base, fam)
-  | tp ->
-    expected_connective `Pi tp
-
-let dest_sg =
-  function
-  | D.Sg (base, _, fam) ->
-    ret (base, fam)
-  | tp ->
-    expected_connective `Sg tp
-
 let abstract nm tp k =
   let rho env =
     let con = D.mk_var tp @@ Env.size env in

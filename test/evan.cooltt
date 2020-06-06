@@ -1,0 +1,10 @@
+def path (A : type) (x : A) (y : A) : type =
+  pathd {_ => A} x y
+
+def refl2 (A : type) (p : (i : 𝕀) → A) : sub {path {path A {p 0} {p 1}} p p} #t {_ => p}
+  =
+  _ => p
+
+def test (A : type) (p : (i : 𝕀) → A) : (j : 𝕀) → path A {p 0} {p 1}
+  =
+  j => refl2 A p j

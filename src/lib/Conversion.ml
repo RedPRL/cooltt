@@ -129,8 +129,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 and equate_con tp con0 con1 =
   ConvM.abort_if_inconsistent (ret ()) @@
   let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
-  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con0 in
-  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:{unfolding = true} con1 in
+  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:`UnfoldAll con0 in
+  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:`UnfoldAll con1 in
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
   | D.TpSplit branches, _, _ ->
@@ -352,13 +352,13 @@ and equate_frm k0 k1 =
     conv_err @@ ExpectedFrmEq (k0, k1)
 
 and assert_done_hd hd =
-  let* w = lift_cmp @@ whnf_hd ~style:{unfolding = true} hd in
+  let* w = lift_cmp @@ whnf_hd ~style:`UnfoldAll hd in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_hd failed"
 
 and assert_done_cut cut =
-  let* w = lift_cmp @@ whnf_cut ~style:{unfolding = true} cut in
+  let* w = lift_cmp @@ whnf_cut ~style:`UnfoldAll cut in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_cut failed"

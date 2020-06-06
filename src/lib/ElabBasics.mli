@@ -32,9 +32,6 @@ val quote_dim : D.dim -> S.t m
 val equate_tp : D.tp -> D.tp -> unit m
 val equate : D.tp -> D.con -> D.con -> unit m
 
-val dest_pi : D.tp -> (D.tp * D.tp_clo) m
-val dest_sg : D.tp -> (D.tp * D.tp_clo) m
-
 val with_pp : (Pp.env -> 'a m) -> 'a m
 
 val expected_connective : ElabError.connective -> D.tp -> 'a m
