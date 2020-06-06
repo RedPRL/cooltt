@@ -587,7 +587,7 @@ struct
 
   let dest_el tp =
     match tp with
-    | D.El con ->
+    | D.ElStable con ->
       EM.lift_cmp @@ Sem.unfold_el con
     | _ ->
       EM.expected_connective `El tp
@@ -998,7 +998,7 @@ struct
     match tp with
     | D.Sub _ ->
       elim_implicit_connectives @@ Sub.elim @@ EM.ret (tm, tp)
-    | D.El _ ->
+    | D.ElStable _ ->
       elim_implicit_connectives @@ El.elim @@ EM.ret (tm, tp)
     | _ ->
       EM.ret (tm, tp)
@@ -1009,7 +1009,7 @@ struct
     match_goal @@ function
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ intro_implicit_connectives tac
-    | D.El _, _, _ ->
+    | D.ElStable _, _, _ ->
       EM.ret @@ El.intro @@ intro_implicit_connectives tac
     | _ ->
       EM.ret tac

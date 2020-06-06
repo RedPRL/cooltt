@@ -101,7 +101,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     ret ()
   | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
     equate_tp tp0 tp1
-  | D.El code0, D.El code1 ->
+  | D.ElStable code0, D.ElStable code1 ->
     equate_stable_code D.Univ code0 code1
   | D.ElCut cut0, D.ElCut cut1 ->
     equate_cut cut0 cut1
@@ -200,7 +200,7 @@ and equate_con tp con0 con1 =
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
     equate_con tp out0 out1
-  | D.El code, _, _ ->
+  | D.ElStable code, _, _ ->
     let* out0 = lift_cmp @@ do_el_out con0 in
     let* out1 = lift_cmp @@ do_el_out con1 in
     let* tp = lift_cmp @@ unfold_el code in

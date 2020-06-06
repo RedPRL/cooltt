@@ -59,8 +59,8 @@ and con =
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
-  | El of con stable_code
   | ElCut of cut
+  | ElStable of con stable_code
   | ElUnstable of con unstable_code
   | GoalTp of string option * tp
   | TpDim

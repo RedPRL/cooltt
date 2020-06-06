@@ -34,7 +34,7 @@ let foreign_list (cons : D.con list) k : _ t =
   in
   go cons k
 
-let compile (t : 'a t) : D.env *'a  =
+let compile (t : 'a t) : D.env * 'a  =
   let m, env = t {tpenv = Emp; conenv = Emp} in
   let tplen = Bwd.length env.tpenv in
   let conlen = Bwd.length env.conenv in

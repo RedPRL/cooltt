@@ -192,7 +192,7 @@ and pp_tp fmt =
     Format.fprintf fmt "<nat>"
   | Circle ->
     Format.fprintf fmt "<circle>"
-  | El code ->
+  | ElStable code ->
     Format.fprintf fmt "el[%a]" pp_stable_code code
   | ElCut con ->
     Format.fprintf fmt "el-cut[%a]" pp_cut con

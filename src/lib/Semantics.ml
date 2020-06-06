@@ -328,9 +328,9 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
   | D.GoalTp (lbl, tp) ->
     let+ tp = subst_tp r x tp in
     D.GoalTp (lbl, tp)
-  | D.El code ->
+  | D.ElStable code ->
     let+ code = subst_stable_code r x code in
-    D.El code
+    D.ElStable code
   | D.ElCut cut ->
     let+ cut = subst_cut r x cut in
     D.ElCut cut
@@ -1271,7 +1271,7 @@ and do_el_out con =
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
-    | D.Cut {tp = D.El code; cut} ->
+    | D.Cut {tp = D.ElStable code; cut} ->
       let+ tp = unfold_el code in
       cut_frm ~tp ~cut D.KElOut
     | _ ->
@@ -1303,7 +1303,7 @@ and do_el : D.con -> D.tp CM.m =
       | D.Cut {cut; tp = D.Univ} ->
         ret @@ D.ElCut cut
       | D.StableCode code ->
-        ret @@ D.El code
+        ret @@ D.ElStable code
       | _ ->
         throw @@ NbeFailed "Invalid arguments to do_el"
     end
