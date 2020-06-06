@@ -61,11 +61,3 @@ sig
     (** the continuation *)
     -> 'a
 end
-
-(*
-module Algebraic :
-sig
-  (** Assemble algebraic parts and disjunctive parts. *)
-  val assemble_thy : alg_thy -> cof list -> disj_thy
-end
-*)
