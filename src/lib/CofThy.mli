@@ -7,7 +7,7 @@ sig
   type t = alg_thy
 
   (** Create an empty theory (uses a benign effect for now). *)
-  val init : unit -> t
+  val init : t
 
   (** Returns the consistency of the theory. *)
   val consistency : t -> [`Consistent | `Inconsistent]
@@ -32,7 +32,7 @@ sig
   type t = disj_thy
 
   (** Create an empty theory (uses a benign effect for now). *)
-  val init : unit -> t
+  val init : t
 
   (** Returns the consistency of the theory. *)
   val consistency : t -> [`Consistent | `Inconsistent]

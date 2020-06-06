@@ -21,20 +21,10 @@ type branches = branch list
 type cached_branch = alg_thy' * branch
 type cached_branches = cached_branch list
 
-(** A presentation of a disjunctive theory over the language of intervals and cofibrations. *)
-type disj_thy' =
-  { alg_thy' : alg_thy';
-    (** reduced part *)
-
-    irreducible : (alg_thy' * (VarSet.t * eq list)) list;
-    (** unreduced cofibrations in the disjunctive (normal?) form,
-      * with cached alg_thy' for each branch. *)
-  }
-
 (* As an optimization, we remember when a theory is consistent or not. *)
 
 type alg_thy = [ `Consistent of alg_thy' | `Inconsistent ]
-type disj_thy = [ `Consistent of disj_thy' | `Inconsistent ]
+type disj_thy = cached_branches
 
 let rec disect_cofibrations : cof list -> branches =
   function
@@ -60,25 +50,25 @@ struct
   type t = alg_thy
   type t' = alg_thy'
 
-  let init' () =
+  let init' =
     {classes = UF.init;
      true_vars = VarSet.empty}
 
-  let init () =
-    `Consistent (init' ())
+  let init =
+    `Consistent init'
 
   let consistency =
     function
     | `Consistent _ -> `Consistent
     | `Inconsistent -> `Inconsistent
 
-  let disj_envelope' : alg_thy' -> disj_thy' =
-    fun alg_thy' -> {alg_thy'; irreducible = [alg_thy', (VarSet.empty, [])]}
+  let disj_envelope' alg_thy' : disj_thy =
+    [alg_thy', (VarSet.empty, [])]
 
   let disj_envelope =
     function
-    | `Consistent alg_thy' -> `Consistent (disj_envelope' alg_thy')
-    | `Inconsistent -> `Inconsistent
+    | `Consistent alg_thy' -> disj_envelope' alg_thy'
+    | `Inconsistent -> []
 
   let assume_eq (thy : t') (r, s) =
     let classes = UF.union r s thy.classes in
@@ -152,6 +142,21 @@ struct
   let unsafe_normalize_branch (thy' : t') (vars, eqs) =
     normalize_vars thy' vars, unsafe_normalize_eqs thy' eqs
 
+  let rec test (thy' : alg_thy') : cof -> bool =
+    function
+    | Cof.Cof phi ->
+      begin
+        match phi with
+        | Cof.Eq (r, s) ->
+          test_eq thy' (r, s)
+        | Cof.Join phis ->
+          List.exists (test thy') phis
+        | Cof.Meet phis ->
+          List.for_all (test thy') phis
+      end
+    | Cof.Var v ->
+      test_var thy' v
+
   let shrink_branches (thy' : t') branches : cached_branches =
     (* stage 1.1: shrink branches *)
     let go branch =
@@ -177,39 +182,6 @@ struct
     in
     Bwd.fold_right go_bwd cached_branches []
 
-  (* favonia: this optimization seems to be too costly? *)
-  let rebase_branch (thy' : t') cached_branches =
-    let common_vars =
-      let go vars0 (_, (vars1, _)) = VarSet.inter vars0 vars1 in
-      match cached_branches with
-      | [] -> VarSet.empty
-      | (_, (vars, _)) :: branches -> List.fold_left go vars branches
-    in
-    let common_eqs =
-      let test eq = cached_branches |> List.for_all @@ fun (thy', _) -> test_eq thy' eq in
-      List.filter test @@ List.concat_map (fun (_, (_, eqs)) -> eqs) cached_branches
-    in
-    let thy' = List.fold_right (fun eq thy -> unsafe_assume_eq thy eq) common_eqs @@ assume_vars thy' common_vars in
-    (* stage 3: re-shrink branches. *)
-    thy',
-    cached_branches |> List.map @@ fun (cached_thy', branch) ->
-    cached_thy', unsafe_normalize_branch thy' branch
-
-  let rec test (thy' : alg_thy') : cof -> bool =
-    function
-    | Cof.Cof phi ->
-      begin
-        match phi with
-        | Cof.Eq (r, s) ->
-          test_eq thy' (r, s)
-        | Cof.Join phis ->
-          List.exists (test thy') phis
-        | Cof.Meet phis ->
-          List.for_all (test thy') phis
-      end
-    | Cof.Var v ->
-      test_var thy' v
-
   let split (thy : t) (cofs : cof list) : t list =
     match thy with
     | `Inconsistent -> []
@@ -232,57 +204,49 @@ end
 
 module Disj =
 struct
-  type t' = disj_thy'
   type t = disj_thy
 
-  let init () =
-    let alg_thy' = Alg.init' () in
-    `Consistent
-      {alg_thy' = alg_thy';
-       irreducible = [alg_thy', (VarSet.empty, [])]}
+  let init : t = [Alg.init', (VarSet.empty, [])]
 
   let consistency =
     function
-    | `Consistent _ -> `Consistent
-    | `Inconsistent -> `Inconsistent
+    | [] -> `Inconsistent
+    | _ -> `Consistent
 
-  let split' irreducible (cofs : cof list) : cached_branches =
+  (* favonia: this optimization seems to be too costly? *)
+  let rebase_branch cached_branches : t =
+    let common_vars =
+      let go vars0 (_, (vars1, _)) = VarSet.inter vars0 vars1 in
+      match cached_branches with
+      | [] -> VarSet.empty
+      | (_, (vars, _)) :: branches -> List.fold_left go vars branches
+    in
+    let useful eq = cached_branches |> List.exists @@ fun (thy', _) -> not @@ Alg.test_eq thy' eq in
+    cached_branches |> List.map @@ fun (thy', (vars, eqs)) ->
+    thy', (VarSet.diff vars common_vars, List.filter useful eqs)
+
+  let split (thy : t) (cofs : cof list) : cached_branches =
     match disect_cofibrations cofs with
     | [] -> []
-    | [vars, []] when VarSet.is_empty vars -> irreducible
+    | [vars, []] when VarSet.is_empty vars -> thy
     | disected_cofs ->
       let cached_branches =
-        irreducible |> List.concat_map @@ fun (thy', (vars, eq)) ->
+        thy |> List.concat_map @@ fun (thy', (vars, eq)) ->
         Alg.shrink_branches thy' disected_cofs |> List.map @@ fun (thy', (sub_vars, sub_eqs)) ->
         thy', (VarSet.union vars sub_vars, eq @ sub_eqs)
       in
       Alg.drop_useless_branches cached_branches
 
-  let split thy cofs : cached_branches =
-    match thy with
-    | `Inconsistent -> []
-    | `Consistent {irreducible; _} -> split' irreducible cofs
-
   let assume (thy : t) (cofs : cof list) : t =
-    match thy with
-    | `Inconsistent -> `Inconsistent
-    | `Consistent {alg_thy'; irreducible} ->
-      match Alg.rebase_branch alg_thy' @@ split' irreducible cofs with
-      | _, [] -> `Inconsistent
-      | alg_thy', irreducible -> `Consistent {alg_thy'; irreducible}
+    rebase_branch @@ split thy cofs
 
   let test_sequent thy cx cof =
     let thy's = List.map (fun (thy', _) -> thy') @@ split thy cx in
     thy's |> List.for_all @@ fun thy' -> Alg.test thy' cof
 
-  let left_invert' ~seq ({irreducible; _} : t') cont =
-    match List.map (fun (thy', _) -> `Consistent thy') irreducible with
-    | [] -> invalid_arg "left_invert'"
+  let left_invert ~zero ~seq thy cont =
+    match List.map (fun (thy', _) -> `Consistent thy') thy with
+    | [] -> zero
     | [thy'] -> cont thy'
     | thy's -> seq cont thy's
-
-  let left_invert ~zero ~seq (thy : t) cont =
-    match thy with
-    | `Inconsistent -> zero
-    | `Consistent thy' -> left_invert' ~seq thy' cont
 end
