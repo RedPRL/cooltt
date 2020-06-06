@@ -6,7 +6,7 @@ module Alg :
 sig
   type t = alg_thy
 
-  (** Create an empty theory (uses a benign effect for now). *)
+  (** Create an empty theory. *)
   val init : t
 
   (** Returns the consistency of the theory. *)
