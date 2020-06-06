@@ -1,209 +1,279 @@
 open CoolBasis
-
+open Bwd
 open Dim
 
 type cof = (Dim.dim, int) Cof.cof
 
-module UF = DisjointSet.Make (PersistentTable.M)
+module UF = DisjointSet.Make (struct type t = dim let compare = compare end)
 module VarSet = Set.Make (Int)
 
 (** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
 type alg_thy' =
-  { classes : dim UF.t;
+  { classes : UF.t;
     (** equivalence classes of dimensions *)
 
     true_vars : VarSet.t
   }
 
-(** A presentation of a disjunctive theory over the language of intervals and cofibrations. *)
-type disj_thy' =
-  { classes : dim UF.t;
-    (** equivalence classes of dimensions *)
+type eq = Dim.dim * Dim.dim
 
-    true_vars : VarSet.t;
-    (** set of cofibration variables assumed to be true *)
+(** A [branch] represents the meet of a bunch of atomic cofibrations. *)
+type branch = VarSet.t * eq list
+type branches = branch list
 
-    irreducible_joins : cof list list;
-    (** a stack of irreducible joins, each represented by a list of cofibrations *)
-  }
+(** A [cached_branch] is a [branch] together with an algebraic theory
+  * representing the resulting theory at the end of the branch.  *)
+type cached_branch = alg_thy' * branch
+type cached_branches = cached_branch list
 
-(* As an optimization, we remember when a theory is consistent or not. *)
-
+(** As an optimization, we remember when a theory is consistent or not. *)
 type alg_thy = [ `Consistent of alg_thy' | `Inconsistent ]
-type disj_thy = [ `Consistent of disj_thy' | `Inconsistent ]
 
-let disj_thy'_of_alg_thy' : alg_thy' -> disj_thy' =
-  fun {classes; true_vars} -> {classes; true_vars; irreducible_joins = []}
+(** A disjoint theory is the join of a list of [cached_branch]. We do not need to
+  * remember the common ancestor of these branches (as an algebraic theory), but only
+  * the atomic cofibrations labeling the path from the common ancestor to each branch. *)
+type disj_thy = cached_branches
 
-let disj_thy_of_alg_thy : alg_thy -> disj_thy =
+(** This is to dissect the meet of a list of cofibrations into a list of branches.
+  *
+  * Possible further optimizations:
+  * 1. Should we use [Cof.reduce] to massage the cofibrations first?
+  * 2. Should we eagerly factor out common cofibrations to facilitate the refactoring
+  *    steps later on? (This does not seem to be helpful in preliminary experiments.)
+*)
+let rec dissect_cofibrations : cof list -> branches =
   function
-  | `Consistent alg_thy' -> `Consistent (disj_thy'_of_alg_thy' alg_thy')
-  | `Inconsistent -> `Inconsistent
-
-let init () =
-  `Consistent
-    {classes = UF.init ~size:100;
-     true_vars = VarSet.empty;
-     irreducible_joins = []}
-
-let consistency =
-  function
-  | `Consistent _ -> `Consistent
-  | `Inconsistent -> `Inconsistent
-
-let find_class classes r =
-  try UF.find r classes with _ -> r
-
-module SearchHelper :
-sig
-  (** Pushes cofibrations into the theory.
-      Invariant: input thy.classes must be consistent.
-
-      @return If the [thy.classes] would be inconsistent, [None] is returned.
-      Otherwise, [Some thy] is returned and [thy.classes] will be consistent. *)
-  val push_cofs : disj_thy' -> cof list -> disj_thy' option
-
-  (** Checking whether the [disj_thy'] is consistent.
-      Invariant: input [thy.classes] must be consistent;
-      the inconsistency can only come from [thy.irreducible_joins.] *)
-  val is_consistent : disj_thy' -> bool
-end
-=
-struct
-  let rec push_cofs ({classes; true_vars; irreducible_joins} as thy) =
-    function
-    | [] -> Some thy
-    | phi :: phis ->
-      match phi with
-      | Cof.Var v ->
-        push_cofs {thy with true_vars = VarSet.add v true_vars} phis
-      | Cof.Cof phi ->
-        match phi with
-        | Cof.Meet psis ->
-          push_cofs thy @@ psis @ phis
-        | Cof.Join psis ->
-          push_cofs {thy with irreducible_joins = psis :: irreducible_joins} phis
-        | Cof.Eq (r, s) ->
-          let classes = UF.union r s classes in
-          if UF.find Dim0 classes = UF.find Dim1 classes then
-            None
-          else
-            push_cofs {thy with classes} phis
-
-  (** [is_consistent] is almost a duplicate of the most general search. It exists because
-    * (1) it's a clean way to avoid checking consistency within consistency and
-    * (2) it's a clean way to avoid recursive modules. *)
-  let rec is_consistent ({irreducible_joins; _} as thy) =
-    match irreducible_joins with
-    | [] -> true
-    | psis :: irreducible_joins ->
-      psis |> List.exists @@ fun psi ->
-      Option.fold ~none:false ~some:is_consistent @@
-      push_cofs {thy with irreducible_joins} [psi]
-end
-
-module Search :
-sig
-  (** Search all branches assuming more cofibrations. *)
-  val left_invert
-    : zero:'a
-    (** [zero] is the default value for vacuous cases. *)
-    -> seq:((cof -> 'a) -> cof list -> 'a)
-    (** [seq] is the sequencing operator. *)
-    -> fast_track:((unit -> 'a) -> (unit -> 'a) -> 'a)
-    (** If the first component returns a "good" result, then don't bother with the second. (???) *)
-    -> disj_thy
-    -> cof list
-    -> (alg_thy' -> 'a)
-    -> 'a
-end =
-struct
-  let left_invert' ~zero ~seq ~fast_track (thy : disj_thy') phis cont =
-    let rec go =
-      function
-      | None -> zero
-      | Some ({classes; true_vars; irreducible_joins} as thy) ->
-        fast_track (fun _ -> cont {classes; true_vars}) @@ fun _ ->
-        match irreducible_joins with
-        | [] -> cont {classes; true_vars}
-        | psis :: irreducible_joins when SearchHelper.is_consistent thy ->
-          psis |> seq @@ fun psi ->
-          go @@ SearchHelper.push_cofs {thy with irreducible_joins} [psi]
-        | _ ->
-          zero
-    in
-    go @@ SearchHelper.push_cofs thy phis
-
-  let left_invert ~zero ~seq ~fast_track thy phis cont =
-    match thy with
-    | `Inconsistent -> zero
-    | `Consistent thy -> left_invert' ~zero ~seq ~fast_track thy phis cont
-end
-
-
-(* Invariant: local.classes must be consistent. *)
-let rec test (local : alg_thy') : cof -> bool =
-  function
-  | Cof.Cof phi ->
-    begin
-      match phi with
-      | Cof.Eq (r, s) when r = s ->
-        true
+  | [] -> [VarSet.empty, []]
+  | cof :: cofs ->
+    match cof with
+    | Cof.Var v ->
+      List.map (fun (vars, eqs) -> VarSet.add v vars, eqs) @@
+      dissect_cofibrations cofs
+    | Cof.Cof cof ->
+      match cof with
+      | Cof.Meet meet_cofs ->
+        dissect_cofibrations @@ meet_cofs @ cofs
+      | Cof.Join join_cofs ->
+        join_cofs |> List.concat_map @@ fun join_cof ->
+        dissect_cofibrations @@ join_cof :: cofs
       | Cof.Eq (r, s) ->
-        find_class local.classes r = find_class local.classes s
-      | Cof.Join phis ->
-        List.exists (test local) phis
-      | Cof.Meet phis ->
-        List.for_all (test local) phis
-    end
-  | Cof.Var v ->
-    VarSet.mem v local.true_vars
+        List.map (fun (vars, eqs) -> vars, (r, s) :: eqs) @@
+        dissect_cofibrations cofs
 
-let test_sequent thy cx phi =
-  let fast_track x y = if x () then true else y () in
-  Search.left_invert ~zero:true ~seq:List.for_all ~fast_track thy cx @@ fun thy ->
-  test thy phi
-
-let assume thy phis =
-  match thy with
-  | `Inconsistent -> `Inconsistent
-  | `Consistent thy ->
-    match SearchHelper.push_cofs thy @@ List.map Cof.reduce phis (* do we want Cof.reduce here? *) with
-    | None -> `Inconsistent
-    | Some thy ->
-      if SearchHelper.is_consistent thy
-      then `Consistent thy
-      else `Inconsistent
-
-let left_invert_under_cofs ~zero ~seq thy phis cont =
-  Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) thy phis @@ fun alg_thy' ->
-  cont @@ `Consistent (disj_thy'_of_alg_thy' alg_thy')
-
-
-module Algebraic =
+module Alg =
 struct
-  let init () =
-    `Consistent
-      {classes = UF.init ~size:100;
-       true_vars = VarSet.empty}
+  type t = alg_thy
+  type t' = alg_thy'
+
+  let emp' =
+    {classes = UF.empty;
+     true_vars = VarSet.empty}
+
+  let empty =
+    `Consistent emp'
 
   let consistency =
     function
     | `Consistent _ -> `Consistent
     | `Inconsistent -> `Inconsistent
 
-  let disj_envelope = disj_thy_of_alg_thy
+  let disj_envelope' alg_thy' : disj_thy =
+    [alg_thy', (VarSet.empty, [])]
 
-  let partition_thy =
+  let disj_envelope =
     function
-    | `Inconsistent -> `Inconsistent, []
-    | `Consistent {classes; true_vars; irreducible_joins} ->
-      `Consistent {classes; true_vars}, List.map Cof.join irreducible_joins
+    | `Consistent alg_thy' -> disj_envelope' alg_thy'
+    | `Inconsistent -> []
 
-  let assemble_thy alg_thy =
-    assume @@ disj_envelope alg_thy
+  let assume_vars (thy : t') vars =
+    {thy with true_vars = VarSet.union vars thy.true_vars}
 
-  let left_invert_under_cofs ~zero ~seq alg_thy phis cont =
-    Search.left_invert ~zero ~seq ~fast_track:(fun _ x -> x ()) (disj_envelope alg_thy) phis @@ fun alg_thy' ->
-    cont @@ `Consistent alg_thy'
+  let test_eq (thy : t') (r, s) =
+    UF.test r s thy.classes
+
+  (** [unsafe_test_and_assume_eq] fuses [test_eq] and [assume_eq] (if there was one).
+    * It is "unsafe" because we do not check consistency here. *)
+  let unsafe_test_and_assume_eq (thy : t') (r, s) =
+    let testing, classes = UF.test_and_union r s thy.classes in
+    testing, {thy with classes}
+
+  let test_eqs (thy : t') eqs =
+    List.for_all (test_eq thy) eqs
+
+  let test_var (thy : t') v =
+    VarSet.mem v thy.true_vars
+
+  let test_vars (thy : t') vs =
+    VarSet.subset vs thy.true_vars
+
+  let test_branch (thy : t') (vars, eqs) =
+    test_vars thy vars && test_eqs thy eqs
+
+  (** [reduced_vars] takes out redundant cofibration variables. *)
+  let reduce_vars (thy : t') vars =
+    VarSet.diff vars thy.true_vars
+
+  (** [reduce_eqs] detects inconsistency of an equation set and takes out
+    * redundant equations. *)
+  let reduce_eqs (thy : t') eqs =
+    let go ((thy', eqs) as acc) eq =
+      match unsafe_test_and_assume_eq thy' eq with
+      | true, _ -> acc
+      | false, thy' -> thy',  Snoc (eqs, eq)
+    in
+    let thy', eqs = List.fold_left go (thy, Emp) eqs in
+    match test_eq thy' (Dim0, Dim1) with
+    | true -> `Inconsistent
+    | false -> `Consistent (thy', Bwd.to_list eqs)
+
+  (** [reduce_branch] detects inconsistency of a branch and takes out redundant
+    * cofibration variables and equations. *)
+  let reduce_branch (thy' : t') (vars, eqs) =
+    match reduce_eqs thy' eqs with
+    | `Inconsistent -> `Inconsistent
+    | `Consistent (thy', eqs) ->
+      `Consistent (assume_vars thy' vars, (reduce_vars thy' vars, eqs))
+
+  (** [reduce_branches] removes inconsistent branches and takes out redundant
+    * cofibration variables and equations. *)
+  let reduce_branches (thy' : t') branches : cached_branches =
+    let go branch =
+      match reduce_branch thy' branch with
+      | `Inconsistent -> None
+      | `Consistent (thy', branch) -> Some (thy', branch)
+    in
+    List.filter_map go branches
+
+  (** [drop_useless_branches] drops the branches that could be dropped without
+    * affecting the coverages. *)
+  let drop_useless_branches cached_branches : cached_branches =
+    let go_fwd acc (thy', branch) =
+      if Bwd.exists (fun (_, branch) -> test_branch thy' branch) acc then
+        acc
+      else
+        Snoc (acc, (thy', branch))
+    in
+    let cached_branches = List.fold_left go_fwd Emp cached_branches in
+    let go_bwd (thy', branch) acc =
+      if List.exists (fun (_, branch) -> test_branch thy' branch) acc then
+        acc
+      else
+        (thy', branch) :: acc
+    in
+    Bwd.fold_right go_bwd cached_branches []
+
+  (** [split] combines all the optimizers above to split an algebraic theory
+    * into multiple ones induced by the input cofibration context. *)
+  let split (thy : t) (cofs : cof list) : t list =
+    match thy with
+    | `Inconsistent -> []
+    | `Consistent thy' ->
+      match dissect_cofibrations cofs with
+      | [] -> []
+      | [vars, []] when VarSet.is_empty vars -> [`Consistent thy']
+      | dissected_cofs ->
+        begin
+          drop_useless_branches @@
+          reduce_branches thy' dissected_cofs
+        end |> List.map @@ fun (thy', _) -> `Consistent thy'
+
+  (** [test] checks whether a cofibration is true within an algebraic theory *)
+  let rec test (thy' : alg_thy') : cof -> bool =
+    function
+    | Cof.Cof phi ->
+      begin
+        match phi with
+        | Cof.Eq (r, s) ->
+          test_eq thy' (r, s)
+        | Cof.Join phis ->
+          List.exists (test thy') phis
+        | Cof.Meet phis ->
+          List.for_all (test thy') phis
+      end
+    | Cof.Var v ->
+      test_var thy' v
+
+  let left_invert_under_cofs ~zero ~seq (thy : t) cofs cont =
+    match split thy cofs with
+    | [] -> zero
+    | [thy] -> cont thy
+    | thys -> seq cont thys
+end
+
+module Disj =
+struct
+  type t = disj_thy
+
+  let empty : t = [Alg.emp', (VarSet.empty, [])]
+
+  let consistency =
+    function
+    | [] -> `Inconsistent
+    | _ -> `Consistent
+
+  (** [refactor_branches] attempts to identify common parts of the branches
+    * and shrink the labels. Recall that we do not keep the common ancestor
+    * but the paths (as a collection of atomic cofibrations) from the common
+    * ancestor, and thus what are changed here are the paths.
+    *
+    * This optimization seems to be expensive, but it seems to help after
+    * we switched from the persistant tables (using [Hashtbl]) to [Map].
+  *)
+  let refactor_branches cached_branches : t =
+    let common_vars =
+      let go vars0 (_, (vars1, _)) = VarSet.inter vars0 vars1 in
+      match cached_branches with
+      | [] -> VarSet.empty
+      | (_, (vars, _)) :: branches -> List.fold_left go vars branches
+    in
+    (* The following is an approximation of checking whether some equation is useful.
+     * It does not kill every "useless" cofibration. Here is one example:
+     *
+     * branch 1: r=0
+     * branch 2: r=i, i=0
+     *
+     * r=0 will be factored out, but then i=0 should also be removed. Here is a more
+     * complicated example:
+     *
+     * branch 1: r=i, i=0
+     * branch 2: r=j, j=0
+     *
+     * Both i=0 and j=0 should be factored out, but the following code is not smart
+     * enough to detect them. One could consider more aggressive approaches if [CofThy]
+     * becomes the bottleneck again.
+    *)
+    let useful eq = cached_branches |> List.exists @@ fun (thy', _) -> not @@ Alg.test_eq thy' eq in
+    (* revisit all branches and remove all useless ones identified by the simple criterion above. *)
+    cached_branches |> List.map @@ fun (thy', (vars, eqs)) ->
+    thy', (VarSet.diff vars common_vars, List.filter useful eqs)
+
+  (** [split thy cofs] adds to the theory [thy] the conjunction of a list of cofibrations [cofs]
+    * and calculate the branches accordingly. This is similar to [Alg.split] in the spirit but
+    * differs in detail. *)
+  let split (thy : t) (cofs : cof list) : t =
+    match dissect_cofibrations cofs with
+    | [] -> []
+    | [vars, []] when VarSet.is_empty vars -> thy
+    | dissected_cofs ->
+      Alg.drop_useless_branches begin
+        thy |> List.concat_map @@ fun (thy', (vars, eq)) ->
+        Alg.reduce_branches thy' dissected_cofs |> List.map @@ fun (thy', (sub_vars, sub_eqs)) ->
+        thy', (VarSet.union vars sub_vars, eq @ sub_eqs)
+      end
+
+  (** [assume thy cofs] is the same as [split thy cofs] except that it further refactors the
+    * branches to optimize future searching. *)
+  let assume (thy : t) (cofs : cof list) : t =
+    refactor_branches @@ split thy cofs
+
+  let test_sequent thy cx cof =
+    begin
+      split thy cx |> List.map (fun (thy', _) -> thy')
+    end |> List.for_all @@ fun thy' -> Alg.test thy' cof
+
+  let left_invert ~zero ~seq thy cont =
+    match thy |> List.map @@ fun (thy', _) -> `Consistent thy' with
+    | [] -> zero
+    | [thy'] -> cont thy'
+    | thy's -> seq cont thy's
 end

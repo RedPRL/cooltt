@@ -61,7 +61,7 @@ struct
 
   let test_sequent cx phi =
     let+ {cof_thy; _} = M.read in
-    CofThy.test_sequent cof_thy cx phi
+    CofThy.Disj.test_sequent cof_thy cx phi
 
   let restore_cof_thy cof_thy =
     M.scope @@ fun local ->
@@ -70,7 +70,7 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofThy.consistency st.cof_thy with
+    match CofThy.Disj.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
@@ -118,7 +118,7 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofThy.consistency st.cof_thy with
+    match CofThy.Disj.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
@@ -147,20 +147,20 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofThy.Algebraic.consistency st.cof_thy with
+    match CofThy.Alg.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun {state; cof_thy; _} ->
-    m {state; cof_thy = CofThy.Algebraic.disj_envelope cof_thy}
+    m {state; cof_thy = CofThy.Alg.disj_envelope cof_thy}
 
   let replace_env cof_thy m =
     M.scope (fun local -> {local with cof_thy}) m
 
   let restrict_ phis m =
     let* {cof_thy; _} = M.read in
-    CofThy.Algebraic.left_invert_under_cofs
+    CofThy.Alg.left_invert_under_cofs
       ~zero:(M.ret ()) ~seq:MU.iter
       cof_thy phis @@ fun alg_thy ->
     replace_env alg_thy m
@@ -215,7 +215,7 @@ struct
 
   let restrict phis m =
     let* {cof_thy; _} = M.read in
-    replace_env (CofThy.assume cof_thy phis) m
+    replace_env (CofThy.Disj.assume cof_thy phis) m
 
   let binder i =
     M.scope @@ fun local ->
@@ -235,7 +235,7 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
-    match CofThy.consistency st.cof_thy with
+    match CofThy.Disj.consistency st.cof_thy with
     | `Consistent -> m st
     | `Inconsistent -> abort st
 
@@ -266,16 +266,19 @@ struct
     Env.set_veil v env
 
   let lift_conv_ (m : unit conversion) : unit m =
-    fun (state, env) ->
-    let cof_thy, irreducible_phis =
-      CofThy.Algebraic.partition_thy @@ Env.cof_thy env
+    let module MU = Monad.Util (struct
+        type 'a m = ('a, exn) result let ret = Result.ok let bind = Result.bind
+      end)
     in
-    match
-      ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} @@
-      ConvM.restrict_ irreducible_phis m
-    with
-    | Ok v -> Ok v, state
-    | Error exn -> Error exn, state
+    fun (state, env) ->
+      match
+        CofThy.Disj.left_invert
+          ~zero:(Ok ()) ~seq:MU.iter
+          (Env.cof_thy env) @@ fun cof_thy ->
+        ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} m
+      with
+      | Ok () -> Ok (), state
+      | Error exn -> Error exn, state
 
   let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
@@ -300,7 +303,7 @@ struct
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun (state, env) ->
-    match CofThy.consistency (Env.cof_thy env) with
+    match CofThy.Disj.consistency (Env.cof_thy env) with
     | `Consistent -> m (state, env)
     | `Inconsistent -> abort (state, env)
 end
