@@ -1359,19 +1359,14 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.ap bdry [i; prf]
 
       | `Ext (n, `Global phi, fam, bdry) ->
-        let rec go phi fam bdry n =
-          if n = 0 then
-            TB.sub (TB.el fam) phi @@ fun _ ->
-            TB.ap bdry [TB.prf]
-          else
-            TB.pi TB.tp_dim @@ fun i ->
-            go phi (TB.ap fam [i]) (TB.ap bdry [i]) @@ n - 1
-        in
         splice_tp @@
         Splice.con phi @@ fun phi ->
         Splice.con fam @@ fun fam ->
         Splice.con bdry @@ fun bdry ->
-        Splice.term @@ go phi fam bdry n
+        Splice.term @@
+        TB.cube n @@ fun js ->
+        TB.sub (TB.el @@ TB.ap fam js) (TB.ap phi js) @@ fun _ ->
+        TB.ap bdry @@ js @ [TB.prf]
     end
 
 
