@@ -145,7 +145,7 @@ struct
     {local with size = i + local.size}
 
   let globally m =
-    m |> M.scope  @@ fun local ->
+    m |> M.scope @@ fun local ->
     {local with size = 0}
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
