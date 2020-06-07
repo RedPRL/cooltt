@@ -55,6 +55,8 @@ module ConvM : sig
   val restrict_ : D.cof list -> unit m -> unit m
   val bind_var_ : D.tp -> (D.con -> unit m) -> unit m
 
+  val globally : 'a m -> 'a m
+
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end
 
@@ -68,6 +70,8 @@ module QuM : sig
   val read_global : ElabState.t m
   val read_local : int m
   val read_veil : Veil.t m
+
+  val globally : 'a m -> 'a m
 
   val binder : int -> 'a m -> 'a m
   val bind_var : D.tp -> (D.con -> 'a m) -> 'a m

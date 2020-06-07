@@ -160,7 +160,6 @@ and equate_stable_code univ code0 code1 =
     equate_con bdry_tp bdry0 bdry1
 
   | `Ext (n0, `Global phi0, code0, bdry0), `Ext (n1, `Global phi1, code1, bdry1) when n0 = n1 ->
-    let globally _m = raise CJHM in (* set the de bruijn index counter to 0 *)
     let* () =
       let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n0 @@ fun _ -> TB.tp_cof in
       globally @@ equate_con tp_cof_fam phi0 phi1
