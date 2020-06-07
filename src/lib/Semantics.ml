@@ -373,6 +373,10 @@ and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stab
     `Path (con0, con1)
   | `Nat | `Circle | `Univ as code ->
     ret code
+  | `Ext (n, `Global cof, code, con) ->
+    let+ code = subst_con r x code
+    and+ con = subst_con r x con in
+    `Ext (n, `Global cof, code, con)
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
   fun r x (hd, sp) ->
@@ -644,6 +648,12 @@ and eval : S.t -> D.con EvM.m =
       let* vfam = eval fam in
       let* vbdry = eval bdry in
       ret @@ D.StableCode (`Path (vfam, vbdry))
+
+    | S.CodeExt (n, `Global phi, fam, bdry) ->
+      let* phi = drop_all_cons @@ eval phi in
+      let* fam = eval fam in
+      let* bdry = eval bdry in
+      ret @@ D.StableCode (`Ext (n, `Global phi, fam, bdry))
 
     | S.CodePi (base, fam) ->
       let+ vbase = eval base
@@ -1347,6 +1357,21 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.pi TB.tp_dim @@ fun i ->
         TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
         TB.ap bdry [i; prf]
+
+      | `Ext (n, `Global phi, fam, bdry) ->
+        let rec go phi fam bdry n =
+          if n = 0 then
+            TB.sub (TB.el fam) phi @@ fun _ ->
+            TB.ap bdry [TB.prf]
+          else
+            TB.pi TB.tp_dim @@ fun i ->
+            go phi (TB.ap fam [i]) (TB.ap bdry [i]) @@ n - 1
+        in
+        splice_tp @@
+        Splice.con phi @@ fun phi ->
+        Splice.con fam @@ fun fam ->
+        Splice.con bdry @@ fun bdry ->
+        Splice.term @@ go phi fam bdry n
     end
 
 
@@ -1437,6 +1462,8 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
+      | `Ext _ ->
+        raise CJHM
     end
   | `Unstable (x, codex) ->
     begin
@@ -1512,6 +1539,8 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
+      | `Ext _ ->
+        raise CJHM
       | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@

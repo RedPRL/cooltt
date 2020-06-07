@@ -10,6 +10,7 @@ type 'a stable_code =
   [ `Path of 'a * 'a
   | `Pi of 'a * 'a
   | `Sg of 'a * 'a
+  | `Ext of int * [`Global of 'a] * 'a * 'a
   | `Nat
   | `Circle
   | `Univ
