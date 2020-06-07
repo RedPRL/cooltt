@@ -154,10 +154,32 @@ and equate_stable_code univ code0 code1 =
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       let phi = TB.boundary i in
-      TB.pi (TB.tp_prf phi) @@ fun _prf ->
+      TB.pi (TB.tp_prf phi) @@ fun _ ->
       TB.el @@ TB.ap fam [i]
     in
     equate_con bdry_tp bdry0 bdry1
+
+  | `Ext (n0, `Global phi0, code0, bdry0), `Ext (n1, `Global phi1, code1, bdry1) when n0 = n1 ->
+    let globally _m = raise CJHM in (* set the de bruijn index counter to 0 *)
+    let* () =
+      let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n0 @@ fun _ -> TB.tp_cof in
+      globally @@ equate_con tp_cof_fam phi0 phi1
+    in
+    let* () =
+      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n0 @@ fun _ -> TB.univ in
+      equate_con tp_code code0 code1
+    in
+    let* tp_bdry =
+      lift_cmp @@ splice_tp @@
+      Splice.con code0 @@ fun code ->
+      Splice.con phi0 @@ fun phi ->
+      Splice.term @@
+      TB.cube n0 @@ fun js ->
+      TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
+      TB.el @@ TB.ap code js
+    in
+    equate_con tp_bdry bdry0 bdry1
+
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
 
