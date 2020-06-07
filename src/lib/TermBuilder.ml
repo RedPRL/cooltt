@@ -1,4 +1,5 @@
 open CoolBasis
+open Bwd
 
 exception CFHM
 exception CCHM
@@ -270,8 +271,20 @@ let forall mphi =
   S.ForallCof phi
 
 let tp_dim = ret S.TpDim
+let tp_cof = ret S.TpCof
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
+
+let cube n mfam : _ m =
+  let rec go acc n =
+    if n = 0 then
+      mfam @@ Bwd.to_list acc
+    else
+      pi tp_dim @@ fun i ->
+      go (Snoc (acc, i)) (n - 1)
+  in
+  go Emp n
+
 
 let boundary mr =
   join [eq mr dim0; eq mr dim1]

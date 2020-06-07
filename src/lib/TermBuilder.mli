@@ -63,7 +63,10 @@ val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m
+val tp_cof : tp m
 val el : t m -> tp m
+
+val cube : int -> (t m list -> tp m) -> tp m
 
 val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
