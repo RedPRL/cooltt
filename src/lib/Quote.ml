@@ -310,6 +310,31 @@ and quote_stable_code univ =
     let+ tbdry = quote_con bdry_tp bdry in
     S.CodePath (tfam, tbdry)
 
+  | `Ext (n, `Global phi, code, bdry) ->
+    let+ tphi =
+      let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
+      quote_global_con tp_cof_fam @@ `Global phi
+    and+ tcode =
+      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.univ in
+      quote_con tp_code code
+    and+ tbdry =
+      let* tp_bdry =
+        lift_cmp @@ splice_tp @@
+        Splice.con code @@ fun code ->
+        Splice.con phi @@ fun phi ->
+        Splice.term @@
+        TB.cube n @@ fun js ->
+        TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
+        TB.el @@ TB.ap code js
+      in
+      quote_con tp_bdry bdry
+    in
+    S.CodeExt (n, tphi, tcode, tbdry)
+
+and quote_global_con tp (`Global con) =
+  globally @@
+  let+ tm = quote_con tp con in
+  `Global tm
 
 and quote_lam ?(ident = `Anon) tp mbdy =
   let+ bdy = bind_var tp mbdy in
