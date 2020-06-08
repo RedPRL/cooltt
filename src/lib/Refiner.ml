@@ -478,24 +478,6 @@ struct
     in
     S.CodeExt (n, tfam, `Global tcof, tbdry)
 
-  let path (tac_fam : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
-    let cof =
-      T.Chk.bchk @@
-      Pi.intro @@ fun i ->
-      T.BChk.chk @@ Cof.boundary @@ T.Chk.syn @@ T.Var.syn i
-    in
-    ext 1 tac_fam cof tac_bdry
-
-  let path_with_endpoints (tac_fam : T.Chk.tac) (tac_a : T.BChk.tac) (tac_b : T.BChk.tac) : T.Chk.tac =
-    path tac_fam @@
-    T.Chk.bchk @@
-    Pi.intro @@ fun i ->
-    Pi.intro @@ fun _prf ->
-    Cof.split
-      [(Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
-       (Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
-
-
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun _univ ->
     let* r = tac_dim D.TpDim in

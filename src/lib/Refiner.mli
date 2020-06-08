@@ -50,7 +50,6 @@ module Univ : sig
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
-  val path_with_endpoints : Chk.tac -> BChk.tac -> BChk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val hcom : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac

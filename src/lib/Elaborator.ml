@@ -32,7 +32,6 @@ sig
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
-  val path : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
   val circle : tac
@@ -88,10 +87,6 @@ struct
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
     Tp tac
-
-  let path tac_tp tac_l tac_r =
-    let tac = R.Univ.path_with_endpoints tac_tp (T.BChk.chk tac_l) (T.BChk.chk tac_r) in
-    Code tac
 
   let ext n tac_tp tac_cof tac_bdry =
     let tac = R.Univ.ext n tac_tp tac_cof tac_bdry in
