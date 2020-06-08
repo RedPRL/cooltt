@@ -98,7 +98,7 @@ module Kan : sig
   type hcom = r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
 
   val coe_pi : base_line:t m -> fam_line:t m -> coe
-  val hcom_pi : base:t m -> fam:t m -> hcom
+  val hcom_pi : fam:t m -> hcom
 
   val coe_sg : base_line:t m -> fam_line:t m -> coe
   val hcom_sg : base:t m -> fam:t m -> hcom

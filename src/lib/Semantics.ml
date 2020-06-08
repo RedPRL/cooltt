@@ -1504,16 +1504,15 @@ and enact_rigid_hcom code r r' phi bdy tag =
   | `Stable code ->
     begin
       match code with
-      | `Pi (base, fam) ->
+      | `Pi (_, fam) ->
         splice_tm @@
-        Splice.con base @@ fun base ->
         Splice.con fam @@ fun fam ->
         Splice.dim r @@ fun r ->
         Splice.dim r' @@ fun r' ->
         Splice.cof phi @@ fun phi ->
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
-        TB.Kan.hcom_pi ~base ~fam ~r ~r' ~phi ~bdy
+        TB.Kan.hcom_pi ~fam ~r ~r' ~phi ~bdy
       | `Sg (base, fam) ->
         splice_tm @@
         Splice.con base @@ fun base ->
