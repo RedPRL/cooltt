@@ -9,6 +9,9 @@ module S = Syntax
 
 module M : sig
   include Monad.S
+  type 'a global
+
+  val global : 'a global -> 'a m
 
   val scope : (S.t m -> 'a m) -> 'a m
   val run : tplen:int -> conlen:int-> 'a m -> 'a
@@ -22,9 +25,13 @@ struct
   type token = {lvl : int}
 
   type 'a m = local -> 'a
+  type 'a global = 'a
 
   let ret a : _ m =
     fun _ -> a
+
+  let global =
+    ret
 
   let bind m f : _ m =
     fun loc ->
@@ -285,6 +292,16 @@ let cube n mfam : _ m =
   in
   go Emp n
 
+let nlam n mbdy : _ m =
+  let rec go acc n =
+    if n = 0 then
+      mbdy @@ Bwd.to_list acc
+    else
+      lam @@ fun i ->
+      go (Snoc (acc, i)) (n - 1)
+  in
+  go Emp n
+
 
 let boundary mr =
   join [eq mr dim0; eq mr dim1]
@@ -444,7 +461,21 @@ struct
     lam @@ fun _p ->
     cof_split
       [ d_i , ap bdry [i; prf]
-      ; join [phi; eq k r] , sub_out (ap (el_out (ap bdy [k;prf])) [i])
+      ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k;prf])) [i]
+      ]
+
+  let hcom_ext ~n ~(cof : S.t global) ~fam ~bdry ~r ~r' ~phi ~bdy =
+    el_in @@
+    nlam n @@ fun js ->
+    sub_in @@
+    let_ (ap (global cof) js) @@ fun cof_js ->
+    let_ (ap fam js) @@ fun fam_js ->
+    hcom fam_js r r' (join [phi; cof_js]) @@
+    lam @@ fun k ->
+    lam @@ fun _p ->
+    cof_split
+      [ cof_js, ap bdry @@ js @ [prf]
+      ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k; prf])) js
       ]
 
   module V :
