@@ -33,6 +33,7 @@ sig
   val sg : tac -> Ident.t -> tac -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val path : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
+  val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
   val circle : tac
   val univ : tac
@@ -90,6 +91,10 @@ struct
 
   let path tac_tp tac_l tac_r =
     let tac = R.Univ.path_with_endpoints tac_tp (T.BChk.chk tac_l) (T.BChk.chk tac_r) in
+    Code tac
+
+  let ext n tac_tp tac_cof tac_bdry =
+    let tac = R.Univ.ext n tac_tp tac_cof tac_bdry in
     Code tac
 
   let nat = Code R.Univ.nat
@@ -244,6 +249,12 @@ and bchk_tm : CS.con -> T.BChk.tac =
       R.Cof.split branch_tacs
     | CS.Path (tp, a, b) ->
       T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
+    | CS.Ext (idents, tp, cases) ->
+      let n = List.length idents in
+      let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
+      let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
+      T.BChk.chk @@ R.Univ.ext n tac_fam tac_cof tac_bdry
     | _ ->
       R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
       match tp with

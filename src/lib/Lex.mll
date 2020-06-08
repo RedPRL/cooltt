@@ -46,6 +46,7 @@ let keywords =
     ("∂", BOUNDARY);
     ("sub", SUB);
     ("pathd", PATHD);
+    ("ext", EXT);
     ("coe", COE);
     ("hcom", HCOM);
     ("hfill", HFILL);
@@ -54,6 +55,7 @@ let keywords =
     ("🥦", V);
     ("vproj", VPROJ);
     ("cap", CAP);
+    ("with", WITH);
   ]
 }
 
