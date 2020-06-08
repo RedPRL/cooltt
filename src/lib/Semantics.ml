@@ -1533,8 +1533,17 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
-      | `Ext _ ->
-        raise CJHM
+      | `Ext (n, `Global cof, fam, bdry) ->
+        splice_tm @@
+        Splice.con cof @@ fun cof ->
+        Splice.con fam @@ fun fam ->
+        Splice.con bdry @@ fun bdry ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
       | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@
