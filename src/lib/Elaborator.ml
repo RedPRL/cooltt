@@ -125,6 +125,12 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) -> CoolTp.sub (cool_chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
   | CS.Path (tp, a, b) -> CoolTp.path (chk_tm tp) (chk_tm a) (chk_tm b)
+  | CS.Ext (idents, tp, cases) ->
+    let n = List.length idents in
+    let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
+    let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
+    CoolTp.ext n tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
 

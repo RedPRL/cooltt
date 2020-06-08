@@ -45,7 +45,6 @@ let keywords =
     ("cof", COF);
     ("∂", BOUNDARY);
     ("sub", SUB);
-    ("pathd", PATHD);
     ("ext", EXT);
     ("coe", COE);
     ("hcom", HCOM);
