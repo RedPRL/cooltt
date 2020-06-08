@@ -1,0 +1,15 @@
+def path (A : type) (x : A) (y : A) : type =
+  ext i => A with [i=0 => x | i=1 => y]
+
+def unit : type = ext => nat with [#t => 0]
+
+def tt : unit = 0
+
+def unit%eta (x : unit) : path unit tt x =
+  _ => x
+
+def empty : type = path nat 0 1
+
+def abort (P : empty -> type) (e : empty) : P e =
+  let myelim : nat -> type = elim [ zero => unit | suc _ => P e] in
+  coe {i => myelim {e i}} 0 1 tt
