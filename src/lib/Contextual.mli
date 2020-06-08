@@ -1,4 +1,3 @@
-(* open RedTT_Core *)
 open CoolBasis
 open Dev
 
