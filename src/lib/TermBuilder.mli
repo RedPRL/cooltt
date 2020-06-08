@@ -6,8 +6,6 @@ open CoolBasis
 
 include Monad.S
 
-type 'a global
-
 type t := Syntax.t
 type tp := Syntax.tp
 
@@ -107,7 +105,7 @@ module Kan : sig
   val coe_path : fam_line:t m -> bdry_line:t m -> coe
   val hcom_path : fam:t m -> bdry:t m -> hcom
 
-  val hcom_ext : n:int -> cof:t global -> fam:t m -> bdry:t m -> hcom
+  val hcom_ext : n:int -> cof:t m -> fam:t m -> bdry:t m -> hcom
 
   module V : sig
     type vcode = {r : t m; pcode : t m; code : t m; pequiv : t m}

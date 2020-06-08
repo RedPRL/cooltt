@@ -9,10 +9,6 @@ module S = Syntax
 
 module M : sig
   include Monad.S
-  type 'a global
-
-  val global : 'a global -> 'a m
-
   val scope : (S.t m -> 'a m) -> 'a m
   val run : tplen:int -> conlen:int-> 'a m -> 'a
   val lvl : int -> S.t m
@@ -25,13 +21,9 @@ struct
   type token = {lvl : int}
 
   type 'a m = local -> 'a
-  type 'a global = 'a
 
   let ret a : _ m =
     fun _ -> a
-
-  let global =
-    ret
 
   let bind m f : _ m =
     fun loc ->
@@ -464,11 +456,11 @@ struct
       ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k;prf])) [i]
       ]
 
-  let hcom_ext ~n ~(cof : S.t global) ~fam ~bdry ~r ~r' ~phi ~bdy =
+  let hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
     el_in @@
     nlam n @@ fun js ->
     sub_in @@
-    let_ (ap (global cof) js) @@ fun cof_js ->
+    let_ (ap cof js) @@ fun cof_js ->
     let_ (ap fam js) @@ fun fam_js ->
     hcom fam_js r r' (join [phi; cof_js]) @@
     lam @@ fun k ->
