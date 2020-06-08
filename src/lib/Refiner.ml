@@ -452,7 +452,7 @@ struct
     S.CodeSg (tp, fam)
 
 
-  let ext (n : int) (tac_cof : T.Chk.tac) (tac_fam : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
+  let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let* tcof =
       let* tp_cof_fam = EM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
@@ -484,7 +484,7 @@ struct
       Pi.intro @@ fun i ->
       T.BChk.chk @@ Cof.boundary @@ T.Chk.syn @@ T.Var.syn i
     in
-    ext 1 cof tac_fam tac_bdry
+    ext 1 tac_fam cof tac_bdry
 
   let path_with_endpoints (tac_fam : T.Chk.tac) (tac_a : T.BChk.tac) (tac_b : T.BChk.tac) : T.Chk.tac =
     path tac_fam @@
