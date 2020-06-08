@@ -1,5 +1,5 @@
-def path (C : type) (a : C) (b : C) : type =
-  pathd {_ => C} a b
+def path (A : type) (a : A) (b : A) : type =
+  ext i => A with [i=0 => a | i=1 => b]
 
 def is-contr (C : type) : type =
   (c : C) × {(c' : C) → path C c c'}

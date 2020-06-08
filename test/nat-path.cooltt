@@ -1,5 +1,5 @@
-def path (A : type) (x : A) (y : A) : type =
-  pathd {_ => A} x y
+def path (A : type) (a : A) (b : A) : type =
+  ext i => A with [i=0 => a | i=1 => b]
 
 def evan-test (A : type) (φ : 𝔽) (a : A)
   (p : sub {path A a a} φ {_ => a})

@@ -124,7 +124,6 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) -> CoolTp.sub (cool_chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
-  | CS.Path (tp, a, b) -> CoolTp.path (chk_tm tp) (chk_tm a) (chk_tm b)
   | CS.Ext (idents, tp, cases) ->
     let n = List.length idents in
     let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
@@ -253,8 +252,6 @@ and bchk_tm : CS.con -> T.BChk.tac =
     | CS.CofSplit splits ->
       let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
       R.Cof.split branch_tacs
-    | CS.Path (tp, a, b) ->
-      T.BChk.chk @@ R.Univ.path_with_endpoints (chk_tm tp) (bchk_tm a) (bchk_tm b)
     | CS.Ext (idents, tp, cases) ->
       let n = List.length idents in
       let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
