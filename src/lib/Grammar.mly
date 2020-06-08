@@ -258,7 +258,7 @@ plain_term_except_cof_case:
   | CAP; t = term
     { Cap t }
 
-  | EXT; names = nonempty_list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
+  | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }
 
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
