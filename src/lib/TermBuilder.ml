@@ -225,7 +225,7 @@ let code_sg mbase mfam : _ m =
 let code_path mfam mbdry : _ m =
   let+ fam = mfam
   and+ bdry = mbdry in
-  S.CodePath (fam, bdry)
+  S.CodeExt (1, `Global (S.Lam (`Anon, S.Cof (Cof.Join [S.Cof (Cof.Eq (S.Var 0, S.Dim0)); S.Cof (Cof.Eq (S.Var 0, S.Dim1))]))), fam, bdry)
 
 let code_v mr mpcode mcode mpequiv : _ m=
   let+ r = mr

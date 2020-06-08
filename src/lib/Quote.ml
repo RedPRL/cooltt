@@ -283,33 +283,6 @@ and quote_stable_code univ =
     in
     S.CodeSg (tbase, tfam)
 
-    (*
-    *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
-    * *)
-  | `Path (fam, bdry) ->
-    let* piuniv =
-      lift_cmp @@
-      splice_tp @@
-      Splice.tp univ @@ fun univ ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun _i ->
-      univ
-    in
-    let* tfam = quote_con piuniv fam in
-    (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
-    let* bdry_tp =
-      lift_cmp @@
-      splice_tp @@
-      Splice.tp univ @@ fun _univ ->
-      Splice.con fam @@ fun fam ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
-      TB.el @@ TB.ap fam [i]
-    in
-    let+ tbdry = quote_con bdry_tp bdry in
-    S.CodePath (tfam, tbdry)
-
   | `Ext (n, `Global phi, code, bdry) ->
     let+ tphi =
       let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in

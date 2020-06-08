@@ -64,7 +64,7 @@ let rec dump fmt =
   | VIn _ -> Format.fprintf fmt "<vin>"
   | VProj _ -> Format.fprintf fmt "<vproj>"
 
-  | CodePath (tm0, tm1) -> Format.fprintf fmt "path[%a, %a]" dump tm0 dump tm1
+  | CodeExt _ -> Format.fprintf fmt "<ext>"
   | CodePi _ -> Format.fprintf fmt "<pi>"
   | CodeSg _ -> Format.fprintf fmt "<sg>"
   | CodeNat -> Format.fprintf fmt "nat"
@@ -271,13 +271,9 @@ let rec pp env fmt tm =
       (pp_atomic env) base
       (pp_atomic env) tm
 
-  | CodePath (fam, bdry) when debug_mode ->
-    Format.fprintf fmt "@[`path %a %a@]"
-      (pp_atomic env) fam
-      (pp_atomic env) bdry
-
-  | CodePath (fam, bdry) ->
-    Format.fprintf fmt "@[ext {i => ∂ i} %a %a@]"
+  | CodeExt (_, `Global phi, fam, bdry) ->
+    Format.fprintf fmt "@[ext %a %a %a@]"
+      (pp_atomic Pp.Env.emp) phi
       (pp_atomic env) fam
       (pp_atomic env) bdry
 

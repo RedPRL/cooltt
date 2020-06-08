@@ -474,7 +474,9 @@ struct
       TB.el @@ TB.ap fam [i]
     in
     let* bdry = tac_bdry bdry_tp in
-    EM.ret @@ S.CodePath (fam, bdry)
+
+    let cof = Cofibration.Join [S.Cof (Cofibration.Eq (S.Var 0, S.Dim0)); S.Cof (Cofibration.Eq (S.Var 0, S.Dim1))] in
+    EM.ret @@ S.CodeExt (1, `Global (S.Lam (`Anon, S.Cof cof)), fam, bdry)
 
   let path_with_endpoints (tac_fam : T.Chk.tac) (tac_a : T.BChk.tac) (tac_b : T.BChk.tac) : T.Chk.tac =
     path tac_fam @@

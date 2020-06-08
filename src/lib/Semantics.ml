@@ -367,16 +367,12 @@ and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stab
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     `Sg (con0, con1)
-  | `Path (con0, con1) ->
-    let+ con0 = subst_con r x con0
-    and+ con1 = subst_con r x con1 in
-    `Path (con0, con1)
-  | `Nat | `Circle | `Univ as code ->
-    ret code
   | `Ext (n, `Global cof, code, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (n, `Global cof, code, con)
+  | `Nat | `Circle | `Univ as code ->
+    ret code
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
   fun r x (hd, sp) ->
@@ -643,11 +639,6 @@ and eval : S.t -> D.con EvM.m =
       D.Split (List.combine phis pclos)
     | S.Prf ->
       ret D.Prf
-
-    | S.CodePath (fam, bdry) ->
-      let* vfam = eval fam in
-      let* vbdry = eval bdry in
-      ret @@ D.StableCode (`Path (vfam, vbdry))
 
     | S.CodeExt (n, `Global phi, fam, bdry) ->
       let* phi = drop_all_cons @@ eval phi in
@@ -1349,15 +1340,6 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
 
-      | `Path (fam, bdry) ->
-        splice_tp @@
-        Splice.con fam @@ fun fam ->
-        Splice.con bdry @@ fun bdry ->
-        Splice.term @@
-        TB.pi TB.tp_dim @@ fun i ->
-        TB.sub (TB.el (TB.ap fam [i])) (TB.boundary i) @@ fun prf ->
-        TB.ap bdry [i; prf]
-
       | `Ext (n, `Global phi, fam, bdry) ->
         splice_tp @@
         Splice.con phi @@ fun phi ->
@@ -1449,14 +1431,6 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
-      | `Path (famx, bdryx) ->
-        splice_tm @@
-        Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
-        Splice.con (D.BindSym (x, bdryx)) @@ fun bdry_line ->
-        Splice.dim r @@ fun r ->
-        Splice.dim r' @@ fun r' ->
-        Splice.con con @@ fun bdy ->
-        Splice.term @@ TB.Kan.coe_ext ~n:1 ~cof:(TB.lam TB.boundary) ~fam_line ~bdry_line ~r ~r' ~bdy
       | `Ext (n, `Global cof, famx, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1530,16 +1504,6 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
-      | `Path (fam, bdry) ->
-        splice_tm @@
-        Splice.con fam @@ fun fam ->
-        Splice.con bdry @@ fun bdry ->
-        Splice.dim r @@ fun r ->
-        Splice.dim r' @@ fun r' ->
-        Splice.cof phi @@ fun phi ->
-        Splice.con bdy @@ fun bdy ->
-        Splice.term @@
-        TB.Kan.hcom_ext ~n:1 ~cof:(TB.lam TB.boundary) ~fam ~bdry ~r ~r' ~phi ~bdy
       | `Ext (n, `Global cof, fam, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
