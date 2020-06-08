@@ -442,20 +442,6 @@ struct
       ; eq i r, sub_out @@ ap (el_out bdy) [j]
       ]
 
-  let hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy =
-    el_in @@
-    lam @@ fun i ->
-    sub_in @@
-    let_ (boundary i) @@ fun d_i ->
-    let_ (ap fam [i]) @@ fun fam_i ->
-    hcom fam_i r r' (join [phi; d_i]) @@
-    lam @@ fun k ->
-    lam @@ fun _p ->
-    cof_split
-      [ d_i , ap bdry [i; prf]
-      ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k;prf])) [i]
-      ]
-
   let hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
     el_in @@
     nlam n @@ fun js ->
@@ -469,6 +455,9 @@ struct
       [ cof_js, ap bdry @@ js @ [prf]
       ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k; prf])) js
       ]
+
+  let hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy =
+    hcom_ext ~n:1 ~cof:(lam boundary) ~fam ~bdry ~r ~r' ~phi ~bdy
 
   module V :
   sig
