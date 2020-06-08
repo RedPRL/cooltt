@@ -451,39 +451,32 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
-  let path (tac_fam : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
-    univ_tac @@ fun univ ->
-    let* piuniv =
-      EM.lift_cmp @@
-      Sem.splice_tp @@
-      Splice.tp univ @@ fun univ ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun _i ->
-      univ
-    in
-    let* fam = tac_fam piuniv in
-    let* vfam = EM.lift_ev @@ Sem.eval fam in
-    let* bdry_tp =
-      EM.lift_cmp @@
-      Sem.splice_tp @@
-      Splice.tp univ @@ fun _univ ->
-      Splice.con vfam @@ fun fam ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf @@ TB.boundary i) @@ fun _prf ->
-      TB.el @@ TB.ap fam [i]
-    in
-    let* bdry = tac_bdry bdry_tp in
-    EM.ret @@ S.CodePath (fam, bdry)
 
-  let path_with_endpoints (tac_fam : T.Chk.tac) (tac_a : T.BChk.tac) (tac_b : T.BChk.tac) : T.Chk.tac =
-    path tac_fam @@
-    T.Chk.bchk @@
-    Pi.intro @@ fun i ->
-    Pi.intro @@ fun _prf ->
-    Cof.split
-      [(Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim0, fun _ -> tac_a);
-       (Cof.eq (T.Chk.syn (T.Var.syn i)) Dim.dim1, fun _ -> tac_b)]
+  let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
+    univ_tac @@ fun univ ->
+    let* tcof =
+      let* tp_cof_fam = EM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
+      EM.globally @@ tac_cof tp_cof_fam
+    in
+    let* cof = EM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
+    let* tfam =
+      let* tp_fam = EM.lift_cmp @@ Sem.splice_tp @@ Splice.tp univ @@ fun univ -> Splice.term @@ TB.cube n @@ fun _ -> univ in
+      tac_fam tp_fam
+    in
+    let+ tbdry =
+      let* fam = EM.lift_ev @@ Sem.eval tfam in
+      let* tp_bdry =
+        EM.lift_cmp @@ Sem.splice_tp @@
+        Splice.con cof @@ fun cof ->
+        Splice.con fam @@ fun fam ->
+        Splice.term @@
+        TB.cube n @@ fun js ->
+        TB.pi (TB.tp_prf @@ TB.ap cof js) @@ fun _ ->
+        TB.el @@ TB.ap fam js
+      in
+      tac_bdry tp_bdry
+    in
+    S.CodeExt (n, tfam, `Global tcof, tbdry)
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun _univ ->

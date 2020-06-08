@@ -207,7 +207,7 @@ and pp_tp fmt =
 
 and pp_stable_code fmt =
   function
-  | `Path _ -> Format.fprintf fmt "<code-path>"
+  | `Ext _ -> Format.fprintf fmt "<code-ext>"
   | `Pi _ -> Format.fprintf fmt "<code-pi>"
   | `Sg _ -> Format.fprintf fmt "<code-sg>"
   | `Nat -> Format.fprintf fmt "<code-nat>"

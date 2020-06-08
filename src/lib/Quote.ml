@@ -283,33 +283,31 @@ and quote_stable_code univ =
     in
     S.CodeSg (tbase, tfam)
 
-    (*
-    *  path : (fam : I -> U) -> ((i : I) -> (p : [i=0\/i=1]) -> fam i) -> U
-    * *)
-  | `Path (fam, bdry) ->
-    let* piuniv =
-      lift_cmp @@
-      splice_tp @@
-      Splice.tp univ @@ fun univ ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun _i ->
-      univ
+  | `Ext (n, code, `Global phi, bdry) ->
+    let+ tphi =
+      let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
+      quote_global_con tp_cof_fam @@ `Global phi
+    and+ tcode =
+      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.univ in
+      quote_con tp_code code
+    and+ tbdry =
+      let* tp_bdry =
+        lift_cmp @@ splice_tp @@
+        Splice.con code @@ fun code ->
+        Splice.con phi @@ fun phi ->
+        Splice.term @@
+        TB.cube n @@ fun js ->
+        TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
+        TB.el @@ TB.ap code js
+      in
+      quote_con tp_bdry bdry
     in
-    let* tfam = quote_con piuniv fam in
-    (* (i : I) -> (p : [i=0\/i=1]) -> fam i  *)
-    let* bdry_tp =
-      lift_cmp @@
-      splice_tp @@
-      Splice.tp univ @@ fun _univ ->
-      Splice.con fam @@ fun fam ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.boundary i)) @@ fun _prf ->
-      TB.el @@ TB.ap fam [i]
-    in
-    let+ tbdry = quote_con bdry_tp bdry in
-    S.CodePath (tfam, tbdry)
+    S.CodeExt (n, tcode, tphi, tbdry)
 
+and quote_global_con tp (`Global con) =
+  globally @@
+  let+ tm = quote_con tp con in
+  `Global tm
 
 and quote_lam ?(ident = `Anon) tp mbdy =
   let+ bdy = bind_var tp mbdy in

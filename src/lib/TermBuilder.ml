@@ -1,4 +1,5 @@
 open CoolBasis
+open Bwd
 
 exception CFHM
 exception CCHM
@@ -8,7 +9,6 @@ module S = Syntax
 
 module M : sig
   include Monad.S
-
   val scope : (S.t m -> 'a m) -> 'a m
   val run : tplen:int -> conlen:int-> 'a m -> 'a
   val lvl : int -> S.t m
@@ -225,7 +225,7 @@ let code_sg mbase mfam : _ m =
 let code_path mfam mbdry : _ m =
   let+ fam = mfam
   and+ bdry = mbdry in
-  S.CodePath (fam, bdry)
+  S.CodeExt (1, fam, `Global (S.Lam (`Anon, S.Cof (Cof.Join [S.Cof (Cof.Eq (S.Var 0, S.Dim0)); S.Cof (Cof.Eq (S.Var 0, S.Dim1))]))), bdry)
 
 let code_v mr mpcode mcode mpequiv : _ m=
   let+ r = mr
@@ -270,8 +270,30 @@ let forall mphi =
   S.ForallCof phi
 
 let tp_dim = ret S.TpDim
+let tp_cof = ret S.TpCof
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
+
+let cube n mfam : _ m =
+  let rec go acc n =
+    if n = 0 then
+      mfam @@ Bwd.to_list acc
+    else
+      pi tp_dim @@ fun i ->
+      go (Snoc (acc, i)) (n - 1)
+  in
+  go Emp n
+
+let nlam n mbdy : _ m =
+  let rec go acc n =
+    if n = 0 then
+      mbdy @@ Bwd.to_list acc
+    else
+      lam @@ fun i ->
+      go (Snoc (acc, i)) (n - 1)
+  in
+  go Emp n
+
 
 let boundary mr =
   join [eq mr dim0; eq mr dim1]
@@ -367,8 +389,7 @@ struct
     coe fib_line r r' @@
     ap (el_out bdy) [ap coe_base_line [r]]
 
-  (* CJHM: we are not using base? *)
-  let hcom_pi ~base:_ ~fam ~r ~r' ~phi ~bdy : _ m =
+  let hcom_pi ~fam ~r ~r' ~phi ~bdy : _ m =
     el_in @@
     lam @@ fun arg ->
     let tfib = ap fam [arg] in
@@ -407,32 +428,30 @@ struct
     el_in @@
     pair p0 p1
 
-
-  let coe_path ~(fam_line : S.t m) ~(bdry_line : S.t m) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
+  let coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
     el_in @@
-    lam @@ fun j ->
+    nlam n @@ fun js ->
     sub_in @@
-    let_ (boundary j) @@ fun d_j ->
-    com (lam @@ fun i -> ap fam_line [i; j]) r r' d_j @@
+    let_ (ap cof js) @@ fun cof_js ->
+    com (lam @@ fun i -> ap fam_line @@ i :: js) r r' cof_js @@
     lam @@ fun i ->
     lam @@ fun _ ->
     cof_split
-      [ d_j, ap bdry_line [i; j; prf]
-      ; eq i r, sub_out @@ ap (el_out bdy) [j]
-      ]
+      [cof_js, ap bdry_line @@ i :: js @ [prf]
+      ; eq i r, sub_out @@ ap (el_out bdy) js]
 
-  let hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy =
+  let hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
     el_in @@
-    lam @@ fun i ->
+    nlam n @@ fun js ->
     sub_in @@
-    let_ (boundary i) @@ fun d_i ->
-    let_ (ap fam [i]) @@ fun fam_i ->
-    hcom fam_i r r' (join [phi; d_i]) @@
+    let_ (ap cof js) @@ fun cof_js ->
+    let_ (ap fam js) @@ fun fam_js ->
+    hcom fam_js r r' (join [phi; cof_js]) @@
     lam @@ fun k ->
     lam @@ fun _p ->
     cof_split
-      [ d_i , ap bdry [i; prf]
-      ; join [phi; eq k r] , sub_out (ap (el_out (ap bdy [k;prf])) [i])
+      [ cof_js, ap bdry @@ js @ [prf]
+      ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k; prf])) js
       ]
 
   module V :

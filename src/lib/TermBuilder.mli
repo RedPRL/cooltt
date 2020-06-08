@@ -6,7 +6,6 @@ open CoolBasis
 
 include Monad.S
 
-
 type t := Syntax.t
 type tp := Syntax.tp
 
@@ -63,7 +62,10 @@ val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m
+val tp_cof : tp m
 val el : t m -> tp m
+
+val cube : int -> (t m list -> tp m) -> tp m
 
 val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
@@ -95,13 +97,13 @@ module Kan : sig
   type hcom = r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
 
   val coe_pi : base_line:t m -> fam_line:t m -> coe
-  val hcom_pi : base:t m -> fam:t m -> hcom
+  val hcom_pi : fam:t m -> hcom
 
   val coe_sg : base_line:t m -> fam_line:t m -> coe
   val hcom_sg : base:t m -> fam:t m -> hcom
 
-  val coe_path : fam_line:t m -> bdry_line:t m -> coe
-  val hcom_path : fam:t m -> bdry:t m -> hcom
+  val hcom_ext : n:int -> cof:t m -> fam:t m -> bdry:t m -> hcom
+  val coe_ext : n:int -> cof:t m -> fam_line:t m -> bdry_line:t m -> coe
 
   module V : sig
     type vcode = {r : t m; pcode : t m; code : t m; pequiv : t m}

@@ -144,6 +144,10 @@ struct
     M.scope @@ fun local ->
     {local with size = i + local.size}
 
+  let globally m =
+    m |> M.scope @@ fun local ->
+    {local with size = 0}
+
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun st ->
@@ -210,8 +214,12 @@ struct
     fun {state; cof_thy; _} ->
     m {state; cof_thy}
 
-  let replace_env cof_thy m =
-    M.scope (fun local -> {local with cof_thy}) m
+  let globally m =
+    m |> M.scope @@ fun local ->
+    {local with size = 0}
+
+  let replace_env cof_thy =
+    M.scope @@ fun local -> {local with cof_thy}
 
   let restrict phis m =
     let* {cof_thy; _} = M.read in
