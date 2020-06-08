@@ -1,150 +1,61 @@
 module type S =
 sig
-  type ('k, 'a) t
+  type key
+  type 'a t
 
-  val init : size:int -> ('k, 'a) t
-  val size : ('k, 'a) t -> int
-  val get : 'k -> ('k, 'a) t -> 'a
-  val set : 'k -> 'a -> ('k, 'a) t -> ('k, 'a) t
-  val mem : 'k -> ('k, 'a) t -> bool
-  val remove : 'k -> ('k, 'a) t -> ('k, 'a) t
-  val set_opt : 'k -> 'a option -> ('k, 'a) t -> ('k, 'a) t
-  val find : 'k -> ('k, 'a) t -> 'a option
-  val fold : ('k -> 'a -> 'b -> 'b) -> ('k, 'a) t -> 'b -> 'b
-  val merge : ('k, 'a) t -> ('k, 'a) t -> ('k, 'a) t
-  val to_list : ('k, 'a) t -> ('k * 'a) list
-  val to_list_keys : ('k, 'a) t -> 'k list
-  val to_list_values : ('k, 'a) t -> 'a list
+  val empty : 'a t
+  val size : 'a t -> int
+  val get : key -> 'a t -> 'a
+  val set : key -> 'a -> 'a t -> 'a t
+  val mem : key -> 'a t -> bool
+  val remove : key -> 'a t -> 'a t
+  val set_opt : key -> 'a option -> 'a t -> 'a t
+  val find : key -> 'a t -> 'a option
+  val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
+
+  (** entries from the first argument overwrite the ones from the second. *)
+  val merge : 'a t -> 'a t -> 'a t
+
+  val to_list : 'a t -> (key * 'a) list
+  val to_list_keys : 'a t -> key list
+  val to_list_values : 'a t -> 'a list
 end
 
-module M : S =
+module type MAKER = functor (O : Map.OrderedType) -> S with type key = O.t
+
+module M (O : Map.OrderedType) =
 struct
-  type ('k, 'a) t = ('k, 'a) node ref
-  and ('k, 'a) node =
-    | Tbl of ('k, 'a) Hashtbl.t
-    | Diff of 'k * 'a option * ('k, 'a) t
 
-  exception Fatal
+  type key = O.t
 
-  let init ~size =
-    ref @@ Tbl (Hashtbl.create size)
+  module M = Map.Make (O)
 
-  let raw_set_opt tbl k ov =
-    match ov with
-    | None -> Hashtbl.remove tbl k
-    | Some v -> Hashtbl.replace tbl k v
+  type 'a t = 'a M.t
 
-  let rec rerootk (t : ('k, 'a) t) (kont : unit -> unit) : unit =
-    match !t with
-    | Tbl _ -> kont ()
-    | Diff (k, ov, t') ->
-      (rerootk[@tailcall]) t' @@ fun () ->
-      begin
-        match !t' with
-        | Tbl a as n ->
-          let ov' = Hashtbl.find_opt a k in
-          raw_set_opt a k ov;
-          t := n;
-          t' := Diff (k, ov', t)
-        | Diff _ ->
-          assert false
-      end;
-      kont ()
+  let empty = M.empty
 
-  let reroot t =
-    rerootk t @@ fun () -> ()
+  let size t = M.cardinal t
 
-  let size t =
-    reroot t;
-    match !t with
-    | Tbl a ->
-      Hashtbl.length a
-    | _ ->
-      raise Fatal
+  let get k t = M.find k t
 
-  let get k t =
-    reroot t;
-    match !t with
-    | Tbl a ->
-      Hashtbl.find a k
-    | _ ->
-      raise Fatal
+  let mem k t = M.mem k t
 
-  let mem k t =
-    reroot t;
-    match !t with
-    | Tbl a ->
-      Hashtbl.mem a k
-    | _ ->
-      raise Fatal
+  let find k t = M.find_opt k t
 
-  let find k t =
-    try
-      Some (get k t)
-    with
-    | _ -> None
+  let set k v t = M.add k v t
 
-  let set k v t =
-    reroot t;
-    match !t with
-    | Tbl a as n ->
-      let old = Hashtbl.find_opt a k in
-      Hashtbl.replace a k v;
-      let res = ref n in
-      t := Diff (k, old, res);
-      res
-    | _ ->
-      raise Fatal
+  let remove k t = M.remove k t
 
-  let remove k t =
-    reroot t;
-    match !t with
-    | Tbl a as n ->
-      let old = Hashtbl.find_opt a k in
-      Hashtbl.remove a k;
-      let res = ref n in
-      t := Diff (k, old, res);
-      res
-    | _ ->
-      raise Fatal
+  let set_opt k ov t = M.update k (fun _ -> ov) t
 
-  let set_opt k ov t =
-    match ov with
-    | None -> remove k t
-    | Some v -> set k v t
-
-  let fold f t e =
-    reroot t;
-    match !t with
-    | Tbl a ->
-      Hashtbl.fold f a e
-    | _ ->
-      raise Fatal
+  let fold f t e = M.fold f t e
 
   let merge t0 t1 = fold set t0 t1
 
-  let to_list t =
-    reroot t;
-    match !t with
-    | Tbl a ->
-      List.of_seq (Hashtbl.to_seq a)
-    | _ ->
-      raise Fatal
+  let to_list t = M.bindings t
 
-  let to_list_keys t =
-    reroot t;
-    match !t with
-    | Tbl a ->
-      List.of_seq (Hashtbl.to_seq_keys a)
-    | _ ->
-      raise Fatal
+  let to_list_keys t = List.map (fun (k, _) -> k) @@ to_list t
 
-  let to_list_values t =
-    reroot t;
-    match !t with
-    | Tbl a ->
-      List.of_seq (Hashtbl.to_seq_values a)
-    | _ ->
-      raise Fatal
+  let to_list_values t = List.map (fun (_, v) -> v) @@ to_list t
 
 end

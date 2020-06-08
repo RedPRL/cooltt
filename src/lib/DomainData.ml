@@ -3,7 +3,22 @@ open CoolBasis
 open Bwd
 
 include Dim
+
 type cof = (dim, int) Cof.cof
+
+type 'a stable_code =
+  [ `Path of 'a * 'a
+  | `Pi of 'a * 'a
+  | `Sg of 'a * 'a
+  | `Nat
+  | `Circle
+  | `Univ
+  ]
+
+type 'a unstable_code =
+  [ `HCom of dim * dim * cof * 'a
+  | `V of dim * 'a * 'a * 'a
+  ]
 
 type env = {tpenv : tp bwd; conenv: con bwd}
 
@@ -31,15 +46,11 @@ and con =
   | Cof of (con, con) Cof.cof_f
   | Prf
 
-  | CodePath of con * con
-  | CodePi of con * con
-  | CodeSg of con * con
-  | CodeNat
-  | CodeCircle
-  | CodeUniv
-  | CodeV of dim * con * con * con
+  | FHCom of [`Nat | `Circle] * dim * dim * cof * con
 
-  | FHCom of [`Nat | `Circle | `Univ] * dim * dim * cof * con
+  | StableCode of con stable_code
+  | UnstableCode of con unstable_code
+
   | Box of dim * dim * cof * con * con
   | VIn of dim * con * con * con
 
@@ -48,9 +59,9 @@ and con =
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
-  | El of con
   | ElCut of cut
-  | ElUnstable of [`HCom of dim * dim * cof * con | `V of dim * con * con * con]
+  | ElStable of con stable_code
+  | ElUnstable of con unstable_code
   | GoalTp of string option * tp
   | TpDim
   | TpCof
@@ -65,10 +76,7 @@ and hd =
   | Global of Symbol.t
   | Var of int (* De Bruijn level *)
   | Coe of con * dim * dim * con
-  | HCom of cut * dim * dim * cof * con
-  | Cap of dim * dim * cof * con * cut
-  | VProj of dim * con * con * con * cut
-  | SubOut of cut * cof * tm_clo
+  | UnstableCut of cut * unstable_frm
 
 and cut = hd * frm list
 
@@ -80,6 +88,12 @@ and frm =
   | KCircleElim of con * con * con
   | KGoalProj
   | KElOut
+
+and unstable_frm =
+  | KHCom of dim * dim * cof * con
+  | KCap of dim * dim * cof * con
+  | KVProj of dim * con * con * con
+  | KSubOut of cof * tm_clo
 
 let tm_abort = Split []
 let tp_abort = TpSplit []
