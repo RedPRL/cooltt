@@ -1457,8 +1457,15 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_ext ~n:1 ~cof:(TB.lam TB.boundary) ~fam_line ~bdry_line ~r ~r' ~bdy
-      | `Ext _ ->
-        raise CJHM
+      | `Ext (n, `Global cof, famx, bdryx) ->
+        splice_tm @@
+        Splice.con cof @@ fun cof ->
+        Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
+        Splice.con (D.BindSym (x, bdryx)) @@ fun bdry_line ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
+        Splice.term @@ TB.Kan.coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
     end
   | `Unstable (x, codex) ->
     begin
