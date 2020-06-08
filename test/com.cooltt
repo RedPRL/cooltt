@@ -44,6 +44,10 @@ def coe/sigma
 
 normalize coe/sigma
 
+def pathd (A : 𝕀 → type) (a : A 0) (b : A 1) : type =
+  ext i => A i with [i=0 => a | i=1 => b]
+
+
 def coe/pathd
   (A : 𝕀 -> 𝕀 -> type)
   (r : 𝕀)

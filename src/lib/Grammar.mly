@@ -38,9 +38,9 @@ let upath_elem =
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
-%token SUC NAT ZERO UNFOLD GENERALIZE
+%token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token PATHD
+%token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF
 %token ELIM
@@ -258,8 +258,8 @@ plain_term_except_cof_case:
   | CAP; t = term
     { Cap t }
 
-  | PATHD; tp = atomic_term; left = atomic_term; right = atomic_term
-    { Path (tp, left, right) }
+  | EXT; names = nonempty_list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
+    { Ext (names, fam, cases) }
 
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }

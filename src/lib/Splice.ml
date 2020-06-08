@@ -30,7 +30,7 @@ let foreign_list (cons : D.con list) k : _ t =
     | con :: cons ->
       foreign con @@ fun tm ->
       go cons @@ fun tms ->
-      k (tm :: tms)
+      k @@ tm :: tms
   in
   go cons k
 

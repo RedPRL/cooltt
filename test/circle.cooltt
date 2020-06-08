@@ -1,5 +1,8 @@
+def path (A : type) (a : A) (b : A) : type =
+  ext i => A with [i=0 => a | i=1 => b]
+
 def Ω1s1 : type =
-  pathd {_ => circle} base base
+  path circle base base
 
 def loopn : nat -> Ω1s1 =
   elim [
