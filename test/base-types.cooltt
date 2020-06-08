@@ -1,0 +1,41 @@
+def path (A : type) (x : A) (y : A) : type =
+  ext i => A with [i=0 => x | i=1 => y]
+
+def unit : type = ext => nat with [#t => 0]
+
+def tt : unit = 0
+
+def unit/eta (x : unit) : path unit tt x =
+  _ => x
+
+def empty : type = path nat 0 1
+
+def abort (P : empty -> type) (e : empty) : P e =
+  let myelim : nat -> type = elim [ zero => unit | suc _ => P e ] in
+  coe {i => myelim {e i}} 0 1 tt
+
+def sum (A : type) (B : type) : type =
+  let fam/shifted : nat -> type = elim [ zero => B | suc _ => empty ] in
+  let fam : nat -> type = elim [ zero => A | suc n => fam/shifted n ] in
+  (n : nat) * fam n
+
+def inl (A : type) (B : type) (x : A) : sum A B =
+  [ 0 , x ]
+
+def inr (A : type) (B : type) (y : B) : sum A B =
+  [ 1 , y ]
+
+def case (A : type) (B : type) (P : sum A B -> type)
+  (P/inl : (a : A) -> P {inl A B a})
+  (P/inr : (b : B) -> P {inr A B b})
+  (s : sum A B) : P s
+  =
+  let fam/shifted : nat -> type = elim [ zero => B | suc _ => empty ] in
+  let curried/shifted : (n : nat) (e : fam/shifted n) -> P [ suc n , e ] =
+    elim [ zero => P/inr | suc n => e => abort {_ => P [ suc {suc n} , e ]} e ]
+  in
+  let fam : nat -> type = elim [ zero => A | suc n => fam/shifted n ] in
+  let curried : (n : nat) (e : fam n) -> P [ n , e ] =
+    elim [ zero => P/inl | suc n => curried/shifted n ]
+  in
+  curried {fst s} {snd s}
