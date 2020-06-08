@@ -1456,7 +1456,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r @@ fun r ->
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
-        Splice.term @@ TB.Kan.coe_path ~fam_line ~bdry_line ~r ~r' ~bdy
+        Splice.term @@ TB.Kan.coe_ext ~n:1 ~cof:(TB.lam TB.boundary) ~fam_line ~bdry_line ~r ~r' ~bdy
       | `Ext _ ->
         raise CJHM
     end
@@ -1532,7 +1532,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.cof phi @@ fun phi ->
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
-        TB.Kan.hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy
+        TB.Kan.hcom_ext ~n:1 ~cof:(TB.lam TB.boundary) ~fam ~bdry ~r ~r' ~phi ~bdy
       | `Ext (n, `Global cof, fam, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->

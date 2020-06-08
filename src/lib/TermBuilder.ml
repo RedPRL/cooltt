@@ -428,19 +428,17 @@ struct
     el_in @@
     pair p0 p1
 
-
-  let coe_path ~(fam_line : S.t m) ~(bdry_line : S.t m) ~(r : S.t m) ~(r' : S.t m) ~(bdy : S.t m) : S.t m =
+  let coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
     el_in @@
-    lam @@ fun j ->
+    nlam n @@ fun js ->
     sub_in @@
-    let_ (boundary j) @@ fun d_j ->
-    com (lam @@ fun i -> ap fam_line [i; j]) r r' d_j @@
+    let_ (ap cof js) @@ fun cof_js ->
+    com (lam @@ fun i -> ap fam_line @@ i :: js) r r' cof_js @@
     lam @@ fun i ->
     lam @@ fun _ ->
     cof_split
-      [ d_j, ap bdry_line [i; j; prf]
-      ; eq i r, sub_out @@ ap (el_out bdy) [j]
-      ]
+      [cof_js, ap bdry_line @@ i :: js @ [prf]
+      ; eq i r, sub_out @@ ap (el_out bdy) js]
 
   let hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
     el_in @@
@@ -455,9 +453,6 @@ struct
       [ cof_js, ap bdry @@ js @ [prf]
       ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k; prf])) js
       ]
-
-  let hcom_path ~fam ~bdry ~r ~r' ~phi ~bdy =
-    hcom_ext ~n:1 ~cof:(lam boundary) ~fam ~bdry ~r ~r' ~phi ~bdy
 
   module V :
   sig
