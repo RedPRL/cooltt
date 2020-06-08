@@ -271,10 +271,10 @@ let rec pp env fmt tm =
       (pp_atomic env) base
       (pp_atomic env) tm
 
-  | CodeExt (_, `Global phi, fam, bdry) ->
+  | CodeExt (_, fam, `Global phi, bdry) ->
     Format.fprintf fmt "@[ext %a %a %a@]"
-      (pp_atomic Pp.Env.emp) phi
       (pp_atomic env) fam
+      (pp_atomic Pp.Env.emp) phi
       (pp_atomic env) bdry
 
   | CodeNat when debug_mode ->

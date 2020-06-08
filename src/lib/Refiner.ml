@@ -476,7 +476,7 @@ struct
       in
       tac_bdry tp_bdry
     in
-    S.CodeExt (n, `Global tcof, tfam, tbdry)
+    S.CodeExt (n, tfam, `Global tcof, tbdry)
 
   let path (tac_fam : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     let cof =

@@ -9,7 +9,7 @@ type cof = (dim, int) Cof.cof
 type 'a stable_code =
   [ `Pi of 'a * 'a
   | `Sg of 'a * 'a
-  | `Ext of int * [`Global of 'a] * 'a * 'a
+  | `Ext of int * 'a * [`Global of 'a] * 'a
   | `Nat
   | `Circle
   | `Univ

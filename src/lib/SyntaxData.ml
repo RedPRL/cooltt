@@ -47,7 +47,7 @@ type t =
   | VIn of t * t * t * t
   | VProj of t * t * t * t * t
 
-  | CodeExt of int * [`Global of t] * t * t
+  | CodeExt of int * t * [`Global of t] * t
   | CodePi of t * t
   | CodeSg of t * t
   | CodeNat

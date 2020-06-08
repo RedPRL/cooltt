@@ -283,7 +283,7 @@ and quote_stable_code univ =
     in
     S.CodeSg (tbase, tfam)
 
-  | `Ext (n, `Global phi, code, bdry) ->
+  | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =
       let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
       quote_global_con tp_cof_fam @@ `Global phi
@@ -302,7 +302,7 @@ and quote_stable_code univ =
       in
       quote_con tp_bdry bdry
     in
-    S.CodeExt (n, tphi, tcode, tbdry)
+    S.CodeExt (n, tcode, tphi, tbdry)
 
 and quote_global_con tp (`Global con) =
   globally @@

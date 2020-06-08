@@ -367,10 +367,10 @@ and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stab
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     `Sg (con0, con1)
-  | `Ext (n, `Global cof, code, con) ->
+  | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
-    `Ext (n, `Global cof, code, con)
+    `Ext (n, code, `Global cof, con)
   | `Nat | `Circle | `Univ as code ->
     ret code
 
@@ -640,11 +640,11 @@ and eval : S.t -> D.con EvM.m =
     | S.Prf ->
       ret D.Prf
 
-    | S.CodeExt (n, `Global phi, fam, bdry) ->
+    | S.CodeExt (n, fam, `Global phi, bdry) ->
       let* phi = drop_all_cons @@ eval phi in
       let* fam = eval fam in
       let* bdry = eval bdry in
-      ret @@ D.StableCode (`Ext (n, `Global phi, fam, bdry))
+      ret @@ D.StableCode (`Ext (n, fam, `Global phi, bdry))
 
     | S.CodePi (base, fam) ->
       let+ vbase = eval base
@@ -1340,7 +1340,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
 
-      | `Ext (n, `Global phi, fam, bdry) ->
+      | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@
         Splice.con phi @@ fun phi ->
         Splice.con fam @@ fun fam ->
@@ -1431,7 +1431,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
-      | `Ext (n, `Global cof, famx, bdryx) ->
+      | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
         Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
@@ -1504,7 +1504,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
-      | `Ext (n, `Global cof, fam, bdry) ->
+      | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
         Splice.con fam @@ fun fam ->
