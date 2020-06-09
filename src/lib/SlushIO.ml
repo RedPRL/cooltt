@@ -12,9 +12,10 @@ module J = Ezjsonm
 
 exception Todo
 
-
 module BasicJson =
 struct
+
+  let ret = Incremental.ret (* todo this can't be right ... can it? *)
 
   let json_of_int (i : int) : [> `String of string ] =
     `String (string_of_int i)
@@ -42,13 +43,13 @@ struct
     | `String str -> Some str
     | j -> J.parse_error j "ostring_of_json"
 
-  let json_of_list json_of_item l = raise Todo
-     (* MU.traverse json_of_item l <<@> fun l -> `A l *)
+  let json_of_list json_of_item l =
+     MU.traverse json_of_item l <<@> fun l -> `A l
 
-  let list_of_json item_of_json = raise Todo
-    (* function
-     * | `A l -> MU.traverse item_of_json l
-     * | j -> J.parse_error j "list_of_json" *)
+  let list_of_json item_of_json =
+    function
+    | `A l -> MU.traverse item_of_json l
+    | j -> J.parse_error j "list_of_json"
 
   (* pure version *)
   let json_of_list_ json_of_item l =
@@ -105,5 +106,5 @@ struct
 
 end
 
-let rec json_of_term tm = raise Todo
-and json_of_tp tp = raise Todo
+let rec json_of_term _ = raise Todo
+and json_of_tp _ = raise Todo

@@ -19,11 +19,15 @@ module type Notation = sig
   val (|>>) : 'a m -> ('a -> 'b m) -> 'b m
   val (@<<) : ('a -> 'b m) -> 'a m -> 'b m
   val (<&>) : 'a m -> 'b m -> ('a * 'b) m
+  val (>>=) : 'a m -> ('a -> 'b m) -> 'b m
+  val (<@>>) : ('a -> 'b) -> 'a m -> 'b m
+  val (<<@>) : 'a m -> ('a -> 'b) -> 'b m
 end
 
 module Notation (M : S) : Notation with type 'a m = 'a M.m
 
 module Util (M : S) : sig
+  val traverse : ('a -> 'b M.m) -> 'a list -> 'b list M.m
   val commute_list : 'a M.m list -> 'a list M.m
   val map : ('a -> 'b M.m) -> 'a list -> 'b list M.m
   val map_bwd : ('a -> 'b M.m) -> 'a bwd -> 'b bwd M.m
