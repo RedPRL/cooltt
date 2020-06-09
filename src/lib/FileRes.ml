@@ -1,5 +1,6 @@
 open CoolBasis
 
+(* todo: in a modular version of this, this would be a functor argument and the functions below would have more neutral names *)
 let lib_name = "coollib"
 let src_extention = ".cooltt"
 let cache_extention = ".slush"
@@ -37,11 +38,11 @@ let selector_to_stem ~stem selector =
   let base_dir = OptionUtil.default base_dir (find_lib_root base_dir) in
   Filename.concat base_dir module_path
 
-let stem_to_red stem = stem ^ src_extention
+let stem_to_cool stem = stem ^ src_extention
 
-let stem_to_rot stem = stem ^ cache_extention
+let stem_to_slush stem = stem ^ cache_extention
 
-let red_to_stem red =
+let cool_to_stem red =
   match String.sub red (String.length red - 4) 4 with
   | str when str = src_extention -> String.sub red 0 @@ String.length red - 4
   | _ -> invalid_arg "red_to_stem"
