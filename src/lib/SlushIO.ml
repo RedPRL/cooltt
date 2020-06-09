@@ -5,9 +5,9 @@ module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
 
-(* module M = Monad.Notation (Contextual)
- * open M
- * module MU = Monad.Util (Contextual) *)
+module M = Monad.Notation (Incremental)
+open M
+module MU = Monad.Util (Incremental)
 module J = Ezjsonm
 
 exception Todo
@@ -42,8 +42,8 @@ struct
     | `String str -> Some str
     | j -> J.parse_error j "ostring_of_json"
 
-  let json_of_list json_of_item l =
-     MU.traverse json_of_item l <<@> fun l -> `A l
+  let json_of_list json_of_item l = raise Todo
+     (* MU.traverse json_of_item l <<@> fun l -> `A l *)
 
   let list_of_json item_of_json = raise Todo
     (* function
