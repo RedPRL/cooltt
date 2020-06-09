@@ -19,6 +19,9 @@ module type Notation = sig
   val (|>>) : 'a m -> ('a -> 'b m) -> 'b m
   val (@<<) : ('a -> 'b m) -> 'a m -> 'b m
   val (<&>) : 'a m -> 'b m -> ('a * 'b) m
+  val (<@>>) : ('a -> 'b) -> 'a m -> 'b m
+  val (<<@>) : 'a m -> ('a -> 'b) -> 'b m
+  val (>>=) : 'a m -> ('a -> 'b m) -> 'b m
 end
 
 module Notation (M : S) : Notation with type 'a m = 'a M.m = struct
@@ -39,6 +42,13 @@ module Notation (M : S) : Notation with type 'a m = 'a M.m = struct
   let (|>>) = (let*)
   let (@<<) f m = m |>> f
   let (<&>) = (and+)
+
+  let (<@>>) f m =
+    m >>= fun x ->
+    M.ret @@ f x
+
+  let (<<@>) m f = f <@>> m
+  let (>>=) = M.bind
 end
 
 module Util (M : S) =
@@ -86,6 +96,14 @@ struct
 
   let ignore m =
     let+ _ = m in ()
+
+  let rec traverse f =
+    function
+    | [] -> M.ret []
+    | x::xs ->
+      f x >>= fun y ->
+      traverse f xs >>= fun ys ->
+      M.ret @@ y :: ys
 end
 
 module type MonadReaderResult = sig
