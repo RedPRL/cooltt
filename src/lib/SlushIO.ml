@@ -12,7 +12,7 @@ module J = Ezjsonm
 
 exception Todo
 
-module BasicJson =
+module BasicJSON =
 struct
 
   let ret = Incremental.ret (* todo this can't be right ... can it? *)
@@ -106,5 +106,95 @@ struct
 
 end
 
-let rec json_of_term _ = raise Todo
-and json_of_tp _ = raise Todo
+module TmJSON =
+struct
+  open BasicJSON
+
+  open SyntaxData
+
+  let json_of_tm : t -> J.value =
+    function
+    | Var x -> raise Todo
+    | Global s -> raise Todo
+    | Let (t1 , nm , t2) -> raise Todo
+    | Ann (tm, tp) -> raise Todo
+
+    | Zero -> raise Todo
+    | Suc n -> raise Todo
+    | NatElim (tm1, tm2, tm3, tm4) -> raise Todo
+
+    | Base -> raise Todo
+    | Loop tm -> raise Todo
+    | CircleElim (tm1, tm2, tm3, tm4) -> raise Todo
+
+    | Lam (nm, tm)  -> raise Todo
+    | Ap (tm1, tm2) -> raise Todo
+
+    | Pair (tm1, tm2)  -> raise Todo
+    | Fst tm -> raise Todo
+    | Snd tm -> raise Todo
+
+    | GoalRet tm -> raise Todo
+    | GoalProj tm -> raise Todo
+
+    | Coe (tm1, tm2, tm3, tm4) -> raise Todo
+    | HCom (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+    | Com (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+
+    | SubIn tm -> raise Todo
+    | SubOut tm -> raise Todo
+
+    | Dim0 -> raise Todo
+    | Dim1 -> raise Todo
+    | Cof c -> raise Todo (* todo here this requires serializing cofs too *)
+    | ForallCof tm -> raise Todo
+    | CofSplit cs -> raise Todo
+    | Prf -> raise Todo
+
+    | ElIn tm -> raise Todo
+    | ElOut tm -> raise Todo
+
+    | Box (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+    | Cap (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+
+    | VIn (tm1, tm2, tm3, tm4) -> raise Todo
+    | VProj (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+
+    | CodeExt (i, tm1, glo, tm2) -> raise Todo
+    | CodePi (tm1, tm2) -> raise Todo
+    | CodeSg (tm1, tm2) -> raise Todo
+    | CodeNat -> raise Todo
+    | CodeUniv -> raise Todo
+    | CodeV (tm1, tm2, tm3, tm4) -> raise Todo
+    | CodeCircle -> raise Todo
+
+    | ESub(s,tm) -> raise Todo
+
+  and json_of_tp : tp -> J.value =
+    function
+    | Univ -> raise Todo
+    | El(tp) -> raise Todo
+    | TpVar(i) -> raise Todo
+    | GoalTp (name, tp) -> raise Todo
+    | TpDim -> raise Todo
+    | TpCof -> raise Todo
+    | TpPrf tp -> raise Todo
+    | TpCofSplit l -> raise Todo
+    | Sub (tp, t1, t2) -> raise Todo
+    | Pi (tp1, nm, tp2) -> raise Todo
+    | Sg (tp1, nm, tp2) -> raise Todo
+    | Nat -> raise Todo
+    | Circle -> raise Todo
+    | TpESub (sub, tp) -> raise Todo
+
+  and json_of_sub : sub -> J.value =
+    function
+    | Sb0 -> raise Todo
+    | SbI -> raise Todo
+    | SbE (s, t) -> raise Todo
+    | SbP -> raise Todo
+    | SbC (s1, s2) -> raise Todo
+
+  and json_of_env : env -> J.value = fun _ -> raise Todo
+
+end

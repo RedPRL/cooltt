@@ -1,6 +1,6 @@
 open CoolBasis
 
-module Map = Map.Make (Name)
+module Map = Map.Make (Name) (* todo: make name Ident.t? *)
 
 type params = int (* this is a place holder *)
 type cx = int (* this is also a place holder *)
