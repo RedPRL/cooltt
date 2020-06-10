@@ -112,16 +112,39 @@ struct
 
   open SyntaxData
 
-  let json_of_tm : t -> J.value =
-    function
-    | Var x -> raise Todo
-    | Global s -> raise Todo
-    | Let (t1 , nm , t2) -> raise Todo
-    | Ann (tm, tp) -> raise Todo
+  let json_of_sym = fun _ -> raise Todo
+  let json_of_name = fun _ -> raise Todo
 
-    | Zero -> raise Todo
-    | Suc n -> raise Todo
-    | NatElim (tm1, tm2, tm3, tm4) -> raise Todo
+  let rec json_of_tm : t -> J.value m =
+    function
+    | Var x -> ret @@ `A [`String "Var";  json_of_int x]
+
+    | Global sym ->
+      json_of_sym sym >>= fun sym ->
+      ret @@ `A [`String "Global"; sym]
+
+    | Let (t1 , nm , t2) ->
+      json_of_tm t1 >>= fun t1 ->
+      json_of_name nm >>= fun nm ->
+      json_of_tm t2 >>= fun t2 ->
+      ret @@ `A [`String "Let"; t1; nm; t2]
+
+    | Ann (tm, tp) ->
+      json_of_tm tm >>= fun tm ->
+      json_of_tp tp >>= fun tp ->
+      ret @@ `A [`String "Ann"; tm; tp]
+
+    | Zero -> ret @@ `A [`String "Zero"]
+    | Suc n ->
+      json_of_tm n >>= fun n ->
+      ret @@ `A [`String "Suc"; n]
+
+    | NatElim (tm1, tm2, tm3, tm4) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      ret @@ `A [`String "NatElim"; tm1; tm2; tm3; tm4]
 
     | Base -> raise Todo
     | Loop tm -> raise Todo
@@ -170,7 +193,7 @@ struct
 
     | ESub(s,tm) -> raise Todo
 
-  and json_of_tp : tp -> J.value =
+  and json_of_tp : tp -> J.value m =
     function
     | Univ -> raise Todo
     | El(tp) -> raise Todo
@@ -187,7 +210,7 @@ struct
     | Circle -> raise Todo
     | TpESub (sub, tp) -> raise Todo
 
-  and json_of_sub : sub -> J.value =
+  and json_of_sub : sub -> J.value m =
     function
     | Sb0 -> raise Todo
     | SbI -> raise Todo
