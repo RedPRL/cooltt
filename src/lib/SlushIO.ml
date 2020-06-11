@@ -114,6 +114,7 @@ struct
 
   let json_of_sym = fun _ -> raise Todo
   let json_of_name = fun _ -> raise Todo
+  let json_of_cof = fun _ -> raise Todo
 
   let rec json_of_tm : t -> J.value m =
     function
@@ -146,36 +147,105 @@ struct
       json_of_tm tm4 >>= fun tm4 ->
       ret @@ `A [`String "NatElim"; tm1; tm2; tm3; tm4]
 
-    | Base -> raise Todo
-    | Loop tm -> raise Todo
-    | CircleElim (tm1, tm2, tm3, tm4) -> raise Todo
+    | Base -> ret @@ `A [`String "Base"]
 
-    | Lam (nm, tm)  -> raise Todo
-    | Ap (tm1, tm2) -> raise Todo
+    | Loop tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "Loop"; tm]
 
-    | Pair (tm1, tm2)  -> raise Todo
-    | Fst tm -> raise Todo
-    | Snd tm -> raise Todo
+    | CircleElim (tm1, tm2, tm3, tm4) -> (* todo: code quality, this is a near copy of natelim *)
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      ret @@ `A [`String "CircleElim"; tm1; tm2; tm3; tm4]
 
-    | GoalRet tm -> raise Todo
-    | GoalProj tm -> raise Todo
+    | Lam (nm, tm) ->
+      json_of_name nm >>= fun nm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "Lam"; nm; tm]
 
-    | Coe (tm1, tm2, tm3, tm4) -> raise Todo
-    | HCom (tm1, tm2, tm3, tm4, tm5) -> raise Todo
-    | Com (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+    | Ap (tm1, tm2) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      ret @@ `A [`String "Ap"; tm1; tm2]
 
-    | SubIn tm -> raise Todo
-    | SubOut tm -> raise Todo
+    | Pair (tm1, tm2) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      ret @@ `A [`String "Pair"; tm1; tm2]
+
+    | Fst tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "Fst"; tm]
+
+    | Snd tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "Snd"; tm]
+
+    | GoalRet tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "GoalRet"; tm]
+
+    | GoalProj tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "GoalProj"; tm]
+
+    | Coe (tm1, tm2, tm3, tm4) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      ret @@ `A [`String "Coe"; tm1; tm2; tm3; tm4]
+
+    | HCom (tm1, tm2, tm3, tm4, tm5) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      json_of_tm tm5 >>= fun tm5 ->
+      ret @@ `A [`String "HCom"; tm1; tm2; tm3; tm4; tm5]
+
+    | Com (tm1, tm2, tm3, tm4, tm5) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      json_of_tm tm5 >>= fun tm5 ->
+      ret @@ `A [`String "Com"; tm1; tm2; tm3; tm4; tm5]
+
+    | SubIn tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "SubIn"; tm]
+
+    | SubOut tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "SubOut"; tm]
 
     | Dim0 -> raise Todo
     | Dim1 -> raise Todo
-    | Cof c -> raise Todo (* todo here this requires serializing cofs too *)
-    | ForallCof tm -> raise Todo
+    | Cof c ->
+      json_of_cof c >>= fun tm ->
+      ret @@ `A [`String "Cof"; tm]
+
+    | ForallCof tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "ForallCof"; tm]
+
     | CofSplit cs -> raise Todo
+      (* json_of_tm tm >>= fun tm ->
+       * ret @@ `A [`String "GoalProj"; tm] *)
+
     | Prf -> raise Todo
 
     | ElIn tm -> raise Todo
+      (* json_of_tm tm >>= fun tm ->
+       * ret @@ `A [`String "GoalProj"; tm] *)
+
     | ElOut tm -> raise Todo
+      (* json_of_tm tm >>= fun tm ->
+       * ret @@ `A [`String "GoalProj"; tm] *)
+
 
     | Box (tm1, tm2, tm3, tm4, tm5) -> raise Todo
     | Cap (tm1, tm2, tm3, tm4, tm5) -> raise Todo
