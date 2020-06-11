@@ -228,9 +228,10 @@ struct
       json_of_tm tm >>= fun tm ->
       ret @@ `A [`String "ForallCof"; tm]
 
-    | CofSplit cs ->
-      json_of_cof cs >>= fun cs -> (* todo: i don't understand why this type checks; it probably won't  once i write cof *)
-      ret @@ `A [`String "CofSplit"; cs]
+    (* figured out why it typechecks; it didnt. editor state error. fix this tomorrow*)
+    | CofSplit cs -> raise Todo
+      (* json_of_cof cs >>= fun cs -> (\* todo: i don't understand why this type checks; it probably won't  once i write cof *\)
+       * ret @@ `A [`String "CofSplit"; cs] *)
 
     | Prf -> ret @@ `A [`String "Prf"]
 
@@ -352,7 +353,11 @@ struct
 
     | Nat -> ret @@ `A [`String "Nat"]
     | Circle -> ret @@ `A [`String "Cicle"]
-    | TpESub (sub, tp) -> raise Todo
+    | TpESub (s, tp) ->
+      json_of_sub s >>= fun s ->
+      json_of_tp tp >>= fun tp ->
+      ret @@ `A [`String "TPESub"; s; tp]
+
 
   and json_of_sub : sub -> J.value m =
     function
