@@ -112,10 +112,6 @@ struct
 
   open SyntaxData
 
-  let json_of_sym = fun _ -> raise Todo
-  let json_of_name = fun _ -> raise Todo
-  let json_of_cof = fun _ -> raise Todo
-
   let rec json_of_tm : t -> J.value m =
     function
     | Var x -> ret @@ `A [`String "Var";  json_of_int x]
@@ -232,62 +228,154 @@ struct
       json_of_tm tm >>= fun tm ->
       ret @@ `A [`String "ForallCof"; tm]
 
-    | CofSplit cs -> raise Todo
-      (* json_of_tm tm >>= fun tm ->
-       * ret @@ `A [`String "GoalProj"; tm] *)
+    | CofSplit cs ->
+      json_of_cof cs >>= fun cs -> (* todo: i don't understand why this type checks; it probably won't  once i write cof *)
+      ret @@ `A [`String "CofSplit"; cs]
 
-    | Prf -> raise Todo
+    | Prf -> ret @@ `A [`String "Prf"]
 
-    | ElIn tm -> raise Todo
-      (* json_of_tm tm >>= fun tm ->
-       * ret @@ `A [`String "GoalProj"; tm] *)
+    | ElIn tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "ElIn"; tm]
 
-    | ElOut tm -> raise Todo
-      (* json_of_tm tm >>= fun tm ->
-       * ret @@ `A [`String "GoalProj"; tm] *)
+    | ElOut tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "ElOut"; tm]
 
+    | Box (tm1, tm2, tm3, tm4, tm5) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      json_of_tm tm5 >>= fun tm5 ->
+      ret @@ `A [`String "Box"; tm1; tm2; tm3; tm4; tm5]
 
-    | Box (tm1, tm2, tm3, tm4, tm5) -> raise Todo
-    | Cap (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+    | Cap (tm1, tm2, tm3, tm4, tm5) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      json_of_tm tm5 >>= fun tm5 ->
+      ret @@ `A [`String "Cap"; tm1; tm2; tm3; tm4; tm5]
 
-    | VIn (tm1, tm2, tm3, tm4) -> raise Todo
-    | VProj (tm1, tm2, tm3, tm4, tm5) -> raise Todo
+    | VIn (tm1, tm2, tm3, tm4) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      ret @@ `A [`String "VIn"; tm1; tm2; tm3; tm4]
 
-    | CodeExt (i, tm1, glo, tm2) -> raise Todo
-    | CodePi (tm1, tm2) -> raise Todo
-    | CodeSg (tm1, tm2) -> raise Todo
-    | CodeNat -> raise Todo
-    | CodeUniv -> raise Todo
-    | CodeV (tm1, tm2, tm3, tm4) -> raise Todo
-    | CodeCircle -> raise Todo
+    | VProj (tm1, tm2, tm3, tm4, tm5) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      json_of_tm tm5 >>= fun tm5 ->
+      ret @@ `A [`String "VProj"; tm1; tm2; tm3; tm4; tm5]
 
-    | ESub(s,tm) -> raise Todo
+    | CodeExt (i, tm1, glo, tm2) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_global glo >>= fun glo ->
+      json_of_tm tm2 >>= fun tm2 ->
+      ret @@ `A [`String "CodeExt"; json_of_int i; tm1; glo; tm2] (* todo: interesting that json of int breaks the pattern; it's out of the monad *)
 
-  and json_of_tp : tp -> J.value m =
+    | CodePi (tm1, tm2) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      ret @@ `A [`String "CodePi"; tm1; tm2]
+
+    | CodeSg (tm1, tm2) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      ret @@ `A [`String "CodeSg"; tm1; tm2]
+
+    | CodeNat -> ret @@ `A [`String "CodeNat"]
+
+    | CodeUniv -> ret @@ `A [`String "CodeUniv"]
+
+    | CodeV (tm1, tm2, tm3, tm4) ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      json_of_tm tm3 >>= fun tm3 ->
+      json_of_tm tm4 >>= fun tm4 ->
+      ret @@ `A [`String "CodeV"; tm1; tm2; tm3; tm4]
+
+    | CodeCircle -> ret @@ `A [`String "CodeCircle"]
+
+    | ESub(s,tm) ->
+      json_of_sub s >>= fun s ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "ESub"; s; tm]
+
+  and json_of_tp : tp -> J.value m = (* todo: i am not sure if the constructor names are disjoint or if it matters *)
     function
-    | Univ -> raise Todo
-    | El(tp) -> raise Todo
-    | TpVar(i) -> raise Todo
-    | GoalTp (name, tp) -> raise Todo
-    | TpDim -> raise Todo
-    | TpCof -> raise Todo
-    | TpPrf tp -> raise Todo
+    | Univ -> ret @@ `A [`String "Univ"]
+    | El tm ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "El"; tm]
+
+    | TpVar i -> ret @@ `A [`String "TpVar";  json_of_int i]
+
+    | GoalTp (nm, tp) ->
+      json_of_tp tp >>= fun tp ->
+      ret @@ `A [`String "GoalTp"; json_of_ostring nm; tp] (* todo: ditto comment about int *)
+
+    | TpDim -> ret @@ `A [`String "TpDim"]
+
+    | TpCof -> ret @@ `A [`String "TpCof"]
+
+    | TpPrf tm ->
+      json_of_tm tm >>= fun tp ->
+      ret @@ `A [`String "TpPrf"; tp]
+
     | TpCofSplit l -> raise Todo
-    | Sub (tp, t1, t2) -> raise Todo
-    | Pi (tp1, nm, tp2) -> raise Todo
-    | Sg (tp1, nm, tp2) -> raise Todo
-    | Nat -> raise Todo
-    | Circle -> raise Todo
+      (* json_of_tm l >>= fun l ->
+       * ret @@ `A [`String "TpCofSplit"; l] *)
+
+    | Sub (tp, tm1, tm2) ->
+      json_of_tp tp >>= fun tp ->
+      json_of_tm tm1 >>= fun tm1 ->
+      json_of_tm tm2 >>= fun tm2 ->
+      ret @@ `A [`String "Sub"; tp; tm1; tm2]
+
+    | Pi (tp1, nm, tp2) ->
+      json_of_tp tp1 >>= fun tp1 ->
+      json_of_name nm >>= fun nm ->
+      json_of_tp tp2 >>= fun tp2 ->
+      ret @@ `A [`String "Pi"; tp1; nm; tp2]
+
+    | Sg (tp1, nm, tp2) ->
+      json_of_tp tp1 >>= fun tp1 ->
+      json_of_name nm >>= fun nm ->
+      json_of_tp tp2 >>= fun tp2 ->
+      ret @@ `A [`String "Sg"; tp1; nm; tp2]
+
+    | Nat -> ret @@ `A [`String "Nat"]
+    | Circle -> ret @@ `A [`String "Cicle"]
     | TpESub (sub, tp) -> raise Todo
 
   and json_of_sub : sub -> J.value m =
     function
-    | Sb0 -> raise Todo
-    | SbI -> raise Todo
-    | SbE (s, t) -> raise Todo
-    | SbP -> raise Todo
-    | SbC (s1, s2) -> raise Todo
+    | Sb0 -> ret @@ `A [`String "Sb0"]
+
+    | SbI -> ret @@ `A [`String "SbI"]
+
+    | SbE (s, tm) ->
+      json_of_sub s >>= fun s ->
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "SbE"; s; tm]
+
+    | SbP -> ret @@ `A [`String "SbP"]
+
+    | SbC (s1, s2) ->
+      json_of_sub s1 >>= fun s1 ->
+      json_of_sub s2 >>= fun s2 ->
+      ret @@ `A [`String "SbC"; s1; s2]
+
 
   and json_of_env : env -> J.value = fun _ -> raise Todo
-
+  and json_of_sym = fun _ -> raise Todo
+  and json_of_name = fun _ -> raise Todo
+  and json_of_cof = fun _ -> raise Todo
+  and json_of_global = fun _ -> raise Todo
 end
