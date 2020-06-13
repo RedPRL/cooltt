@@ -3,7 +3,7 @@ module D = Domain
 module S = Syntax
 module CS = ConcreteSyntax
 
-open CoolBasis
+open Basis
 open Bwd
 open BwdNotation
 

@@ -1,7 +1,7 @@
 module S := Syntax
 module D := Domain
 
-open CoolBasis
+open Basis
 open Monads
 
 val eval : S.t -> D.con evaluate

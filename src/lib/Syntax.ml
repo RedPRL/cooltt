@@ -1,4 +1,4 @@
-open CoolBasis open Bwd
+open Basis open Bwd
 include SyntaxData
 
 let debug_mode = false

@@ -1,7 +1,7 @@
 module CS = ConcreteSyntax
 module D = Domain
 module S = Syntax
-open CoolBasis
+open Basis
 
 include ElabErrorData.Data
 

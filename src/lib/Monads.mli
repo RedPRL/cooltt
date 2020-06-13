@@ -3,7 +3,7 @@
 module D := Domain
 module S := Syntax
 module St := ElabState
-open CoolBasis
+open Basis
 
 type 'a compute
 type 'a evaluate

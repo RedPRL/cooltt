@@ -1,5 +1,5 @@
 module S = Syntax
-open CoolBasis
+open Basis
 open Bwd
 
 include Dim

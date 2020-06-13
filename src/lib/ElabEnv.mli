@@ -1,7 +1,7 @@
 module CS := ConcreteSyntax
 module D := Domain
 
-open CoolBasis
+open Basis
 open Bwd
 
 module Cell : sig

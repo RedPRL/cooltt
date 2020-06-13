@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 open Bwd
 open Dim
 

@@ -1,7 +1,7 @@
 module D = Domain
 module S = Syntax
 module St = ElabState
-open CoolBasis
+open Basis
 open Bwd
 open BwdNotation
 

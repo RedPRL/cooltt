@@ -8,7 +8,7 @@ exception CFHM
 exception CJHM
 exception CCHM
 
-open CoolBasis
+open Basis
 open Monads
 
 

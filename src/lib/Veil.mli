@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 
 (* Translucent: visible to conversion, invisible to quote
    Transparent: visible to conversion, visible to quote *)

@@ -1,4 +1,4 @@
-open CoolBasis.Bwd
+open Basis.Bwd
 open BwdNotation
 
 module S = Syntax

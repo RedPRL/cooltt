@@ -1,6 +1,6 @@
 include module type of DomainData
 
-open CoolBasis
+open Basis
 
 val dim_to_con : dim -> con
 val cof_to_con : cof -> con

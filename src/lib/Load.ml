@@ -1,5 +1,5 @@
 open Lex
-open CoolBasis.LexingUtil
+open Basis.LexingUtil
 
 type error = LexingError of span | ParseError of span
 exception ParseError of string * span

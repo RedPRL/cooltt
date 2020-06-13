@@ -1,5 +1,5 @@
 (library
- (name CoolBasis)
+ (name Basis)
  (flags
   (:standard -w -32-38 -warn-error -a+31))
  (preprocess

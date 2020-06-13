@@ -7,7 +7,7 @@ exception CJHM
 exception CFHM
 exception CCHM
 
-open CoolBasis
+open Basis
 open Bwd
 
 exception NbeFailed of string

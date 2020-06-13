@@ -13,7 +13,7 @@ module Cofibration = Cof (* this lets us access Cof after it gets shadowed below
 
 exception CJHM
 
-open CoolBasis
+open Basis
 open Monads
 open Monad.Notation (EM)
 module MU = Monad.Util (EM)

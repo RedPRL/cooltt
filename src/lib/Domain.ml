@@ -1,5 +1,5 @@
 include DomainData
-open CoolBasis
+open Basis
 
 module S = Syntax
 

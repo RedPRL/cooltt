@@ -7,7 +7,7 @@ exception CCHM
 exception CJHM
 exception CFHM
 
-open CoolBasis
+open Basis
 open Monads
 
 module Error =

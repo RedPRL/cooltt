@@ -1,5 +1,5 @@
 module D := Domain
-open CoolBasis 
+open Basis 
 open Monads
 
 module Error : 
