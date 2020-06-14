@@ -34,7 +34,7 @@ let dim_to_con =
   | Dim1 -> DimCon1
   | DimVar lvl ->
     Cut {tp = TpDim; cut = Var lvl, []}
-  | DimProbe sym ->
+  | DimSym sym ->
     (* hmmm *)
     Cut {tp = TpDim; cut = Global sym, []}
 
