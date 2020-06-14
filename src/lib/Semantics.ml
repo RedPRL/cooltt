@@ -1,13 +1,13 @@
 module S = Syntax
 module D = Domain
 
-
 exception Todo
 exception CJHM
 exception CFHM
 exception CCHM
 
 open Basis
+open Cubical
 open Bwd
 
 exception NbeFailed of string

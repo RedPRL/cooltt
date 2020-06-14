@@ -1,5 +1,6 @@
 open Basis
 open Bwd
+open Cubical
 
 exception CFHM
 exception CCHM

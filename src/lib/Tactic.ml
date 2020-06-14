@@ -5,6 +5,7 @@ module Sem = Semantics
 module Qu = Quote
 
 open Basis
+open Cubical
 open Monad.Notation (EM)
 
 module type Tactic =

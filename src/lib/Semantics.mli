@@ -2,6 +2,7 @@ module S := Syntax
 module D := Domain
 
 open Basis
+open Cubical
 open Monads
 
 val eval : S.t -> D.con evaluate

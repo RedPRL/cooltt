@@ -1,5 +1,6 @@
 include DomainData
 open Basis
+open Cubical
 
 module S = Syntax
 

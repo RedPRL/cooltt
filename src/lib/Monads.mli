@@ -3,7 +3,9 @@
 module D := Domain
 module S := Syntax
 module St := ElabState
+
 open Basis
+open Cubical
 
 type 'a compute
 type 'a evaluate

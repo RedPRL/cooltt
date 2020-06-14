@@ -4,6 +4,7 @@ module S = Syntax
 module CS = ConcreteSyntax
 
 open Basis
+open Cubical
 open Bwd
 open BwdNotation
 

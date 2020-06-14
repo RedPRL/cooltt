@@ -2,6 +2,7 @@ module CS := ConcreteSyntax
 module D := Domain
 
 open Basis
+open Cubical
 open Bwd
 
 module Cell : sig

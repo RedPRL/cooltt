@@ -2,8 +2,8 @@ module D = Domain
 module S = Syntax
 module St = ElabState
 open Basis
+open Cubical
 open Bwd
-open BwdNotation
 
 exception CCHM
 exception CJHM
@@ -109,6 +109,7 @@ struct
 
   let append cells =
     M.scope @@ fun local ->
+    let open BwdNotation in
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =

@@ -2,13 +2,13 @@ module S = Syntax
 module D = Domain
 module Sem = Semantics
 
-
 exception Todo
 exception CFHM
 exception CJHM
 exception CCHM
 
 open Basis
+open Cubical
 open Monads
 
 

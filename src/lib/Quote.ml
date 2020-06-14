@@ -8,6 +8,7 @@ exception CJHM
 exception CFHM
 
 open Basis
+open Cubical
 open Monads
 
 module Error =

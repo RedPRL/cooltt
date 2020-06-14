@@ -1,4 +1,7 @@
-open Basis open Bwd
+open Basis
+open Bwd
+open Cubical
+
 include SyntaxData
 
 let debug_mode = false

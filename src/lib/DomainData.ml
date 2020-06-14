@@ -1,5 +1,6 @@
 module S = Syntax
 open Basis
+open Cubical
 open Bwd
 
 include Dim
