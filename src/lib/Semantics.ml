@@ -725,7 +725,7 @@ and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
   let open EvM in
   match sb with
-  | S.Sb0 ->
+  | S.Sb1 ->
     drop_all_cons kont
   | S.SbP ->
     drop_con kont
