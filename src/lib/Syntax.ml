@@ -14,6 +14,8 @@ let rec to_numeral =
     to_numeral t
   | _ -> None
 
+let tm_abort = CofSplit []
+let tp_abort = TpCofSplit []
 
 module Fmt = Format
 
@@ -357,7 +359,7 @@ let rec pp env fmt tm =
 
 and pp_sub env fmt =
   function
-  | Sb0 ->
+  | Sb1 ->
     Uuseg_string.pp_utf_8 fmt "ε"
   | SbP ->
     Format.fprintf fmt "p"
@@ -375,7 +377,7 @@ and pp_sub env fmt =
 
 and pp_atomic_sub env fmt sb =
   match sb with
-  | Sb0 | SbP | SbI ->
+  | Sb1 | SbP | SbI ->
     pp_sub env fmt sb
   | _ ->
     pp_braced (pp_sub env) fmt sb
@@ -523,5 +525,3 @@ let pp_sequent : tp Pp.printer =
   fun fmt tp ->
   Format.fprintf fmt "@[<v>%a@]"
     (pp_sequent_inner Pp.Env.emp) tp
-
-type env = tp list

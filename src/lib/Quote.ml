@@ -114,10 +114,10 @@ let rec quote_con (tp : D.tp) con =
     let+ tr = quote_dim r in
     S.Loop tr
 
-  | D.TpDim, D.DimCon0 ->
+  | D.TpDim, D.Dim0 ->
     ret @@ S.Dim0
 
-  | D.TpDim, D.DimCon1 ->
+  | D.TpDim, D.Dim1 ->
     ret @@ S.Dim1
 
   | D.TpCof, D.Cof cof ->

@@ -157,8 +157,8 @@ and con_to_dim =
   fun con ->
     whnf_inspect_con ~style:`UnfoldAll con |>>
     function
-    | D.DimCon0 -> ret Dim.Dim0
-    | D.DimCon1 -> ret Dim.Dim1
+    | D.Dim0 -> ret Dim.Dim0
+    | D.Dim1 -> ret Dim.Dim1
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
     | D.Cut {cut = Global sym, []; _} -> ret @@ Dim.DimSym sym
     | con ->
@@ -174,7 +174,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -292,10 +292,10 @@ and subst_clo : D.dim -> Symbol.t -> D.tm_clo -> D.tm_clo CM.m =
   D.Clo (tm, env)
 
 and subst_tp_clo : D.dim -> Symbol.t -> D.tp_clo -> D.tp_clo CM.m =
-  fun r x (TpClo (tp, env)) ->
+  fun r x (Clo (tp, env)) ->
   let open CM in
   let+ env = subst_env r x env in
-  D.TpClo (tp, env)
+  D.Clo (tp, env)
 
 and subst_env : D.dim -> Symbol.t -> D.env -> D.env CM.m =
   fun r x {tpenv; conenv} ->
@@ -457,11 +457,11 @@ and eval_tp : S.tp -> D.tp EvM.m =
   | S.Pi (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Pi (vbase, ident, D.TpClo (fam, env))
+    D.Pi (vbase, ident, D.Clo (fam, env))
   | S.Sg (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Sg (vbase, ident, D.TpClo (fam, env))
+    D.Sg (vbase, ident, D.Clo (fam, env))
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -488,7 +488,7 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let tphis, tps = List.split branches in
     let* phis = MU.map eval_cof tphis in
     let+ env = read_local in
-    let pclos = List.map (fun tp -> D.TpClo (tp, env)) tps in
+    let pclos = List.map (fun tp -> D.Clo (tp, env)) tps in
     D.TpSplit (List.combine phis pclos)
   | S.TpESub (sb, tp) ->
     eval_sub sb @@ eval_tp tp
@@ -610,8 +610,8 @@ and eval : S.t -> D.con EvM.m =
     | S.ElIn tm ->
       let+ con = eval tm in
       D.ElIn con
-    | S.Dim0 -> ret D.DimCon0
-    | S.Dim1 -> ret D.DimCon1
+    | S.Dim0 -> ret D.Dim0
+    | S.Dim1 -> ret D.Dim1
     | S.Cof cof_f ->
       begin
         match cof_f with
@@ -725,7 +725,7 @@ and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
   let open EvM in
   match sb with
-  | S.Sb0 ->
+  | S.Sb1 ->
     drop_all_cons kont
   | S.SbP ->
     drop_con kont
@@ -751,7 +751,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.SubIn _ | D.ElIn _
-  | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf | D.StableCode _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
@@ -1038,7 +1038,7 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
 and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
   fun clo x ->
   match clo with
-  | TpClo (bdy, env) ->
+  | Clo (bdy, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval_tp bdy
 

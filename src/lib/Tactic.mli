@@ -42,7 +42,7 @@ and BChk :
 sig
   include Tactic with type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
 
-  (** Converts a checking tactic to a boundary-checking tactic by a chkhronous check. *)
+  (** Converts a checking tactic to a boundary-checking tactic by a synchronous check. *)
   val chk : Chk.tac -> tac
   val syn : Syn.tac -> tac
 end

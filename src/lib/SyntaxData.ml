@@ -57,6 +57,7 @@ type t =
   | CodeCircle
 
   | ESub of sub * t
+  (** Explicit substition *)
 
 and tp =
   | Univ
@@ -74,14 +75,20 @@ and tp =
   | Circle
   | TpESub of sub * tp
 
+(** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
 and sub =
-  | Sb0
   | SbI
-  | SbE of sub * t
-  | SbP
+  (** The identity substitution [Γ → Γ]. *)
+
   | SbC of sub * sub
+  (** The composition of substitutions [δ ∘ γ]. *)
 
-type env = tp list
+  | Sb1
+  (** The terminal substitution [Γ → 1]. *)
 
-let tm_abort = CofSplit []
-let tp_abort = TpCofSplit []
+  | SbE of sub * t
+  (** The universal substitution into an extended context [<γ, a>]. *)
+
+  | SbP
+  (** The projection from a extended context [Γ.A → Γ]. *)
+

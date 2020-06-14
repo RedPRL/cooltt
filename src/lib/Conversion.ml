@@ -462,11 +462,3 @@ and approx_cof phi psi =
     conv_err @@ ExpectedSequentTrue ([phi], psi)
   | true ->
     ret ()
-
-(* This is extremely low-ch'i.
- * There should be a generic error-trapping function in src/basis/Monad. *)
-let trap_err (m : unit ElabM.m) : [`Ok | `Err of Error.t] ElabM.m =
-  ElabM.bind (ElabM.trap m) @@ function
-  | Error (ConversionError err) -> ElabM.ret @@ `Err err
-  | Error exn -> ElabM.throw exn
-  | Ok _ -> ElabM.ret `Ok
