@@ -525,5 +525,3 @@ let pp_sequent : tp Pp.printer =
   fun fmt tp ->
   Format.fprintf fmt "@[<v>%a@]"
     (pp_sequent_inner Pp.Env.emp) tp
-
-type env = tp list
