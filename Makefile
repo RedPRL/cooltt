@@ -2,7 +2,7 @@ OPAM=opam
 EXEC=${OPAM} config exec
 DUNE=${EXEC} dune --
 
-.PHONY: all build clean test top test
+.PHONY: all build clean test top test doc
 
 all: build
 

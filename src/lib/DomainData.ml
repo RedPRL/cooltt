@@ -1,9 +1,9 @@
 module S = Syntax
-open CoolBasis
+open Basis
+open Cubical
 open Bwd
 
-include Dim
-
+type dim = Dim.dim
 type cof = (dim, int) Cof.cof
 
 type 'a stable_code =

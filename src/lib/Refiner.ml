@@ -9,11 +9,10 @@ module Splice = Splice
 module TB = TermBuilder
 module Sem = Semantics
 module Qu = Quote
-module Cofibration = Cof (* this lets us access Cof after it gets shadowed below *)
 
 exception CJHM
 
-open CoolBasis
+open Basis
 open Monads
 open Monad.Notation (EM)
 module MU = Monad.Util (EM)
@@ -85,11 +84,11 @@ struct
 
   let unleash_tp_hole name flexity : T.tp_tac =
     T.Tp.make @@
-    let* cut = make_hole name flexity @@ (D.Univ, Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name flexity @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     EM.quote_tp @@ D.ElCut cut
 
   let unleash_syn_hole name flexity : T.Syn.tac =
-    let* cut = make_hole name `Flex @@ (D.Univ, Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name `Flex @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
     let+ tm = T.Chk.bchk (unleash_hole name flexity) tp in
     tm, tp
@@ -122,7 +121,7 @@ struct
   let intro (tac : T.BChk.tac) : T.BChk.tac =
     function
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub ->
-      let phi = Cof.join [phi_a; phi_sub] in
+      let phi = Cubical.Cof.join [phi_a; phi_sub] in
       let* partial =
         EM.lift_cmp @@ Sem.splice_tm @@
         Splice.cof phi_a @@ fun phi_a ->
@@ -191,7 +190,7 @@ struct
     | D.TpCof ->
       let+ r0 = tac0 D.TpDim
       and+ r1 = tac1 D.TpDim in
-      S.Cof (Cof.Eq (r0, r1))
+      S.Cof (Cubical.Cof.Eq (r0, r1))
     | tp ->
       expected_cof tp
 
@@ -199,7 +198,7 @@ struct
     function
     | D.TpCof ->
       let+ phis = MU.map (fun t -> t D.TpCof) tacs in
-      S.Cof (Cof.Join phis)
+      S.Cof (Cubical.Cof.Join phis)
     | tp ->
       expected_cof tp
 
@@ -207,7 +206,7 @@ struct
     function
     | D.TpCof ->
       let+ phis = MU.map (fun t -> t D.TpCof) tacs in
-      S.Cof (Cof.Meet phis)
+      S.Cof (Cubical.Cof.Meet phis)
     | tp ->
       expected_cof tp
 
@@ -235,7 +234,7 @@ struct
 
   let split0 : T.BChk.tac =
     fun _ ->
-    let* _ = assert_true Cof.bot in
+    let* _ = assert_true Cubical.Cof.bot in
     EM.ret S.tm_abort
 
   let split1 (phi : D.cof) (tac : T.var -> T.BChk.tac) : T.BChk.tac =
@@ -245,7 +244,7 @@ struct
 
   let split2 (phi0 : D.cof) (tac0 : T.var -> T.BChk.tac) (phi1 : D.cof) (tac1 : T.var -> T.BChk.tac) : T.BChk.tac =
     fun (tp, psi, psi_clo) ->
-    let* _ = assert_true @@ Cof.join [phi0; phi1] in
+    let* _ = assert_true @@ Cubical.Cof.join [phi0; phi1] in
     let* tm0 =
       T.abstract (D.TpPrf phi0) @@ fun prf ->
       tac0 prf (tp, psi, psi_clo)
@@ -253,7 +252,7 @@ struct
     let+ tm1 =
       let* phi0_fn = EM.lift_ev @@ Sem.eval @@ S.Lam (`Anon, tm0) in
       let psi_fn = D.Lam (`Anon, psi_clo) in
-      let psi' = Cof.join [phi0; psi] in
+      let psi' = Cubical.Cof.join [phi0; psi] in
       let* psi'_fn =
         EM.lift_cmp @@ Sem.splice_tm @@
         Splice.cof phi0 @@ fun phi0 ->
@@ -284,14 +283,14 @@ struct
   let split (branches : branch_tac list) : T.BChk.tac =
     fun goal ->
     let* phis, tacs = gather_cofibrations branches in
-    let disj_phi = Cof.join phis in
+    let disj_phi = Cubical.Cof.join phis in
     let* _ = assert_true disj_phi in
     let rec go phis (tacs : (T.var -> T.BChk.tac) list) : T.BChk.tac =
       match phis, tacs with
       | [phi], [tac] ->
         split1 phi tac
       | phi :: phis, tac :: tacs ->
-        split2 phi tac (Cof.join phis) (fun _ -> go phis tacs)
+        split2 phi tac (Cubical.Cof.join phis) (fun _ -> go phis tacs)
       | [], [] ->
         split0
       | _ -> failwith "internal error"
@@ -486,7 +485,7 @@ struct
       EM.lift_cmp @@ Sem.con_to_dim vr_con
     in
     let* pcode =
-      let tp_pcode = D.Pi (D.TpPrf (Cofibration.eq vr D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+      let tp_pcode = D.Pi (D.TpPrf (Cubical.Cof.eq vr Cubical.Dim.Dim0), `Anon, D.const_tp_clo D.Univ) in
       tac_pcode tp_pcode
     in
     let* code = tac_code D.Univ in
@@ -640,7 +639,7 @@ struct
             [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
              phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
         in
-        tac_tot (tp, Cofibration.join [Cofibration.eq r D.Dim0; phi], D.un_lam bdry_fn)
+        tac_tot (tp, Cubical.Cof.join [Cubical.Cof.eq r Cubical.Dim.Dim0; phi], D.un_lam bdry_fn)
       in
       let* tr = EM.quote_dim r in
       let+ t_pequiv =
@@ -659,7 +658,7 @@ struct
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
       let* tr = EM.quote_dim r in
-      let* tpcode = EM.quote_con (D.Pi (D.TpPrf (Cofibration.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+      let* tpcode = EM.quote_con (D.Pi (D.TpPrf (Cubical.Cof.eq r Cubical.Dim.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
       let* tcode = EM.quote_con D.Univ code in
       let* t_pequiv =
         let* tp_pequiv =
@@ -721,7 +720,7 @@ struct
             [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
              phi, TB.coe (TB.lam ~ident:(`Machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
-        tac_cap (tp_cap, Cofibration.join [phi; psi], D.un_lam bdry_fn)
+        tac_cap (tp_cap, Cubical.Cof.join [phi; psi], D.un_lam bdry_fn)
       and+ tr = EM.quote_dim r
       and+ tr' = EM.quote_dim r'
       and+ tphi = EM.quote_cof phi in
@@ -827,7 +826,7 @@ struct
         EM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
         Splice.term @@ TB.lam @@ fun _ -> vdef
       in
-      T.abstract ~ident (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) @@ fun var ->
+      T.abstract ~ident (D.Sub (tp_def, Cubical.Cof.top, D.un_lam const_vdef)) @@ fun var ->
       tac_bdy var goal
     in
     EM.ret @@ S.Let (S.SubIn tdef, ident, tbdy)
@@ -840,7 +839,7 @@ struct
         EM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
         Splice.term @@ TB.lam @@ fun _ -> vdef
       in
-      T.abstract ~ident (D.Sub (tp_def, Cofibration.top, D.un_lam const_vdef)) @@ fun var ->
+      T.abstract ~ident (D.Sub (tp_def, Cubical.Cof.top, D.un_lam const_vdef)) @@ fun var ->
       let* tbdy, bdytp = tac_bdy var in
       let* tbdytp = EM.quote_tp bdytp in
       EM.ret (tbdy, tbdytp)

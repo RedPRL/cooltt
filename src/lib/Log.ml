@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 
 type level = [`Info | `Error | `Warn]
 

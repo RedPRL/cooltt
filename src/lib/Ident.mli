@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 
 type t = [`Anon | `User of string | `Machine of string]
 
