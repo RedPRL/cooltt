@@ -115,7 +115,7 @@ and hd =
 (** A {!type:cut} is a value that is blocked on the computation of a {!type:hd} ("head"); when the head is computed, the list of stack frames ({!type:frm}) carried by the cut will be enacted. *)
 and cut = hd * frm list
 
-(** A stable frame is a {i dimension substitution-stable} elimination form with a hole in place of its principle argument. Unstable elimination forms are governed by {!type:hd} to ease the "re-reduction" of a value to whnf under a stronger cofibration theory. *)
+(** A {i stable} frame is a {i dimension substitution-stable} elimination form with a hole in place of its principal argument. Unstable elimination forms are governed by {!type:hd} to ease the "re-reduction" of a value to whnf under a stronger cofibration theory. *)
 and frm =
   | KAp of tp * con
   | KFst
@@ -127,6 +127,8 @@ and frm =
   | KElOut
   (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
 
+
+(** An {i unstable} frame is a {i dimension substitution-unstable} elimination form with a hole in place of its principal argument. *)
 and unstable_frm =
   | KHCom of dim * dim * cof * con
   | KCap of dim * dim * cof * con
