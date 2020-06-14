@@ -7,7 +7,7 @@ module Err = ElabError
 module Qu = Quote
 module Conv = Conversion
 
-open CoolBasis
+open Basis
 include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)

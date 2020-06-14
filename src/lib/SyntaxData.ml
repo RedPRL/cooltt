@@ -1,4 +1,5 @@
-open CoolBasis
+open Basis
+open Cubical
 
 type t =
   | Var of int

@@ -2,7 +2,7 @@ module CS := ConcreteSyntax
 module D := Domain
 module S := Syntax
 
-open CoolBasis
+open Basis
 open Bwd
 
 include module type of Monads.ElabM

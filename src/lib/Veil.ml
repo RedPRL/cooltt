@@ -1,4 +1,4 @@
-open CoolBasis 
+open Basis 
 
 type policy = [`Translucent | `Transparent]
 [@@deriving show]

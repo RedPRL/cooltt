@@ -1,6 +1,6 @@
 include module type of SyntaxData
 
-open CoolBasis
+open Basis
 
 val pp : Pp.env -> t Pp.printer
 val pp_atomic : Pp.env -> t Pp.printer

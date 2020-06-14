@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 open Bwd
 open Dim
 
@@ -76,14 +76,6 @@ struct
     function
     | `Consistent _ -> `Consistent
     | `Inconsistent -> `Inconsistent
-
-  let disj_envelope' alg_thy' : disj_thy =
-    [alg_thy', (VarSet.empty, [])]
-
-  let disj_envelope =
-    function
-    | `Consistent alg_thy' -> disj_envelope' alg_thy'
-    | `Inconsistent -> []
 
   let assume_vars (thy : t') vars =
     {thy with true_vars = VarSet.union vars thy.true_vars}
@@ -203,6 +195,15 @@ end
 module Disj =
 struct
   type t = disj_thy
+
+  let envelop_alg' alg_thy' : disj_thy =
+    [alg_thy', (VarSet.empty, [])]
+
+  let envelope_alg =
+    function
+    | `Consistent alg_thy' -> envelop_alg' alg_thy'
+    | `Inconsistent -> []
+
 
   let empty : t = [Alg.emp', (VarSet.empty, [])]
 

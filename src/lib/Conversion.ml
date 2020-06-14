@@ -2,13 +2,13 @@ module S = Syntax
 module D = Domain
 module Sem = Semantics
 
-
 exception Todo
 exception CFHM
 exception CJHM
 exception CCHM
 
-open CoolBasis
+open Basis
+open Cubical
 open Monads
 
 
@@ -264,7 +264,7 @@ and equate_con tp con0 con1 =
     equate_con hcom_tp con0 con1
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
-    let* () = ConvM.restrict_ [Cof.eq r D.Dim0] @@ equate_con v_tp con0 con1 in
+    let* () = ConvM.restrict_ [Cof.eq r Dim.Dim0] @@ equate_con v_tp con0 con1 in
     let* proj0 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con0 in
     let* proj1 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con1 in
     let* tp_proj = lift_cmp @@ do_el code in
@@ -427,7 +427,7 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
 and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   let* () = equate_dim r0 r1 in
   let* () =
-    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 Dim.Dim0), `Anon, D.const_tp_clo D.Univ) in
     equate_con pcode_tp pcode0 pcode1
   in
   let* () = equate_con D.Univ code0 code1 in

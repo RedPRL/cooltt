@@ -8,7 +8,7 @@ module R = Refiner
 module T = Tactic
 module Sem = Semantics
 
-open CoolBasis
+open Basis
 open Monad.Notation (EM)
 
 let rec unfold idents k =

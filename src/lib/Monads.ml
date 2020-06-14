@@ -1,9 +1,9 @@
 module D = Domain
 module S = Syntax
 module St = ElabState
-open CoolBasis
+open Basis
+open Cubical
 open Bwd
-open BwdNotation
 
 exception CCHM
 exception CJHM
@@ -13,14 +13,14 @@ module CmpL =
 struct
   type local =
     {state : St.t;
-     cof_thy : CofThy.disj_thy}
+     cof_thy : CofThy.Disj.t}
 end
 
 module EvL =
 struct
   type local =
     {state : St.t;
-     cof_thy : CofThy.disj_thy;
+     cof_thy : CofThy.Disj.t;
      env : D.env}
 end
 
@@ -29,7 +29,7 @@ struct
   type local =
     {state : St.t;
      veil : Veil.t;
-     cof_thy : CofThy.alg_thy;
+     cof_thy : CofThy.Alg.t;
      size : int}
 end
 
@@ -38,7 +38,7 @@ struct
   type local =
     {state : St.t;
      veil : Veil.t;
-     cof_thy : CofThy.disj_thy;
+     cof_thy : CofThy.Disj.t;
      size : int}
 end
 
@@ -109,6 +109,7 @@ struct
 
   let append cells =
     M.scope @@ fun local ->
+    let open BwdNotation in
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
@@ -157,7 +158,7 @@ struct
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun {state; cof_thy; _} ->
-    m {state; cof_thy = CofThy.Alg.disj_envelope cof_thy}
+    m {state; cof_thy = CofThy.Disj.envelope_alg cof_thy}
 
   let replace_env cof_thy m =
     M.scope (fun local -> {local with cof_thy}) m
@@ -166,8 +167,8 @@ struct
     let* {cof_thy; _} = M.read in
     CofThy.Alg.left_invert_under_cofs
       ~zero:(M.ret ()) ~seq:MU.iter
-      cof_thy phis @@ fun alg_thy ->
-    replace_env alg_thy m
+      cof_thy phis @@ fun thy ->
+    replace_env thy m
 
   let top_var tp =
     let+ n = read_local in

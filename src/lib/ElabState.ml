@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 
 module D = Domain
 module StringMap = Map.Make (String)

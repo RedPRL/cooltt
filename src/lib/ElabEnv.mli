@@ -1,7 +1,8 @@
 module CS := ConcreteSyntax
 module D := Domain
 
-open CoolBasis
+open Basis
+open Cubical
 open Bwd
 
 module Cell : sig
@@ -20,7 +21,7 @@ val size : t -> int
 val locals : t -> cell bwd
 val sem_env : t -> D.env
 val pp_env : t -> Pp.env
-val cof_thy : t -> CofThy.disj_thy
+val cof_thy : t -> CofThy.Disj.t
 val get_veil : t -> Veil.t
 val problem : t -> string bwd
 
