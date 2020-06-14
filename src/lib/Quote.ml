@@ -52,10 +52,10 @@ let rec quote_con (tp : D.tp) con =
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
     begin
-      lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim0 |>> function
+      lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (Dim.DimVar lvl) Dim.Dim0 |>> function
       | true -> ret S.Dim0
       | false ->
-        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (D.DimVar lvl) D.Dim1 |>> function
+        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (Dim.DimVar lvl) Dim.Dim1 |>> function
         | true -> ret S.Dim1
         | false ->
           let+ ix = quote_var lvl in
@@ -194,13 +194,13 @@ let rec quote_con (tp : D.tp) con =
           let+ tm = quote_con tp con in
           tphi, tm
         in
-        let phis = [Cof.eq r D.Dim0; Cof.eq r D.Dim1] in
+        let phis = [Cof.eq r Dim.Dim0; Cof.eq r Dim.Dim1] in
         let+ branches = MU.map branch phis in
         S.CofSplit branches
       | false ->
         let+ tr = quote_dim r
         and+ part =
-          quote_lam (D.TpPrf (Cof.eq r D.Dim0)) @@ fun _ ->
+          quote_lam (D.TpPrf (Cof.eq r Dim.Dim0)) @@ fun _ ->
           let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
           let* tp = lift_cmp @@ do_el pcode_fib in
           quote_con tp con
@@ -316,7 +316,7 @@ and quote_lam ?(ident = `Anon) tp mbdy =
 
 and quote_v_data r pcode code pequiv =
   let+ tr = quote_dim r
-  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
+  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
   and+ tcode = quote_con D.Univ code
   and+ t_pequiv =
     let* tp_pequiv =
@@ -464,7 +464,7 @@ and quote_unstable_cut cut ufrm =
     S.Cap (tr, ts, tphi, tcode, tbox)
   | D.KVProj (r, pcode, code, pequiv) ->
     let* tr = quote_dim r in
-    let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+    let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
     let* tcode = quote_con D.Univ code in
     let* t_pequiv =
       let* tp_pequiv =

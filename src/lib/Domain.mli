@@ -1,5 +1,4 @@
 include module type of DomainData
-
 open Basis
 
 val dim_to_con : dim -> con

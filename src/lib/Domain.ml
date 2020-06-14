@@ -30,11 +30,11 @@ let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
 let dim_to_con =
   function
-  | Dim0 -> DimCon0
-  | Dim1 -> DimCon1
-  | DimVar lvl ->
+  | Dim.Dim0 -> DimCon0
+  | Dim.Dim1 -> DimCon1
+  | Dim.DimVar lvl ->
     Cut {tp = TpDim; cut = Var lvl, []}
-  | DimSym sym ->
+  | Dim.DimSym sym ->
     (* hmmm *)
     Cut {tp = TpDim; cut = Global sym, []}
 

@@ -111,7 +111,7 @@ struct
     loop
 
   let forall sym =
-    let i = D.DimSym sym in
+    let i = Dim.DimSym sym in
     extend @@
     function
     | `CofEq (r, s) ->
@@ -157,10 +157,10 @@ and con_to_dim =
   fun con ->
     whnf_inspect_con ~style:`UnfoldAll con |>>
     function
-    | D.DimCon0 -> ret D.Dim0
-    | D.DimCon1 -> ret D.Dim1
-    | D.Cut {cut = Var l, []; _} -> ret @@ D.DimVar l
-    | D.Cut {cut = Global sym, []; _} -> ret @@ D.DimSym sym
+    | D.DimCon0 -> ret Dim.Dim0
+    | D.DimCon1 -> ret Dim.Dim1
+    | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
+    | D.Cut {cut = Global sym, []; _} -> ret @@ Dim.DimSym sym
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
@@ -188,7 +188,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     D.Lam (ident, clo)
   | BindSym (y, con) ->
     begin
-      test_sequent [] (Cof.eq (D.DimSym x) (D.DimSym y)) |>>
+      test_sequent [] (Cof.eq (Dim.DimSym x) (Dim.DimSym y)) |>>
       function
       | true ->
         ret @@ D.BindSym (y, con)
@@ -255,7 +255,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     D.VIn (s, equiv, pivot, base)
   | D.Cut {tp = _; cut = (D.Global y, [])} as con ->
     begin
-      test_sequent [] (Cof.eq (D.DimSym x) (D.DimSym y)) |>>
+      test_sequent [] (Cof.eq (Dim.DimSym x) (Dim.DimSym y)) |>>
       function
       | true ->
         ret @@ D.dim_to_con r
@@ -628,7 +628,7 @@ and eval : S.t -> D.con EvM.m =
       end
     | S.ForallCof tm ->
       let sym = Symbol.named "forall_probe" in
-      let i = D.DimSym sym in
+      let i = Dim.DimSym sym in
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
     | S.CofSplit (branches) ->
@@ -1373,7 +1373,7 @@ and dispatch_rigid_coe ~style line =
   in
   let peek line =
     let x = Symbol.fresh () in
-    go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ D.DimSym x |>>
+    go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ Dim.DimSym x |>>
     function
     | `Reduce _ | `Done as res -> ret res
     | `Unknown ->

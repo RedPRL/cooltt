@@ -485,7 +485,7 @@ struct
       EM.lift_cmp @@ Sem.con_to_dim vr_con
     in
     let* pcode =
-      let tp_pcode = D.Pi (D.TpPrf (Cubical.Cof.eq vr D.Dim0), `Anon, D.const_tp_clo D.Univ) in
+      let tp_pcode = D.Pi (D.TpPrf (Cubical.Cof.eq vr Cubical.Dim.Dim0), `Anon, D.const_tp_clo D.Univ) in
       tac_pcode tp_pcode
     in
     let* code = tac_code D.Univ in
@@ -639,7 +639,7 @@ struct
             [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
              phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
         in
-        tac_tot (tp, Cubical.Cof.join [Cubical.Cof.eq r D.Dim0; phi], D.un_lam bdry_fn)
+        tac_tot (tp, Cubical.Cof.join [Cubical.Cof.eq r Cubical.Dim.Dim0; phi], D.un_lam bdry_fn)
       in
       let* tr = EM.quote_dim r in
       let+ t_pequiv =
@@ -658,7 +658,7 @@ struct
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
       let* tr = EM.quote_dim r in
-      let* tpcode = EM.quote_con (D.Pi (D.TpPrf (Cubical.Cof.eq r D.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+      let* tpcode = EM.quote_con (D.Pi (D.TpPrf (Cubical.Cof.eq r Cubical.Dim.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
       let* tcode = EM.quote_con D.Univ code in
       let* t_pequiv =
         let* tp_pequiv =
