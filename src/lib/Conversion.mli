@@ -4,6 +4,16 @@ module D := Domain
 open Basis
 open Monads
 
+(** {1 Assertions} *)
+
+(** Assert that two {i well-formed} semantic types are equal. *)
+val equate_tp : D.tp -> D.tp -> unit conversion
+
+(** Assert that two {i well-typed} semantic elements of a {i well-formed} semantic type are equal. *)
+val equate_con : D.tp -> D.con -> D.con -> unit conversion
+
+(** {1 Error handling} *)
+
 module Error :
 sig
   type t
@@ -11,6 +21,3 @@ sig
 end
 
 exception ConversionError of Error.t
-
-val equate_con : D.tp -> D.con -> D.con -> unit conversion
-val equate_tp : D.tp -> D.tp -> unit conversion
