@@ -21,6 +21,9 @@ val fst : con
 val snd : con
 val el_out : con
 
+val tm_abort : con
+val tp_abort : tp
+
 (** {1 Pretty-printers }
 
     These are only for debugging. *)

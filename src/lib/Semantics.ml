@@ -157,8 +157,8 @@ and con_to_dim =
   fun con ->
     whnf_inspect_con ~style:`UnfoldAll con |>>
     function
-    | D.DimCon0 -> ret Dim.Dim0
-    | D.DimCon1 -> ret Dim.Dim1
+    | D.Dim0 -> ret Dim.Dim0
+    | D.Dim1 -> ret Dim.Dim1
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
     | D.Cut {cut = Global sym, []; _} -> ret @@ Dim.DimSym sym
     | con ->
@@ -174,7 +174,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.DimCon0 | D.DimCon1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -610,8 +610,8 @@ and eval : S.t -> D.con EvM.m =
     | S.ElIn tm ->
       let+ con = eval tm in
       D.ElIn con
-    | S.Dim0 -> ret D.DimCon0
-    | S.Dim1 -> ret D.DimCon1
+    | S.Dim0 -> ret D.Dim0
+    | S.Dim1 -> ret D.Dim1
     | S.Cof cof_f ->
       begin
         match cof_f with
@@ -751,7 +751,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.GoalRet _ | D.SubIn _ | D.ElIn _
-  | D.Cof _ | D.DimCon0 | D.DimCon1 | D.Prf | D.StableCode _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con

@@ -63,9 +63,12 @@ and con =
   | Pair of con * con
   | GoalRet of con
   | SubIn of con
+
   | ElIn of con
-  | DimCon0
-  | DimCon1
+  (** The introduction form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
+
+  | Dim0
+  | Dim1
   | Cof of (con, con) Cof.cof_f
   | Prf
 
@@ -98,7 +101,11 @@ and tp =
 (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
 and hd =
   | Global of Symbol.t
-  | Var of int (* De Bruijn level *)
+  (** A top-level declaration*)
+
+  | Var of int
+  (** De Bruijn level *)
+
   | Coe of con * dim * dim * con
   | UnstableCut of cut * unstable_frm
 
@@ -113,13 +120,12 @@ and frm =
   | KNatElim of con * con * con
   | KCircleElim of con * con * con
   | KGoalProj
+
   | KElOut
+  (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
 
 and unstable_frm =
   | KHCom of dim * dim * cof * con
   | KCap of dim * dim * cof * con
   | KVProj of dim * con * con * con
   | KSubOut of cof * tm_clo
-
-let tm_abort = Split []
-let tp_abort = TpSplit []

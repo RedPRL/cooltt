@@ -27,11 +27,13 @@ let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
 let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
 let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
+let tm_abort = Split []
+let tp_abort = TpSplit []
 
 let dim_to_con =
   function
-  | Dim.Dim0 -> DimCon0
-  | Dim.Dim1 -> DimCon1
+  | Dim.Dim0 -> Dim0
+  | Dim.Dim1 -> Dim1
   | Dim.DimVar lvl ->
     Cut {tp = TpDim; cut = Var lvl, []}
   | Dim.DimSym sym ->
@@ -144,9 +146,9 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "goal-ret[%a]" pp_con con
   | Lam (_, clo) ->
     Format.fprintf fmt "lam[%a]" pp_clo clo
-  | DimCon0 ->
+  | Dim0 ->
     Format.fprintf fmt "dim0"
-  | DimCon1 ->
+  | Dim1 ->
     Format.fprintf fmt "dim1"
   | ElIn con ->
     Format.fprintf fmt "el/in[%a]" pp_con con
