@@ -18,7 +18,7 @@ cooltt has been built with OCaml 4.10.0 with [opam
 try executing the following command:
 
 ```
-$ opam switch create 4.10.0.
+$ opam switch create 4.10.0
 ```
 
 Once these dependencies are installed cooltt can be built with the following set of commands.
