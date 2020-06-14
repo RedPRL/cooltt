@@ -14,12 +14,24 @@ type ('r, 'v) cof =
 
 (** {1 Smart constructors} *)
 
+(** The cofibration corresponding to a variable [φ : 𝔽]. *)
 val var : 'v -> ('a, 'v) cof
+
+(** Given dimensions [r, r' : 𝕀], the cofibration [r=r']. *)
 val eq : 'a -> 'a -> ('a, 'v) cof
+
+(** Given a list [φ0,...,φn : 𝔽] of cofibrations, the disjunction [φ0 ∨ ... ∨ φn]. *)
 val join : ('a, 'v) cof list -> ('a, 'v) cof
+
+(** Given a list [φ0,...,φn : 𝔽] of cofibrations, the conjunction [φ0 ∧ ... ∧ φn]. *)
 val meet : ('a, 'v) cof list -> ('a, 'v) cof
+
+(** The false cofibration, equivalent to [join []]. *)
 val bot : ('a, 'v) cof
+
+(** The true cofibration, equivalent to [meet []]. *)
 val top : ('a, 'v) cof
 
+(** The boundary [∂r] of a dimension [r : 𝕀] is the disjunction [r=0 ∨ r=1] *)
 val boundary : Dim.dim -> (Dim.dim, 'v) cof
 
