@@ -292,10 +292,10 @@ and subst_clo : D.dim -> Symbol.t -> D.tm_clo -> D.tm_clo CM.m =
   D.Clo (tm, env)
 
 and subst_tp_clo : D.dim -> Symbol.t -> D.tp_clo -> D.tp_clo CM.m =
-  fun r x (TpClo (tp, env)) ->
+  fun r x (Clo (tp, env)) ->
   let open CM in
   let+ env = subst_env r x env in
-  D.TpClo (tp, env)
+  D.Clo (tp, env)
 
 and subst_env : D.dim -> Symbol.t -> D.env -> D.env CM.m =
   fun r x {tpenv; conenv} ->
@@ -457,11 +457,11 @@ and eval_tp : S.tp -> D.tp EvM.m =
   | S.Pi (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Pi (vbase, ident, D.TpClo (fam, env))
+    D.Pi (vbase, ident, D.Clo (fam, env))
   | S.Sg (base, ident, fam) ->
     let+ env = read_local
     and+ vbase = eval_tp base in
-    D.Sg (vbase, ident, D.TpClo (fam, env))
+    D.Sg (vbase, ident, D.Clo (fam, env))
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -488,7 +488,7 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let tphis, tps = List.split branches in
     let* phis = MU.map eval_cof tphis in
     let+ env = read_local in
-    let pclos = List.map (fun tp -> D.TpClo (tp, env)) tps in
+    let pclos = List.map (fun tp -> D.Clo (tp, env)) tps in
     D.TpSplit (List.combine phis pclos)
   | S.TpESub (sb, tp) ->
     eval_sub sb @@ eval_tp tp
@@ -1038,7 +1038,7 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
 and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
   fun clo x ->
   match clo with
-  | TpClo (bdy, env) ->
+  | Clo (bdy, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval_tp bdy
 

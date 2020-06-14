@@ -5,7 +5,7 @@ open Cubical
 module S = Syntax
 
 let const_tp_clo tp =
-  TpClo (S.TpVar 0, {tpenv = Snoc (Emp, tp); conenv = Emp})
+  Clo (S.TpVar 0, {tpenv = Snoc (Emp, tp); conenv = Emp})
 
 let push frm (hd, sp) =
   hd, sp @ [frm]
@@ -111,7 +111,7 @@ and pp_clo : tm_clo Pp.printer =
 
 and pp_tp_clo : tp_clo Pp.printer =
   let sep fmt () = Format.fprintf fmt "," in
-  fun fmt (TpClo (tp, {tpenv; conenv})) ->
+  fun fmt (Clo (tp, {tpenv; conenv})) ->
     Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
       S.dump_tp tp
       (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
