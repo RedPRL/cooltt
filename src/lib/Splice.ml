@@ -1,4 +1,5 @@
-open CoolBasis.Bwd
+open Basis.Bwd
+open Cubical
 open BwdNotation
 
 module S = Syntax

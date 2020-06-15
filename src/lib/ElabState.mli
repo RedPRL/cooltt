@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 
 module D := Domain
 module CS := ConcreteSyntax

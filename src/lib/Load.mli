@@ -1,4 +1,4 @@
-type error = LexingError of CoolBasis.LexingUtil.span | ParseError of CoolBasis.LexingUtil.span
+type error = LexingError of Basis.LexingUtil.span | ParseError of Basis.LexingUtil.span
 
 (* Load and parse a file or stdin *)
 val load_file : [`Stdin | `File of string] -> (ConcreteSyntax.signature, error) result

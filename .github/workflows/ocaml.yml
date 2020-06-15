@@ -7,13 +7,12 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest]
-        ocaml-version: [ '4.10.0' ]
+        ocaml-version: ['4.10.0']
     steps:
-    - uses: actions/checkout@master
-    - uses: avsm/setup-ocaml@master
+    - uses: actions/checkout@v2
+    - uses: avsm/setup-ocaml@v1
       with:
         ocaml-version: ${{ matrix.ocaml-version }}
-    - run: opam install dune
     - run: opam pin add -y cooltt .
     - run: make
     - run: make test

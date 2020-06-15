@@ -4,7 +4,8 @@ module EM = ElabBasics
 module Sem = Semantics
 module Qu = Quote
 
-open CoolBasis
+open Basis
+open Cubical
 open Monad.Notation (EM)
 
 module type Tactic =

@@ -1,7 +1,7 @@
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
-open CoolBasis
+open Basis
 
 module Data =
 struct

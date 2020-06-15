@@ -1,6 +1,10 @@
+(** {1 Types} *)
+
+open Basis
+
 include module type of DomainData
 
-open CoolBasis
+(** {1 Convenience constructors} *)
 
 val dim_to_con : dim -> con
 val cof_to_con : cof -> con
@@ -8,7 +12,6 @@ val mk_var : tp -> int -> con
 val push : frm -> cut -> cut
 
 val const_tp_clo : tp -> tp_clo
-
 
 val un_lam : con -> tm_clo
 val compose : con -> con -> con
@@ -18,6 +21,12 @@ val fst : con
 val snd : con
 val el_out : con
 
+val tm_abort : con
+val tp_abort : tp
+
+(** {1 Pretty-printers }
+
+    These are only for debugging. *)
 
 val pp_dim : dim Pp.printer
 val pp_clo : tm_clo Pp.printer

@@ -3,7 +3,8 @@ module D = Domain
 module S = Syntax
 module CS = ConcreteSyntax
 
-open CoolBasis
+open Basis
+open Cubical
 open Bwd
 open BwdNotation
 
@@ -24,7 +25,7 @@ type t =
   {resolver : Symbol.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
-   cof_thy : CofThy.disj_thy;
+   cof_thy : CofThy.Disj.t;
    locals : cell bwd;
    problem : string bwd;
    location : LexingUtil.span option}

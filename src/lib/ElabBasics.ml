@@ -7,7 +7,7 @@ module Err = ElabError
 module Qu = Quote
 module Conv = Conversion
 
-open CoolBasis
+open Basis
 include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)
@@ -72,8 +72,18 @@ let quote_cof cof =
 let quote_dim con =
   lift_qu @@ Qu.quote_dim con
 
+
+(* This is extremely low-ch'i.
+ * There should be a generic error-trapping function in src/basis/Monad. *)
+let trap_conversion_err (m : unit m) : [`Ok | `Err of Conversion.Error.t] m =
+  trap m |>> function
+  | Error (Conversion.ConversionError err) -> ret @@ `Err err
+  | Error exn -> throw exn
+  | Ok _ -> ret `Ok
+
+
 let equate tp l r =
-  Conv.trap_err @@ lift_conv_ @@ Conv.equate_con tp l r |>>
+  trap_conversion_err @@ lift_conv_ @@ Conv.equate_con tp l r |>>
   function
   | `Ok -> ret ()
   | `Err err ->
@@ -84,7 +94,7 @@ let equate tp l r =
     elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
 
 let equate_tp tp tp' =
-  Conv.trap_err @@ lift_conv_ @@ Conv.equate_tp tp tp' |>>
+  trap_conversion_err @@ lift_conv_ @@ Conv.equate_tp tp tp' |>>
   function
   | `Ok -> ret ()
   | `Err err ->

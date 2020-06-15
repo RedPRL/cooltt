@@ -5,7 +5,7 @@ module Env = ElabEnv
 module Err = ElabError
 module Sem = Semantics
 module Qu = Quote
-open CoolBasis
+open Basis
 
 exception Todo
 
