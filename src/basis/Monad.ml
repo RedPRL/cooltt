@@ -19,8 +19,6 @@ module type Notation = sig
   val (|>>) : 'a m -> ('a -> 'b m) -> 'b m
   val (@<<) : ('a -> 'b m) -> 'a m -> 'b m
   val (<&>) : 'a m -> 'b m -> ('a * 'b) m
-  val (>>=) : 'a m -> ('a -> 'b m) -> 'b m
-  val (<@>>) : ('a -> 'b) -> 'a m -> 'b m
   val (<<@>) : 'a m -> ('a -> 'b) -> 'b m
 end
 
@@ -43,12 +41,7 @@ module Notation (M : S) : Notation with type 'a m = 'a M.m = struct
   let (@<<) f m = m |>> f
   let (<&>) = (and+)
 
-  let (>>=) = M.bind
-  let (<@>>) f m =
-    m >>= fun x ->
-    M.ret @@ f x
-
-  let (<<@>) m f = f <@>> m
+  let (<<@>) m f = f <@> m
 end
 
 module Util (M : S) =
@@ -101,8 +94,8 @@ struct
     function
     | [] -> M.ret []
     | x::xs ->
-      f x >>= fun y ->
-      traverse f xs >>= fun ys ->
+      f x |>> fun y ->
+      traverse f xs |>> fun ys ->
       M.ret @@ y :: ys
 end
 
