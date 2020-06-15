@@ -628,7 +628,23 @@ struct
 
   and sub_of_json =
     function
-    | _ -> raise Todo
+    | `String "Sb1" -> ret @@ Sb1
+
+    | `A [`String "SbE"; s; tm] ->
+      sub_of_json s >>= fun s ->
+      tm_of_json tm >>= fun tm ->
+      ret @@ SbE(s,tm)
+
+    | `String "SbI" -> ret @@ SbI
+
+    | `String "SbP" -> ret @@ SbP
+
+    | `A [`String "SbC"; s1; s2] ->
+      sub_of_json s1 >>= fun s1 ->
+      sub_of_json s2 >>= fun s2 ->
+      ret @@ SbC(s1,s2)
+
+    | j -> J.parse_error j "tp_of_json"
 
   and json_of_sym = fun _ -> raise Todo
   and sym_of_json =
