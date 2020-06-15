@@ -475,7 +475,7 @@ struct
       tm_of_json tm1 |>> fun tm1 ->
       global_of_json glo |>> fun glo ->
       tm_of_json tm2 |>> fun tm2 ->
-      ret @@ CodeExt (int_of_json i, tm1, glo, tm2) (* todo *)
+      ret @@ CodeExt (int_of_json i, tm1, `Global glo, tm2) (* todo *)
 
     | `A [`String "CodePi"; tm1; tm2] ->
       tm_of_json tm1 |>> fun tm1 ->
@@ -707,10 +707,17 @@ struct
       ret @@ Meet l
     | j -> J.parse_error j "cof_of_json"
 
-  and json_of_global = fun _ -> raise Todo
+  (** these two are just syntactic sugar for doing json_of_tm. i spoke with
+     jon; the [`Global x] tag in the type is more of a reminder to him that
+     the scope of the argument is unusual and it must be a closed term; it
+     gets serialized in the same way. i'm leaving these to match the form
+     of the type and in case it needs to get changed later. **)
+  and json_of_global =
+    function
+    | `Global tm -> json_of_tm tm
 
   and global_of_json =
     function
-    | _ -> raise Todo
+    | g -> tm_of_json g
 
 end
