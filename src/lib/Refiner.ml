@@ -83,12 +83,12 @@ struct
     EM.quote_cut cut
 
   let unleash_tp_hole name flexity : T.Tp.tac =
-    T.Tp.make @@
+    T.Tp.rule @@
     let* cut = make_hole name flexity @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     EM.quote_tp @@ D.ElCut cut
 
   let unleash_syn_hole name flexity : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* cut = make_hole name `Flex @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
     let+ tm = tp |> T.Chk.run @@ unleash_hole name flexity in
@@ -99,7 +99,7 @@ end
 module Goal =
 struct
   let formation lbl tac =
-    T.Tp.make @@
+    T.Tp.rule @@
     let+ tp = T.Tp.run tac in
     S.GoalTp (lbl, tp)
 end
@@ -108,7 +108,7 @@ end
 module Sub =
 struct
   let formation (tac_base : T.Tp.tac) (tac_phi : T.Chk.tac) (tac_tm : T.var -> T.Chk.tac) : T.Tp.tac =
-    T.Tp.make @@
+    T.Tp.rule @@
     let* base = T.Tp.run tac_base in
     let* vbase = EM.lift_ev @@ Sem.eval_tp base in
     let* phi = T.Chk.run tac_phi D.TpCof in
@@ -141,7 +141,7 @@ struct
       EM.expected_connective `Sub tp
 
   let elim (tac : T.Syn.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tm, subtp = T.Syn.run tac in
     match subtp with
     | D.Sub (tp, _, _) ->
@@ -153,7 +153,7 @@ end
 module Dim =
 struct
   let formation : T.Tp.tac =
-    T.Tp.make_virtual @@
+    T.Tp.virtual_rule @@
     EM.ret S.TpDim
 
   let dim0 : T.Chk.tac =
@@ -184,7 +184,7 @@ end
 module Cof =
 struct
   let formation : T.Tp.tac =
-    T.Tp.make_virtual @@
+    T.Tp.virtual_rule @@
     EM.ret S.TpCof
 
   let expected_cof =
@@ -310,7 +310,7 @@ end
 module Prf =
 struct
   let formation tac_phi =
-    T.Tp.make_virtual @@
+    T.Tp.virtual_rule @@
     let+ phi = T.Chk.run tac_phi D.TpCof in
     S.TpPrf phi
 
@@ -334,7 +334,7 @@ module Pi =
 struct
   let formation : (T.Tp.tac, T.Tp.tac) quantifier =
     fun tac_base (nm, tac_fam) ->
-      T.Tp.make @@
+      T.Tp.rule @@
       let* base = T.Tp.run_virtual tac_base in
       let* vbase = EM.lift_ev @@ Sem.eval_tp base in
       let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
@@ -352,7 +352,7 @@ struct
       EM.expected_connective `Pi tp
 
   let apply tac_fun tac_arg : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tfun, tp = T.Syn.run tac_fun in
     match tp with
     | D.Pi (base, _, fam) ->
@@ -371,7 +371,7 @@ module Sg =
 struct
   let formation : (T.Tp.tac, T.Tp.tac) quantifier =
     fun tac_base (nm, tac_fam) ->
-      T.Tp.make @@
+      T.Tp.rule @@
       let* base = T.Tp.run tac_base in
       let* vbase = EM.lift_ev @@ Sem.eval_tp base in
       let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
@@ -392,7 +392,7 @@ struct
       EM.expected_connective `Sg tp
 
   let pi1 tac : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tpair, tp = T.Syn.run tac in
     match tp with
     | D.Sg (base, _, _) ->
@@ -402,7 +402,7 @@ struct
 
 
   let pi2 tac : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tpair, tp = T.Syn.run tac in
     match tp with
     | D.Sg (_, _, fam) ->
@@ -420,7 +420,7 @@ end
 module Univ =
 struct
   let formation : T.Tp.tac =
-    T.Tp.make @@
+    T.Tp.rule @@
     EM.ret S.Univ
 
   let univ_tac : (D.tp -> S.t EM.m) -> T.Chk.tac =
@@ -516,7 +516,7 @@ struct
     S.CodeV (r, pcode, code, pequiv)
 
   let coe (tac_fam : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* piuniv =
       EM.lift_cmp @@
       Sem.splice_tp @@
@@ -545,7 +545,7 @@ struct
     vtp
 
   let hcom (tac_code : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* code = T.Chk.run tac_code D.Univ in
     let* src = T.Chk.run tac_src D.TpDim in
     let* trg = T.Chk.run tac_trg D.TpDim in
@@ -558,7 +558,7 @@ struct
     S.HCom (code, src, trg, cof, tm), vtp
 
   let com (tac_fam : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* piuniv =
       EM.lift_cmp @@
       Sem.splice_tp @@
@@ -592,7 +592,7 @@ end
 module El =
 struct
   let formation tac =
-    T.Tp.make @@
+    T.Tp.rule @@
     let+ tm = T.Chk.run tac D.Univ in
     S.El tm
 
@@ -610,7 +610,7 @@ struct
     S.ElIn tm
 
   let elim tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tm, tp = T.Syn.run tac in
     let+ unfolded = dest_el tp in
     S.ElOut tm, unfolded
@@ -675,7 +675,7 @@ struct
       EM.expected_connective `ElV tp
 
   let elim (tac_v : T.Syn.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tm, tp = T.Syn.run tac_v in
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
@@ -753,7 +753,7 @@ struct
       EM.expected_connective `ElHCom tp
 
   let elim (tac_box : T.Syn.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* box, box_tp = T.Syn.run tac_box in
     match box_tp with
     | D.ElUnstable (`HCom (r, r', phi, bdy)) ->
@@ -778,7 +778,7 @@ struct
 
 
   let lookup_var id : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* res = EM.resolve id in
     match res with
     | `Local ix ->
@@ -795,7 +795,7 @@ struct
     S.Var ix, tp
 
   let level lvl =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* env = EM.read in
     let ix = ElabEnv.size env - lvl - 1 in
     index ix
@@ -857,7 +857,7 @@ struct
     EM.ret @@ S.Let (S.SubIn tdef, ident, tbdy)
 
   let let_syn ?(ident = `Anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Syn.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tdef, tp_def = T.Syn.run tac_def in
     let* vdef = EM.lift_ev @@ Sem.eval tdef in
     let* tbdy, tbdytp =
@@ -878,7 +878,7 @@ end
 module Nat =
 struct
   let formation =
-    T.Tp.make @@
+    T.Tp.rule @@
     EM.ret S.Nat
 
   let assert_nat =
@@ -905,7 +905,7 @@ struct
     S.Suc t
 
   let elim (tac_mot : T.Chk.tac) (tac_case_zero : T.Chk.tac) (tac_case_suc : T.Chk.tac) (tac_scrut : T.Syn.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     EM.push_problem "elim" @@
     let* tscrut, nattp = T.Syn.run tac_scrut in
     let* () = assert_nat nattp in let* tmot =
@@ -946,7 +946,7 @@ end
 module Circle =
 struct
   let formation =
-    T.Tp.make @@
+    T.Tp.rule @@
     EM.ret S.Circle
 
   let assert_circle =
@@ -966,7 +966,7 @@ struct
     S.Loop r
 
   let elim (tac_mot : T.Chk.tac) (tac_case_base : T.Chk.tac) (tac_case_loop : T.Chk.tac) (tac_scrut : T.Syn.tac) : T.Syn.tac =
-    T.Syn.make @@
+    T.Syn.rule @@
     EM.push_problem "elim" @@
     let* tscrut, circletp = T.Syn.run tac_scrut in
     let* () = assert_circle circletp in
@@ -1020,14 +1020,14 @@ struct
 
   let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
     fun tac ->
-    T.Syn.make @@
+    T.Syn.rule @@
     let* tm, tp = T.Syn.run @@ T.Syn.whnf tac in
     match tp with
     | D.Sub _ ->
-      T.Syn.run @@ elim_implicit_connectives @@ Sub.elim @@ T.Syn.make @@ EM.ret (tm, tp)
+      T.Syn.run @@ elim_implicit_connectives @@ Sub.elim @@ T.Syn.rule @@ EM.ret (tm, tp)
         (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
     | D.ElStable _ ->
-      T.Syn.run @@ elim_implicit_connectives @@ El.elim @@ T.Syn.make @@ EM.ret (tm, tp)
+      T.Syn.run @@ elim_implicit_connectives @@ El.elim @@ T.Syn.rule @@ EM.ret (tm, tp)
     | _ ->
       EM.ret (tm, tp)
 
@@ -1062,9 +1062,9 @@ struct
         None
 
     let elim (mot : T.Chk.tac) (cases : case_tac list) (scrut : T.Syn.tac) : T.Syn.tac =
-      T.Syn.make @@
+      T.Syn.rule @@
       let* tscrut, ind_tp = T.Syn.run scrut in
-      let scrut = T.Syn.make @@ EM.ret (tscrut, ind_tp) (* only makes sense because because I know 'scrut' won't be used under some binder *) in
+      let scrut = T.Syn.rule @@ EM.ret (tscrut, ind_tp) (* only makes sense because because I know 'scrut' won't be used under some binder *) in
       match ind_tp, mot with
       | D.Nat, mot ->
         let* tac_zero : T.Chk.tac =

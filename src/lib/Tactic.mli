@@ -17,10 +17,10 @@ module Tp :
 sig
   include Tactic
 
-  val make : S.tp EM.m -> tac
+  val rule : S.tp EM.m -> tac
 
   (** A "virtual type" is one that is only permitted to appear as the domain of a pi type *)
-  val make_virtual : S.tp EM.m -> tac
+  val virtual_rule : S.tp EM.m -> tac
 
   (** Only succeeds for non-virtual types *)
   val run : tac -> S.tp EM.m
@@ -45,7 +45,7 @@ end
 and Syn :
 sig
   include Tactic
-  val make : (S.t * D.tp) EM.m -> tac
+  val rule : (S.t * D.tp) EM.m -> tac
   val run : tac -> (S.t * D.tp) EM.m
   val ann : Chk.tac -> Tp.tac -> tac
 end

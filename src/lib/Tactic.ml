@@ -18,8 +18,8 @@ end
 module Tp : sig
   include Tactic
 
-  val make : S.tp EM.m -> tac
-  val make_virtual : S.tp EM.m -> tac
+  val rule : S.tp EM.m -> tac
+  val virtual_rule : S.tp EM.m -> tac
 
   val run : tac -> S.tp EM.m
   val run_virtual : tac -> S.tp EM.m
@@ -31,8 +31,8 @@ struct
     | Virtual of S.tp EM.m
     | General of S.tp EM.m
 
-  let make tac = General tac
-  let make_virtual tac = Virtual tac
+  let rule tac = General tac
+  let virtual_rule tac = Virtual tac
 
   let run =
     function
@@ -56,24 +56,31 @@ struct
   let whnf tac = tac
 end
 
-module Var =
+module rec Var : sig
+  type tac
+
+  val prf : D.cof -> tac
+  val con : tac -> D.con
+  val syn : tac -> Syn.tac
+  val abstract : ?ident:Ident.t -> D.tp -> (tac -> 'a EM.m) -> 'a EM.m
+end =
 struct
   type tac = {tp : D.tp; con : D.con}
 
   let prf phi = {tp = D.TpPrf phi; con = D.Prf}
   let con {tp = _; con} = con
   let syn {tp; con} =
+    Syn.rule @@
     let+ tm = EM.quote_con tp con in
     tm, tp
+
+  let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a EM.m) -> 'a EM.m =
+    fun ?(ident = `Anon) tp kont ->
+    EM.abstract ident tp @@ fun (con : D.con) ->
+    kont @@ {tp; con}
 end
 
-let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a EM.m) -> 'a EM.m =
-  fun ?(ident = `Anon) tp kont ->
-  EM.abstract ident tp @@ fun (con : D.con) ->
-  kont @@ {tp; con}
-
-
-module rec Chk : sig
+and Chk : sig
   include Tactic
 
   val rule : (D.tp -> S.t EM.m) -> tac
@@ -104,7 +111,7 @@ struct
         let* tm = tac tp in
         let* con = EM.lift_ev @@ Sem.eval tm in
         let* () =
-          abstract (D.TpPrf phi) @@ fun prf ->
+          Var.abstract (D.TpPrf phi) @@ fun prf ->
           EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo clo @@ Var.con prf
         in
         EM.ret tm
@@ -129,7 +136,7 @@ struct
 
   let syn (tac : Syn.tac) : tac =
     rule @@ fun tp ->
-    let* tm, tp' = tac in
+    let* tm, tp' = Syn.run tac in
     let+ () = EM.equate_tp tp tp' in
     tm
 
@@ -143,15 +150,15 @@ struct
 end
 
 and Syn : sig
-  include Tactic with type tac = (S.t * D.tp) EM.m
-  val make : (S.t * D.tp) EM.m -> tac
+  include Tactic
+  val rule : (S.t * D.tp) EM.m -> tac
   val run : tac -> (S.t * D.tp) EM.m
   val ann : Chk.tac -> Tp.tac -> tac
 end =
 struct
   type tac = (S.t * D.tp) EM.m
 
-  let make tac = tac
+  let rule tac = tac
   let run tac = tac
 
   let update_span loc =
@@ -171,6 +178,6 @@ struct
     | `Reduce tp' -> EM.ret (tm, tp')
 end
 
+let abstract = Var.abstract
 
 type var = Var.tac
-type tp_tac = Tp.tac

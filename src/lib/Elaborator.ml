@@ -309,7 +309,7 @@ and syn_tm : CS.con -> T.Syn.tac =
       T.Syn.ann (chk_tm term) (chk_tp tp)
     | CS.Unfold (idents, c) ->
       (* TODO: move to a primitive rule *)
-      T.Syn.make @@ unfold idents @@ T.Syn.run @@ syn_tm c
+      T.Syn.rule @@ unfold idents @@ T.Syn.run @@ syn_tm c
     | CS.Coe (tp, src, trg, body) ->
       R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
     | CS.HCom (tp, src, trg, cof, tm) ->
@@ -328,7 +328,7 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
-      T.Syn.make @@
+      T.Syn.rule @@
       EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con.node, con.info)
 
 and chk_cases cases =
