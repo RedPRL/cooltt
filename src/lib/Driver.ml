@@ -64,28 +64,20 @@ let elaborate_typed_term name (args : CS.cell list) tp tm =
   let+ vtm = EM.lift_ev @@ Sem.eval tm in
   tp, vtp, tm, vtm
 
-let execute_decl =
+let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
   let open Monad.Notation (EM) in
   function
   | CS.Def {name; args; def; tp} ->
     let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
     let+ _sym = EM.add_global name vtp @@ Some vtm in
-    Ok `Continue
+    `Continue
   | CS.NormalizeTerm term ->
-    EM.veil (Veil.const `Transparent)
-      begin
-        EM.trap (Tactic.Syn.run @@ Elaborator.syn_tm term) |>>
-        function
-        | Ok (tm, vtp) ->
-          let* vtm = EM.lift_ev @@ Sem.eval tm in
-          let* tm' = EM.quote_con vtp vtm in
-          let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
-          Ok `Continue
-        | Error (Err.ElabError (err, info)) ->
-          let+ () = EM.emit ~lvl:`Error info ElabError.pp err in
-          Error `Continue
-        | Error err -> EM.throw err
-      end
+    EM.veil (Veil.const `Transparent) @@
+    let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
+    let* vtm = EM.lift_ev @@ Sem.eval tm in
+    let* tm' = EM.quote_con vtp vtm in
+    let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
+    `Continue
   | CS.Print ident ->
     begin
       EM.resolve ident.node |>>
@@ -101,32 +93,39 @@ let execute_decl =
             EM.ret @@ Some tm
         in
         let+ () = EM.emit ident.info pp_message @@ Definition {ident = ident.node; tp; tm} in
-        Ok `Continue
+        `Continue
       | _ ->
-        let+ () = EM.emit ~lvl:`Error ident.info pp_message @@ UnboundIdent ident.node in
-        Ok `Continue
+        EM.throw @@ Err.ElabError (Err.UnboundVariable ident.node, ident.info)
     end
   | CS.Quit ->
-    EM.ret @@ Ok `Quit
+    EM.ret `Quit
 
-(* Favonia: I haven't decided to extend the environment to hold past errors. *)
+
+let protect m =
+  let open Monad.Notation (EM) in
+  EM.trap m |>> function
+  | Ok return ->
+    EM.ret @@ Ok return
+  | Error (Err.ElabError (err, info)) ->
+    let+ () = EM.emit ~lvl:`Error info ElabError.pp err in
+    Error ()
+  | Error _ ->
+    Format.eprintf "foo??@.";
+    EM.ret @@ Error ()
+
 let rec execute_signature ~status sign =
   let open Monad.Notation (EM) in
   match sign with
   | [] -> EM.ret status
   | d :: sign ->
-    let* res = execute_decl d in
-    let cont, status =
-      Result.fold
-        ~ok:(fun o -> o, status)
-        ~error:(fun e -> e, Error ())
-        res
-    in
-    match cont with
-    | `Continue ->
+    let* res = protect @@ execute_decl d in
+    match res with
+    | Ok `Continue ->
       execute_signature ~status sign
-    | `Quit ->
-      EM.ret status
+    | Ok `Quit ->
+      EM.ret @@ Ok ()
+    | Error () ->
+      EM.ret @@ Error ()
 
 let process_sign : CS.signature -> (unit, unit) result =
   fun sign ->
@@ -147,8 +146,8 @@ let execute_command =
   let open Monad.Notation (EM) in
   function
   | CS.Decl decl -> execute_decl decl
-  | NoOp -> EM.ret @@ Ok `Continue
-  | CS.EndOfFile -> EM.ret @@ Ok `Quit
+  | NoOp -> EM.ret `Continue
+  | CS.EndOfFile -> EM.ret `Quit
 
 let rec repl (ch : in_channel) lexbuf =
   let open Monad.Notation (EM) in
@@ -160,18 +159,15 @@ let rec repl (ch : in_channel) lexbuf =
     let* () = EM.emit ~lvl:`Error (Some span) pp_message @@ LexingError in
     repl ch lexbuf
   | Ok cmd ->
-    let* res = execute_command cmd in
+    let* res = protect @@ execute_command cmd in
     match res with
     | Ok `Continue ->
       repl ch lexbuf
-    | Error `Continue ->
+    | Error _  ->
       repl ch lexbuf
     | Ok `Quit ->
       close_in ch;
       EM.ret @@ Ok ()
-    | Error `Quit ->
-      close_in ch;
-      EM.ret @@ Error ()
 
 let do_repl () =
   let ch, lexbuf = Load.prepare_repl () in
