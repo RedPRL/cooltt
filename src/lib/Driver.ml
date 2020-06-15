@@ -41,7 +41,7 @@ let pp_message fmt =
     Format.fprintf fmt
       "@[%a : %a@]"
       Ident.pp ident
-      (S.pp_atomic_tp env) tp
+      (S.pp_tp env) tp
   | UnboundIdent ident ->
     Format.fprintf fmt
       "@[Unbound identifier %a@]"
