@@ -137,10 +137,10 @@ let process_file input =
   match Load.load_file input with
   | Ok sign -> process_sign sign
   | Error (Load.ParseError span) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message @@ ParseError;
+    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message ParseError;
     Error ()
   | Error (Load.LexingError span) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message @@ LexingError;
+    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message LexingError;
     Error ()
 
 let execute_command =
