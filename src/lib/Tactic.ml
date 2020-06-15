@@ -119,7 +119,6 @@ struct
 
   let rule tac = Chk tac
   let brule tac = BChk tac
-  let make tac = Chk tac
 
   let update_span loc =
     function
