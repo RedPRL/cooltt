@@ -22,7 +22,9 @@ let rec unfold idents k =
       let veil = Veil.unfold [sym] @@ Env.get_veil env in
       EM.veil veil @@ unfold idents k
     | _ ->
-      unfold idents k
+      let* env = EM.read in
+      let span = Env.location env in
+      EM.throw @@ Err.ElabError (Err.UnboundVariable ident, span)
 
 module CoolTp :
 sig
@@ -174,7 +176,6 @@ and chk_tm : CS.con -> T.Chk.tac =
     match con.node with
     | CS.Underscore ->
       R.Prf.intro
-    (* R.Hole.unleash_hole None `Flex *)
     | CS.Lit n ->
       begin
         R.Tactic.match_goal @@ function
