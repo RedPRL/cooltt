@@ -12,7 +12,7 @@ module type Tactic =
 sig
   type tac
   val update_span : LexingUtil.span option -> tac -> tac
-  val whnf : ?style:Semantics.whnf_style -> tac -> tac
+  val whnf : style:Semantics.whnf_style -> tac -> tac
 end
 
 module Tp : sig
@@ -53,7 +53,7 @@ struct
   let update_span loc =
     map @@ EM.update_span loc
 
-  let whnf ?style:_ tac =
+  let whnf ~style:_ tac =
     tac
 end
 
@@ -135,7 +135,7 @@ struct
     let+ () = EM.equate_tp tp tp' in
     tm
 
-  let whnf ?(style = `UnfoldAll) tac =
+  let whnf ~style tac =
     brule @@ fun (tp, phi, clo) ->
     EM.lift_cmp @@ Sem.whnf_tp ~style tp |>>
     function
@@ -164,7 +164,7 @@ struct
     let+ tm = Chk.run tac_tm vtp in
     tm, vtp
 
-  let whnf ?(style = `UnfoldAll) tac =
+  let whnf ~style tac =
     let* tm, tp = tac in
     EM.lift_cmp @@ Sem.whnf_tp ~style tp |>>
     function

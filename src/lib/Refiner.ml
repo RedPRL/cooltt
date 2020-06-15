@@ -1015,7 +1015,7 @@ struct
   let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
     fun tac ->
     T.Syn.rule @@
-    let* tm, tp = T.Syn.run @@ T.Syn.whnf tac in
+    let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
     match tp with
     | D.Sub _ ->
       T.Syn.run @@ elim_implicit_connectives @@ Sub.elim @@ T.Syn.rule @@ EM.ret (tm, tp)
@@ -1027,7 +1027,7 @@ struct
 
   let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
     fun tac ->
-    T.Chk.whnf @@
+    T.Chk.whnf ~style:`UnfoldAll @@
     match_goal @@ function
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ intro_implicit_connectives tac

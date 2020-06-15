@@ -49,7 +49,7 @@ struct
     | Tp of T.Tp.tac
     | Code of T.Chk.tac
 
-  let whnf ?(style = `UnfoldAll) =
+  let whnf ~style =
     function
     | Tp tac -> Tp (T.Tp.whnf ~style tac)
     | Code tac -> Code (T.Chk.whnf ~style tac)
