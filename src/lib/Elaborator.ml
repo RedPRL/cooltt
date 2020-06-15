@@ -49,10 +49,10 @@ struct
     | Tp of T.Tp.tac
     | Code of T.Chk.tac
 
-  let whnf =
+  let whnf ?(style = `UnfoldAll) =
     function
-    | Tp tac -> Tp (T.Tp.whnf tac)
-    | Code tac -> Code (T.Chk.whnf tac)
+    | Tp tac -> Tp (T.Tp.whnf ~style tac)
+    | Code tac -> Code (T.Chk.whnf ~style tac)
 
   let update_span span =
     function

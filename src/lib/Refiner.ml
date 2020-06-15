@@ -1038,7 +1038,7 @@ struct
 
   let rec intro_subtypes : T.Chk.tac -> T.Chk.tac =
     fun tac ->
-    T.Chk.whnf @@
+    T.Chk.whnf ~style:`UnfoldNone @@
     match_goal @@ function
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ intro_subtypes tac
