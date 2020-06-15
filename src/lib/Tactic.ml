@@ -135,11 +135,11 @@ struct
     tm
 
   let whnf tac =
-    rule @@ fun tp ->
+    brule @@ fun (tp, phi, clo) ->
     EM.lift_cmp @@ Sem.whnf_tp ~style:`UnfoldAll tp |>>
     function
-    | `Done -> run tac tp
-    | `Reduce tp -> run tac tp
+    | `Done -> brun tac (tp, phi, clo)
+    | `Reduce tp -> brun tac (tp, phi, clo)
 end
 
 and Syn : sig

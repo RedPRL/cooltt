@@ -125,13 +125,13 @@ module Structural : sig
 end
 
 module Tactic : sig
+  val intro_subtypes : Chk.tac -> Chk.tac
   val intro_implicit_connectives : Chk.tac -> Chk.tac
   val elim_implicit_connectives : Syn.tac -> Syn.tac
 
   val tac_nary_quantifier : ('a, 'b) quantifier -> (Ident.t * 'a) list -> 'b -> 'b
 
-  val match_goal : (D.tp -> Chk.tac EM.m) -> Chk.tac
-  val bmatch_goal : (D.tp * D.cof * D.tm_clo -> Chk.tac EM.m) -> Chk.tac
+  val match_goal : (D.tp * D.cof * D.tm_clo -> Chk.tac EM.m) -> Chk.tac
 
   module Elim : sig
     type case_tac = CS.pat * Chk.tac

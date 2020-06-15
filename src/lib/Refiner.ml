@@ -1006,13 +1006,7 @@ end
 
 module Tactic =
 struct
-  let match_goal tac =
-    T.Chk.rule @@
-    fun goal ->
-      let* tac = tac goal in
-      T.Chk.run tac goal
-
-  let bmatch_goal (tac : _ -> T.Chk.tac EM.m) : T.Chk.tac =
+  let match_goal (tac : _ -> T.Chk.tac EM.m) : T.Chk.tac =
     T.Chk.brule @@
     fun goal ->
       let* tac = tac goal in
@@ -1034,11 +1028,20 @@ struct
   let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
     fun tac ->
     T.Chk.whnf @@
-    bmatch_goal @@ function
+    match_goal @@ function
     | D.Sub _, _, _ ->
       EM.ret @@ Sub.intro @@ intro_implicit_connectives tac
     | D.ElStable _, _, _ ->
       EM.ret @@ El.intro @@ intro_implicit_connectives tac
+    | _ ->
+      EM.ret tac
+
+  let rec intro_subtypes : T.Chk.tac -> T.Chk.tac =
+    fun tac ->
+    T.Chk.whnf @@
+    match_goal @@ function
+    | D.Sub _, _, _ ->
+      EM.ret @@ Sub.intro @@ intro_subtypes tac
     | _ ->
       EM.ret tac
 
@@ -1115,12 +1118,12 @@ struct
         EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
     let lam_elim cases : T.Chk.tac =
-      bmatch_goal @@ fun (tp, _, _) ->
+      match_goal @@ fun (tp, _, _) ->
       match tp with
       | D.Pi (_, _, fam) ->
         let mot_tac : T.Chk.tac =
           Pi.intro @@ fun var -> (* of inductive type *)
-          T.Chk.rule @@ fun _goal ->
+          T.Chk.brule @@ fun _goal ->
           let* fib = EM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
           let* tfib = EM.quote_tp fib in
           match tfib with

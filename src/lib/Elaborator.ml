@@ -161,14 +161,17 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.update_span con.info @@
+  R.Tactic.intro_subtypes @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
+
   | CS.Unfold (idents, c) ->
     (* TODO: move to a trusted rule *)
     T.Chk.brule @@
     fun goal ->
       unfold idents @@ T.Chk.brun (chk_tm c) goal
+
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
 
@@ -184,7 +187,7 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Lit n ->
       begin
         R.Tactic.match_goal @@ function
-        | D.TpDim -> EM.ret @@ R.Dim.literal n
+        | D.TpDim, _, _ -> EM.ret @@ R.Dim.literal n
         | _ -> EM.ret @@ R.Nat.literal n
       end
 
@@ -197,7 +200,7 @@ and chk_tm : CS.con -> T.Chk.tac =
 
     | CS.Pair (c0, c1) ->
       begin
-        R.Tactic.bmatch_goal @@ function
+        R.Tactic.match_goal @@ function
         | D.Sg _, _, _ ->
           EM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
         | D.ElUnstable (`V _), _, _ ->
@@ -273,7 +276,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Univ.ext n tac_fam tac_cof tac_bdry
 
     | _ ->
-      R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
+      R.Tactic.match_goal @@ fun (tp, _, _) ->
       match tp with
       | D.Pi _ ->
         let* env = EM.read in
