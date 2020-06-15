@@ -35,22 +35,11 @@ module rec Chk :
 sig
   include Tactic
 
-  val make : (D.tp -> S.t EM.m) -> tac
+  val rule : (D.tp -> S.t EM.m) -> tac
+  val brule : (D.tp * D.cof * D.tm_clo -> S.t EM.m) -> tac
   val run : tac -> D.tp -> S.t EM.m
+  val brun : tac -> D.tp * D.cof * D.tm_clo -> S.t EM.m
 
-  (** Converts a boundary-checking tactic to a checking tactic by change of base. *)
-  val bchk : BChk.tac -> tac
-  val syn : Syn.tac -> tac
-end
-and BChk :
-sig
-  include Tactic
-
-  val make : (D.tp * D.cof * D.tm_clo -> S.t EM.m) -> tac
-  val run : tac -> D.tp * D.cof * D.tm_clo -> S.t EM.m
-
-  (** Converts a checking tactic to a boundary-checking tactic by a synchronous check. *)
-  val chk : Chk.tac -> tac
   val syn : Syn.tac -> tac
 end
 and Syn :
@@ -71,7 +60,6 @@ sig
   val syn : tac -> Syn.tac
 end
 
-type tp_tac = Tp.tac
 type var = Var.tac
 
 val abstract : ?ident:Ident.t -> D.tp -> (var -> 'a EM.m) -> 'a EM.m

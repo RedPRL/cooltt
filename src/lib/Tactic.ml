@@ -74,80 +74,72 @@ let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a EM.m) -> 'a EM.m =
 
 
 module rec Chk : sig
-  include Tactic with type tac = D.tp -> S.t EM.m
+  include Tactic
 
-  val make : (D.tp -> S.t EM.m) -> tac
+  val rule : (D.tp -> S.t EM.m) -> tac
+  val brule : (D.tp * D.cof * D.tm_clo -> S.t EM.m) -> tac
   val run : tac -> D.tp -> S.t EM.m
+  val brun : tac -> D.tp * D.cof * D.tm_clo -> S.t EM.m
 
-  val bchk : BChk.tac -> tac
+  val bchk : Chk.tac -> tac
   val syn : Syn.tac -> tac
 end =
 struct
-  type tac = D.tp -> S.t EM.m
+  type tac =
+    | Chk of (D.tp -> S.t EM.m)
+    | BChk of (D.tp * D.cof * D.tm_clo -> S.t EM.m)
 
-  let run tac = tac
-  let make tac = tac
+  let run =
+    function
+    | Chk tac -> tac
+    | BChk btac ->
+      fun tp ->
+        let triv = D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp}) in
+        btac (tp, Cof.bot, triv)
 
-  let update_span loc tac tp =
-    EM.update_span loc @@ tac tp
+  let brun =
+    function
+    | Chk tac ->
+      fun (tp, phi, clo) ->
+        let* tm = tac tp in
+        let* con = EM.lift_ev @@ Sem.eval tm in
+        let* () =
+          abstract (D.TpPrf phi) @@ fun prf ->
+          EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo clo @@ Var.con prf
+        in
+        EM.ret tm
+    | BChk btac -> btac
 
-  let bchk : BChk.tac -> tac =
-    fun btac tp ->
-    let triv = D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp}) in
-    btac (tp, Cof.bot, triv)
+  let rule tac = Chk tac
+  let brule tac = BChk tac
+  let make tac = Chk tac
+
+  let update_span loc =
+    function
+    | Chk tac ->
+      rule @@ fun tp ->
+      EM.update_span loc @@ tac tp
+    | BChk tac ->
+      brule @@ fun goal ->
+      EM.update_span loc @@ tac goal
+
+  let bchk : Chk.tac -> tac =
+    fun btac ->
+    brule @@ Chk.brun btac
 
   let syn (tac : Syn.tac) : tac =
-    fun tp ->
+    rule @@ fun tp ->
     let* tm, tp' = tac in
     let+ () = EM.equate_tp tp tp' in
     tm
 
   let whnf tac =
+    rule @@
     fun tp ->
     EM.lift_cmp @@ Sem.whnf_tp tp |>>
     function
-    | `Done -> tac tp
-    | `Reduce tp -> tac tp
-end
-
-and BChk : sig
-  include Tactic with type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
-
-  val make : (D.tp * D.cof * D.tm_clo -> S.t EM.m) -> tac
-  val run : tac -> D.tp * D.cof * D.tm_clo -> S.t EM.m
-
-  val chk : Chk.tac -> tac
-  val syn : Syn.tac -> tac
-end =
-struct
-  type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
-
-  let run tac = tac
-  let make tac = tac
-
-  let update_span loc tac goal =
-    EM.update_span loc @@ tac goal
-
-  let chk : Chk.tac -> tac =
-    fun tac (tp, phi, pclo) ->
-    let* tm = tac tp in
-    let* con = EM.lift_ev @@ Sem.eval tm in
-    let* () =
-      abstract (D.TpPrf phi) @@ fun prf ->
-      EM.equate tp con @<< EM.lift_cmp @@ Sem.inst_tm_clo pclo @@ Var.con prf
-    in
-    EM.ret tm
-
-  let syn : Syn.tac -> tac =
-    fun tac ->
-    chk @@ Chk.syn tac
-
-  let whnf tac =
-    fun (tp, phi, clo) ->
-    EM.lift_cmp @@ Sem.whnf_tp tp |>>
-    function
-    | `Done -> tac (tp, phi, clo)
-    | `Reduce tp -> tac (tp, phi, clo)
+    | `Done -> run tac tp
+    | `Reduce tp -> run tac tp
 end
 
 and Syn : sig
@@ -168,7 +160,7 @@ struct
   let ann (tac_tm : Chk.tac) (tac_tp : Tp.tac) : tac =
     let* tp = Tp.run tac_tp in
     let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
-    let+ tm = tac_tm vtp in
+    let+ tm = Chk.run tac_tm vtp in
     tm, vtp
 
   let whnf tac =
