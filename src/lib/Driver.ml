@@ -109,9 +109,9 @@ let protect m =
   | Error (Err.ElabError (err, info)) ->
     let+ () = EM.emit ~lvl:`Error info ElabError.pp err in
     Error ()
-  | Error _ ->
-    Format.eprintf "foo??@.";
-    EM.ret @@ Error ()
+  | Error exn ->
+    let+ () = EM.emit ~lvl:`Error None PpExn.pp exn in
+    Error ()
 
 let rec execute_signature ~status sign =
   let open Monad.Notation (EM) in
