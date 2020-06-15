@@ -303,7 +303,7 @@ struct
 
     | CodeCircle -> ret @@ `String "CodeCircle"
 
-    | ESub(s,tm) ->
+    | ESub (s, tm) ->
       json_of_sub s >>= fun s ->
       json_of_tm tm >>= fun tm ->
       ret @@ `A [`String "ESub"; s; tm]
@@ -320,76 +320,76 @@ struct
       tm_of_json tm1 >>= fun tm1 ->
       name_of_json nm >>= fun nm ->
       tm_of_json tm2 >>= fun tm2 ->
-      ret @@ Let(tm1, nm, tm2)
+      ret @@ Let (tm1, nm, tm2)
 
     | `A [`String "Ann"; tm; tp] ->
       tm_of_json tm >>= fun tm ->
       tp_of_json tp >>= fun tp ->
-      ret @@ Ann(tm,tp)
+      ret @@ Ann (tm, tp)
 
     | `String "Zero" -> ret @@ Zero
 
     | `A [`String "Suc"; tm] ->
       tm_of_json tm >>= fun tm ->
-      ret @@ Suc(tm)
+      ret @@ Suc tm
 
     | `A [`String "NatElim"; tm1; tm2; tm3; tm4] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
-      ret @@ NatElim(tm1, tm2, tm3, tm4)
+      ret @@ NatElim (tm1, tm2, tm3, tm4)
 
     | `String "Base" -> ret @@ Base
 
     | `A [`String "Loop"; tm] ->
       tm_of_json tm >>= fun tm ->
-      ret @@ Loop(tm)
+      ret @@ Loop tm
 
     | `A [`String "CircleElim"; tm1; tm2; tm3; tm4] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
-      ret @@ CircleElim(tm1, tm2, tm3, tm4)
+      ret @@ CircleElim (tm1, tm2, tm3, tm4)
 
     | `A [`String "Lam"; nm; tm] ->
       name_of_json nm >>= fun nm ->
       tm_of_json tm >>= fun tm ->
-      ret @@ Lam(nm,tm)
+      ret @@ Lam (nm, tm)
 
     | `A [`String "Ap"; tm1; tm2] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
-      ret @@ Ap(tm1, tm2)
+      ret @@ Ap (tm1, tm2)
 
     | `A [`String "Pair"; tm1; tm2] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
-      ret @@ Pair(tm1, tm2)
+      ret @@ Pair (tm1, tm2)
 
     | `A [`String "Fst"; tm1] ->
       tm_of_json tm1 >>= fun tm1 ->
-      ret @@ Fst(tm1)
+      ret @@ Fst tm1
 
     | `A [`String "Snd"; tm1] ->
       tm_of_json tm1 >>= fun tm1 ->
-      ret @@ Snd(tm1)
+      ret @@ Snd tm1
 
     | `A [`String "GoalRet"; tm1] ->
       tm_of_json tm1 >>= fun tm1 ->
-      ret @@ GoalRet(tm1)
+      ret @@ GoalRet tm1
 
     | `A [`String "GoalProj"; tm1] ->
       tm_of_json tm1 >>= fun tm1 ->
-      ret @@ GoalProj(tm1)
+      ret @@ GoalProj tm1
 
     | `A [`String "Coe"; tm1; tm2; tm3; tm4] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
-      ret @@ Coe(tm1, tm2, tm3, tm4)
+      ret @@ Coe (tm1, tm2, tm3, tm4)
 
     | `A [`String "HCom"; tm1; tm2; tm3; tm4; tm5] ->
       tm_of_json tm1 >>= fun tm1 ->
@@ -397,7 +397,7 @@ struct
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
       tm_of_json tm5 >>= fun tm5 ->
-      ret @@ HCom(tm1, tm2, tm3, tm4,tm5)
+      ret @@ HCom (tm1, tm2, tm3, tm4,tm5)
 
     | `A [`String "Com"; tm1; tm2; tm3; tm4; tm5] ->
       tm_of_json tm1 >>= fun tm1 ->
@@ -405,26 +405,27 @@ struct
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
       tm_of_json tm5 >>= fun tm5 ->
-      ret @@ Com(tm1, tm2, tm3, tm4,tm5)
+      ret @@ Com (tm1, tm2, tm3, tm4,tm5)
 
     | `A [`String "SubIn"; tm1] ->
       tm_of_json tm1 >>= fun tm1 ->
-      ret @@ SubIn(tm1)
+      ret @@ SubIn tm1
 
     | `A [`String "SubOut"; tm1] ->
       tm_of_json tm1 >>= fun tm1 ->
-      ret @@ SubOut(tm1)
+      ret @@ SubOut tm1
 
     | `String "Dim0" -> ret @@ Dim0
+
     | `String "Dim1" -> ret @@ Dim1
 
     | `A [`String "Cof"; c] ->
       cof_of_json c >>= fun c ->
-      ret @@ Cof(c)
+      ret @@ Cof c
 
     | `A [`String "ForallCof"; tm] ->
       tm_of_json tm >>= fun tm ->
-      ret @@ ForallCof(tm)
+      ret @@ ForallCof tm
 
     | `A [`String "CofSplit"; tm] -> raise Todo
 
@@ -432,11 +433,11 @@ struct
 
     | `A [`String "ElIn"; tm] ->
       tm_of_json tm >>= fun tm ->
-      ret @@ ElIn(tm)
+      ret @@ ElIn tm
 
     | `A [`String "ElOut"; tm] ->
       tm_of_json tm >>= fun tm ->
-      ret @@ ElOut(tm)
+      ret @@ ElOut tm
 
     | `A [`String "Box"; tm1; tm2; tm3; tm4; tm5] ->
       tm_of_json tm1 >>= fun tm1 ->
@@ -444,7 +445,7 @@ struct
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
       tm_of_json tm5 >>= fun tm5 ->
-      ret @@ Box(tm1, tm2, tm3, tm4,tm5)
+      ret @@ Box (tm1, tm2, tm3, tm4,tm5)
 
     | `A [`String "Cap"; tm1; tm2; tm3; tm4; tm5] ->
       tm_of_json tm1 >>= fun tm1 ->
@@ -452,14 +453,14 @@ struct
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
       tm_of_json tm5 >>= fun tm5 ->
-      ret @@ Cap(tm1, tm2, tm3, tm4,tm5)
+      ret @@ Cap (tm1, tm2, tm3, tm4,tm5)
 
     | `A [`String "VIn"; tm1; tm2; tm3; tm4] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
-      ret @@ VIn(tm1, tm2, tm3, tm4)
+      ret @@ VIn (tm1, tm2, tm3, tm4)
 
     | `A [`String "VProj"; tm1; tm2; tm3; tm4; tm5] ->
       tm_of_json tm1 >>= fun tm1 ->
@@ -467,23 +468,23 @@ struct
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
       tm_of_json tm5 >>= fun tm5 ->
-      ret @@ VProj(tm1, tm2, tm3, tm4, tm5)
+      ret @@ VProj (tm1, tm2, tm3, tm4, tm5)
 
     | `A [`String "CodeExt"; i; tm1; glo; tm2] ->
       tm_of_json tm1 >>= fun tm1 ->
       global_of_json glo >>= fun glo ->
       tm_of_json tm2 >>= fun tm2 ->
-      ret @@ CodeExt(int_of_json i, tm1, glo, tm2) (* todo *)
+      ret @@ CodeExt (int_of_json i, tm1, glo, tm2) (* todo *)
 
     | `A [`String "CodePi"; tm1; tm2] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
-      ret @@ CodePi(tm1, tm2)
+      ret @@ CodePi (tm1, tm2)
 
     | `A [`String "CodeSg"; tm1; tm2] ->
       tm_of_json tm1 >>= fun tm1 ->
       tm_of_json tm2 >>= fun tm2 ->
-      ret @@ CodeSg(tm1, tm2)
+      ret @@ CodeSg (tm1, tm2)
 
     | `String "CodeNat" -> ret @@ CodeNat
 
@@ -494,14 +495,14 @@ struct
       tm_of_json tm2 >>= fun tm2 ->
       tm_of_json tm3 >>= fun tm3 ->
       tm_of_json tm4 >>= fun tm4 ->
-      ret @@ CodeV(tm1, tm2, tm3, tm4)
+      ret @@ CodeV (tm1, tm2, tm3, tm4)
 
     | `String "CodeCircle" -> ret @@ CodeCircle
 
     | `A [`String "ESub"; s; tm] ->
       sub_of_json s >>= fun s ->
       tm_of_json tm >>= fun tm ->
-      ret @@ ESub(s,tm)
+      ret @@ ESub (s,tm)
 
     | j -> J.parse_error j "tm_of_json"
 
@@ -561,13 +562,13 @@ struct
 
     | `A [`String "El"; tm] ->
       tm_of_json tm >>= fun tm ->
-      ret @@ El(tm)
+      ret @@ El tm
 
     | `A [`String "TpVar"; x] -> ret @@ TpVar (int_of_json x) (* todo as above *)
 
     | `A [`String "GoalTp"; nm; tp] ->
       tp_of_json tp >>= fun tp ->
-      ret @@ GoalTp(ostring_of_json nm,tp) (*todo *)
+      ret @@ GoalTp (ostring_of_json nm, tp) (*todo *)
 
     | `String "TpDim" -> ret @@ TpDim
 
@@ -575,7 +576,7 @@ struct
 
     | `A [`String "TpPrf"; tm] ->
       tm_of_json tm >>= fun tm ->
-      ret @@ TpPrf(tm)
+      ret @@ TpPrf tm
 
     | `A [`String "TpCofSplit"; tm] -> raise Todo
 
@@ -583,19 +584,19 @@ struct
       tp_of_json tp >>= fun tp ->
       tm_of_json tm2 >>= fun tm2 ->
       tm_of_json tm3 >>= fun tm3 ->
-      ret @@ Sub(tp, tm2, tm3)
+      ret @@ Sub (tp, tm2, tm3)
 
     | `A [`String "Pi"; tp1; nm; tp2] ->
       tp_of_json tp1 >>= fun tp1 ->
       name_of_json nm >>= fun nm ->
       tp_of_json tp2 >>= fun tp2 ->
-      ret @@ Pi(tp1, nm, tp2)
+      ret @@ Pi (tp1, nm, tp2)
 
     | `A [`String "Sg"; tp1; nm; tp2] ->
       tp_of_json tp1 >>= fun tp1 ->
       name_of_json nm >>= fun nm ->
       tp_of_json tp2 >>= fun tp2 ->
-      ret @@ Sg(tp1, nm, tp2)
+      ret @@ Sg (tp1, nm, tp2)
 
     | `String "Nat" -> ret @@ Nat
 
@@ -604,7 +605,7 @@ struct
     | `A [`String "TpESub"; s; tp] ->
       sub_of_json s >>= fun s->
       tp_of_json tp >>= fun tp ->
-      ret @@ TpESub(s,tp)
+      ret @@ TpESub (s, tp)
 
     | j -> J.parse_error j "tp_of_json"
 
@@ -633,7 +634,7 @@ struct
     | `A [`String "SbE"; s; tm] ->
       sub_of_json s >>= fun s ->
       tm_of_json tm >>= fun tm ->
-      ret @@ SbE(s,tm)
+      ret @@ SbE (s,tm)
 
     | `String "SbI" -> ret @@ SbI
 
@@ -642,7 +643,7 @@ struct
     | `A [`String "SbC"; s1; s2] ->
       sub_of_json s1 >>= fun s1 ->
       sub_of_json s2 >>= fun s2 ->
-      ret @@ SbC(s1,s2)
+      ret @@ SbC (s1,s2)
 
     | j -> J.parse_error j "tp_of_json"
 
