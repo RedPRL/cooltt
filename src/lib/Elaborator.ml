@@ -166,8 +166,10 @@ and bchk_tm : CS.con -> T.BChk.tac =
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
   | CS.Unfold (idents, c) ->
+    (* TODO: move to a trusted rule *)
+    T.BChk.make @@
     fun goal ->
-      unfold idents @@ bchk_tm c goal
+      unfold idents @@ T.BChk.run (bchk_tm c) goal
   | CS.Generalize (ident, c) ->
     T.BChk.chk @@ R.Structural.generalize ident (chk_tm c)
   | _ ->
@@ -311,7 +313,8 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Ann {term; tp} ->
       T.Syn.ann (chk_tm term) (chk_tp tp)
     | CS.Unfold (idents, c) ->
-      unfold idents @@ syn_tm c
+      (* TODO: move to a primitive rule *)
+      T.Syn.make @@ unfold idents @@ T.Syn.run @@ syn_tm c
     | CS.Coe (tp, src, trg, body) ->
       R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
     | CS.HCom (tp, src, trg, cof, tm) ->
@@ -330,6 +333,7 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
+      T.Syn.make @@
       EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con.node, con.info)
 
 and chk_cases cases =

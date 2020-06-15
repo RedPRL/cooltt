@@ -59,7 +59,7 @@ let elaborate_typed_term name (args : CS.cell list) tp tm =
   let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
   let* tm =
     EM.push_problem "tm" @@
-    Elaborator.chk_tm_in_tele args tm vtp
+    Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp
   in
   let+ vtm = EM.lift_ev @@ Sem.eval tm in
   tp, vtp, tm, vtm
@@ -74,7 +74,7 @@ let execute_decl =
   | CS.NormalizeTerm term ->
     EM.veil (Veil.const `Transparent)
       begin
-        EM.trap (Elaborator.syn_tm term) |>>
+        EM.trap (Tactic.Syn.run @@ Elaborator.syn_tm term) |>>
         function
         | Ok (tm, vtp) ->
           let* vtm = EM.lift_ev @@ Sem.eval tm in

@@ -11,6 +11,7 @@ sig
   val whnf : tac -> tac
 end
 
+
 (* general types *)
 module Tp :
 sig
@@ -32,7 +33,10 @@ end
 
 module rec Chk :
 sig
-  include Tactic with type tac = D.tp -> S.t EM.m
+  include Tactic
+
+  val make : (D.tp -> S.t EM.m) -> tac
+  val run : tac -> D.tp -> S.t EM.m
 
   (** Converts a boundary-checking tactic to a checking tactic by change of base. *)
   val bchk : BChk.tac -> tac
@@ -40,7 +44,10 @@ sig
 end
 and BChk :
 sig
-  include Tactic with type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
+  include Tactic
+
+  val make : (D.tp * D.cof * D.tm_clo -> S.t EM.m) -> tac
+  val run : tac -> D.tp * D.cof * D.tm_clo -> S.t EM.m
 
   (** Converts a checking tactic to a boundary-checking tactic by a synchronous check. *)
   val chk : Chk.tac -> tac
@@ -48,7 +55,9 @@ sig
 end
 and Syn :
 sig
-  include Tactic with type tac = (S.t * D.tp) EM.m
+  include Tactic
+  val make : (S.t * D.tp) EM.m -> tac
+  val run : tac -> (S.t * D.tp) EM.m
   val ann : Chk.tac -> Tp.tac -> tac
 end
 

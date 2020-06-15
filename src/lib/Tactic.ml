@@ -75,11 +75,19 @@ let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a EM.m) -> 'a EM.m =
 
 module rec Chk : sig
   include Tactic with type tac = D.tp -> S.t EM.m
+
+  val make : (D.tp -> S.t EM.m) -> tac
+  val run : tac -> D.tp -> S.t EM.m
+
   val bchk : BChk.tac -> tac
   val syn : Syn.tac -> tac
 end =
 struct
   type tac = D.tp -> S.t EM.m
+
+  let run tac = tac
+  let make tac = tac
+
   let update_span loc tac tp =
     EM.update_span loc @@ tac tp
 
@@ -104,11 +112,19 @@ end
 
 and BChk : sig
   include Tactic with type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
+
+  val make : (D.tp * D.cof * D.tm_clo -> S.t EM.m) -> tac
+  val run : tac -> D.tp * D.cof * D.tm_clo -> S.t EM.m
+
   val chk : Chk.tac -> tac
   val syn : Syn.tac -> tac
 end =
 struct
   type tac = D.tp * D.cof * D.tm_clo -> S.t EM.m
+
+  let run tac = tac
+  let make tac = tac
+
   let update_span loc tac goal =
     EM.update_span loc @@ tac goal
 
@@ -136,10 +152,16 @@ end
 
 and Syn : sig
   include Tactic with type tac = (S.t * D.tp) EM.m
+  val make : (S.t * D.tp) EM.m -> tac
+  val run : tac -> (S.t * D.tp) EM.m
   val ann : Chk.tac -> Tp.tac -> tac
 end =
 struct
   type tac = (S.t * D.tp) EM.m
+
+  let make tac = tac
+  let run tac = tac
+
   let update_span loc =
     EM.update_span loc
 
