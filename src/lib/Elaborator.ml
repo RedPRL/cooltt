@@ -144,14 +144,10 @@ and chk_tp_in_tele (args : CS.cell list) (con : CS.con) : T.Tp.tac =
   in
   CoolTp.as_tp @@ loop args
 
-and chk_tm : CS.con -> T.Chk.tac =
-  fun con ->
-  bchk_tm con
-
 and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
   let rec loop args =
     match args with
-    | [] -> bchk_tm con
+    | [] -> chk_tm con
     | CS.Cell {name; tp} :: args ->
       T.Chk.update_span tp.info @@
       R.Tactic.intro_implicit_connectives @@
@@ -160,7 +156,7 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
   in
   loop args
 
-and bchk_tm : CS.con -> T.Chk.tac =
+and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   match con.node with
   | CS.Hole name ->
@@ -169,7 +165,7 @@ and bchk_tm : CS.con -> T.Chk.tac =
     (* TODO: move to a trusted rule *)
     T.Chk.brule @@
     fun goal ->
-      unfold idents @@ T.Chk.brun (bchk_tm c) goal
+      unfold idents @@ T.Chk.brun (chk_tm c) goal
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
   | _ ->
@@ -187,11 +183,11 @@ and bchk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Lam ([], body) ->
-      bchk_tm body
+      chk_tm body
 
     | CS.Lam (nm :: names, body) ->
       R.Pi.intro ~ident:nm @@ fun _ ->
-      bchk_tm {con with node = CS.Lam (names, body)}
+      chk_tm {con with node = CS.Lam (names, body)}
 
     | CS.LamElim cases ->
       R.Tactic.Elim.lam_elim @@ chk_cases cases
@@ -199,11 +195,11 @@ and bchk_tm : CS.con -> T.Chk.tac =
       begin
         R.Tactic.bmatch_goal @@ function
         | D.Sg _, _, _ ->
-          EM.ret @@ R.Sg.intro (bchk_tm c0) (bchk_tm c1)
+          EM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
         | D.ElUnstable (`V _), _, _ ->
-          EM.ret @@ R.ElV.intro (bchk_tm c0) (bchk_tm c1)
+          EM.ret @@ R.ElV.intro (chk_tm c0) (chk_tm c1)
         | D.ElUnstable (`HCom _), _, _ ->
-          EM.ret @@ R.ElHCom.intro (bchk_tm c0) (bchk_tm c1)
+          EM.ret @@ R.ElHCom.intro (chk_tm c0) (chk_tm c1)
         | tp, _, _ ->
           EM.expected_connective `Sg tp
       end
@@ -215,7 +211,7 @@ and bchk_tm : CS.con -> T.Chk.tac =
     | CS.Loop c ->
       R.Circle.loop (chk_tm c)
     | CS.Let (c, ident, body) ->
-      R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> bchk_tm body
+      R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> chk_tm body
     | CS.Nat ->
       R.Univ.nat
     | CS.Circle ->
@@ -246,7 +242,7 @@ and bchk_tm : CS.con -> T.Chk.tac =
     | CS.CofBoundary c ->
       R.Cof.boundary (chk_tm c)
     | CS.CofSplit splits ->
-      let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> bchk_tm ctm in
+      let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> chk_tm ctm in
       R.Cof.split branch_tacs
     | CS.Ext (idents, tp, cases) ->
       let n = List.length idents in
@@ -260,9 +256,9 @@ and bchk_tm : CS.con -> T.Chk.tac =
       | D.Pi _ ->
         let* env = EM.read in
         let lvl = ElabEnv.size env in
-        EM.ret @@ R.Pi.intro @@ fun _ -> bchk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
+        EM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
-        EM.ret @@ R.Sg.intro (bchk_tm @@ CS.{node = CS.Fst con; info = None}) (bchk_tm @@ CS.{node = CS.Snd con; info = None})
+        EM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
       | _ ->
         EM.ret @@ T.Chk.syn @@ syn_tm con
 
