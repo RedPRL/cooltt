@@ -88,7 +88,6 @@ and Chk : sig
   val run : tac -> D.tp -> S.t EM.m
   val brun : tac -> D.tp * D.cof * D.tm_clo -> S.t EM.m
 
-  val bchk : Chk.tac -> tac
   val syn : Syn.tac -> tac
 end =
 struct
@@ -128,10 +127,6 @@ struct
     | BChk tac ->
       brule @@ fun goal ->
       EM.update_span loc @@ tac goal
-
-  let bchk : Chk.tac -> tac =
-    fun btac ->
-    brule @@ Chk.brun btac
 
   let syn (tac : Syn.tac) : tac =
     rule @@ fun tp ->
