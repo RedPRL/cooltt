@@ -1,3 +1,3 @@
-open CoolBasis
+open Basis
 
 include Monad.S

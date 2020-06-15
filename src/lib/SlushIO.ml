@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 open Bwd
 
 module CS = ConcreteSyntax
@@ -561,7 +561,7 @@ struct
 
   and json_of_sub : sub -> J.value m =
     function
-    | Sb0 -> ret @@ `String "Sb0"
+    | Sb1 -> ret @@ `String "Sb1"
 
     | SbI -> ret @@ `String "SbI"
 
@@ -581,10 +581,6 @@ struct
     function
     | _ -> raise Todo
 
-  and json_of_env : env -> J.value = fun _ -> raise Todo
-  and env_of_json =
-    function
-    | _ -> raise Todo
   and json_of_sym = fun _ -> raise Todo
   and sym_of_json =
     function

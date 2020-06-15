@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 
 module Map = Map.Make (Name) (* todo: make name Ident.t? *)
 

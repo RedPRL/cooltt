@@ -1,4 +1,4 @@
-open CoolBasis
+open Basis
 
 (* todo: in a modular version of this, this would be a functor argument and the functions below would have more neutral names *)
 let lib_name = "coollib"

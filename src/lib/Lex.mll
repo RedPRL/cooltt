@@ -1,7 +1,7 @@
 {
 open Lexing
 open Grammar
-open CoolBasis.Bwd
+open Basis.Bwd
 
 exception SyntaxError of string
 
