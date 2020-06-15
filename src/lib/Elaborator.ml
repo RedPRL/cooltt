@@ -171,11 +171,16 @@ and chk_tm : CS.con -> T.Chk.tac =
       unfold idents @@ T.Chk.brun (chk_tm c) goal
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
+
+  | CS.Lam ([], body) ->
+    chk_tm body
+
   | _ ->
     R.Tactic.intro_implicit_connectives @@
     match con.node with
     | CS.Underscore ->
       R.Prf.intro
+
     | CS.Lit n ->
       begin
         R.Tactic.match_goal @@ function
@@ -183,15 +188,13 @@ and chk_tm : CS.con -> T.Chk.tac =
         | _ -> EM.ret @@ R.Nat.literal n
       end
 
-    | CS.Lam ([], body) ->
-      chk_tm body
-
     | CS.Lam (nm :: names, body) ->
       R.Pi.intro ~ident:nm @@ fun _ ->
       chk_tm {con with node = CS.Lam (names, body)}
 
     | CS.LamElim cases ->
       R.Tactic.Elim.lam_elim @@ chk_cases cases
+
     | CS.Pair (c0, c1) ->
       begin
         R.Tactic.bmatch_goal @@ function
@@ -207,50 +210,68 @@ and chk_tm : CS.con -> T.Chk.tac =
 
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)
+
     | CS.Base ->
       R.Circle.base
+
     | CS.Loop c ->
       R.Circle.loop (chk_tm c)
+
     | CS.Let (c, ident, body) ->
       R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> chk_tm body
+
     | CS.Nat ->
       R.Univ.nat
+
     | CS.Circle ->
       R.Univ.circle
+
     | CS.Type ->
       R.Univ.univ
+
     | CS.Pi (cells, body) ->
       let tac (CS.Cell cell) = cell.name, chk_tm cell.tp in
       let tacs = cells |> List.map tac in
       let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
       R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+
     | CS.Sg (cells, body) ->
       let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
+
     | CS.CofEq (c0, c1) ->
       R.Cof.eq (chk_tm c0) (chk_tm c1)
+
     | CS.Join cs ->
       R.Cof.join (List.map chk_tm cs)
+
     | CS.BotC ->
       R.Cof.join []
+
     | CS.Meet cs ->
       R.Cof.meet (List.map chk_tm cs)
+
     | CS.TopC ->
       R.Cof.meet []
+
     | CS.CofBoundary c ->
       R.Cof.boundary (chk_tm c)
+
     | CS.CofSplit splits ->
       let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> chk_tm cphi, fun _ -> chk_tm ctm in
       R.Cof.split branch_tacs
+
     | CS.Ext (idents, tp, cases) ->
       let n = List.length idents in
       let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
       let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
       let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
       R.Univ.ext n tac_fam tac_cof tac_bdry
+
     | _ ->
       R.Tactic.bmatch_goal @@ fun (tp, _, _) ->
       match tp with
