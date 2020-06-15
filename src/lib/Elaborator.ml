@@ -158,6 +158,7 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 
 and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
+  T.Chk.update_span con.info @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name `Rigid
@@ -169,7 +170,6 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
   | _ ->
-    T.Chk.update_span con.info @@
     R.Tactic.intro_implicit_connectives @@
     match con.node with
     | CS.Underscore ->

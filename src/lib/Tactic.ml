@@ -141,7 +141,7 @@ struct
 
   let whnf tac =
     rule @@ fun tp ->
-    EM.lift_cmp @@ Sem.whnf_tp tp |>>
+    EM.lift_cmp @@ Sem.whnf_tp ~style:`UnfoldAll tp |>>
     function
     | `Done -> run tac tp
     | `Reduce tp -> run tac tp
@@ -170,7 +170,7 @@ struct
 
   let whnf tac =
     let* tm, tp = tac in
-    EM.lift_cmp @@ Sem.whnf_tp tp |>>
+    EM.lift_cmp @@ Sem.whnf_tp ~style:`UnfoldAll tp |>>
     function
     | `Done -> EM.ret (tm, tp)
     | `Reduce tp' -> EM.ret (tm, tp')
