@@ -110,7 +110,8 @@ let protect m =
     let+ () = EM.emit ~lvl:`Error info ElabError.pp err in
     Error ()
   | Error exn ->
-    let+ () = EM.emit ~lvl:`Error None PpExn.pp exn in
+    let* env = EM.read in
+    let+ () = EM.emit ~lvl:`Error (ElabEnv.location env) PpExn.pp exn in
     Error ()
 
 let rec execute_signature ~status sign =
