@@ -25,7 +25,7 @@ struct
     | `String s -> int_of_string s
     | j -> J.parse_error j "int_of_json"
 
-  let json_of_string = `String (* todo/iev this may need to be η-expanded for ocaml reasons *)
+  let json_of_string s = `String s
 
   let string_of_json =
     function
@@ -665,10 +665,17 @@ struct
   and sym_of_json =
     function
     | _ -> raise Todo
-  and json_of_name = fun _ -> raise Todo
+  and json_of_name =
+    function
+    | `Anon -> ret @@ `String "Anon"
+    | `User s -> ret @@ `A [`String "User"; json_of_string s]
+    | `Machine s -> ret @@ `A [`String "Machine"; json_of_string s]
   and name_of_json =
     function
-    | _ -> raise Todo
+    | `String "Anon" -> ret @@ `Anon
+    | `A[ `String "User"; s] -> ret @@ `User (string_of_json s)
+    | `A[ `String "Machine"; s] -> ret @@ `Machine (string_of_json s)
+    | j -> J.parse_error j "name_of_json"
   and json_of_cof = fun _ -> raise Todo
   and cof_of_json =
     function
