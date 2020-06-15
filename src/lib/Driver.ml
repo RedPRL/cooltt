@@ -34,8 +34,8 @@ let pp_message fmt =
     Format.fprintf fmt
       "@[<v>%a@ : %a@ = %a@]"
       Ident.pp ident
-      (S.pp_atomic_tp env) tp
-      (S.pp_atomic env) tm
+      (S.pp_tp env) tp
+      (S.pp env) tm
   | Definition {ident; tp; tm = None} ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
