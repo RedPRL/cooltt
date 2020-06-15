@@ -646,7 +646,7 @@ struct
 
     | j -> J.parse_error j "tp_of_json"
 
-  and json_of_sym = fun _ -> raise Todo
+  and json_of_sym ({gen;name} : Symbol.t) = raise Todo
   and sym_of_json =
     function
     | _ -> raise Todo
