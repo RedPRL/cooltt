@@ -523,8 +523,8 @@ struct
     | TpCof -> ret @@ `String "TpCof"
 
     | TpPrf tm ->
-      json_of_tm tm >>= fun tp ->
-      ret @@ `A [`String "TpPrf"; tp]
+      json_of_tm tm >>= fun tm ->
+      ret @@ `A [`String "TpPrf"; tm]
 
     | TpCofSplit l -> raise Todo
       (* json_of_tm l >>= fun l ->
@@ -553,11 +553,60 @@ struct
     | TpESub (s, tp) ->
       json_of_sub s >>= fun s ->
       json_of_tp tp >>= fun tp ->
-      ret @@ `A [`String "TPESub"; s; tp]
+      ret @@ `A [`String "TpESub"; s; tp]
 
   and tp_of_json =
     function
-    | _ -> raise Todo
+    | `String "Univ" -> ret @@ Univ
+
+    | `A [`String "El"; tm] ->
+      tm_of_json tm >>= fun tm ->
+      ret @@ El(tm)
+
+    | `A [`String "TpVar"; x] -> ret @@ TpVar (int_of_json x) (* todo as above *)
+
+    | `A [`String "GoalTp"; nm; tp] ->
+      tp_of_json tp >>= fun tp ->
+      ret @@ GoalTp(ostring_of_json nm,tp) (*todo *)
+
+    | `String "TpDim" -> ret @@ TpDim
+
+    | `String "TpCof" -> ret @@ TpCof
+
+    | `A [`String "TpPrf"; tm] ->
+      tm_of_json tm >>= fun tm ->
+      ret @@ TpPrf(tm)
+
+    | `A [`String "TpCofSplit"; tm] -> raise Todo
+
+    | `A [`String "Sub"; tp; tm2; tm3] ->
+      tp_of_json tp >>= fun tp ->
+      tm_of_json tm2 >>= fun tm2 ->
+      tm_of_json tm3 >>= fun tm3 ->
+      ret @@ Sub(tp, tm2, tm3)
+
+    | `A [`String "Pi"; tp1; nm; tp2] ->
+      tp_of_json tp1 >>= fun tp1 ->
+      name_of_json nm >>= fun nm ->
+      tp_of_json tp2 >>= fun tp2 ->
+      ret @@ Pi(tp1, nm, tp2)
+
+    | `A [`String "Sg"; tp1; nm; tp2] ->
+      tp_of_json tp1 >>= fun tp1 ->
+      name_of_json nm >>= fun nm ->
+      tp_of_json tp2 >>= fun tp2 ->
+      ret @@ Sg(tp1, nm, tp2)
+
+    | `String "Nat" -> ret @@ Nat
+
+    | `String "Cirle" -> ret @@ Circle
+
+    | `A [`String "TpESub"; s; tp] ->
+      sub_of_json s >>= fun s->
+      tp_of_json tp >>= fun tp ->
+      ret @@ TpESub(s,tp)
+
+    | j -> J.parse_error j "tp_of_json"
 
   and json_of_sub : sub -> J.value m =
     function
