@@ -646,7 +646,21 @@ struct
 
     | j -> J.parse_error j "tp_of_json"
 
-  and json_of_sym ({gen;name} : Symbol.t) = raise Todo
+
+  (** todo: this pair is a place where i have to be a little more clever /
+     likely add something to the state monad. summary of helpful comments
+     from Jon:
+
+      the type of Symbol.t is abstract and for good reason.
+
+      "oh now I remember, in the syntax these are only used for global
+      names. need to ask the Resolver what the right name encoding is. the
+      actual data in the symbol is definitely not going to be a good idea to
+      serialize/deserialize because this is state that is local to that
+      execution of cooltt. Every symbol allocation throws it off. need to
+      resolve the name and maintain an association at runtime, as in redtt."
+   **)
+  and json_of_sym = fun _ ->  raise Todo
   and sym_of_json =
     function
     | _ -> raise Todo
