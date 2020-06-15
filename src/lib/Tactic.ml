@@ -140,8 +140,7 @@ struct
     tm
 
   let whnf tac =
-    rule @@
-    fun tp ->
+    rule @@ fun tp ->
     EM.lift_cmp @@ Sem.whnf_tp tp |>>
     function
     | `Done -> run tac tp
