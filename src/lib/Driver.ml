@@ -147,21 +147,21 @@ let execute_command =
   let open Monad.Notation (EM) in
   function
   | CS.Decl decl -> execute_decl decl
-  | NoOp -> EM.ret `Continue
+  | CS.NoOp -> EM.ret `Continue
   | CS.EndOfFile -> EM.ret `Quit
 
 let rec repl (ch : in_channel) lexbuf =
   let open Monad.Notation (EM) in
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError span) ->
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message @@ ParseError in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message ParseError in
     repl ch lexbuf
   | Error (Load.LexingError span) ->
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message @@ LexingError in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message LexingError in
     repl ch lexbuf
   | Ok cmd ->
-    let* res = protect @@ execute_command cmd in
-    match res with
+    protect @@ execute_command cmd |>>
+    function
     | Ok `Continue ->
       repl ch lexbuf
     | Error _  ->
