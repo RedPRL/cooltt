@@ -229,10 +229,9 @@ struct
       json_of_tm tm |>> fun tm ->
       ret @@ `A [`String "ForallCof"; tm]
 
-    (* figured out why it typechecks; it didnt. editor state error. fix this tomorrow*)
-    | CofSplit cs -> raise Todo
-      (* json_of_cof cs |>> fun cs -> (\* todo: i don't understand why this type checks; it probably won't  once i write cof *\)
-       * ret @@ `A [`String "CofSplit"; cs] *)
+    | CofSplit cs ->
+      json_of_list (json_of_pair (json_of_tm, json_of_tm)) cs |>> fun cs ->
+      ret @@ `A [`String "CofSplit"; cs]
 
     | Prf -> ret @@ `String "Prf"
 
@@ -428,7 +427,9 @@ struct
       tm_of_json tm |>> fun tm ->
       ret @@ ForallCof tm
 
-    | `A [`String "CofSplit"; tm] -> raise Todo
+    | `A [`String "CofSplit"; tm] ->
+      list_of_json (pair_of_json (tm_of_json, tm_of_json)) tm |>> fun cs ->
+      ret @@ CofSplit cs
 
     | `String "Prf" -> ret @@ Prf
 
@@ -528,9 +529,9 @@ struct
       json_of_tm tm |>> fun tm ->
       ret @@ `A [`String "TpPrf"; tm]
 
-    | TpCofSplit l -> raise Todo
-      (* json_of_tm l |>> fun l ->
-       * ret @@ `A [`String "TpCofSplit"; l] *)
+    | TpCofSplit l ->
+      json_of_list (json_of_pair (json_of_tm, json_of_tp)) l |>> fun cs ->
+      ret @@ `A [`String "TpCofSplit"; cs]
 
     | Sub (tp, tm1, tm2) ->
       json_of_tp tp |>> fun tp ->
@@ -579,7 +580,9 @@ struct
       tm_of_json tm |>> fun tm ->
       ret @@ TpPrf tm
 
-    | `A [`String "TpCofSplit"; tm] -> raise Todo
+    | `A [`String "TpCofSplit"; tm] ->
+      list_of_json (pair_of_json (tm_of_json, tp_of_json)) tm |>> fun tm ->
+      ret @@ TpCofSplit tm
 
     | `A [`String "Sub"; tp; tm2; tm3] ->
       tp_of_json tp |>> fun tp ->
