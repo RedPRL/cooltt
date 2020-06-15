@@ -1,5 +1,6 @@
 open Basis
 open Bwd
+open Cubical.Cof
 
 module CS = ConcreteSyntax
 module S = Syntax
@@ -221,7 +222,7 @@ struct
     | Dim0 -> ret @@ `String "Dim0"
     | Dim1 -> ret @@ `String "Dim1"
     | Cof c ->
-      json_of_cof c >>= fun tm ->
+      json_of_cof json_of_tm json_of_tm c >>= fun tm ->
       ret @@ `A [`String "Cof"; tm]
 
     | ForallCof tm ->
@@ -420,7 +421,7 @@ struct
     | `String "Dim1" -> ret @@ Dim1
 
     | `A [`String "Cof"; c] ->
-      cof_of_json c >>= fun c ->
+      cof_of_json tm_of_json tm_of_json c >>= fun c ->
       ret @@ Cof c
 
     | `A [`String "ForallCof"; tm] ->
@@ -665,22 +666,49 @@ struct
   and sym_of_json =
     function
     | _ -> raise Todo
+
   and json_of_name =
     function
     | `Anon -> ret @@ `String "Anon"
     | `User s -> ret @@ `A [`String "User"; json_of_string s]
     | `Machine s -> ret @@ `A [`String "Machine"; json_of_string s]
+
   and name_of_json =
     function
     | `String "Anon" -> ret @@ `Anon
     | `A[ `String "User"; s] -> ret @@ `User (string_of_json s)
     | `A[ `String "Machine"; s] -> ret @@ `Machine (string_of_json s)
     | j -> J.parse_error j "name_of_json"
-  and json_of_cof = fun _ -> raise Todo
-  and cof_of_json =
+
+  and json_of_cof jr ja = (* todo annotate this to make sure it's the right constructors? *)
     function
-    | _ -> raise Todo
+    | Eq (r1, r2) ->
+      jr r1 >>= fun r1 ->
+      jr r2 >>= fun r2 ->
+      ret @@ `A [`String "Eq"; r1 ; r2 ]
+    | Join l ->
+      MU.map ja l >>= fun l ->
+      ret @@ `A (`String "Join" :: l) (* todo: this could be a bug; i don't know if i'm matching too deeply *)
+    | Meet l ->
+      MU.map ja l >>= fun l ->
+      ret @@ `A (`String "Meet" :: l)
+
+  and cof_of_json rj aj =
+    function
+    | `A [`String "Eq"; r1; r2] ->
+      rj r1 >>= fun r1 ->
+      rj r2 >>= fun r2 ->
+      ret @@ Eq (r1, r2)
+    | `A (`String "Join" :: l) ->
+      MU.map aj l >>= fun l ->
+      ret @@ Join l
+    | `A (`String "Meet" :: l) ->
+      MU.map aj l >>= fun l ->
+      ret @@ Meet l
+    | j -> J.parse_error j "cof_of_json"
+
   and json_of_global = fun _ -> raise Todo
+
   and global_of_json =
     function
     | _ -> raise Todo
