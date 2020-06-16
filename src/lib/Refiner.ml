@@ -45,12 +45,22 @@ end
 
 
 module Hole : sig
-  val unleash_hole : string option -> [`Flex | `Rigid] -> T.Chk.tac
-  val unleash_tp_hole : string option -> [`Flex | `Rigid] -> T.Tp.tac
-  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> T.Syn.tac
+  val unleash_hole : string option -> T.Chk.tac
+  val unleash_tp_hole : string option -> T.Tp.tac
+  val unleash_syn_hole : string option -> T.Syn.tac
 end =
 struct
-  let make_hole name flexity (tp, phi, clo) : D.cut m =
+  let assert_hole_possible tp =
+    EM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp |>>
+    function
+    | D.TpDim | D.TpCof | D.TpPrf _ ->
+      let* ttp = EM.quote_tp tp in
+      EM.with_pp @@ fun ppenv ->
+      EM.elab_err @@ Err.HoleNotPermitted (ppenv, ttp)
+    | _ -> EM.ret ()
+
+  let make_hole name (tp, phi, clo) : D.cut m =
+    let* () = assert_hole_possible tp in
     let* env = EM.read in
     let cells = Env.locals env in
 
@@ -62,36 +72,33 @@ struct
         Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." S.pp_sequent tp
       in
       let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
-      match flexity with
-      | `Flex -> EM.add_flex_global vtp
-      | `Rigid ->
-        let ident =
-          match name with
-          | None -> `Anon
-          | Some str -> `Machine ("?" ^ str)
-        in
-        EM.add_global ident vtp None
+      let ident =
+        match name with
+        | None -> `Anon
+        | Some str -> `Machine ("?" ^ str)
+      in
+      EM.add_global ident vtp None
     in
 
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
     EM.ret (D.UnstableCut (D.push KGoalProj cut, D.KSubOut (phi, clo)), [])
 
 
-  let unleash_hole name flexity : T.Chk.tac =
+  let unleash_hole name : T.Chk.tac =
     T.Chk.brule @@ fun (tp, phi, clo) ->
-    let* cut = make_hole name flexity (tp, phi, clo) in
+    let* cut = make_hole name (tp, phi, clo) in
     EM.quote_cut cut
 
-  let unleash_tp_hole name flexity : T.Tp.tac =
+  let unleash_tp_hole name : T.Tp.tac =
     T.Tp.rule @@
-    let* cut = make_hole name flexity @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     EM.quote_tp @@ D.ElCut cut
 
-  let unleash_syn_hole name flexity : T.Syn.tac =
+  let unleash_syn_hole name : T.Syn.tac =
     T.Syn.rule @@
-    let* cut = make_hole name `Flex @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
-    let+ tm = tp |> T.Chk.run @@ unleash_hole name flexity in
+    let+ tm = tp |> T.Chk.run @@ unleash_hole name in
     tm, tp
 end
 
@@ -1071,7 +1078,7 @@ struct
           match find_case "zero" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "zero") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "zero"
         in
         let* tac_suc =
           match find_case "suc" cases with
@@ -1080,7 +1087,7 @@ struct
           | Some ([`Inductive (nm_z, nm_ih)], tac) ->
             EM.ret @@ Pi.intro ~ident:nm_z @@ fun _ -> Pi.intro ~ident:nm_ih @@ fun _ -> tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "suc") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "suc"
         in
         T.Syn.run @@ Nat.elim mot tac_zero tac_suc scrut
       | D.Circle, mot ->
@@ -1088,14 +1095,14 @@ struct
           match find_case "base" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "base") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "base"
         in
         let* tac_loop =
           match find_case "loop" cases with
           | Some ([`Simple nm_x], tac) ->
             EM.ret @@ Pi.intro ~ident:nm_x @@ fun _ -> tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "loop") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "loop"
         in
         T.Syn.run @@ Circle.elim mot tac_base tac_loop scrut
       | _ ->

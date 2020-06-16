@@ -164,7 +164,7 @@ and chk_tm : CS.con -> T.Chk.tac =
   R.Tactic.intro_subtypes @@
   match con.node with
   | CS.Hole name ->
-    R.Hole.unleash_hole name `Rigid
+    R.Hole.unleash_hole name
 
   | CS.Unfold (idents, c) ->
     (* TODO: move to a trusted rule *)
@@ -293,7 +293,7 @@ and syn_tm : CS.con -> T.Syn.tac =
     R.Tactic.elim_implicit_connectives @@
     match con.node with
     | CS.Hole name ->
-      R.Hole.unleash_syn_hole name `Rigid
+      R.Hole.unleash_syn_hole name
     | CS.Var id ->
       R.Structural.lookup_var id
     | CS.DeBruijnLevel lvl ->

@@ -81,6 +81,10 @@ let pp fmt =
       (S.pp ppenv) cof
   | VirtualType ->
     Fmt.fprintf fmt "Virtual type (dim, cof, etc.) cannot appear in this position"
+  | HoleNotPermitted (ppenv, tp) ->
+    Fmt.fprintf fmt
+      "Holes of type %a are not permitted"
+      (S.pp_tp ppenv) tp
 
 
 exception ElabError of t * LexingUtil.span option

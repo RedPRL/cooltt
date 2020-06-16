@@ -11,9 +11,9 @@ open Tactic
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
 module Hole : sig
-  val unleash_hole : string option -> [`Flex | `Rigid] -> Chk.tac
-  val unleash_tp_hole : string option -> [`Flex | `Rigid] -> Tp.tac
-  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> Syn.tac
+  val unleash_hole : string option -> Chk.tac
+  val unleash_tp_hole : string option -> Tp.tac
+  val unleash_syn_hole : string option -> Syn.tac
 end
 
 module Goal : sig
