@@ -229,56 +229,69 @@ struct
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
 
-  type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
+  module Split : sig
+    type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
+    val split : branch_tac list -> T.Chk.tac
+  end =
+  struct
+    type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof * (D.cof * S.t * (T.var -> T.Chk.tac)) list) m =
-    match branches with
-    | [] -> EM.ret (Cubical.Cof.bot, [])
-    | (tac_phi, tac_tm) :: branches ->
-      let* tphi = T.Chk.run tac_phi D.TpCof in
-      let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
-      let+ psi, tacs = gather_cofibrations branches in
-      Cubical.Cof.join [vphi; psi], (vphi, tphi, tac_tm) :: tacs
+    let rec gather_cofibrations (branches : branch_tac list) : (D.cof * (D.cof * S.t * (T.var -> T.Chk.tac)) list) m =
+      match branches with
+      | [] -> EM.ret (Cubical.Cof.bot, [])
+      | (tac_phi, tac_tm) :: branches ->
+        let* tphi = T.Chk.run tac_phi D.TpCof in
+        let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
+        let+ psi, tacs = gather_cofibrations branches in
+        Cubical.Cof.join [vphi; psi], (vphi, tphi, tac_tm) :: tacs
 
 
-  let splice_split fns =
-    let phis, fns = List.split fns in
-    EM.lift_cmp @@ Sem.splice_tm @@
-    Splice.cons (List.map D.cof_to_con phis) @@ fun phis ->
-    Splice.cons fns @@ fun fns ->
-    Splice.term @@
-    TB.lam @@ fun _ ->
-    let fns' = List.map (fun fn -> TB.ap fn [TB.prf]) fns in
-    TB.cof_split @@ List.combine phis fns'
+    let splice_split fns =
+      let phis, fns = List.split fns in
+      EM.lift_cmp @@ Sem.splice_tm @@
+      Splice.cons (List.map D.cof_to_con phis) @@ fun phis ->
+      Splice.cons fns @@ fun fns ->
+      Splice.term @@ TB.lam @@ fun _ ->
+      TB.cof_split @@ List.combine phis @@ List.map (fun fn -> TB.ap fn [TB.prf]) fns
 
-  let split (branches : branch_tac list) : T.Chk.tac =
-    let open BwdNotation in
-    T.Chk.brule @@ fun (tp, psi, psi_clo) ->
-    let* disjunction, tacs = gather_cofibrations branches in
-    let* () = assert_true disjunction in
+    type split_state =
+      {cofs : D.cof bwd;
+       fns : (D.cof * D.con) bwd;
+       acc : (S.t * S.t) bwd}
 
-    let rec loop phi0s phi0_fns tbranches tacs =
-      match tacs with
-      | [] ->
-        EM.ret @@ S.CofSplit (Bwd.to_list tbranches)
+    let split (branches : branch_tac list) : T.Chk.tac =
+      let open BwdNotation in
+      T.Chk.brule @@ fun (tp, psi, psi_clo) ->
+      let* disjunction, tacs = gather_cofibrations branches in
+      let* () = assert_true disjunction in
 
-      | (phi, tphi, tac) :: tacs ->
+      let step state (phi, tphi, tac) =
         let* tm =
-          let psi' = Cubical.Cof.join @@ psi :: Bwd.to_list phi0s in
-          let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list phi0_fns in
+          let psi' = Cubical.Cof.join @@ psi :: Bwd.to_list state.cofs in
+          let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list state.fns in
           T.abstract (D.TpPrf phi) @@ fun prf ->
           T.Chk.brun (tac prf) (tp, psi', D.un_lam psi'_fn)
         in
-        let* phi_fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, tm)) in
-        loop
-          (phi0s #< phi)
-          (phi0_fns #< (phi, phi_fn))
-          (tbranches #< (tphi, tm))
-          tacs
-    in
+        let+ phi_fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, tm)) in
+        {cofs = state.cofs #< phi;
+         fns = state.fns #< (phi, phi_fn);
+         acc = state.acc #< (tphi, tm)}
+      in
 
-    loop Emp Emp Emp tacs
+      let rec loop state tacs =
+        match tacs with
+        | [] ->
+          EM.ret @@ S.CofSplit (Bwd.to_list state.acc)
 
+        | tac :: tacs ->
+          let* state = step state tac in
+          loop state tacs
+      in
+
+      loop {cofs = Emp; fns = Emp; acc = Emp} tacs
+  end
+
+  include Split
 
 end
 
