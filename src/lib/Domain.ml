@@ -7,6 +7,9 @@ module S = Syntax
 let const_tp_clo tp =
   Clo (S.TpVar 0, {tpenv = Snoc (Emp, tp); conenv = Emp})
 
+let const_tm_clo con =
+  Clo (S.Var 0, {tpenv = Emp; conenv = Snoc (Emp, con)})
+
 let push frm (hd, sp) =
   hd, sp @ [frm]
 
