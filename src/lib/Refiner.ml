@@ -230,65 +230,80 @@ struct
 
 
   module Split : sig
-    type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
+    type branch_tac = {cof : T.Chk.tac; bdy : T.var -> T.Chk.tac}
     val split : branch_tac list -> T.Chk.tac
   end =
   struct
-    type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
+    type branch_tac = {cof : T.Chk.tac; bdy : T.var -> T.Chk.tac}
+    type branch_tac' = {cof : D.cof; tcof : S.t; bdy : T.var -> T.Chk.tac}
+    type branch = {cof : D.cof; tcof : S.t; fn : D.con; bdy : S.t}
 
-    let rec gather_cofibrations (branches : branch_tac list) : (D.cof * (D.cof * S.t * (T.var -> T.Chk.tac)) list) m =
+    let rec gather_branches (branches : branch_tac list) : (D.cof * branch_tac' list) m =
       match branches with
       | [] -> EM.ret (Cubical.Cof.bot, [])
-      | (tac_phi, tac_tm) :: branches ->
-        let* tphi = T.Chk.run tac_phi D.TpCof in
+      | branch :: branches ->
+        let* tphi = T.Chk.run branch.cof D.TpCof in
         let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
-        let+ psi, tacs = gather_cofibrations branches in
-        Cubical.Cof.join [vphi; psi], (vphi, tphi, tac_tm) :: tacs
+        let+ psi, tacs = gather_branches branches in
+        Cubical.Cof.join [vphi; psi], {cof = vphi; tcof = tphi; bdy = branch.bdy} :: tacs
 
 
-    let splice_split fns =
-      let phis, fns = List.split fns in
+    let splice_split branches =
+      let phis, fns = List.split branches in
       EM.lift_cmp @@ Sem.splice_tm @@
       Splice.cons (List.map D.cof_to_con phis) @@ fun phis ->
       Splice.cons fns @@ fun fns ->
       Splice.term @@ TB.lam @@ fun _ ->
       TB.cof_split @@ List.combine phis @@ List.map (fun fn -> TB.ap fn [TB.prf]) fns
 
-    type split_state =
-      {cofs : D.cof bwd;
-       fns : (D.cof * D.con) bwd;
-       acc : (S.t * S.t) bwd}
+    module State =
+    struct
+      open BwdNotation
+      type t =
+        {disj : D.cof;
+         fns : (D.cof * D.con) bwd;
+         acc : (S.t * S.t) bwd}
+
+      let init : t =
+        {disj = Cubical.Cof.bot;
+         fns = Emp;
+         acc = Emp}
+
+      let append : t -> branch -> t =
+        fun state branch ->
+        {disj = Cubical.Cof.join [state.disj; branch.cof];
+         fns = state.fns #< (branch.cof, branch.fn);
+         acc = state.acc #< (branch.tcof, branch.bdy)}
+    end
 
     let split (branches : branch_tac list) : T.Chk.tac =
-      let open BwdNotation in
       T.Chk.brule @@ fun (tp, psi, psi_clo) ->
-      let* disjunction, tacs = gather_cofibrations branches in
+      let* disjunction, tacs = gather_branches branches in
       let* () = assert_true disjunction in
 
-      let step state (phi, tphi, tac) =
-        let* tm =
-          let psi' = Cubical.Cof.join @@ psi :: Bwd.to_list state.cofs in
+      let step : State.t -> branch_tac' -> State.t m =
+        fun state branch ->
+        let* bdy =
+          let psi' = Cubical.Cof.join [state.disj; psi] in
           let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list state.fns in
-          T.abstract (D.TpPrf phi) @@ fun prf ->
-          T.Chk.brun (tac prf) (tp, psi', D.un_lam psi'_fn)
+          T.abstract (D.TpPrf branch.cof) @@ fun prf ->
+          T.Chk.brun (branch.bdy prf) (tp, psi', D.un_lam psi'_fn)
         in
-        let+ phi_fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, tm)) in
-        {cofs = state.cofs #< phi;
-         fns = state.fns #< (phi, phi_fn);
-         acc = state.acc #< (tphi, tm)}
+        let+ fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, bdy)) in
+        State.append state {cof = branch.cof; tcof = branch.tcof; fn; bdy}
       in
 
-      let rec loop state tacs =
-        match tacs with
-        | [] ->
-          EM.ret @@ S.CofSplit (Bwd.to_list state.acc)
-
-        | tac :: tacs ->
-          let* state = step state tac in
-          loop state tacs
+      let rec fold : State.t -> branch_tac' list -> S.t m =
+        fun state ->
+          function
+          | [] ->
+            EM.ret @@ S.CofSplit (Bwd.to_list state.acc)
+          | tac :: tacs ->
+            let* state = step state tac in
+            fold state tacs
       in
 
-      loop {cofs = Emp; fns = Emp; acc = Emp} tacs
+      fold State.init tacs
   end
 
   include Split

@@ -34,7 +34,8 @@ module Cof : sig
   val meet : Chk.tac list -> Chk.tac
   val boundary : Chk.tac -> Chk.tac
 
-  val split : (Chk.tac * (var -> Chk.tac)) list -> Chk.tac
+  type branch_tac = {cof : Chk.tac; bdy : var -> Chk.tac}
+  val split : branch_tac list -> Chk.tac
 end
 
 module Prf : sig
