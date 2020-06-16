@@ -534,7 +534,7 @@ struct
     EM.lift_cmp @@
     Sem.splice_tp @@
     Splice.con r @@ fun src ->
-    Splice.cof phi @@ fun cof ->
+    Splice.con phi @@ fun cof ->
     Splice.tp tp @@ fun vtp ->
     Splice.term @@
     TB.pi TB.tp_dim @@ fun i ->
@@ -548,7 +548,7 @@ struct
     let* trg = T.Chk.run tac_trg D.TpDim in
     let* cof = T.Chk.run tac_cof D.TpCof in
     let* vsrc = EM.lift_ev @@ Sem.eval src in
-    let* vcof = EM.lift_ev @@ Sem.eval_cof cof in
+    let* vcof = EM.lift_ev @@ Sem.eval cof in
     let* vtp = EM.lift_ev @@ Sem.eval_tp @@ S.El code in
     (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
     let+ tm = T.Chk.run tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
@@ -569,7 +569,7 @@ struct
     let* cof = T.Chk.run tac_cof D.TpCof in
     let* vfam = EM.lift_ev @@ Sem.eval fam in
     let* vsrc = EM.lift_ev @@ Sem.eval src in
-    let* vcof = EM.lift_ev @@ Sem.eval_cof cof in
+    let* vcof = EM.lift_ev @@ Sem.eval cof in
     (* (i : dim) -> (_ : [i=src \/ cof]) -> A i *)
     let+ tm =
       T.Chk.run tac_tm @<<
@@ -577,7 +577,7 @@ struct
       Sem.splice_tp @@
       Splice.con vfam @@ fun vfam ->
       Splice.con vsrc @@ fun src ->
-      Splice.cof vcof @@ fun cof ->
+      Splice.con vcof @@ fun cof ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
@@ -758,7 +758,7 @@ struct
       and+ tr' = EM.quote_dim r'
       and+ tphi = EM.quote_cof phi
       and+ tbdy =
-        let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) phi in
+        let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) (D.cof_to_con phi) in
         EM.quote_con tp_bdy bdy
       and+ tp_cap =
         let* code_fib = EM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
