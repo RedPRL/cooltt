@@ -39,14 +39,17 @@ let rec quote_con (tp : D.tp) con =
   let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con ~style:(`Veil veil) con in
   match tp, con with
   | _, D.Split branches ->
-    let branch_body (phi, clo) =
-      bind_var (D.TpPrf phi) @@ fun prf ->
-      let* body = lift_cmp @@ inst_tm_clo clo prf in
-      quote_con tp body
+    let quote_branch (phi, clo) =
+      let+ tphi = quote_cof phi
+      and+ tbdy =
+        bind_var (D.TpPrf phi) @@ fun prf ->
+        let* body = lift_cmp @@ inst_tm_clo clo prf in
+        quote_con tp body
+      in
+      tphi, tbdy
     in
-    let* tphis = MU.map (fun (phi , _) -> quote_cof phi) branches in
-    let* tms = MU.map branch_body branches in
-    ret @@ S.CofSplit (List.combine tphis tms)
+    let* tbranches = MU.map quote_branch branches in
+    ret @@ S.CofSplit tbranches
 
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
     (* for dimension variables, check to see if we can prove them to be
