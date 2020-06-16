@@ -231,14 +231,14 @@ struct
 
   type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof * (D.cof * (T.var -> T.Chk.tac)) list) m =
+  let rec gather_cofibrations (branches : branch_tac list) : (D.cof * (D.cof * S.t * (T.var -> T.Chk.tac)) list) m =
     match branches with
     | [] -> EM.ret (Cubical.Cof.bot, [])
     | (tac_phi, tac_tm) :: branches ->
       let* tphi = T.Chk.run tac_phi D.TpCof in
       let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
       let+ psi, tacs = gather_cofibrations branches in
-      Cubical.Cof.join [vphi; psi], (vphi, tac_tm) :: tacs
+      Cubical.Cof.join [vphi; psi], (vphi, tphi, tac_tm) :: tacs
 
 
   let splice_split fns =
@@ -252,6 +252,7 @@ struct
     TB.cof_split @@ List.combine phis fns'
 
   let split (branches : branch_tac list) : T.Chk.tac =
+    let open BwdNotation in
     T.Chk.brule @@ fun (tp, psi, psi_clo) ->
     let* disjunction, tacs = gather_cofibrations branches in
     let* () = assert_true disjunction in
@@ -261,19 +262,19 @@ struct
       | [] ->
         EM.ret @@ S.CofSplit (Bwd.to_list tbranches)
 
-      | (phi, tac) :: tacs ->
+      | (phi, tphi, tac) :: tacs ->
         let* tm =
           let psi' = Cubical.Cof.join @@ psi :: Bwd.to_list phi0s in
           let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list phi0_fns in
           T.abstract (D.TpPrf phi) @@ fun prf ->
           T.Chk.brun (tac prf) (tp, psi', D.un_lam psi'_fn)
         in
-        let* tbranch =
-          let+ tphi = EM.quote_cof phi in
-          tphi, tm
-        in
         let* phi_fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, tm)) in
-        loop (Snoc (phi0s, phi)) (Snoc (phi0_fns, (phi, phi_fn))) (Snoc (tbranches, tbranch)) tacs
+        loop
+          (phi0s #< phi)
+          (phi0_fns #< (phi, phi_fn))
+          (tbranches #< (tphi, tm))
+          tacs
     in
 
     loop Emp Emp Emp tacs
