@@ -3,7 +3,7 @@ open Cubical
 
 type t =
   | Var of int
-  | Global of Symbol.t
+  | Global of Symbol.t * t list
   | Let of t * Ident.t * t
   | Ann of t * tp
 

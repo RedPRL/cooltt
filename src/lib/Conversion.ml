@@ -22,6 +22,7 @@ struct
     | ExpectedFrmEq of D.frm * D.frm
     | SpineLengthMismatch of D.frm list * D.frm list
     | HeadMismatch of D.hd * D.hd
+    | BadArity
 
   let pp : t Pp.printer =
     fun fmt ->
@@ -40,6 +41,8 @@ struct
       Format.fprintf fmt "Spine length mismatch between %a and %a" D.pp_spine sp0 D.pp_spine sp1
     | HeadMismatch (hd0, hd1) ->
       Format.fprintf fmt "Head mismatch between %a and %a" D.pp_hd hd0 D.pp_hd hd1
+    | BadArity ->
+      Format.fprintf fmt "Bad arity"
 end
 
 exception ConversionError of Error.t
@@ -373,7 +376,11 @@ and equate_hd hd0 hd1 =
   let* () = assert_done_hd hd0 in
   let* () = assert_done_hd hd1 in
   match hd0, hd1 with
-  | D.Global sym0, D.Global sym1 when Symbol.equal sym0 sym1 -> ret ()
+  | D.Global (sym0, args0), D.Global (sym1, args1) when Symbol.equal sym0 sym1 ->
+    let* st = lift_cmp @@ CmpM.read_global in
+    let decl = ElabState.get_global sym0 st in
+    equate_decl_args decl args0 args1
+
   | D.Var lvl0, D.Var lvl1 when lvl0 = lvl1 -> ret ()
   | D.Coe (abs0, r0, s0, con0), D.Coe (abs1, r1, s1, con1) ->
     let* () = equate_dim r0 r1 in
@@ -391,6 +398,22 @@ and equate_hd hd0 hd1 =
     equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1)
   | _ ->
     conv_err @@ HeadMismatch (hd0, hd1)
+
+and equate_decl_args decl args0 args1 =
+  let rec go env decl args0 args1 =
+    match decl, args0, args1 with
+    | Decl.Hidden _, [], [] ->
+      ret ()
+    | Decl.Return _, [], [] ->
+      ret ()
+    | Decl.Abs (tbase, _, decl), arg0 :: args0, arg1 :: args1 ->
+      let* vbase = lift_cmp @@ CmpM.lift_ev env @@ Sem.eval_tp tbase in
+      let* () = equate_con vbase arg0 arg1 in
+      go (D.{env with conenv = Snoc (env.conenv, arg0)}) decl args0 args1
+    | _ ->
+      conv_err @@ BadArity
+  in
+  go D.{tpenv = Emp; conenv = Emp} decl args0 args1
 
 and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
   match ufrm0, ufrm1 with

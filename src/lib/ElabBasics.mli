@@ -15,10 +15,10 @@ val elab_err : ElabError.t -> 'a m
 val update_span : LexingUtil.span option -> 'a m -> 'a m
 val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 
-val add_global : Ident.t -> D.tp -> D.con option -> Symbol.t m
+val add_global : Ident.t -> Decl.t -> Symbol.t m
 
 val resolve : Ident.t -> [`Local of int | `Global of Symbol.t | `Unbound] m
-val get_global : Symbol.t -> (D.tp * D.con option) m
+val get_global : Symbol.t -> Decl.t m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 

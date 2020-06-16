@@ -71,16 +71,15 @@ struct
         () |> EM.emit (ElabEnv.location env) @@ fun fmt () ->
         Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." S.pp_sequent tp
       in
-      let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
         | None -> `Anon
         | Some str -> `Machine ("?" ^ str)
       in
-      EM.add_global ident vtp None
+      EM.add_global ident @@ Decl.Hidden tp
     in
 
-    let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
+    let cut = GlobalUtil.multi_ap cells (D.Global (sym, []), []) in
     EM.ret (D.UnstableCut (D.push KGoalProj cut, D.KSubOut (phi, clo)), [])
 
 
@@ -780,6 +779,29 @@ end
 module Structural =
 struct
 
+  let abstract_decl sym decl =
+    let rec go env vars decl =
+      match decl with
+      | Decl.Return (tp, _) | Decl.Hidden tp ->
+        let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
+        let* vars = MU.map (fun var -> fst <@> T.Syn.run @@ T.Var.syn var) @@ Bwd.to_list vars in
+        EM.ret (S.Global (sym, vars), vtp)
+      | Decl.Abs (tbase, ident, decl) ->
+        let* current_env = Env.sem_env <@> EM.read in
+        let* vbase = EM.lift_ev @@ Sem.eval_tp tbase in
+        T.abstract ~ident vbase @@ fun var ->
+        let* tm, tp =
+          let env' = D.{env with conenv = Snoc (env.conenv, T.Var.con var)} in
+          go env' (Snoc (vars, var)) decl
+        in
+        let+ clo =
+          let+ ttp = EM.quote_tp tp in
+          D.Clo (ttp, current_env)
+        in
+        S.Lam (ident, tm), D.Pi (vbase, ident, clo)
+    in
+    go D.{tpenv = Emp; conenv = Emp} Emp decl
+
 
   let lookup_var id : T.Syn.tac =
     T.Syn.rule @@
@@ -789,8 +811,8 @@ struct
       let+ tp = EM.get_local_tp ix in
       S.Var ix, tp
     | `Global sym ->
-      let+ tp, _ = EM.get_global sym in
-      S.Global sym, tp
+      let* decl = EM.get_global sym in
+      abstract_decl sym decl
     | `Unbound ->
       EM.elab_err @@ Err.UnboundVariable id
 
@@ -830,17 +852,14 @@ struct
 
       let* cut =
         EM.globally @@
-        let* global_tp =
-          let* tp = GlobalUtil.multi_pi cells_fwd @@ EM.quote_tp tp in
-          EM.lift_ev @@ Sem.eval_tp tp
-        in
+        let* global_ttp = GlobalUtil.multi_pi cells_fwd @@ EM.quote_tp tp in
         let* def =
           let prefix = ListUtil.take lvl cells_fwd in
-          let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
-          EM.lift_ev @@ Sem.eval tm
+          let* global_tp = EM.lift_ev @@ Sem.eval_tp global_ttp in
+          global_tp |> T.Chk.run @@ intros prefix tac
         in
-        let* sym = EM.add_global `Anon global_tp @@ Some def in
-        EM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
+        let* sym = EM.add_global `Anon @@ Decl.Return (global_ttp, def) in
+        EM.ret @@ GlobalUtil.multi_ap cells (D.Global (sym, []), [])
       in
       EM.quote_cut cut
 

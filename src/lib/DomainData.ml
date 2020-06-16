@@ -103,8 +103,8 @@ and tp =
 
 (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
 and hd =
-  | Global of Symbol.t
-  (** A top-level declaration*)
+  | Global of Symbol.t * con list
+  (** A fully applied top-level declaration*)
 
   | Var of int
   (** De Bruijn level *)

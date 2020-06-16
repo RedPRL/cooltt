@@ -13,11 +13,16 @@ open Monads
 
 module Error =
 struct
-  type t = IllTypedQuotationProblem of D.tp * D.con
+  type t =
+    | IllTypedQuotationProblem of D.tp * D.con
+    | BadArity
+
   let pp fmt =
     function
     | IllTypedQuotationProblem (tp, con) ->
       Format.fprintf fmt "Ill-typed quotation problem %a : %a" D.pp_con con D.pp_tp tp
+    | BadArity ->
+      Format.fprintf fmt "Quotation: bad arity"
 end
 
 exception QuotationError of Error.t
@@ -432,8 +437,11 @@ and quote_hd =
   | D.Var lvl ->
     let+ i = quote_var lvl in
     S.Var i
-  | D.Global sym ->
-    ret @@ S.Global sym
+  | D.Global (sym, args) ->
+    let* st = lift_cmp @@ CmpM.read_global in
+    let decl = ElabState.get_global sym st in
+    let* args = quote_decl_args decl args in
+    ret @@ S.Global (sym, args)
   | D.Coe (code, r, s, con) ->
     let code_tp = D.Pi (D.TpDim, `Anon, D.const_tp_clo D.Univ) in
     let* tpcode = quote_con code_tp code in
@@ -445,6 +453,20 @@ and quote_hd =
     S.Coe (tpcode, tr, ts, tm)
   | D.UnstableCut (cut, ufrm) ->
     quote_unstable_cut cut ufrm
+
+and quote_decl_args decl args =
+  let rec go env decl args =
+    match decl, args with
+    | (Decl.Hidden _ | Decl.Return _), [] -> ret []
+    | Decl.Abs (tbase, _, decl), arg :: args ->
+      let* vbase = lift_cmp @@ CmpM.lift_ev env @@ Sem.eval_tp tbase in
+      let+ targ = quote_con vbase arg
+      and+ targs = go (D.{env with conenv = Snoc (env.conenv, arg)}) decl args in
+      targ :: targs
+    | _ ->
+      throw @@ QuotationError Error.BadArity
+  in
+  go D.{tpenv = Emp; conenv = Emp} decl args
 
 and quote_unstable_cut cut ufrm =
   match ufrm with

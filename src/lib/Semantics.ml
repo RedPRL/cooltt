@@ -160,7 +160,7 @@ and con_to_dim =
     | D.Dim0 -> ret Dim.Dim0
     | D.Dim1 -> ret Dim.Dim1
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
-    | D.Cut {cut = Global sym, []; _} -> ret @@ Dim.DimSym sym
+    | D.Cut {cut = Global (sym, []), []; _} -> ret @@ Dim.DimSym sym
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
@@ -253,7 +253,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ pivot = subst_con r x pivot
     and+ base = subst_con r x base in
     D.VIn (s, equiv, pivot, base)
-  | D.Cut {tp = _; cut = (D.Global y, [])} as con ->
+  | D.Cut {tp = _; cut = (D.Global (y, []), [])} as con ->
     begin
       test_sequent [] (Cof.eq (Dim.DimSym x) (Dim.DimSym y)) |>>
       function
@@ -385,7 +385,10 @@ and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Global _ | D.Var _ as hd -> ret hd
+  | D.Global (sym, args) ->
+    let+ args = MU.map (subst_con r x) args in
+    D.Global (sym, args)
+  | D.Var _ as hd -> ret hd
   | D.Coe (code, s, s', con) ->
     let+ code = subst_con r x code
     and+ s = subst_dim r x s
@@ -500,10 +503,12 @@ and eval : S.t -> D.con EvM.m =
     | S.Var i ->
       let* con = get_local i in
       lift_cmp @@ whnf_inspect_con ~style:`UnfoldNone con
-    | S.Global sym ->
+    | S.Global (sym, args) ->
       let* st = EvM.read_global in
-      let tp, _ = ElabState.get_global sym st in
-      ret @@ D.Cut {tp; cut = (D.Global sym, [])}
+      let decl = ElabState.get_global sym st in
+      let* args = MU.map eval args in
+      let* tp = lift_cmp @@ inst_decl_tp decl args in
+      ret @@ D.Cut {tp; cut = (D.Global (sym, args), [])}
     | S.Let (def, _, body) ->
       let* vdef = eval def in
       append [vdef] @@ eval body
@@ -822,17 +827,49 @@ and should_unfold_symbol style sym =
     | `Transparent -> true
     | `Translucent -> false
 
+and inst_decl ~style _sym decl args =
+  let open CM in
+  let rec go env decl args =
+    match decl, args with
+    | Decl.Hidden _, [] ->
+      ret `Done
+    | Decl.Return (_, tm), [] ->
+      let* con = lift_ev env @@ eval tm in
+      reduce_to ~style con
+    | Decl.Abs (_, _, decl), arg :: args ->
+      go D.{env with conenv = Snoc (env.conenv, arg)} decl args
+    | _ ->
+      CM.throw @@ NbeFailed "inst_decl: mismatch"
+  in
+  go D.{tpenv = Emp; conenv = Emp} decl args
+
+and inst_decl_tp decl (args : D.con list) =
+  let open CM in
+  let rec go env decl args =
+    match decl, args with
+    | Decl.Hidden ttp, [] ->
+      lift_ev env @@ eval_tp ttp
+    | Decl.Return (ttp, _), [] ->
+      lift_ev env @@ eval_tp ttp
+    | Decl.Abs (_, _, decl), arg :: args ->
+      go D.{env with conenv = Snoc (env.conenv, arg)} decl args
+    | _ ->
+      CM.throw @@ NbeFailed "inst_decl: mismatch"
+  in
+  go D.{tpenv = Emp; conenv = Emp} decl args
+
 and whnf_hd ~style hd =
   let open CM in
   match hd with
-  | D.Global sym ->
+  | D.Global (sym, args) ->
+    let exception Hidden in
     if should_unfold_symbol style sym then
       let* st = CM.read_global in
       begin
         match ElabState.get_global sym st with
-        | _tp, Some con ->
-          reduce_to ~style con
-        | _, None | exception _ ->
+        | decl ->
+          inst_decl ~style sym decl args
+        | exception _ ->
           ret `Done
       end
     else

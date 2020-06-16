@@ -41,7 +41,7 @@ let dim_to_con =
     Cut {tp = TpDim; cut = Var lvl, []}
   | Dim.DimSym sym ->
     (* hmmm *)
-    Cut {tp = TpDim; cut = Global sym, []}
+    Cut {tp = TpDim; cut = Global (sym, []), []}
 
 let rec cof_to_con =
   function
@@ -73,7 +73,7 @@ and pp_split_branch fmt (phi, clo_phi) =
 and pp_hd : hd Pp.printer =
   fun fmt ->
   function
-  | Global sym ->
+  | Global (sym, _) ->
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl

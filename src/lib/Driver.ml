@@ -14,7 +14,7 @@ type message =
   | LexingError
   | ParseError
   | NormalizedTerm of {orig : S.t; nf : S.t}
-  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
+  | Definition of {ident : Ident.t; decl : Decl.t}
   | UnboundIdent of Ident.t
 
 let pp_message fmt =
@@ -29,19 +29,8 @@ let pp_message fmt =
       "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
       (S.pp env) orig
       (S.pp env) nf
-  | Definition {ident; tp; tm = Some tm} ->
-    let env = Pp.Env.emp in
-    Format.fprintf fmt
-      "@[<v>%a@ : %a@ = %a@]"
-      Ident.pp ident
-      (S.pp_tp env) tp
-      (S.pp env) tm
-  | Definition {ident; tp; tm = None} ->
-    let env = Pp.Env.emp in
-    Format.fprintf fmt
-      "@[%a : %a@]"
-      Ident.pp ident
-      (S.pp_tp env) tp
+  | Definition {ident; decl} ->
+    Decl.pp ident fmt decl
   | UnboundIdent ident ->
     Format.fprintf fmt
       "@[Unbound identifier %a@]"
@@ -68,8 +57,8 @@ let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
   let open Monad.Notation (EM) in
   function
   | CS.Def {name; args; def; tp} ->
-    let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let+ _sym = EM.add_global name vtp @@ Some vtm in
+    let* tp, _vtp, tm, _vtm = elaborate_typed_term (Ident.to_string name) args tp def in
+    let+ _sym = EM.add_global name @@ Decl.Return (tp, tm) in
     `Continue
   | CS.NormalizeTerm term ->
     EM.veil (Veil.const `Transparent) @@
@@ -83,16 +72,8 @@ let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
       EM.resolve ident.node |>>
       function
       | `Global sym ->
-        let* vtp, con = EM.get_global sym in
-        let* tp = EM.quote_tp vtp in
-        let* tm =
-          match con with
-          | None -> EM.ret None
-          | Some con ->
-            let* tm = EM.quote_con vtp con in
-            EM.ret @@ Some tm
-        in
-        let+ () = EM.emit ident.info pp_message @@ Definition {ident = ident.node; tp; tm} in
+        let* decl = EM.get_global sym in
+        let+ () = EM.emit ident.info pp_message @@ Definition {ident = ident.node; decl} in
         `Continue
       | _ ->
         EM.throw @@ Err.ElabError (Err.UnboundVariable ident.node, ident.info)

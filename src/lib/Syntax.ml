@@ -176,8 +176,12 @@ let rec pp env fmt tm =
       (pp_atomic env) bdy
   | Var ix ->
     pp_var env fmt ix
-  | Global sym ->
+  | Global (sym, []) ->
     Symbol.pp fmt sym
+  | Global (sym, args) ->
+    Format.fprintf fmt "%a %a"
+      Symbol.pp sym
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " ") (pp_atomic env)) args
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "%a = %a" (pp_atomic env) r (pp_atomic env) s
   | Cof (Cof.Join []) ->
