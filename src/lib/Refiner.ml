@@ -231,80 +231,57 @@ struct
 
   type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.Chk.tac) list) m =
+  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (D.cof * (T.var -> T.Chk.tac)) list) m =
     match branches with
     | [] -> EM.ret ([], [])
     | (tac_phi, tac_tm) :: branches ->
       let* tphi = T.Chk.run tac_phi D.TpCof in
       let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
       let+ phis, tacs = gather_cofibrations branches in
-      (vphi :: phis), tac_tm :: tacs
-
-  let split0 : T.Chk.tac =
-    T.Chk.brule @@ fun _ ->
-    let* _ = assert_true Cubical.Cof.bot in
-    EM.ret S.tm_abort
-
-  let split1 (phi : D.cof) (tac : T.var -> T.Chk.tac) : T.Chk.tac =
-    T.Chk.brule @@ fun goal ->
-    let* _ = assert_true phi in
-    T.Chk.brun (tac @@ T.Var.prf phi) goal
-
-  let split2 (phi0 : D.cof) (tac0 : T.var -> T.Chk.tac) (phi1 : D.cof) (tac1 : T.var -> T.Chk.tac) : T.Chk.tac =
-    T.Chk.brule @@
-    fun (tp, psi, psi_clo) ->
-    let* _ = assert_true @@ Cubical.Cof.join [phi0; phi1] in
-    let* tm0 =
-      T.abstract (D.TpPrf phi0) @@ fun prf ->
-      T.Chk.brun (tac0 prf) (tp, psi, psi_clo)
-    in
-    let+ tm1 =
-      let* phi0_fn = EM.lift_ev @@ Sem.eval @@ S.Lam (`Anon, tm0) in
-      let psi_fn = D.Lam (`Anon, psi_clo) in
-      let psi' = Cubical.Cof.join [phi0; psi] in
-      let* psi'_fn =
-        EM.lift_cmp @@ Sem.splice_tm @@
-        Splice.cof phi0 @@ fun phi0 ->
-        Splice.cof psi @@ fun psi ->
-        Splice.con psi_fn @@ fun psi_fn ->
-        Splice.con phi0_fn @@ fun phi0_fn ->
-        Splice.term @@
-        TB.lam @@ fun _ ->
-        TB.cof_split [phi0, TB.ap phi0_fn [TB.prf]; psi, TB.ap psi_fn [TB.prf]]
-      in
-      T.abstract (D.TpPrf phi1) @@ fun prf ->
-      T.Chk.brun (tac1 prf) (tp, psi', D.un_lam psi'_fn)
-    and+ tphi0 = EM.quote_cof phi0
-    and+ tphi1 = EM.quote_cof phi1 in
-    S.CofSplit [tphi0, tm0; tphi1, tm1]
+      (vphi :: phis), (vphi, tac_tm) :: tacs
 
 
-
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.Chk.tac) list) m =
-    match branches with
-    | [] -> EM.ret ([], [])
-    | (tac_phi, tac_tm) :: branches ->
-      let* tphi = T.Chk.run tac_phi D.TpCof in
-      let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
-      let+ phis, tacs = gather_cofibrations branches in
-      (vphi :: phis), tac_tm :: tacs
+  let splice_split phi0 fn0 phi1 fn1 =
+    EM.lift_cmp @@ Sem.splice_tm @@
+    Splice.cof phi0 @@ fun phi0 ->
+    Splice.cof phi1 @@ fun phi1  ->
+    Splice.con fn0 @@ fun fn0 ->
+    Splice.con fn1 @@ fun fn1 ->
+    Splice.term @@
+    TB.lam @@ fun _ ->
+    TB.cof_split [phi0, TB.ap fn0 [TB.prf]; phi1, TB.ap fn1 [TB.prf]]
 
   let split (branches : branch_tac list) : T.Chk.tac =
-    T.Chk.brule @@ fun goal ->
+    T.Chk.brule @@ fun (tp, psi, psi_clo) ->
     let* phis, tacs = gather_cofibrations branches in
-    let disj_phi = Cubical.Cof.join phis in
-    let* _ = assert_true disj_phi in
-    let rec go phis (tacs : (T.var -> T.Chk.tac) list) : T.Chk.tac =
-      match phis, tacs with
-      | [phi], [tac] ->
-        split1 phi tac
-      | phi :: phis, tac :: tacs ->
-        split2 phi tac (Cubical.Cof.join phis) (fun _ -> go phis tacs)
-      | [], [] ->
-        split0
-      | _ -> failwith "internal error"
+    let* () = assert_true @@ Cubical.Cof.join phis in
+
+    let rec loop phi0 phi0_fn tbranches tacs =
+      match tacs with
+      | [] ->
+        EM.ret @@ S.CofSplit (Bwd.to_list tbranches)
+
+      | (phi, tac) :: tacs ->
+        let* tm =
+          let psi' = Cubical.Cof.join [psi; phi0] in
+          let* psi'_fn = splice_split psi (D.Lam (`Anon, psi_clo)) phi0 phi0_fn in
+          T.abstract (D.TpPrf phi) @@ fun prf ->
+          T.Chk.brun (tac prf) (tp, psi', D.un_lam psi'_fn)
+        in
+        let* tbranch =
+          let+ tphi = EM.quote_cof phi in
+          tphi, tm
+        in
+        let* fn =
+          let* phi_fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, tm)) in
+          splice_split phi0 phi0_fn phi phi_fn
+        in
+        loop (Cubical.Cof.join [phi0; phi]) fn (Snoc (tbranches, tbranch)) tacs
     in
-    T.Chk.brun (go phis tacs) goal
+
+    loop Cubical.Cof.bot (D.Lam (`Anon, D.const_tm_clo D.tm_abort)) Emp tacs
+
+
 end
 
 module Prf =
@@ -318,14 +295,8 @@ struct
     T.Chk.brule @@
     function
     | D.TpPrf phi, _, _ ->
-      begin
-        EM.lift_cmp @@ CmpM.test_sequent [] phi |>> function
-        | true -> EM.ret S.Prf
-        | false ->
-          EM.with_pp @@ fun ppenv ->
-          let* tphi = EM.quote_cof phi in
-          EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
-      end
+      let+ () = Cof.assert_true phi in
+      S.Prf
     | tp, _, _ ->
       EM.expected_connective `Prf tp
 end
