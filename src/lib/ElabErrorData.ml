@@ -33,5 +33,6 @@ struct
     | ExpectedDimensionLiteral of int
     | ExpectedTrue of Pp.env * S.t
     | VirtualType
+    | HoleNotPermitted of Pp.env * S.tp
 
 end
