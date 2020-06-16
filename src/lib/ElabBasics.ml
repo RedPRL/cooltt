@@ -14,7 +14,7 @@ open Monad.Notation (Monads.ElabM)
 
 let elab_err err =
   let* env = read in
-  raise @@ Err.ElabError (err, Env.location env)
+  throw @@ Err.ElabError (err, Env.location env)
 
 let resolve id =
   let* env = read in

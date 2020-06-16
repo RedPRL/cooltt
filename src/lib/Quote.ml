@@ -35,7 +35,7 @@ let contractum_or x =
 let rec quote_con (tp : D.tp) con =
   QuM.abort_if_inconsistent (ret S.tm_abort) @@
   let* veil = read_veil in
-  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
+  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:`UnfoldAll tp in
   let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con ~style:(`Veil veil) con in
   match tp, con with
   | _, D.Split branches ->
@@ -349,6 +349,8 @@ and quote_tp_clo base fam =
   quote_tp tp
 
 and quote_tp (tp : D.tp) =
+  let* veil = read_veil in
+  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
   match tp with
   | D.Nat -> ret S.Nat
   | D.Circle -> ret S.Circle
