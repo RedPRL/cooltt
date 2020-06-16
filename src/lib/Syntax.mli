@@ -25,9 +25,6 @@ val pp_tp : Pp.env -> tp Pp.printer
 (** Print with braces if non-atomic term. *)
 val pp_atomic_tp : Pp.env -> tp Pp.printer
 
-(** Vertically print an iterated dependent product type as if it were a sequent, for display of goals. *)
-val pp_sequent : tp Pp.printer
-
 (** {2 For debugging}
     When debugging, we are not likely to have enough context to use the nice pretty printers above; as a last resort, {!val:dump} and {!val:dump_tp} may be used. *)
 
