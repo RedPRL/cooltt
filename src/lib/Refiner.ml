@@ -241,30 +241,30 @@ struct
       (vphi :: phis), (vphi, tac_tm) :: tacs
 
 
-  let splice_split phi0 fn0 phi1 fn1 =
+  let splice_split fns =
+    let phis, fns = List.split fns in
     EM.lift_cmp @@ Sem.splice_tm @@
-    Splice.cof phi0 @@ fun phi0 ->
-    Splice.cof phi1 @@ fun phi1  ->
-    Splice.con fn0 @@ fun fn0 ->
-    Splice.con fn1 @@ fun fn1 ->
+    Splice.cons (List.map D.cof_to_con phis) @@ fun phis ->
+    Splice.cons fns @@ fun fns ->
     Splice.term @@
     TB.lam @@ fun _ ->
-    TB.cof_split [phi0, TB.ap fn0 [TB.prf]; phi1, TB.ap fn1 [TB.prf]]
+    let fns' = List.map (fun fn -> TB.ap fn [TB.prf]) fns in
+    TB.cof_split @@ List.combine phis fns'
 
   let split (branches : branch_tac list) : T.Chk.tac =
     T.Chk.brule @@ fun (tp, psi, psi_clo) ->
     let* phis, tacs = gather_cofibrations branches in
     let* () = assert_true @@ Cubical.Cof.join phis in
 
-    let rec loop phi0 phi0_fn tbranches tacs =
+    let rec loop phi0s phi0_fns tbranches tacs =
       match tacs with
       | [] ->
         EM.ret @@ S.CofSplit (Bwd.to_list tbranches)
 
       | (phi, tac) :: tacs ->
         let* tm =
-          let psi' = Cubical.Cof.join [psi; phi0] in
-          let* psi'_fn = splice_split psi (D.Lam (`Anon, psi_clo)) phi0 phi0_fn in
+          let psi' = Cubical.Cof.join @@ psi :: Bwd.to_list phi0s in
+          let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list phi0_fns in
           T.abstract (D.TpPrf phi) @@ fun prf ->
           T.Chk.brun (tac prf) (tp, psi', D.un_lam psi'_fn)
         in
@@ -272,14 +272,11 @@ struct
           let+ tphi = EM.quote_cof phi in
           tphi, tm
         in
-        let* fn =
-          let* phi_fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, tm)) in
-          splice_split phi0 phi0_fn phi phi_fn
-        in
-        loop (Cubical.Cof.join [phi0; phi]) fn (Snoc (tbranches, tbranch)) tacs
+        let* phi_fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, tm)) in
+        loop (Snoc (phi0s, phi)) (Snoc (phi0_fns, (phi, phi_fn))) (Snoc (tbranches, tbranch)) tacs
     in
 
-    loop Cubical.Cof.bot (D.Lam (`Anon, D.const_tm_clo D.tm_abort)) Emp tacs
+    loop Emp Emp Emp tacs
 
 
 end
