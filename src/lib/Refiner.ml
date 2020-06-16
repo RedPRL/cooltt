@@ -45,12 +45,22 @@ end
 
 
 module Hole : sig
-  val unleash_hole : string option -> [`Flex | `Rigid] -> T.Chk.tac
-  val unleash_tp_hole : string option -> [`Flex | `Rigid] -> T.Tp.tac
-  val unleash_syn_hole : string option -> [`Flex | `Rigid] -> T.Syn.tac
+  val unleash_hole : string option -> T.Chk.tac
+  val unleash_tp_hole : string option -> T.Tp.tac
+  val unleash_syn_hole : string option -> T.Syn.tac
 end =
 struct
-  let make_hole name flexity (tp, phi, clo) : D.cut m =
+  let assert_hole_possible tp =
+    EM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp |>>
+    function
+    | D.TpDim | D.TpCof | D.TpPrf _ ->
+      let* ttp = EM.quote_tp tp in
+      EM.with_pp @@ fun ppenv ->
+      EM.elab_err @@ Err.HoleNotPermitted (ppenv, ttp)
+    | _ -> EM.ret ()
+
+  let make_hole name (tp, phi, clo) : D.cut m =
+    let* () = assert_hole_possible tp in
     let* env = EM.read in
     let cells = Env.locals env in
 
@@ -62,36 +72,33 @@ struct
         Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." S.pp_sequent tp
       in
       let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
-      match flexity with
-      | `Flex -> EM.add_flex_global vtp
-      | `Rigid ->
-        let ident =
-          match name with
-          | None -> `Anon
-          | Some str -> `Machine ("?" ^ str)
-        in
-        EM.add_global ident vtp None
+      let ident =
+        match name with
+        | None -> `Anon
+        | Some str -> `Machine ("?" ^ str)
+      in
+      EM.add_global ident vtp None
     in
 
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
     EM.ret (D.UnstableCut (D.push KGoalProj cut, D.KSubOut (phi, clo)), [])
 
 
-  let unleash_hole name flexity : T.Chk.tac =
+  let unleash_hole name : T.Chk.tac =
     T.Chk.brule @@ fun (tp, phi, clo) ->
-    let* cut = make_hole name flexity (tp, phi, clo) in
+    let* cut = make_hole name (tp, phi, clo) in
     EM.quote_cut cut
 
-  let unleash_tp_hole name flexity : T.Tp.tac =
+  let unleash_tp_hole name : T.Tp.tac =
     T.Tp.rule @@
-    let* cut = make_hole name flexity @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     EM.quote_tp @@ D.ElCut cut
 
-  let unleash_syn_hole name flexity : T.Syn.tac =
+  let unleash_syn_hole name : T.Syn.tac =
     T.Syn.rule @@
-    let* cut = make_hole name `Flex @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
-    let+ tm = tp |> T.Chk.run @@ unleash_hole name flexity in
+    let+ tm = tp |> T.Chk.run @@ unleash_hole name in
     tm, tp
 end
 
@@ -229,82 +236,85 @@ struct
       EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
 
 
-  type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
+  module Split : sig
+    type branch_tac = {cof : T.Chk.tac; bdy : T.var -> T.Chk.tac}
+    val split : branch_tac list -> T.Chk.tac
+  end =
+  struct
+    type branch_tac = {cof : T.Chk.tac; bdy : T.var -> T.Chk.tac}
+    type branch_tac' = {cof : D.cof; tcof : S.t; bdy : T.var -> T.Chk.tac}
+    type branch = {cof : D.cof; tcof : S.t; fn : D.con; bdy : S.t}
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.Chk.tac) list) m =
-    match branches with
-    | [] -> EM.ret ([], [])
-    | (tac_phi, tac_tm) :: branches ->
-      let* tphi = T.Chk.run tac_phi D.TpCof in
-      let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
-      let+ phis, tacs = gather_cofibrations branches in
-      (vphi :: phis), tac_tm :: tacs
+    let rec gather_branches (branches : branch_tac list) : (D.cof * branch_tac' list) m =
+      match branches with
+      | [] -> EM.ret (Cubical.Cof.bot, [])
+      | branch :: branches ->
+        let* tphi = T.Chk.run branch.cof D.TpCof in
+        let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
+        let+ psi, tacs = gather_branches branches in
+        Cubical.Cof.join [vphi; psi], {cof = vphi; tcof = tphi; bdy = branch.bdy} :: tacs
 
-  let split0 : T.Chk.tac =
-    T.Chk.brule @@ fun _ ->
-    let* _ = assert_true Cubical.Cof.bot in
-    EM.ret S.tm_abort
 
-  let split1 (phi : D.cof) (tac : T.var -> T.Chk.tac) : T.Chk.tac =
-    T.Chk.brule @@ fun goal ->
-    let* _ = assert_true phi in
-    T.Chk.brun (tac @@ T.Var.prf phi) goal
+    let splice_split branches =
+      let phis, fns = List.split branches in
+      EM.lift_cmp @@ Sem.splice_tm @@
+      Splice.cons (List.map D.cof_to_con phis) @@ fun phis ->
+      Splice.cons fns @@ fun fns ->
+      Splice.term @@ TB.lam @@ fun _ ->
+      TB.cof_split @@ List.combine phis @@ List.map (fun fn -> TB.ap fn [TB.prf]) fns
 
-  let split2 (phi0 : D.cof) (tac0 : T.var -> T.Chk.tac) (phi1 : D.cof) (tac1 : T.var -> T.Chk.tac) : T.Chk.tac =
-    T.Chk.brule @@
-    fun (tp, psi, psi_clo) ->
-    let* _ = assert_true @@ Cubical.Cof.join [phi0; phi1] in
-    let* tm0 =
-      T.abstract (D.TpPrf phi0) @@ fun prf ->
-      T.Chk.brun (tac0 prf) (tp, psi, psi_clo)
-    in
-    let+ tm1 =
-      let* phi0_fn = EM.lift_ev @@ Sem.eval @@ S.Lam (`Anon, tm0) in
-      let psi_fn = D.Lam (`Anon, psi_clo) in
-      let psi' = Cubical.Cof.join [phi0; psi] in
-      let* psi'_fn =
-        EM.lift_cmp @@ Sem.splice_tm @@
-        Splice.cof phi0 @@ fun phi0 ->
-        Splice.cof psi @@ fun psi ->
-        Splice.con psi_fn @@ fun psi_fn ->
-        Splice.con phi0_fn @@ fun phi0_fn ->
-        Splice.term @@
-        TB.lam @@ fun _ ->
-        TB.cof_split [phi0, TB.ap phi0_fn [TB.prf]; psi, TB.ap psi_fn [TB.prf]]
+    module State =
+    struct
+      open BwdNotation
+      type t =
+        {disj : D.cof;
+         fns : (D.cof * D.con) bwd;
+         acc : (S.t * S.t) bwd}
+
+      let init : t =
+        {disj = Cubical.Cof.bot;
+         fns = Emp;
+         acc = Emp}
+
+      let append : t -> branch -> t =
+        fun state branch ->
+        {disj = Cubical.Cof.join [state.disj; branch.cof];
+         fns = state.fns #< (branch.cof, branch.fn);
+         acc = state.acc #< (branch.tcof, branch.bdy)}
+    end
+
+    let split (branches : branch_tac list) : T.Chk.tac =
+      T.Chk.brule @@ fun (tp, psi, psi_clo) ->
+      let* disjunction, tacs = gather_branches branches in
+      let* () = assert_true disjunction in
+
+      let step : State.t -> branch_tac' -> State.t m =
+        fun state branch ->
+        let* bdy =
+          let psi' = Cubical.Cof.join [state.disj; psi] in
+          let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list state.fns in
+          T.abstract (D.TpPrf branch.cof) @@ fun prf ->
+          T.Chk.brun (branch.bdy prf) (tp, psi', D.un_lam psi'_fn)
+        in
+        let+ fn = EM.lift_ev @@ Sem.eval (S.Lam (`Anon, bdy)) in
+        State.append state {cof = branch.cof; tcof = branch.tcof; fn; bdy}
       in
-      T.abstract (D.TpPrf phi1) @@ fun prf ->
-      T.Chk.brun (tac1 prf) (tp, psi', D.un_lam psi'_fn)
-    and+ tphi0 = EM.quote_cof phi0
-    and+ tphi1 = EM.quote_cof phi1 in
-    S.CofSplit [tphi0, tm0; tphi1, tm1]
 
+      let rec fold : State.t -> branch_tac' list -> S.t m =
+        fun state ->
+          function
+          | [] ->
+            EM.ret @@ S.CofSplit (Bwd.to_list state.acc)
+          | tac :: tacs ->
+            let* state = step state tac in
+            fold state tacs
+      in
 
+      fold State.init tacs
+  end
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (T.var -> T.Chk.tac) list) m =
-    match branches with
-    | [] -> EM.ret ([], [])
-    | (tac_phi, tac_tm) :: branches ->
-      let* tphi = T.Chk.run tac_phi D.TpCof in
-      let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
-      let+ phis, tacs = gather_cofibrations branches in
-      (vphi :: phis), tac_tm :: tacs
+  include Split
 
-  let split (branches : branch_tac list) : T.Chk.tac =
-    T.Chk.brule @@ fun goal ->
-    let* phis, tacs = gather_cofibrations branches in
-    let disj_phi = Cubical.Cof.join phis in
-    let* _ = assert_true disj_phi in
-    let rec go phis (tacs : (T.var -> T.Chk.tac) list) : T.Chk.tac =
-      match phis, tacs with
-      | [phi], [tac] ->
-        split1 phi tac
-      | phi :: phis, tac :: tacs ->
-        split2 phi tac (Cubical.Cof.join phis) (fun _ -> go phis tacs)
-      | [], [] ->
-        split0
-      | _ -> failwith "internal error"
-    in
-    T.Chk.brun (go phis tacs) goal
 end
 
 module Prf =
@@ -318,14 +328,8 @@ struct
     T.Chk.brule @@
     function
     | D.TpPrf phi, _, _ ->
-      begin
-        EM.lift_cmp @@ CmpM.test_sequent [] phi |>> function
-        | true -> EM.ret S.Prf
-        | false ->
-          EM.with_pp @@ fun ppenv ->
-          let* tphi = EM.quote_cof phi in
-          EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
-      end
+      let+ () = Cof.assert_true phi in
+      S.Prf
     | tp, _, _ ->
       EM.expected_connective `Prf tp
 end
@@ -537,7 +541,7 @@ struct
     EM.lift_cmp @@
     Sem.splice_tp @@
     Splice.con r @@ fun src ->
-    Splice.cof phi @@ fun cof ->
+    Splice.con phi @@ fun cof ->
     Splice.tp tp @@ fun vtp ->
     Splice.term @@
     TB.pi TB.tp_dim @@ fun i ->
@@ -551,7 +555,7 @@ struct
     let* trg = T.Chk.run tac_trg D.TpDim in
     let* cof = T.Chk.run tac_cof D.TpCof in
     let* vsrc = EM.lift_ev @@ Sem.eval src in
-    let* vcof = EM.lift_ev @@ Sem.eval_cof cof in
+    let* vcof = EM.lift_ev @@ Sem.eval cof in
     let* vtp = EM.lift_ev @@ Sem.eval_tp @@ S.El code in
     (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
     let+ tm = T.Chk.run tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
@@ -572,7 +576,7 @@ struct
     let* cof = T.Chk.run tac_cof D.TpCof in
     let* vfam = EM.lift_ev @@ Sem.eval fam in
     let* vsrc = EM.lift_ev @@ Sem.eval src in
-    let* vcof = EM.lift_ev @@ Sem.eval_cof cof in
+    let* vcof = EM.lift_ev @@ Sem.eval cof in
     (* (i : dim) -> (_ : [i=src \/ cof]) -> A i *)
     let+ tm =
       T.Chk.run tac_tm @<<
@@ -580,7 +584,7 @@ struct
       Sem.splice_tp @@
       Splice.con vfam @@ fun vfam ->
       Splice.con vsrc @@ fun src ->
-      Splice.cof vcof @@ fun cof ->
+      Splice.con vcof @@ fun cof ->
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
@@ -761,7 +765,7 @@ struct
       and+ tr' = EM.quote_dim r'
       and+ tphi = EM.quote_cof phi
       and+ tbdy =
-        let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) phi in
+        let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) (D.cof_to_con phi) in
         EM.quote_con tp_bdy bdy
       and+ tp_cap =
         let* code_fib = EM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
@@ -1074,7 +1078,7 @@ struct
           match find_case "zero" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "zero") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "zero"
         in
         let* tac_suc =
           match find_case "suc" cases with
@@ -1083,7 +1087,7 @@ struct
           | Some ([`Inductive (nm_z, nm_ih)], tac) ->
             EM.ret @@ Pi.intro ~ident:nm_z @@ fun _ -> Pi.intro ~ident:nm_ih @@ fun _ -> tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "suc") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "suc"
         in
         T.Syn.run @@ Nat.elim mot tac_zero tac_suc scrut
       | D.Circle, mot ->
@@ -1091,14 +1095,14 @@ struct
           match find_case "base" cases with
           | Some ([], tac) -> EM.ret tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "base") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "base"
         in
         let* tac_loop =
           match find_case "loop" cases with
           | Some ([`Simple nm_x], tac) ->
             EM.ret @@ Pi.intro ~ident:nm_x @@ fun _ -> tac
           | Some _ -> EM.elab_err Err.MalformedCase
-          | None -> EM.ret @@ Hole.unleash_hole (Some "loop") `Rigid
+          | None -> EM.ret @@ Hole.unleash_hole @@ Some "loop"
         in
         T.Syn.run @@ Circle.elim mot tac_base tac_loop scrut
       | _ ->

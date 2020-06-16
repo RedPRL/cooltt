@@ -64,6 +64,16 @@ struct
       and+ ys = map f xs in
       y :: ys
 
+  let rec filter_map f =
+    function
+    | [] -> M.ret []
+    | (x :: xs) ->
+      let+ oy = f x
+      and+ ys = filter_map f xs in
+      match oy with
+      | None -> ys
+      | Some y -> y :: ys
+
   let rec map_bwd f =
     function
     | Emp -> M.ret Emp
