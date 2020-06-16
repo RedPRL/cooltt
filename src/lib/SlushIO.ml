@@ -16,7 +16,7 @@ exception Todo
 module BasicJSON =
 struct
 
-  let ret = Incremental.ret (* todo this can't be right ... can it? *)
+  let ret = Incremental.ret (* todo more elegant way to manage this? *)
 
   let json_of_int (i : int) : [> `String of string ] =
     `String (string_of_int i)
@@ -220,7 +220,9 @@ struct
       ret @@ `A [`String "SubOut"; tm]
 
     | Dim0 -> ret @@ `String "Dim0"
+
     | Dim1 -> ret @@ `String "Dim1"
+
     | Cof c ->
       json_of_cof json_of_tm json_of_tm c |>> fun tm ->
       ret @@ `A [`String "Cof"; tm]
@@ -278,7 +280,7 @@ struct
       json_of_tm tm1 |>> fun tm1 ->
       json_of_global glo |>> fun glo ->
       json_of_tm tm2 |>> fun tm2 ->
-      ret @@ `A [`String "CodeExt"; json_of_int i; tm1; glo; tm2] (* todo: interesting that json of int breaks the pattern; it's out of the monad *)
+      ret @@ `A [`String "CodeExt"; json_of_int i; tm1; glo; tm2]
 
     | CodePi (tm1, tm2) ->
       json_of_tm tm1 |>> fun tm1 ->
@@ -310,7 +312,7 @@ struct
 
   and tm_of_json =
     function
-    | `A [`String "Var"; x] -> ret @@ Var (int_of_json x) (* todo out of the monad again *)
+    | `A [`String "Var"; x] -> ret @@ Var (int_of_json x)
 
     | `A [`String "Global"; sym] ->
       sym_of_json sym |>> fun sym ->
@@ -476,7 +478,7 @@ struct
       tm_of_json tm1 |>> fun tm1 ->
       global_of_json glo |>> fun glo ->
       tm_of_json tm2 |>> fun tm2 ->
-      ret @@ CodeExt (int_of_json i, tm1, `Global glo, tm2) (* todo *)
+      ret @@ CodeExt (int_of_json i, tm1, `Global glo, tm2)
 
     | `A [`String "CodePi"; tm1; tm2] ->
       tm_of_json tm1 |>> fun tm1 ->
@@ -508,9 +510,10 @@ struct
 
     | j -> J.parse_error j "tm_of_json"
 
-  and json_of_tp : tp -> J.value m = (* todo: i am not sure if the constructor names are disjoint or if it matters *)
+  and json_of_tp : tp -> J.value m =
     function
     | Univ -> ret @@ `String "Univ"
+
     | El tm ->
       json_of_tm tm |>> fun tm ->
       ret @@ `A [`String "El"; tm]
@@ -519,7 +522,7 @@ struct
 
     | GoalTp (nm, tp) ->
       json_of_tp tp |>> fun tp ->
-      ret @@ `A [`String "GoalTp"; json_of_ostring nm; tp] (* todo: ditto comment about int *)
+      ret @@ `A [`String "GoalTp"; json_of_ostring nm; tp]
 
     | TpDim -> ret @@ `String "TpDim"
 
@@ -552,7 +555,9 @@ struct
       ret @@ `A [`String "Sg"; tp1; nm; tp2]
 
     | Nat -> ret @@ `String "Nat"
+
     | Circle -> ret @@ `String "Cicle"
+
     | TpESub (s, tp) ->
       json_of_sub s |>> fun s ->
       json_of_tp tp |>> fun tp ->
@@ -566,11 +571,11 @@ struct
       tm_of_json tm |>> fun tm ->
       ret @@ El tm
 
-    | `A [`String "TpVar"; x] -> ret @@ TpVar (int_of_json x) (* todo as above *)
+    | `A [`String "TpVar"; x] -> ret @@ TpVar (int_of_json x)
 
     | `A [`String "GoalTp"; nm; tp] ->
       tp_of_json tp |>> fun tp ->
-      ret @@ GoalTp (ostring_of_json nm, tp) (*todo *)
+      ret @@ GoalTp (ostring_of_json nm, tp)
 
     | `String "TpDim" -> ret @@ TpDim
 
@@ -689,9 +694,11 @@ struct
       jr r1 |>> fun r1 ->
       jr r2 |>> fun r2 ->
       ret @@ `A [`String "Eq"; r1 ; r2 ]
+
     | Join l ->
       MU.map ja l |>> fun l ->
       ret @@ `A (`String "Join" :: l) (* todo: this could be a bug; i don't know if i'm matching too deeply *)
+
     | Meet l ->
       MU.map ja l |>> fun l ->
       ret @@ `A (`String "Meet" :: l)
@@ -702,12 +709,15 @@ struct
       rj r1 |>> fun r1 ->
       rj r2 |>> fun r2 ->
       ret @@ Eq (r1, r2)
+
     | `A (`String "Join" :: l) ->
       MU.map aj l |>> fun l ->
       ret @@ Join l
+
     | `A (`String "Meet" :: l) ->
       MU.map aj l |>> fun l ->
       ret @@ Meet l
+
     | j -> J.parse_error j "cof_of_json"
 
   (** these two are just syntactic sugar for doing json_of_tm. i spoke with
