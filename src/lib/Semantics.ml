@@ -798,9 +798,9 @@ and reduce_to ~style con =
   | `Done -> ret @@ `Reduce con
   | `Reduce con -> ret @@ `Reduce con
 
-and reduce_to_tp tp =
+and reduce_to_tp ~style tp =
   let open CM in
-  whnf_tp tp |>> function
+  whnf_tp ~style tp |>> function
   | `Done -> ret @@ `Reduce tp
   | `Reduce tp -> ret @@ `Reduce tp
 
@@ -814,7 +814,8 @@ and plug_into ~style sp con =
 
 and should_unfold_symbol style sym =
   match style with
-  | `UnfoldNone -> false
+  | `UnfoldNone ->
+    false
   | `UnfoldAll -> true
   | `Veil veil ->
     match Veil.policy sym veil with
@@ -884,23 +885,23 @@ and whnf_cut ~style : D.cut -> D.con whnf CM.m =
     | `Done -> ret `Done
     | `Reduce con -> plug_into ~style sp con
 
-and whnf_tp =
+and whnf_tp ~style =
   let open CM in
   function
   | D.ElCut cut ->
     begin
-      whnf_cut ~style:`UnfoldAll cut |>>
+      whnf_cut ~style cut |>>
       function
       | `Done ->
         ret `Done
       | `Reduce con ->
-        reduce_to_tp @<< do_el con
+        reduce_to_tp ~style @<< do_el con
     end
   | D.ElUnstable code ->
     let phi, bdry = Splice.Bdry.unstable_code code in
     begin
       test_sequent [] phi |>> function
-      | true -> reduce_to_tp @<< do_el @<< splice_tm bdry
+      | true -> reduce_to_tp ~style @<< do_el @<< splice_tm bdry
       | false -> ret `Done
     end
   | D.TpSplit branches ->
@@ -910,7 +911,7 @@ and whnf_tp =
       | (phi, tp_clo) :: branches ->
         test_sequent [] phi |>> function
         | true ->
-          reduce_to_tp @<< inst_tp_clo tp_clo D.Prf
+          reduce_to_tp ~style @<< inst_tp_clo tp_clo D.Prf
         | false ->
           go branches
     in
@@ -918,9 +919,9 @@ and whnf_tp =
   | _tp ->
     ret `Done
 
-and whnf_tp_ tp =
+and whnf_tp_ ~style tp =
   let open CM in
-  whnf_tp tp |>>
+  whnf_tp ~style tp |>>
   function
   | `Done -> ret tp
   | `Reduce tp -> ret tp
@@ -1065,7 +1066,7 @@ and inspect_con ~style con =
   function
   | D.Cut {tp; cut} as con ->
     begin
-      whnf_tp tp |>>
+      whnf_tp ~style:`UnfoldAll tp |>>
       function
       | `Done -> ret con
       | `Reduce tp -> ret @@ D.Cut {tp; cut}

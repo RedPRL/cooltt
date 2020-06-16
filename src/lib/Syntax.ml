@@ -456,6 +456,8 @@ and pp_atomic env fmt tm =
   | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
   | Zero | Base | Prf ->
     pp env fmt tm
+  | Suc _ as tm when Option.is_some (to_numeral tm) ->
+    pp env fmt tm
   | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
     pp_atomic env fmt tm
   | _ ->

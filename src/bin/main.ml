@@ -2,7 +2,7 @@ open Core
 open Cmdliner
 
 let _ =
-  Printexc.record_backtrace true;
+  Printexc.record_backtrace false;
   ()
 
 type options = {mode: [`Interactive | `Scripting of [`Stdin | `File of string]]; width: int}

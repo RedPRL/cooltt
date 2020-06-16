@@ -15,9 +15,9 @@ type 'a whnf = [`Done | `Reduce of 'a]
 val whnf_con : style:whnf_style -> D.con -> D.con whnf compute
 val whnf_cut : style:whnf_style -> D.cut -> D.con whnf compute
 val whnf_hd : style:whnf_style -> D.hd -> D.con whnf compute
-val whnf_tp : D.tp -> D.tp whnf compute
+val whnf_tp : style:whnf_style -> D.tp -> D.tp whnf compute
 
-val whnf_tp_ : D.tp -> D.tp compute
+val whnf_tp_ : style:whnf_style -> D.tp -> D.tp compute
 
 val normalize_cof : D.cof -> D.cof compute
 

@@ -70,8 +70,8 @@ let contractum_or x =
 (* Invariant: tp0 and tp1 not necessarily whnf *)
 let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   ConvM.abort_if_inconsistent (ret ()) @@
-  let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
-  let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
+  let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp ~style:`UnfoldAll tp0 in
+  let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp ~style:`UnfoldAll tp1 in
   match tp0, tp1 with
   | D.TpSplit branches, _
   | _, D.TpSplit branches ->
@@ -166,7 +166,7 @@ and equate_stable_code univ code0 code1 =
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
   ConvM.abort_if_inconsistent (ret ()) @@
-  let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
+  let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp ~style:`UnfoldAll tp in
   let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:`UnfoldAll con0 in
   let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:`UnfoldAll con1 in
   match tp, con0, con1 with
