@@ -40,15 +40,19 @@ let rec quote_con (tp : D.tp) con =
   match tp, con with
   | _, D.Split branches ->
     let quote_branch (phi, clo) =
-      let+ tphi = quote_cof phi
-      and+ tbdy =
-        bind_var (D.TpPrf phi) @@ fun prf ->
-        let* body = lift_cmp @@ inst_tm_clo clo prf in
-        quote_con tp body
-      in
-      tphi, tbdy
+      lift_cmp @@ CmpM.test_sequent [phi] Cof.bot |>> function
+      | false ->
+        let+ tphi = quote_cof phi
+        and+ tbdy =
+          bind_var (D.TpPrf phi) @@ fun prf ->
+          let* body = lift_cmp @@ inst_tm_clo clo prf in
+          quote_con tp body
+        in
+        Some (tphi, tbdy)
+      | true ->
+        ret None
     in
-    let* tbranches = MU.map quote_branch branches in
+    let* tbranches = MU.filter_map quote_branch branches in
     ret @@ S.CofSplit tbranches
 
   | _, D.Cut {cut = (D.Var lvl, []); tp = TpDim} ->
