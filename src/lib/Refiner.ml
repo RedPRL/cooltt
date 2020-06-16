@@ -231,14 +231,14 @@ struct
 
   type branch_tac = T.Chk.tac * (T.var -> T.Chk.tac)
 
-  let rec gather_cofibrations (branches : branch_tac list) : (D.cof list * (D.cof * (T.var -> T.Chk.tac)) list) m =
+  let rec gather_cofibrations (branches : branch_tac list) : (D.cof * (D.cof * (T.var -> T.Chk.tac)) list) m =
     match branches with
-    | [] -> EM.ret ([], [])
+    | [] -> EM.ret (Cubical.Cof.bot, [])
     | (tac_phi, tac_tm) :: branches ->
       let* tphi = T.Chk.run tac_phi D.TpCof in
       let* vphi = EM.lift_ev @@ Sem.eval_cof tphi in
-      let+ phis, tacs = gather_cofibrations branches in
-      (vphi :: phis), (vphi, tac_tm) :: tacs
+      let+ psi, tacs = gather_cofibrations branches in
+      Cubical.Cof.join [vphi; psi], (vphi, tac_tm) :: tacs
 
 
   let splice_split fns =
@@ -253,8 +253,8 @@ struct
 
   let split (branches : branch_tac list) : T.Chk.tac =
     T.Chk.brule @@ fun (tp, psi, psi_clo) ->
-    let* phis, tacs = gather_cofibrations branches in
-    let* () = assert_true @@ Cubical.Cof.join phis in
+    let* disjunction, tacs = gather_cofibrations branches in
+    let* () = assert_true disjunction in
 
     let rec loop phi0s phi0_fns tbranches tacs =
       match tacs with
