@@ -38,27 +38,30 @@ let pp_message fmt =
 
 module EM = ElabBasics
 
-let elaborate_typed_term name (args : CS.cell list) tp tm =
+let elaborate_def cells def tp =
   let open Monad.Notation (EM) in
-  EM.push_problem name @@
-  let* tp =
-    EM.push_problem "tp" @@
-    Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
+  let rec go cells =
+    match cells with
+    | [] ->
+      let* tp = Tactic.Tp.run @@ Elaborator.chk_tp tp in
+      let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
+      let* tm = Tactic.Chk.run (Elaborator.chk_tm def) vtp in
+      EM.ret @@ Decl.Return (tp, tm)
+    | CS.Cell cell :: cells ->
+      let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp cell.tp in
+      let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
+      Tactic.abstract ~ident:cell.name vtp @@ fun _ ->
+      let* decl = go cells in
+      EM.ret @@ Decl.Abs (tp, cell.name, decl)
   in
-  let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
-  let* tm =
-    EM.push_problem "tm" @@
-    Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp
-  in
-  let+ vtm = EM.lift_ev @@ Sem.eval tm in
-  tp, vtp, tm, vtm
+  go cells
 
 let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
   let open Monad.Notation (EM) in
   function
   | CS.Def {name; args; def; tp} ->
-    let* tp, _vtp, tm, _vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let+ _sym = EM.add_global name @@ Decl.Return (tp, tm) in
+    let* def = elaborate_def args def tp in
+    let+ _sym = EM.add_global name def in
     `Continue
   | CS.NormalizeTerm term ->
     EM.veil (Veil.const `Transparent) @@

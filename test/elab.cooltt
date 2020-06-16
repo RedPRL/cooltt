@@ -45,3 +45,5 @@ def foo : (x : nat) → (y : nat) × path nat x y = {
   x =>
   [x, ?hole1]
 }
+
+print path

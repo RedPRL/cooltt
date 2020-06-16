@@ -27,7 +27,7 @@ let rec pp_decl_bdy env fmt =
     Format.fprintf fmt ": %a"
       (S.pp_tp env) tp
   | Return (tp, tm) ->
-    Format.fprintf fmt ": %a = %a"
+    Format.fprintf fmt ": %a =@ %a"
       (S.pp_tp env) tp
       (S.pp env) tm
   | Abs (base, ident, decl) ->
