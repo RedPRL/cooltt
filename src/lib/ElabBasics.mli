@@ -16,7 +16,6 @@ val update_span : LexingUtil.span option -> 'a m -> 'a m
 val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 
 val add_global : Ident.t -> D.tp -> D.con option -> Symbol.t m
-val add_flex_global : D.tp -> Symbol.t m
 
 val resolve : Ident.t -> [`Local of int | `Global of Symbol.t | `Unbound] m
 val get_global : Symbol.t -> (D.tp * D.con option) m
