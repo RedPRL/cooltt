@@ -64,6 +64,10 @@ module MU = Monad.Util (M)
 
 type 'a b = S.t m -> 'a m
 
+let global sym ms : _ =
+  let+ xs = MU.commute_list ms in
+  S.Global (sym, xs)
+
 let el_in m : _ m =
   let+ tm = m in
   S.ElIn tm

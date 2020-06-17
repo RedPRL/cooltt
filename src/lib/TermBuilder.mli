@@ -15,6 +15,8 @@ val run : tplen:int -> conlen:int -> 'a m -> 'a
 val lvl : int -> t m
 val tplvl : int -> tp m
 
+val global : Symbol.t -> t m list -> t m
+
 val lam : ?ident:Ident.t -> t b -> t m
 val ap : t m -> t m list -> t m
 val coe : t m -> t m -> t m -> t m -> t m

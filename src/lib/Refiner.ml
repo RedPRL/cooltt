@@ -805,6 +805,11 @@ struct
         let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
         let* vars = MU.map (fun var -> fst <@> T.Syn.run @@ T.Var.syn var) @@ Bwd.to_list vars in
         EM.ret (S.Global (sym, vars), vtp)
+      | Decl.ByNatElim {mot; _} ->
+        T.abstract D.Nat @@ fun var ->
+        let* vtp = EM.lift_ev @@ Sem.eval_tp @@ S.El mot in
+        let* vars = MU.map (fun var -> fst <@> T.Syn.run @@ T.Var.syn var) @@ Bwd.to_list @@ Snoc (vars, var) in
+        EM.ret (S.Global (sym, vars), vtp)
       | Decl.Abs (tbase, ident, decl) ->
         let* current_env = Env.sem_env <@> EM.read in
         let* vbase = EM.lift_ev @@ Sem.eval_tp tbase in
@@ -881,8 +886,6 @@ struct
         EM.ret @@ GlobalUtil.multi_ap cells (D.Global (sym, []), [])
       in
       EM.quote_cut cut
-
-
 
   let let_ ?(ident = `Anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Chk.tac) : T.Chk.tac =
     T.Chk.brule @@ fun goal ->
