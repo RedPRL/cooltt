@@ -869,7 +869,6 @@ and inst_nat_elim_decl ~style ~self ~mot ~zero ~suc con : _ whnf CM.m =
     | D.Cut _ ->
       ret `Done
     | D.FHCom (`Nat, r, s, phi, bdy) ->
-      (* bdy : (i : 𝕀) (_ : [_]) → nat *)
       reduce_to ~style @<<
       splice_tm @@
       Splice.con mot @@ fun mot ->
