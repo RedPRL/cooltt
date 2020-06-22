@@ -4,4 +4,4 @@ type span =
   {start : Lexing.position;
    stop : Lexing.position}
 
-val pp_span : (span * string) Pp.printer
+val pp_span : span Pp.printer

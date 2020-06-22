@@ -6,7 +6,7 @@ let pp_info fmt =
   function
   | None -> Format.fprintf fmt "Unknown location"
   | Some span ->
-    LexingUtil.pp_span fmt (span , "Unknown Token" )
+    LexingUtil.pp_span fmt span
 
 
 type 'a node =

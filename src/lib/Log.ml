@@ -13,22 +13,24 @@ let pp_lvl fmt =
   | `Warn ->
     Format.fprintf fmt "Warn"
 
+let pp_error fmt last_token =
+  Format.fprintf fmt "Error near %s" last_token
+
+
 let pp_message ~loc ~lvl ~last_token pp data =
   match loc with
   | None ->
     pp Format.std_formatter data
   | Some span ->
     match lvl with
-    | `Info ->
-      Format.printf "@[<v>%a@]@."
-        pp data
-    | `Warn ->
-      Format.printf "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
-        LexingUtil.pp_span (span,last_token)
-        pp_lvl lvl
-        pp data
     | `Error ->
+      Format.printf "@[<v>%a [%a]:@,  [%a] @[<v>%a@]@]@.@."
+        LexingUtil.pp_span span
+        pp_lvl lvl
+        pp_error last_token
+        pp data
+    | _ ->
       Format.printf "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
-        LexingUtil.pp_span (span,last_token)
+        LexingUtil.pp_span span
         pp_lvl lvl
         pp data
