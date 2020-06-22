@@ -697,7 +697,7 @@ struct
 
     | Join l ->
       MU.map ja l |>> fun l ->
-      ret @@ `A (`String "Join" :: l) (* todo: this could be a bug; i don't know if i'm matching too deeply *)
+      ret @@ `A (`String "Join" :: l)
 
     | Meet l ->
       MU.map ja l |>> fun l ->
