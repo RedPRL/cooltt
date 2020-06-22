@@ -8,6 +8,7 @@ type location = LexingUtil.span option
 val pp_message
   : loc:location
   -> lvl:level
+  -> last_token:string
   -> 'a Pp.printer
   -> 'a
   -> unit

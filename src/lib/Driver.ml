@@ -136,11 +136,11 @@ let process_sign : CS.signature -> (unit, unit) result =
 let process_file input =
   match Load.load_file input with
   | Ok sign -> process_sign sign
-  | Error (Load.ParseError span) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message ParseError;
+  | Error (Load.ParseError (span,last_token)) ->
+    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message ParseError ~last_token:last_token;
     Error ()
-  | Error (Load.LexingError span) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message LexingError;
+  | Error (Load.LexingError (span,last_token)) ->
+    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message LexingError ~last_token:last_token;
     Error ()
 
 let execute_command =
@@ -153,10 +153,10 @@ let execute_command =
 let rec repl (ch : in_channel) lexbuf =
   let open Monad.Notation (EM) in
   match Load.load_cmd lexbuf with
-  | Error (Load.ParseError span) ->
+  | Error (Load.ParseError (span,_)) ->
     let* () = EM.emit ~lvl:`Error (Some span) pp_message ParseError in
     repl ch lexbuf
-  | Error (Load.LexingError span) ->
+  | Error (Load.LexingError (span,_)) ->
     let* () = EM.emit ~lvl:`Error (Some span) pp_message LexingError in
     repl ch lexbuf
   | Ok cmd ->

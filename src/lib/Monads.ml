@@ -267,7 +267,7 @@ struct
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) ->
-    Log.pp_message ~loc ~lvl pp a;
+    Log.pp_message ~loc ~lvl ~last_token:"REPL input" pp a;
     Ok (), st
 
   let veil v =

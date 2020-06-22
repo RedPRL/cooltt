@@ -1,17 +1,19 @@
 open Lex
 open Basis.LexingUtil
 
-type error = LexingError of span | ParseError of span
+type error = LexingError of span * string | ParseError of span * string
 exception ParseError of string * span
 
 let parse_with_error parser lexbuf =
   try Ok (parser Lex.token lexbuf) with
   | SyntaxError _msg ->
     let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
-    Error (LexingError span)
+    let last_token = lexeme lexbuf in
+    Error (LexingError (span,last_token))
   | Grammar.Error ->
     let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
-    Error (ParseError span)
+    let last_token = lexeme lexbuf in
+    Error (ParseError (span, last_token))
 
 let create_lexbuf input =
   let ch, filename =
