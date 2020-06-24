@@ -6,16 +6,9 @@ module Err = ElabError
 module Sem = Semantics
 module Qu = Quote
 open Basis
-
+open DriverMessage
 
 (* TODO: refactoring the error handling *)
-
-type message =
-  | LexingError
-  | ParseError
-  | NormalizedTerm of {orig : S.t; nf : S.t}
-  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
-  | UnboundIdent of Ident.t
 
 let pp_message fmt =
   function
@@ -137,10 +130,12 @@ let process_file input =
   match Load.load_file input with
   | Ok sign -> process_sign sign
   | Error (Load.ParseError (span,last_token)) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message ParseError ~last_token:last_token;
+    let loc_error = DriverError.ErrorWithMaybeSpan( ParseError, (Some span)) in
+    Log.pp_message ~loc:(Some loc_error) ~lvl:`Error pp_message ParseError ~last_token: ("parse " ^ last_token);
     Error ()
   | Error (Load.LexingError (span,last_token)) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message LexingError ~last_token:last_token;
+    let loc_error = DriverError.ErrorWithMaybeSpan( LexingError, (Some span)) in
+    Log.pp_message ~loc:(Some loc_error) ~lvl:`Error pp_message LexingError ~last_token:("lex "^last_token);
     Error ()
 
 let execute_command =
