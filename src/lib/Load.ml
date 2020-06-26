@@ -1,7 +1,10 @@
 open Lex
 open Basis.LexingUtil
 
-type error = LexingError of span * string | ParseError of span * string
+type error = 
+  | LexingError of {loc_span : span; last_token: string }
+  | ParseError of {loc_span : span; last_token: string }
+
 exception ParseError of string * span
 
 let parse_with_error parser lexbuf =
@@ -9,11 +12,11 @@ let parse_with_error parser lexbuf =
   | SyntaxError _msg ->
     let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
     let last_token = lexeme lexbuf in
-    Error (LexingError (span,last_token))
+    Error (LexingError {loc_span = span;last_token = last_token})
   | Grammar.Error ->
     let span = {start = lexbuf.lex_start_p; stop = lexbuf.lex_curr_p} in
     let last_token = lexeme lexbuf in
-    Error (ParseError (span, last_token))
+    Error (ParseError {loc_span = span;last_token = last_token})
 
 let create_lexbuf input =
   let ch, filename =
