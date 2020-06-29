@@ -6,7 +6,6 @@ type level = [`Info | `Error | `Warn]
 val pp_error_message
   : loc:LexingUtil.span option
   -> lvl:level
-  -> last_token:string
   -> 'a Pp.printer
   -> 'a
   -> unit

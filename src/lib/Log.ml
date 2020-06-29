@@ -36,26 +36,12 @@ let pp_runtime_messsage ~loc ~lvl pp data =
       pp data
 
 
-let pp_error_message ~loc ~lvl ~last_token pp data =
+let pp_error_message ~loc ~lvl pp data =
   match loc with
   | None ->
     pp Format.std_formatter data
   | Some span ->
-    match lvl with
-    | `Error ->
-      if last_token = "" then
-      Format.printf "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
-        LexingUtil.pp_span span
-        pp_lvl lvl
-        pp data
-      else
-      Format.printf "@[<v>%a [%a]:@,  [%a] @[<v>%a@]@]@.@."
-        LexingUtil.pp_span span
-        pp_lvl lvl
-        pp_error last_token
-        pp data
-    | _ ->
-      Format.printf "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
-        LexingUtil.pp_span span
-        pp_lvl lvl
-        pp data
+    Format.printf "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
+      LexingUtil.pp_span span
+      pp_lvl lvl
+      pp data

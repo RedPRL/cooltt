@@ -265,10 +265,10 @@ struct
     Env.set_location (Env.location env) @@
     Env.set_veil (Env.get_veil env) Env.init
 
-  let emit ?(lvl = `Info) ?(last_token="") loc pp a : unit m =
+  let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) -> match lvl with
     | `Error ->
-      Log.pp_error_message ~loc ~lvl ~last_token pp a;
+      Log.pp_error_message ~loc ~lvl pp a;
       Ok (), st
     | _ ->
       Log.pp_runtime_messsage ~loc ~lvl pp a;

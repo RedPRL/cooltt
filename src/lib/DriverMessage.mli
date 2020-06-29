@@ -7,9 +7,11 @@ type error_message =
   | LexingError
   | ParseError
   | UnboundIdent of Ident.t
-
+(*
+Either a raw output message or an error type and a last_token string
+*)
 type message =
   | OutputMessage of output_message
-  | ErrorMessage of error_message
+  | ErrorMessage of error_message * string
 
 val pp_message : Format.formatter -> message -> unit

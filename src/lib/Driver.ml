@@ -99,10 +99,10 @@ let process_file input =
   match Load.load_file input with
   | Ok sign -> process_sign sign
   | Error (Load.ParseError {loc_span= span; last_token = last_token}) ->
-    Log.pp_error_message ~loc:(Some span) ~lvl:`Error DriverMessage.pp_message (ErrorMessage ParseError) ~last_token: last_token;
+    Log.pp_error_message ~loc:(Some span) ~lvl:`Error DriverMessage.pp_message (ErrorMessage (ParseError,last_token));
     Error ()
   | Error (Load.LexingError {loc_span= span; last_token = last_token}) ->
-    Log.pp_error_message ~loc:(Some span) ~lvl:`Error DriverMessage.pp_message (ErrorMessage LexingError) ~last_token:last_token;
+    Log.pp_error_message ~loc:(Some span) ~lvl:`Error DriverMessage.pp_message (ErrorMessage (LexingError,last_token));
     Error ()
 
 let execute_command =
@@ -116,12 +116,12 @@ let rec repl (ch : in_channel) lexbuf =
   let open Monad.Notation (EM) in
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError {loc_span= span; last_token=_}) ->
-    let lt = Lexing.lexeme lexbuf in
-    let* () = EM.emit ~lvl:`Error ~last_token:lt (Some span) DriverMessage.pp_message (ErrorMessage ParseError) in
+    let last_token = Lexing.lexeme lexbuf in
+    let* () = EM.emit ~lvl:`Error (Some span) DriverMessage.pp_message (ErrorMessage (ParseError,last_token)) in
     repl ch lexbuf
   | Error (Load.LexingError {loc_span= span; last_token=_}) ->
-    let lt = Lexing.lexeme lexbuf in
-    let* () = EM.emit ~lvl:`Error ~last_token:lt (Some span) DriverMessage.pp_message (ErrorMessage LexingError) in
+    let last_token = Lexing.lexeme lexbuf in
+    let* () = EM.emit ~lvl:`Error (Some span) DriverMessage.pp_message (ErrorMessage (LexingError,last_token)) in
     repl ch lexbuf
   | Ok cmd ->
     protect @@ execute_command cmd |>>
