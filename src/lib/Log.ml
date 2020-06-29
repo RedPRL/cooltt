@@ -11,9 +11,6 @@ let pp_lvl fmt =
   | `Warn ->
     Format.fprintf fmt "Warn"
 
-let pp_error fmt last_token =
-  Format.fprintf fmt "Error near %s" last_token
-
 (*
 We have 2 types of messages. Errors from the driver load_file and runtime messages
 which may be output or errors.
