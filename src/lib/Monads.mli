@@ -96,7 +96,7 @@ module ElabM : sig
   val veil : Veil.t -> 'a m -> 'a m
 
   val globally : 'a m -> 'a m
-  val emit : ?lvl:Log.level -> LexingUtil.span option -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
+  val emit : ?lvl:Log.level -> ?last_token:string -> LexingUtil.span option -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end

@@ -2,8 +2,6 @@ open Basis
 
 type level = [`Info | `Error | `Warn]
 
-type location = DriverMessage.error option
-
 let pp_lvl fmt =
   function
   | `Info ->
@@ -22,6 +20,10 @@ which may be output or errors.
 
 Error messages either have a span where we can output lots of data about where
 the error occured or no span where we just output the data we have avaiable
+
+During Emit, we often don't have a last_token as the parser is happy and we just
+have an unbound identifier or a hole. In those cases, we don't print the 
+pp_error as it would contain nothing.
 *)
 let pp_runtime_messsage ~loc ~lvl pp data =
   match loc with
@@ -38,11 +40,15 @@ let pp_error_message ~loc ~lvl ~last_token pp data =
   match loc with
   | None ->
     pp Format.std_formatter data
-  | Some DriverMessage.DriverError ( _, None) ->
-    pp Format.std_formatter data
-  | Some DriverMessage.DriverError (_, Some span) ->
+  | Some span ->
     match lvl with
     | `Error ->
+      if last_token = "" then
+      Format.printf "@[<v>%a [%a]:@,  @[<v>%a@]@]@.@."
+        LexingUtil.pp_span span
+        pp_lvl lvl
+        pp data
+      else
       Format.printf "@[<v>%a [%a]:@,  [%a] @[<v>%a@]@]@.@."
         LexingUtil.pp_span span
         pp_lvl lvl

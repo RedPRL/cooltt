@@ -2,11 +2,9 @@ open Basis
 
 type level = [`Info | `Error | `Warn]
 
-type location = DriverMessage.error option
-
 (* We are always using stdout (not stderr) to prevent interleaving *)
 val pp_error_message
-  : loc:DriverMessage.error option
+  : loc:LexingUtil.span option
   -> lvl:level
   -> last_token:string
   -> 'a Pp.printer

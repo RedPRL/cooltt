@@ -14,8 +14,6 @@ type message =
   | ErrorMessage of error_message
 
 
-type error =  DriverError of error_message * Basis.LexingUtil.span option
-
 (* TODO: This is the start of better messaging, still needs work *)
 
 let pp_message fmt =

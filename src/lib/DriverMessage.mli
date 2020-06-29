@@ -12,6 +12,4 @@ type message =
   | OutputMessage of output_message
   | ErrorMessage of error_message
 
-type error =  DriverError of error_message * Basis.LexingUtil.span option
-
 val pp_message : Format.formatter -> message -> unit
