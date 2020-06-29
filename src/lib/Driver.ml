@@ -38,7 +38,7 @@ let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
     let* vtm = EM.lift_ev @@ Sem.eval tm in
     let* tm' = EM.quote_con vtp vtm in
-    let+ () = EM.emit term.info DriverMessage.pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
+    let+ () = EM.emit term.info pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
     `Continue
   | CS.Print ident ->
     begin
@@ -54,7 +54,7 @@ let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
             let* tm = EM.quote_con vtp con in
             EM.ret @@ Some tm
         in
-        let+ () = EM.emit ident.info DriverMessage.pp_message @@ (OutputMessage (Definition {ident = ident.node; tp; tm})) in
+        let+ () = EM.emit ident.info pp_message @@ (OutputMessage (Definition {ident = ident.node; tp; tm})) in
         `Continue
       | _ ->
         EM.throw @@ Err.ElabError (Err.UnboundVariable ident.node, ident.info)
@@ -99,10 +99,10 @@ let process_file input =
   match Load.load_file input with
   | Ok sign -> process_sign sign
   | Error (Load.ParseError {loc_span= span; last_token = last_token}) ->
-    Log.pp_error_message ~loc:(Some span) ~lvl:`Error DriverMessage.pp_message (ErrorMessage (ParseError,last_token));
+    Log.pp_error_message ~loc:(Some span) ~lvl:`Error pp_message (ErrorMessage (ParseError,last_token));
     Error ()
   | Error (Load.LexingError {loc_span= span; last_token = last_token}) ->
-    Log.pp_error_message ~loc:(Some span) ~lvl:`Error DriverMessage.pp_message (ErrorMessage (LexingError,last_token));
+    Log.pp_error_message ~loc:(Some span) ~lvl:`Error pp_message (ErrorMessage (LexingError,last_token));
     Error ()
 
 let execute_command =
@@ -117,11 +117,11 @@ let rec repl (ch : in_channel) lexbuf =
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError {loc_span= span; last_token=_}) ->
     let last_token = Lexing.lexeme lexbuf in
-    let* () = EM.emit ~lvl:`Error (Some span) DriverMessage.pp_message (ErrorMessage (ParseError,last_token)) in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message (ErrorMessage (ParseError,last_token)) in
     repl ch lexbuf
   | Error (Load.LexingError {loc_span= span; last_token=_}) ->
     let last_token = Lexing.lexeme lexbuf in
-    let* () = EM.emit ~lvl:`Error (Some span) DriverMessage.pp_message (ErrorMessage (LexingError,last_token)) in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message (ErrorMessage (LexingError,last_token)) in
     repl ch lexbuf
   | Ok cmd ->
     protect @@ execute_command cmd |>>
