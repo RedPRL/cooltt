@@ -14,7 +14,14 @@ type message =
   | ErrorMessage of error_message * string
 
 
-(* TODO: This is the start of better messaging, still needs work *)
+(* 
+TODO: This is the start of better messaging, still needs work 
+
+During Emit, we often don't have a last_token as the parser is happy and we just
+have an unbound identifier or a hole or things like that. In those cases, we don't print the 
+last_token as it would contain nothing.
+
+*)
 
 let pp_message fmt =
   function
