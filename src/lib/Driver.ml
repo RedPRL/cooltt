@@ -6,46 +6,8 @@ module Err = ElabError
 module Sem = Semantics
 module Qu = Quote
 open Basis
+open DriverMessage
 
-
-(* TODO: refactoring the error handling *)
-
-type message =
-  | LexingError
-  | ParseError
-  | NormalizedTerm of {orig : S.t; nf : S.t}
-  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
-  | UnboundIdent of Ident.t
-
-let pp_message fmt =
-  function
-  | ParseError ->
-    Format.pp_print_string fmt "Parse error"
-  | LexingError ->
-    Format.pp_print_string fmt "Lexing error"
-  | NormalizedTerm {orig; nf} ->
-    let env = Pp.Env.emp in
-    Format.fprintf fmt
-      "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
-      (S.pp env) orig
-      (S.pp env) nf
-  | Definition {ident; tp; tm = Some tm} ->
-    let env = Pp.Env.emp in
-    Format.fprintf fmt
-      "@[<v>%a@ : %a@ = %a@]"
-      Ident.pp ident
-      (S.pp_tp env) tp
-      (S.pp env) tm
-  | Definition {ident; tp; tm = None} ->
-    let env = Pp.Env.emp in
-    Format.fprintf fmt
-      "@[%a : %a@]"
-      Ident.pp ident
-      (S.pp_tp env) tp
-  | UnboundIdent ident ->
-    Format.fprintf fmt
-      "@[Unbound identifier %a@]"
-      Ident.pp ident
 
 module EM = ElabBasics
 
@@ -76,7 +38,7 @@ let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
     let* vtm = EM.lift_ev @@ Sem.eval tm in
     let* tm' = EM.quote_con vtp vtm in
-    let+ () = EM.emit term.info pp_message @@ NormalizedTerm {orig = tm; nf = tm'} in
+    let+ () = EM.emit term.info pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
     `Continue
   | CS.Print ident ->
     begin
@@ -92,7 +54,7 @@ let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
             let* tm = EM.quote_con vtp con in
             EM.ret @@ Some tm
         in
-        let+ () = EM.emit ident.info pp_message @@ Definition {ident = ident.node; tp; tm} in
+        let+ () = EM.emit ident.info pp_message @@ (OutputMessage (Definition {ident = ident.node; tp; tm})) in
         `Continue
       | _ ->
         EM.throw @@ Err.ElabError (Err.UnboundVariable ident.node, ident.info)
@@ -136,11 +98,11 @@ let process_sign : CS.signature -> (unit, unit) result =
 let process_file input =
   match Load.load_file input with
   | Ok sign -> process_sign sign
-  | Error (Load.ParseError span) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message ParseError;
+  | Error (Load.ParseError {loc_span= span; last_token = last_token}) ->
+    Log.pp_error_message ~loc:(Some span) ~lvl:`Error pp_message (ErrorMessage (ParseError,last_token));
     Error ()
-  | Error (Load.LexingError span) ->
-    Log.pp_message ~loc:(Some span) ~lvl:`Error pp_message LexingError;
+  | Error (Load.LexingError {loc_span= span; last_token = last_token}) ->
+    Log.pp_error_message ~loc:(Some span) ~lvl:`Error pp_message (ErrorMessage (LexingError,last_token));
     Error ()
 
 let execute_command =
@@ -153,11 +115,13 @@ let execute_command =
 let rec repl (ch : in_channel) lexbuf =
   let open Monad.Notation (EM) in
   match Load.load_cmd lexbuf with
-  | Error (Load.ParseError span) ->
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message ParseError in
+  | Error (Load.ParseError {loc_span= span; last_token=_}) ->
+    let last_token = Lexing.lexeme lexbuf in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message (ErrorMessage (ParseError,last_token)) in
     repl ch lexbuf
-  | Error (Load.LexingError span) ->
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message LexingError in
+  | Error (Load.LexingError {loc_span= span; last_token=_}) ->
+    let last_token = Lexing.lexeme lexbuf in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message (ErrorMessage (LexingError,last_token)) in
     repl ch lexbuf
   | Ok cmd ->
     protect @@ execute_command cmd |>>

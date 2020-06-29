@@ -266,9 +266,13 @@ struct
     Env.set_veil (Env.get_veil env) Env.init
 
   let emit ?(lvl = `Info) loc pp a : unit m =
-    fun (st, _env) ->
-    Log.pp_message ~loc ~lvl pp a;
-    Ok (), st
+    fun (st, _env) -> match lvl with
+    | `Error ->
+      Log.pp_error_message ~loc ~lvl pp a;
+      Ok (), st
+    | _ ->
+      Log.pp_runtime_messsage ~loc ~lvl pp a;
+      Ok (), st
 
   let veil v =
     M.scope @@ fun env ->
