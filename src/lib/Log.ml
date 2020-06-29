@@ -20,8 +20,8 @@ let pp_error fmt last_token =
 We have 2 types of messages. Errors from the driver load_file and runtime messages
 which may be output or errors.
 
-TODO: Cleanly separate errors from runtime output...
-
+Error messages either have a span where we can output lots of data about where
+the error occured or no span where we just output the data we have avaiable
 *)
 let pp_runtime_messsage ~loc ~lvl pp data =
   match loc with
