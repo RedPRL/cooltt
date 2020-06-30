@@ -6,7 +6,7 @@ module D = Domain
 module S = Syntax
 module R = Refiner
 module CS = ConcreteSyntax
-module Err = ElabError
+module Err = RefineError
 module Sem = Semantics
 
 open Monad.Notation (EM)
@@ -78,7 +78,7 @@ struct
       let* tac_zero : T.Chk.tac =
         match find_case "zero" cases with
         | Some ([], tac) -> EM.ret tac
-        | Some _ -> EM.elab_err Err.MalformedCase
+        | Some _ -> EM.refine_err Err.MalformedCase
         | None -> EM.ret @@ R.Hole.unleash_hole @@ Some "zero"
       in
       let* tac_suc =
@@ -87,7 +87,7 @@ struct
           EM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro @@ fun _ -> tac
         | Some ([`Inductive (nm_z, nm_ih)], tac) ->
           EM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro ~ident:nm_ih @@ fun _ -> tac
-        | Some _ -> EM.elab_err Err.MalformedCase
+        | Some _ -> EM.refine_err Err.MalformedCase
         | None -> EM.ret @@ R.Hole.unleash_hole @@ Some "suc"
       in
       T.Syn.run @@ R.Nat.elim mot tac_zero tac_suc scrut
@@ -95,21 +95,21 @@ struct
       let* tac_base : T.Chk.tac =
         match find_case "base" cases with
         | Some ([], tac) -> EM.ret tac
-        | Some _ -> EM.elab_err Err.MalformedCase
+        | Some _ -> EM.refine_err Err.MalformedCase
         | None -> EM.ret @@ R.Hole.unleash_hole @@ Some "base"
       in
       let* tac_loop =
         match find_case "loop" cases with
         | Some ([`Simple nm_x], tac) ->
           EM.ret @@ R.Pi.intro ~ident:nm_x @@ fun _ -> tac
-        | Some _ -> EM.elab_err Err.MalformedCase
+        | Some _ -> EM.refine_err Err.MalformedCase
         | None -> EM.ret @@ R.Hole.unleash_hole @@ Some "loop"
       in
       T.Syn.run @@ R.Circle.elim mot tac_base tac_loop scrut
     | _ ->
       EM.with_pp @@ fun ppenv ->
       let* tp = EM.quote_tp ind_tp in
-      EM.elab_err @@ Err.CannotEliminate (ppenv, tp)
+      EM.refine_err @@ Err.CannotEliminate (ppenv, tp)
 
   let assert_simple_inductive =
     function
@@ -120,7 +120,7 @@ struct
     | tp ->
       EM.with_pp @@ fun ppenv ->
       let* tp = EM.quote_tp tp in
-      EM.elab_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
+      EM.refine_err @@ Err.ExpectedSimpleInductive (ppenv, tp)
 
   let lam_elim cases : T.Chk.tac =
     match_goal @@ fun (tp, _, _) ->

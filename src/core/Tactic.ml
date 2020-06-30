@@ -38,7 +38,7 @@ struct
     function
     | General tac -> tac
     | Virtual _ ->
-      EM.elab_err @@ ElabError.VirtualType
+      EM.refine_err @@ RefineError.VirtualType
 
   let run_virtual =
     function

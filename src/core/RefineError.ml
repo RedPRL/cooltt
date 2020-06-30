@@ -3,7 +3,7 @@ module D = Domain
 module S = Syntax
 open Basis
 
-include ElabErrorData.Data
+include RefineErrorData.Data
 
 module Fmt = Format
 

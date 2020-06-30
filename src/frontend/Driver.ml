@@ -6,7 +6,7 @@ module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
 module Env = ElabEnv
-module Err = ElabError
+module Err = RefineError
 module Sem = Semantics
 module Qu = Quote
 
@@ -71,7 +71,7 @@ let protect m =
   | Ok return ->
     EM.ret @@ Ok return
   | Error (Err.ElabError (err, info)) ->
-    let+ () = EM.emit ~lvl:`Error info ElabError.pp err in
+    let+ () = EM.emit ~lvl:`Error info RefineError.pp err in
     Error ()
   | Error exn ->
     let* env = EM.read in

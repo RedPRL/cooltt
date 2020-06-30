@@ -2,7 +2,7 @@ module D = Domain
 module S = Syntax
 module St = ElabState
 module Env = ElabEnv
-module Err = ElabError
+module Err = RefineError
 module Qu = Quote
 module Conv = Conversion
 
@@ -11,7 +11,7 @@ include Monads.ElabM
 
 open Monad.Notation (Monads.ElabM)
 
-let elab_err err =
+let refine_err err =
   let* env = read in
   throw @@ Err.ElabError (err, Env.location env)
 
@@ -84,7 +84,7 @@ let equate tp l r =
     let* ttp = quote_tp tp in
     let* tl = quote_con tp l in
     let* tr = quote_con tp r in
-    elab_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
+    refine_err @@ Err.ExpectedEqual (Env.pp_env env, ttp, tl, tr, err)
 
 let equate_tp tp tp' =
   trap_conversion_err @@ lift_conv_ @@ Conv.equate_tp tp tp' |>>
@@ -94,7 +94,7 @@ let equate_tp tp tp' =
     let* env = read in
     let* ttp = quote_tp tp in
     let* ttp' = quote_tp tp' in
-    elab_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp', err)
+    refine_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp', err)
 
 
 let with_pp k =
@@ -104,7 +104,7 @@ let with_pp k =
 let expected_connective conn tp =
   with_pp @@ fun ppenv ->
   let* ttp = quote_tp tp in
-  elab_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
+  refine_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
 
 let abstract nm tp k =
   let rho env =

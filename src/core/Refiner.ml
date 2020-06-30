@@ -1,7 +1,7 @@
 module D = Domain
 module S = Syntax
 module Env = ElabEnv
-module Err = ElabError
+module Err = RefineError
 module EM = ElabBasics
 module T = Tactic
 module Splice = Splice
@@ -55,7 +55,7 @@ struct
     | D.TpDim | D.TpCof | D.TpPrf _ ->
       let* ttp = EM.quote_tp tp in
       EM.with_pp @@ fun ppenv ->
-      EM.elab_err @@ Err.HoleNotPermitted (ppenv, ttp)
+      EM.refine_err @@ Err.HoleNotPermitted (ppenv, ttp)
     | _ -> EM.ret ()
 
   let make_hole name (tp, phi, clo) : D.cut m =
@@ -184,7 +184,7 @@ struct
     | 1 -> dim1
     | n ->
       T.Chk.rule @@ fun _ ->
-      EM.elab_err @@ Err.ExpectedDimensionLiteral n
+      EM.refine_err @@ Err.ExpectedDimensionLiteral n
 end
 
 module Cof =
@@ -232,7 +232,7 @@ struct
     | false ->
       EM.with_pp @@ fun ppenv ->
       let* tphi = EM.quote_cof vphi in
-      EM.elab_err @@ Err.ExpectedTrue (ppenv, tphi)
+      EM.refine_err @@ Err.ExpectedTrue (ppenv, tphi)
 
 
   module Split : sig
@@ -791,7 +791,7 @@ struct
       let+ tp, _ = EM.get_global sym in
       S.Global sym, tp
     | `Unbound ->
-      EM.elab_err @@ Err.UnboundVariable id
+      EM.refine_err @@ Err.UnboundVariable id
 
   let index ix =
     let+ tp = EM.get_local_tp ix in
@@ -821,7 +821,7 @@ struct
         EM.resolve ident |>>
         function
         | `Local ix -> EM.ret @@ ElabEnv.size env - ix - 1
-        | _ -> EM.elab_err @@ Err.UnboundVariable ident
+        | _ -> EM.refine_err @@ Err.UnboundVariable ident
       in
 
       let cells = Env.locals env in
