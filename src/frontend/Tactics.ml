@@ -12,7 +12,7 @@ open Monad.Notation (EM)
 
 let elab_err err =
   let* env = EM.read in
-  EM.throw @@ ElabError.ElabError (err, ElabEnv.location env)
+  EM.throw @@ ElabError.ElabError (err, RefineEnv.location env)
 
 
 let match_goal (tac : _ -> T.Chk.tac EM.m) : T.Chk.tac =

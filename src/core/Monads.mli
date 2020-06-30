@@ -2,7 +2,7 @@
 
 module D := Domain
 module S := Syntax
-module St := ElabState
+module St := RefineState
 
 open Basis
 open Cubical
@@ -18,7 +18,7 @@ module CmpM : sig
   include Monad.MonadReaderResult
     with type 'a m = 'a compute
 
-  val read_global : ElabState.t m
+  val read_global : RefineState.t m
   val read_cof_thy : CofThy.Disj.t m
 
   val lift_ev : D.env -> 'a evaluate -> 'a m
@@ -36,7 +36,7 @@ module EvM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
-  val read_global : ElabState.t m
+  val read_global : RefineState.t m
   val read_local : D.env m
 
   val append : D.con list -> 'a m -> 'a m
@@ -69,7 +69,7 @@ module QuM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
-  val read_global : ElabState.t m
+  val read_global : RefineState.t m
   val read_local : int m
   val read_veil : Veil.t m
 
@@ -85,7 +85,7 @@ end
 module ElabM : sig
   include Monad.MonadReaderStateResult
     with type global := St.t
-    with type local := ElabEnv.t
+    with type local := RefineEnv.t
 
   val lift_qu : 'a quote -> 'a m
   val lift_conv_ : unit conversion -> unit m

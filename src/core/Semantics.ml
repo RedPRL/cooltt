@@ -502,7 +502,7 @@ and eval : S.t -> D.con EvM.m =
       lift_cmp @@ whnf_inspect_con ~style:`UnfoldNone con
     | S.Global sym ->
       let* st = EvM.read_global in
-      let tp, _ = ElabState.get_global sym st in
+      let tp, _ = RefineState.get_global sym st in
       ret @@ D.Cut {tp; cut = (D.Global sym, [])}
     | S.Let (def, _, body) ->
       let* vdef = eval def in
@@ -829,7 +829,7 @@ and whnf_hd ~style hd =
     if should_unfold_symbol style sym then
       let* st = CM.read_global in
       begin
-        match ElabState.get_global sym st with
+        match RefineState.get_global sym st with
         | _tp, Some con ->
           reduce_to ~style con
         | _, None | exception _ ->

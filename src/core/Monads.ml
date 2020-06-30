@@ -1,6 +1,6 @@
 module D = Domain
 module S = Syntax
-module St = ElabState
+module St = RefineState
 open Basis
 open Cubical
 open Bwd
@@ -256,7 +256,7 @@ type 'a quote = 'a QuM.m
 
 module ElabM =
 struct
-  module Env = ElabEnv
+  module Env = RefineEnv
   module M = Monad.MonadReaderStateResult (struct type global = St.t type local = Env.t end)
   include M
 

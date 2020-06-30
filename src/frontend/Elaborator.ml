@@ -4,7 +4,7 @@ open Basis
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
-module Env = ElabEnv
+module Env = RefineEnv
 module Err = RefineError
 module EM = ElabBasics
 module R = Refiner
@@ -282,7 +282,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       match tp with
       | D.Pi _ ->
         let* env = EM.read in
-        let lvl = ElabEnv.size env in
+        let lvl = RefineEnv.size env in
         EM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
         EM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})

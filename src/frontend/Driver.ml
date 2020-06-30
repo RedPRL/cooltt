@@ -5,7 +5,7 @@ open DriverMessage
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
-module Env = ElabEnv
+module Env = RefineEnv
 module Err = RefineError
 module Sem = Semantics
 module Qu = Quote
@@ -75,7 +75,7 @@ let protect m =
     Error ()
   | Error exn ->
     let* env = EM.read in
-    let+ () = EM.emit ~lvl:`Error (ElabEnv.location env) PpExn.pp exn in
+    let+ () = EM.emit ~lvl:`Error (RefineEnv.location env) PpExn.pp exn in
     Error ()
 
 let rec execute_signature ~status sign =
@@ -94,7 +94,7 @@ let rec execute_signature ~status sign =
 
 let process_sign : CS.signature -> (unit, unit) result =
   fun sign ->
-  EM.run_exn ElabState.init Env.init @@
+  EM.run_exn RefineState.init Env.init @@
   execute_signature ~status:(Ok ()) sign
 
 let process_file input =
@@ -136,5 +136,5 @@ let rec repl (ch : in_channel) lexbuf =
 
 let do_repl () =
   let ch, lexbuf = Load.prepare_repl () in
-  EM.run_exn ElabState.init Env.init @@
+  EM.run_exn RefineState.init Env.init @@
   repl ch lexbuf

@@ -1,6 +1,6 @@
 module D = Domain
 module S = Syntax
-module Env = ElabEnv
+module Env = RefineEnv
 module Err = RefineError
 module EM = ElabBasics
 module T = Tactic
@@ -67,7 +67,7 @@ struct
     let* sym =
       let* tp = GlobalUtil.multi_pi (Bwd.to_list cells) @@ EM.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo)) in
       let* () =
-        () |> EM.emit (ElabEnv.location env) @@ fun fmt () ->
+        () |> EM.emit (RefineEnv.location env) @@ fun fmt () ->
         Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." S.pp_sequent tp
       in
       let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
@@ -800,7 +800,7 @@ struct
   let level lvl =
     T.Syn.rule @@
     let* env = EM.read in
-    let ix = ElabEnv.size env - lvl - 1 in
+    let ix = RefineEnv.size env - lvl - 1 in
     index ix
 
   let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
@@ -820,7 +820,7 @@ struct
       let* lvl =
         EM.resolve ident |>>
         function
-        | `Local ix -> EM.ret @@ ElabEnv.size env - ix - 1
+        | `Local ix -> EM.ret @@ RefineEnv.size env - ix - 1
         | _ -> EM.refine_err @@ Err.UnboundVariable ident
       in
 
