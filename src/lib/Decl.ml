@@ -7,7 +7,9 @@ type t =
   | Hidden of S.tp
   | Return of S.tp * S.t
   | Abs of S.tp * Ident.t * t
+           (*
   | ByNatElim of {mot : S.t; zero : S.t; suc : S.t}
+              *)
 
 let ppenv_bind env ident =
   Pp.Env.bind env @@
@@ -53,8 +55,11 @@ let rec pp_decl_inner env ident fmt =
       Ident.pp ident
       (S.pp env) tm
       (pp_sequent_goal env) tp
+
+(*
   | ByNatElim _ ->
     Format.fprintf fmt "<nat-elim>"
+   *)
 
 
 let pp ident fmt decl =

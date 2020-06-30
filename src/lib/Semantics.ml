@@ -827,7 +827,7 @@ and should_unfold_symbol style sym =
     | `Transparent -> true
     | `Translucent -> false
 
-and inst_decl ~style sym decl args : _ whnf CM.m =
+and inst_decl ~style _sym decl args : _ whnf CM.m =
   let open CM in
   let rec go env decl l_args r_args =
     match decl, r_args with
@@ -838,6 +838,7 @@ and inst_decl ~style sym decl args : _ whnf CM.m =
       reduce_to ~style con
     | Decl.Abs (_, _, decl), arg :: r_args ->
       go D.{env with conenv = Snoc (env.conenv, arg)} decl (Snoc (l_args, arg)) r_args
+        (*
     | Decl.ByNatElim {mot; zero; suc}, [arg] ->
       let* mot = lift_ev env @@ eval @@ S.Lam (`Anon, mot) in
       let* zero = lift_ev env @@ eval zero in
@@ -850,6 +851,7 @@ and inst_decl ~style sym decl args : _ whnf CM.m =
         TB.global sym @@ l_args @ [x]
       in
       inst_nat_elim_decl ~style ~self ~mot ~zero ~suc arg
+           *)
     | _ ->
       CM.throw @@ NbeFailed "inst_decl: mismatch"
   in
