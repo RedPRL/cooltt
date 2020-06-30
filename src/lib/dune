@@ -1,12 +1,6 @@
-(menhir
- (flags --strict --explain --interpret-show-cst --table)
- (modules Grammar))
-
-(ocamllex Lex)
-
 (library
  (name Core)
- (libraries cooltt.basis cooltt.cubical menhirLib)
+ (libraries cooltt.basis cooltt.cubical)
  (preprocess
   (pps ppx_deriving.std))
  (flags

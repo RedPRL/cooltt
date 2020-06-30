@@ -1,4 +1,5 @@
 %{
+  open Core
   open ConcreteSyntax
 
   let locate (start, stop) node =
@@ -43,8 +44,8 @@
 %nonassoc COLON
 %nonassoc FST SND VPROJ CAP SUC LOOP RIGHT_ARROW TIMES
 
-%start <ConcreteSyntax.signature> sign
-%start <ConcreteSyntax.command> command
+%start <Core.ConcreteSyntax.signature> sign
+%start <Core.ConcreteSyntax.command> command
 %type <Ident.t> plain_name name
 %type <con_>
   plain_atomic_in_cof_except_term

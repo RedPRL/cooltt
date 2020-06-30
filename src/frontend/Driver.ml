@@ -1,3 +1,7 @@
+open Core
+open Basis
+open DriverMessage
+
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
@@ -5,8 +9,6 @@ module Env = ElabEnv
 module Err = ElabError
 module Sem = Semantics
 module Qu = Quote
-open Basis
-open DriverMessage
 
 
 module EM = ElabBasics
@@ -98,11 +100,11 @@ let process_sign : CS.signature -> (unit, unit) result =
 let process_file input =
   match Load.load_file input with
   | Ok sign -> process_sign sign
-  | Error (Load.ParseError {loc_span= span; last_token = last_token}) ->
-    Log.pp_error_message ~loc:(Some span) ~lvl:`Error pp_message (ErrorMessage (ParseError,last_token));
+  | Error (Load.ParseError err) ->
+    Log.pp_error_message ~loc:(Some err.loc_span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
     Error ()
-  | Error (Load.LexingError {loc_span= span; last_token = last_token}) ->
-    Log.pp_error_message ~loc:(Some span) ~lvl:`Error pp_message (ErrorMessage (LexingError,last_token));
+  | Error (Load.LexingError err) ->
+    Log.pp_error_message ~loc:(Some err.loc_span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     Error ()
 
 let execute_command =
@@ -115,13 +117,13 @@ let execute_command =
 let rec repl (ch : in_channel) lexbuf =
   let open Monad.Notation (EM) in
   match Load.load_cmd lexbuf with
-  | Error (Load.ParseError {loc_span= span; last_token=_}) ->
+  | Error (Load.ParseError {loc_span = span; _}) ->
     let last_token = Lexing.lexeme lexbuf in
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message (ErrorMessage (ParseError,last_token)) in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = ParseError; last_token} in
     repl ch lexbuf
-  | Error (Load.LexingError {loc_span= span; last_token=_}) ->
+  | Error (Load.LexingError {loc_span= span; _}) ->
     let last_token = Lexing.lexeme lexbuf in
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message (ErrorMessage (LexingError,last_token)) in
+    let* () = EM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = LexingError; last_token} in
     repl ch lexbuf
   | Ok cmd ->
     protect @@ execute_command cmd |>>

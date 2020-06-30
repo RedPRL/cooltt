@@ -1,6 +1,6 @@
 (executables
  (names main)
- (libraries cooltt.core cmdliner))
+ (libraries cooltt.frontend cmdliner))
 
 (install
  (section bin)

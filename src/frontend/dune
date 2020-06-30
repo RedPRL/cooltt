@@ -1,0 +1,14 @@
+(menhir
+ (flags --strict --explain --interpret-show-cst --table)
+ (modules Grammar))
+
+(ocamllex Lex)
+
+(library
+ (name Frontend)
+ (libraries cooltt.basis cooltt.cubical cooltt.core menhirLib)
+ (preprocess
+  (pps ppx_deriving.std))
+ (flags
+  (:standard -w -32-37-38 -warn-error -a+31))
+ (public_name cooltt.frontend))
