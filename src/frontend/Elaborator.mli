@@ -1,3 +1,4 @@
+open Core
 module CS := ConcreteSyntax
 module S := Syntax
 module EM := Monads.ElabM

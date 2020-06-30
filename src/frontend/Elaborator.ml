@@ -1,3 +1,6 @@
+open Core
+open Basis
+
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
@@ -8,7 +11,6 @@ module R = Refiner
 module T = Tactic
 module Sem = Semantics
 
-open Basis
 open Monad.Notation (EM)
 
 let rec unfold idents k =

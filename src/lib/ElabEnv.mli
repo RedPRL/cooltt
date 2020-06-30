@@ -1,4 +1,3 @@
-module CS := ConcreteSyntax
 module D := Domain
 
 open Basis
