@@ -1,6 +1,6 @@
 module S = Syntax
 module D = Domain
-module RM = ElabBasics
+module RM = RefineMonad
 module Sem = Semantics
 module Qu = Quote
 

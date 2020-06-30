@@ -1,6 +1,6 @@
 open Basis
 open Core
-module RM = ElabBasics
+module RM = RefineMonad
 module T = Tactic
 module D = Domain
 module S = Syntax

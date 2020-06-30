@@ -1,7 +1,7 @@
 open Basis
 module S := Syntax
 module D := Domain
-module RM := ElabBasics
+module RM := RefineMonad
 
 module type Tactic =
 sig

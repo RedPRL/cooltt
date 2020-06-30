@@ -11,7 +11,7 @@ module Sem = Semantics
 module Qu = Quote
 
 
-module RM = ElabBasics
+module RM = RefineMonad
 
 let elaborate_typed_term name (args : CS.cell list) tp tm =
   let open Monad.Notation (RM) in
