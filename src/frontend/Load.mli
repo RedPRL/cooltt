@@ -1,5 +1,4 @@
 open Basis
-open Core
 
 type error =
   | LexingError of {span : LexingUtil.span; last_token: string option}
