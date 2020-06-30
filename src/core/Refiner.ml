@@ -1,6 +1,5 @@
 module D = Domain
 module S = Syntax
-module CS = ConcreteSyntax
 module Env = ElabEnv
 module Err = ElabError
 module EM = ElabBasics

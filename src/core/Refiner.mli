@@ -4,7 +4,6 @@
 module D := Domain
 module S := Syntax
 module EM := Monads.ElabM
-module CS := ConcreteSyntax
 
 open Tactic
 
