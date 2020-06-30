@@ -11,90 +11,90 @@ module Sem = Semantics
 module Qu = Quote
 
 
-module EM = ElabBasics
+module RM = ElabBasics
 
 let elaborate_typed_term name (args : CS.cell list) tp tm =
-  let open Monad.Notation (EM) in
-  EM.push_problem name @@
+  let open Monad.Notation (RM) in
+  RM.push_problem name @@
   let* tp =
-    EM.push_problem "tp" @@
+    RM.push_problem "tp" @@
     Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
   in
-  let* vtp = EM.lift_ev @@ Sem.eval_tp tp in
+  let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
   let* tm =
-    EM.push_problem "tm" @@
+    RM.push_problem "tm" @@
     Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp
   in
-  let+ vtm = EM.lift_ev @@ Sem.eval tm in
+  let+ vtm = RM.lift_ev @@ Sem.eval tm in
   tp, vtp, tm, vtm
 
-let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
-  let open Monad.Notation (EM) in
+let execute_decl : CS.decl -> [`Continue | `Quit] RM.m =
+  let open Monad.Notation (RM) in
   function
   | CS.Def {name; args; def; tp} ->
     let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let+ _sym = EM.add_global name vtp @@ Some vtm in
+    let+ _sym = RM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->
-    EM.veil (Veil.const `Transparent) @@
+    RM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
-    let* vtm = EM.lift_ev @@ Sem.eval tm in
-    let* tm' = EM.quote_con vtp vtm in
-    let+ () = EM.emit term.info pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
+    let* vtm = RM.lift_ev @@ Sem.eval tm in
+    let* tm' = RM.quote_con vtp vtm in
+    let+ () = RM.emit term.info pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
     `Continue
   | CS.Print ident ->
     begin
-      EM.resolve ident.node |>>
+      RM.resolve ident.node |>>
       function
       | `Global sym ->
-        let* vtp, con = EM.get_global sym in
-        let* tp = EM.quote_tp vtp in
+        let* vtp, con = RM.get_global sym in
+        let* tp = RM.quote_tp vtp in
         let* tm =
           match con with
-          | None -> EM.ret None
+          | None -> RM.ret None
           | Some con ->
-            let* tm = EM.quote_con vtp con in
-            EM.ret @@ Some tm
+            let* tm = RM.quote_con vtp con in
+            RM.ret @@ Some tm
         in
-        let+ () = EM.emit ident.info pp_message @@ (OutputMessage (Definition {ident = ident.node; tp; tm})) in
+        let+ () = RM.emit ident.info pp_message @@ (OutputMessage (Definition {ident = ident.node; tp; tm})) in
         `Continue
       | _ ->
-        EM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
+        RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
     end
   | CS.Quit ->
-    EM.ret `Quit
+    RM.ret `Quit
 
 
 let protect m =
-  let open Monad.Notation (EM) in
-  EM.trap m |>> function
+  let open Monad.Notation (RM) in
+  RM.trap m |>> function
   | Ok return ->
-    EM.ret @@ Ok return
+    RM.ret @@ Ok return
   | Error (Err.RefineError (err, info)) ->
-    let+ () = EM.emit ~lvl:`Error info RefineError.pp err in
+    let+ () = RM.emit ~lvl:`Error info RefineError.pp err in
     Error ()
   | Error exn ->
-    let* env = EM.read in
-    let+ () = EM.emit ~lvl:`Error (RefineEnv.location env) PpExn.pp exn in
+    let* env = RM.read in
+    let+ () = RM.emit ~lvl:`Error (RefineEnv.location env) PpExn.pp exn in
     Error ()
 
 let rec execute_signature ~status sign =
-  let open Monad.Notation (EM) in
+  let open Monad.Notation (RM) in
   match sign with
-  | [] -> EM.ret status
+  | [] -> RM.ret status
   | d :: sign ->
     let* res = protect @@ execute_decl d in
     match res with
     | Ok `Continue ->
       execute_signature ~status sign
     | Ok `Quit ->
-      EM.ret @@ Ok ()
+      RM.ret @@ Ok ()
     | Error () ->
-      EM.ret @@ Error ()
+      RM.ret @@ Error ()
 
 let process_sign : CS.signature -> (unit, unit) result =
   fun sign ->
-  EM.run_exn RefineState.init Env.init @@
+  RM.run_exn RefineState.init Env.init @@
   execute_signature ~status:(Ok ()) sign
 
 let process_file input =
@@ -108,20 +108,20 @@ let process_file input =
     Error ()
 
 let execute_command =
-  let open Monad.Notation (EM) in
+  let open Monad.Notation (RM) in
   function
   | CS.Decl decl -> execute_decl decl
-  | CS.NoOp -> EM.ret `Continue
-  | CS.EndOfFile -> EM.ret `Quit
+  | CS.NoOp -> RM.ret `Continue
+  | CS.EndOfFile -> RM.ret `Quit
 
 let rec repl (ch : in_channel) lexbuf =
-  let open Monad.Notation (EM) in
+  let open Monad.Notation (RM) in
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError {span; last_token}) ->
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = ParseError; last_token} in
+    let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = ParseError; last_token} in
     repl ch lexbuf
   | Error (Load.LexingError {span; last_token}) ->
-    let* () = EM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = LexingError; last_token} in
+    let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = LexingError; last_token} in
     repl ch lexbuf
   | Ok cmd ->
     protect @@ execute_command cmd |>>
@@ -132,9 +132,9 @@ let rec repl (ch : in_channel) lexbuf =
       repl ch lexbuf
     | Ok `Quit ->
       close_in ch;
-      EM.ret @@ Ok ()
+      RM.ret @@ Ok ()
 
 let do_repl () =
   let ch, lexbuf = Load.prepare_repl () in
-  EM.run_exn RefineState.init Env.init @@
+  RM.run_exn RefineState.init Env.init @@
   repl ch lexbuf

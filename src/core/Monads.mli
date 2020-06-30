@@ -82,7 +82,7 @@ module QuM : sig
 end
 
 (** The elaboration monad is the "maximal" monad that can run code from any of the other monads. *)
-module ElabM : sig
+module RefineM : sig
   include Monad.MonadReaderStateResult
     with type global := St.t
     with type local := RefineEnv.t

@@ -2,7 +2,7 @@ open Core
 
 module D := Domain
 module S := Syntax
-module EM := Monads.ElabM
+module RM := Monads.RefineM
 module CS := ConcreteSyntax
 module R := Refiner
 
@@ -14,7 +14,7 @@ val elim_implicit_connectives : Syn.tac -> Syn.tac
 
 val tac_nary_quantifier : ('a, 'b) R.quantifier -> (Ident.t * 'a) list -> 'b -> 'b
 
-val match_goal : (D.tp * D.cof * D.tm_clo -> Chk.tac EM.m) -> Chk.tac
+val match_goal : (D.tp * D.cof * D.tm_clo -> Chk.tac RM.m) -> Chk.tac
 
 module Elim : sig
   type case_tac = CS.pat * Chk.tac

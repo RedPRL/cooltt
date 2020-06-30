@@ -7,9 +7,9 @@ module Qu = Quote
 module Conv = Conversion
 
 open Basis
-include Monads.ElabM
+include Monads.RefineM
 
-open Monad.Notation (Monads.ElabM)
+open Monad.Notation (Monads.RefineM)
 
 let refine_err err =
   let* env = read in

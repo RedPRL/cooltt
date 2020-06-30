@@ -6,27 +6,27 @@ module S = Syntax
 module D = Domain
 module Env = RefineEnv
 module Err = RefineError
-module EM = ElabBasics
+module RM = ElabBasics
 module R = Refiner
 module T = Tactic
 module Sem = Semantics
 
-open Monad.Notation (EM)
+open Monad.Notation (RM)
 
 let rec unfold idents k =
   match idents with
   | [] -> k
   | ident :: idents ->
-    let* res = EM.resolve ident in
+    let* res = RM.resolve ident in
     match res with
     | `Global sym ->
-      let* env = EM.read in
+      let* env = RM.read in
       let veil = Veil.unfold [sym] @@ Env.get_veil env in
-      EM.veil veil @@ unfold idents k
+      RM.veil veil @@ unfold idents k
     | _ ->
-      let* env = EM.read in
+      let* env = RM.read in
       let span = Env.location env in
-      EM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
+      RM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
 
 module CoolTp :
 sig
@@ -189,8 +189,8 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Lit n ->
       begin
         Tactics.match_goal @@ function
-        | D.TpDim, _, _ -> EM.ret @@ R.Dim.literal n
-        | _ -> EM.ret @@ R.Nat.literal n
+        | D.TpDim, _, _ -> RM.ret @@ R.Dim.literal n
+        | _ -> RM.ret @@ R.Nat.literal n
       end
 
     | CS.Lam (nm :: names, body) ->
@@ -204,13 +204,13 @@ and chk_tm : CS.con -> T.Chk.tac =
       begin
         Tactics.match_goal @@ function
         | D.Sg _, _, _ ->
-          EM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
+          RM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
         | D.ElUnstable (`V _), _, _ ->
-          EM.ret @@ R.ElV.intro (chk_tm c0) (chk_tm c1)
+          RM.ret @@ R.ElV.intro (chk_tm c0) (chk_tm c1)
         | D.ElUnstable (`HCom _), _, _ ->
-          EM.ret @@ R.ElHCom.intro (chk_tm c0) (chk_tm c1)
+          RM.ret @@ R.ElHCom.intro (chk_tm c0) (chk_tm c1)
         | tp, _, _ ->
-          EM.expected_connective `Sg tp
+          RM.expected_connective `Sg tp
       end
 
     | CS.Suc c ->
@@ -281,13 +281,13 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.match_goal @@ fun (tp, _, _) ->
       match tp with
       | D.Pi _ ->
-        let* env = EM.read in
+        let* env = RM.read in
         let lvl = RefineEnv.size env in
-        EM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
+        RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
-        EM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
+        RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
       | _ ->
-        EM.ret @@ T.Chk.syn @@ syn_tm con
+        RM.ret @@ T.Chk.syn @@ syn_tm con
 
 and syn_tm : CS.con -> T.Syn.tac =
   function con ->
@@ -356,7 +356,7 @@ and syn_tm : CS.con -> T.Syn.tac =
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
       T.Syn.rule @@
-      EM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
+      RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
 and chk_cases cases =
   List.map chk_case cases

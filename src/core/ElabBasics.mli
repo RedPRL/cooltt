@@ -4,7 +4,7 @@ module S := Syntax
 open Basis
 open Bwd
 
-include module type of Monads.ElabM
+include module type of Monads.RefineM
 
 val push_problem : string -> 'a m -> 'a m
 val problem : string bwd m

@@ -254,7 +254,7 @@ end
 
 type 'a quote = 'a QuM.m
 
-module ElabM =
+module RefineM =
 struct
   module Env = RefineEnv
   module M = Monad.MonadReaderStateResult (struct type global = St.t type local = Env.t end)
