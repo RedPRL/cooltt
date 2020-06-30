@@ -1,5 +1,4 @@
 open Basis
-module CS := ConcreteSyntax
 module S := Syntax
 module D := Domain
 module EM := ElabBasics
