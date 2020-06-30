@@ -26,7 +26,7 @@ let rec unfold idents k =
     | _ ->
       let* env = EM.read in
       let span = Env.location env in
-      EM.throw @@ Err.ElabError (Err.UnboundVariable ident, span)
+      EM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
 
 module CoolTp :
 sig
@@ -356,7 +356,7 @@ and syn_tm : CS.con -> T.Syn.tac =
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
       T.Syn.rule @@
-      EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con.node, con.info)
+      EM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
 and chk_cases cases =
   List.map chk_case cases

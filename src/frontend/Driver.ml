@@ -59,7 +59,7 @@ let execute_decl : CS.decl -> [`Continue | `Quit] EM.m =
         let+ () = EM.emit ident.info pp_message @@ (OutputMessage (Definition {ident = ident.node; tp; tm})) in
         `Continue
       | _ ->
-        EM.throw @@ Err.ElabError (Err.UnboundVariable ident.node, ident.info)
+        EM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
     end
   | CS.Quit ->
     EM.ret `Quit
@@ -70,7 +70,7 @@ let protect m =
   EM.trap m |>> function
   | Ok return ->
     EM.ret @@ Ok return
-  | Error (Err.ElabError (err, info)) ->
+  | Error (Err.RefineError (err, info)) ->
     let+ () = EM.emit ~lvl:`Error info RefineError.pp err in
     Error ()
   | Error exn ->
