@@ -11,6 +11,6 @@ type error_message =
 
 type message =
   | OutputMessage of output_message
-  | ErrorMessage of {error : error_message; last_token : string}
+  | ErrorMessage of {error : error_message; last_token : string option}
 
 val pp_message : Format.formatter -> message -> unit

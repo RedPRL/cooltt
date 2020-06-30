@@ -12,7 +12,7 @@ type error_message =
 
 type message =
   | OutputMessage of output_message
-  | ErrorMessage of {error : error_message; last_token : string}
+  | ErrorMessage of {error : error_message; last_token : string option}
 
 
 (*
@@ -26,26 +26,30 @@ last_token as it would contain nothing.
 
 let pp_message fmt =
   function
-  | ErrorMessage {error = ParseError; last_token} ->
-    if last_token = "" then
-      Format.pp_print_string fmt "Parse error"
-    else
-      Format.pp_print_string fmt ("Parse error near " ^ last_token)
-  | ErrorMessage {error = LexingError; last_token} ->
-    if last_token = "" then
-      Format.pp_print_string fmt "Lexing error"
-    else
-      Format.pp_print_string fmt ("Lexing error near " ^ last_token)
+  | ErrorMessage {error = ParseError; last_token = None} ->
+      Format.fprintf fmt "Parse error"
+
+  | ErrorMessage {error = ParseError; last_token = Some last_token} ->
+      Format.fprintf fmt "Parse error near %s" last_token
+
+  | ErrorMessage {error = LexingError; last_token = None} ->
+      Format.fprintf fmt "Lexing error"
+
+  | ErrorMessage {error = LexingError; last_token = Some last_token} ->
+      Format.fprintf fmt "Lexing error near %s" last_token
+
   | ErrorMessage {error = UnboundIdent ident; _} ->
     Format.fprintf fmt
       "@[Unbound identifier %a@]"
       Ident.pp ident
+
   | OutputMessage (NormalizedTerm {orig; nf}) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
       "@[Computed normal form of@ @[<hv>%a@] as@,@[<hv> %a@]@]"
       (Syntax.pp env) orig
       (Syntax.pp env) nf
+
   | OutputMessage (Definition {ident; tp; tm = Some tm}) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
@@ -53,6 +57,7 @@ let pp_message fmt =
       Ident.pp ident
       (Syntax.pp_tp env) tp
       (Syntax.pp env) tm
+
   | OutputMessage (Definition {ident; tp; tm = None}) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
