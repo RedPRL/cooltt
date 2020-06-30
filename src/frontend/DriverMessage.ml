@@ -36,6 +36,10 @@ let pp_message fmt =
       Format.pp_print_string fmt "Lexing error"
     else
       Format.pp_print_string fmt ("Lexing error near " ^ last_token)
+  | ErrorMessage {error = UnboundIdent ident; _} ->
+    Format.fprintf fmt
+      "@[Unbound identifier %a@]"
+      Ident.pp ident
   | OutputMessage (NormalizedTerm {orig; nf}) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
@@ -55,7 +59,3 @@ let pp_message fmt =
       "@[%a : %a@]"
       Ident.pp ident
       (Syntax.pp_tp env) tp
-  | ErrorMessage {error = UnboundIdent ident; _} ->
-    Format.fprintf fmt
-      "@[Unbound identifier %a@]"
-      Ident.pp ident
