@@ -11,3 +11,5 @@ val unresolve : symbol -> env -> string option
 type native = int
 
 val add_native : string option -> symbol -> env -> env
+
+val native_of_symbol : symbol -> env -> native option
