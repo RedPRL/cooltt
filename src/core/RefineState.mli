@@ -1,7 +1,6 @@
 open Basis
 
 module D := Domain
-module CS := ConcreteSyntax
 
 type t
 

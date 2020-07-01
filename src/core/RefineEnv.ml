@@ -1,7 +1,6 @@
 module StringMap = Map.Make (String)
 module D = Domain
 module S = Syntax
-module CS = ConcreteSyntax
 
 open Basis
 open Cubical

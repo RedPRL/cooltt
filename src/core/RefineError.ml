@@ -1,9 +1,8 @@
-module CS = ConcreteSyntax
 module D = Domain
 module S = Syntax
 open Basis
 
-include ElabErrorData.Data
+include RefineErrorData.Data
 
 module Fmt = Format
 
@@ -54,24 +53,6 @@ let pp fmt =
       "Head connective mismatch, expected %a but got %a"
       pp_connective conn
       (S.pp_tp ppenv) tp
-  | ExpectedSynthesizableTerm orig ->
-    Format.fprintf fmt
-      "@[Type annotation required for@,@[<hv> %a@]@]"
-      CS.pp_con_ orig
-  | InvalidTypeExpression cs ->
-    Fmt.fprintf fmt
-      "Invalid type expression: %a"
-      CS.pp_con cs
-  | MalformedCase ->
-    Fmt.fprintf fmt "Malformed case"
-  | CannotEliminate (ppenv, tp) ->
-    Fmt.fprintf fmt
-      "Cannot eliminate element of type %a"
-      (S.pp_tp ppenv) tp
-  | ExpectedSimpleInductive (ppenv, tp) ->
-    Fmt.fprintf fmt
-      "Expected simple inductive type but found %a"
-      (S.pp_tp ppenv) tp
   | ExpectedDimensionLiteral n ->
     Fmt.fprintf fmt
       "Expected dimension literal 0 or 1, but got %i" n
@@ -87,12 +68,12 @@ let pp fmt =
       (S.pp_tp ppenv) tp
 
 
-exception ElabError of t * LexingUtil.span option
+exception RefineError of t * LexingUtil.span option
 
 let _ =
   PpExn.install_printer @@ fun fmt ->
   function
-  | ElabError (err, _loc) ->
+  | RefineError (err, _loc) ->
     pp fmt err
   | _ ->
     raise PpExn.Unrecognized

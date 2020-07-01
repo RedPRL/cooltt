@@ -1,4 +1,5 @@
 %{
+  open Core
   open ConcreteSyntax
 
   let locate (start, stop) node =

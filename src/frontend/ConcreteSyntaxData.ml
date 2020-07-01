@@ -1,4 +1,5 @@
 open Basis
+open Core
 
 type info = LexingUtil.span option
 
