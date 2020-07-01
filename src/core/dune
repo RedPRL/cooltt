@@ -1,6 +1,6 @@
 (library
  (name Core)
- (libraries cooltt.basis cooltt.cubical)
+ (libraries yuujinchou cooltt.basis cooltt.cubical)
  (preprocess
   (pps ppx_deriving.std))
  (flags

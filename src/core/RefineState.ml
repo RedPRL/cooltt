@@ -1,14 +1,13 @@
 open Basis
 
 module D = Domain
-module StringMap = Map.Make (String)
 
 type t =
-  {resolver : Symbol.t StringMap.t;
+  {resolver : Resolver.env;
    globals : (D.tp * D.con option) SymbolMap.t}
 
 let init =
-  {resolver = StringMap.empty;
+  {resolver = Resolver.empty;
    globals = SymbolMap.empty}
 
 let add_global (ident : Ident.t) tp ocon st =
@@ -23,7 +22,8 @@ let add_global (ident : Ident.t) tp ocon st =
   {resolver =
      begin
        match ident with
-       | `User ident -> StringMap.add ident sym st.resolver
+       | `User ident ->
+         Resolver.import ~import:(Resolver.singleton [ident] sym) st.resolver
        | _ -> st.resolver
      end;
    globals = SymbolMap.add sym (tp, ocon) st.globals}
@@ -36,7 +36,7 @@ let add_flex_global tp st =
 
 let resolve_global ident st =
   match ident with
-  | `User id -> StringMap.find_opt id st.resolver
+  | `User id -> Resolver.find_opt [id] st.resolver
   | _ -> None
 
 let get_global sym st =
