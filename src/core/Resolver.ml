@@ -9,6 +9,7 @@ end
 
 module SymMap = Map.Make (Symbol)
 module PathMap = Map.Make (PathOrd)
+module PathSet = Set.Make (PathOrd)
 
 type pattern = unit Y.Pattern.pattern
 type path = Y.Pattern.path
@@ -25,13 +26,13 @@ sig
   val merge : env -> env -> env
 
   val resolve : path -> env -> symbol option
-  val unresolve : symbol -> env -> path list
+  val unresolve : symbol -> env -> PathSet.t
   val fold : (path -> symbol -> 'b -> 'b) -> env -> 'b -> 'b
 end =
 struct
   type env =
     {symbols : symbol PathMap.t;
-     paths : path list SymMap.t}
+     paths : PathSet.t SymMap.t}
 
   let empty =
     {symbols = PathMap.empty;
@@ -39,17 +40,17 @@ struct
 
   let singleton path sym =
     {symbols = PathMap.singleton path sym;
-     paths = SymMap.singleton sym [path]}
+     paths = SymMap.singleton sym @@ PathSet.singleton path}
 
   let merge env env' =
     {symbols = PathMap.union (fun _ _ -> Option.some) env.symbols env'.symbols;
-     paths = SymMap.union (fun _ ps ps' -> Option.some @@ ps @ ps') env.paths env'.paths}
+     paths = SymMap.union (fun _ ps ps' -> Option.some @@ PathSet.union ps ps') env.paths env'.paths}
 
   let resolve path env =
     PathMap.find_opt path env.symbols
 
   let unresolve sym env =
-    Option.value ~default:[] @@
+    Option.value ~default:PathSet.empty @@
     SymMap.find_opt sym env.paths
 
   let fold alg env = PathMap.fold alg env.symbols
