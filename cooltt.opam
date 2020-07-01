@@ -16,6 +16,5 @@ depends: [
   "menhir" {>= "20180703"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
-  "yuujinchou" {>= "0.9"}
 ]
 build: [["dune" "build" "-p" name "-j" jobs]]
