@@ -58,9 +58,7 @@ def contr-prop (A : type) (A/contr : is-contr A) : is-prop A =
 
 def prop-set (A : type) (A/prop : is-prop A) : is-set A =
   a b p q i j => hcom A 0 1 {∂ i ∨ ∂ j} {k _ =>
-    [ k=0 ∨ j=0 => A/prop a {p j} k
-    | j=1 => A/prop a {p j} k
-    | i=0 => A/prop a {p j} k
+    [ k=0 ∨ ∂ j ∨ i=0 => A/prop a {p j} k
     | i=1 => A/prop a {q j} k
     ]
   }
@@ -90,7 +88,7 @@ def path-hlevel : (l : nat) (A : type) (A/level : has-hlevel {suc l} A) (a : A) 
   | suc l => A A/lvl a a' => A/lvl a a'
   ]
 
-def path/based/contr (A : type) (a : A) : is-contr {(x : A) × path A a x} =
+def path-based-contr (A : type) (a : A) : is-contr {(x : A) × path A a x} =
   [ [a, i => a]
   , x i =>
     let aux : 𝕀 → A = j =>
