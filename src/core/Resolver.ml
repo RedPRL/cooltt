@@ -14,6 +14,9 @@ type pattern = unit Y.Pattern.pattern
 type path = Y.Pattern.path
 type symbol = Symbol.t
 
+exception InconsistentMapping of path * symbol * symbol
+
+
 module Env :
 sig
   type env
@@ -22,13 +25,13 @@ sig
   val merge : env -> env -> env
 
   val resolve : path -> env -> symbol option
-  val unresolve : symbol -> env -> path option
+  val unresolve : symbol -> env -> path list
   val fold : (path -> symbol -> 'b -> 'b) -> env -> 'b -> 'b
 end =
 struct
   type env =
     {symbols : symbol PathMap.t;
-     paths : path SymMap.t}
+     paths : path list SymMap.t}
 
   let empty =
     {symbols = PathMap.empty;
@@ -36,14 +39,19 @@ struct
 
   let singleton path sym =
     {symbols = PathMap.singleton path sym;
-     paths = SymMap.singleton sym path}
+     paths = SymMap.singleton sym [path]}
 
   let merge env env' =
-    {symbols = PathMap.merge (fun _ _ s -> s) env.symbols env'.symbols;
-     paths = SymMap.merge (fun _ _ p -> p) env.paths env'.paths}
+    {symbols = PathMap.union (fun _ _ -> Option.some) env.symbols env'.symbols;
+     paths = SymMap.union (fun _ ps ps' -> Option.some @@ ps @ ps') env.paths env'.paths}
 
-  let resolve path env = PathMap.find_opt path env.symbols
-  let unresolve sym env = SymMap.find_opt sym env.paths
+  let resolve path env =
+    PathMap.find_opt path env.symbols
+
+  let unresolve sym env =
+    Option.value ~default:[] @@
+    SymMap.find_opt sym env.paths
+
   let fold alg env = PathMap.fold alg env.symbols
 end
 
@@ -58,7 +66,7 @@ let remap_symbol : pattern -> path -> symbol -> env -> env =
         match resolve path env with
         | None -> merge env @@ singleton path sym
         | Some sym' when sym <> sym' ->
-          failwith "Inconsistent data assigned to the same path"
+          raise @@ InconsistentMapping (path, sym, sym')
         | _ -> env
       in
       List.fold_right alg results env
