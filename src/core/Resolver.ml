@@ -1,96 +1,77 @@
 open Basis
-module Y = Yuujinchou
-
-module PathOrd : Map.OrderedType with type t = Y.Pattern.path =
-struct
-  type t = Y.Pattern.path
-  let compare = compare
-end
-
 module SymMap = Map.Make (Symbol)
-module PathMap = Map.Make (PathOrd)
-module PathSet = Set.Make (PathOrd)
+module IntMap = Map.Make (Int)
+module StringMap = Map.Make (String)
 
-module Attr : sig
-  type t
-  val default : t
-  val join : t -> t -> t
-  val meet : t -> t -> t
-end =
-struct
-  type t = unit
-  let default = ()
-  let join _ _ = ()
-  let meet _ _ = ()
-end
-
-type attr = Attr.t
-type pattern = attr Y.Pattern.pattern
-type path = Y.Pattern.path
 type symbol = Symbol.t
-
-exception InconsistentMapping of path * symbol * symbol
-
 
 module Env :
 sig
   type env
   val empty : env
-  val singleton : path -> symbol -> attr -> env
-  val merge : env -> env -> env
 
-  val resolve : path -> env -> (symbol * attr) option
-  val unresolve : symbol -> env -> PathSet.t
-  val fold : (path -> symbol * attr -> 'b -> 'b) -> env -> 'b -> 'b
+  val add_native : string option -> symbol -> env -> env
+
+  val resolve : string -> env -> symbol option
+  val unresolve : symbol -> env -> string option
 end =
 struct
   type env =
-    {symbols : (symbol * attr) PathMap.t;
-     paths : PathSet.t SymMap.t}
+    {info_of_string : [`Native of int] StringMap.t;
+     string_of_native : string IntMap.t;
+     info_of_native : symbol IntMap.t;
+     native_of_sym : int SymMap.t}
 
   let empty =
-    {symbols = PathMap.empty;
-     paths = SymMap.empty}
+    {info_of_string = StringMap.empty;
+     string_of_native = IntMap.empty;
+     info_of_native = IntMap.empty;
+     native_of_sym = SymMap.empty}
 
-  let singleton path sym attr =
-    {symbols = PathMap.singleton path (sym, attr);
-     paths = SymMap.singleton sym @@ PathSet.singleton path}
+  let native_of_sym sym env : int option =
+    SymMap.find_opt sym env.native_of_sym
 
-  let merge env env' =
-    {symbols = PathMap.union (fun _ _ -> Option.some) env.symbols env'.symbols;
-     paths = SymMap.union (fun _ ps ps' -> Option.some @@ PathSet.union ps ps') env.paths env'.paths}
+  let add_native (str : string option) (sym : symbol) (env : env) : env =
+    let native, info_of_native, native_of_sym =
+      match native_of_sym sym env with
+      | Some native ->
+        native, env.info_of_native, env.native_of_sym
+      | None ->
+        let native = IntMap.cardinal env.info_of_native in
+        native,
+        IntMap.add native sym env.info_of_native,
+        SymMap.add sym native env.native_of_sym
+    in
 
-  let resolve path env =
-    PathMap.find_opt path env.symbols
+    let info_of_string, string_of_native =
+      match str with
+      | None -> env.info_of_string, env.string_of_native
+      | Some str ->
+        match StringMap.find_opt str env.info_of_string with
+        | None ->
+          StringMap.add str (`Native native) env.info_of_string,
+          IntMap.add native str env.string_of_native
+        | Some (`Native old_native) when old_native = native ->
+          env.info_of_string, env.string_of_native
+        | Some (`Native old_native) ->
+          StringMap.add str (`Native native) env.info_of_string,
+          IntMap.add native str @@ IntMap.remove old_native env.string_of_native
+    in
+
+    {info_of_native; native_of_sym; info_of_string; string_of_native}
+
+  let resolve str env =
+    match StringMap.find_opt str env.info_of_string with
+    | Some (`Native native) ->
+      IntMap.find_opt native env.info_of_native
+    | None -> None
 
   let unresolve sym env =
-    Option.value ~default:PathSet.empty @@
-    SymMap.find_opt sym env.paths
+    match SymMap.find_opt sym env.native_of_sym with
+    | Some native ->
+      IntMap.find_opt native env.string_of_native
+    | None -> None
 
-  let fold alg env = PathMap.fold alg env.symbols
 end
 
 include Env
-
-let remap_symbol : pattern -> path -> symbol * attr -> env -> env =
-  fun pattern path (sym, attr) env ->
-    match Result.get_ok @@ Y.Action.run ~default:Attr.default ~join:Attr.join ~meet:Attr.meet pattern path with
-    | `NoMatch -> env
-    | `Matched results ->
-      let alg (path, attr') env =
-        match resolve path env with
-        | None -> merge env @@ singleton path sym @@ Attr.join attr attr'
-        | Some (sym', _) when sym <> sym' ->
-          raise @@ InconsistentMapping (path, sym, sym')
-        | _ -> env
-      in
-      List.fold_right alg results env
-
-let remap : pattern -> env -> env =
-  fun pattern env ->
-  fold (remap_symbol pattern) env empty
-
-let import : ?pattern:pattern -> import:env -> env -> env =
-  fun ?(pattern = Y.Pattern.any) ~import env ->
-  merge env @@ remap pattern import
-
