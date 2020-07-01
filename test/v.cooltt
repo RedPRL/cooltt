@@ -4,7 +4,7 @@ def v-test (r : 𝕀) (A : type) : type =
     , x =>
       [ [x, _ => x]
       , p i =>
-        let aux = hfill A 1 {∂ i} {k _ => [ k=1 => x | i=1 => {snd p} k | i=0 => x ] } in
+        let aux = hfill A 1 {∂ i} {k _ => [ k=1 => x | i=1 => snd p k | i=0 => x ] } in
         [aux 0, aux]
       ]
     ]
