@@ -1,30 +1,32 @@
+open Core
+open Basis
+
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
-module Env = ElabEnv
-module Err = ElabError
-module EM = ElabBasics
+module Env = RefineEnv
+module Err = RefineError
+module RM = RefineMonad
 module R = Refiner
 module T = Tactic
 module Sem = Semantics
 
-open Basis
-open Monad.Notation (EM)
+open Monad.Notation (RM)
 
 let rec unfold idents k =
   match idents with
   | [] -> k
   | ident :: idents ->
-    let* res = EM.resolve ident in
+    let* res = RM.resolve ident in
     match res with
     | `Global sym ->
-      let* env = EM.read in
+      let* env = RM.read in
       let veil = Veil.unfold [sym] @@ Env.get_veil env in
-      EM.veil veil @@ unfold idents k
+      RM.veil veil @@ unfold idents k
     | _ ->
-      let* env = EM.read in
+      let* env = RM.read in
       let span = Env.location env in
-      EM.throw @@ Err.ElabError (Err.UnboundVariable ident, span)
+      RM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
 
 module CoolTp :
 sig
@@ -152,7 +154,7 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
     | [] -> chk_tm con
     | CS.Cell {name; tp} :: args ->
       T.Chk.update_span tp.info @@
-      R.Tactic.intro_implicit_connectives @@
+      Tactics.intro_implicit_connectives @@
       R.Pi.intro ~ident:name @@ fun _ ->
       loop args
   in
@@ -161,7 +163,7 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.update_span con.info @@
-  R.Tactic.intro_subtypes @@
+  Tactics.intro_subtypes @@
   match con.node with
   | CS.Hole name ->
     R.Hole.unleash_hole name
@@ -179,16 +181,16 @@ and chk_tm : CS.con -> T.Chk.tac =
     chk_tm body
 
   | _ ->
-    R.Tactic.intro_implicit_connectives @@
+    Tactics.intro_implicit_connectives @@
     match con.node with
     | CS.Underscore ->
       R.Prf.intro
 
     | CS.Lit n ->
       begin
-        R.Tactic.match_goal @@ function
-        | D.TpDim, _, _ -> EM.ret @@ R.Dim.literal n
-        | _ -> EM.ret @@ R.Nat.literal n
+        Tactics.match_goal @@ function
+        | D.TpDim, _, _ -> RM.ret @@ R.Dim.literal n
+        | _ -> RM.ret @@ R.Nat.literal n
       end
 
     | CS.Lam (nm :: names, body) ->
@@ -196,19 +198,19 @@ and chk_tm : CS.con -> T.Chk.tac =
       chk_tm {con with node = CS.Lam (names, body)}
 
     | CS.LamElim cases ->
-      R.Tactic.Elim.lam_elim @@ chk_cases cases
+      Tactics.Elim.lam_elim @@ chk_cases cases
 
     | CS.Pair (c0, c1) ->
       begin
-        R.Tactic.match_goal @@ function
+        Tactics.match_goal @@ function
         | D.Sg _, _, _ ->
-          EM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
+          RM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
         | D.ElUnstable (`V _), _, _ ->
-          EM.ret @@ R.ElV.intro (chk_tm c0) (chk_tm c1)
+          RM.ret @@ R.ElV.intro (chk_tm c0) (chk_tm c1)
         | D.ElUnstable (`HCom _), _, _ ->
-          EM.ret @@ R.ElHCom.intro (chk_tm c0) (chk_tm c1)
+          RM.ret @@ R.ElHCom.intro (chk_tm c0) (chk_tm c1)
         | tp, _, _ ->
-          EM.expected_connective `Sg tp
+          RM.expected_connective `Sg tp
       end
 
     | CS.Suc c ->
@@ -236,12 +238,12 @@ and chk_tm : CS.con -> T.Chk.tac =
       let tac (CS.Cell cell) = cell.name, chk_tm cell.tp in
       let tacs = cells |> List.map tac in
       let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
-      R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+      Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Sg (cells, body) ->
       let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
-      R.Tactic.tac_nary_quantifier quant tacs @@ chk_tm body
+      Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
@@ -276,21 +278,21 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Univ.ext n tac_fam tac_cof tac_bdry
 
     | _ ->
-      R.Tactic.match_goal @@ fun (tp, _, _) ->
+      Tactics.match_goal @@ fun (tp, _, _) ->
       match tp with
       | D.Pi _ ->
-        let* env = EM.read in
-        let lvl = ElabEnv.size env in
-        EM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
+        let* env = RM.read in
+        let lvl = RefineEnv.size env in
+        RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
-        EM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
+        RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
       | _ ->
-        EM.ret @@ T.Chk.syn @@ syn_tm con
+        RM.ret @@ T.Chk.syn @@ syn_tm con
 
 and syn_tm : CS.con -> T.Syn.tac =
   function con ->
     T.Syn.update_span con.info @@
-    R.Tactic.elim_implicit_connectives @@
+    Tactics.elim_implicit_connectives @@
     match con.node with
     | CS.Hole name ->
       R.Hole.unleash_syn_hole name
@@ -303,9 +305,9 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Ap (t, ts) ->
       let rec go acc ts =
         match ts with
-        | [] -> R.Tactic.elim_implicit_connectives acc
+        | [] -> Tactics.elim_implicit_connectives acc
         | t :: ts ->
-          let tac = R.Pi.apply (R.Tactic.elim_implicit_connectives acc) t in
+          let tac = R.Pi.apply (Tactics.elim_implicit_connectives acc) t in
           go tac ts
       in
       go (syn_tm t) @@ List.map chk_tm ts
@@ -318,14 +320,14 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Cap t ->
       R.ElHCom.elim @@ syn_tm t
     | CS.Elim {mot; cases; scrut} ->
-      R.Tactic.Elim.elim
+      Tactics.Elim.elim
         (chk_tm mot)
         (chk_cases cases)
         (syn_tm scrut)
     | CS.Rec {mot; cases; scrut} ->
       let mot_tac = chk_tm mot in
       R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
-      R.Tactic.Elim.elim
+      Tactics.Elim.elim
         (R.Pi.intro @@ fun _ -> T.Chk.syn @@ R.Sub.elim @@ T.Var.syn tp)
         (chk_cases cases)
         (syn_tm scrut)
@@ -343,9 +345,9 @@ and syn_tm : CS.con -> T.Syn.tac =
       let code_tac = chk_tm code in
       let tac =
         R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
-        R.Tactic.intro_implicit_connectives @@
+        Tactics.intro_implicit_connectives @@
         T.Chk.syn @@
-        R.Tactic.elim_implicit_connectives @@
+        Tactics.elim_implicit_connectives @@
         R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
       in
       T.Syn.ann tac @@
@@ -354,7 +356,7 @@ and syn_tm : CS.con -> T.Syn.tac =
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->
       T.Syn.rule @@
-      EM.throw @@ Err.ElabError (Err.ExpectedSynthesizableTerm con.node, con.info)
+      RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
 and chk_cases cases =
   List.map chk_case cases

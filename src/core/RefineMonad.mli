@@ -1,16 +1,15 @@
-module CS := ConcreteSyntax
 module D := Domain
 module S := Syntax
 
 open Basis
 open Bwd
 
-include module type of Monads.ElabM
+include module type of Monads.RefineM
 
 val push_problem : string -> 'a m -> 'a m
 val problem : string bwd m
 
-val elab_err : ElabError.t -> 'a m
+val refine_err : RefineError.t -> 'a m
 
 val update_span : LexingUtil.span option -> 'a m -> 'a m
 val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
@@ -33,4 +32,4 @@ val equate : D.tp -> D.con -> D.con -> unit m
 
 val with_pp : (Pp.env -> 'a m) -> 'a m
 
-val expected_connective : ElabError.connective -> D.tp -> 'a m
+val expected_connective : RefineError.connective -> D.tp -> 'a m

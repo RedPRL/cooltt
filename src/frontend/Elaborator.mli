@@ -1,6 +1,7 @@
+open Core
 module CS := ConcreteSyntax
 module S := Syntax
-module EM := Monads.ElabM
+module RM := Monads.RefineM
 module D := Domain
 
 open Tactic

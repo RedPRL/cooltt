@@ -1,4 +1,4 @@
-open Core
+open Frontend
 open Cmdliner
 
 let _ =
