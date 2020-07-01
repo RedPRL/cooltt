@@ -27,11 +27,9 @@ val problem : t -> string bwd
 val location : t -> LexingUtil.span option
 val set_location : LexingUtil.span option -> t -> t
 
-
 val append_con : Ident.t -> D.con -> D.tp -> t -> t
 
 val set_veil : Veil.t -> t -> t
-
 
 val resolve_local : Ident.t -> t -> int option
 val get_local_tp : int -> t -> D.tp

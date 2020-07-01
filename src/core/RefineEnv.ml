@@ -21,8 +21,7 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t =
-  {resolver : Symbol.t StringMap.t;
-   veil : Veil.t;
+  {veil : Veil.t;
    pp : Pp.env;
    cof_thy : CofThy.Disj.t;
    locals : cell bwd;
@@ -32,8 +31,7 @@ type t =
 let locals env = env.locals
 
 let init =
-  {resolver = StringMap.empty;
-   veil = Veil.const `Translucent;
+  {veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
    cof_thy = CofThy.Disj.empty;
    locals = Emp;
