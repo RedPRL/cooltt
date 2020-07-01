@@ -11,7 +11,21 @@ module SymMap = Map.Make (Symbol)
 module PathMap = Map.Make (PathOrd)
 module PathSet = Set.Make (PathOrd)
 
-type pattern = unit Y.Pattern.pattern
+module Attr : sig
+  type t
+  val default : t
+  val join : t -> t -> t
+  val meet : t -> t -> t
+end =
+struct
+  type t = unit
+  let default = ()
+  let join _ _ = ()
+  let meet _ _ = ()
+end
+
+type attr = Attr.t
+type pattern = attr Y.Pattern.pattern
 type path = Y.Pattern.path
 type symbol = Symbol.t
 
@@ -22,24 +36,24 @@ module Env :
 sig
   type env
   val empty : env
-  val singleton : path -> symbol -> env
+  val singleton : path -> symbol -> attr -> env
   val merge : env -> env -> env
 
-  val resolve : path -> env -> symbol option
+  val resolve : path -> env -> (symbol * attr) option
   val unresolve : symbol -> env -> PathSet.t
-  val fold : (path -> symbol -> 'b -> 'b) -> env -> 'b -> 'b
+  val fold : (path -> symbol * attr -> 'b -> 'b) -> env -> 'b -> 'b
 end =
 struct
   type env =
-    {symbols : symbol PathMap.t;
+    {symbols : (symbol * attr) PathMap.t;
      paths : PathSet.t SymMap.t}
 
   let empty =
     {symbols = PathMap.empty;
      paths = SymMap.empty}
 
-  let singleton path sym =
-    {symbols = PathMap.singleton path sym;
+  let singleton path sym attr =
+    {symbols = PathMap.singleton path (sym, attr);
      paths = SymMap.singleton sym @@ PathSet.singleton path}
 
   let merge env env' =
@@ -58,15 +72,15 @@ end
 
 include Env
 
-let remap_symbol : pattern -> path -> symbol -> env -> env =
-  fun pattern path sym env ->
-    match Result.get_ok @@ Y.Action.run_ pattern path with
+let remap_symbol : pattern -> path -> symbol * attr -> env -> env =
+  fun pattern path (sym, attr) env ->
+    match Result.get_ok @@ Y.Action.run ~default:Attr.default ~join:Attr.join ~meet:Attr.meet pattern path with
     | `NoMatch -> env
     | `Matched results ->
-      let alg (path, ()) env =
+      let alg (path, attr') env =
         match resolve path env with
-        | None -> merge env @@ singleton path sym
-        | Some sym' when sym <> sym' ->
+        | None -> merge env @@ singleton path sym @@ Attr.join attr attr'
+        | Some (sym', _) when sym <> sym' ->
           raise @@ InconsistentMapping (path, sym, sym')
         | _ -> env
       in

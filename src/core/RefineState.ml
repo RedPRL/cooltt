@@ -23,7 +23,7 @@ let add_global (ident : Ident.t) tp ocon st =
      begin
        match ident with
        | `User ident ->
-         Resolver.import ~import:(Resolver.singleton [ident] sym) st.resolver
+         Resolver.import ~import:(Resolver.singleton [ident] sym Resolver.Attr.default) st.resolver
        | _ -> st.resolver
      end;
    globals = SymbolMap.add sym (tp, ocon) st.globals}
@@ -36,7 +36,7 @@ let add_flex_global tp st =
 
 let resolve_global ident st =
   match ident with
-  | `User id -> Resolver.resolve [id] st.resolver
+  | `User id -> Option.map fst @@ Resolver.resolve [id] st.resolver
   | _ -> None
 
 let get_global sym st =
