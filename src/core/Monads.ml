@@ -199,10 +199,6 @@ struct
   module MU = Monad.Util (M)
   open Monad.Notation (M)
 
-  let read_global =
-    let+ {state; _} = M.read in
-    state
-
   let read_local =
     let+ {size; _} = M.read in
     size

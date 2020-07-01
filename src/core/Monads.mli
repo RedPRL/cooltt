@@ -69,7 +69,6 @@ module QuM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
-  val read_global : RefineState.t m
   val read_local : int m
   val read_veil : Veil.t m
 
