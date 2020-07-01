@@ -54,4 +54,4 @@ def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : p
   trans/filler A p q 1
 
 def contr-prop (A : type) (A/contr : is-contr A) : is-prop A =
-  a a' => trans A {symm A {snd A/contr a}} {snd A/contr a'}
+  a a' => trans A {symm A {{snd A/contr} a}} {{snd A/contr} a'}

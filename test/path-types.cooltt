@@ -39,8 +39,8 @@ def pairext : {
   → path {(x : A) × B} p q
 } = {
   A B p q h i =>
-  [ fst h i
-  , snd h i
+  [ {fst h} i
+  , {snd h} i
   ]
 }
 

@@ -28,8 +28,8 @@ def pairext : {
   → (i : 𝕀) → sub {(x : A) × B} {∂ i} [i=0 => p | i=1 => q]
 } = {
   A B p q h i =>
-  [ fst h i
-  , snd h i
+  [ {fst h} i
+  , {snd h} i
   ]
 }
 
