@@ -25,7 +25,6 @@ type t =
    pp : Pp.env;
    cof_thy : CofThy.Disj.t;
    locals : cell bwd;
-   problem : string bwd;
    location : LexingUtil.span option}
 
 let locals env = env.locals
@@ -35,7 +34,6 @@ let init =
    pp = Pp.Env.emp;
    cof_thy = CofThy.Disj.empty;
    locals = Emp;
-   problem = Emp;
    location = None}
 
 let location env = env.location
@@ -102,8 +100,3 @@ let cof_thy env = env.cof_thy
 let get_veil env = env.veil
 let set_veil v env = {env with veil = v}
 
-let problem env = env.problem
-
-let push_problem lbl env =
-  {env with
-   problem = env.problem #< lbl}

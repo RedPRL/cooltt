@@ -13,18 +13,11 @@ module Qu = Quote
 
 module RM = RefineMonad
 
-let elaborate_typed_term name (args : CS.cell list) tp tm =
+let elaborate_typed_term (args : CS.cell list) tp tm =
   let open Monad.Notation (RM) in
-  RM.push_problem name @@
-  let* tp =
-    RM.push_problem "tp" @@
-    Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
-  in
+  let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-  let* tm =
-    RM.push_problem "tm" @@
-    Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp
-  in
+  let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
   tp, vtp, tm, vtm
 
@@ -32,7 +25,7 @@ let execute_decl : CS.decl -> [`Continue | `Quit] RM.m =
   let open Monad.Notation (RM) in
   function
   | CS.Def {name; args; def; tp} ->
-    let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
+    let* _tp, vtp, _tm, vtm = elaborate_typed_term args tp def in
     let+ _sym = RM.add_global name vtp @@ Some vtm in
     `Continue
   | CS.NormalizeTerm term ->

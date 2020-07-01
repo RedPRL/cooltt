@@ -909,7 +909,6 @@ struct
 
   let elim (tac_mot : T.Chk.tac) (tac_case_zero : T.Chk.tac) (tac_case_suc : T.Chk.tac) (tac_scrut : T.Syn.tac) : T.Syn.tac =
     T.Syn.rule @@
-    RM.push_problem "elim" @@
     let* tscrut, nattp = T.Syn.run tac_scrut in
     let* () = assert_nat nattp in let* tmot =
       T.Chk.run tac_mot @<<
@@ -970,7 +969,6 @@ struct
 
   let elim (tac_mot : T.Chk.tac) (tac_case_base : T.Chk.tac) (tac_case_loop : T.Chk.tac) (tac_scrut : T.Syn.tac) : T.Syn.tac =
     T.Syn.rule @@
-    RM.push_problem "elim" @@
     let* tscrut, circletp = T.Syn.run tac_scrut in
     let* () = assert_circle circletp in
     let* tmot =
