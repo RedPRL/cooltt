@@ -42,7 +42,7 @@
 
 %nonassoc IN RRIGHT_ARROW
 %nonassoc COLON
-%nonassoc FST SND VPROJ CAP SUC LOOP RIGHT_ARROW TIMES
+%nonassoc SUC LOOP RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -181,6 +181,16 @@ plain_atomic_term:
   | t = plain_atomic_term_except_name
     { t }
 
+plain_projection:
+  | FST; t = atomic_term
+    { Fst t }
+  | SND; t = atomic_term
+    { Snd t }
+  | VPROJ; t = atomic_term
+    { VProj t }
+  | CAP; t = atomic_term
+    { Cap t }
+
 plain_spine:
   | spine = nonempty_list(name); arg = atomic_term_except_name; args = list(atomic_term)
     { Ap (name_to_term (List.hd spine), List.map name_to_term (List.tl spine) @ [arg] @ args) }
@@ -188,6 +198,10 @@ plain_spine:
     { Ap (f, args) }
   | f = name; args = nonempty_list(name)
     { Ap (name_to_term f, List.map name_to_term args) }
+  | p = located (plain_projection); args = nonempty_list(atomic_term)
+    { Ap (p, args) }
+  | p = plain_projection
+    { p }
   | t = plain_atomic_term
     { t }
 
@@ -236,16 +250,8 @@ plain_term_except_cof_case:
     { Sg ([Cell {name = `Anon; tp = dom}], cod) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
-  | FST; t = term
-    { Fst t }
-  | SND; t = term
-    { Snd t }
   | V; r = atomic_term; a = atomic_term; b = atomic_term; e = atomic_term
     { V (r, a, b, e) }
-  | VPROJ; t = term
-    { VProj t }
-  | CAP; t = term
-    { Cap t }
 
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }
