@@ -22,7 +22,7 @@ let add_global (ident : Ident.t) tp ocon st =
   {resolver =
      begin
        match ident with
-       | `User ident -> Resolver.add_native (Some ident) sym st.resolver
+       | `User ident -> Resolver.add_native ~attr:`Public (Some ident) sym st.resolver
        | _ -> st.resolver
      end;
    globals = SymbolMap.add sym (tp, ocon) st.globals}

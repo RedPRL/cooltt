@@ -6,10 +6,13 @@ module StringMap = Map.Make (String)
 type symbol = Symbol.t
 type native = int
 
+type attr = [`Public | `Private]
+type info = {symbol : symbol; attr : attr}
+
 type env =
   {info_of_string : [`Native of native] StringMap.t;
    string_of_native : string NativeMap.t;
-   info_of_native : symbol NativeMap.t;
+   info_of_native : info NativeMap.t;
    native_of_sym : native SymMap.t}
 
 let empty =
@@ -21,7 +24,7 @@ let empty =
 let native_of_sym sym env : native option =
   SymMap.find_opt sym env.native_of_sym
 
-let add_native (str : string option) (sym : symbol) (env : env) : env =
+let add_native ~attr (str : string option) (sym : symbol) (env : env) : env =
   let native, info_of_native, native_of_sym =
     match native_of_sym sym env with
     | Some native ->
@@ -29,7 +32,7 @@ let add_native (str : string option) (sym : symbol) (env : env) : env =
     | None ->
       let native = NativeMap.cardinal env.info_of_native in
       native,
-      NativeMap.add native sym env.info_of_native,
+      NativeMap.add native {symbol = sym; attr = attr} env.info_of_native,
       SymMap.add sym native env.native_of_sym
   in
 
@@ -50,14 +53,20 @@ let add_native (str : string option) (sym : symbol) (env : env) : env =
 
   {info_of_native; native_of_sym; info_of_string; string_of_native}
 
+let native_of_symbol sym env =
+  SymMap.find_opt sym env.native_of_sym
+
+let symbol_of_native native env : symbol option =
+  NativeMap.find_opt native env.info_of_native |> Option.map @@ fun info ->
+  info.symbol
+
 let resolve str env =
   match StringMap.find_opt str env.info_of_string with
   | Some (`Native native) ->
-    NativeMap.find_opt native env.info_of_native
+    symbol_of_native native env
   | None -> None
 
-let native_of_symbol sym env =
-  SymMap.find_opt sym env.native_of_sym
+
 
 let unresolve sym env =
   match native_of_symbol sym env with
