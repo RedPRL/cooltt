@@ -36,7 +36,7 @@ let add_flex_global tp st =
 
 let resolve_global ident st =
   match ident with
-  | `User id -> Resolver.find_opt [id] st.resolver
+  | `User id -> Resolver.resolve [id] st.resolver
   | _ -> None
 
 let get_global sym st =
