@@ -27,12 +27,6 @@ let add_global (ident : Ident.t) tp ocon st =
      end;
    globals = SymbolMap.add sym (tp, ocon) st.globals}
 
-let add_flex_global tp st =
-  let sym = Symbol.fresh () in
-  sym,
-  {st with
-   globals = SymbolMap.add sym (tp, None) st.globals}
-
 let resolve_global ident st =
   match ident with
   | `User id -> Resolver.resolve id st.resolver
