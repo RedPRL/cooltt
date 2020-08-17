@@ -39,7 +39,7 @@ and con_ =
   | Fst of con
   | Snd of con
   | Type
-  | Hole of string option
+  | Hole of string option * con option
   | Underscore
   | Unfold of Ident.t list * con
   | Generalize of Ident.t * con

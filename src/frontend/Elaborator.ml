@@ -165,7 +165,8 @@ and chk_tm : CS.con -> T.Chk.tac =
   T.Chk.update_span con.info @@
   Tactics.intro_subtypes @@
   match con.node with
-  | CS.Hole name ->
+  | CS.Hole (name,_) ->
+    failwith "todo";
     R.Hole.unleash_hole name
 
   | CS.Unfold (idents, c) ->
@@ -294,7 +295,8 @@ and syn_tm : CS.con -> T.Syn.tac =
     T.Syn.update_span con.info @@
     Tactics.elim_implicit_connectives @@
     match con.node with
-    | CS.Hole name ->
+    | CS.Hole (name,_) ->
+      failwith "todo";
       R.Hole.unleash_syn_hole name
     | CS.Var id ->
       R.Structural.lookup_var id

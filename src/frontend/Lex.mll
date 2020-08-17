@@ -114,6 +114,8 @@ rule token = parse
     { PIPE }
   | ','
     { COMMA }
+  | ";"
+    { SEMI }
   | '*'
     { TIMES }
   | "×"
