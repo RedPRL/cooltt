@@ -490,12 +490,12 @@ and pp_lambdas env fmt tm =
 let pp_sequent_goal env fmt tp  =
   match tp with
   | GoalTp (olbl, Sub (tp, Cof (Cof.Join []), _)) ->
-    let lbl = match olbl with Some lbl -> lbl | None -> "" in
+    let lbl = Option.value ~default:"" olbl in
     Format.fprintf fmt "?%a : @[<hov>%a@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp
   | GoalTp (olbl, Sub (tp, phi, tm)) ->
-    let lbl = match olbl with Some lbl -> lbl | None -> "" in
+    let lbl = Option.value ~default:"" olbl in
     let _x, envx = Pp.Env.bind env (Some "_") in
     Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
       Uuseg_string.pp_utf_8 lbl
