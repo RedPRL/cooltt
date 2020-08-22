@@ -32,7 +32,6 @@ val do_sub_out : D.con -> D.con compute
 val do_el_out : D.con -> D.con compute
 val unfold_el : D.con D.stable_code -> D.tp compute
 val do_el : D.con -> D.tp compute
-val do_goal_proj : D.con -> D.con compute
 val do_spine : D.con -> D.frm list -> D.con compute
 
 val con_to_dim : D.con -> D.dim compute

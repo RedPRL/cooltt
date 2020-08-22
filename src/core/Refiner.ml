@@ -20,10 +20,21 @@ open Bwd
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 module GlobalUtil : sig
+  val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
   val multi_pi : Env.cell list -> S.tp m -> S.tp m
   val multi_ap : Env.cell bwd -> D.cut -> D.cut
 end =
 struct
+  let rec destruct_cells =
+    function
+    | [] -> RM.ret []
+    | cell :: cells ->
+      let ctp, _ = Env.Cell.contents cell in
+      let ident = Env.Cell.ident cell in
+      let+ base = RM.quote_tp ctp
+      and+ rest = RM.abstract ident ctp @@ fun _ -> destruct_cells cells in
+      (ident, base) :: rest
+
   let rec multi_pi (cells : Env.cell list) (finally : S.tp m) : S.tp m =
     match cells with
     | [] -> finally
@@ -44,6 +55,8 @@ end
 
 
 module Hole : sig
+  val run_chk_and_print_state : string option -> T.Chk.tac -> T.Chk.tac
+  val run_syn_and_print_state : string option -> T.Syn.tac -> T.Syn.tac
   val unleash_hole : string option -> T.Chk.tac
   val unleash_tp_hole : string option -> T.Tp.tac
   val unleash_syn_hole : string option -> T.Syn.tac
@@ -58,6 +71,33 @@ struct
       RM.refine_err @@ Err.HoleNotPermitted (ppenv, ttp)
     | _ -> RM.ret ()
 
+  let print_state lbl tp : unit m =
+    let* env = RM.read in
+    let cells = Env.locals env in
+
+    RM.globally @@
+    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+    () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
+    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
+
+  let run_chk_and_print_state name tac =
+    T.Chk.brule @@ fun (tp, phi, clo) ->
+    let* s = T.Chk.brun tac (tp, phi, clo) in
+    let+ () =
+      let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
+      print_state name stp
+    in
+    s
+
+  let run_syn_and_print_state name tac =
+    T.Syn.rule @@
+    let* s, tp = T.Syn.run tac in
+    let+ () =
+      let* stp = RM.quote_tp tp in
+      print_state name stp
+    in
+    s, tp
+
   let make_hole name (tp, phi, clo) : D.cut m =
     let* () = assert_hole_possible tp in
     let* env = RM.read in
@@ -65,11 +105,7 @@ struct
 
     RM.globally @@
     let* sym =
-      let* tp = GlobalUtil.multi_pi (Bwd.to_list cells) @@ RM.quote_tp @@ D.GoalTp (name, D.Sub (tp, phi, clo)) in
-      let* () =
-        () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
-        Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." S.pp_sequent tp
-      in
+      let* tp = GlobalUtil.multi_pi (Bwd.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
       let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
@@ -80,8 +116,7 @@ struct
     in
 
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
-    RM.ret (D.UnstableCut (D.push KGoalProj cut, D.KSubOut (phi, clo)), [])
-
+    RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
   let unleash_hole name : T.Chk.tac =
     T.Chk.brule @@ fun (tp, phi, clo) ->
@@ -99,15 +134,6 @@ struct
     let tp = D.ElCut cut in
     let+ tm = tp |> T.Chk.run @@ unleash_hole name in
     tm, tp
-end
-
-
-module Goal =
-struct
-  let formation lbl tac =
-    T.Tp.rule @@
-    let+ tp = T.Tp.run tac in
-    S.GoalTp (lbl, tp)
 end
 
 
@@ -289,14 +315,14 @@ struct
 
       let step : State.t -> branch_tac' -> State.t m =
         fun state branch ->
-        let* bdy =
-          let psi' = Cubical.Cof.join [state.disj; psi] in
-          let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list state.fns in
-          T.abstract (D.TpPrf branch.cof) @@ fun prf ->
-          T.Chk.brun (branch.bdy prf) (tp, psi', D.un_lam psi'_fn)
-        in
-        let+ fn = RM.lift_ev @@ Sem.eval (S.Lam (`Anon, bdy)) in
-        State.append state {cof = branch.cof; tcof = branch.tcof; fn; bdy}
+          let* bdy =
+            let psi' = Cubical.Cof.join [state.disj; psi] in
+            let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list state.fns in
+            T.abstract (D.TpPrf branch.cof) @@ fun prf ->
+            T.Chk.brun (branch.bdy prf) (tp, psi', D.un_lam psi'_fn)
+          in
+          let+ fn = RM.lift_ev @@ Sem.eval (S.Lam (`Anon, bdy)) in
+          State.append state {cof = branch.cof; tcof = branch.tcof; fn; bdy}
       in
 
       let rec fold : State.t -> branch_tac' list -> S.t m =
@@ -816,32 +842,32 @@ struct
 
     T.Chk.rule @@
     fun tp ->
-      let* env = RM.read in
-      let* lvl =
-        RM.resolve ident |>>
-        function
-        | `Local ix -> RM.ret @@ RefineEnv.size env - ix - 1
-        | _ -> RM.refine_err @@ Err.UnboundVariable ident
-      in
+    let* env = RM.read in
+    let* lvl =
+      RM.resolve ident |>>
+      function
+      | `Local ix -> RM.ret @@ RefineEnv.size env - ix - 1
+      | _ -> RM.refine_err @@ Err.UnboundVariable ident
+    in
 
-      let cells = Env.locals env in
-      let cells_fwd = Bwd.to_list cells in
+    let cells = Env.locals env in
+    let cells_fwd = Bwd.to_list cells in
 
-      let* cut =
-        RM.globally @@
-        let* global_tp =
-          let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp tp in
-          RM.lift_ev @@ Sem.eval_tp tp
-        in
-        let* def =
-          let prefix = ListUtil.take lvl cells_fwd in
-          let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
-          RM.lift_ev @@ Sem.eval tm
-        in
-        let* sym = RM.add_global `Anon global_tp @@ Some def in
-        RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
+    let* cut =
+      RM.globally @@
+      let* global_tp =
+        let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp tp in
+        RM.lift_ev @@ Sem.eval_tp tp
       in
-      RM.quote_cut cut
+      let* def =
+        let prefix = ListUtil.take lvl cells_fwd in
+        let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
+        RM.lift_ev @@ Sem.eval tm
+      in
+      let* sym = RM.add_global `Anon global_tp @@ Some def in
+      RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
+    in
+    RM.quote_cut cut
 
 
 
@@ -911,7 +937,8 @@ struct
     T.Syn.rule @@
     RM.push_problem "elim" @@
     let* tscrut, nattp = T.Syn.run tac_scrut in
-    let* () = assert_nat nattp in let* tmot =
+    let* () = assert_nat nattp in
+    let* tmot =
       T.Chk.run tac_mot @<<
       RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
       TB.pi TB.nat @@ fun _ -> TB.univ

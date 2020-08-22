@@ -9,19 +9,19 @@ type cof = (dim, int) Cof.cof
 (** A type code whose head constructor is stable under dimension substitution. *)
 type 'a stable_code =
   [ `Pi of 'a * 'a
-    (** Dependent product type *)
+  (** Dependent product type *)
 
   | `Sg of 'a * 'a
-    (** Dependent sum type *)
+  (** Dependent sum type *)
 
   | `Ext of int * 'a * [`Global of 'a] * 'a
-    (** Extension type *)
+  (** Extension type *)
 
   | `Nat
-    (** Natural numbers type *)
+  (** Natural numbers type *)
 
   | `Circle
-    (** The circle [S1]. *)
+  (** The circle [S1]. *)
 
   | `Univ
     (** A code for the universe (antinomous for now). *)
@@ -30,7 +30,7 @@ type 'a stable_code =
 (** A type code whose head constructor is {i not} stable under dimension substitution. *)
 type 'a unstable_code =
   [ `HCom of dim * dim * cof * 'a
-    (** Formal composite types *)
+  (** Formal composite types *)
 
   | `V of dim * 'a * 'a * 'a
     (** V types, for univalence *)
@@ -61,7 +61,6 @@ and con =
   | Base
   | Loop of dim
   | Pair of con * con
-  | GoalRet of con
   | SubIn of con
 
   | ElIn of con
@@ -91,7 +90,6 @@ and tp =
   | ElCut of cut
   | ElStable of con stable_code
   | ElUnstable of con unstable_code
-  | GoalTp of string option * tp
   | TpDim
   | TpCof
   | TpPrf of cof
@@ -122,7 +120,6 @@ and frm =
   | KSnd
   | KNatElim of con * con * con
   | KCircleElim of con * con * con
-  | KGoalProj
 
   | KElOut
   (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)

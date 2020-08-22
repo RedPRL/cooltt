@@ -377,9 +377,6 @@ and quote_tp (tp : D.tp) =
   | D.ElCut cut ->
     let+ tm = quote_cut cut in
     S.El tm
-  | D.GoalTp (lbl, tp) ->
-    let+ tp = quote_tp tp in
-    S.GoalTp (lbl, tp)
   | D.Sub (tp, phi, cl) ->
     let* ttp = quote_tp tp in
     let+ tphi = quote_cof phi
@@ -575,7 +572,5 @@ and quote_frm tm =
   | D.KAp (tp, con) ->
     let+ targ = quote_con tp con in
     S.Ap (tm, targ)
-  | D.KGoalProj ->
-    ret @@ S.GoalProj tm
   | D.KElOut ->
     ret @@ S.ElOut tm
