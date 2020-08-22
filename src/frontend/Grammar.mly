@@ -42,6 +42,7 @@
 
 %nonassoc IN RRIGHT_ARROW
 %nonassoc COLON
+%right SEMI
 %nonassoc SUC LOOP RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
@@ -246,7 +247,7 @@ plain_term_except_cof_case:
     { VProj t }
   | CAP; t = atomic_term
     { Cap t }
-  | name = HOLE_NAME; SEMI; t = atomic_term
+  | name = HOLE_NAME; SEMI; t = term
     { Hole (name, Some t) }
 
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
