@@ -99,8 +99,6 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.Circle, D.Circle
   | D.Univ, D.Univ ->
     ret ()
-  | D.GoalTp (lbl0, tp0), D.GoalTp (lbl1, tp1) when lbl0 = lbl1 ->
-    equate_tp tp0 tp1
   | D.ElStable code0, D.ElStable code1 ->
     equate_stable_code D.Univ code0 code1
   | D.ElCut cut0, D.ElCut cut1 ->
@@ -194,10 +192,6 @@ and equate_con tp con0 con1 =
     let* snd0 = lift_cmp @@ do_snd con0 in
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
-  | D.GoalTp (_, tp), _, _ ->
-    let* con0 = lift_cmp @@ do_goal_proj con0 in
-    let* con1 = lift_cmp @@ do_goal_proj con1 in
-    equate_con tp con0 con1
   | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
@@ -348,8 +342,6 @@ and equate_frm k0 k1 =
       TB.el @@ TB.ap mot [TB.loop x]
     in
     equate_con loop_tp loop_case0 loop_case1
-  | D.KGoalProj, D.KGoalProj ->
-    ret ()
   | D.KElOut, D.KElOut ->
     ret ()
   | _ ->

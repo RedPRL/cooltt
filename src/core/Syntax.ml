@@ -43,9 +43,6 @@ let rec dump fmt =
   | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
   | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
-  | GoalRet _ -> Format.fprintf fmt "<goal/ret>"
-  | GoalProj _ -> Format.fprintf fmt "<goal/proj>"
-
   | Coe _ -> Format.fprintf fmt "<coe>"
   | HCom _ -> Format.fprintf fmt "<hcom>"
   | Com _ -> Format.fprintf fmt "<com>"
@@ -84,7 +81,6 @@ and dump_tp fmt =
   | Univ -> Format.fprintf fmt "univ"
   | El t -> Format.fprintf fmt "el[%a]" dump t
   | TpVar i -> Format.fprintf fmt "tp/var[%i]" i
-  | GoalTp _ -> Format.fprintf fmt "<goal>"
   | TpDim -> Format.fprintf fmt "tp/dim"
   | TpCof -> Format.fprintf fmt "tp/cof"
   | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
@@ -233,11 +229,7 @@ let rec pp env fmt tm =
     Format.fprintf fmt "el/in %a" (pp_atomic env) tm
   | ElOut tm when debug_mode ->
     Format.fprintf fmt "el/out %a" (pp_atomic env) tm
-  | GoalRet tm when debug_mode ->
-    Format.fprintf fmt "goal/in %a" (pp_atomic env) tm
-  | GoalProj tm when debug_mode ->
-    Format.fprintf fmt "goal/out %a" (pp_atomic env) tm
-  | SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm ->
+  | SubIn tm | SubOut tm | ElIn tm | ElOut tm ->
     pp env fmt tm
 
   | CodePi (base, fam) when debug_mode ->
@@ -427,8 +419,6 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "%a" (pp env) tm
   | TpVar ix ->
     Format.fprintf fmt "#var[%i]" ix
-  | GoalTp (_, tp) ->
-    pp_tp env fmt tp
   | TpPrf cof ->
     Format.fprintf fmt "[%a]" (pp env) cof
   | TpESub (sub, tp) ->
@@ -458,7 +448,7 @@ and pp_atomic env fmt tm =
     pp env fmt tm
   | Suc _ as tm when Option.is_some (to_numeral tm) ->
     pp env fmt tm
-  | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
+  | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not debug_mode ->
     pp_atomic env fmt tm
   | _ ->
     pp_braced (pp env) fmt tm
@@ -467,7 +457,7 @@ and pp_applications env fmt tm =
   match tm with
   | Ap (tm0, tm1) ->
     Format.fprintf fmt "%a %a" (pp_applications env) tm0 (pp_atomic env) tm1
-  | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
+  | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not debug_mode ->
     pp_applications env fmt tm
   | _ ->
     pp env fmt tm
@@ -479,7 +469,7 @@ and pp_lambdas env fmt tm =
     Format.fprintf fmt "%a %a"
       Uuseg_string.pp_utf_8 x
       (pp_lambdas envx) tm
-  | (SubIn tm | SubOut tm | GoalRet tm | GoalProj tm | ElIn tm | ElOut tm) when not debug_mode ->
+  | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not debug_mode ->
     pp_lambdas env fmt tm
   | _ ->
     Format.fprintf fmt "=>@ @[%a@]"
@@ -487,43 +477,39 @@ and pp_lambdas env fmt tm =
 
 
 
-let pp_sequent_goal env fmt tp  =
+let pp_sequent_goal ~lbl env fmt tp  =
+  let lbl = Option.value ~default:"" lbl in
   match tp with
-  | GoalTp (olbl, Sub (tp, Cof (Cof.Join []), _)) ->
-    let lbl = match olbl with Some lbl -> lbl | None -> "" in
+  | Sub (tp, Cof (Cof.Join []), _) ->
     Format.fprintf fmt "?%a : @[<hov>%a@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp
-  | GoalTp (olbl, Sub (tp, phi, tm)) ->
-    let lbl = match olbl with Some lbl -> lbl | None -> "" in
+  | Sub (tp, phi, tm) ->
     let _x, envx = Pp.Env.bind env (Some "_") in
     Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp
       (pp env) phi
       (pp envx) tm
-  | GoalTp (olbl, tp) ->
-    let lbl = match olbl with Some lbl -> lbl | None -> "" in
+  | tp ->
     Format.fprintf fmt "?%a : @[<hov>%a@]"
       Uuseg_string.pp_utf_8 lbl
       (pp_tp env) tp
-  | tp ->
-    pp_tp env fmt tp
 
-let rec pp_sequent_inner env fmt tp =
-  match tp with
-  | Pi (base, ident, fam) ->
-    let x, envx = ppenv_bind env ident in
+let rec pp_sequent_inner ~lbl env ctx fmt tp =
+  match ctx with
+  | [] ->
+    Format.fprintf fmt "|- @[<hov>%a@]"
+      (pp_sequent_goal ~lbl env)
+      tp
+  | (var, var_tp) :: ctx ->
+    let x, envx = ppenv_bind env var in
     Fmt.fprintf fmt "%a : %a@;%a"
       Uuseg_string.pp_utf_8 x
-      (pp_tp env) base
-      (pp_sequent_inner envx) fam
-  | tp ->
-    Format.fprintf fmt "|- @[<hov>%a@]"
-      (pp_sequent_goal env)
-      tp
+      (pp_tp env) var_tp
+      (pp_sequent_inner ~lbl envx ctx) tp
 
-let pp_sequent : tp Pp.printer =
+let pp_sequent ~lbl ctx : tp Pp.printer =
   fun fmt tp ->
   Format.fprintf fmt "@[<v>%a@]"
-    (pp_sequent_inner Pp.Env.emp) tp
+    (pp_sequent_inner ~lbl Pp.Env.emp ctx) tp

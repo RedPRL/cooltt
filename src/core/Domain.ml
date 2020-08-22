@@ -93,7 +93,6 @@ and pp_frame : frm Pp.printer =
   | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
   | KFst -> Format.fprintf fmt "fst"
   | KSnd -> Format.fprintf fmt "snd"
-  | KGoalProj -> Format.fprintf fmt "<goal-proj>"
   | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -145,8 +144,6 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
-  | GoalRet con ->
-    Format.fprintf fmt "goal-ret[%a]" pp_con con
   | Lam (_, clo) ->
     Format.fprintf fmt "lam[%a]" pp_clo clo
   | Dim0 ->
@@ -206,8 +203,6 @@ and pp_tp fmt =
     Format.fprintf fmt "<Hcom>"
   | ElUnstable (`V _) ->
     Format.fprintf fmt "<V>"
-  | GoalTp _ ->
-    Format.fprintf fmt "<goal-tp>"
   | TpSplit _ ->
     Format.fprintf fmt "<split>"
 

@@ -22,9 +22,6 @@ type t =
   | Fst of t
   | Snd of t
 
-  | GoalRet of t
-  | GoalProj of t
-
   | Coe of t * t * t * t
   | HCom of t * t * t * t * t
   | Com of t * t * t * t * t
@@ -63,7 +60,6 @@ and tp =
   | Univ
   | El of t
   | TpVar of int
-  | GoalTp of string option * tp
   | TpDim
   | TpCof
   | TpPrf of t
@@ -91,4 +87,3 @@ and sub =
 
   | SbP
   (** The projection from a extended context [Γ.A → Γ]. *)
-

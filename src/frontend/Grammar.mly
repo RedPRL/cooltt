@@ -24,7 +24,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE COMMA RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token COLON PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -42,6 +42,7 @@
 
 %nonassoc IN RRIGHT_ARROW
 %nonassoc COLON
+%right SEMI
 %nonassoc SUC LOOP RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
@@ -154,7 +155,7 @@ plain_atomic_term_except_name:
   | TYPE
     { Type }
   | name = HOLE_NAME
-    { Hole name }
+    { Hole (name, None) }
   | DIM
     { Dim }
   | COF
@@ -246,6 +247,8 @@ plain_term_except_cof_case:
     { VProj t }
   | CAP; t = atomic_term
     { Cap t }
+  | name = HOLE_NAME; SEMI; t = term
+    { Hole (name, Some t) }
 
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }
