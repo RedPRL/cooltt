@@ -175,6 +175,8 @@ and pp_con : con Pp.printer =
       pp_split_branch
       fmt
       branches
+  | WrapPrfIn _ ->
+    Format.fprintf fmt "<wrap>"
 
 and pp_tp fmt =
   function

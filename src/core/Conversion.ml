@@ -429,6 +429,12 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
   | D.KVProj (r0, pcode0, code0, pequiv0), D.KVProj (r1, pcode1, code1, pequiv1) ->
     let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
     equate_cut cut0 cut1
+  | D.KWrapPrfUnleash (tp0, phi0, bdy0), D.KWrapPrfUnleash (tp1, phi1, bdy1) ->
+    let* () = equate_cut cut0 cut1 in
+    let* () = equate_tp tp0 tp1 in
+    let* () = equate_cof phi0 phi1 in
+    let bdy_tp = D.Pi (D.TpPrf phi0, `Anon, D.const_tp_clo tp0) in
+    equate_con bdy_tp bdy0 bdy1
   | _ ->
     conv_err @@ HeadMismatch (D.UnstableCut (cut0, ufrm0), D.UnstableCut (cut1, ufrm1))
 

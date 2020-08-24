@@ -424,6 +424,12 @@ and subst_unstable_frm : D.dim -> Symbol.t -> D.unstable_frm -> D.unstable_frm C
     let+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.KSubOut (phi, clo)
+  | D.KWrapPrfUnleash (tp, phi, con) ->
+    let+ tp = subst_tp r x tp 
+    and+ phi = subst_cof r x phi
+    and+ con = subst_con r x con in 
+    D.KWrapPrfUnleash (tp, phi, con)
+
 
 and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
   fun r x ->
@@ -720,6 +726,13 @@ and eval : S.t -> D.con EvM.m =
       let+ prf = eval prf in
       D.WrapPrfIn prf
 
+    | S.WrapPrfUnleash {tp; cof; prf; bdy} ->
+      let* tp = eval_tp tp in
+      let* cof = eval_cof cof in
+      let* prf = eval prf in
+      let* bdy = eval bdy in
+      lift_cmp @@ do_prf_unleash tp cof prf bdy
+
 and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
   let open EvM in
@@ -875,6 +888,8 @@ and do_rigid_unstable_frm ~style con ufrm =
     do_rigid_vproj r pcode code pequiv con
   | D.KSubOut _ ->
     do_sub_out con
+  | D.KWrapPrfUnleash (tp, phi, bdy) ->
+    do_prf_unleash tp phi con bdy
 
 and whnf_cut ~style : D.cut -> D.con whnf CM.m =
   let open CM in
@@ -1178,6 +1193,33 @@ and do_sub_out con =
     | _ ->
       throw @@ NbeFailed "do_sub_out"
   end
+
+and do_prf_unleash tp phi con bdy =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis =
+    splice_tm @@ 
+    Splice.con bdy @@ fun bdy ->
+    Splice.cof phi @@ fun phi ->
+    Splice.tp tp @@ fun tp ->
+    Splice.Macro.commute_split con phis @@ fun prf ->
+    TB.wrap_prf_unleash tp ~cof:phi ~prf ~bdy
+  in
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.WrapPrfIn con ->
+      do_ap bdy con
+    | D.Cut {tp = D.TpWrapPrf phi; cut} ->
+      ret @@ D.Cut {tp; cut = D.UnstableCut (cut, D.KWrapPrfUnleash (tp, phi, bdy)), []}
+    | D.Split branches as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | _ ->
+      throw @@ NbeFailed "do_prf_unleash"
+  end
+
 
 and do_rigid_cap r s phi code box =
   let splitter con phis =

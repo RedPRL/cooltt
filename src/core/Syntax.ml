@@ -76,6 +76,9 @@ let rec dump fmt =
 
   | ESub _ -> Format.fprintf fmt "<esub>"
 
+  | WrapPrfIn _ -> Format.fprintf fmt "<wrap/in>"
+  | WrapPrfUnleash _ -> Format.fprintf fmt "<wrap/unleash>"
+
 and dump_tp fmt =
   function
   | Univ -> Format.fprintf fmt "univ"
@@ -350,6 +353,16 @@ let rec pp env fmt tm =
     Format.fprintf fmt "[%a]%a"
       (pp_sub env) sub
       (pp_atomic env) tm
+
+  | WrapPrfIn prf ->
+    Format.fprintf fmt "@[<hv2>wrap %a@]"
+      (pp_atomic env) prf
+
+  | WrapPrfUnleash {cof; prf; bdy; _} ->
+    Format.fprintf fmt "@[unleash %a : %a in@ %a@]"
+      (pp env) prf
+      (pp env) cof
+      (pp env) bdy
 
 and pp_sub env fmt =
   function

@@ -57,6 +57,7 @@ type t =
   (** Explicit substition *)
 
   | WrapPrfIn of t
+  | WrapPrfUnleash of {tp : tp; cof : t; prf : t; bdy : t}
 
 and tp =
   | Univ
