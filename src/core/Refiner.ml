@@ -359,6 +359,40 @@ struct
       RM.expected_connective `Prf tp
 end
 
+module LockedPrf = 
+struct
+  let formation tac_phi = 
+    T.Tp.rule @@ 
+    let+ phi = T.Chk.run tac_phi D.TpCof in 
+    S.TpLockedPrf phi
+
+  let intro =
+    T.Chk.rule @@
+    function
+    | D.TpLockedPrf phi ->
+      let+ () = Cof.assert_true phi in 
+      S.LockedPrfIn S.Prf
+    | tp ->
+      RM.expected_connective `LockedPrf tp
+
+  let unleash prf bdy = 
+    T.Chk.rule @@
+    function
+    | D.TpPrf _ ->
+      RM.refine_err Err.VirtualType
+    | tp ->
+      let* prf, lock_tp = T.Syn.run prf in
+      match lock_tp with
+      | D.TpLockedPrf phi ->
+        let bdy_tp = D.Pi (D.TpPrf phi, `Anon, D.const_tp_clo tp) in
+        let* bdy = T.Chk.run bdy bdy_tp in
+        let* cof = RM.quote_cof phi in
+        let* tp = RM.quote_tp tp in
+        RM.ret @@ S.LockedPrfUnleash {tp; cof; prf; bdy}
+      | lock_tp ->
+        RM.expected_connective `LockedPrf lock_tp
+end
+
 module Pi =
 struct
   let formation : (T.Tp.tac, T.Tp.tac) quantifier =

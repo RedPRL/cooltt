@@ -14,6 +14,7 @@ struct
     | `Cof
     | `Sub
     | `Prf
+    | `LockedPrf
     | `El
     | `ElV
     | `ElHCom

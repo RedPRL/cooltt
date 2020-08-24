@@ -1,16 +1,17 @@
-axiom φ/two : 𝔽
-axiom two : sub nat φ/two 2
+axiom φ/path : 𝔽
+axiom u/path : locked φ/path
+axiom path (A : type) (x : A) (y : A) : sub type φ/path {ext i => A with [i=0 => x | i=1 => y]}
 
-def two' 
-  : nat 
-  := two
+normalize path 
 
-normalize two'
-axiom _ : [φ/two]
-normalize two'
+def test : path nat 3 3 := 
+  unleash u/path in
+  i => 3
 
-def test : sub nat #t 2 := 
-  two
+normalize test
 
-print test
+def test2 : unleash u/path in path {path nat 3 3} test {_ => 3} := 
+  unleash u/path in 
+  _ _ => 3
 
+print test2
