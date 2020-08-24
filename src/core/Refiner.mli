@@ -43,7 +43,7 @@ end
 module LockedPrf : sig
   val formation : Chk.tac -> Tp.tac
   val intro : Chk.tac
-  val unleash : Syn.tac -> Chk.tac -> Chk.tac
+  val unlock : Syn.tac -> Chk.tac -> Chk.tac
 end
 
 module Univ : sig

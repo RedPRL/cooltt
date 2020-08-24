@@ -77,7 +77,7 @@ let rec dump fmt =
   | ESub _ -> Format.fprintf fmt "<esub>"
 
   | LockedPrfIn _ -> Format.fprintf fmt "<wrap/in>"
-  | LockedPrfUnleash _ -> Format.fprintf fmt "<wrap/unleash>"
+  | LockedPrfUnlock _ -> Format.fprintf fmt "<wrap/unlock>"
 
 and dump_tp fmt =
   function
@@ -358,8 +358,8 @@ let rec pp env fmt tm =
     Format.fprintf fmt "@[<hv2>wrap %a@]"
       (pp_atomic env) prf
 
-  | LockedPrfUnleash {cof; prf; bdy; _} ->
-    Format.fprintf fmt "@[unleash %a : %a in@ %a@]"
+  | LockedPrfUnlock {cof; prf; bdy; _} ->
+    Format.fprintf fmt "@[unlock %a : %a in@ %a@]"
       (pp env) prf
       (pp env) cof
       (pp env) bdy

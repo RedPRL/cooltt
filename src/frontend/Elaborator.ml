@@ -186,8 +186,8 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Lam ([], body) ->
     chk_tm body
 
-  | CS.Unleash (prf, bdy) ->
-    R.LockedPrf.unleash (syn_tm prf) @@
+  | CS.Unlock (prf, bdy) ->
+    R.LockedPrf.unlock (syn_tm prf) @@
     R.Pi.intro @@ fun _ -> chk_tm bdy
 
   | _ ->

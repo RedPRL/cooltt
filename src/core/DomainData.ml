@@ -134,4 +134,4 @@ and unstable_frm =
   | KCap of dim * dim * cof * con
   | KVProj of dim * con * con * con
   | KSubOut of cof * tm_clo
-  | KLockedPrfUnleash of tp * cof * con
+  | KLockedPrfUnlock of tp * cof * con

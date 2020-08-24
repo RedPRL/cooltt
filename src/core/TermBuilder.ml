@@ -76,12 +76,12 @@ let wrap_prf_in mprf : _ m =
   let+ prf = mprf in 
   S.LockedPrfIn prf 
 
-let wrap_prf_unleash mtp ~cof ~prf ~bdy =
+let wrap_prf_unlock mtp ~cof ~prf ~bdy =
   let+ tp = mtp
   and+ cof = cof 
   and+ prf = prf
   and+ bdy = bdy in 
-  S.LockedPrfUnleash {tp; cof; prf; bdy}
+  S.LockedPrfUnlock {tp; cof; prf; bdy}
 
 
 let el_out m : _ m =

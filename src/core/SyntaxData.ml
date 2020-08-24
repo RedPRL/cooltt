@@ -57,7 +57,7 @@ type t =
   (** Explicit substition *)
 
   | LockedPrfIn of t
-  | LockedPrfUnleash of {tp : tp; cof : t; prf : t; bdy : t}
+  | LockedPrfUnlock of {tp : tp; cof : t; prf : t; bdy : t}
 
 and tp =
   | Univ

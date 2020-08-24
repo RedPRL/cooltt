@@ -488,7 +488,7 @@ and quote_unstable_cut cut ufrm =
     in
     let+ tv = quote_cut cut in
     S.VProj (tr, tpcode, tcode, t_pequiv, tv)
-  | D.KLockedPrfUnleash (tp, phi, bdy) ->
+  | D.KLockedPrfUnlock (tp, phi, bdy) ->
     let+ tp = quote_tp tp
     and+ prf = quote_cut cut
     and+ cof = quote_cof phi 
@@ -496,7 +496,7 @@ and quote_unstable_cut cut ufrm =
       let bdy_tp = D.Pi (D.TpPrf phi, `Anon, D.const_tp_clo tp) in
       quote_con bdy_tp bdy 
     in
-    S.LockedPrfUnleash {tp; cof; prf; bdy}
+    S.LockedPrfUnlock {tp; cof; prf; bdy}
 
 and quote_dim d : S.t quote =
   quote_con D.TpDim @@

@@ -375,7 +375,7 @@ struct
     | tp ->
       RM.expected_connective `LockedPrf tp
 
-  let unleash prf bdy = 
+  let unlock prf bdy = 
     T.Chk.rule @@
     function
     | D.TpPrf _ ->
@@ -388,7 +388,7 @@ struct
         let* bdy = T.Chk.run bdy bdy_tp in
         let* cof = RM.quote_cof phi in
         let* tp = RM.quote_tp tp in
-        RM.ret @@ S.LockedPrfUnleash {tp; cof; prf; bdy}
+        RM.ret @@ S.LockedPrfUnlock {tp; cof; prf; bdy}
       | lock_tp ->
         RM.expected_connective `LockedPrf lock_tp
 end

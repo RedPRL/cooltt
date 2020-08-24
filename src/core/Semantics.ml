@@ -424,11 +424,11 @@ and subst_unstable_frm : D.dim -> Symbol.t -> D.unstable_frm -> D.unstable_frm C
     let+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.KSubOut (phi, clo)
-  | D.KLockedPrfUnleash (tp, phi, con) ->
+  | D.KLockedPrfUnlock (tp, phi, con) ->
     let+ tp = subst_tp r x tp 
     and+ phi = subst_cof r x phi
     and+ con = subst_con r x con in 
-    D.KLockedPrfUnleash (tp, phi, con)
+    D.KLockedPrfUnlock (tp, phi, con)
 
 
 and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
@@ -726,12 +726,12 @@ and eval : S.t -> D.con EvM.m =
       let+ prf = eval prf in
       D.LockedPrfIn prf
 
-    | S.LockedPrfUnleash {tp; cof; prf; bdy} ->
+    | S.LockedPrfUnlock {tp; cof; prf; bdy} ->
       let* tp = eval_tp tp in
       let* cof = eval_cof cof in
       let* prf = eval prf in
       let* bdy = eval bdy in
-      lift_cmp @@ do_prf_unleash tp cof prf bdy
+      lift_cmp @@ do_prf_unlock tp cof prf bdy
 
 and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
@@ -888,8 +888,8 @@ and do_rigid_unstable_frm ~style con ufrm =
     do_rigid_vproj r pcode code pequiv con
   | D.KSubOut _ ->
     do_sub_out con
-  | D.KLockedPrfUnleash (tp, phi, bdy) ->
-    do_prf_unleash tp phi con bdy
+  | D.KLockedPrfUnlock (tp, phi, bdy) ->
+    do_prf_unlock tp phi con bdy
 
 and whnf_cut ~style : D.cut -> D.con whnf CM.m =
   let open CM in
@@ -1194,7 +1194,7 @@ and do_sub_out con =
       throw @@ NbeFailed "do_sub_out"
   end
 
-and do_prf_unleash tp phi con bdy =
+and do_prf_unlock tp phi con bdy =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
@@ -1203,7 +1203,7 @@ and do_prf_unleash tp phi con bdy =
     Splice.cof phi @@ fun phi ->
     Splice.tp tp @@ fun tp ->
     Splice.Macro.commute_split con phis @@ fun prf ->
-    TB.wrap_prf_unleash tp ~cof:phi ~prf ~bdy
+    TB.wrap_prf_unlock tp ~cof:phi ~prf ~bdy
   in
   begin
     inspect_con ~style:`UnfoldNone con |>>
@@ -1211,13 +1211,13 @@ and do_prf_unleash tp phi con bdy =
     | D.LockedPrfIn con ->
       do_ap bdy con
     | D.Cut {tp = D.TpLockedPrf phi; cut} ->
-      ret @@ D.Cut {tp; cut = D.UnstableCut (cut, D.KLockedPrfUnleash (tp, phi, bdy)), []}
+      ret @@ D.Cut {tp; cut = D.UnstableCut (cut, D.KLockedPrfUnlock (tp, phi, bdy)), []}
     | D.Split branches as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | _ ->
-      throw @@ NbeFailed "do_prf_unleash"
+      throw @@ NbeFailed "do_prf_unlock"
   end
 
 
