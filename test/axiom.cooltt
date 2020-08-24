@@ -1,0 +1,14 @@
+axiom φ/two : 𝔽
+axiom two : ext => nat with [φ/two => 2]
+
+def two' : nat = two
+
+normalize two'
+axiom _ : [φ/two]
+normalize two'
+
+def test : ext i => nat with [#t => 2] = 
+  _ => two
+
+print test
+
