@@ -48,7 +48,8 @@ let rec cof_to_con =
   | Cof.Cof (Cof.Eq (r, s)) -> Cof (Cof.Eq (dim_to_con r, dim_to_con s))
   | Cof.Cof (Cof.Join phis) -> Cof (Cof.Join (List.map cof_to_con phis))
   | Cof.Cof (Cof.Meet phis) -> Cof (Cof.Meet (List.map cof_to_con phis))
-  | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
+  | Cof.Var (`L lvl) -> Cut {tp = TpCof; cut = Var lvl, []}
+  | Cof.Var (`G sym) -> Cut {tp = TpCof; cut = Global sym, []}
 
 let pp_lsq fmt () = Format.fprintf fmt "["
 let pp_rsq fmt () = Format.fprintf fmt "]"
