@@ -1,4 +1,4 @@
-module S = Syntax
+module S = Syntax 
 module D = Domain
 module Sem = Semantics
 module TB = TermBuilder
@@ -423,6 +423,9 @@ and quote_tp (tp : D.tp) =
     let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
     and+ tps = MU.map branch_body branches in
     S.TpCofSplit (List.combine tphis tps)
+  | D.TpWrap tp ->
+    let+ ttp = quote_tp tp in
+    S.TpWrap ttp
 
 and quote_hd =
   function

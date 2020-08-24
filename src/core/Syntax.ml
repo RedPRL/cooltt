@@ -91,6 +91,8 @@ and dump_tp fmt =
   | Nat -> Format.fprintf fmt "nat"
   | Circle -> Format.fprintf fmt "circle"
   | TpESub _ -> Format.fprintf fmt "<esub>"
+  | TpWrap _ -> Format.fprintf fmt "<wrap>"
+
 
 and dump_cof fmt =
   function
@@ -424,6 +426,9 @@ and pp_tp env fmt tp =
   | TpESub (sub, tp) ->
     Format.fprintf fmt "[%a]%a"
       (pp_sub env) sub
+      (pp_atomic_tp env) tp
+  | TpWrap tp ->
+    Format.fprintf fmt "wrap %a" 
       (pp_atomic_tp env) tp
 
 and pp_atomic_tp env fmt tp =

@@ -349,6 +349,9 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     in
     let+ branches = MU.map subst_branch branches in
     D.TpSplit branches
+  | D.TpWrap tp ->
+    let+ tp = subst_tp r x tp in
+    D.TpWrap tp
 
 and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stable_code CM.m =
   fun r x ->
@@ -484,6 +487,9 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.TpSplit (List.combine phis pclos)
   | S.TpESub (sb, tp) ->
     eval_sub sb @@ eval_tp tp
+  | S.TpWrap tp ->
+    let+ tp = eval_tp tp in
+    D.TpWrap tp
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
