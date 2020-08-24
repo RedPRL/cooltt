@@ -1,10 +1,10 @@
-def path (A : type) (a : A) (b : A) : type =
+def path (A : type) (a : A) (b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
-def Ω1s1 : type =
+def Ω1s1 : type :=
   path circle base base
 
-def loopn : nat -> Ω1s1 =
+def loopn : nat -> Ω1s1 :=
   elim [
   | zero => _ => base
   | suc {n => loopn} =>

@@ -1,10 +1,10 @@
-def path (A : type) (a : A) (b : A) : type =
+def path (A : type) (a : A) (b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
 def refl2 (A : type) (p : (i : 𝕀) → A) : sub {path {path A {p 0} {p 1}} p p} #t {_ => p}
-  =
+  :=
   _ => p
 
 def test (A : type) (p : (i : 𝕀) → A) : (j : 𝕀) → path A {p 0} {p 1}
-  =
+  :=
   j => refl2 A p j

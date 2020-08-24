@@ -1,14 +1,14 @@
-def path (A : type) (a : A) (b : A) : type =
+def path (A : type) (a : A) (b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
-def is-contr (C : type) : type =
+def is-contr (C : type) : type :=
   (c : C) × {(c' : C) → path C c c'}
 
-def is-prop (C : type) : type =
+def is-prop (C : type) : type :=
   (c : C) (c' : C) → path C c c'
 
-def has-hlevel : nat → type → type =
-  let aux : nat → type → type =
+def has-hlevel : nat → type → type :=
+  let aux : nat → type → type :=
     elim [
     | zero => is-prop
     | suc {l => ih} =>
@@ -20,51 +20,51 @@ def has-hlevel : nat → type → type =
   | suc l => aux l
   ]
 
-def is-set : type → type = has-hlevel 2
-def is-groupoid : type → type = has-hlevel 3
+def is-set : type → type := has-hlevel 2
+def is-groupoid : type → type := has-hlevel 3
 
-def hLevel (n : nat) : type =
+def hLevel (n : nat) : type :=
   (A : type) × has-hlevel n A
 
-def hProp : type = hLevel 1
-def hSet : type = hLevel 2
-def hGroupoid : type = hLevel 3
+def hProp : type := hLevel 1
+def hSet : type := hLevel 2
+def hGroupoid : type := hLevel 3
 
 print hProp
 normalize hProp
 
-def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A =
+def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A :=
   hfill A 0 {∂ i} {j _ =>
     [ j=0 ∨ i=1 => p 0
     | i=0 => p j
     ]
   }
 
-def symm (A : type) (p : 𝕀 → A) : path A {p 1} {p 0} =
+def symm (A : type) (p : 𝕀 → A) : path A {p 1} {p 0} :=
   i => symm/filler A p i 1
 
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A =
+def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A :=
   hcom A 0 j {∂ i} {j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
   }
 
-def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} =
+def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   trans/filler A p q 1
 
-def contr-prop (A : type) (A/contr : is-contr A) : is-prop A =
+def contr-prop (A : type) (A/contr : is-contr A) : is-prop A :=
   a a' => trans A {symm A {{snd A/contr} a}} {{snd A/contr} a'}
 
-def prop-set (A : type) (A/prop : is-prop A) : is-set A =
+def prop-set (A : type) (A/prop : is-prop A) : is-set A :=
   a b p q i j => hcom A 0 1 {∂ i ∨ ∂ j} {k _ =>
     [ k=0 ∨ ∂ j ∨ i=0 => A/prop a {p j} k
     | i=1 => A/prop a {q j} k
     ]
   }
 
-def raise-hlevel : (l : nat) (A : type) → has-hlevel l A → has-hlevel {suc l} A =
-  let aux : (m : nat) → (B : type) → has-hlevel {suc m} B → has-hlevel {suc {suc m}} B =
+def raise-hlevel : (l : nat) (A : type) → has-hlevel l A → has-hlevel {suc l} A :=
+  let aux : (m : nat) → (B : type) → has-hlevel {suc m} B → has-hlevel {suc {suc m}} B :=
     elim [
     | zero => prop-set
     | suc {l => ih} => B B/lvl b b' => ih {path B b b'} {B/lvl b b'}
@@ -75,23 +75,25 @@ def raise-hlevel : (l : nat) (A : type) → has-hlevel l A → has-hlevel {suc l
   | suc l => aux l
   ]
 
-def prop-hlevel : (l : nat) (A : type) → is-prop A → has-hlevel {suc l} A =
+def prop-hlevel : (l : nat) (A : type) → is-prop A → has-hlevel {suc l} A :=
   elim [
   | zero => _ A/prop => A/prop
   | suc {l => ih} => A A/prop => raise-hlevel {suc l} A {ih A A/prop}
   ]
 
-def path-hlevel : (l : nat) (A : type) (A/level : has-hlevel {suc l} A) (a : A) (a' : A)
-                 → has-hlevel l {path A a a'} =
+def path-hlevel 
+  : (l : nat) (A : type) (A/level : has-hlevel {suc l} A) (a : A) (a' : A)
+  → has-hlevel l {path A a a'} 
+  :=
   elim [
   | zero => A A/prop a a' => [A/prop a a', p => prop-set A A/prop a a' {A/prop a a'} p]
   | suc l => A A/lvl a a' => A/lvl a a'
   ]
 
-def path-based-contr (A : type) (a : A) : is-contr {(x : A) × path A a x} =
+def path-based-contr (A : type) (a : A) : is-contr {(x : A) × path A a x} :=
   [ [a, i => a]
   , x i =>
-    let aux : 𝕀 → A = j =>
+    let aux : 𝕀 → A := j =>
       hcom A 0 j {∂ i} {k _ =>
         [ k=0 ∨ i=0 => a
         | i=1 => {snd x} k

@@ -133,6 +133,8 @@ rule token = parse
     { JOIN }
   | "="
     { EQUALS }
+  | ":="
+    { COLON_EQUALS }
   | "->"
     { RIGHT_ARROW }
   | "=>"

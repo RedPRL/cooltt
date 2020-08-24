@@ -1,122 +1,113 @@
 -- "stdlib"
 
-def path (A : type) (a : A) (b : A) : type =
+def path (A : type) (a : A) (b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A =
+def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A :=
   hcom A 0 j {∂ i} {j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
   }
 
-def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} =
+def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   trans/filler A p q 1
 
-def unit : type = ext => nat with [#t => 0]
+def unit : type := ext => nat with [#t => 0]
 
-def tt : unit = 0
+def tt : unit := 0
 
 -- isomorphisms
 
-def iso (A : type) (B : type) : type =
+def iso (A : type) (B : type) : type :=
     (f : A → B)
   × (g : B → A)
   × {(b : B) → path B {f {g b}} b}
   × {(a : A) → path A {g {f a}} a}
 
-def iso/refl (A : type) : iso A A =
+def iso/refl (A : type) : iso A A :=
   [     a => a
   , [   a => a
     , [ a i => a
       , a i => a
   ] ] ]
 
-def iso/symm (A : type) (B : type) (I : iso A B) : iso B A =
-  let f = fst I in
-  let g = fst {snd I} in
-  let α = fst {snd {snd I}} in
-  let β = snd {snd {snd I}} in
+def iso/symm (A : type) (B : type) (I : iso A B) : iso B A :=
+  let f := fst I in
+  let g := fst {snd I} in
+  let α := fst {snd {snd I}} in
+  let β := snd {snd {snd I}} in
   [ g , [ f , [ β , α ] ] ]
 
-def iso/trans (A : type) (B : type) (C : type) (I1 : iso A B) (I2 : iso B C) : iso A C =
-  let f1 = fst I1 in
-  let g1 = fst {snd I1} in
-  let α1 = fst {snd {snd I1}} in
-  let β1 = snd {snd {snd I1}} in
-  let f2 = fst I2 in
-  let g2 = fst {snd I2} in
-  let α2 = fst {snd {snd I2}} in
-  let β2 = snd {snd {snd I2}} in
-  [     a => f2 {f1 a}
-  , [   c => g1 {g2 c}
-    , [ c => trans C {j => f2 {α1 {g2 c} j}} {α2 c}
-      , a => trans A {j => g1 {β2 {f1 a} j}} {β1 a}
-  ] ] ]
+def iso/trans (A : type) (B : type) (C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
+  let f1 := fst I1 in
+  let g1 := fst {snd I1} in
+  let α1 := fst {snd {snd I1}} in
+  let β1 := snd {snd {snd I1}} in
+  let f2 := fst I2 in
+  let g2 := fst {snd I2} in
+  let α2 := fst {snd {snd I2}} in
+  let β2 := snd {snd {snd I2}} in
+  [a => f2 {f1 a}, 
+   [c => g1 {g2 c}, 
+    [c => trans C {j => f2 {α1 {g2 c} j}} {α2 c},
+     a => trans A {j => g1 {β2 {f1 a} j}} {β1 a}]]]
 
 -- pair isos
 
-def iso/pair/comm (A : type) (B : type) : iso {A × B} {B × A} =
-  [     ab => [ snd ab , fst ab ]
-  , [   ba => [ snd ba , fst ba ]
-    , [ ba i => ba
-      , ab i => ab
-  ] ] ]
+def iso/pair/comm (A : type) (B : type) : iso {A × B} {B × A} :=
+  [ab => [snd ab, fst ab], 
+   [ba => [snd ba, fst ba], 
+    [ba i => ba, 
+     ab i => ab]]]
 
-def iso/pair/assoc (A : type) (B : type) (C : type) : iso {A × B × C} {{A × B} × C} =
-  [     a_bc => [ [ fst a_bc , fst {snd a_bc} ] , snd {snd a_bc} ]
-  , [   ab_c => [ fst {fst ab_c} , [ snd {fst ab_c} , snd ab_c ] ]
-    , [ ab_c i => ab_c
-      , a_bc i => a_bc
-  ] ] ]
+def iso/pair/assoc (A : type) (B : type) (C : type) : iso {A × B × C} {{A × B} × C} :=
+  [a_bc => [[fst a_bc, fst {snd a_bc}], snd {snd a_bc}], 
+   [ab_c => [fst {fst ab_c}, [snd {fst ab_c}, snd ab_c]], 
+    [ab_c i => ab_c, a_bc i => a_bc]]]
 
-def iso/pair/unit (A : type) : iso {A × unit} A =
-  [     au => fst au
-  , [   a => [ a , tt ]
-    , [ a i => a
-      , au i => au
-  ] ] ]
+def iso/pair/unit (A : type) : iso {A × unit} A :=
+  [au => fst au, 
+   [a => [a, tt], 
+    [a i => a, 
+     au i => au]]]
 
 -- function isos
 
-def curry (A : type) (B : type) (C : type) : {{A × B} → C} → {A → B → C} =
-  f a b => f [ a , b ]
+def curry (A : type) (B : type) (C : type) : {{A × B} → C} → {A → B → C} :=
+  f a b => f [a , b]
 
-def uncurry (A : type) (B : type) (C : type) : {A → B → C} → {{A × B} → C} =
+def uncurry (A : type) (B : type) (C : type) : {A → B → C} → {{A × B} → C} :=
   f ab => f {fst ab} {snd ab}
 
-def iso/curry (A : type) (B : type) (C : type) : iso {A → B → C} {{A × B} → C} =
-  [     uncurry A B C
-  , [   curry A B C
-    , [ ab_c i => ab_c
-      , a_b_c i => a_b_c
-  ] ] ]
+def iso/curry (A : type) (B : type) (C : type) : iso {A → B → C} {{A × B} → C} :=
+  [uncurry A B C, 
+   [curry A B C, 
+    [ab_c i => ab_c,
+     a_b_c i => a_b_c]]]
 
-def iso/lhs (A : type) (B : type) (C : type) (I : iso A B) : iso {A → C} {B → C} =
-  let f = fst I in
-  let g = fst {snd I} in
-  let α = fst {snd {snd I}} in
-  let β = snd {snd {snd I}} in
-  [     ac b => ac {g b}
-  , [   bc a => bc {f a}
-    , [ bc i b => bc {α b i}
-      , ac i a => ac {β a i}
-  ] ] ]
+def iso/lhs (A : type) (B : type) (C : type) (I : iso A B) : iso {A → C} {B → C} :=
+  let f := fst I in
+  let g := fst {snd I} in
+  let α := fst {snd {snd I}} in
+  let β := snd {snd {snd I}} in
+  [ac b => ac {g b}, 
+   [bc a => bc {f a}, 
+    [bc i b => bc {α b i}, 
+     ac i a => ac {β a i}]]]
 
-def iso/lhs (A : type) (B : type) (C : type) (I : iso A B) : iso {C → A} {C → B} =
-  let f = fst I in
-  let g = fst {snd I} in
-  let α = fst {snd {snd I}} in
-  let β = snd {snd {snd I}} in
-  [     ca c => f {ca c}
-  , [   cb c => g {cb c}
-    , [ cb i c => α {cb c} i
-      , ca i c => β {ca c} i
-  ] ] ]
+def iso/lhs (A : type) (B : type) (C : type) (I : iso A B) : iso {C → A} {C → B} :=
+  let f := fst I in
+  let g := fst {snd I} in
+  let α := fst {snd {snd I}} in
+  let β := snd {snd {snd I}} in
+  [ca c => f {ca c}, 
+   [cb c => g {cb c}, 
+    [cb i c => α {cb c} i, 
+     ca i c => β {ca c} i]]]
 
-def iso/flip (A : type) (B : type) (C : type) : iso {A → B → C} {B → A → C} =
-  [     abc b a => abc a b
-  , [   bac a b => bac b a
-    , [ bac i => bac
-      , abc i => abc
-  ] ] ]
+def iso/flip (A : type) (B : type) (C : type) : iso {A → B → C} {B → A → C} :=
+  [abc b a => abc a b, 
+   [bac a b => bac b a,
+    [bac i => bac,
+     abc i => abc]]]

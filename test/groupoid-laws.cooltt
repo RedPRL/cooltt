@@ -1,7 +1,7 @@
 -- J-like proofs without carrying around J-on-refl paths everywhere
 -- (by carrying around cofibrations everywhere instead)
 
-def path (A : type) (a : A) (b : A) : type =
+def path (A : type) (a : A) (b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
 -- pretend we have CCHM Id-types
@@ -9,8 +9,8 @@ def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0
   (d : B #t {_ => x})
   (φ : 𝔽) (p : (i : 𝕀) → sub A {i=0 ∨ φ} x)
   : sub {B φ p} φ d
-  =
-  let filler : 𝕀 → 𝕀 → A =
+  :=
+  let filler : 𝕀 → 𝕀 → A :=
     j i =>
     hcom A 0 i {∂ j ∨ φ} {i _ =>
       [ i=0 ∨ j=0 ∨ φ => p 0
@@ -23,7 +23,7 @@ def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0
 def trans (A : type) (p : (i : 𝕀) → A)
   : (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
   → sub {path A {p 0} {q 1}} φ p
-  =
+  :=
   special-j A {p 1} {_ q => path A {p 0} {q 1}} p
 
 def assoc (A : type)
@@ -32,7 +32,7 @@ def assoc (A : type)
   : (ψ : 𝔽) (r : (i : 𝕀) → sub A {i=0 ∨ ψ} {q 1})
   → sub {path {path A {p 0} {r 1}} {trans A {trans A p φ q} ψ r} {trans A p {φ ∧ ψ} {trans A q ψ r}}}
     ψ {_ => trans A p φ q}
-  =
+  :=
   special-j A {q 1}
     {ψ r => path {path A {p 0} {r 1}} {trans A {trans A p φ q} ψ r} {trans A p {φ ∧ ψ} {trans A q ψ r}}}
     {_ => trans A p φ q}
@@ -43,7 +43,7 @@ def pentagonType (A : type)
   (ψ : 𝔽) (r : (i : 𝕀) → sub A {i=0 ∨ ψ} {q 1})
   (χ : 𝔽) (s : (i : 𝕀) → sub A {i=0 ∨ χ} {r 1})
   : type
-  =
+  :=
   path
     {path
       {path A {p 0} {s 1}}
@@ -67,7 +67,7 @@ def pentagon (A : type)
   (ψ : 𝔽) (r : (i : 𝕀) → sub A {i=0 ∨ ψ} {q 1})
   : (χ : 𝔽) (s : (i : 𝕀) → sub A {i=0 ∨ χ} {r 1})
   → pentagonType A p φ q ψ r χ s
-  =
+  :=
   special-j A {r 1}
     {pentagonType A p φ q ψ r}
     {special-j A {q 1}
@@ -82,7 +82,7 @@ def pentagon (A : type)
 
 def trans' (A : type) (p : (i : 𝕀) → A) (q : (i : 𝕀) → sub A {i=0} {p 1})
   : path A {p 0} {q 1}
-  =
+  :=
   trans A p #f q
 
 def assoc' (A : type)
@@ -90,7 +90,7 @@ def assoc' (A : type)
   (q : (i : 𝕀) → sub A {i=0} {p 1})
   (r : (i : 𝕀) → sub A {i=0} {q 1})
   : path {path A {p 0} {r 1}} {trans' A {trans' A p q} r} {trans' A p {trans' A q r}}
-  =
+  :=
   assoc A p #f q #f r
 
 def pentagon' (A : type)
@@ -111,7 +111,7 @@ def pentagon' (A : type)
       {trans' {path A {p 0} {s 1}}
         {assoc' A p {trans' A q r} s}
         {j => trans' A p {assoc' A q r s j}}}}
-  =
+  :=
   pentagon A p #f q #f r #f s
 
 def test (A : type)
@@ -120,5 +120,5 @@ def test (A : type)
   (r : (i : 𝕀) → sub A {i=0} {q 1})
   (s : (i : 𝕀) → sub A {i=0} {r 1})
   : (j : 𝕀) → path A {p 0} {r 1}
-  =
+  :=
   j => assoc A p #f q #f r j
