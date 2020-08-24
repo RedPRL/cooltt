@@ -24,6 +24,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
+%token LOCKED UNLEASH
 %token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
@@ -211,6 +212,8 @@ plain_term:
 plain_term_except_cof_case:
   | t = plain_spine
     { t }
+  | UNLEASH; t = term; IN; body = term;
+    { Unleash (t, body) }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
   | GENERALIZE; name = plain_name; IN; body = term;
@@ -221,6 +224,8 @@ plain_term_except_cof_case:
     { Let (def, name, body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }
+  | LOCKED; phi = atomic_term
+    { Locked phi }
   | SUC; t = term
     { Suc t }
   | LOOP; t = term

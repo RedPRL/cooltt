@@ -166,7 +166,7 @@ struct
     | D.KCap (r, r', phi, code) ->
       let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, r', phi, code))} in
       cap ~r ~r' ~phi ~code ~box
-    | D.KWrapPrfUnleash (_, phi, bdy) ->
+    | D.KLockedPrfUnleash (_, phi, bdy) ->
       phi,
       F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [TB.prf]

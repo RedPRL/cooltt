@@ -81,7 +81,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
-  | D.TpWrapPrf phi0, D.TpWrapPrf phi1 ->
+  | D.TpLockedPrf phi0, D.TpLockedPrf phi1 ->
     equate_cof phi0 phi1
   | D.Pi (base0, _, fam0), D.Pi (base1, _, fam1)
   | D.Sg (base0, _, fam0), D.Sg (base1, _, fam1) ->
@@ -267,10 +267,10 @@ and equate_con tp con0 con1 =
     let* tp_proj = lift_cmp @@ do_el code in
     equate_con tp_proj proj0 proj1
 
-  | D.TpWrapPrf _, D.WrapPrfIn _, D.WrapPrfIn _->
+  | D.TpLockedPrf _, D.LockedPrfIn _, D.LockedPrfIn _->
     ret ()
 
-  | D.TpWrapPrf phi, _, _ ->
+  | D.TpLockedPrf phi, _, _ ->
     begin
       CmpM.test_sequent [] phi |> lift_cmp |>> function
       | false ->
@@ -429,7 +429,7 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
   | D.KVProj (r0, pcode0, code0, pequiv0), D.KVProj (r1, pcode1, code1, pequiv1) ->
     let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
     equate_cut cut0 cut1
-  | D.KWrapPrfUnleash (tp0, phi0, bdy0), D.KWrapPrfUnleash (tp1, phi1, bdy1) ->
+  | D.KLockedPrfUnleash (tp0, phi0, bdy0), D.KLockedPrfUnleash (tp1, phi1, bdy1) ->
     let* () = equate_cut cut0 cut1 in
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in

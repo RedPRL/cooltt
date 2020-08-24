@@ -70,18 +70,18 @@ let el_in m : _ m =
 
 let tp_wrap_prf mphi : _ m = 
   let+ phi = mphi in
-  S.TpWrapPrf phi
+  S.TpLockedPrf phi
 
 let wrap_prf_in mprf : _ m = 
   let+ prf = mprf in 
-  S.WrapPrfIn prf 
+  S.LockedPrfIn prf 
 
 let wrap_prf_unleash mtp ~cof ~prf ~bdy =
   let+ tp = mtp
   and+ cof = cof 
   and+ prf = prf
   and+ bdy = bdy in 
-  S.WrapPrfUnleash {tp; cof; prf; bdy}
+  S.LockedPrfUnleash {tp; cof; prf; bdy}
 
 
 let el_out m : _ m =

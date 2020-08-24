@@ -76,8 +76,8 @@ let rec dump fmt =
 
   | ESub _ -> Format.fprintf fmt "<esub>"
 
-  | WrapPrfIn _ -> Format.fprintf fmt "<wrap/in>"
-  | WrapPrfUnleash _ -> Format.fprintf fmt "<wrap/unleash>"
+  | LockedPrfIn _ -> Format.fprintf fmt "<wrap/in>"
+  | LockedPrfUnleash _ -> Format.fprintf fmt "<wrap/unleash>"
 
 and dump_tp fmt =
   function
@@ -94,7 +94,7 @@ and dump_tp fmt =
   | Nat -> Format.fprintf fmt "nat"
   | Circle -> Format.fprintf fmt "circle"
   | TpESub _ -> Format.fprintf fmt "<esub>"
-  | TpWrapPrf _ -> Format.fprintf fmt "<wrap>"
+  | TpLockedPrf _ -> Format.fprintf fmt "<wrap>"
 
 
 and dump_cof fmt =
@@ -354,11 +354,11 @@ let rec pp env fmt tm =
       (pp_sub env) sub
       (pp_atomic env) tm
 
-  | WrapPrfIn prf ->
+  | LockedPrfIn prf ->
     Format.fprintf fmt "@[<hv2>wrap %a@]"
       (pp_atomic env) prf
 
-  | WrapPrfUnleash {cof; prf; bdy; _} ->
+  | LockedPrfUnleash {cof; prf; bdy; _} ->
     Format.fprintf fmt "@[unleash %a : %a in@ %a@]"
       (pp env) prf
       (pp env) cof
@@ -440,8 +440,8 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "[%a]%a"
       (pp_sub env) sub
       (pp_atomic_tp env) tp
-  | TpWrapPrf phi ->
-    Format.fprintf fmt "wrap %a" 
+  | TpLockedPrf phi ->
+    Format.fprintf fmt "locked %a" 
       (pp_atomic env) phi
 
 and pp_atomic_tp env fmt tp =

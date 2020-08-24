@@ -64,6 +64,8 @@ and con_ =
   | V of con * con * con * con
   | VProj of con
   | Cap of con
+  | Locked of con
+  | Unleash of con * con
 [@@deriving show]
 
 and case = pat * con
