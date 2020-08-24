@@ -149,7 +149,8 @@ and con_to_cof =
     whnf_inspect_con ~style:`UnfoldAll con |>>
     function
     | D.Cof cof -> cof_con_to_cof cof
-    | D.Cut {cut = D.Var l, []; _} -> ret @@ Cof.var l
+    | D.Cut {cut = D.Var l, []; _} -> ret @@ Cof.var (`L l)
+    | D.Cut {cut = D.Global sym, []; _} -> ret @@ Cof.var (`G sym)
     | _ -> throw @@ NbeFailed "con_to_cof"
 
 and con_to_dim =

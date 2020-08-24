@@ -489,9 +489,11 @@ and quote_dim d : S.t quote =
 and quote_cof phi =
   let rec go =
     function
-    | Cof.Var lvl ->
+    | Cof.Var (`L lvl) ->
       let+ ix = quote_var lvl in
       S.Var ix
+    | Cof.Var (`G sym) ->
+      ret @@ S.Global sym
     | Cof.Cof phi ->
       match phi with
       | Cof.Eq (r, s) ->

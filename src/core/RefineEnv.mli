@@ -29,6 +29,7 @@ val set_location : LexingUtil.span option -> t -> t
 
 
 val append_con : Ident.t -> D.con -> D.tp -> t -> t
+val restrict : CofThy.cof list -> t -> t
 
 val set_veil : Veil.t -> t -> t
 

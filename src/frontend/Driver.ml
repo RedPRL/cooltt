@@ -10,63 +10,70 @@ module Err = RefineError
 module Sem = Semantics
 module Qu = Quote
 
-
 module RM = RefineMonad
+open Monad.Notation (RM)
+
+type status = (unit, unit) Result.t
+type continuation = Continue of (status RM.m -> status RM.m) | Quit
+type command = continuation RM.m 
 
 let elaborate_typed_term name (args : CS.cell list) tp tm =
-  let open Monad.Notation (RM) in
   RM.push_problem name @@
-  let* tp =
-    RM.push_problem "tp" @@
-    Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
-  in
+  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-  let* tm =
-    RM.push_problem "tm" @@
-    Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp
-  in
+  let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
-  tp, vtp, tm, vtm
+  vtp, vtm
 
-let execute_decl : CS.decl -> [`Continue | `Quit] RM.m =
-  let open Monad.Notation (RM) in
+let add_global name vtp con : command =
+  let+ _ = RM.add_global name vtp con in
+  let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in 
+  Continue kont
+
+let print_ident (ident : Ident.t CS.node) : command =
+  RM.resolve ident.node |>>
   function
-  | CS.Def {name; args; def; tp} ->
-    let* _tp, vtp, _tm, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let+ _sym = RM.add_global name vtp @@ Some vtm in
-    `Continue
+  | `Global sym ->
+    let* vtp, con = RM.get_global sym in
+    let* tp = RM.quote_tp vtp in
+    let* tm =
+      match con with
+      | None -> RM.ret None
+      | Some con ->
+        let* tm = RM.quote_con vtp con in
+        RM.ret @@ Some tm
+    in
+    let+ () = 
+      RM.emit ident.info pp_message @@ 
+      OutputMessage (Definition {ident = ident.node; tp; tm}) 
+    in
+    Continue Fun.id
+  | _ ->
+    RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
+
+
+let execute_decl : CS.decl -> command =
+  function
+  | CS.Def {name; args; def = Some def; tp} ->
+    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
+    add_global name vtp @@ Some vtm 
+  | CS.Def {name; args; def = None; tp} ->
+    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+    let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+    add_global name vtp None
   | CS.NormalizeTerm term ->
     RM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
     let* tm' = RM.quote_con vtp vtm in
-    let+ () = RM.emit term.info pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
-    `Continue
+    let+ () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
+    Continue Fun.id
   | CS.Print ident ->
-    begin
-      RM.resolve ident.node |>>
-      function
-      | `Global sym ->
-        let* vtp, con = RM.get_global sym in
-        let* tp = RM.quote_tp vtp in
-        let* tm =
-          match con with
-          | None -> RM.ret None
-          | Some con ->
-            let* tm = RM.quote_con vtp con in
-            RM.ret @@ Some tm
-        in
-        let+ () = RM.emit ident.info pp_message @@ (OutputMessage (Definition {ident = ident.node; tp; tm})) in
-        `Continue
-      | _ ->
-        RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
-    end
+    print_ident ident
   | CS.Quit ->
-    RM.ret `Quit
-
+    RM.ret Quit
 
 let protect m =
-  let open Monad.Notation (RM) in
   RM.trap m |>> function
   | Ok return ->
     RM.ret @@ Ok return
@@ -79,20 +86,19 @@ let protect m =
     Error ()
 
 let rec execute_signature ~status sign =
-  let open Monad.Notation (RM) in
   match sign with
   | [] -> RM.ret status
   | d :: sign ->
     let* res = protect @@ execute_decl d in
     match res with
-    | Ok `Continue ->
-      execute_signature ~status sign
-    | Ok `Quit ->
+    | Ok Continue k ->
+      k @@ execute_signature ~status sign
+    | Ok Quit ->
       RM.ret @@ Ok ()
     | Error () ->
       RM.ret @@ Error ()
 
-let process_sign : CS.signature -> (unit, unit) result =
+let process_sign : CS.signature -> status =
   fun sign ->
   RM.run_exn RefineState.init Env.init @@
   execute_signature ~status:(Ok ()) sign
@@ -108,14 +114,12 @@ let process_file input =
     Error ()
 
 let execute_command =
-  let open Monad.Notation (RM) in
   function
   | CS.Decl decl -> execute_decl decl
-  | CS.NoOp -> RM.ret `Continue
-  | CS.EndOfFile -> RM.ret `Quit
+  | CS.NoOp -> RM.ret @@ Continue Fun.id
+  | CS.EndOfFile -> RM.ret Quit
 
 let rec repl (ch : in_channel) lexbuf =
-  let open Monad.Notation (RM) in
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError {span; last_token}) ->
     let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = ParseError; last_token} in
@@ -126,11 +130,11 @@ let rec repl (ch : in_channel) lexbuf =
   | Ok cmd ->
     protect @@ execute_command cmd |>>
     function
-    | Ok `Continue ->
-      repl ch lexbuf
+    | Ok (Continue k) ->
+      k @@ repl ch lexbuf
     | Error _  ->
       repl ch lexbuf
-    | Ok `Quit ->
+    | Ok Quit ->
       close_in ch;
       RM.ret @@ Ok ()
 

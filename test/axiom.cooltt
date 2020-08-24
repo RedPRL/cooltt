@@ -1,0 +1,16 @@
+axiom φ/two : 𝔽
+axiom two : sub nat φ/two 2
+
+def two' 
+  : nat 
+  := two
+
+normalize two'
+axiom _ : [φ/two]
+normalize two'
+
+def test : sub nat #t 2 := 
+  two
+
+print test
+

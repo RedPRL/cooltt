@@ -278,6 +278,11 @@ struct
     M.scope @@ fun env ->
     Env.set_veil v env
 
+  let restrict phis =
+    M.scope @@ fun env ->
+    Env.restrict phis env
+
+
   let lift_conv_ (m : unit conversion) : unit m =
     let module MU = Monad.Util (struct
         type 'a m = ('a, exn) result let ret = Result.ok let bind = Result.bind

@@ -76,7 +76,7 @@ and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 [@@deriving show]
 
 type decl =
-  | Def of {name : Ident.t; args : cell list; def : con; tp : con}
+  | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
   | Print of Ident.t node
   | NormalizeTerm of con
   | Quit

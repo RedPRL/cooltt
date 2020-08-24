@@ -4,7 +4,7 @@ open Cubical
 open Bwd
 
 type dim = Dim.dim
-type cof = (dim, int) Cof.cof
+type cof = (dim, [`L of int | `G of Symbol.t]) Cof.cof
 
 (** A type code whose head constructor is stable under dimension substitution. *)
 type 'a stable_code =

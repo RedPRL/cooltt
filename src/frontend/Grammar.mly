@@ -24,7 +24,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token COLON PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -34,7 +34,7 @@
 %token CIRCLE BASE LOOP
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF
+%token QUIT NORMALIZE PRINT DEF AXIOM
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
@@ -82,8 +82,10 @@ plain_name:
     { underscore_as_name }
 
 decl:
-  | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; EQUALS; body = term
-    { Def {name = nm; args = tele; def = body; tp} }
+  | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Def {name = nm; args = tele; def = Some body; tp} }
+  | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
+    { Def {name = nm; args = tele; def = None; tp} }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term
@@ -213,9 +215,9 @@ plain_term_except_cof_case:
     { Unfold (names, body) }
   | GENERALIZE; name = plain_name; IN; body = term;
     { Generalize (name, body) }
-  | LET; name = plain_name; COLON; tp = term; EQUALS; def = term; IN; body = term
+  | LET; name = plain_name; COLON; tp = term; COLON_EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
-  | LET; name = plain_name; EQUALS; def = term; IN; body = term
+  | LET; name = plain_name; COLON_EQUALS; def = term; IN; body = term
     { Let (def, name, body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }

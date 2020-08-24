@@ -34,6 +34,7 @@ let keywords =
     ("unfold", UNFOLD);
     ("generalize", GENERALIZE);
     ("def", DEF);
+    ("axiom", AXIOM);
     ("normalize", NORMALIZE);
     ("print", PRINT);
     ("quit", QUIT);
@@ -132,6 +133,8 @@ rule token = parse
     { JOIN }
   | "="
     { EQUALS }
+  | ":="
+    { COLON_EQUALS }
   | "->"
     { RIGHT_ARROW }
   | "=>"
