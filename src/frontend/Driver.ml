@@ -66,7 +66,7 @@ let execute_decl : CS.decl -> command =
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
     let* tm' = RM.quote_con vtp vtm in
-    let+ () = RM.emit term.info pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
+    let+ () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
     Continue Fun.id
   | CS.Print ident ->
     print_ident ident
