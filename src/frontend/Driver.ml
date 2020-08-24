@@ -37,6 +37,30 @@ let add_global name vtp con =
   in 
   `Continue kont
 
+
+let print_ident (ident : Ident.t CS.node) =
+  let open Monad.Notation (RM) in
+  RM.resolve ident.node |>>
+  function
+  | `Global sym ->
+    let* vtp, con = RM.get_global sym in
+    let* tp = RM.quote_tp vtp in
+    let* tm =
+      match con with
+      | None -> RM.ret None
+      | Some con ->
+        let* tm = RM.quote_con vtp con in
+        RM.ret @@ Some tm
+    in
+    let+ () = 
+      RM.emit ident.info pp_message @@ 
+      OutputMessage (Definition {ident = ident.node; tp; tm}) 
+    in
+    `Continue (fun m -> m)
+  | _ ->
+    RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
+
+
 let execute_decl : CS.decl -> continuation RM.m =
   let open Monad.Notation (RM) in
   function
@@ -55,27 +79,7 @@ let execute_decl : CS.decl -> continuation RM.m =
     let+ () = RM.emit term.info pp_message @@ (OutputMessage (NormalizedTerm {orig = tm; nf = tm'})) in
     `Continue (fun m -> m)
   | CS.Print ident ->
-    begin
-      RM.resolve ident.node |>>
-      function
-      | `Global sym ->
-        let* vtp, con = RM.get_global sym in
-        let* tp = RM.quote_tp vtp in
-        let* tm =
-          match con with
-          | None -> RM.ret None
-          | Some con ->
-            let* tm = RM.quote_con vtp con in
-            RM.ret @@ Some tm
-        in
-        let+ () = 
-          RM.emit ident.info pp_message @@ 
-          OutputMessage (Definition {ident = ident.node; tp; tm}) 
-        in
-        `Continue (fun m -> m)
-      | _ ->
-        RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
-    end
+    print_ident ident
   | CS.Quit ->
     RM.ret `Quit
 
