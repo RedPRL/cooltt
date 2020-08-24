@@ -34,7 +34,7 @@
 %token CIRCLE BASE LOOP
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF
+%token QUIT NORMALIZE PRINT DEF AXIOM
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
@@ -83,7 +83,9 @@ plain_name:
 
 decl:
   | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; EQUALS; body = term
-    { Def {name = nm; args = tele; def = body; tp} }
+    { Def {name = nm; args = tele; def = Some body; tp} }
+  | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
+    { Def {name = nm; args = tele; def = None; tp} }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term

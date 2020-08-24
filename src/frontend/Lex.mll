@@ -34,6 +34,7 @@ let keywords =
     ("unfold", UNFOLD);
     ("generalize", GENERALIZE);
     ("def", DEF);
+    ("axiom", AXIOM);
     ("normalize", NORMALIZE);
     ("print", PRINT);
     ("quit", QUIT);
