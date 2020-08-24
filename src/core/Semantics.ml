@@ -272,6 +272,9 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     in
     let+ branches = MU.map go_branch branches in
     D.Split branches
+  | D.WrapPrfIn prf ->
+    let+ prf = subst_con r x prf in 
+    D.WrapPrfIn prf
 
 and subst_dim : D.dim -> Symbol.t -> D.dim -> D.dim CM.m =
   fun r x s ->
@@ -713,6 +716,10 @@ and eval : S.t -> D.con EvM.m =
     | S.ESub (sb, tm) ->
       eval_sub sb @@ eval tm
 
+    | S.WrapPrfIn prf ->
+      let+ prf = eval prf in
+      D.WrapPrfIn prf
+
 and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
   let open EvM in
@@ -742,7 +749,7 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.WrapPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ ->
     ret `Done
   | D.LetSym (r, x, con) ->

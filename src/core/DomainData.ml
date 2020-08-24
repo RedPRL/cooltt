@@ -84,6 +84,8 @@ and con =
 
   | Split of (cof * tm_clo) list
 
+  | WrapPrfIn of con
+
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ

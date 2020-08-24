@@ -256,6 +256,10 @@ let rec quote_con (tp : D.tp) con =
         S.CofSplit (List.combine tphis tms)
     end
 
+  | D.TpWrapPrf phi, D.WrapPrfIn prf ->
+    let+ prf = quote_con (D.TpPrf phi) prf in
+    S.WrapPrfIn prf
+
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))

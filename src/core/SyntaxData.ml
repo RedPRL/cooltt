@@ -56,6 +56,8 @@ type t =
   | ESub of sub * t
   (** Explicit substition *)
 
+  | WrapPrfIn of t
+
 and tp =
   | Univ
   | El of t

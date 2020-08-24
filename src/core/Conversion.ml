@@ -243,6 +243,7 @@ and equate_con tp con0 con1 =
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
     equate_hcom (D.StableCode `Circle, r0, s0, phi0, bdy0') (D.StableCode `Circle, r1, s1, phi1, bdy1')
+
   | univ, D.StableCode code0, D.StableCode code1 ->
     equate_stable_code univ code0 code1
 
@@ -266,9 +267,22 @@ and equate_con tp con0 con1 =
     let* tp_proj = lift_cmp @@ do_el code in
     equate_con tp_proj proj0 proj1
 
+  | D.TpWrapPrf _, D.WrapPrfIn _, D.WrapPrfIn _->
+    ret ()
+
+  | D.TpWrapPrf phi, _, _ ->
+    begin
+      CmpM.test_sequent [] phi |> lift_cmp |>> function
+      | false ->
+        conv_err @@ ExpectedSequentTrue ([], phi)
+      | true -> 
+        ret ()
+    end
+
   | _ ->
     Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
     conv_err @@ ExpectedConEq (tp, con0, con1)
+
 
 (* Invariant: cut0, cut1 are whnf *)
 and equate_cut cut0 cut1 =
