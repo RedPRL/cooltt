@@ -206,7 +206,7 @@ and pp_tp fmt =
     Format.fprintf fmt "<V>"
   | TpSplit _ ->
     Format.fprintf fmt "<split>"
-  | TpWrap _ ->
+  | TpWrapPrf _ ->
     Format.fprintf fmt "<wrap>"
 
 and pp_stable_code fmt =

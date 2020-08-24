@@ -81,8 +81,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
-  | D.TpWrap tp0, D.TpWrap tp1 ->
-    equate_tp tp0 tp1
+  | D.TpWrapPrf phi0, D.TpWrapPrf phi1 ->
+    equate_cof phi0 phi1
   | D.Pi (base0, _, fam0), D.Pi (base1, _, fam1)
   | D.Sg (base0, _, fam0), D.Sg (base1, _, fam1) ->
     let* () = equate_tp base0 base1 in

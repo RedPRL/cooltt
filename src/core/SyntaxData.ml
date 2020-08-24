@@ -70,7 +70,7 @@ and tp =
   | Nat
   | Circle
   | TpESub of sub * tp
-  | TpWrap of tp
+  | TpWrapPrf of t
 
 (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
 and sub =

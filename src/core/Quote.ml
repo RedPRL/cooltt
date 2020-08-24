@@ -423,9 +423,9 @@ and quote_tp (tp : D.tp) =
     let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
     and+ tps = MU.map branch_body branches in
     S.TpCofSplit (List.combine tphis tps)
-  | D.TpWrap tp ->
-    let+ ttp = quote_tp tp in
-    S.TpWrap ttp
+  | D.TpWrapPrf phi ->
+    let+ tphi = quote_cof phi in
+    S.TpWrapPrf tphi
 
 and quote_hd =
   function
