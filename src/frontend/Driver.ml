@@ -16,15 +16,9 @@ module RM = RefineMonad
 let elaborate_typed_term name (args : CS.cell list) tp tm =
   let open Monad.Notation (RM) in
   RM.push_problem name @@
-  let* tp =
-    RM.push_problem "tp" @@
-    Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp
-  in
+  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-  let* tm =
-    RM.push_problem "tm" @@
-    Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp
-  in
+  let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
   tp, vtp, tm, vtm
 
