@@ -98,7 +98,7 @@ let rec execute_signature ~status sign =
     | Error () ->
       RM.ret @@ Error ()
 
-let process_sign : CS.signature -> (unit, unit) result =
+let process_sign : CS.signature -> status =
   fun sign ->
   RM.run_exn RefineState.init Env.init @@
   execute_signature ~status:(Ok ()) sign
