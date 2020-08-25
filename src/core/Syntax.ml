@@ -76,8 +76,8 @@ let rec dump fmt =
 
   | ESub _ -> Format.fprintf fmt "<esub>"
 
-  | LockedPrfIn _ -> Format.fprintf fmt "<wrap/in>"
-  | LockedPrfUnlock _ -> Format.fprintf fmt "<wrap/unlock>"
+  | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
+  | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
 and dump_tp fmt =
   function
@@ -94,7 +94,7 @@ and dump_tp fmt =
   | Nat -> Format.fprintf fmt "nat"
   | Circle -> Format.fprintf fmt "circle"
   | TpESub _ -> Format.fprintf fmt "<esub>"
-  | TpLockedPrf _ -> Format.fprintf fmt "<wrap>"
+  | TpLockedPrf _ -> Format.fprintf fmt "<locked>"
 
 
 and dump_cof fmt =
@@ -355,7 +355,7 @@ let rec pp env fmt tm =
       (pp_atomic env) tm
 
   | LockedPrfIn prf ->
-    Format.fprintf fmt "@[<hv2>wrap %a@]"
+    Format.fprintf fmt "@[<hv2>lock %a@]"
       (pp_atomic env) prf
 
   | LockedPrfUnlock {cof; prf; bdy; _} ->
