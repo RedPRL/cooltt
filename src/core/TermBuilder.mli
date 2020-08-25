@@ -63,9 +63,9 @@ val tp_dim : tp m
 val tp_cof : tp m
 val el : t m -> tp m
 
-val tp_wrap_prf : t m -> tp m
-val wrap_prf_in : t m -> t m
-val wrap_prf_unlock : tp m -> cof:t m -> prf:t m -> bdy:t m -> t m
+val tp_locked_prf : t m -> tp m
+val locked_prf_in : t m -> t m
+val locked_prf_unlock : tp m -> cof:t m -> prf:t m -> bdy:t m -> t m
 
 val cube : int -> (t m list -> tp m) -> tp m
 

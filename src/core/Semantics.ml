@@ -1203,7 +1203,7 @@ and do_prf_unlock tp phi con bdy =
     Splice.cof phi @@ fun phi ->
     Splice.tp tp @@ fun tp ->
     Splice.Macro.commute_split con phis @@ fun prf ->
-    TB.wrap_prf_unlock tp ~cof:phi ~prf ~bdy
+    TB.locked_prf_unlock tp ~cof:phi ~prf ~bdy
   in
   begin
     inspect_con ~style:`UnfoldNone con |>>
