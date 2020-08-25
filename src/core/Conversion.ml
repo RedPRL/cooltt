@@ -275,7 +275,7 @@ and equate_con tp con0 con1 =
       CmpM.test_sequent [] phi |> lift_cmp |>> function
       | false ->
         conv_err @@ ExpectedSequentTrue ([], phi)
-      | true -> 
+      | true ->
         ret ()
     end
 

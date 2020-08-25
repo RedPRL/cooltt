@@ -441,7 +441,7 @@ and pp_tp env fmt tp =
       (pp_sub env) sub
       (pp_atomic_tp env) tp
   | TpLockedPrf phi ->
-    Format.fprintf fmt "locked %a" 
+    Format.fprintf fmt "locked %a"
       (pp_atomic env) phi
 
 and pp_atomic_tp env fmt tp =

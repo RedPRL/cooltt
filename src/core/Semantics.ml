@@ -273,7 +273,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     let+ branches = MU.map go_branch branches in
     D.Split branches
   | D.LockedPrfIn prf ->
-    let+ prf = subst_con r x prf in 
+    let+ prf = subst_con r x prf in
     D.LockedPrfIn prf
 
 and subst_dim : D.dim -> Symbol.t -> D.dim -> D.dim CM.m =
@@ -425,9 +425,9 @@ and subst_unstable_frm : D.dim -> Symbol.t -> D.unstable_frm -> D.unstable_frm C
     and+ clo = subst_clo r x clo in
     D.KSubOut (phi, clo)
   | D.KLockedPrfUnlock (tp, phi, con) ->
-    let+ tp = subst_tp r x tp 
+    let+ tp = subst_tp r x tp
     and+ phi = subst_cof r x phi
-    and+ con = subst_con r x con in 
+    and+ con = subst_con r x con in
     D.KLockedPrfUnlock (tp, phi, con)
 
 
@@ -1198,7 +1198,7 @@ and do_prf_unlock tp phi con bdy =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
-    splice_tm @@ 
+    splice_tm @@
     Splice.con bdy @@ fun bdy ->
     Splice.cof phi @@ fun phi ->
     Splice.tp tp @@ fun tp ->

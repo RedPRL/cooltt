@@ -359,23 +359,23 @@ struct
       RM.expected_connective `Prf tp
 end
 
-module LockedPrf = 
+module LockedPrf =
 struct
-  let formation tac_phi = 
-    T.Tp.rule @@ 
-    let+ phi = T.Chk.run tac_phi D.TpCof in 
+  let formation tac_phi =
+    T.Tp.rule @@
+    let+ phi = T.Chk.run tac_phi D.TpCof in
     S.TpLockedPrf phi
 
   let intro =
     T.Chk.rule @@
     function
     | D.TpLockedPrf phi ->
-      let+ () = Cof.assert_true phi in 
+      let+ () = Cof.assert_true phi in
       S.LockedPrfIn S.Prf
     | tp ->
       RM.expected_connective `LockedPrf tp
 
-  let unlock prf bdy = 
+  let unlock prf bdy =
     T.Chk.rule @@
     function
     | D.TpPrf _ ->

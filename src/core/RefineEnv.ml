@@ -73,8 +73,8 @@ let resolve_local (ident : Ident.t) env =
   | i -> Some i
   | exception E -> None
 
-let restrict phis env = 
-  {env with 
+let restrict phis env =
+  {env with
    cof_thy = CofThy.Disj.assume env.cof_thy phis}
 
 let append_con ident con tp env =
