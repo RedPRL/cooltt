@@ -26,6 +26,8 @@ let pp_connective fmt =
     Format.fprintf fmt "sub"
   | `Prf ->
     Format.fprintf fmt "prf"
+  | `LockedPrf ->
+    Format.fprintf fmt "locked"
   | `El ->
     Format.fprintf fmt "el"
   | `ElV ->

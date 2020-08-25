@@ -84,6 +84,8 @@ and con =
 
   | Split of (cof * tm_clo) list
 
+  | LockedPrfIn of con
+
 and tp =
   | Sub of tp * cof * tm_clo
   | Univ
@@ -98,6 +100,7 @@ and tp =
   | Sg of tp * Ident.t * tp_clo
   | Nat
   | Circle
+  | TpLockedPrf of cof
 
 (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
 and hd =
@@ -131,3 +134,4 @@ and unstable_frm =
   | KCap of dim * dim * cof * con
   | KVProj of dim * con * con * con
   | KSubOut of cof * tm_clo
+  | KLockedPrfUnlock of tp * cof * con

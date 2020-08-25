@@ -40,6 +40,12 @@ module Prf : sig
   val intro : Chk.tac
 end
 
+module LockedPrf : sig
+  val formation : Chk.tac -> Tp.tac
+  val intro : Chk.tac
+  val unlock : Syn.tac -> Chk.tac -> Chk.tac
+end
+
 module Univ : sig
   val formation : Tp.tac
   val univ : Chk.tac

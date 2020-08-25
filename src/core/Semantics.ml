@@ -272,6 +272,9 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     in
     let+ branches = MU.map go_branch branches in
     D.Split branches
+  | D.LockedPrfIn prf ->
+    let+ prf = subst_con r x prf in
+    D.LockedPrfIn prf
 
 and subst_dim : D.dim -> Symbol.t -> D.dim -> D.dim CM.m =
   fun r x s ->
@@ -349,6 +352,9 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     in
     let+ branches = MU.map subst_branch branches in
     D.TpSplit branches
+  | D.TpLockedPrf phi ->
+    let+ phi = subst_cof r x phi in
+    D.TpLockedPrf phi
 
 and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stable_code CM.m =
   fun r x ->
@@ -418,6 +424,12 @@ and subst_unstable_frm : D.dim -> Symbol.t -> D.unstable_frm -> D.unstable_frm C
     let+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.KSubOut (phi, clo)
+  | D.KLockedPrfUnlock (tp, phi, con) ->
+    let+ tp = subst_tp r x tp
+    and+ phi = subst_cof r x phi
+    and+ con = subst_con r x con in
+    D.KLockedPrfUnlock (tp, phi, con)
+
 
 and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
   fun r x ->
@@ -484,6 +496,9 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.TpSplit (List.combine phis pclos)
   | S.TpESub (sb, tp) ->
     eval_sub sb @@ eval_tp tp
+  | S.TpLockedPrf phi ->
+    let+ phi = eval_cof phi in
+    D.TpLockedPrf phi
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -707,6 +722,17 @@ and eval : S.t -> D.con EvM.m =
     | S.ESub (sb, tm) ->
       eval_sub sb @@ eval tm
 
+    | S.LockedPrfIn prf ->
+      let+ prf = eval prf in
+      D.LockedPrfIn prf
+
+    | S.LockedPrfUnlock {tp; cof; prf; bdy} ->
+      let* tp = eval_tp tp in
+      let* cof = eval_cof cof in
+      let* prf = eval prf in
+      let* bdy = eval bdy in
+      lift_cmp @@ do_prf_unlock tp cof prf bdy
+
 and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
   let open EvM in
@@ -736,7 +762,7 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
@@ -862,6 +888,8 @@ and do_rigid_unstable_frm ~style con ufrm =
     do_rigid_vproj r pcode code pequiv con
   | D.KSubOut _ ->
     do_sub_out con
+  | D.KLockedPrfUnlock (tp, phi, bdy) ->
+    do_prf_unlock tp phi con bdy
 
 and whnf_cut ~style : D.cut -> D.con whnf CM.m =
   let open CM in
@@ -1165,6 +1193,33 @@ and do_sub_out con =
     | _ ->
       throw @@ NbeFailed "do_sub_out"
   end
+
+and do_prf_unlock tp phi con bdy =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis =
+    splice_tm @@
+    Splice.con bdy @@ fun bdy ->
+    Splice.cof phi @@ fun phi ->
+    Splice.tp tp @@ fun tp ->
+    Splice.Macro.commute_split con phis @@ fun prf ->
+    TB.locked_prf_unlock tp ~cof:phi ~prf ~bdy
+  in
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.LockedPrfIn con ->
+      do_ap bdy con
+    | D.Cut {tp = D.TpLockedPrf phi; cut} ->
+      ret @@ D.Cut {tp; cut = D.UnstableCut (cut, D.KLockedPrfUnlock (tp, phi, bdy)), []}
+    | D.Split branches as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | _ ->
+      throw @@ NbeFailed "do_prf_unlock"
+  end
+
 
 and do_rigid_cap r s phi code box =
   let splitter con phis =

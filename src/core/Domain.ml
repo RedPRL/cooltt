@@ -175,6 +175,8 @@ and pp_con : con Pp.printer =
       pp_split_branch
       fmt
       branches
+  | LockedPrfIn _ ->
+    Format.fprintf fmt "<wrap>"
 
 and pp_tp fmt =
   function
@@ -206,6 +208,8 @@ and pp_tp fmt =
     Format.fprintf fmt "<V>"
   | TpSplit _ ->
     Format.fprintf fmt "<split>"
+  | TpLockedPrf _ ->
+    Format.fprintf fmt "<wrap>"
 
 and pp_stable_code fmt =
   function

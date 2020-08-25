@@ -256,6 +256,10 @@ let rec quote_con (tp : D.tp) con =
         S.CofSplit (List.combine tphis tms)
     end
 
+  | D.TpLockedPrf phi, D.LockedPrfIn prf ->
+    let+ prf = quote_con (D.TpPrf phi) prf in
+    S.LockedPrfIn prf
+
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
@@ -423,6 +427,9 @@ and quote_tp (tp : D.tp) =
     let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
     and+ tps = MU.map branch_body branches in
     S.TpCofSplit (List.combine tphis tps)
+  | D.TpLockedPrf phi ->
+    let+ tphi = quote_cof phi in
+    S.TpLockedPrf tphi
 
 and quote_hd =
   function
@@ -481,6 +488,15 @@ and quote_unstable_cut cut ufrm =
     in
     let+ tv = quote_cut cut in
     S.VProj (tr, tpcode, tcode, t_pequiv, tv)
+  | D.KLockedPrfUnlock (tp, phi, bdy) ->
+    let+ tp = quote_tp tp
+    and+ prf = quote_cut cut
+    and+ cof = quote_cof phi
+    and+ bdy =
+      let bdy_tp = D.Pi (D.TpPrf phi, `Anon, D.const_tp_clo tp) in
+      quote_con bdy_tp bdy
+    in
+    S.LockedPrfUnlock {tp; cof; prf; bdy}
 
 and quote_dim d : S.t quote =
   quote_con D.TpDim @@

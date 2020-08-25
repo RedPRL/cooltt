@@ -56,6 +56,9 @@ type t =
   | ESub of sub * t
   (** Explicit substition *)
 
+  | LockedPrfIn of t
+  | LockedPrfUnlock of {tp : tp; cof : t; prf : t; bdy : t}
+
 and tp =
   | Univ
   | El of t
@@ -70,6 +73,7 @@ and tp =
   | Nat
   | Circle
   | TpESub of sub * tp
+  | TpLockedPrf of t
 
 (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
 and sub =
