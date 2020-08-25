@@ -1,4 +1,4 @@
-module S = Syntax 
+module S = Syntax
 module D = Domain
 module Sem = Semantics
 module TB = TermBuilder
