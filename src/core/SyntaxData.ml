@@ -31,6 +31,8 @@ type t =
 
   | Dim0
   | Dim1
+  | DDim0
+  | DDim1
   | Cof of (t, t) Cof.cof_f
   | ForallCof of t
   | CofSplit of (t * t) list
@@ -64,6 +66,7 @@ and tp =
   | El of t
   | TpVar of int
   | TpDim
+  | TpDDim
   | TpCof
   | TpPrf of t
   | TpCofSplit of (t * tp) list

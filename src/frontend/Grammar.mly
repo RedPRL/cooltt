@@ -25,7 +25,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM DDIM D0 D1 COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -161,6 +161,12 @@ plain_atomic_term_except_name:
     { Hole (name, None) }
   | DIM
     { Dim }
+  | DDIM
+    { DDim }
+  | D0
+    { D0 }
+  | D1
+    { D1 }
   | COF
     { Cof }
   | TOPC

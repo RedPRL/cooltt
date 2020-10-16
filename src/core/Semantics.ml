@@ -175,7 +175,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.DDim0 | D.DDim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -322,7 +322,7 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpDDim | D.TpCof as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -481,6 +481,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.Sub (tp, phi, D.Clo (tm, env))
   | S.TpDim  ->
     ret D.TpDim
+  | S.TpDDim  ->
+    ret D.TpDDim
   | S.TpCof ->
     ret D.TpCof
   | S.TpPrf tphi ->
@@ -613,6 +615,8 @@ and eval : S.t -> D.con EvM.m =
       D.ElIn con
     | S.Dim0 -> ret D.Dim0
     | S.Dim1 -> ret D.Dim1
+    | S.DDim0 -> raise Todo
+    | S.DDim1 -> raise Todo
     | S.Cof cof_f ->
       begin
         match cof_f with
@@ -763,7 +767,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
-  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.DDim0 | D.DDim1 | D.Prf | D.StableCode _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con

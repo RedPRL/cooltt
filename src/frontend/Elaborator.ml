@@ -41,6 +41,7 @@ sig
   val circle : tac
   val univ : tac
   val dim : tac
+  val ddim : tac
   val cof : tac
   val prf : T.Chk.tac -> tac
   val locked_prf : T.Chk.tac -> tac
@@ -101,6 +102,7 @@ struct
   let circle = Code R.Univ.circle
   let univ = Code R.Univ.univ
   let dim = Tp R.Dim.formation
+  let ddim = Tp R.DDim.formation
   let cof = Tp R.Cof.formation
   let prf tac = Tp (R.Prf.formation tac)
   let locked_prf tac = Tp (R.LockedPrf.formation tac)
@@ -122,6 +124,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     CoolTp.sg (cool_chk_tp cell.tp) cell.name @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Dim -> CoolTp.dim
+  | CS.DDim -> CoolTp.ddim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) -> CoolTp.sub (cool_chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
@@ -201,6 +204,21 @@ and chk_tm : CS.con -> T.Chk.tac =
         Tactics.match_goal @@ function
         | D.TpDim, _, _ -> RM.ret @@ R.Dim.literal n
         | _ -> RM.ret @@ R.Nat.literal n
+      end
+      
+    | CS.D0 ->
+      begin
+        Tactics.match_goal @@ function
+        | D.TpDDim, _, _ -> RM.ret @@ R.DDim.ddim0
+        | tp, _, _ ->
+          RM.expected_connective `DDim tp
+      end
+    | CS.D1 ->
+      begin
+        Tactics.match_goal @@ function
+        | D.TpDDim, _, _ -> RM.ret @@ R.DDim.ddim1
+        | tp, _, _ ->
+          RM.expected_connective `DDim tp
       end
 
     | CS.Lam (nm :: names, body) ->

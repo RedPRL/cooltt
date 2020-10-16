@@ -61,6 +61,7 @@ val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m
 val tp_cof : tp m
+val tp_ddim : tp m
 val el : t m -> tp m
 
 val tp_locked_prf : t m -> tp m
@@ -77,6 +78,8 @@ val vproj : t m -> t m -> t m -> t m -> t m -> t m
 
 val dim0 : t m
 val dim1 : t m
+val ddim0 : t m
+val ddim1 : t m
 val eq : t m -> t m -> t m
 val join : t m list -> t m
 val meet : t m list -> t m

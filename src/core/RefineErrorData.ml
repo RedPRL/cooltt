@@ -11,6 +11,7 @@ struct
     | `Circle
     | `Univ
     | `Dim
+    | `DDim
     | `Cof
     | `Sub
     | `Prf

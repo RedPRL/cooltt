@@ -4,6 +4,7 @@
 
 (** The abstract syntax of the Cartesian interval. *)
 module Dim : module type of Dim
+module DDim : module type of DDim
 
 (** The abstract syntax of the restricted predicate logic of cofibrations. *)
 module Cof : module type of Cof

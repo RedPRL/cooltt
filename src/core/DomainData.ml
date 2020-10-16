@@ -4,6 +4,7 @@ open Cubical
 open Bwd
 
 type dim = Dim.dim
+type ddim = DDim.ddim
 type cof = (dim, [`L of int | `G of Symbol.t]) Cof.cof
 
 (** A type code whose head constructor is stable under dimension substitution. *)
@@ -69,6 +70,9 @@ and con =
   | Dim0
   | Dim1
 
+  | DDim0
+  | DDim1
+
   | Cof of (con, con) Cof.cof_f
   (** A mixin of the language of cofibrations (as described in {!module:Cubical.Cof}), with dimensions and indeterminates in {!type:con}. *)
 
@@ -93,6 +97,7 @@ and tp =
   | ElStable of con stable_code
   | ElUnstable of con unstable_code
   | TpDim
+  | TpDDim
   | TpCof
   | TpPrf of cof
   | TpSplit of (cof * tp_clo) list
