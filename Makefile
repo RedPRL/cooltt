@@ -16,7 +16,7 @@ doc:
 	@${DUNE} build @doc
 
 install:
-	${OPAM} reinstall cooltt
+	${OPAM} reinstall --working-dir cooltt
 
 test:
 	@./test.sh

@@ -1,0 +1,20 @@
+TODO:
++ add directed interval [DONE...?]
++ implement cofibrations for the directed interval
+  - figure out if inequalities are sufficient for all filling algorithms [IN PROGRESS]
+  - ...if not...figure out connections...
++ add directed/mixed extension types
+  - ...but start first with just a hom type
++ add covariant filling problem
+  - implement for relevant type formers
+  - figure out ♭-modality for Pi domain
++ add UCov
+  - implement universe lattice? 
++ add Segal/inner filling problem(s)
++ add UInner (i.e. USegal)
++ add FunGlue
++ figure out how to add cobar 😭😖😭
+
+Fun stuff to try (later):
++ manually add in some DHITs
++ add UCoCart
