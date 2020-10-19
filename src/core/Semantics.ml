@@ -615,8 +615,8 @@ and eval : S.t -> D.con EvM.m =
       D.ElIn con
     | S.Dim0 -> ret D.Dim0
     | S.Dim1 -> ret D.Dim1
-    | S.DDim0 -> raise Todo
-    | S.DDim1 -> raise Todo
+    | S.DDim0 -> ret D.DDim0
+    | S.DDim1 -> ret D.DDim1
     | S.Cof cof_f ->
       begin
         match cof_f with
