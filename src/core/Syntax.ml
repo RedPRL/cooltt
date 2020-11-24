@@ -54,6 +54,8 @@ let rec dump fmt =
   | Dim1 -> Format.fprintf fmt "<dim1>"
   | DDim0 -> Format.fprintf fmt "<ddim0>"
   | DDim1 -> Format.fprintf fmt "<ddim1>"
+  | DMeet (tm0 , tm1) -> Format.fprintf fmt "<dmeet[%a, %a]>" dump tm0 dump tm1
+  | DJoin (tm0 , tm1) -> Format.fprintf fmt "<djoin[%a, %a]>" dump tm0 dump tm1
   | Cof cof -> Format.fprintf fmt "cof[%a]" dump_cof cof
   | ForallCof _ -> Format.fprintf fmt "<dim1>"
   | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (pp_sep_list dump_branch) branches
@@ -303,6 +305,14 @@ let rec pp env fmt tm =
     Format.fprintf fmt "d0"
   | DDim1 ->
     Format.fprintf fmt "d1"
+  | DMeet (tm0 , tm1) ->
+    Format.fprintf fmt "%a ⊓ %a"
+      (pp_atomic env) tm0
+      (pp_atomic env) tm1
+  | DJoin (tm0 , tm1) ->
+    Format.fprintf fmt "%a ⊔ %a"
+      (pp_atomic env) tm0
+      (pp_atomic env) tm1
   | Prf ->
     Format.fprintf fmt "*"
   | Ann (tm, _) ->

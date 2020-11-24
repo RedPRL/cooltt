@@ -219,6 +219,20 @@ and chk_tm : CS.con -> T.Chk.tac =
         | D.TpDDim, _, _ -> RM.ret @@ R.DDim.ddim1
         | tp, _, _ ->
           RM.expected_connective `DDim tp
+      end 
+    | CS.DMeet (t1, t2) ->
+      begin
+        Tactics.match_goal @@ function
+        | D.TpDDim, _, _ -> RM.ret @@ R.DDim.dmeet (chk_tm t1) (chk_tm t2)
+        | tp, _, _ ->
+          RM.expected_connective `DDim tp
+      end
+    | CS.DJoin (t1, t2) ->
+      begin
+        Tactics.match_goal @@ function
+        | D.TpDDim, _, _ -> RM.ret @@ R.DDim.djoin (chk_tm t1) (chk_tm t2)
+        | tp, _, _ ->
+          RM.expected_connective `DDim tp
       end
 
     | CS.Lam (nm :: names, body) ->

@@ -25,7 +25,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM DDIM D0 D1 COF BOUNDARY
+%token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM DDIM D0 D1 DMEET DJOIN COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -274,6 +274,11 @@ plain_term_except_cof_case:
     { HFill (tp, src, phi, body) }
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
+
+  | left = atomic_term; DMEET; right = atomic_term   /* left and right should maybe not be atomic */
+    { DMeet (left, right) }
+  | left = atomic_term; DJOIN; right = atomic_term
+    { DJoin (left, right) }
 
 cases:
   | LSQ option(PIPE) cases = separated_list(PIPE, case) RSQ

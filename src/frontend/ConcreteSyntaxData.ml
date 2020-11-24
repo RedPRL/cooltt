@@ -50,6 +50,8 @@ and con_ =
   | DDim
   | D0
   | D1
+  | DMeet of con * con
+  | DJoin of con * con
   | Cof
   | CofEq of con * con
   | Join of con list

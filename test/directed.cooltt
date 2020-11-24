@@ -1,1 +1,3 @@
 def zeroDInt : 𝟚 := d0
+
+def connectionDInt : 𝟚 := d1 ⊓ d0

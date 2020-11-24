@@ -7,6 +7,12 @@ type ddim =
   | DDim1
     (** The right endpoint of the abstract directed interval. *)
 
+  | DMeet of ddim * ddim
+    (** The meet connection of the abstract directed interval. *)
+
+  | DJoin of ddim * ddim
+    (** The join connection of the abstract directed interval. *)
+
   | DDimVar of int
   (** In [cooltt], most directed dimension variables are represented as natural
      numbers (pointers into the context). *)

@@ -234,6 +234,26 @@ struct
       RM.ret S.DDim1
     | tp ->
       RM.expected_connective `DDim tp
+
+  let dmeet (tac_t1 : T.Chk.tac) (tac_t2 : T.Chk.tac) : T.Chk.tac =
+    T.Chk.rule @@
+    function
+    | D.TpDDim ->
+      let* t1 = T.Chk.run tac_t1 D.TpDDim in
+      let* t2 = T.Chk.run tac_t2 D.TpDDim in
+      RM.ret @@ S.DMeet (t1, t2)
+    | tp ->
+      RM.expected_connective `DDim tp
+
+  let djoin (tac_t1 : T.Chk.tac) (tac_t2 : T.Chk.tac) : T.Chk.tac =
+    T.Chk.rule @@
+    function
+    | D.TpDDim ->
+      let* t1 = T.Chk.run tac_t1 D.TpDDim in
+      let* t2 = T.Chk.run tac_t2 D.TpDDim in
+      RM.ret @@ S.DJoin (t1, t2)
+    | tp ->
+      RM.expected_connective `DDim tp
 end
 
 module Cof =

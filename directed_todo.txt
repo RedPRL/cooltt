@@ -2,6 +2,11 @@ TODO:
 + add directed interval [DONE...?]
 + implement cofibrations for the directed interval
   - figure out if inequalities are sufficient for all filling algorithms [IN PROGRESS]
+  - Check if inequality 0 → i version of cov is implied by 0 → 1 with connections (and draw pictures)
+  - If A is covariant, is Susp A is covariant
+  - Make type also constrained by inequality (and do both endpoint version)
+  - Write up weak simplicial sheaf proof for Segal types (see if any connections needed)
+  - Derive connections from Segal?
   - ...if not...figure out connections...
 + add directed/mixed extension types
   - ...but start first with just a hom type
@@ -18,3 +23,13 @@ TODO:
 Fun stuff to try (later):
 + manually add in some DHITs
 + add UCoCart
+
+
+Zak
++ NP Hard: SAT 
+  - reduction to SAT: every variable has positive and negative version, is between 0 and 1, meet of pos/neg is 0 and join is 1
+  - incremental SAT solver for persistence  
+  - generalization of the word problem of distributive lattices
+  - boolean variable for every partial order relation (n! variables)
+  - axioms of distributive lattice in SAT
+  - Alloy: relational model finder

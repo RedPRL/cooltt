@@ -137,6 +137,10 @@ rule token = parse
     { JOIN }
   | "\\/"
     { JOIN }
+  | "⊓"
+    { DMEET }
+  | "⊔"
+    { DJOIN }
   | "="
     { EQUALS }
   | ":="
