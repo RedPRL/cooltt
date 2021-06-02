@@ -7,9 +7,20 @@
 
   let atom_as_name a = `Unqual a
 
+  let add_part part =
+    function
+    | `Unqual nm        -> `Qual ([part], nm)
+    | `Qual (parts, nm) -> `Qual (part :: parts, nm)
+
+  let rec parts_as_name =
+    function
+    | (t :: []) -> `Unqual t
+    | (t :: ts) -> add_part t (parts_as_name ts)
+    | []        -> failwith "Impossible Internal Error"
+
   let underscore_as_name = `Anon
 
-  let plain_name_to_term =
+  let qualified_name_to_term =
     function
     | `Unqual a -> Var (`Unqual a)
     | `Qual a -> Var (`Qual a)
@@ -17,7 +28,7 @@
     | `Machine _ -> failwith "Impossible Internal Error"
 
   let name_to_term {node; info} =
-    {node = plain_name_to_term node; info}
+    {node = qualified_name_to_term node; info}
 
   let forget_location {node; info = _} = node
 %}
@@ -26,7 +37,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token COLON COLON_EQUALS PIPE COMMA DOT SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -82,6 +93,10 @@ plain_name:
     { atom_as_name s }
   | UNDERSCORE
     { underscore_as_name }
+
+qualified_name:
+  | parts = separated_nonempty_list(DOT, ATOM)
+    { parts_as_name parts }
 
 decl:
   | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
@@ -181,8 +196,8 @@ bracketed:
     { Prf t }
 
 plain_atomic_term:
-  | name = plain_name
-    { plain_name_to_term name }
+  | name = qualified_name
+    { qualified_name_to_term name }
   | t = plain_atomic_term_except_name
     { t }
 
