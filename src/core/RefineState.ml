@@ -1,4 +1,5 @@
 open Basis
+open NonEmpty
 
 module D = Domain
 module StringMap = Map.Make (String)
@@ -13,14 +14,20 @@ type namespace = {
 (* FIXME Implemnt adding of qualified names *)
 let add_symbol (ident : Ident.t) sym ns =
   match ident with
-  | `User ident -> { ns with symbols = StringMap.add ident sym ns.symbols }
+  | `Unqual ident -> { ns with symbols = StringMap.add ident sym ns.symbols }
   | _           -> ns
+
+let rec resolve_qualified modparts nm ns =
+  match modparts with
+  | []                  -> StringMap.find_opt nm ns.symbols
+  | (modnm :: modparts) -> Option.bind (StringMap.find_opt modnm ns.namespaces) (resolve_qualified modparts nm)
 
 (* FIXME Implemnt resolution of qualified names *)
 let resolve_symbol (ident : Ident.t) ns =
   match ident with
-  | `User ident -> StringMap.find_opt ident ns.symbols
-  | _           -> None
+  | `Unqual ident     -> StringMap.find_opt ident ns.symbols
+  | `Qual (parts, nm) -> resolve_qualified (NonEmpty.to_list parts) nm ns
+  | _                 -> None
 
 
 type t =
@@ -37,11 +44,7 @@ let init =
 
 let add_global (ident : Ident.t) tp ocon st =
   let sym =
-    Symbol.named_opt @@
-    match ident with
-    | `User id -> Some id
-    | `Machine id -> Some id
-    | `Anon -> None
+    Symbol.named_opt @@ Ident.pp_name ident
   in
   sym,
   {resolver = add_symbol ident sym st.resolver;

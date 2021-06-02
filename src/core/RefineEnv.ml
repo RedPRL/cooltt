@@ -64,8 +64,11 @@ let resolve_local (ident : Ident.t) env =
     | Emp -> raise E
     | Snoc (xs, cell) ->
       begin
+        (* FIXME: As of now, local vars can /only/ be unqualified.
+           This may change when we start using record types!
+         *)
         match ident, Cell.ident cell with
-        | `User y, `User x when x = y -> i
+        | `Unqual y, `Unqual x when x = y -> i
         | _ -> go (i + 1) xs
       end
   in
@@ -78,14 +81,8 @@ let restrict phis env =
    cof_thy = CofThy.Disj.assume env.cof_thy phis}
 
 let append_con ident con tp env =
-  let pp_name =
-    match ident with
-    | `User nm -> Some nm
-    | `Machine nm -> Some nm
-    | `Anon -> None
-  in
   {env with
-   pp = snd @@ Pp.Env.bind env.pp pp_name;
+   pp = snd @@ Pp.Env.bind env.pp (Ident.pp_name ident);
    locals = env.locals <>< [{contents = tp, con; ident}];
    cof_thy =
      match tp with

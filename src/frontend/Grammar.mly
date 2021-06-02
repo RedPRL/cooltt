@@ -5,13 +5,14 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
-  let atom_as_name a = `User a
+  let atom_as_name a = `Unqual a
 
   let underscore_as_name = `Anon
 
   let plain_name_to_term =
     function
-    | `User a -> Var (`User a)
+    | `Unqual a -> Var (`Unqual a)
+    | `Qual a -> Var (`Qual a)
     | `Anon -> Underscore
     | `Machine _ -> failwith "Impossible Internal Error"
 

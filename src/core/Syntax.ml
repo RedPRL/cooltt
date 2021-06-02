@@ -134,11 +134,7 @@ let pp_braced pp fmt a =
     pp a
 
 let ppenv_bind env ident =
-  Pp.Env.bind env @@
-  match ident with
-  | `Anon -> None
-  | `User id -> Some id
-  | `Machine id -> Some id
+  Pp.Env.bind env @@ Ident.pp_name ident
 
 let rec pp env fmt tm =
   match tm with
