@@ -1,5 +1,4 @@
 open Basis
-open NonEmpty
 
 module D = Domain
 module StringMap = Map.Make (String)
@@ -26,7 +25,7 @@ let rec resolve_qualified modparts nm ns =
 let resolve_symbol (ident : Ident.t) ns =
   match ident with
   | `Unqual ident     -> StringMap.find_opt ident ns.symbols
-  | `Qual (parts, nm) -> resolve_qualified (NonEmpty.to_list parts) nm ns
+  | `Qual (parts, nm) -> resolve_qualified parts nm ns
   | _                 -> None
 
 

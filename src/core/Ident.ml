@@ -1,9 +1,6 @@
-open Basis
-open NonEmpty
+type t = [`Anon | `Unqual of string | `Qual of string list * string | `Machine of string]
 
-type t = [`Anon | `Unqual of string | `Qual of string non_empty * string | `Machine of string]
-
-let pp_modname modparts nm = (NonEmpty.fold_left (fun acc x -> acc ^ "." ^ x) modparts) ^ "." ^ nm
+let pp_modname modparts nm = List.fold_right (fun x acc -> x ^ "." ^ acc) modparts nm
 
 let pp fmt =
   function
