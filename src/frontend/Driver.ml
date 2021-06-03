@@ -30,6 +30,10 @@ let add_global name vtp con : command =
   let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in 
   Continue kont
 
+let import_module path : command =
+  let _ = print_string ("importing " ^ path) in
+  RM.ret (Continue Fun.id)
+
 let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
   function
@@ -70,6 +74,8 @@ let execute_decl : CS.decl -> command =
     Continue Fun.id
   | CS.Print ident ->
     print_ident ident
+  | CS.Import path ->
+     import_module path
   | CS.Quit ->
     RM.ret Quit
 
