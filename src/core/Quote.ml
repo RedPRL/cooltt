@@ -613,3 +613,7 @@ and quote_frm tm =
     S.Ap (tm, targ)
   | D.KElOut ->
     ret @@ S.ElOut tm
+  | D.KLift (l0, l1) ->
+    let+ tl0 = quote_lvl l0
+    and+ tl1 = quote_lvl l1 in
+    S.CodeLift (tl0, tl1, tm)
