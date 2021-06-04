@@ -39,8 +39,8 @@ let dim_to_con =
   | Dim.Dim1 -> Dim1
   | Dim.DimVar lvl ->
     Cut {tp = TpDim; cut = Var lvl, []}
-  | Dim.DimSym sym ->
-    DimSym sym
+  | Dim.DimProbe sym ->
+    DimProbe sym
   | Dim.DimGlobal sym ->
     Cut {tp = TpDim; cut = Global sym, []}
 
@@ -146,7 +146,7 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
-  | DimSym x ->
+  | DimProbe x ->
     Format.fprintf fmt "probe[%a]" Symbol.pp x
   | Lam (_, clo) ->
     Format.fprintf fmt "lam[%a]" pp_clo clo

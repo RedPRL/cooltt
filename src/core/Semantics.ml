@@ -111,7 +111,7 @@ struct
     loop
 
   let forall sym =
-    let i = Dim.DimSym sym in
+    let i = Dim.DimProbe sym in
     extend @@
     function
     | `CofEq (r, s) ->
@@ -160,7 +160,7 @@ and con_to_dim =
     function
     | D.Dim0 -> ret Dim.Dim0
     | D.Dim1 -> ret Dim.Dim1
-    | D.DimSym x -> ret @@ Dim.DimSym x
+    | D.DimProbe x -> ret @@ Dim.DimProbe x
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
     | D.Cut {cut = Global x, []; _} -> ret @@ Dim.DimGlobal x
     | con ->
@@ -190,7 +190,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     D.Lam (ident, clo)
   | BindSym (y, con) ->
     begin
-      test_sequent [] (Cof.eq (Dim.DimSym x) (Dim.DimSym y)) |>>
+      test_sequent [] (Cof.eq (Dim.DimProbe x) (Dim.DimProbe y)) |>>
       function
       | true ->
         ret @@ D.BindSym (y, con)
@@ -252,9 +252,9 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ pivot = subst_con r x pivot
     and+ base = subst_con r x base in
     D.VIn (s, equiv, pivot, base)
-  | D.DimSym y as con ->
+  | D.DimProbe y as con ->
     begin
-      test_sequent [] (Cof.eq (Dim.DimSym x) (Dim.DimSym y)) |>>
+      test_sequent [] (Cof.eq (Dim.DimProbe x) (Dim.DimProbe y)) |>>
       function
       | true ->
         ret @@ D.dim_to_con r
@@ -630,7 +630,7 @@ and eval : S.t -> D.con EvM.m =
       end
     | S.ForallCof tm ->
       let sym = Symbol.named "forall_probe" in
-      let i = Dim.DimSym sym in
+      let i = Dim.DimProbe sym in
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
     | S.CofSplit (branches) ->
@@ -764,7 +764,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
-  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimSym _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
@@ -1398,7 +1398,7 @@ and dispatch_rigid_coe ~style line =
   in
   let peek line =
     let x = Symbol.fresh () in
-    go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ Dim.DimSym x |>>
+    go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ Dim.DimProbe x |>>
     function
     | `Reduce _ | `Done as res -> ret res
     | `Unknown ->
