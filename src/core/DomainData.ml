@@ -14,7 +14,7 @@ type 'a stable_code =
   | `Sg of ULvl.t * 'a * 'a
   (** Dependent sum type *)
 
-  | `Ext of int * 'a * [`Global of 'a] * 'a
+  | `Ext of ULvl.t * int * 'a * [`Global of 'a] * 'a
   (** Extension type *)
 
   | `Nat
@@ -29,10 +29,10 @@ type 'a stable_code =
 
 (** A type code whose head constructor is {i not} stable under dimension substitution. *)
 type 'a unstable_code =
-  [ `HCom of dim * dim * cof * 'a
+  [ `HCom of ULvl.t * dim * dim * cof * 'a
   (** Formal composite types *)
 
-  | `V of dim * 'a * 'a * 'a
+  | `V of ULvl.t * dim * 'a * 'a * 'a
     (** V types, for univalence *)
   ]
 
@@ -133,7 +133,7 @@ and frm =
 (** An {i unstable} frame is a {i dimension substitution-unstable} elimination form with a hole in place of its principal argument. *)
 and unstable_frm =
   | KHCom of dim * dim * cof * con
-  | KCap of dim * dim * cof * con
-  | KVProj of dim * con * con * con
+  | KCap of ULvl.t * dim * dim * cof * con
+  | KVProj of ULvl.t * dim * con * con * con
   | KSubOut of cof * tm_clo
   | KLockedPrfUnlock of tp * cof * con

@@ -134,12 +134,12 @@ struct
 
   let unstable_code =
     function
-    | `HCom (r, s, phi, bdy) ->
+    | `HCom (_, r, s, phi, bdy) ->
       Cof.join [Cof.eq r s; phi],
       F.dim s @@ fun s ->
       F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [s; TB.prf]
-    | `V (r, pcode, code, _) ->
+    | `V (_, r, pcode, code, _) ->
       Cof.boundary r,
       F.dim r @@ fun r ->
       F.con pcode @@ fun pcode ->
@@ -160,11 +160,11 @@ struct
       phi,
       foreign_clo clo @@ fun clo ->
       term @@ TB.ap clo [TB.prf]
-    | D.KVProj (r, pcode, code, pequiv) ->
-      let v = D.Cut {cut; tp = D.ElUnstable (`V (r, pcode, code, pequiv))} in
+    | D.KVProj (lvl, r, pcode, code, pequiv) ->
+      let v = D.Cut {cut; tp = D.ElUnstable (`V (lvl, r, pcode, code, pequiv))} in
       vproj ~r ~pcode ~code ~pequiv ~v
-    | D.KCap (r, r', phi, code) ->
-      let box = D.Cut {cut; tp = D.ElUnstable (`HCom (r, r', phi, code))} in
+    | D.KCap (lvl, r, r', phi, code) ->
+      let box = D.Cut {cut; tp = D.ElUnstable (`HCom (lvl, r, r', phi, code))} in
       cap ~r ~r' ~phi ~code ~box
     | D.KLockedPrfUnlock (_, phi, bdy) ->
       phi,

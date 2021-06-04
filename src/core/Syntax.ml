@@ -275,7 +275,7 @@ let rec pp env fmt tm =
       (pp_atomic env) base
       (pp_atomic env) tm
 
-  | CodeExt (_, fam, `Global phi, bdry) ->
+  | CodeExt (_, _, fam, `Global phi, bdry) ->
     Format.fprintf fmt "@[ext %a %a %a@]"
       (pp_atomic env) fam
       (pp_atomic Pp.Env.emp) phi
@@ -326,7 +326,7 @@ let rec pp env fmt tm =
       (pp_atomic env) box
   | Cap (_r, _s, _phi, _code, box) ->
     Format.fprintf fmt "@[<hv2>cap %a@]" (pp_atomic env) box
-  | CodeV (r, pcode, code, pequiv) ->
+  | CodeV (_, r, pcode, code, pequiv) ->
     Format.fprintf fmt "@[<hv2>V %a %a %a %a@]"
       (pp_atomic env) r
       (pp_atomic env) pcode

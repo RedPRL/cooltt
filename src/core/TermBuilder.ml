@@ -238,17 +238,19 @@ let code_sg mlvl mbase mfam : _ m =
   and+ fam = mfam in
   S.CodeSg (lvl, base, fam)
 
-let code_path mfam mbdry : _ m =
-  let+ fam = mfam
+let code_path mlvl mfam mbdry : _ m =
+  let+ lvl = mlvl
+  and+ fam = mfam
   and+ bdry = mbdry in
-  S.CodeExt (1, fam, `Global (S.Lam (`Anon, S.Cof (Cof.Join [S.Cof (Cof.Eq (S.Var 0, S.Dim0)); S.Cof (Cof.Eq (S.Var 0, S.Dim1))]))), bdry)
+  S.CodeExt (lvl, 1, fam, `Global (S.Lam (`Anon, S.Cof (Cof.Join [S.Cof (Cof.Eq (S.Var 0, S.Dim0)); S.Cof (Cof.Eq (S.Var 0, S.Dim1))]))), bdry)
 
-let code_v mr mpcode mcode mpequiv : _ m=
-  let+ r = mr
+let code_v mlvl mr mpcode mcode mpequiv : _ m=
+  let+ lvl = mlvl
+  and+ r = mr
   and+ pcode = mpcode
   and+ code = mcode
   and+ pequiv = mpequiv in
-  S.CodeV (r, pcode, code, pequiv)
+  S.CodeV (lvl, r, pcode, code, pequiv)
 
 let sub mbase mphi mbdry =
   let+ base = mbase
@@ -346,8 +348,8 @@ let vproj mr mpcode mcode mpequiv mv =
   and+ v = mv in
   S.VProj (r, pcode, code, pequiv, v)
 
-let code_path' mfam ml mr : _ m =
-  code_path mfam @@ lam @@ fun i ->
+let code_path' mlvl mfam ml mr : _ m =
+  code_path mlvl mfam @@ lam @@ fun i ->
   lam @@ fun _ ->
   cof_split
     [eq i dim0, ml;
@@ -366,11 +368,11 @@ struct
   let code_is_contr code =
     code_sg lvl_magic code @@ lam @@ fun x ->
     code_pi lvl_magic code @@ lam @@ fun y ->
-    code_path' (lam @@ fun _ -> code) x y
+    code_path' lvl_magic (lam @@ fun _ -> code) x y
 
   let code_fiber code_a code_b f b =
     code_sg lvl_magic code_a @@ lam @@ fun a ->
-    code_path' (lam @@ fun _ -> code_b) (ap f [a]) b
+    code_path' lvl_magic (lam @@ fun _ -> code_b) (ap f [a]) b
 
   let code_equiv code_a code_b =
     code_sg lvl_magic (code_pi lvl_magic code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
@@ -527,8 +529,10 @@ struct
       @@ fun fibercode ->
       let_ ~ident:(`Machine "R")
         begin
-          let line = lam ~ident:(`Machine "i") @@ fun i ->
-            code_path' (lam @@ fun _ -> code_ i)
+          let line =
+            lam ~ident:(`Machine "i") @@ fun i ->
+            code_path' lvl_magic
+              (lam @@ fun _ -> code_ i)
               (ap f_tilde [i; prf; coe (lam @@ fun j -> ap (pcode_ j) [prf]) r i bdy])
               (coe (lam code_) r i (ap f_tilde [r; prf; bdy]))
           in

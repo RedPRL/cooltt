@@ -45,12 +45,12 @@ type t =
   | VIn of t * t * t * t
   | VProj of t * t * t * t * t
 
-  | CodeExt of int * t * [`Global of t] * t
+  | CodeExt of t * int * t * [`Global of t] * t
   | CodePi of t * t * t
   | CodeSg of t * t * t
   | CodeNat
   | CodeUniv of t
-  | CodeV of t * t * t * t
+  | CodeV of t * t * t * t * t
   | CodeCircle
 
   | ESub of sub * t

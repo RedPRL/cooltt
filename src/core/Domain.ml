@@ -177,6 +177,8 @@ and pp_con : con Pp.printer =
       branches
   | LockedPrfIn _ ->
     Format.fprintf fmt "<wrap>"
+  | LvlMagic ->
+    Format.fprintf fmt "<magic>"
 
 and pp_tp fmt =
   function
