@@ -1,6 +1,7 @@
 include DomainData
 open Basis
 open Cubical
+open Bwd
 
 module S = Syntax
 
@@ -11,7 +12,17 @@ let const_tm_clo con =
   Clo (S.Var 0, {tpenv = Emp; conenv = Snoc (Emp, con)})
 
 let push frm (hd, sp) =
-  hd, sp @ [frm]
+  match frm with
+  | KLift (_, l1) ->
+    begin
+      match Bwd.from_list sp with
+      | Emp -> hd, sp @ [frm]
+      | Snoc (stk, KLift (l0', _)) ->
+        hd, Bwd.to_list @@ Snoc (stk, KLift (l0', l1))
+      | _ -> hd, sp @ [frm]
+    end
+  | _ ->
+    hd, sp @ [frm]
 
 let mk_var tp lvl =
   Cut {tp; cut = Var lvl, []}
@@ -106,6 +117,7 @@ and pp_frame : frm Pp.printer =
   | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
+  | KLift (l0, l1) -> Format.fprintf fmt "lift[%a,%a]" pp_lvl l0 pp_lvl l1
 
 and pp_cof : cof Pp.printer =
   fun fmt cof ->
@@ -125,16 +137,16 @@ and pp_clo : tm_clo Pp.printer =
   fun fmt (Clo (tm, {tpenv; conenv})) ->
     Format.fprintf fmt "clo[%a ; [%a ; %a]]"
       S.dump tm
-      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.to_list tpenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.to_list conenv)
 
 and pp_tp_clo : tp_clo Pp.printer =
   let sep fmt () = Format.fprintf fmt "," in
   fun fmt (Clo (tp, {tpenv; conenv})) ->
     Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
       S.dump_tp tp
-      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.to_list tpenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.to_list conenv)
 
 and pp_con : con Pp.printer =
   fun fmt ->
