@@ -297,6 +297,8 @@ and chk_tm : CS.con -> T.Chk.tac =
         RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
         RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
+      | D.Univ _ ->
+        RM.ret @@ R.Univ.lift @@ syn_tm con
       | _ ->
         RM.ret @@ T.Chk.syn @@ syn_tm con
 
