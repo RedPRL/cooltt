@@ -239,37 +239,37 @@ let rec pp env fmt tm =
   | SubIn tm | SubOut tm | ElIn tm | ElOut tm ->
     pp env fmt tm
 
-  | CodePi (base, fam) when debug_mode ->
+  | CodePi (_, base, fam) when debug_mode ->
     Format.fprintf fmt "@[%a %a %a@]"
       Uuseg_string.pp_utf_8 "<∏>"
       (pp_atomic env) base
       (pp_atomic env) fam
-  | CodePi (base, Lam (ident, fam)) ->
+  | CodePi (_, base, Lam (ident, fam)) ->
     let x, envx = ppenv_bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
       Uuseg_string.pp_utf_8 x
       (pp env) base
       Uuseg_string.pp_utf_8 "→"
       (pp envx) fam
-  | CodePi (base, tm) ->
+  | CodePi (_, base, tm) ->
     Format.fprintf fmt "@[%a %a %a@]"
       Uuseg_string.pp_utf_8 "∏"
       (pp_atomic env) base
       (pp_atomic env) tm
 
-  | CodeSg (base, fam) when debug_mode ->
+  | CodeSg (_, base, fam) when debug_mode ->
     Format.fprintf fmt "@[%a %a %a@]"
       Uuseg_string.pp_utf_8 "<Σ>"
       (pp_atomic env) base
       (pp_atomic env) fam
-  | CodeSg (base, Lam (ident, fam)) ->
+  | CodeSg (_, base, Lam (ident, fam)) ->
     let x, envx = ppenv_bind env ident in
     Format.fprintf fmt "(%a : %a) %a %a"
       Uuseg_string.pp_utf_8 x
       (pp env) base
       Uuseg_string.pp_utf_8 "×"
       (pp envx) fam
-  | CodeSg (base, tm) ->
+  | CodeSg (_, base, tm) ->
     Format.fprintf fmt "@[%a %a %a@]"
       Uuseg_string.pp_utf_8 "Σ"
       (pp_atomic env) base

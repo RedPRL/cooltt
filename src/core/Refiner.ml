@@ -486,11 +486,11 @@ struct
     T.Tp.rule @@
     RM.ret @@ S.Univ S.LvlMagic
 
-  let univ_tac : (D.tp -> S.t RM.m) -> T.Chk.tac =
+  let univ_tac : (ULvl.t -> S.t RM.m) -> T.Chk.tac =
     fun m ->
     T.Chk.rule @@
     function
-    | D.Univ lvl -> m @@ D.Univ lvl (* did I get this right? need to remember what this is for*)
+    | D.Univ lvl -> m lvl
     | tp ->
       RM.expected_connective `Univ tp
 
@@ -507,27 +507,29 @@ struct
 
   let quantifier (tac_base : T.Chk.tac) (tac_fam : T.Chk.tac) =
     fun univ ->
-    let* base = T.Chk.run tac_base univ in
+    let* base = T.Chk.run tac_base (D.Univ univ) in
     let* vbase = RM.lift_ev @@ Sem.eval base in
     let* famtp =
       RM.lift_cmp @@
       Sem.splice_tp @@
       Splice.con vbase @@ fun base ->
-      Splice.tp univ @@ fun univ ->
+      Splice.tp (D.Univ univ) @@ fun univ ->
       Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
     in
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
   let pi tac_base tac_fam : T.Chk.tac =
-    univ_tac @@ fun univ ->
-    let+ tp, fam = quantifier tac_base tac_fam univ in
-    S.CodePi (tp, fam)
+    univ_tac @@ fun lvl ->
+    let+ tp, fam = quantifier tac_base tac_fam lvl
+    and+ tlvl = RM.quote_lvl lvl in
+    S.CodePi (tlvl, tp, fam)
 
   let sg tac_base tac_fam : T.Chk.tac =
-    univ_tac @@ fun univ ->
-    let+ tp, fam = quantifier tac_base tac_fam univ in
-    S.CodeSg (tp, fam)
+    univ_tac @@ fun lvl ->
+    let+ tp, fam = quantifier tac_base tac_fam lvl
+    and+ tlvl = RM.quote_lvl lvl in
+    S.CodeSg (tlvl, tp, fam)
 
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
@@ -538,7 +540,7 @@ struct
     in
     let* cof = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
     let* tfam =
-      let* tp_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.tp univ @@ fun univ -> Splice.term @@ TB.cube n @@ fun _ -> univ in
+      let* tp_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.tp (D.Univ univ) @@ fun univ -> Splice.term @@ TB.cube n @@ fun _ -> univ in
       T.Chk.run tac_fam tp_fam
     in
     let+ tbdry =

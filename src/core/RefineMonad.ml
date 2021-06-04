@@ -65,6 +65,8 @@ let quote_cof cof =
 let quote_dim con =
   lift_qu @@ Qu.quote_dim con
 
+let quote_lvl con =
+  lift_qu @@ Qu.quote_lvl con
 
 (* This is extremely low-ch'i.
  * There should be a generic error-trapping function in src/basis/Monad. *)

@@ -283,25 +283,27 @@ and quote_stable_code univ =
     let+ tlvl = quote_lvl lvl in
     S.CodeUniv tlvl
 
-  | `Pi (base, fam) ->
-    let+ tbase = quote_con univ base
+  | `Pi (lvl, base, fam) ->
+    let+ tlvl = quote_lvl lvl
+    and+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
       quote_lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
-    S.CodePi (tbase, tfam)
+    S.CodePi (tlvl, tbase, tfam)
 
-  | `Sg (base, fam) ->
-    let+ tbase = quote_con univ base
+  | `Sg (lvl, base, fam) ->
+    let+ tlvl = quote_lvl lvl
+    and+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
       quote_lam elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
-    S.CodeSg (tbase, tfam)
+    S.CodeSg (tlvl, tbase, tfam)
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =

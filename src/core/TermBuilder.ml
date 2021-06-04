@@ -226,15 +226,17 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)
 
-let code_pi mbase mfam : _ m =
-  let+ base = mbase
+let code_pi mlvl mbase mfam : _ m =
+  let+ lvl = mlvl
+  and+ base = mbase
   and+ fam = mfam in
-  S.CodePi (base, fam)
+  S.CodePi (lvl, base, fam)
 
-let code_sg mbase mfam : _ m =
-  let+ base = mbase
+let code_sg mlvl mbase mfam : _ m =
+  let+ lvl = mlvl
+  and+ base = mbase
   and+ fam = mfam in
-  S.CodeSg (base, fam)
+  S.CodeSg (lvl, base, fam)
 
 let code_path mfam mbdry : _ m =
   let+ fam = mfam
@@ -362,17 +364,17 @@ module Equiv : sig
 end =
 struct
   let code_is_contr code =
-    code_sg code @@ lam @@ fun x ->
-    code_pi code @@ lam @@ fun y ->
+    code_sg lvl_magic code @@ lam @@ fun x ->
+    code_pi lvl_magic code @@ lam @@ fun y ->
     code_path' (lam @@ fun _ -> code) x y
 
   let code_fiber code_a code_b f b =
-    code_sg code_a @@ lam @@ fun a ->
+    code_sg lvl_magic code_a @@ lam @@ fun a ->
     code_path' (lam @@ fun _ -> code_b) (ap f [a]) b
 
   let code_equiv code_a code_b =
-    code_sg (code_pi code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
-    code_pi code_b @@ lam @@ fun y ->
+    code_sg lvl_magic (code_pi lvl_magic code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
+    code_pi lvl_magic code_b @@ lam @@ fun y ->
     code_is_contr @@ code_fiber code_a code_b (el_out f) y
 
   let equiv_fwd equiv =

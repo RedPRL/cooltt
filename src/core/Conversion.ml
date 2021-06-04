@@ -129,8 +129,8 @@ and equate_stable_code univ code0 code1 =
   match code0, code1 with
   | `Nat, `Nat | `Circle, `Circle -> ret ()
   | `Univ x, `Univ y when x = y -> ret ()
-  | `Pi (base0, fam0), `Pi (base1, fam1)
-  | `Sg (base0, fam0), `Sg (base1, fam1) ->
+  | `Pi (_, base0, fam0), `Pi (_, base1, fam1)
+  | `Sg (_, base0, fam0), `Sg (_, base1, fam1) ->
     let* _ = equate_con univ base0 base1 in
     let* fam_tp =
       lift_cmp @@

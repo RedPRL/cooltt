@@ -69,8 +69,8 @@ val locked_prf_unlock : tp m -> cof:t m -> prf:t m -> bdy:t m -> t m
 
 val cube : int -> (t m list -> tp m) -> tp m
 
-val code_pi : t m -> t m -> t m
-val code_sg : t m -> t m -> t m
+val code_pi : t m -> t m -> t m -> t m
+val code_sg : t m -> t m -> t m -> t m
 val code_path : t m -> t m -> t m
 val code_v : t m -> t m -> t m -> t m -> t m
 val vproj : t m -> t m -> t m -> t m -> t m -> t m

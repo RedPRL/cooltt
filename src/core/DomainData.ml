@@ -8,10 +8,10 @@ type cof = (dim, [`L of int | `G of Symbol.t]) Cof.cof
 
 (** A type code whose head constructor is stable under dimension substitution. *)
 type 'a stable_code =
-  [ `Pi of 'a * 'a
+  [ `Pi of ULvl.t * 'a * 'a
   (** Dependent product type *)
 
-  | `Sg of 'a * 'a
+  | `Sg of ULvl.t * 'a * 'a
   (** Dependent sum type *)
 
   | `Ext of int * 'a * [`Global of 'a] * 'a

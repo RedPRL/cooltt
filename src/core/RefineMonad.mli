@@ -26,6 +26,7 @@ val quote_tp : D.tp -> S.tp m
 val quote_cut : D.cut -> S.t m
 val quote_cof : D.cof -> S.t m
 val quote_dim : D.dim -> S.t m
+val quote_lvl : ULvl.t -> S.t m
 
 val equate_tp : D.tp -> D.tp -> unit m
 val equate : D.tp -> D.con -> D.con -> unit m

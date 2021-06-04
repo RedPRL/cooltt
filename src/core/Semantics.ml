@@ -370,14 +370,14 @@ and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stab
   fun r x ->
   let open CM in
   function
-  | `Pi (con0, con1) ->
+  | `Pi (lvl, con0, con1) ->
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
-    `Pi (con0, con1)
-  | `Sg (con0, con1) ->
+    `Pi (lvl, con0, con1)
+  | `Sg (lvl, con0, con1) ->
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
-    `Sg (con0, con1)
+    `Sg (lvl, con0, con1)
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
@@ -659,15 +659,17 @@ and eval : S.t -> D.con EvM.m =
       let* bdry = eval bdry in
       ret @@ D.StableCode (`Ext (n, fam, `Global phi, bdry))
 
-    | S.CodePi (base, fam) ->
-      let+ vbase = eval base
+    | S.CodePi (lvl, base, fam) ->
+      let+ vlvl = eval_lvl lvl
+      and+ vbase = eval base
       and+ vfam = eval fam in
-      D.StableCode (`Pi (vbase, vfam))
+      D.StableCode (`Pi (vlvl, vbase, vfam))
 
-    | S.CodeSg (base, fam) ->
-      let+ vbase = eval base
+    | S.CodeSg (lvl, base, fam) ->
+      let+ vlvl = eval_lvl lvl
+      and+ vbase = eval base
       and+ vfam = eval fam in
-      D.StableCode (`Sg (vbase, vfam))
+      D.StableCode (`Sg (vlvl, vbase, vfam))
 
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
@@ -1367,7 +1369,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
       | `Univ lvl ->
         ret @@ D.Univ lvl
 
-      | `Pi (base, fam) ->
+      | `Pi (_, base, fam) ->
         splice_tp @@
         Splice.con base @@ fun base ->
         Splice.con fam @@ fun fam ->
@@ -1375,7 +1377,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.pi (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
 
-      | `Sg (base, fam) ->
+      | `Sg (_, base, fam) ->
         splice_tp @@
         Splice.con base @@ fun base ->
         Splice.con fam @@ fun fam ->
@@ -1458,7 +1460,7 @@ and enact_rigid_coe line r r' con tag =
     begin
       match code with
       | `Nat | `Circle | `Univ _ -> ret con
-      | `Pi (basex, famx) ->
+      | `Pi (_, basex, famx) ->
         splice_tm @@
         Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
         Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
@@ -1466,7 +1468,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_pi ~base_line ~fam_line ~r ~r' ~bdy
-      | `Sg (basex, famx) ->
+      | `Sg (_, basex, famx) ->
         splice_tm @@
         Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
         Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
@@ -1528,7 +1530,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
   | `Stable code ->
     begin
       match code with
-      | `Pi (_, fam) ->
+      | `Pi (_, _, fam) ->
         splice_tm @@
         Splice.con fam @@ fun fam ->
         Splice.dim r @@ fun r ->
@@ -1537,7 +1539,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_pi ~fam ~r ~r' ~phi ~bdy
-      | `Sg (base, fam) ->
+      | `Sg (_, base, fam) ->
         splice_tm @@
         Splice.con base @@ fun base ->
         Splice.con fam @@ fun fam ->

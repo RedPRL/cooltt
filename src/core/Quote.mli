@@ -9,3 +9,4 @@ val quote_tp : D.tp -> S.tp quote
 val quote_cut : D.cut -> S.t quote
 val quote_cof : D.cof -> S.t quote
 val quote_dim : D.dim -> S.t quote
+val quote_lvl : ULvl.t -> S.t quote
