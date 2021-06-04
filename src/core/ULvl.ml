@@ -4,3 +4,13 @@ type t =
   | LvlTop
 
 let magic = LvlMagic
+
+let equal x y =
+  x = y || x = LvlMagic || y = LvlMagic
+
+let lt x y =
+  match x, y with
+  | LvlMagic, _ -> true
+  | _, LvlMagic -> true
+  | LvlVar _, LvlTop -> true
+  | _ -> false

@@ -99,7 +99,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     equate_con tp0 con0 con1
   | D.Nat, D.Nat
   | D.Circle, D.Circle -> ret ()
-  | D.Univ l, D.Univ k when l = k ->
+  | D.Univ l, D.Univ k when ULvl.equal l k ->
     ret ()
   | D.ElStable code0, D.ElStable code1 ->
     equate_stable_code (D.Univ ULvl.magic) code0 code1
@@ -129,7 +129,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
   | `Nat _, `Nat _ | `Circle _, `Circle _ -> ret ()
-  | `Univ x, `Univ y when x = y -> ret ()
+  | `Univ (x, _), `Univ (y, _) when ULvl.equal x y -> ret ()
   | `Pi (_, base0, fam0), `Pi (_, base1, fam1)
   | `Sg (_, base0, fam0), `Sg (_, base1, fam1) ->
     let* _ = equate_con univ base0 base1 in

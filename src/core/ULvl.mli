@@ -1,5 +1,3 @@
-open Basis
-
 type t =
   | LvlVar of int
   | LvlMagic
@@ -8,4 +6,5 @@ type t =
 (** Temporary measure until I finish adding this *)
 val magic : t
 
-val pp_lvl : t Pp.printer
+val equal : t -> t -> bool
+val lt : t -> t -> bool

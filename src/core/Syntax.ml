@@ -432,8 +432,8 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "𝕀"
   | TpCof ->
     Format.fprintf fmt "𝔽"
-  | Univ _ ->
-    Format.fprintf fmt "type"
+  | Univ lvl ->
+    Format.fprintf fmt "type<%a>" (pp env) lvl
   | Nat ->
     Format.fprintf fmt "nat"
   | Circle ->
