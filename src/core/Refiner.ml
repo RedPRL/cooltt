@@ -514,12 +514,18 @@ struct
     | tp ->
       RM.expected_connective `Univ tp
 
+
   let univ : T.Chk.tac -> T.Chk.tac =
     fun tac_lvl ->
     univ_tac @@ fun lvl' ->
     let* tlvl = T.Chk.run tac_lvl D.TpLvl in
     let* tlvl' = RM.quote_lvl lvl' in
-    RM.ret @@ S.CodeUniv (tlvl, tlvl')
+    let* lvl = RM.lift_ev @@ Sem.eval_lvl tlvl in
+    if ULvl.lt lvl lvl' then
+      RM.ret @@ S.CodeUniv (tlvl, tlvl')
+    else
+      RM.with_pp @@ fun ppenv ->
+      RM.refine_err @@ ExpectedLessThan (ppenv, tlvl, tlvl')
 
   let lift : T.Syn.tac -> T.Chk.tac =
     fun tac_syn ->

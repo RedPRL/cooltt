@@ -8,6 +8,7 @@ open Monads
 val eval : S.t -> D.con evaluate
 val eval_cof : S.t -> D.cof evaluate
 val eval_tp : S.tp -> D.tp evaluate
+val eval_lvl : S.t -> ULvl.t evaluate
 
 type whnf_style = [`UnfoldNone | `UnfoldAll | `Veil of Veil.t]
 

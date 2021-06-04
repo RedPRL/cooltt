@@ -62,6 +62,11 @@ let pp fmt =
       "Expected %a <= %a"
       (S.pp ppenv) l0
       (S.pp ppenv) l1
+  | ExpectedLessThan (ppenv, l0, l1) ->
+    Format.fprintf fmt
+      "Expected %a < %a"
+      (S.pp ppenv) l0
+      (S.pp ppenv) l1
   | ExpectedDimensionLiteral n ->
     Fmt.fprintf fmt
       "Expected dimension literal 0 or 1, but got %i" n
