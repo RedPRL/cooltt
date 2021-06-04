@@ -1172,6 +1172,16 @@ and do_lift_stable_code l0 l1 : D.con D.stable_code -> D.con D.stable_code CM.m 
   | `Circle _ -> ret @@ `Circle l1
   | `Nat _ -> ret @@ `Nat l1
 
+and do_lift_unstable_code l0 l1 : D.con D.unstable_code -> D.con D.unstable_code CM.m =
+  let open CM in
+  function
+  | `V (_, r, pcode, code, equiv) ->
+    let+ pcode' = do_lift_fam l0 l1 pcode
+    and+ code' = do_lift_code l0 l1 code in
+    `V (l1, r, pcode', code', equiv)
+  | `HCom _ -> raise CJHM
+
+
 and do_lift_fam l0 l1 : D.con -> D.con CM.m =
   do_lift_nfam 1 l0 l1
 
@@ -1187,9 +1197,6 @@ and do_lift_nfam n l0 l1 : D.con -> D.con CM.m =
   TB.lift_code l0 l1 @@
   TB.ap fam xs
 
-
-and do_lift_unstable_code _l0 _l1 : D.con D.unstable_code -> D.con D.unstable_code CM.m =
-  raise CJHM
 
 and do_fst con : D.con CM.m =
   let open CM in
