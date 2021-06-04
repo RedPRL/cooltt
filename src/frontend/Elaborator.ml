@@ -41,6 +41,7 @@ sig
   val circle : tac
   val univ : tac
   val dim : tac
+  val lvl : tac
   val cof : tac
   val prf : T.Chk.tac -> tac
   val locked_prf : T.Chk.tac -> tac
@@ -101,6 +102,7 @@ struct
   let circle = Code R.Univ.circle
   let univ = Code R.Univ.univ
   let dim = Tp R.Dim.formation
+  let lvl = Tp R.Lvl.formation
   let cof = Tp R.Cof.formation
   let prf tac = Tp (R.Prf.formation tac)
   let locked_prf tac = Tp (R.LockedPrf.formation tac)
@@ -121,6 +123,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Sg (CS.Cell cell :: cells, body) ->
     CoolTp.sg (cool_chk_tp cell.tp) cell.name @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
+  | CS.Lvl -> CoolTp.lvl
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi

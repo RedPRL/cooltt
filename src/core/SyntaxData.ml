@@ -66,6 +66,7 @@ and tp =
   | Univ of t
   | El of t
   | TpVar of int
+  | TpLvl
   | TpDim
   | TpCof
   | TpPrf of t

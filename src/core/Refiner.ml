@@ -214,6 +214,13 @@ struct
       RM.refine_err @@ Err.ExpectedDimensionLiteral n
 end
 
+module Lvl =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.virtual_rule @@
+    RM.ret S.TpLvl
+end
+
 module Cof =
 struct
   let formation : T.Tp.tac =

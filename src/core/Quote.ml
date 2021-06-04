@@ -409,6 +409,8 @@ and quote_tp (tp : D.tp) =
     S.Sub (ttp, tphi, tm)
   | D.TpDim ->
     ret S.TpDim
+  | D.TpLvl ->
+    ret S.TpLvl
   | D.TpCof ->
     ret S.TpCof
   | D.TpPrf phi ->

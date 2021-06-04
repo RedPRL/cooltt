@@ -28,7 +28,7 @@ val tp_abort : tp
 (** {1 Pretty-printers }
 
     These are only for debugging. *)
-
+val pp_lvl : ULvl.t Pp.printer
 val pp_dim : dim Pp.printer
 val pp_clo : tm_clo Pp.printer
 val pp_cof : cof Pp.printer

@@ -35,6 +35,7 @@ val do_el : D.con -> D.tp compute
 val do_spine : D.con -> D.frm list -> D.con compute
 
 val con_to_dim : D.con -> D.dim compute
+val con_to_lvl : D.con -> ULvl.t compute
 val con_to_cof : D.con -> D.cof compute
 val cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof compute
 

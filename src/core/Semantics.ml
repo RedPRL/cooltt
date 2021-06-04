@@ -334,7 +334,7 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ _ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Univ _ | D.Nat | D.Circle | D.TpDim | D.TpCof | D.TpLvl as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -494,6 +494,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.Sub (tp, phi, D.Clo (tm, env))
   | S.TpDim  ->
     ret D.TpDim
+  | S.TpLvl  ->
+    ret D.TpLvl
   | S.TpCof ->
     ret D.TpCof
   | S.TpPrf tphi ->

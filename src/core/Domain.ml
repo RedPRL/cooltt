@@ -44,6 +44,14 @@ let dim_to_con =
   | Dim.DimGlobal sym ->
     Cut {tp = TpDim; cut = Global sym, []}
 
+
+let lvl_to_con =
+  function
+  | ULvl.LvlMagic -> LvlMagic
+  | ULvl.LvlTop -> LvlTop
+  | ULvl.LvlVar x ->
+    Cut {tp = TpLvl; cut = Var x, []}
+
 let rec cof_to_con =
   function
   | Cof.Cof (Cof.Eq (r, s)) -> Cof (Cof.Eq (dim_to_con r, dim_to_con s))
@@ -106,6 +114,11 @@ and pp_cof : cof Pp.printer =
 and pp_dim : dim Pp.printer =
   fun fmt r ->
   pp_con fmt @@ dim_to_con r
+
+and pp_lvl : ULvl.t Pp.printer =
+  fun fmt l ->
+  pp_con fmt @@ lvl_to_con l
+
 
 and pp_clo : tm_clo Pp.printer =
   let sep fmt () = Format.fprintf fmt "," in
@@ -199,6 +212,8 @@ and pp_tp fmt =
     Format.fprintf fmt "<cof>"
   | TpDim ->
     Format.fprintf fmt "<dim>"
+  | TpLvl ->
+    Format.fprintf fmt "<lvl>"
   | Univ _ ->
     Format.fprintf fmt "<univ>"
   | Nat ->

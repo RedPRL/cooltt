@@ -88,6 +88,7 @@ and dump_tp fmt =
   | El t -> Format.fprintf fmt "el[%a]" dump t
   | TpVar i -> Format.fprintf fmt "tp/var[%i]" i
   | TpDim -> Format.fprintf fmt "tp/dim"
+  | TpLvl -> Format.fprintf fmt "tp/lvl"
   | TpCof -> Format.fprintf fmt "tp/cof"
   | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
   | TpCofSplit _ -> Format.fprintf fmt "<tp/cof/split>"
@@ -430,6 +431,8 @@ and pp_tp env fmt tp =
       (pp_atomic envx) tm
   | TpDim ->
     Format.fprintf fmt "𝕀"
+  | TpLvl ->
+    Format.fprintf fmt "lvl"
   | TpCof ->
     Format.fprintf fmt "𝔽"
   | Univ lvl ->

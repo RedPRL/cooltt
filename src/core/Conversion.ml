@@ -16,6 +16,7 @@ module Error =
 struct
   type t =
     | ExpectedDimEq of D.dim * D.dim
+    | ExpectedLvlEq of ULvl.t * ULvl.t
     | ExpectedSequentTrue of D.cof list * D.cof
     | ExpectedTypeEq of D.tp * D.tp
     | ExpectedConEq of D.tp * D.con * D.con
@@ -28,6 +29,8 @@ struct
     function
     | ExpectedDimEq (r,s) ->
       Format.fprintf fmt "Expected %a = %a : dim" D.pp_dim r D.pp_dim s
+    | ExpectedLvlEq (l0,l1) ->
+      Format.fprintf fmt "Expected %a = %a : lvl" D.pp_lvl l0 D.pp_lvl l1
     | ExpectedSequentTrue (phis, psi) ->
       Format.fprintf fmt "Expected @[%a |- @[%a@]@] true" D.pp_cof (Cof.meet phis) D.pp_cof psi
     | ExpectedTypeEq (tp0, tp1) ->
@@ -61,6 +64,12 @@ let equate_dim r s =
     ret ()
   | false ->
     conv_err @@ ExpectedDimEq (r, s)
+
+let equate_lvl l0 l1 =
+  if ULvl.equal l0 l1 then
+    ret ()
+  else
+    conv_err @@ ExpectedLvlEq (l0, l1)
 
 let contractum_or x =
   function
@@ -218,6 +227,10 @@ and equate_con tp con0 con1 =
     ret ()
   | _, D.Loop r0, D.Loop r1 ->
     equate_dim r0 r1
+  | D.TpLvl, _, _ ->
+    let* l0 = lift_cmp @@ con_to_lvl con0 in
+    let* l1 = lift_cmp @@ con_to_lvl con1 in
+    equate_lvl l0 l1
   | D.TpDim, _, _ ->
     let* r0 = lift_cmp @@ con_to_dim con0 in
     let* r1 = lift_cmp @@ con_to_dim con1 in

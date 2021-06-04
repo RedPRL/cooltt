@@ -47,6 +47,7 @@ and con_ =
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
   | Dim
+  | Lvl
   | Cof
   | CofEq of con * con
   | Join of con list
