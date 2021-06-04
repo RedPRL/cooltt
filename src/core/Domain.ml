@@ -153,9 +153,9 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "dim1"
   | ElIn con ->
     Format.fprintf fmt "el/in[%a]" pp_con con
-  | StableCode `Nat ->
+  | StableCode (`Nat _) ->
     Format.fprintf fmt "nat/code"
-  | StableCode `Circle ->
+  | StableCode (`Circle _) ->
     Format.fprintf fmt "circle/code"
   | SubIn _ ->
     Format.fprintf fmt "<sub/in>"
@@ -220,6 +220,6 @@ and pp_stable_code fmt =
   | `Ext _ -> Format.fprintf fmt "<code-ext>"
   | `Pi _ -> Format.fprintf fmt "<code-pi>"
   | `Sg _ -> Format.fprintf fmt "<code-sg>"
-  | `Nat -> Format.fprintf fmt "<code-nat>"
-  | `Circle -> Format.fprintf fmt "<code-circle>"
+  | `Nat _ -> Format.fprintf fmt "<code-nat>"
+  | `Circle _ -> Format.fprintf fmt "<code-circle>"
   | `Univ _ -> Format.fprintf fmt "<code-univ>"

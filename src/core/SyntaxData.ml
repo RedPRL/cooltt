@@ -48,10 +48,10 @@ type t =
   | CodeExt of t * int * t * [`Global of t] * t
   | CodePi of t * t * t
   | CodeSg of t * t * t
-  | CodeNat
+  | CodeNat of t
   | CodeUniv of t
   | CodeV of t * t * t * t * t
-  | CodeCircle
+  | CodeCircle of t
 
   | ESub of sub * t
   (** Explicit substition *)

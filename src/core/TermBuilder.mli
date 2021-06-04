@@ -48,11 +48,11 @@ val el_out : t m -> t m
 
 val univ : t m -> tp m
 val nat : tp m
-val code_nat : t m
+val code_nat : t m -> t m
 val nat_elim : t m -> t m -> t m -> t m -> t m
 
 val circle : tp m
-val code_circle : t m
+val code_circle : t m -> t m
 val circle_elim : t m -> t m -> t m -> t m -> t m
 
 val pi : ?ident:Ident.t -> tp m -> tp b -> tp m

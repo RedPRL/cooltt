@@ -147,7 +147,7 @@ let rec quote_con (tp : D.tp) con =
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom (D.StableCode `Nat) r s phi bdy' in
+    let+ tm = quote_hcom (D.StableCode (`Nat ULvl.LvlTop)) r s phi bdy' in
     S.ElOut tm
 
   | D.Univ _, D.UnstableCode (`V (lvl, r, pcode, code, pequiv)) ->
@@ -174,7 +174,7 @@ let rec quote_con (tp : D.tp) con =
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
       TB.el_in @@ TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom (D.StableCode `Circle) r s phi bdy' in
+    let+ tm = quote_hcom (D.StableCode (`Circle ULvl.LvlTop)) r s phi bdy' in
     S.ElOut tm
 
   | D.ElUnstable (`HCom (_lvl, r,s,phi,bdy)), _ ->
@@ -274,11 +274,13 @@ and quote_lvl =
 
 and quote_stable_code univ =
   function
-  | `Nat ->
-    ret S.CodeNat
+  | `Nat lvl ->
+    let+ tlvl = quote_lvl lvl in
+    S.CodeNat tlvl
 
-  | `Circle ->
-    ret S.CodeCircle
+  | `Circle lvl ->
+    let+ tlvl = quote_lvl lvl in
+    S.CodeCircle tlvl
 
   | `Univ lvl ->
     let+ tlvl = quote_lvl lvl in

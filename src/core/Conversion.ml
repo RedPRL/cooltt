@@ -128,7 +128,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
-  | `Nat, `Nat | `Circle, `Circle -> ret ()
+  | `Nat _, `Nat _ | `Circle _, `Circle _ -> ret ()
   | `Univ x, `Univ y when x = y -> ret ()
   | `Pi (_, base0, fam0), `Pi (_, base1, fam1)
   | `Sg (_, base0, fam0), `Sg (_, base1, fam1) ->
@@ -238,7 +238,7 @@ and equate_con tp con0 con1 =
     in
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
-    equate_hcom (D.StableCode `Nat, r0, s0, phi0, bdy0') (D.StableCode `Nat, r1, s1, phi1, bdy1')
+    equate_hcom (D.StableCode (`Nat ULvl.LvlTop), r0, s0, phi0, bdy0') (D.StableCode (`Nat ULvl.LvlTop), r1, s1, phi1, bdy1')
   | _, D.FHCom (`Circle, r0, s0, phi0, bdy0), D.FHCom (`Circle, r1, s1, phi1, bdy1) ->
     let fix_body bdy =
       lift_cmp @@ splice_tm @@
@@ -249,7 +249,7 @@ and equate_con tp con0 con1 =
     in
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
-    equate_hcom (D.StableCode `Circle, r0, s0, phi0, bdy0') (D.StableCode `Circle, r1, s1, phi1, bdy1')
+    equate_hcom (D.StableCode (`Circle ULvl.LvlTop), r0, s0, phi0, bdy0') (D.StableCode (`Circle ULvl.LvlTop), r1, s1, phi1, bdy1')
 
   | univ, D.StableCode code0, D.StableCode code1 ->
     equate_stable_code univ code0 code1

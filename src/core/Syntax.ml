@@ -69,10 +69,10 @@ let rec dump fmt =
   | CodeExt _ -> Format.fprintf fmt "<ext>"
   | CodePi _ -> Format.fprintf fmt "<pi>"
   | CodeSg _ -> Format.fprintf fmt "<sg>"
-  | CodeNat -> Format.fprintf fmt "nat"
+  | CodeNat _ -> Format.fprintf fmt "nat"
   | CodeUniv _ -> Format.fprintf fmt "univ"
   | CodeV _ -> Format.fprintf fmt "<v>"
-  | CodeCircle -> Format.fprintf fmt "circle"
+  | CodeCircle _ -> Format.fprintf fmt "circle"
 
   | ESub _ -> Format.fprintf fmt "<esub>"
 
@@ -80,6 +80,7 @@ let rec dump fmt =
   | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
   | LvlMagic -> Format.fprintf fmt "<lvl/magic>"
+  | LvlTop -> Format.fprintf fmt "<lvl/top>"
 
 and dump_tp fmt =
   function
@@ -281,15 +282,15 @@ let rec pp env fmt tm =
       (pp_atomic Pp.Env.emp) phi
       (pp_atomic env) bdry
 
-  | CodeNat when debug_mode ->
+  | CodeNat _ when debug_mode ->
     Format.fprintf fmt "`nat"
-  | CodeCircle when debug_mode ->
+  | CodeCircle _ when debug_mode ->
     Format.fprintf fmt "`circle"
   | CodeUniv _ when debug_mode ->
     Format.fprintf fmt "`type"
-  | CodeNat ->
+  | CodeNat _ ->
     Format.fprintf fmt "nat"
-  | CodeCircle ->
+  | CodeCircle _ ->
     Format.fprintf fmt "circle"
   | CodeUniv _ ->
     Format.fprintf fmt "type"
@@ -368,6 +369,10 @@ let rec pp env fmt tm =
 
   | LvlMagic ->
     Format.fprintf fmt "magic"
+
+  | LvlTop ->
+    Format.fprintf fmt "top"
+
 
 and pp_sub env fmt =
   function
@@ -466,7 +471,7 @@ and pp_tp_cof_split_branch env fmt (phi, tm) =
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv _
+  | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat _ | CodeCircle _ | CodeUniv _
   | Zero | Base | Prf ->
     pp env fmt tm
   | Suc _ as tm when Option.is_some (to_numeral tm) ->

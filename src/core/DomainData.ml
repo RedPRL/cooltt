@@ -17,10 +17,10 @@ type 'a stable_code =
   | `Ext of ULvl.t * int * 'a * [`Global of 'a] * 'a
   (** Extension type *)
 
-  | `Nat
+  | `Nat of ULvl.t
   (** Natural numbers type *)
 
-  | `Circle
+  | `Circle of ULvl.t
   (** The circle [S1]. *)
 
   | `Univ of ULvl.t

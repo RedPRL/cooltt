@@ -178,8 +178,9 @@ let univ mlvl : _ m =
 let nat : _ m =
   ret S.Nat
 
-let code_nat =
-  ret S.CodeNat
+let code_nat mlvl =
+  let+ lvl = mlvl in
+  S.CodeNat lvl
 
 let nat_elim mmot mzero msuc mscrut =
   let+ mot = mmot
@@ -199,8 +200,9 @@ let suc m =
 let circle : _ m =
   ret S.Circle
 
-let code_circle =
-  ret S.CodeCircle
+let code_circle mlvl =
+  let+ lvl = mlvl in
+  S.CodeCircle lvl
 
 let circle_elim mmot mbase mloop mscrut =
   let+ mot = mmot

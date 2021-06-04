@@ -500,10 +500,14 @@ struct
 
 
   let nat : T.Chk.tac =
-    univ_tac @@ fun _ -> RM.ret S.CodeNat
+    univ_tac @@ fun lvl ->
+    let+ tlvl = RM.quote_lvl lvl in
+    S.CodeNat tlvl
 
   let circle : T.Chk.tac =
-    univ_tac @@ fun _ -> RM.ret S.CodeCircle
+    univ_tac @@ fun lvl ->
+    let+ tlvl = RM.quote_lvl lvl in
+    S.CodeCircle tlvl
 
   let quantifier (tac_base : T.Chk.tac) (tac_fam : T.Chk.tac) =
     fun univ ->

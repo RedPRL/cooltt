@@ -186,7 +186,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ _) | D.LvlMagic | D.LvlTop as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat _ | `Circle _ | `Univ _) | D.LvlMagic | D.LvlTop as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -383,7 +383,7 @@ and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stab
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (lvl, n, code, `Global cof, con)
-  | `Nat | `Circle | `Univ _ as code ->
+  | `Nat _ | `Circle _ | `Univ _ as code ->
     ret code
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
@@ -674,11 +674,13 @@ and eval : S.t -> D.con EvM.m =
       and+ vfam = eval fam in
       D.StableCode (`Sg (vlvl, vbase, vfam))
 
-    | S.CodeNat ->
-      ret @@ D.StableCode `Nat
+    | S.CodeNat lvl ->
+      let+ vlvl = eval_lvl lvl in
+      D.StableCode (`Nat vlvl)
 
-    | S.CodeCircle ->
-      ret @@ D.StableCode `Circle
+    | S.CodeCircle lvl ->
+      let+ vlvl = eval_lvl lvl in
+      D.StableCode (`Circle vlvl)
 
     | S.CodeUniv tlvl ->
       let+ lvl = eval_lvl tlvl in
@@ -996,7 +998,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
         TB.lam @@ fun i ->
         let fhcom =
           TB.el_out @@
-          TB.hcom TB.code_nat r i phi @@
+          TB.hcom (TB.code_nat TB.lvl_top) r i phi @@
           TB.lam @@ fun j ->
           TB.lam @@ fun prf ->
           TB.el_in @@ TB.ap bdy [j; prf]
@@ -1052,7 +1054,7 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
       TB.lam @@ fun i ->
       let fhcom =
         TB.el_out @@
-        TB.hcom TB.code_circle r i phi @@
+        TB.hcom (TB.code_circle TB.lvl_top) r i phi @@
         TB.lam @@ fun j ->
         TB.lam @@ fun prf ->
         TB.el_in @@ TB.ap bdy [j; prf]
@@ -1364,10 +1366,10 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
     abort_if_inconsistent (ret D.tp_abort) @@
     begin
       match code with
-      | `Nat ->
+      | `Nat _ ->
         ret D.Nat
 
-      | `Circle ->
+      | `Circle _ ->
         ret D.Circle
 
       | `Univ lvl ->
@@ -1463,7 +1465,7 @@ and enact_rigid_coe line r r' con tag =
   | `Stable (x, code) ->
     begin
       match code with
-      | `Nat | `Circle | `Univ _ -> ret con
+      | `Nat _ | `Circle _ | `Univ _ -> ret con
       | `Pi (_, basex, famx) ->
         splice_tm @@
         Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
@@ -1564,7 +1566,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
-      | `Circle | `Nat as tag ->
+      | `Circle _ | `Nat _ as tag ->
         let+ bdy' =
           splice_tm @@
           Splice.con bdy @@ fun bdy ->
@@ -1572,6 +1574,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
           TB.lam @@ fun i -> TB.lam @@ fun prf ->
           TB.el_out @@ TB.ap bdy [i; prf]
         in
+        let tag = match tag with `Circle _ -> `Circle | `Nat _ -> `Nat in
         D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
       | `Univ lvl ->
         let+ bdy' =
