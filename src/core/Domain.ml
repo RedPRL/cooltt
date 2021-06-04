@@ -179,6 +179,8 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "<wrap>"
   | LvlMagic ->
     Format.fprintf fmt "<magic>"
+  | LvlTop ->
+    Format.fprintf fmt "<top>"
 
 and pp_tp fmt =
   function
