@@ -1187,7 +1187,6 @@ and do_lift_fam l0 l1 : D.con -> D.con CM.m =
   do_lift_nfam 1 l0 l1
 
 and do_lift_nfam n l0 l1 : D.con -> D.con CM.m =
-  let open CM in
   fun fam ->
   splice_tm @@
   Splice.con fam @@ fun fam ->

@@ -334,7 +334,8 @@ and equate_spine sp0 sp1 =
 and equate_frm k0 k1 =
   match k0, k1 with
   | D.KFst, D.KFst
-  | D.KSnd, D.KSnd ->
+  | D.KSnd, D.KSnd
+  | D.KLift _, D.KLift _ ->
     ret ()
   | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
     let* () = equate_tp tp0 tp1 in
