@@ -68,6 +68,7 @@ and con =
 
   | Dim0
   | Dim1
+  | DimProbe of Symbol.t
 
   | LvlMagic
   | LvlTop

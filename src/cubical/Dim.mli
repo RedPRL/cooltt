@@ -10,6 +10,9 @@ type dim =
   | DimVar of int
     (** In [cooltt], most dimension variables are represented as natural numbers (pointers into the context). *)
 
-  | DimSym of Symbol.t
-    (** Some dimension variables must be generated in a globally fresh way ({i e.g.} when computing under a binder). *)
+  | DimProbe of Symbol.t
+    (** Some dimension variables must be generated to probe underneath a binder. Subject to substitution. *)
+
+  | DimGlobal of Symbol.t
+    (** For dimensions that are defined in the signature. Not subject to substitution. *)
 
