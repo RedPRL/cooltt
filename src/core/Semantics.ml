@@ -1179,8 +1179,9 @@ and do_lift_unstable_code l0 l1 : D.con D.unstable_code -> D.con D.unstable_code
     let+ pcode' = do_lift_fam l0 l1 pcode
     and+ code' = do_lift_code l0 l1 code in
     `V (l1, r, pcode', code', equiv)
-  | `HCom _ -> raise CJHM
-
+  | `HCom (_, r, s, phi, code) ->
+    let+ code' = do_lift_nfam 2 l0 l1 code in
+    `HCom (l1, r, s, phi, code')
 
 and do_lift_fam l0 l1 : D.con -> D.con CM.m =
   do_lift_nfam 1 l0 l1
