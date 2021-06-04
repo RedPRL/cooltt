@@ -1128,6 +1128,7 @@ and inspect_con ~style con =
 
 and do_lift_code l0 l1 con : D.con CM.m =
   let open CM in
+  if ULvl.equal l0 l1 then ret con else
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@

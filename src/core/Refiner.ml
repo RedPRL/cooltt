@@ -216,7 +216,6 @@ end
 
 module Lvl =
 struct
-
   let assert_lvl =
     function
     | D.TpLvl -> RM.ret ()
@@ -521,6 +520,22 @@ struct
     let* tlvl = T.Chk.run tac_lvl D.TpLvl in
     let* tlvl' = RM.quote_lvl lvl' in
     RM.ret @@ S.CodeUniv (tlvl, tlvl')
+
+  let lift : T.Syn.tac -> T.Chk.tac =
+    fun tac_syn ->
+    univ_tac @@ fun lvl' ->
+    let* tcode, tuniv = T.Syn.run tac_syn in
+    let* tlvl' = RM.quote_lvl lvl' in
+    match tuniv with
+    | D.Univ lvl ->
+      let* tlvl = RM.quote_lvl lvl in
+      if ULvl.leq lvl lvl' then
+        RM.ret @@ S.CodeLift (tlvl, tlvl', tcode)
+      else
+        RM.with_pp @@ fun ppenv ->
+        RM.refine_err @@ ExpectedLessThanOrEqualTo (ppenv, tlvl, tlvl')
+    | _ ->
+      RM.expected_connective `Univ tuniv
 
   let nat : T.Chk.tac =
     univ_tac @@ fun lvl ->

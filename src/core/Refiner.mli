@@ -56,6 +56,7 @@ end
 module Univ : sig
   val formation : Chk.tac -> Tp.tac
   val univ : Chk.tac -> Chk.tac
+  val lift : Syn.tac -> Chk.tac
   val nat : Chk.tac
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
