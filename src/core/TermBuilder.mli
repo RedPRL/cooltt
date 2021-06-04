@@ -83,6 +83,7 @@ val meet : t m list -> t m
 val boundary : t m -> t m
 val forall : t b -> t m
 
+val lvl_top : t m
 val lvl_magic : t m
 
 module Equiv : sig

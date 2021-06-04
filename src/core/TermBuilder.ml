@@ -292,6 +292,7 @@ let tp_cof = ret S.TpCof
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
 let lvl_magic = ret S.LvlMagic
+let lvl_top = ret S.LvlTop
 
 let cube n mfam : _ m =
   let rec go acc n =
@@ -366,17 +367,17 @@ module Equiv : sig
 end =
 struct
   let code_is_contr code =
-    code_sg lvl_magic code @@ lam @@ fun x ->
-    code_pi lvl_magic code @@ lam @@ fun y ->
-    code_path' lvl_magic (lam @@ fun _ -> code) x y
+    code_sg lvl_top code @@ lam @@ fun x ->
+    code_pi lvl_top code @@ lam @@ fun y ->
+    code_path' lvl_top (lam @@ fun _ -> code) x y
 
   let code_fiber code_a code_b f b =
-    code_sg lvl_magic code_a @@ lam @@ fun a ->
-    code_path' lvl_magic (lam @@ fun _ -> code_b) (ap f [a]) b
+    code_sg lvl_top code_a @@ lam @@ fun a ->
+    code_path' lvl_top (lam @@ fun _ -> code_b) (ap f [a]) b
 
   let code_equiv code_a code_b =
-    code_sg lvl_magic (code_pi lvl_magic code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
-    code_pi lvl_magic code_b @@ lam @@ fun y ->
+    code_sg lvl_top (code_pi lvl_top code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
+    code_pi lvl_top code_b @@ lam @@ fun y ->
     code_is_contr @@ code_fiber code_a code_b (el_out f) y
 
   let equiv_fwd equiv =
@@ -531,7 +532,7 @@ struct
         begin
           let line =
             lam ~ident:(`Machine "i") @@ fun i ->
-            code_path' lvl_magic
+            code_path' lvl_top
               (lam @@ fun _ -> code_ i)
               (ap f_tilde [i; prf; coe (lam @@ fun j -> ap (pcode_ j) [prf]) r i bdy])
               (coe (lam code_) r i (ap f_tilde [r; prf; bdy]))

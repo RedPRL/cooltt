@@ -60,6 +60,7 @@ type t =
   | LockedPrfUnlock of {tp : tp; cof : t; prf : t; bdy : t}
 
   | LvlMagic
+  | LvlTop
 
 and tp =
   | Univ of t

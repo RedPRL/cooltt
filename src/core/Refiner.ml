@@ -587,7 +587,7 @@ struct
       Sem.splice_tp @@
       Splice.term @@
       TB.pi TB.tp_dim @@ fun _i ->
-      TB.univ TB.lvl_magic
+      TB.univ TB.lvl_top
     in
     let* fam = T.Chk.run tac_fam piuniv in
     let* src = T.Chk.run tac_src D.TpDim in
@@ -629,7 +629,7 @@ struct
       Sem.splice_tp @@
       Splice.term @@
       TB.pi TB.tp_dim @@ fun _i ->
-      TB.univ TB.lvl_magic
+      TB.univ TB.lvl_top
     in
     let* fam = T.Chk.run tac_fam piuniv in
     let* src = T.Chk.run tac_src D.TpDim in
@@ -977,7 +977,7 @@ struct
     let* tmot =
       T.Chk.run tac_mot @<<
       RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.nat @@ fun _ -> TB.univ TB.lvl_magic
+      TB.pi TB.nat @@ fun _ -> TB.univ TB.lvl_top
     in
     let* vmot = RM.lift_ev @@ Sem.eval tmot in
 
@@ -1039,7 +1039,7 @@ struct
     let* tmot =
       T.Chk.run tac_mot @<<
       RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.circle @@ fun _ -> TB.univ TB.lvl_magic
+      TB.pi TB.circle @@ fun _ -> TB.univ TB.lvl_top
     in
     let* vmot = RM.lift_ev @@ Sem.eval tmot in
 

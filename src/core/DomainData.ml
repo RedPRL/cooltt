@@ -70,6 +70,7 @@ and con =
   | Dim1
 
   | LvlMagic
+  | LvlTop
 
   | Cof of (con, con) Cof.cof_f
   (** A mixin of the language of cofibrations (as described in {!module:Cubical.Cof}), with dimensions and indeterminates in {!type:con}. *)

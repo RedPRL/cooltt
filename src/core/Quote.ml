@@ -270,6 +270,7 @@ and quote_lvl =
     let+ i = quote_var l in
     S.Var i
   | ULvl.LvlMagic -> ret S.LvlMagic
+  | ULvl.LvlTop -> ret S.LvlTop
 
 and quote_stable_code univ =
   function
@@ -311,7 +312,7 @@ and quote_stable_code univ =
       let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
       quote_global_con tp_cof_fam @@ `Global phi
     and+ tcode =
-      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.univ TB.lvl_magic in
+      let* tp_code = lift_cmp @@ splice_tp @@ Splice.tp (D.Univ lvl) @@ fun univ -> Splice.term @@ TB.cube n @@ fun _ -> univ in
       quote_con tp_code code
     and+ tbdry =
       let* tp_bdry =
@@ -421,10 +422,11 @@ and quote_tp (tp : D.tp) =
         Sem.splice_tp @@
         Splice.dim r @@ fun r ->
         Splice.cof phi @@ fun phi ->
+        Splice.tp (D.Univ lvl) @@ fun univ ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
-        TB.univ TB.lvl_magic
+        univ
       in
       quote_con tp_bdy bdy
     in
@@ -559,7 +561,7 @@ and quote_frm tm =
   | D.KNatElim (mot, zero_case, suc_case) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.nat @@ fun _ -> TB.univ TB.lvl_magic
+      TB.pi TB.nat @@ fun _ -> TB.univ TB.lvl_top
     in
     let* tmot = quote_con mot_tp mot in
     let* tzero_case =
@@ -580,7 +582,7 @@ and quote_frm tm =
   | D.KCircleElim (mot, base_case, loop_case) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.circle @@ fun _ -> TB.univ TB.lvl_magic
+      TB.pi TB.circle @@ fun _ -> TB.univ TB.lvl_top
     in
     let* tmot = quote_con mot_tp mot in
     let* tbase_case =

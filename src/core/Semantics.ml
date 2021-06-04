@@ -172,6 +172,7 @@ and con_to_lvl =
     whnf_inspect_con ~style:`UnfoldAll con |>>
     function
     | D.LvlMagic -> ret ULvl.LvlMagic
+    | D.LvlTop -> ret ULvl.LvlTop
     | D.Cut {cut = Var l, []; _} -> ret @@ ULvl.LvlVar l
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
@@ -185,7 +186,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ _) | D.LvlMagic as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ _) | D.LvlMagic | D.LvlTop as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -644,6 +645,7 @@ and eval : S.t -> D.con EvM.m =
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
     | S.LvlMagic -> ret D.LvlMagic
+    | S.LvlTop -> ret D.LvlTop
     | S.CofSplit (branches) ->
       let tphis, tms = List.split branches in
       let* phis = MU.map eval_cof tphis in
@@ -786,7 +788,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
-  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.LvlMagic ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.LvlMagic | D.LvlTop ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con

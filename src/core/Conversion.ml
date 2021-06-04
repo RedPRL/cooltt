@@ -329,7 +329,7 @@ and equate_frm k0 k1 =
   | D.KNatElim (mot0, zero_case0, suc_case0), D.KNatElim (mot1, zero_case1, suc_case1) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.nat @@ fun _ -> TB.univ TB.lvl_magic
+      TB.pi TB.nat @@ fun _ -> TB.univ TB.lvl_top
     in
     let* () = equate_con mot_tp mot0 mot1 in
     let* () =
@@ -349,7 +349,7 @@ and equate_frm k0 k1 =
   | D.KCircleElim (mot0, base_case0, loop_case0), D.KCircleElim (mot1, base_case1, loop_case1) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.circle @@ fun _ -> TB.univ TB.lvl_magic
+      TB.pi TB.circle @@ fun _ -> TB.univ TB.lvl_top
     in
     let* () = equate_con mot_tp mot0 mot1 in
     let* () =
@@ -415,7 +415,7 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
     equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
   | D.KSubOut _, D.KSubOut _ ->
     equate_cut cut0 cut1
-  | D.KCap (_, r0, s0, phi0, code0), D.KCap (_, r1, s1, phi1, code1) ->
+  | D.KCap (lvl, r0, s0, phi0, code0), D.KCap (_, r1, s1, phi1, code1) ->
     let* () = equate_dim r0 r1 in
     let* () = equate_dim s0 s1 in
     let* () = equate_cof phi0 phi1 in
@@ -425,10 +425,11 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
         Sem.splice_tp @@
         Splice.dim r0 @@ fun r ->
         Splice.cof phi0 @@ fun phi ->
+        Splice.tp (D.Univ lvl) @@ fun univ ->
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
-        TB.univ TB.lvl_magic
+        univ
       in
       equate_con code_tp code0 code1
     in
