@@ -73,6 +73,7 @@ let rec dump fmt =
   | CodeUniv _ -> Format.fprintf fmt "univ"
   | CodeV _ -> Format.fprintf fmt "<v>"
   | CodeCircle _ -> Format.fprintf fmt "circle"
+  | CodeLift _ -> Format.fprintf fmt "lift"
 
   | ESub _ -> Format.fprintf fmt "<esub>"
 
@@ -276,6 +277,9 @@ let rec pp env fmt tm =
       Uuseg_string.pp_utf_8 "Σ"
       (pp_atomic env) base
       (pp_atomic env) tm
+
+  | CodeLift (_, _, tm) ->
+    pp env fmt tm
 
   | CodeExt (_, _, fam, `Global phi, bdry) ->
     Format.fprintf fmt "@[ext %a %a %a@]"
