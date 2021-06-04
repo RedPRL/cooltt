@@ -14,3 +14,6 @@ let lt x y =
   | _, LvlMagic -> true
   | LvlVar _, LvlTop -> true
   | _ -> false
+
+let leq x y =
+  equal x y || lt x y

@@ -8,3 +8,4 @@ val magic : t
 
 val equal : t -> t -> bool
 val lt : t -> t -> bool
+val leq : t -> t -> bool
