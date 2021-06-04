@@ -175,7 +175,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ _) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -322,7 +322,7 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Univ _ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -372,7 +372,7 @@ and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stab
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (n, code, `Global cof, con)
-  | `Nat | `Circle | `Univ as code ->
+  | `Nat | `Circle | `Univ _ as code ->
     ret code
 
 and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
@@ -470,7 +470,7 @@ and eval_tp : S.tp -> D.tp EvM.m =
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
   | S.Univ ->
-    ret D.Univ
+    ret @@ D.Univ ULvl.magic
   | S.El tm ->
     let* con = eval tm in
     lift_cmp @@ do_el con
@@ -664,7 +664,7 @@ and eval : S.t -> D.con EvM.m =
       ret @@ D.StableCode `Circle
 
     | S.CodeUniv ->
-      ret @@ D.StableCode `Univ
+      ret @@ D.StableCode (`Univ ULvl.magic)
 
     | S.Box (r, s, phi, sides, cap) ->
       let+ vr = eval_dim r
@@ -1325,7 +1325,7 @@ and do_el : D.con -> D.tp CM.m =
         splitter con @@ List.map fst branches
       | D.Cut {tp = D.TpSplit branches; _} as con ->
         splitter con @@ List.map fst branches
-      | D.Cut {cut; tp = D.Univ} ->
+      | D.Cut {cut; tp = D.Univ _} ->
         ret @@ D.ElCut cut
       | D.StableCode code ->
         ret @@ D.ElStable code
@@ -1345,8 +1345,8 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
       | `Circle ->
         ret D.Circle
 
-      | `Univ ->
-        ret D.Univ
+      | `Univ lvl ->
+        ret @@ D.Univ lvl
 
       | `Pi (base, fam) ->
         splice_tp @@
@@ -1438,7 +1438,7 @@ and enact_rigid_coe line r r' con tag =
   | `Stable (x, code) ->
     begin
       match code with
-      | `Nat | `Circle | `Univ -> ret con
+      | `Nat | `Circle | `Univ _ -> ret con
       | `Pi (basex, famx) ->
         splice_tm @@
         Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
@@ -1548,7 +1548,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
           TB.el_out @@ TB.ap bdy [i; prf]
         in
         D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
-      | `Univ ->
+      | `Univ _ ->
         let+ bdy' =
           splice_tm @@
           Splice.con bdy @@ fun bdy ->

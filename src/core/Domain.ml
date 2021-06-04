@@ -163,7 +163,7 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "<fhcom>"
   | LetSym _ ->
     Format.fprintf fmt "<let-sym>"
-  | StableCode `Univ -> Format.fprintf fmt "<code-univ>"
+  | StableCode (`Univ _) -> Format.fprintf fmt "<code-univ>"
   | BindSym _ -> Format.fprintf fmt "<bind-sym>"
   | StableCode code -> pp_stable_code fmt code
   | UnstableCode _ -> Format.fprintf fmt "<unstable-code>"
@@ -192,7 +192,7 @@ and pp_tp fmt =
     Format.fprintf fmt "<cof>"
   | TpDim ->
     Format.fprintf fmt "<dim>"
-  | Univ ->
+  | Univ _ ->
     Format.fprintf fmt "<univ>"
   | Nat ->
     Format.fprintf fmt "<nat>"
@@ -218,4 +218,4 @@ and pp_stable_code fmt =
   | `Sg _ -> Format.fprintf fmt "<code-sg>"
   | `Nat -> Format.fprintf fmt "<code-nat>"
   | `Circle -> Format.fprintf fmt "<code-circle>"
-  | `Univ -> Format.fprintf fmt "<code-univ>"
+  | `Univ _ -> Format.fprintf fmt "<code-univ>"

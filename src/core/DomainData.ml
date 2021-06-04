@@ -23,8 +23,8 @@ type 'a stable_code =
   | `Circle
   (** The circle [S1]. *)
 
-  | `Univ
-    (** A code for the universe (antinomous for now). *)
+  | `Univ of ULvl.t
+    (** A code for the universe. *)
   ]
 
 (** A type code whose head constructor is {i not} stable under dimension substitution. *)
@@ -88,7 +88,7 @@ and con =
 
 and tp =
   | Sub of tp * cof * tm_clo
-  | Univ
+  | Univ of ULvl.t
   | ElCut of cut
   | ElStable of con stable_code
   | ElUnstable of con unstable_code

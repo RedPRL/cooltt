@@ -98,11 +98,11 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* con1 = lift_cmp @@ inst_tm_clo clo1 prf in
     equate_con tp0 con0 con1
   | D.Nat, D.Nat
-  | D.Circle, D.Circle
-  | D.Univ, D.Univ ->
+  | D.Circle, D.Circle -> ret ()
+  | D.Univ l, D.Univ k when l = k ->
     ret ()
   | D.ElStable code0, D.ElStable code1 ->
-    equate_stable_code D.Univ code0 code1
+    equate_stable_code (D.Univ ULvl.magic) code0 code1
   | D.ElCut cut0, D.ElCut cut1 ->
     equate_cut cut0 cut1
   | D.ElUnstable (`HCom (r0, s0, phi0, bdy0)), D.ElUnstable (`HCom (r1, s1, phi1, bdy1)) ->
@@ -127,7 +127,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
-  | `Nat, `Nat | `Circle, `Circle | `Univ, `Univ -> ret ()
+  | `Nat, `Nat | `Circle, `Circle -> ret ()
+  | `Univ x, `Univ y when x = y -> ret ()
   | `Pi (base0, fam0), `Pi (base1, fam1)
   | `Sg (base0, fam0), `Sg (base1, fam1) ->
     let* _ = equate_con univ base0 base1 in
@@ -390,7 +391,7 @@ and equate_hd hd0 hd1 =
       bind_var_ D.TpDim @@ fun i ->
       let* code0 = lift_cmp @@ do_ap abs0 i in
       let* code1 = lift_cmp @@ do_ap abs1 i in
-      equate_con D.Univ code0 code1
+      equate_con (D.Univ ULvl.magic) code0 code1
     in
     let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
     let* tp_code = lift_cmp @@ do_el code in
@@ -403,8 +404,8 @@ and equate_hd hd0 hd1 =
 and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
   match ufrm0, ufrm1 with
   | D.KHCom (r0, s0, phi0, bdy0), D.KHCom (r1, s1, phi1, bdy1) ->
-    let code0 = D.Cut {tp = D.Univ; cut = cut0} in
-    let code1 = D.Cut {tp = D.Univ; cut = cut1} in
+    let code0 = D.Cut {tp = D.Univ ULvl.magic; cut = cut0} in
+    let code1 = D.Cut {tp = D.Univ ULvl.magic; cut = cut1} in
     equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1)
   | D.KSubOut _, D.KSubOut _ ->
     equate_cut cut0 cut1
@@ -441,10 +442,10 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
 and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   let* () = equate_dim r0 r1 in
   let* () =
-    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 Dim.Dim0), `Anon, D.const_tp_clo D.Univ) in
+    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 Dim.Dim0), `Anon, D.const_tp_clo @@ D.Univ ULvl.magic) in
     equate_con pcode_tp pcode0 pcode1
   in
-  let* () = equate_con D.Univ code0 code1 in
+  let* () = equate_con (D.Univ ULvl.magic) code0 code1 in
   let* pequiv_tp =
     lift_cmp @@
     Sem.splice_tp @@
@@ -453,7 +454,7 @@ and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   equate_con pequiv_tp pequiv0 pequiv1
 
 and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
-  let* () = equate_con D.Univ code0 code1 in
+  let* () = equate_con (D.Univ ULvl.magic) code0 code1 in
   let* () = equate_dim r0 r1 in
   let* () = equate_dim s0 s1 in
   let* () = equate_cof phi0 phi1 in
