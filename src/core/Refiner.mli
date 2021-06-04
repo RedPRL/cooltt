@@ -28,6 +28,7 @@ end
 
 module Lvl : sig
   val formation : Tp.tac
+  val top : Chk.tac
 end
 
 module Cof : sig
@@ -53,8 +54,8 @@ module LockedPrf : sig
 end
 
 module Univ : sig
-  val formation : Tp.tac
-  val univ : Chk.tac
+  val formation : Chk.tac -> Tp.tac
+  val univ : Chk.tac -> Chk.tac
   val nat : Chk.tac
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac

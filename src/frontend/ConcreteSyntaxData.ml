@@ -38,7 +38,7 @@ and con_ =
   | Pair of con * con
   | Fst of con
   | Snd of con
-  | Type
+  | Type of con
   | Hole of string option * con option
   | Underscore
   | Unfold of Ident.t list * con

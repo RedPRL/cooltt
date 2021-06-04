@@ -155,8 +155,6 @@ plain_atomic_term_except_name:
     { Base }
   | CIRCLE
     { Circle }
-  | TYPE
-    { Type }
   | name = HOLE_NAME
     { Hole (name, None) }
   | DIM
@@ -228,6 +226,8 @@ plain_term_except_cof_case:
     { Ann {term = t; tp} }
   | LOCKED; phi = atomic_term
     { Locked phi }
+  | TYPE; c = atomic_term
+    { Type c }
   | SUC; t = term
     { Suc t }
   | LOOP; t = term

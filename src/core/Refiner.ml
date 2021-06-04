@@ -216,9 +216,22 @@ end
 
 module Lvl =
 struct
+
+  let assert_lvl =
+    function
+    | D.TpLvl -> RM.ret ()
+    | tp -> RM.expected_connective `Lvl tp
+
+
   let formation : T.Tp.tac =
     T.Tp.virtual_rule @@
     RM.ret S.TpLvl
+
+
+  let top : T.Chk.tac =
+    T.Chk.rule @@ fun tp ->
+    let* () = assert_lvl tp in
+    RM.ret S.LvlTop
 end
 
 module Cof =
@@ -490,9 +503,11 @@ end
 
 module Univ =
 struct
-  let formation : T.Tp.tac =
+  let formation : T.Chk.tac -> T.Tp.tac =
+    fun tac_lvl ->
     T.Tp.rule @@
-    RM.ret @@ S.Univ S.LvlMagic
+    let+ tlvl = T.Chk.run tac_lvl D.TpLvl in
+    S.Univ tlvl
 
   let univ_tac : (ULvl.t -> S.t RM.m) -> T.Chk.tac =
     fun m ->
@@ -502,11 +517,12 @@ struct
     | tp ->
       RM.expected_connective `Univ tp
 
-  let univ : T.Chk.tac =
+  let univ : T.Chk.tac -> T.Chk.tac =
+    fun tac_lvl ->
     univ_tac @@ fun lvl' ->
+    let* tlvl = T.Chk.run tac_lvl D.TpLvl in
     let* tlvl' = RM.quote_lvl lvl' in
-    RM.ret @@ S.CodeUniv (S.LvlMagic, tlvl')
-    (* Later: replace LvlMagic with just a parameter of type lvl *)
+    RM.ret @@ S.CodeUniv (tlvl, tlvl')
 
   let nat : T.Chk.tac =
     univ_tac @@ fun lvl ->

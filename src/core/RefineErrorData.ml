@@ -10,6 +10,7 @@ struct
     | `Nat
     | `Circle
     | `Univ
+    | `Lvl
     | `Dim
     | `Cof
     | `Sub

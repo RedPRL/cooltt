@@ -87,7 +87,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let phis = List.map (fun (phi, _) -> phi) branches in
     ConvM.restrict_ [Cof.join phis] @@
     equate_tp tp0 tp1
-  | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
+  | D.TpDim, D.TpDim | D.TpCof, D.TpCof | D.TpLvl, D.TpLvl -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
   | D.TpLockedPrf phi0, D.TpLockedPrf phi1 ->

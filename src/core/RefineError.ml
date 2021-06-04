@@ -12,6 +12,8 @@ let pp_connective fmt =
     Format.fprintf fmt "cof"
   | `Dim ->
     Format.fprintf fmt "dim"
+  | `Lvl ->
+    Format.fprintf fmt "lvl"
   | `Pi ->
     Format.fprintf fmt "pi"
   | `Sg ->

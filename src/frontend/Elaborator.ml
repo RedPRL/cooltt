@@ -39,7 +39,7 @@ sig
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
   val circle : tac
-  val univ : tac
+  val univ : T.Chk.tac -> tac
   val dim : tac
   val lvl : tac
   val cof : tac
@@ -100,7 +100,7 @@ struct
 
   let nat = Code R.Univ.nat
   let circle = Code R.Univ.circle
-  let univ = Code R.Univ.univ
+  let univ tac_lvl = Code (R.Univ.univ tac_lvl)
   let dim = Tp R.Dim.formation
   let lvl = Tp R.Lvl.formation
   let cof = Tp R.Cof.formation
@@ -242,8 +242,8 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Circle ->
       R.Univ.circle
 
-    | CS.Type ->
-      R.Univ.univ
+    | CS.Type c ->
+      R.Univ.univ @@ chk_tm c
 
     | CS.Pi (cells, body) ->
       let tac (CS.Cell cell) = cell.name, chk_tm cell.tp in
@@ -337,7 +337,7 @@ and syn_tm : CS.con -> T.Syn.tac =
         (syn_tm scrut)
     | CS.Rec {mot; cases; scrut} ->
       let mot_tac = chk_tm mot in
-      R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
+      R.Structural.let_syn (T.Syn.ann mot_tac (R.Univ.formation R.Lvl.top)) @@ fun tp ->
       Tactics.Elim.elim
         (R.Pi.intro @@ fun _ -> T.Chk.syn @@ R.Sub.elim @@ T.Var.syn tp)
         (chk_cases cases)
