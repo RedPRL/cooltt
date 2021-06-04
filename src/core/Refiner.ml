@@ -54,9 +54,41 @@ struct
 end
 
 
+module Probe : sig
+  val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
+  val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
+end =
+struct
+  let print_state lbl tp : unit m =
+    let* env = RM.read in
+    let cells = Env.locals env in
+
+    RM.globally @@
+    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+    () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
+    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
+
+  let probe_chk name tac =
+    T.Chk.brule @@ fun (tp, phi, clo) ->
+    let* s = T.Chk.brun tac (tp, phi, clo) in
+    let+ () =
+      let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
+      print_state name stp
+    in
+    s
+
+  let probe_syn name tac =
+    T.Syn.rule @@
+    let* s, tp = T.Syn.run tac in
+    let+ () =
+      let* stp = RM.quote_tp tp in
+      print_state name stp
+    in
+    s, tp
+end
+
+
 module Hole : sig
-  val run_chk_and_print_state : string option -> T.Chk.tac -> T.Chk.tac
-  val run_syn_and_print_state : string option -> T.Syn.tac -> T.Syn.tac
   val unleash_hole : string option -> T.Chk.tac
   val unleash_syn_hole : string option -> T.Syn.tac
 end =
@@ -69,33 +101,6 @@ struct
       RM.with_pp @@ fun ppenv ->
       RM.refine_err @@ Err.HoleNotPermitted (ppenv, ttp)
     | _ -> RM.ret ()
-
-  let print_state lbl tp : unit m =
-    let* env = RM.read in
-    let cells = Env.locals env in
-
-    RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
-    () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
-    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
-
-  let run_chk_and_print_state name tac =
-    T.Chk.brule @@ fun (tp, phi, clo) ->
-    let* s = T.Chk.brun tac (tp, phi, clo) in
-    let+ () =
-      let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
-      print_state name stp
-    in
-    s
-
-  let run_syn_and_print_state name tac =
-    T.Syn.rule @@
-    let* s, tp = T.Syn.run tac in
-    let+ () =
-      let* stp = RM.quote_tp tp in
-      print_state name stp
-    in
-    s, tp
 
   let make_hole name (tp, phi, clo) : D.cut m =
     let* () = assert_hole_possible tp in
@@ -118,13 +123,13 @@ struct
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
   let unleash_hole name : T.Chk.tac =
-    run_chk_and_print_state name @@
+    Probe.probe_chk name @@
     T.Chk.brule @@ fun (tp, phi, clo) ->
     let* cut = make_hole name (tp, phi, clo) in
     RM.quote_cut cut
 
   let unleash_syn_hole name : T.Syn.tac =
-    run_syn_and_print_state name @@
+    Probe.probe_syn name @@
     T.Syn.rule @@
     let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
