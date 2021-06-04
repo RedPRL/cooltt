@@ -68,6 +68,7 @@ and con =
 
   | Dim0
   | Dim1
+  | DimSym of Symbol.t
 
   | Cof of (con, con) Cof.cof_f
   (** A mixin of the language of cofibrations (as described in {!module:Cubical.Cof}), with dimensions and indeterminates in {!type:con}. *)

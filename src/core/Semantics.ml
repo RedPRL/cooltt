@@ -160,8 +160,8 @@ and con_to_dim =
     function
     | D.Dim0 -> ret Dim.Dim0
     | D.Dim1 -> ret Dim.Dim1
+    | D.DimSym x -> ret @@ Dim.DimSym x
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
-    | D.Cut {cut = Global sym, []; _} -> ret @@ Dim.DimSym sym
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
@@ -251,7 +251,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     and+ pivot = subst_con r x pivot
     and+ base = subst_con r x base in
     D.VIn (s, equiv, pivot, base)
-  | D.Cut {tp = _; cut = (D.Global y, [])} as con ->
+  | D.DimSym y as con ->
     begin
       test_sequent [] (Cof.eq (Dim.DimSym x) (Dim.DimSym y)) |>>
       function
@@ -763,7 +763,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
-  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimSym _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
