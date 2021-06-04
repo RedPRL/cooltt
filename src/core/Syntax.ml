@@ -297,8 +297,8 @@ let rec pp env fmt tm =
     Format.fprintf fmt "nat"
   | CodeCircle _ ->
     Format.fprintf fmt "circle"
-  | CodeUniv _ ->
-    Format.fprintf fmt "type"
+  | CodeUniv (lvl, _) ->
+    Format.fprintf fmt "type %a" (pp_atomic env) lvl
 
   | Dim0 ->
     Format.fprintf fmt "0"
@@ -440,7 +440,7 @@ and pp_tp env fmt tp =
   | TpCof ->
     Format.fprintf fmt "𝔽"
   | Univ lvl ->
-    Format.fprintf fmt "type<%a>" (pp env) lvl
+    Format.fprintf fmt "type %a" (pp_atomic env) lvl
   | Nat ->
     Format.fprintf fmt "nat"
   | Circle ->
