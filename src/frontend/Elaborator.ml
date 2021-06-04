@@ -170,10 +170,8 @@ and chk_tm : CS.con -> T.Chk.tac =
   T.Chk.update_span con.info @@
   Tactics.intro_subtypes @@
   match con.node with
-  | CS.Hole (name, ocon) ->
-    Refiner.Hole.run_chk_and_print_state name @@
-    Option.fold ~none:(Refiner.Hole.unleash_hole name) ~some:chk_tm ocon
-
+  | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
+  | CS.Hole (name, Some con) -> Refiner.Hole.run_chk_and_print_state name @@ chk_tm con
   | CS.Unfold (idents, c) ->
     (* TODO: move to a trusted rule *)
     T.Chk.brule @@
@@ -304,9 +302,8 @@ and syn_tm : CS.con -> T.Syn.tac =
     T.Syn.update_span con.info @@
     Tactics.elim_implicit_connectives @@
     match con.node with
-    | CS.Hole (name, ocon) ->
-      Refiner.Hole.run_syn_and_print_state name @@
-      Option.fold ~none:(Refiner.Hole.unleash_syn_hole name) ~some:syn_tm ocon
+    | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
+    | CS.Hole (name, Some con) -> Refiner.Hole.run_syn_and_print_state name @@ syn_tm con
     | CS.Var id ->
       R.Structural.lookup_var id
     | CS.DeBruijnLevel lvl ->

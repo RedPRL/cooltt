@@ -58,7 +58,6 @@ module Hole : sig
   val run_chk_and_print_state : string option -> T.Chk.tac -> T.Chk.tac
   val run_syn_and_print_state : string option -> T.Syn.tac -> T.Syn.tac
   val unleash_hole : string option -> T.Chk.tac
-  val unleash_tp_hole : string option -> T.Tp.tac
   val unleash_syn_hole : string option -> T.Syn.tac
 end =
 struct
@@ -119,16 +118,13 @@ struct
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
   let unleash_hole name : T.Chk.tac =
+    run_chk_and_print_state name @@
     T.Chk.brule @@ fun (tp, phi, clo) ->
     let* cut = make_hole name (tp, phi, clo) in
     RM.quote_cut cut
 
-  let unleash_tp_hole name : T.Tp.tac =
-    T.Tp.rule @@
-    let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
-    RM.quote_tp @@ D.ElCut cut
-
   let unleash_syn_hole name : T.Syn.tac =
+    run_syn_and_print_state name @@
     T.Syn.rule @@
     let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in

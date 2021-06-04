@@ -13,7 +13,6 @@ module Hole : sig
   val run_chk_and_print_state : string option -> Chk.tac -> Chk.tac
   val run_syn_and_print_state : string option -> Syn.tac -> Syn.tac
   val unleash_hole : string option -> Chk.tac
-  val unleash_tp_hole : string option -> Tp.tac
   val unleash_syn_hole : string option -> Syn.tac
 end
 
