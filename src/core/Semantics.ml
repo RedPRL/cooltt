@@ -1138,7 +1138,12 @@ and do_lift_code l0 l1 con : D.con CM.m =
   begin
     inspect_con ~style:`UnfoldNone con |>>
     function
-    | D.StableCode _ -> raise CJHM
+    | D.StableCode code ->
+      let+ code' = do_lift_stable_code l0 l1 code in
+      D.StableCode code'
+    | D.UnstableCode code ->
+      let+ code' = do_lift_unstable_code l0 l1 code in
+      D.UnstableCode code'
     | D.Split branches as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
@@ -1148,6 +1153,43 @@ and do_lift_code l0 l1 con : D.con CM.m =
     | _ ->
       throw @@ NbeFailed "Couldn't lift argument in do_lift_code"
   end
+
+and do_lift_stable_code l0 l1 : D.con D.stable_code -> D.con D.stable_code CM.m =
+  let open CM in
+  function
+  | `Pi (_, base, fam) ->
+    let* base' = do_lift_code l0 l1 base in
+    let* fam' = do_lift_fam l0 l1 fam in
+    ret @@ `Pi (l1, base', fam')
+  | `Sg (_, base, fam) ->
+    let* base' = do_lift_code l0 l1 base in
+    let* fam' = do_lift_fam l0 l1 fam in
+    ret @@ `Sg (l1, base', fam')
+  | `Ext (_, n, fam, cof, bdry) ->
+    let+ fam' = do_lift_nfam n l0 l1 fam in
+    `Ext (l1, n, fam', cof, bdry)
+  | `Univ (ul, _) -> ret @@ `Univ (ul, l1)
+  | `Circle _ -> ret @@ `Circle l1
+  | `Nat _ -> ret @@ `Nat l1
+
+and do_lift_fam l0 l1 : D.con -> D.con CM.m =
+  do_lift_nfam 1 l0 l1
+
+and do_lift_nfam n l0 l1 : D.con -> D.con CM.m =
+  let open CM in
+  fun fam ->
+  splice_tm @@
+  Splice.con fam @@ fun fam ->
+  Splice.con (D.lvl_to_con l0) @@ fun l0 ->
+  Splice.con (D.lvl_to_con l1) @@ fun l1 ->
+  Splice.term @@
+  TB.nlam n @@ fun xs ->
+  TB.lift_code l0 l1 @@
+  TB.ap fam xs
+
+
+and do_lift_unstable_code _l0 _l1 : D.con D.unstable_code -> D.con D.unstable_code CM.m =
+  raise CJHM
 
 and do_fst con : D.con CM.m =
   let open CM in

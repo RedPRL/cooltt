@@ -16,6 +16,7 @@ val lvl : int -> t m
 val tplvl : int -> tp m
 
 val lam : ?ident:Ident.t -> t b -> t m
+val nlam : int -> (t m list -> t m) -> t m
 val ap : t m -> t m list -> t m
 val coe : t m -> t m -> t m -> t m -> t m
 val hcom : t m -> t m -> t m -> t m -> t m -> t m
