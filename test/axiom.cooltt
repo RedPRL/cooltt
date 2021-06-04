@@ -1,18 +1,24 @@
 axiom φ/path : 𝔽
 axiom u/path : locked φ/path
-axiom path (A : type) (x : A) (y : A)
-  : sub type φ/path {ext i => A with [i=0 => x | i=1 => y]}
+
+axiom path (l : lvl) (A : type l) (x : A) (y : A)
+  : sub {type l} φ/path {ext i => A with [i=0 => x | i=1 => y]}
+
 
 normalize path
 
-def test : path nat 3 3 :=
+def test (l : lvl) : path l nat 3 3 :=
   unlock u/path in
   i => 3
 
+
 normalize test
 
-def test2 : unlock u/path in path {path nat 3 3} test {_ => 3} :=
+
+def test2 (l : lvl) : unlock u/path in path l {path l nat 3 3} {test l} {_ => 3} :=
   unlock u/path in
   _ _ => 3
 
 print test2
+
+def foo (l : lvl) : ? := ?

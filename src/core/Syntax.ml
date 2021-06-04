@@ -278,8 +278,11 @@ let rec pp env fmt tm =
       (pp_atomic env) base
       (pp_atomic env) tm
 
-  | CodeLift (_, _, tm) ->
-    pp env fmt tm
+  | CodeLift (l0, l1, tm) ->
+    Format.fprintf fmt "@[lift %a %a %a@]"
+      (pp_atomic env) l0
+      (pp_atomic env) l1
+      (pp_atomic env) tm
 
   | CodeExt (_, _, fam, `Global phi, bdry) ->
     Format.fprintf fmt "@[ext %a %a %a@]"

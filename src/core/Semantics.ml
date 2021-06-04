@@ -1436,8 +1436,14 @@ and do_el : D.con -> D.tp CM.m =
         splitter con @@ List.map fst branches
       | D.Cut {tp = D.TpSplit branches; _} as con ->
         splitter con @@ List.map fst branches
-      | D.Cut {cut; tp = D.Univ _} ->
-        ret @@ D.ElCut cut
+      | D.Cut {cut = hd, sp as cut; tp = D.Univ _} ->
+        begin
+          match Bwd.from_list sp with
+          | Snoc (sp', KLift (l, _)) ->
+            do_el @@ D.Cut {cut = hd, Bwd.to_list sp'; tp = D.Univ l}
+          | _ ->
+            ret @@ D.ElCut cut
+        end
       | D.StableCode code ->
         ret @@ D.ElStable code
       | _ ->
