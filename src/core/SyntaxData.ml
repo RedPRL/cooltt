@@ -49,7 +49,7 @@ type t =
   | CodePi of t * t * t
   | CodeSg of t * t * t
   | CodeNat of t
-  | CodeUniv of t
+  | CodeUniv of t * t
   | CodeV of t * t * t * t * t
   | CodeCircle of t
 

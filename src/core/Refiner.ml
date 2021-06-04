@@ -495,9 +495,10 @@ struct
       RM.expected_connective `Univ tp
 
   let univ : T.Chk.tac =
-    univ_tac @@ fun _ ->
-    RM.ret @@ S.CodeUniv S.LvlMagic
-
+    univ_tac @@ fun lvl' ->
+    let* tlvl' = RM.quote_lvl lvl' in
+    RM.ret @@ S.CodeUniv (S.LvlMagic, tlvl')
+    (* Later: replace LvlMagic with just a parameter of type lvl *)
 
   let nat : T.Chk.tac =
     univ_tac @@ fun lvl ->

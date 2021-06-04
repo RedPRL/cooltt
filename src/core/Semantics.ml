@@ -682,9 +682,10 @@ and eval : S.t -> D.con EvM.m =
       let+ vlvl = eval_lvl lvl in
       D.StableCode (`Circle vlvl)
 
-    | S.CodeUniv tlvl ->
-      let+ lvl = eval_lvl tlvl in
-      D.StableCode (`Univ lvl)
+    | S.CodeUniv (tlvl, tlvl') ->
+      let+ lvl = eval_lvl tlvl
+      and+ lvl' = eval_lvl tlvl' in
+      D.StableCode (`Univ (lvl, lvl'))
 
     | S.Box (r, s, phi, sides, cap) ->
       let+ vr = eval_dim r
@@ -1372,7 +1373,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
       | `Circle _ ->
         ret D.Circle
 
-      | `Univ lvl ->
+      | `Univ (lvl, _) ->
         ret @@ D.Univ lvl
 
       | `Pi (_, base, fam) ->
@@ -1576,7 +1577,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         in
         let tag = match tag with `Circle _ -> `Circle | `Nat _ -> `Nat in
         D.ElIn (D.FHCom (tag, r, r', phi, bdy'))
-      | `Univ lvl ->
+      | `Univ (lvl, _) ->
         let+ bdy' =
           splice_tm @@
           Splice.con bdy @@ fun bdy ->

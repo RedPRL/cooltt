@@ -23,7 +23,7 @@ type 'a stable_code =
   | `Circle of ULvl.t
   (** The circle [S1]. *)
 
-  | `Univ of ULvl.t
+  | `Univ of ULvl.t * ULvl.t
     (** A code for the universe. *)
   ]
 
