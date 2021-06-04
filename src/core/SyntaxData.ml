@@ -49,7 +49,7 @@ type t =
   | CodePi of t * t
   | CodeSg of t * t
   | CodeNat
-  | CodeUniv
+  | CodeUniv of t
   | CodeV of t * t * t * t
   | CodeCircle
 
@@ -59,8 +59,10 @@ type t =
   | LockedPrfIn of t
   | LockedPrfUnlock of {tp : tp; cof : t; prf : t; bdy : t}
 
+  | LvlMagic
+
 and tp =
-  | Univ
+  | Univ of t
   | El of t
   | TpVar of int
   | TpDim

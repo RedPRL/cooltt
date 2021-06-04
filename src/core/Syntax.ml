@@ -70,7 +70,7 @@ let rec dump fmt =
   | CodePi _ -> Format.fprintf fmt "<pi>"
   | CodeSg _ -> Format.fprintf fmt "<sg>"
   | CodeNat -> Format.fprintf fmt "nat"
-  | CodeUniv -> Format.fprintf fmt "univ"
+  | CodeUniv _ -> Format.fprintf fmt "univ"
   | CodeV _ -> Format.fprintf fmt "<v>"
   | CodeCircle -> Format.fprintf fmt "circle"
 
@@ -79,9 +79,11 @@ let rec dump fmt =
   | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
   | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
+  | LvlMagic -> Format.fprintf fmt "<lvl/magic>"
+
 and dump_tp fmt =
   function
-  | Univ -> Format.fprintf fmt "univ"
+  | Univ _ -> Format.fprintf fmt "univ"
   | El t -> Format.fprintf fmt "el[%a]" dump t
   | TpVar i -> Format.fprintf fmt "tp/var[%i]" i
   | TpDim -> Format.fprintf fmt "tp/dim"
@@ -283,13 +285,13 @@ let rec pp env fmt tm =
     Format.fprintf fmt "`nat"
   | CodeCircle when debug_mode ->
     Format.fprintf fmt "`circle"
-  | CodeUniv when debug_mode ->
+  | CodeUniv _ when debug_mode ->
     Format.fprintf fmt "`type"
   | CodeNat ->
     Format.fprintf fmt "nat"
   | CodeCircle ->
     Format.fprintf fmt "circle"
-  | CodeUniv ->
+  | CodeUniv _ ->
     Format.fprintf fmt "type"
 
   | Dim0 ->
@@ -364,6 +366,9 @@ let rec pp env fmt tm =
       (pp env) cof
       (pp env) bdy
 
+  | LvlMagic ->
+    Format.fprintf fmt "magic"
+
 and pp_sub env fmt =
   function
   | Sb1 ->
@@ -422,7 +427,7 @@ and pp_tp env fmt tp =
     Format.fprintf fmt "𝕀"
   | TpCof ->
     Format.fprintf fmt "𝔽"
-  | Univ ->
+  | Univ _ ->
     Format.fprintf fmt "type"
   | Nat ->
     Format.fprintf fmt "nat"
@@ -446,7 +451,7 @@ and pp_tp env fmt tp =
 
 and pp_atomic_tp env fmt tp =
   match tp with
-  | TpDim | TpCof | Nat | Univ ->
+  | TpDim | TpCof | Nat | Univ _ ->
     pp_tp env fmt tp
   | _ ->
     pp_braced (pp_tp env) fmt tp
@@ -461,7 +466,7 @@ and pp_tp_cof_split_branch env fmt (phi, tm) =
 
 and pp_atomic env fmt tm =
   match tm with
-  | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
+  | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv _
   | Zero | Base | Prf ->
     pp env fmt tm
   | Suc _ as tm when Option.is_some (to_numeral tm) ->

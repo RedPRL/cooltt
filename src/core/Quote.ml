@@ -264,6 +264,13 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
+and quote_lvl =
+  function
+  | ULvl.LvlVar l ->
+    let+ i = quote_var l in
+    S.Var i
+  | ULvl.LvlMagic -> ret S.LvlMagic
+
 and quote_stable_code univ =
   function
   | `Nat ->
@@ -272,8 +279,9 @@ and quote_stable_code univ =
   | `Circle ->
     ret S.CodeCircle
 
-  | `Univ _ ->
-    ret @@ S.CodeUniv
+  | `Univ lvl ->
+    let+ tlvl = quote_lvl lvl in
+    S.CodeUniv tlvl
 
   | `Pi (base, fam) ->
     let+ tbase = quote_con univ base
@@ -300,7 +308,7 @@ and quote_stable_code univ =
       let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
       quote_global_con tp_cof_fam @@ `Global phi
     and+ tcode =
-      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.univ in
+      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.univ TB.lvl_magic in
       quote_con tp_code code
     and+ tbdry =
       let* tp_bdry =
@@ -373,8 +381,9 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
-  | D.Univ _ ->
-    ret S.Univ
+  | D.Univ lvl ->
+    let+ tlvl = quote_lvl lvl in
+    S.Univ tlvl
   | D.ElStable code ->
     let+ tm = quote_stable_code (D.Univ ULvl.magic) code in
     S.El tm
@@ -410,11 +419,11 @@ and quote_tp (tp : D.tp) =
         Splice.term @@
         TB.pi TB.tp_dim @@ fun i ->
         TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
-        TB.univ
+        TB.univ TB.lvl_magic
       in
       quote_con tp_bdy bdy
     in
-    S.El (S.HCom (S.CodeUniv, tr, ts, tphi, tbdy))
+    S.El (S.HCom (S.CodeUniv S.LvlMagic, tr, ts, tphi, tbdy))
   | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
     S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
@@ -470,7 +479,7 @@ and quote_unstable_cut cut ufrm =
       Splice.term @@
       TB.pi TB.tp_dim @@ fun i ->
       TB.pi (TB.tp_prf (TB.join [TB.eq i r; phi])) @@ fun _prf ->
-      TB.univ
+      TB.univ TB.lvl_magic
     in
     let+ tcode = quote_con code_tp code
     and+ tbox = quote_cut cut in
@@ -545,7 +554,7 @@ and quote_frm tm =
   | D.KNatElim (mot, zero_case, suc_case) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.nat @@ fun _ -> TB.univ
+      TB.pi TB.nat @@ fun _ -> TB.univ TB.lvl_magic
     in
     let* tmot = quote_con mot_tp mot in
     let* tzero_case =
@@ -566,7 +575,7 @@ and quote_frm tm =
   | D.KCircleElim (mot, base_case, loop_case) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.circle @@ fun _ -> TB.univ
+      TB.pi TB.circle @@ fun _ -> TB.univ TB.lvl_magic
     in
     let* tmot = quote_con mot_tp mot in
     let* tbase_case =

@@ -171,8 +171,9 @@ let sub_in mtm =
   let+ tm = mtm in
   S.SubIn tm
 
-let univ : _ m =
-  ret S.Univ
+let univ mlvl : _ m =
+  let+ lvl = mlvl in
+  S.Univ lvl
 
 let nat : _ m =
   ret S.Nat
@@ -286,6 +287,7 @@ let tp_dim = ret S.TpDim
 let tp_cof = ret S.TpCof
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
+let lvl_magic = ret S.LvlMagic
 
 let cube n mfam : _ m =
   let rec go acc n =

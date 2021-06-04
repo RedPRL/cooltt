@@ -46,7 +46,7 @@ val sub_in : t m -> t m
 val el_in : t m -> t m
 val el_out : t m -> t m
 
-val univ : tp m
+val univ : t m -> tp m
 val nat : tp m
 val code_nat : t m
 val nat_elim : t m -> t m -> t m -> t m -> t m
@@ -83,6 +83,7 @@ val meet : t m list -> t m
 val boundary : t m -> t m
 val forall : t b -> t m
 
+val lvl_magic : t m
 
 module Equiv : sig
   val code_is_contr : t m -> t m

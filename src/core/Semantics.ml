@@ -166,6 +166,16 @@ and con_to_dim =
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
 
+and con_to_lvl =
+  let open CM in
+  fun con ->
+    whnf_inspect_con ~style:`UnfoldAll con |>>
+    function
+    | D.LvlMagic -> ret ULvl.LvlMagic
+    | D.Cut {cut = Var l, []; _} -> ret @@ ULvl.LvlVar l
+    | con ->
+      Format.eprintf "bad: %a@." D.pp_con con;
+      throw @@ NbeFailed "con_to_lvl"
 
 and subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x con ->
@@ -175,7 +185,7 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ _) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ _) | D.LvlMagic as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -469,8 +479,9 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
-  | S.Univ ->
-    ret @@ D.Univ ULvl.magic
+  | S.Univ tlvl ->
+    let+ lvl = eval_lvl tlvl in
+    D.Univ lvl
   | S.El tm ->
     let* con = eval tm in
     lift_cmp @@ do_el con
@@ -632,6 +643,7 @@ and eval : S.t -> D.con EvM.m =
       let i = Dim.DimSym sym in
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
+    | S.LvlMagic -> ret D.LvlMagic
     | S.CofSplit (branches) ->
       let tphis, tms = List.split branches in
       let* phis = MU.map eval_cof tphis in
@@ -663,8 +675,9 @@ and eval : S.t -> D.con EvM.m =
     | S.CodeCircle ->
       ret @@ D.StableCode `Circle
 
-    | S.CodeUniv ->
-      ret @@ D.StableCode (`Univ ULvl.magic)
+    | S.CodeUniv tlvl ->
+      let+ lvl = eval_lvl tlvl in
+      D.StableCode (`Univ lvl)
 
     | S.Box (r, s, phi, sides, cap) ->
       let+ vr = eval_dim r
@@ -753,6 +766,12 @@ and eval_dim tr =
   let* con = eval tr in
   lift_cmp @@ con_to_dim con
 
+and eval_lvl tlvl =
+  let open EvM in
+  let* con = eval tlvl in
+  lift_cmp @@ con_to_lvl con
+
+
 and eval_cof tphi =
   let open EvM in
   let* vphi = eval tphi in
@@ -763,7 +782,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
-  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.LvlMagic ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
