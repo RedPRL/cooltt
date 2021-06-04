@@ -131,7 +131,7 @@ struct
   let unleash_syn_hole name : T.Syn.tac =
     Probe.probe_syn name @@
     T.Syn.rule @@
-    let* cut = make_hole name @@ (D.Univ ULvl.magic, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ ULvl.LvlTop, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
     let+ tm = tp |> T.Chk.run @@ unleash_hole name in
     tm, tp
@@ -572,10 +572,10 @@ struct
       RM.lift_cmp @@ Sem.con_to_dim vr_con
     in
     let* pcode =
-      let tp_pcode = D.Pi (D.TpPrf (Cubical.Cof.eq vr Cubical.Dim.Dim0), `Anon, D.const_tp_clo @@ D.Univ ULvl.magic) in
+      let tp_pcode = D.Pi (D.TpPrf (Cubical.Cof.eq vr Cubical.Dim.Dim0), `Anon, D.const_tp_clo @@ D.Univ lvl) in
       T.Chk.run tac_pcode tp_pcode
     in
-    let* code = T.Chk.run tac_code @@ D.Univ ULvl.magic in
+    let* code = T.Chk.run tac_code @@ D.Univ lvl in
     let+ pequiv =
       T.Chk.run tac_pequiv @<<
       let* vpcode = RM.lift_ev @@ Sem.eval pcode in
@@ -617,7 +617,7 @@ struct
 
   let hcom (tac_code : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
     T.Syn.rule @@
-    let* code = T.Chk.run tac_code @@ D.Univ ULvl.magic in
+    let* code = T.Chk.run tac_code @@ D.Univ ULvl.LvlTop in
     let* src = T.Chk.run tac_src D.TpDim in
     let* trg = T.Chk.run tac_trg D.TpDim in
     let* cof = T.Chk.run tac_cof D.TpCof in
@@ -664,7 +664,7 @@ module El =
 struct
   let formation tac =
     T.Tp.rule @@
-    let+ tm = T.Chk.run tac @@ D.Univ ULvl.magic in
+    let+ tm = T.Chk.run tac @@ D.Univ ULvl.LvlTop in
     S.El tm
 
   let dest_el tp =
@@ -749,10 +749,10 @@ struct
     T.Syn.rule @@
     let* tm, tp = T.Syn.run tac_v in
     match tp with
-    | D.ElUnstable (`V (_lvl, r, pcode, code, pequiv)) ->
+    | D.ElUnstable (`V (lvl, r, pcode, code, pequiv)) ->
       let* tr = RM.quote_dim r in
-      let* tpcode = RM.quote_con (D.Pi (D.TpPrf (Cubical.Cof.eq r Cubical.Dim.Dim0), `Anon, D.const_tp_clo @@ D.Univ ULvl.magic)) pcode in
-      let* tcode = RM.quote_con (D.Univ ULvl.magic) code in
+      let* tpcode = RM.quote_con (D.Pi (D.TpPrf (Cubical.Cof.eq r Cubical.Dim.Dim0), `Anon, D.const_tp_clo @@ D.Univ lvl)) pcode in
+      let* tcode = RM.quote_con (D.Univ lvl) code in
       let* t_pequiv =
         let* tp_pequiv =
           RM.lift_cmp @@ Sem.splice_tp @@
@@ -827,12 +827,12 @@ struct
     T.Syn.rule @@
     let* box, box_tp = T.Syn.run tac_box in
     match box_tp with
-    | D.ElUnstable (`HCom (_lvl, r, r', phi, bdy)) ->
+    | D.ElUnstable (`HCom (lvl, r, r', phi, bdy)) ->
       let+ tr = RM.quote_dim r
       and+ tr' = RM.quote_dim r'
       and+ tphi = RM.quote_cof phi
       and+ tbdy =
-        let* tp_bdy = Univ.hcom_bdy_tp (D.Univ ULvl.magic) (D.dim_to_con r) (D.cof_to_con phi) in
+        let* tp_bdy = Univ.hcom_bdy_tp (D.Univ lvl) (D.dim_to_con r) (D.cof_to_con phi) in
         RM.quote_con tp_bdy bdy
       and+ tp_cap =
         let* code_fib = RM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in

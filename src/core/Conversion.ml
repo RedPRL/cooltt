@@ -121,8 +121,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
       univ
     in
     equate_con tp_bdy bdy0 bdy1
-  | D.ElUnstable (`V (_, r0, pcode0, code0, pequiv0)), D.ElUnstable (`V (_, r1, pcode1, code1, pequiv1)) ->
-    equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
+  | D.ElUnstable (`V (lvl, r0, pcode0, code0, pequiv0)), D.ElUnstable (`V (_, r1, pcode1, code1, pequiv1)) ->
+    equate_v_data lvl (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
@@ -254,8 +254,8 @@ and equate_con tp con0 con1 =
   | univ, D.StableCode code0, D.StableCode code1 ->
     equate_stable_code univ code0 code1
 
-  | _, D.UnstableCode (`V (_, r0, pcode0, code0, pequiv0)), D.UnstableCode (`V (_, r1, pcode1, code1, pequiv1)) ->
-    equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
+  | _, D.UnstableCode (`V (lvl, r0, pcode0, code0, pequiv0)), D.UnstableCode (`V (_, r1, pcode1, code1, pequiv1)) ->
+    equate_v_data lvl (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
 
 
   | D.ElUnstable (`HCom (_, r, s, phi, bdy)) as hcom_tp, _, _ ->
@@ -397,7 +397,7 @@ and equate_hd hd0 hd1 =
       bind_var_ D.TpDim @@ fun i ->
       let* code0 = lift_cmp @@ do_ap abs0 i in
       let* code1 = lift_cmp @@ do_ap abs1 i in
-      equate_con (D.Univ ULvl.magic) code0 code1
+      equate_con (D.Univ ULvl.LvlTop) code0 code1
     in
     let* code = lift_cmp @@ do_ap abs0 @@ D.dim_to_con r0 in
     let* tp_code = lift_cmp @@ do_el code in
@@ -434,8 +434,8 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
       equate_con code_tp code0 code1
     in
     equate_cut cut0 cut1
-  | D.KVProj (_, r0, pcode0, code0, pequiv0), D.KVProj (_, r1, pcode1, code1, pequiv1) ->
-    let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
+  | D.KVProj (lvl, r0, pcode0, code0, pequiv0), D.KVProj (_, r1, pcode1, code1, pequiv1) ->
+    let* () = equate_v_data lvl (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
     equate_cut cut0 cut1
   | D.KLockedPrfUnlock (tp0, phi0, bdy0), D.KLockedPrfUnlock (tp1, phi1, bdy1) ->
     let* () = equate_cut cut0 cut1 in
@@ -446,13 +446,13 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
   | _ ->
     conv_err @@ HeadMismatch (D.UnstableCut (cut0, ufrm0), D.UnstableCut (cut1, ufrm1))
 
-and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
+and equate_v_data lvl (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   let* () = equate_dim r0 r1 in
   let* () =
-    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 Dim.Dim0), `Anon, D.const_tp_clo @@ D.Univ ULvl.magic) in
+    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 Dim.Dim0), `Anon, D.const_tp_clo @@ D.Univ lvl) in
     equate_con pcode_tp pcode0 pcode1
   in
-  let* () = equate_con (D.Univ ULvl.magic) code0 code1 in
+  let* () = equate_con (D.Univ lvl) code0 code1 in
   let* pequiv_tp =
     lift_cmp @@
     Sem.splice_tp @@
@@ -461,7 +461,7 @@ and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   equate_con pequiv_tp pequiv0 pequiv1
 
 and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
-  let* () = equate_con (D.Univ ULvl.magic) code0 code1 in
+  let* () = equate_con (D.Univ ULvl.LvlTop) code0 code1 in
   let* () = equate_dim r0 r1 in
   let* () = equate_dim s0 s1 in
   let* () = equate_cof phi0 phi1 in

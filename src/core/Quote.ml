@@ -343,8 +343,8 @@ and quote_lam ?(ident = `Anon) tp mbdy =
 and quote_v_data lvl r pcode code pequiv =
   let+ tlvl = quote_lvl lvl
   and+ tr = quote_dim r
-  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo (D.Univ ULvl.magic))) pcode
-  and+ tcode = quote_con (D.Univ ULvl.magic) code
+  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo (D.Univ lvl))) pcode
+  and+ tcode = quote_con (D.Univ lvl) code
   and+ t_pequiv =
     let* tp_pequiv =
       lift_cmp @@ Sem.splice_tp @@
@@ -356,7 +356,7 @@ and quote_v_data lvl r pcode code pequiv =
 
 
 and quote_hcom code r s phi bdy =
-  let* tcode = quote_con (D.Univ ULvl.magic) code in
+  let* tcode = quote_con (D.Univ ULvl.LvlTop) code in
   let* tr = quote_dim r in
   let* ts = quote_dim s in
   let* tphi = quote_cof phi in
@@ -393,7 +393,7 @@ and quote_tp (tp : D.tp) =
     let+ tlvl = quote_lvl lvl in
     S.Univ tlvl
   | D.ElStable code ->
-    let+ tm = quote_stable_code (D.Univ ULvl.magic) code in
+    let+ tm = quote_stable_code (D.Univ ULvl.LvlTop) code in
     S.El tm
   | D.ElCut cut ->
     let+ tm = quote_cut cut in
@@ -458,7 +458,7 @@ and quote_hd =
   | D.Global sym ->
     ret @@ S.Global sym
   | D.Coe (code, r, s, con) ->
-    let code_tp = D.Pi (D.TpDim, `Anon, D.const_tp_clo (D.Univ ULvl.magic)) in
+    let code_tp = D.Pi (D.TpDim, `Anon, D.const_tp_clo (D.Univ ULvl.LvlTop)) in
     let* tpcode = quote_con code_tp code in
     let* tr = quote_dim r in
     let* ts = quote_dim s in
@@ -472,7 +472,7 @@ and quote_hd =
 and quote_unstable_cut cut ufrm =
   match ufrm with
   | D.KHCom (r, s, phi, bdy) ->
-    let code = D.Cut {cut; tp = D.Univ ULvl.magic} in
+    let code = D.Cut {cut; tp = D.Univ ULvl.LvlTop} in
     quote_hcom code r s phi bdy
   | D.KSubOut _ ->
     let+ tm = quote_cut cut in
@@ -494,10 +494,10 @@ and quote_unstable_cut cut ufrm =
     let+ tcode = quote_con code_tp code
     and+ tbox = quote_cut cut in
     S.Cap (tr, ts, tphi, tcode, tbox)
-  | D.KVProj (_, r, pcode, code, pequiv) ->
+  | D.KVProj (lvl, r, pcode, code, pequiv) ->
     let* tr = quote_dim r in
-    let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo (D.Univ ULvl.magic))) pcode in
-    let* tcode = quote_con (D.Univ ULvl.magic) code in
+    let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo (D.Univ lvl))) pcode in
+    let* tcode = quote_con (D.Univ lvl) code in
     let* t_pequiv =
       let* tp_pequiv =
         lift_cmp @@ Sem.splice_tp @@
