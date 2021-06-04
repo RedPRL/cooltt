@@ -41,6 +41,8 @@ let dim_to_con =
     Cut {tp = TpDim; cut = Var lvl, []}
   | Dim.DimSym sym ->
     DimSym sym
+  | Dim.DimGlobal sym ->
+    Cut {tp = TpDim; cut = Global sym, []}
 
 let rec cof_to_con =
   function

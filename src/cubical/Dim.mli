@@ -13,3 +13,6 @@ type dim =
   | DimSym of Symbol.t
     (** Some dimension variables must be generated in a globally fresh way ({i e.g.} when computing under a binder). *)
 
+  | DimGlobal of Symbol.t
+    (** For dimensions that are defined in the signature *)
+

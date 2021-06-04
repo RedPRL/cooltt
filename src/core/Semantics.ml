@@ -162,6 +162,7 @@ and con_to_dim =
     | D.Dim1 -> ret Dim.Dim1
     | D.DimSym x -> ret @@ Dim.DimSym x
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
+    | D.Cut {cut = Global x, []; _} -> ret @@ Dim.DimGlobal x
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"

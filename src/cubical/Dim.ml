@@ -5,4 +5,4 @@ type dim =
   | Dim1
   | DimVar of int
   | DimSym of Symbol.t
-
+  | DimGlobal of Symbol.t
