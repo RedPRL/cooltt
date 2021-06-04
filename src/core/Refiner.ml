@@ -222,11 +222,9 @@ struct
     | D.TpLvl -> RM.ret ()
     | tp -> RM.expected_connective `Lvl tp
 
-
   let formation : T.Tp.tac =
     T.Tp.virtual_rule @@
     RM.ret S.TpLvl
-
 
   let top : T.Chk.tac =
     T.Chk.rule @@ fun tp ->

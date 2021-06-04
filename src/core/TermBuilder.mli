@@ -55,6 +55,8 @@ val circle : tp m
 val code_circle : t m -> t m
 val circle_elim : t m -> t m -> t m -> t m -> t m
 
+val lift_code : t m -> t m -> t m -> t m
+
 val pi : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sub : tp m -> t m -> t b -> tp m

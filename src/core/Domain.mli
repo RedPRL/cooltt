@@ -6,6 +6,7 @@ include module type of DomainData
 
 (** {1 Convenience constructors} *)
 
+val lvl_to_con : ULvl.t -> con
 val dim_to_con : dim -> con
 val cof_to_con : cof -> con
 val mk_var : tp -> int -> con

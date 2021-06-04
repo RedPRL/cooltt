@@ -189,6 +189,11 @@ let nat_elim mmot mzero msuc mscrut =
   and+ scrut = mscrut in
   S.NatElim (mot, zero, suc, scrut)
 
+let lift_code ml0 ml1 mcode =
+  let+ l0 = ml0
+  and+ l1 = ml1
+  and+ code = mcode in
+  S.CodeLift (l0, l1, code)
 
 let zero =
   ret S.Zero

@@ -447,7 +447,7 @@ and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
   fun r x ->
   let open CM in
   function
-  | D.KFst | D.KSnd | D.KElOut as frm -> ret frm
+  | D.KFst | D.KSnd | D.KElOut | D.KLift _ as frm -> ret frm
   | D.KAp (tp, arg) ->
     let+ tp = subst_tp r x tp
     and+ arg = subst_con r x arg in
@@ -743,6 +743,13 @@ and eval : S.t -> D.con EvM.m =
       and+ vcode = eval code
       and+ vpequiv = eval pequiv in
       D.UnstableCode (`V (vlvl, vr, vpcode, vcode, vpequiv))
+
+    | S.CodeLift (l0, l1, code) ->
+      let* vl0 = eval_lvl l0 in
+      let* vl1 = eval_lvl l1 in
+      let* vcode = eval code in
+      lift_cmp @@ do_lift_code vl0 vl1 vcode
+
 
     | S.ESub (sb, tm) ->
       eval_sub sb @@ eval tm
@@ -1118,6 +1125,29 @@ and inspect_con ~style con =
     end
   | con -> ret con
 
+
+and do_lift_code l0 l1 con : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis =
+    splice_tm @@
+    Splice.con (D.lvl_to_con l0) @@ fun l0 ->
+    Splice.con (D.lvl_to_con l1) @@ fun l1 ->
+    Splice.Macro.commute_split con phis (TB.lift_code l0 l1)
+  in
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.StableCode _ -> raise CJHM
+    | D.Split branches as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.Univ _; cut} ->
+      ret @@ cut_frm ~tp:(D.Univ l1) ~cut @@ D.KLift (l0, l1)
+    | _ ->
+      throw @@ NbeFailed "Couldn't lift argument in do_lift_code"
+  end
 
 and do_fst con : D.con CM.m =
   let open CM in
@@ -1689,6 +1719,7 @@ and do_frm con =
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con
   | D.KElOut -> do_el_out con
+  | D.KLift (l0, l1) -> do_lift_code l0 l1 con
 
 and do_spine con =
   let open CM in

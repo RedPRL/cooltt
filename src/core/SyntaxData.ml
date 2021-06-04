@@ -53,6 +53,8 @@ type t =
   | CodeV of t * t * t * t * t
   | CodeCircle of t
 
+  | CodeLift of t * t * t
+
   | ESub of sub * t
   (** Explicit substition *)
 
