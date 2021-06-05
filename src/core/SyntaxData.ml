@@ -63,6 +63,7 @@ type t =
 
   | LvlMagic
   | LvlTop
+  | LvlShift of ULvl.shift * t
 
 and tp =
   | Univ of t

@@ -129,6 +129,7 @@ and frm =
   | KNatElim of con * con * con
   | KCircleElim of con * con * con
   | KLift of ULvl.t * ULvl.t
+  | KShift of ULvl.shift
 
   | KElOut
   (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)

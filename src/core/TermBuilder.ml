@@ -300,6 +300,9 @@ let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
 let lvl_magic = ret S.LvlMagic
 let lvl_top = ret S.LvlTop
+let lvl_shift s m =
+  let+ l = m in
+  S.LvlShift (s, l)
 
 let cube n mfam : _ m =
   let rec go acc n =

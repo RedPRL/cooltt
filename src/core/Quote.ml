@@ -266,12 +266,13 @@ let rec quote_con (tp : D.tp) con =
 
 and quote_lvl =
   function
-  | ULvl.LvlVar l ->
-    let+ i = quote_var l in
-    S.Var i
+  | ULvl.LvlShiftedVar {var; shift} ->
+    let+ i = quote_var var in
+    S.LvlShift (shift, S.Var i)
   | ULvl.LvlMagic -> ret S.LvlMagic
   | ULvl.LvlTop -> ret S.LvlTop
-  | ULvl.LvlGlobal x -> ret @@ S.Global x
+  | ULvl.LvlShiftedGlobal {sym; shift} ->
+    ret @@ S.LvlShift (shift, S.Global sym)
 
 and quote_stable_code univ =
   function
@@ -618,3 +619,5 @@ and quote_frm tm =
     let+ tl0 = quote_lvl l0
     and+ tl1 = quote_lvl l1 in
     S.CodeLift (tl0, tl1, tm)
+  | D.KShift s ->
+    ret @@ S.LvlShift (s, tm)

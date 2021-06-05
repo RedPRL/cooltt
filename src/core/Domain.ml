@@ -60,10 +60,10 @@ let lvl_to_con =
   function
   | ULvl.LvlMagic -> LvlMagic
   | ULvl.LvlTop -> LvlTop
-  | ULvl.LvlVar x ->
-    Cut {tp = TpLvl; cut = Var x, []}
-  | ULvl.LvlGlobal x ->
-    Cut {tp = TpLvl; cut = Global x, []}
+  | ULvl.LvlShiftedVar {var; shift} ->
+    Cut {tp = TpLvl; cut = Var var, [KShift shift]}
+  | ULvl.LvlShiftedGlobal {sym; shift} ->
+    Cut {tp = TpLvl; cut = Global sym, [KShift shift]}
 
 let rec cof_to_con =
   function
@@ -120,6 +120,7 @@ and pp_frame : frm Pp.printer =
   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
   | KLift (l0, l1) -> Format.fprintf fmt "lift[%a,%a]" pp_lvl l0 pp_lvl l1
+  | KShift shift -> Format.fprintf fmt "shift[%a]" ULvl.pp_shift shift
 
 and pp_cof : cof Pp.printer =
   fun fmt cof ->

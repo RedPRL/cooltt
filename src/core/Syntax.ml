@@ -82,6 +82,7 @@ let rec dump fmt =
 
   | LvlMagic -> Format.fprintf fmt "<lvl/magic>"
   | LvlTop -> Format.fprintf fmt "<lvl/top>"
+  | LvlShift _ -> Format.fprintf fmt "<lvl/shift>"
 
 and dump_tp fmt =
   function
@@ -380,6 +381,9 @@ let rec pp env fmt tm =
 
   | LvlTop ->
     Format.fprintf fmt "top"
+
+  | LvlShift (shift, lvl) ->
+    Format.fprintf fmt "@[shift %a %a@]" ULvl.pp_shift shift (pp env) lvl
 
 
 and pp_sub env fmt =

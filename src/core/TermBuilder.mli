@@ -88,6 +88,7 @@ val forall : t b -> t m
 
 val lvl_top : t m
 val lvl_magic : t m
+val lvl_shift : ULvl.shift -> t m -> t m
 
 module Equiv : sig
   val code_is_contr : t m -> t m

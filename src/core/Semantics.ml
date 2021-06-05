@@ -174,8 +174,11 @@ and con_to_lvl =
     function
     | D.LvlMagic -> ret ULvl.LvlMagic
     | D.LvlTop -> ret ULvl.LvlTop
-    | D.Cut {cut = Var l, []; _} -> ret @@ ULvl.LvlVar l
-    | D.Cut {cut = Global l, []; _} -> ret @@ ULvl.LvlGlobal l
+    | D.Cut {cut = Var l, []; _} -> ret @@ ULvl.var l
+    | D.Cut {cut = Global l, []; _} -> ret @@ ULvl.global l
+    | D.Cut {cut = hd, KShift s :: sp; tp} ->
+      let* lvl = con_to_lvl @@ D.Cut {cut = hd, sp; tp} in
+      ret @@ ULvl.apply s lvl
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_lvl"
@@ -448,7 +451,7 @@ and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
   fun r x ->
   let open CM in
   function
-  | D.KFst | D.KSnd | D.KElOut | D.KLift _ as frm -> ret frm
+  | D.KFst | D.KSnd | D.KElOut | D.KLift _ | D.KShift _ as frm -> ret frm
   | D.KAp (tp, arg) ->
     let+ tp = subst_tp r x tp
     and+ arg = subst_con r x arg in
@@ -650,6 +653,9 @@ and eval : S.t -> D.con EvM.m =
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
     | S.LvlMagic -> ret D.LvlMagic
     | S.LvlTop -> ret D.LvlTop
+    | S.LvlShift (s, t) ->
+      let* con = eval t in
+      lift_cmp @@ do_shift s con
     | S.CofSplit (branches) ->
       let tphis, tms = List.split branches in
       let* phis = MU.map eval_cof tphis in
@@ -1768,6 +1774,26 @@ and do_rigid_com (line : D.con) r s phi bdy =
   TB.coe line i s @@
   TB.ap bdy [i; prf]
 
+and do_shift s con : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (TB.lvl_shift s) in
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.LvlMagic -> ret D.LvlMagic
+    | D.LvlTop -> ret D.LvlTop
+    | D.Split branches as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpLvl; cut} ->
+      ret @@ cut_frm ~tp:D.TpLvl ~cut (D.KShift s)
+    | _ ->
+      Format.eprintf "bad: %a@." D.pp_con con;
+      throw @@ NbeFailed "Couldn't shift argument in do_shift"
+  end
+
 and do_frm con =
   function
   | D.KAp (_, con') -> do_ap con con'
@@ -1777,6 +1803,7 @@ and do_frm con =
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con
   | D.KElOut -> do_el_out con
   | D.KLift (l0, l1) -> do_lift_code l0 l1 con
+  | D.KShift s -> do_shift s con
 
 and do_spine con =
   let open CM in
