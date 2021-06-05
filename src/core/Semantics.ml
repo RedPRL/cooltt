@@ -175,6 +175,7 @@ and con_to_lvl =
     | D.LvlMagic -> ret ULvl.LvlMagic
     | D.LvlTop -> ret ULvl.LvlTop
     | D.Cut {cut = Var l, []; _} -> ret @@ ULvl.LvlVar l
+    | D.Cut {cut = Global l, []; _} -> ret @@ ULvl.LvlGlobal l
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_lvl"

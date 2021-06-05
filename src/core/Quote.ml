@@ -271,6 +271,7 @@ and quote_lvl =
     S.Var i
   | ULvl.LvlMagic -> ret S.LvlMagic
   | ULvl.LvlTop -> ret S.LvlTop
+  | ULvl.LvlGlobal x -> ret @@ S.Global x
 
 and quote_stable_code univ =
   function

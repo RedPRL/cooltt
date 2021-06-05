@@ -62,6 +62,8 @@ let lvl_to_con =
   | ULvl.LvlTop -> LvlTop
   | ULvl.LvlVar x ->
     Cut {tp = TpLvl; cut = Var x, []}
+  | ULvl.LvlGlobal x ->
+    Cut {tp = TpLvl; cut = Global x, []}
 
 let rec cof_to_con =
   function

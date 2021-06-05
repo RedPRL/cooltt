@@ -1,5 +1,8 @@
+open Basis
+
 type t =
   | LvlVar of int
+  | LvlGlobal of Symbol.t
   | LvlMagic
   | LvlTop
 

@@ -1,18 +1,23 @@
+open Basis
+
 type t =
   | LvlVar of int
+  | LvlGlobal of Symbol.t
   | LvlMagic
   | LvlTop
 
 let magic = LvlMagic
 
 let equal x y =
-  x = y || x = LvlMagic || y = LvlMagic
+  match x, y with
+  | LvlGlobal x, LvlGlobal y -> Symbol.equal x y
+  | _ -> x = y || x = LvlMagic || y = LvlMagic
 
 let lt x y =
   match x, y with
   | LvlMagic, _ -> true
   | _, LvlMagic -> true
-  | LvlVar _, LvlTop -> true
+  | (LvlVar _ | LvlGlobal _), LvlTop -> true
   | _ -> false
 
 let leq x y =
