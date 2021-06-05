@@ -7,7 +7,7 @@ module RM := Monads.RefineM
 
 open Tactic
 
-type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
+type ('a, 'b) quantifier = 'a -> Ident.t -> (var -> 'b) -> 'b
 
 module Hole : sig
   val unleash_hole : string option -> Chk.tac

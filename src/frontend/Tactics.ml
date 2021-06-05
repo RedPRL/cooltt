@@ -58,7 +58,7 @@ let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with
   | [] -> body
   | (nm, tac) :: cells ->
-    quant tac (nm, fun _ -> tac_nary_quantifier quant cells body)
+    quant tac nm @@ fun _ -> tac_nary_quantifier quant cells body
 
 module Elim =
 struct

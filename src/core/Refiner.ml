@@ -17,7 +17,7 @@ open Monad.Notation (RM)
 module MU = Monad.Util (RM)
 open Bwd
 
-type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
+type ('a, 'b) quantifier = 'a -> Ident.t -> (T.var -> 'b) -> 'b
 
 module GlobalUtil : sig
   val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
@@ -414,7 +414,7 @@ end
 module Pi =
 struct
   let formation : (T.Tp.tac, T.Tp.tac) quantifier =
-    fun tac_base (nm, tac_fam) ->
+    fun tac_base nm tac_fam ->
       T.Tp.rule @@
       let* base = T.Tp.run_virtual tac_base in
       let* vbase = RM.lift_ev @@ Sem.eval_tp base in
@@ -451,7 +451,7 @@ end
 module Sg =
 struct
   let formation : (T.Tp.tac, T.Tp.tac) quantifier =
-    fun tac_base (nm, tac_fam) ->
+    fun tac_base nm tac_fam ->
       T.Tp.rule @@
       let* base = T.Tp.run tac_base in
       let* vbase = RM.lift_ev @@ Sem.eval_tp base in

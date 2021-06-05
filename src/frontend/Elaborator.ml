@@ -76,7 +76,7 @@ struct
     | _ ->
       let tac_base = as_tp tac_base in
       let tac_fam = as_tp tac_fam in
-      let tac = R.Pi.formation tac_base (ident, fun _ -> tac_fam) in
+      let tac = R.Pi.formation tac_base ident @@ fun _ -> tac_fam in
       Tp tac
 
   let sg (tac_base : tac) (ident : Ident.t) (tac_fam : tac) : tac =
@@ -87,7 +87,7 @@ struct
     | _ ->
       let tac_base = as_tp tac_base in
       let tac_fam = as_tp tac_fam in
-      let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
+      let tac = R.Sg.formation tac_base ident @@ fun _ -> tac_fam in
       Tp tac
 
   let sub tac_tp tac_phi tac_pel : tac =
@@ -248,12 +248,12 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Pi (cells, body) ->
       let tac (CS.Cell cell) = cell.name, chk_tm cell.tp in
       let tacs = cells |> List.map tac in
-      let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
+      let quant base nm fam = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Sg (cells, body) ->
       let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
-      let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
+      let quant base nm fam = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.V (r, pcode, code, pequiv) ->
@@ -364,7 +364,7 @@ and syn_tm : CS.con -> T.Syn.tac =
         R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
       in
       T.Syn.ann tac @@
-      R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
+      R.Pi.formation R.Dim.formation `Anon @@ fun _ -> R.El.formation code_tac
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
     | _ ->

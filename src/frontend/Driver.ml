@@ -17,14 +17,6 @@ type status = (unit, unit) Result.t
 type continuation = Continue of (status RM.m -> status RM.m) | Quit
 type command = continuation RM.m
 
-let elaborate_typed_term name (args : CS.cell list) tp tm =
-  RM.push_problem name @@
-  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
-  let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-  let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
-  let+ vtm = RM.lift_ev @@ Sem.eval tm in
-  vtp, vtm
-
 let add_global name vtp con : command =
   let+ _ = RM.add_global name vtp con in
   let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in
@@ -51,6 +43,14 @@ let print_ident (ident : Ident.t CS.node) : command =
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
 
+
+let elaborate_typed_term name (args : CS.cell list) tp tm =
+  RM.push_problem name @@
+  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+  let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+  let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
+  let+ vtm = RM.lift_ev @@ Sem.eval tm in
+  vtp, vtm
 
 let execute_decl : CS.decl -> command =
   function
