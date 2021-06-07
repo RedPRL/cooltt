@@ -11,11 +11,14 @@ module Sem = Semantics
 module Qu = Quote
 
 module RM = RefineMonad
+module ST = RefineState
 open Monad.Notation (RM)
 
 type status = (unit, unit) Result.t
 type continuation = Continue of (status RM.m -> status RM.m) | Quit
 type command = continuation RM.m 
+
+(* Refinement Helpers *)
 
 let elaborate_typed_term name (args : CS.cell list) tp tm =
   RM.push_problem name @@
@@ -29,10 +32,6 @@ let add_global name vtp con : command =
   let+ _ = RM.add_global name vtp con in
   let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in 
   Continue kont
-
-let import_module path : command =
-  let _ = print_string ("importing " ^ path) in
-  RM.ret (Continue Fun.id)
 
 let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
@@ -55,12 +54,68 @@ let print_ident (ident : Ident.t CS.node) : command =
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
 
+let protect m =
+  RM.trap m |>> function
+  | Ok return ->
+    RM.ret @@ Ok return
+  | Error (Err.RefineError (err, info)) ->
+    let+ () = RM.emit ~lvl:`Error info RefineError.pp err in
+    Error ()
+  | Error exn ->
+    let* env = RM.read in
+    let+ () = RM.emit ~lvl:`Error (RefineEnv.location env) PpExn.pp exn in
+    Error ()
 
-let execute_decl : CS.decl -> command =
+(* Interfaces and Imports *)
+
+type iface = { contents : ST.t;
+               hash: Digest.t }
+
+(* Try to load an interface file, failing if the file does not exist or is out of date. *)
+let load_iface_opt path =
+  let src_path = path ^ ".cooltt" in
+  let iface_path = path ^ ".cooltti" in
+  if Sys.file_exists iface_path then
+    let chan = open_in_bin iface_path in
+    let iface = Marshal.from_channel chan in
+    let _ = close_in chan in
+    if iface.hash == Digest.file src_path then
+      Some iface
+    else
+      None
+  else
+    None
+
+(* Create an interface file for a given import. *)
+let rec build_iface path =
+  let src_path = path ^ ".cooltt" in
+  let iface_path = path ^ ".cooltti" in
+  let digest = Digest.file src_path in
+  let (_, st) = process_import src_path in
+  (* FIXME: Strip out the import namespace, and also rebase all of the symbols *)
+  let iface = { contents = st; hash = digest } in
+  let chan = open_out_bin iface_path in
+  let _ = Marshal.to_channel chan iface [Marshal.No_sharing] in
+  let _ = close_out chan in
+  iface
+
+and load_iface path =
+  match load_iface_opt path with
+  | Some iface -> iface
+  | None -> build_iface path
+
+and import_module path : command =
+  let _ = print_string ("importing " ^ path ^ "\n") in
+  let iface = load_iface path in
+  (* FIXME: Rebase all of the symbols *)
+  let* () = RM.modify (ST.add_import [] iface.contents) in
+  RM.ret @@ Continue Fun.id
+
+and execute_decl : CS.decl -> command =
   function
   | CS.Def {name; args; def = Some def; tp} ->
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    add_global name vtp @@ Some vtm 
+    add_global name vtp @@ Some vtm
   | CS.Def {name; args; def = None; tp} ->
     let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
@@ -79,19 +134,7 @@ let execute_decl : CS.decl -> command =
   | CS.Quit ->
     RM.ret Quit
 
-let protect m =
-  RM.trap m |>> function
-  | Ok return ->
-    RM.ret @@ Ok return
-  | Error (Err.RefineError (err, info)) ->
-    let+ () = RM.emit ~lvl:`Error info RefineError.pp err in
-    Error ()
-  | Error exn ->
-    let* env = RM.read in
-    let+ () = RM.emit ~lvl:`Error (RefineEnv.location env) PpExn.pp exn in
-    Error ()
-
-let rec execute_signature ~status sign =
+and execute_signature ~status sign =
   match sign with
   | [] -> RM.ret status
   | d :: sign ->
@@ -104,10 +147,26 @@ let rec execute_signature ~status sign =
     | Error () ->
       RM.ret @@ Error ()
 
-let process_sign : CS.signature -> status =
+and process_sign : CS.signature -> status =
   fun sign ->
   RM.run_exn RefineState.init Env.init @@
   execute_signature ~status:(Ok ()) sign
+
+and process_sign_globals sign =
+  RM.run_globals_exn RefineState.init Env.init @@
+  execute_signature ~status:(Ok ()) sign
+
+(* FIXME: Better name *)
+and process_import input =
+  match Load.load_file (`File input) with
+  | Ok sign -> process_sign_globals sign
+  | Error (Load.ParseError err) ->
+    Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
+    failwith "Parse Error"
+    (* FIXME: Better errors!*)
+  | Error (Load.LexingError err) ->
+    Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
+    failwith "Lex Error"
 
 let process_file input =
   match Load.load_file input with
