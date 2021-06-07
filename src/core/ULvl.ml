@@ -1,5 +1,32 @@
 open Basis
 
+(** Representation examples:
+
+    - identity: {0; 1; 2; ...} ===> {init = 0; steps = []}
+    - shifting by 2: {2; 3; 4; ...} ===> {init = 2; steps = []}
+    - inserting new levels 0,1,2,6: {3; 4; 5; 7; 8; ...} ===> {init = 3; steps = [1; 1; 2]}
+
+    In general, {init; steps=[x0;x1;x2;...;xn]} is representing the following sequence
+
+      { init
+      ; init+x0
+      ; init+x0+x1
+      ; init+x0+x1+x2
+      ; ...
+      ; init+x0+x1+x2+...+xn
+      ; init+x0+x1+x2+...+xn+1
+      ; init+x0+x1+x2+...+xn+2
+      ; init+x0+x1+x2+...+xn+3
+      ; ...
+      }
+
+    Here are the invariants:
+    1. init >= 0
+    2. all elements of steps >= 1
+    3. the last element of steps (if any) >= 2. steps might be empty; in that case, this requirement vacuously holds
+
+    Under these invariants, any representable sequence has a unique representation.
+*)
 type shift = {init: int; steps: int list}
 
 let id_shift = {init = 0; steps = []}
