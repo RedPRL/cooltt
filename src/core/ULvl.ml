@@ -50,16 +50,16 @@ let rec lt_shift s0 s1 =
   match s0.steps, s1.steps with
   | [], _ -> true (* this is sufficient because a step >= 1 *)
   | _, [] -> lt_iterated s0 s1.init
-  | g0 :: steps0, g1 :: steps1 ->
-    lt_shift {init = s0.init + g0; steps = steps0} {init = s1.init + g1; steps = steps1}
+  | step0 :: steps0, step1 :: steps1 ->
+    lt_shift {init = s0.init + step0; steps = steps0} {init = s1.init + step1; steps = steps1}
 
 let rec leq_shift s0 s1 =
   s0.init <= s1.init &&
   match s0.steps, s1.steps with
   | [], _ -> true (* this is sufficient because a step >= 1 *)
   | _, [] -> leq_iterated s0 s1.init
-  | g0 :: steps0, g1 :: steps1 ->
-    leq_shift {init = s0.init + g0; steps = steps0} {init = s1.init + g1; steps = steps1}
+  | step0 :: steps0, step1 :: steps1 ->
+    leq_shift {init = s0.init + step0; steps = steps0} {init = s1.init + step1; steps = steps1}
 
 type t =
   | LvlShiftedVar of {var: int; shift: shift}
