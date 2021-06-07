@@ -71,10 +71,15 @@ let protect m =
 type iface = { contents : ST.t;
                hash: Digest.t }
 
+let resolve_import_path imp =
+  imp ^ ".cooltt"
+
+let resolve_iface_path src_path =
+  Filename.remove_extension src_path ^ ".cooltti"
+
 (* Try to load an interface file, failing if the file does not exist or is out of date. *)
-let load_iface_opt path =
-  let src_path = path ^ ".cooltt" in
-  let iface_path = path ^ ".cooltti" in
+let load_iface_opt src_path =
+  let iface_path = resolve_iface_path src_path in
   if Sys.file_exists iface_path then
     let chan = open_in_bin iface_path in
     let iface = Marshal.from_channel chan in
@@ -86,30 +91,31 @@ let load_iface_opt path =
   else
     None
 
-(* Create an interface file for a given import. *)
-let rec build_iface path =
-  let src_path = path ^ ".cooltt" in
-  let iface_path = path ^ ".cooltti" in
+(* Create an interface file for a given source file. *)
+let rec build_iface src_path =
+  let iface_path = resolve_iface_path src_path in
   let digest = Digest.file src_path in
-  let (_, st) = process_import src_path in
-  (* FIXME: Strip out the import namespace, and also rebase all of the symbols *)
-  let iface = { contents = st; hash = digest } in
-  let chan = open_out_bin iface_path in
-  let _ = Marshal.to_channel chan iface [Marshal.No_sharing] in
-  let _ = close_out chan in
-  iface
+  match process_import (`File src_path) with
+  | Ok st ->
+     let iface = { contents = st; hash = digest } in
+     let chan = open_out_bin iface_path in
+     let _ = Marshal.to_channel chan iface [Marshal.No_sharing] in
+     let _ = close_out chan in
+     Ok iface
+  | Error () -> Error ()
 
-and load_iface path =
-  match load_iface_opt path with
+and load_iface imp =
+  let src_path = resolve_import_path imp in
+  match load_iface_opt src_path with
   | Some iface -> iface
-  | None -> build_iface path
+  | None -> build_iface src_path
 
 and import_module path : command =
-  let _ = print_string ("importing " ^ path ^ "\n") in
-  let iface = load_iface path in
-  (* FIXME: Rebase all of the symbols *)
-  let* () = RM.modify (ST.add_import [] iface.contents) in
-  RM.ret @@ Continue Fun.id
+  match load_iface path with
+  | Ok iface ->
+     let* () = RM.modify (ST.add_import [] iface.contents) in
+     RM.ret @@ Continue Fun.id
+  | Error () -> RM.ret Quit
 
 and execute_decl : CS.decl -> command =
   function
@@ -147,36 +153,25 @@ and execute_signature ~status sign =
     | Error () ->
       RM.ret @@ Error ()
 
-and process_sign : CS.signature -> status =
-  fun sign ->
-  RM.run_exn RefineState.init Env.init @@
-  execute_signature ~status:(Ok ()) sign
-
-and process_sign_globals sign =
+and process_sign sign =
   RM.run_globals_exn RefineState.init Env.init @@
   execute_signature ~status:(Ok ()) sign
 
-(* FIXME: Better name *)
+(* Process a file, returning the resulting refiner state after execution. *)
 and process_import input =
-  match Load.load_file (`File input) with
-  | Ok sign -> process_sign_globals sign
+  match Load.load_file input with
+  | Ok sign ->
+     let (res, st) = process_sign sign
+     in Result.map (Fun.const st) res
   | Error (Load.ParseError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
-    failwith "Parse Error"
-    (* FIXME: Better errors!*)
+    Error ()
   | Error (Load.LexingError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
-    failwith "Lex Error"
+    Error ()
 
 let process_file input =
-  match Load.load_file input with
-  | Ok sign -> process_sign sign
-  | Error (Load.ParseError err) ->
-    Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
-    Error ()
-  | Error (Load.LexingError err) ->
-    Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
-    Error ()
+  Result.map ignore @@ process_import input
 
 let execute_command =
   function
