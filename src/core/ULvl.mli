@@ -2,6 +2,8 @@ open Basis
 
 type shift
 
+val const_shift : int -> shift
+
 type t =
   | LvlShiftedVar of {var: int; shift: shift}
   | LvlShiftedGlobal of {sym: Symbol.t; shift: shift}

@@ -31,6 +31,8 @@ type shift = {init: int; steps: int list}
 
 let id_shift = {init = 0; steps = []}
 
+let const_shift init = {init; steps = []}
+
 let rec lt_iterated s i =
   match s.steps with
   | [] -> s.init < i
