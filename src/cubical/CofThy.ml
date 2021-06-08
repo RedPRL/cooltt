@@ -39,7 +39,6 @@ struct
     match VarMap.find_opt v m with
     | None -> `Consistent (VarMap.add v b m)
     | Some b' -> if b = b' then `Consistent m else `Inconsistent
-  let unsafe_add v b (m : t) = VarMap.add v b m
 
   let union (m1 : t) (m2 : t) =
     let exception Conflict in
