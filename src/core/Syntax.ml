@@ -191,7 +191,7 @@ let rec pp env fmt tm =
   | Cof (Cof.Meet phis) ->
     Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∧ ") (pp_atomic env) fmt phis
   | Cof (Cof.Neg phi) ->
-    Format.fprintf fmt "¬ (%a)" (pp_atomic env) phi
+    Format.fprintf fmt "%a (%a)" Uuseg_string.pp_utf_8 "¬" (pp_atomic env) phi
   | ForallCof phi ->
     let x, envx = ppenv_bind env `Anon in
     Format.fprintf fmt "%a %a %a %a"
