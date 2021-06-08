@@ -102,6 +102,7 @@ and dump_cof fmt =
   | Cof.Eq (r1, r2) -> Format.fprintf fmt "eq[%a, %a]" dump r1 dump r2
   | Cof.Join cofs -> Format.fprintf fmt "join[%a]" (pp_sep_list dump) cofs
   | Cof.Meet cofs -> Format.fprintf fmt "meet[%a]" (pp_sep_list dump) cofs
+  | Cof.Neg cof -> Format.fprintf fmt "neg[%a]" dump cof
 
 and dump_branch fmt (cof, bdy) =
   Format.fprintf fmt "[%a, %a]" dump cof dump bdy
@@ -189,6 +190,8 @@ let rec pp env fmt tm =
     Format.fprintf fmt "#t"
   | Cof (Cof.Meet phis) ->
     Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∧ ") (pp_atomic env) fmt phis
+  | Cof (Cof.Neg phi) ->
+    Format.fprintf fmt "¬ (%a)" (pp_atomic env) phi
   | ForallCof phi ->
     let x, envx = ppenv_bind env `Anon in
     Format.fprintf fmt "%a %a %a %a"

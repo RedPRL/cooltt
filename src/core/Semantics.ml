@@ -71,6 +71,9 @@ let rec normalize_cof phi =
   | Cof.Cof (Cof.Meet phis) ->
     let+ phis = MU.map normalize_cof phis in
     Cof.meet phis
+  | Cof.Cof (Cof.Neg phi) ->
+    let+ phi = normalize_cof phi in
+    Cof.neg phi
 
 
 module FaceLattice :
@@ -107,6 +110,23 @@ struct
           Cof.Cof (Cof.Meet psis)
         | Cof.Eq (r, s) ->
           gen @@ `CofEq (r, s)
+        | Cof.Neg phi ->
+          loop_neg phi
+    and loop_neg =
+      function
+      | Cof.Var _ as phi -> ret (Cof.neg phi)
+      | Cof.Cof phi ->
+        match phi with
+        | Cof.Join psis ->
+          let+ psis = MU.map loop psis in
+          Cof.Cof (Cof.Neg (Cof.Cof (Cof.Join psis)))
+        | Cof.Meet psis ->
+          let+ psis = MU.map loop psis in
+          Cof.Cof (Cof.Neg (Cof.Cof (Cof.Meet psis)))
+        | Cof.Eq (r, s) ->
+          loop (Cof.neg_eq ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r s)
+        | Cof.Neg phi ->
+          loop phi
     in
     loop
 
@@ -142,6 +162,9 @@ let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
   | Cof.Meet phis ->
     let+ phis = MU.map con_to_cof phis in
     Cof.meet phis
+  | Cof.Neg phi ->
+    let+ phi = con_to_cof phi in
+    Cof.neg phi
 
 and con_to_cof =
   let open CM in
@@ -221,6 +244,9 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     let+ s = subst_con r x s
     and+ s' = subst_con r x s' in
     D.Cof (Cof.Eq (s, s'))
+  | D.Cof (Cof.Neg phi) ->
+    let+ phi = subst_con r x phi in
+    D.Cof (Cof.Neg phi)
   | D.FHCom (tag, s, s', phi, bdy) ->
     let+ s = subst_dim r x s
     and+ s' = subst_dim r x s'
@@ -627,6 +653,9 @@ and eval : S.t -> D.con EvM.m =
         | Cof.Meet tphis ->
           let+ phis = MU.map eval tphis in
           D.Cof (Cof.Meet phis)
+        | Cof.Neg tphi ->
+          let+ phi = eval tphi in
+          D.Cof (Cof.Neg phi)
       end
     | S.ForallCof tm ->
       let sym = Symbol.named "forall_probe" in
