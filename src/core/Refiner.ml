@@ -233,6 +233,15 @@ struct
     | tp ->
       expected_cof tp
 
+  let neg tac =
+    T.Chk.rule @@
+    function
+    | D.TpCof ->
+      let+ phi = T.Chk.run tac D.TpCof in
+      S.Cof (Cubical.Cof.Neg phi)
+    | tp ->
+      expected_cof tp
+
   let join tacs =
     T.Chk.rule @@
     function
