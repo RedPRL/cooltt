@@ -265,6 +265,9 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.BotC ->
       R.Cof.join []
 
+    | CS.CofNeg c ->
+      R.Cof.neg @@ chk_tm c
+
     | CS.Meet cs ->
       R.Cof.meet (List.map chk_tm cs)
 
