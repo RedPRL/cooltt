@@ -27,7 +27,7 @@ val join : ('a, 'v) cof list -> ('a, 'v) cof
 val meet : ('a, 'v) cof list -> ('a, 'v) cof
 
 (** Calculate the negation. *)
-val neg : (Dim.dim, 'v) cof -> (Dim.dim, 'v) cof
+val neg : dim0:'a -> dim1:'a -> ('a, 'v) cof -> ('a, 'v) cof
 
 (** The false cofibration, equivalent to [join []]. *)
 val bot : ('a, 'v) cof

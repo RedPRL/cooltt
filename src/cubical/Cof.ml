@@ -40,14 +40,14 @@ let meet2 phi psi =
 let join l = List.fold_left join2 bot l
 let meet l = List.fold_left meet2 top l
 
-let rec neg =
+let rec neg ~dim0 ~dim1 =
   function
   | Cof (Eq (r1, r2)) ->
     join2
-      (meet [eq r1 Dim.Dim0; eq r2 Dim.Dim1])
-      (meet [eq r1 Dim.Dim1; eq r2 Dim.Dim0])
-  | Cof (Meet l) -> join @@ List.map neg l
-  | Cof (Join l) -> meet @@ List.map neg l
+      (meet [eq r1 dim0; eq r2 dim1])
+      (meet [eq r1 dim1; eq r2 dim0])
+  | Cof (Meet l) -> join @@ List.map (neg ~dim0 ~dim1) l
+  | Cof (Join l) -> meet @@ List.map (neg ~dim0 ~dim1) l
   | Var (v, b) -> Var (v, not b)
 
 let rec reduce =
