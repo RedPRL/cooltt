@@ -96,3 +96,11 @@ def com/decomposition
   : sub {A r'} #t {hcom {A r'} r r' φ {j _ => coe A j r' {p j _}}}
   :=
   com A r r' φ p
+
+
+def ghcom
+  (A : type) (r : 𝕀) (r' : 𝕀) (φ : 𝔽)
+  (p : (i : 𝕀) (_ : [i=r ∨ φ]) → A)
+  : sub A {r=r' ∨ φ ∨ ¬ φ} {[r=r' ∨ φ => p r' _ | ¬ φ => p r _]}
+  :=
+  hcom A r r' {φ ∨ ¬ φ} {i _ => [i=r ∨ ¬ φ => p r _ | φ => p i _] }

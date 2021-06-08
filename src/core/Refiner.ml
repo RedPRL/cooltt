@@ -233,6 +233,15 @@ struct
     | tp ->
       expected_cof tp
 
+  let neg tac =
+    T.Chk.rule @@
+    function
+    | D.TpCof ->
+      let+ phi = T.Chk.run tac D.TpCof in
+      S.Cof (Cubical.Cof.Neg phi)
+    | tp ->
+      expected_cof tp
+
   let join tacs =
     T.Chk.rule @@
     function
@@ -252,6 +261,15 @@ struct
       expected_cof tp
 
   let boundary tac = join [eq tac Dim.dim0; eq tac Dim.dim1]
+
+  let neg tac =
+    T.Chk.rule @@
+    function
+    | D.TpCof ->
+      let+ phi = T.Chk.run tac D.TpCof in
+      S.Cof (Cubical.Cof.Neg phi)
+    | tp ->
+      expected_cof tp
 
   let assert_true vphi =
     RM.lift_cmp @@ CmpM.test_sequent [] vphi |>> function

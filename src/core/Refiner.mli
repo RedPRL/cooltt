@@ -32,6 +32,7 @@ module Cof : sig
   val join : Chk.tac list -> Chk.tac
   val meet : Chk.tac list -> Chk.tac
   val boundary : Chk.tac -> Chk.tac
+  val neg : Chk.tac -> Chk.tac
 
   type branch_tac = {cof : Chk.tac; bdy : var -> Chk.tac}
   val split : branch_tac list -> Chk.tac

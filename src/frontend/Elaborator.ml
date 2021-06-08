@@ -274,6 +274,9 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.CofBoundary c ->
       R.Cof.boundary (chk_tm c)
 
+    | CS.CofNeg c ->
+      R.Cof.neg (chk_tm c)
+
     | CS.CofSplit splits ->
       let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> R.Cof.{cof = chk_tm cphi; bdy = fun _ -> chk_tm ctm} in
       R.Cof.split branch_tacs

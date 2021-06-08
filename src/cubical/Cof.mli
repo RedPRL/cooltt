@@ -1,11 +1,12 @@
 (** {1 Types } *)
 
 (** Multiple types in [cooltt] will need to {i include} the langauge of cofibrations, relative to a particular interval algebra ['r]. Therefore, we define a family polynomial endofunctors [('r, -) cof_f] indexed in an interpretation of the interval algebra ['r].
- *)
+*)
 type ('r, 'a) cof_f =
   | Eq of 'r * 'r
   | Join of 'a list
   | Meet of 'a list
+  | Neg of 'a
 
 (** For each interval algebra ['r], we define the {i free monad} [('r, -) cof] on the polynomial endofunctor [('r, -) cof_f]: each [('r, 'v) cof] is the language of cofibrations over an interval algebra ['r], with indeterminates drawn from ['v]. *)
 type ('r, 'v) cof =
@@ -26,6 +27,12 @@ val join : ('a, 'v) cof list -> ('a, 'v) cof
 (** Given a list [φ0,...,φn : 𝔽] of cofibrations, the conjunction [φ0 ∧ ... ∧ φn]. *)
 val meet : ('a, 'v) cof list -> ('a, 'v) cof
 
+(** Given dimensions [r, r' : 𝕀], a cofibration equivalent to [¬(r=r')] that does not use [¬]. *)
+val neg_eq : dim0:'a -> dim1:'a -> 'a -> 'a -> ('a, 'v) cof
+
+(** Given [φ : 𝔽], the negation [¬φ]. This would not expand [¬(r=r')] as [neg_eq]. *)
+val neg : ('a, 'v) cof -> ('a, 'v) cof
+
 (** The false cofibration, equivalent to [join []]. *)
 val bot : ('a, 'v) cof
 
@@ -34,4 +41,3 @@ val top : ('a, 'v) cof
 
 (** The boundary [∂r] of a dimension [r : 𝕀] is the disjunction [r=0 ∨ r=1] *)
 val boundary : Dim.dim -> (Dim.dim, 'v) cof
-
