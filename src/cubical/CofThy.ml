@@ -16,7 +16,9 @@ struct
     | `Inconsistent -> `Inconsistent
     | `Consistent x -> f x
 end
+
 module ConsistencyMonadUtil = Monad.Util(ConsistencyMonad)
+
 open Monad.Notation(ConsistencyMonad)
 
 module CofVar =
