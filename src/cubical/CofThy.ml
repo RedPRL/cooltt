@@ -7,10 +7,10 @@ struct
   type 'a m = [ `Consistent of 'a | `Inconsistent ]
 
   let ret x : 'a m = `Consistent x
-  
+
   let keep_consistent (f : 'a -> 'b m) (l : 'a list) : 'b list =
     List.filter_map (fun x -> match f x with `Inconsistent -> None | `Consistent y -> Some y) l
-    
+
   let bind m f =
     match m with
     | `Inconsistent -> `Inconsistent
@@ -40,7 +40,7 @@ struct
   let is_empty : t -> bool = VarMap.is_empty
 
   (* unsafe_* variants for the rest of the module assume no conflicting assignments *)
-  
+
   let add v b (m : t) =
     match VarMap.find_opt v m with
     | None -> `Consistent (VarMap.add v b m)
@@ -51,7 +51,7 @@ struct
     let merger _ b1 b2 = if b1 = b2 then Some b1 else raise Conflict in
     try `Consistent (VarMap.union merger m1 m2)
     with Conflict -> `Inconsistent
-    
+
   let unsafe_union (m1 : t) (m2 : t) =
     let use_first _ b _ = Some b in VarMap.union use_first m1 m2
 
@@ -238,7 +238,7 @@ struct
     let* vars = Assignment.of_list vars in
     let* thy, vars = reduce_vars thy vars in
     let+ thy, eqs = reduce_eqs thy eqs in
-    (thy, (vars, eqs))
+    thy, (vars, eqs)
 
   (** [reduce_branches] removes inconsistent branches and takes out redundant
     * cofibration variables and equations. *)
@@ -293,6 +293,7 @@ struct
         List.for_all (test thy') phis
       | Cof.Neg cof ->
         test_neg thy' cof
+
   and test_neg (thy' : alg_thy') : cof -> bool =
     function
     | Cof.Var v ->
