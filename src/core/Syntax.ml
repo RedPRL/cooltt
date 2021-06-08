@@ -199,9 +199,7 @@ let rec pp env fmt tm =
     in
     let outer_negs, phi_atomic, phi = count_neg 0 phi in
     for _ = 0 to outer_negs do Uuseg_string.pp_utf_8 fmt "¬ " done;
-    if not phi_atomic then Format.pp_print_string fmt "(";
-    pp_atomic env fmt phi;
-    if not phi_atomic then Format.pp_print_string fmt ")"
+    (if phi_atomic then pp_atomic env else pp_braced (pp_atomic env)) fmt phi
   | ForallCof phi ->
     let x, envx = ppenv_bind env `Anon in
     Format.fprintf fmt "%a %a %a %a"
