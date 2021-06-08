@@ -191,7 +191,17 @@ let rec pp env fmt tm =
   | Cof (Cof.Meet phis) ->
     Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∧ ") (pp_atomic env) fmt phis
   | Cof (Cof.Neg phi) ->
-    Format.fprintf fmt "%a (%a)" Uuseg_string.pp_utf_8 "¬" (pp_atomic env) phi
+    let rec count_neg acc =
+      function
+      | Cof (Cof.Neg phi) -> count_neg (acc+1) phi
+      | Cof (Cof.Join [] | Cof.Meet []) | Var _ | Global _ as phi -> (acc, true, phi)
+      | phi -> (acc, false, phi)
+    in
+    let outer_negs, phi_atomic, phi = count_neg 0 phi in
+    for _ = 0 to outer_negs do Uuseg_string.pp_utf_8 fmt "¬ " done;
+    if not phi_atomic then Format.pp_print_string fmt "(";
+    pp_atomic env fmt phi;
+    if not phi_atomic then Format.pp_print_string fmt ")"
   | ForallCof phi ->
     let x, envx = ppenv_bind env `Anon in
     Format.fprintf fmt "%a %a %a %a"

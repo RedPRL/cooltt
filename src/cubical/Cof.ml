@@ -46,10 +46,7 @@ let neg_eq ~dim0 ~dim1 r1 r2 =
     (meet [eq r1 dim0; eq r2 dim1])
     (meet [eq r1 dim1; eq r2 dim0])
 
-let neg =
-  function
-  | Cof (Neg phi) -> phi
-  | phi -> Cof (Neg phi)
+let neg phi = Cof (Neg phi)
 
 let rec reduce =
   function
