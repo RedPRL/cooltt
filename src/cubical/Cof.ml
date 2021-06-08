@@ -5,10 +5,10 @@ type ('r, 'a) cof_f =
 
 type ('r, 'v) cof =
   | Cof of ('r, ('r, 'v) cof) cof_f
-  | Var of 'v
+  | Var of 'v * bool
 
 
-let var v = Var v
+let var ?value:(b=true) v = Var (v, b)
 let bot = Cof (Join [])
 let top = Cof (Meet [])
 
@@ -40,11 +40,21 @@ let meet2 phi psi =
 let join l = List.fold_left join2 bot l
 let meet l = List.fold_left meet2 top l
 
+let rec neg =
+  function
+  | Cof (Eq (r1, r2)) ->
+    join2
+      (meet [eq r1 Dim.Dim0; eq r2 Dim.Dim1])
+      (meet [eq r1 Dim.Dim1; eq r2 Dim.Dim0])
+  | Cof (Meet l) -> join @@ List.map neg l
+  | Cof (Join l) -> meet @@ List.map neg l
+  | Var (v, b) -> Var (v, not b)
+
 let rec reduce =
   function
   | Cof (Join phis) -> join @@ List.map reduce phis
   | Cof (Meet phis) -> meet @@ List.map reduce phis
   | Cof (Eq (r, s)) -> eq r s
-  | Var v -> var v
+  | Var _ as c -> c
 
 let boundary r = join [eq r Dim.Dim0; eq r Dim.Dim1]
