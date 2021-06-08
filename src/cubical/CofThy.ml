@@ -104,6 +104,7 @@ type alg_thy' =
 
 type var = CofVar.t * bool
 type eq = Dim.dim * Dim.dim
+let neg_eq r1 r2 = Cof.neg_eq ~dim0:Dim0 ~dim1:Dim1 r1 r2
 
 (** A [branch] represents the meet of a bunch of atomic cofibrations. *)
 type branch = var list * eq list
@@ -134,8 +135,8 @@ let rec dissect_cofibrations : cof list -> branches =
   | [] -> [[], []]
   | cof :: cofs ->
     match cof with
-    | Cof.Var (v, b) ->
-      List.map (fun (vars, eqs) -> (v, b) :: vars, eqs) @@
+    | Cof.Var v ->
+      List.map (fun (vars, eqs) -> (v, true) :: vars, eqs) @@
       dissect_cofibrations cofs
     | Cof.Cof cof ->
       match cof with
@@ -147,6 +148,22 @@ let rec dissect_cofibrations : cof list -> branches =
       | Cof.Eq (r, s) ->
         List.map (fun (vars, eqs) -> vars, (r, s) :: eqs) @@
         dissect_cofibrations cofs
+      | Cof.Neg cof ->
+        match cof with
+        | Cof.Var v ->
+          List.map (fun (vars, eqs) -> (v, false) :: vars, eqs) @@
+          dissect_cofibrations cofs
+        | Cof.Cof cof ->
+          match cof with
+          | Cof.Meet negated_meet_cofs ->
+            negated_meet_cofs |> List.concat_map @@ fun negated_meet_cof ->
+            dissect_cofibrations @@ Cof.neg negated_meet_cof :: cofs
+          | Cof.Join negated_join_cofs ->
+            dissect_cofibrations @@ List.map Cof.neg negated_join_cofs @ cofs
+          | Cof.Eq (r, s) ->
+            dissect_cofibrations @@ neg_eq r s :: cofs
+          | Cof.Neg cof ->
+            dissect_cofibrations @@ cof :: cofs
 
 module Alg =
 struct
@@ -258,18 +275,32 @@ struct
   (** [test] checks whether a cofibration is true within an algebraic theory. *)
   let rec test (thy' : alg_thy') : cof -> bool =
     function
+    | Cof.Var v ->
+      test_var thy' v true
     | Cof.Cof phi ->
-      begin
-        match phi with
-        | Cof.Eq (r, s) ->
-          test_eq thy' (r, s)
-        | Cof.Join phis ->
-          List.exists (test thy') phis
-        | Cof.Meet phis ->
-          List.for_all (test thy') phis
-      end
-    | Cof.Var (v, b) ->
-      test_var thy' v b
+      match phi with
+      | Cof.Eq (r, s) ->
+        test_eq thy' (r, s)
+      | Cof.Join phis ->
+        List.exists (test thy') phis
+      | Cof.Meet phis ->
+        List.for_all (test thy') phis
+      | Cof.Neg cof ->
+        test_neg thy' cof
+  and test_neg (thy' : alg_thy') : cof -> bool =
+    function
+    | Cof.Var v ->
+      test_var thy' v false
+    | Cof.Cof phi ->
+      match phi with
+      | Cof.Eq (r, s) ->
+        test thy' (neg_eq r s)
+      | Cof.Join phis ->
+        List.for_all (test_neg thy') phis
+      | Cof.Meet phis ->
+        List.exists (test_neg thy') phis
+      | Cof.Neg cof ->
+        test thy' cof
 
   let left_invert_under_cofs ~zero ~seq (thy : t) cofs cont =
     match split thy cofs with

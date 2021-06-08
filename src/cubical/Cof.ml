@@ -2,13 +2,14 @@ type ('r, 'a) cof_f =
   | Eq of 'r * 'r
   | Join of 'a list
   | Meet of 'a list
+  | Neg of 'a
 
 type ('r, 'v) cof =
   | Cof of ('r, ('r, 'v) cof) cof_f
-  | Var of 'v * bool
+  | Var of 'v
 
 
-let var ?value:(b=true) v = Var (v, b)
+let var v = Var v
 let bot = Cof (Join [])
 let top = Cof (Meet [])
 
@@ -40,21 +41,22 @@ let meet2 phi psi =
 let join l = List.fold_left join2 bot l
 let meet l = List.fold_left meet2 top l
 
-let rec neg ~dim0 ~dim1 =
+let neg_eq ~dim0 ~dim1 r1 r2 =
+  join2
+    (meet [eq r1 dim0; eq r2 dim1])
+    (meet [eq r1 dim1; eq r2 dim0])
+
+let neg =
   function
-  | Cof (Eq (r1, r2)) ->
-    join2
-      (meet [eq r1 dim0; eq r2 dim1])
-      (meet [eq r1 dim1; eq r2 dim0])
-  | Cof (Meet l) -> join @@ List.map (neg ~dim0 ~dim1) l
-  | Cof (Join l) -> meet @@ List.map (neg ~dim0 ~dim1) l
-  | Var (v, b) -> Var (v, not b)
+  | Cof (Neg phi) -> phi
+  | phi -> Cof (Neg phi)
 
 let rec reduce =
   function
-  | Cof (Join phis) -> join @@ List.map reduce phis
-  | Cof (Meet phis) -> meet @@ List.map reduce phis
+  | Cof (Join phis) -> join @@ List.map (reduce) phis
+  | Cof (Meet phis) -> meet @@ List.map (reduce) phis
   | Cof (Eq (r, s)) -> eq r s
-  | Var _ as c -> c
+  | Cof (Neg phi) -> neg @@ reduce phi
+  | Var v -> Var v
 
 let boundary r = join [eq r Dim.Dim0; eq r Dim.Dim1]

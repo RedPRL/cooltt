@@ -6,16 +6,17 @@ type ('r, 'a) cof_f =
   | Eq of 'r * 'r
   | Join of 'a list
   | Meet of 'a list
+  | Neg of 'a
 
 (** For each interval algebra ['r], we define the {i free monad} [('r, -) cof] on the polynomial endofunctor [('r, -) cof_f]: each [('r, 'v) cof] is the language of cofibrations over an interval algebra ['r], with indeterminates drawn from ['v]. *)
 type ('r, 'v) cof =
   | Cof of ('r, ('r, 'v) cof) cof_f
-  | Var of 'v * bool
+  | Var of 'v
 
 (** {1 Smart constructors} *)
 
 (** The cofibration corresponding to a variable [φ : 𝔽]. *)
-val var : ?value:bool -> 'v -> ('a, 'v) cof
+val var : 'v -> ('a, 'v) cof
 
 (** Given dimensions [r, r' : 𝕀], the cofibration [r=r']. *)
 val eq : 'a -> 'a -> ('a, 'v) cof
@@ -26,8 +27,11 @@ val join : ('a, 'v) cof list -> ('a, 'v) cof
 (** Given a list [φ0,...,φn : 𝔽] of cofibrations, the conjunction [φ0 ∧ ... ∧ φn]. *)
 val meet : ('a, 'v) cof list -> ('a, 'v) cof
 
-(** Calculate the negation. *)
-val neg : dim0:'a -> dim1:'a -> ('a, 'v) cof -> ('a, 'v) cof
+(** Given dimensions [r, r' : 𝕀], a cofibration equivalent to [¬(r=r')] that does not use [¬]. *)
+val neg_eq : dim0:'a -> dim1:'a -> 'a -> 'a -> ('a, 'v) cof
+
+(** Given [φ : 𝔽], the negation [¬φ]. This would not expand [¬(r=r')] as [neg_eq]. *)
+val neg : ('a, 'v) cof -> ('a, 'v) cof
 
 (** The false cofibration, equivalent to [join []]. *)
 val bot : ('a, 'v) cof
