@@ -50,8 +50,8 @@ let neg phi = Cof (Neg phi)
 
 let rec reduce =
   function
-  | Cof (Join phis) -> join @@ List.map (reduce) phis
-  | Cof (Meet phis) -> meet @@ List.map (reduce) phis
+  | Cof (Join phis) -> join @@ List.map reduce phis
+  | Cof (Meet phis) -> meet @@ List.map reduce phis
   | Cof (Eq (r, s)) -> eq r s
   | Cof (Neg phi) -> neg @@ reduce phi
   | Var v -> Var v
