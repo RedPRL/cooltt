@@ -84,6 +84,7 @@ let load_iface_opt src_path =
     let chan = open_in_bin iface_path in
     let iface = Marshal.from_channel chan in
     let _ = close_in chan in
+    (* FIXME: Check if the dependencies have been invalidated *)
     if iface.hash == Digest.file src_path then
       Some iface
     else
@@ -97,9 +98,12 @@ let rec build_iface src_path =
   let digest = Digest.file src_path in
   let* _ = process_file (`File src_path) in
   let* st = RM.get in
-  RM.ret @@ { code_unit = ST.get_current_unit st;
-              hash = digest;
-            }
+  let iface = { code_unit = ST.get_current_unit st;
+                hash = digest; } in
+  let chan = open_out_bin iface_path in
+  let _ = Marshal.to_channel chan iface [Marshal.No_sharing] in
+  let _ = close_out chan in
+  RM.ret @@ iface
 
 and load_iface imp =
   let src_path = resolve_import_path imp in
@@ -109,8 +113,7 @@ and load_iface imp =
 
 and import_module path : command =
   let* iface = load_iface path in
-  (* FIXME: Ugly code! *)
-  let* _ = RM.modify (ST.add_import [] iface.code_unit) in
+  let* _ = RM.add_import [] iface.code_unit in
   RM.ret @@ Continue Fun.id
 
 and execute_decl : CS.decl -> command =
