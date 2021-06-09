@@ -1,5 +1,6 @@
 open Basis
 open Bwd
+open BwdNotation
 open Dim
 
 module ConsistencyMonad =
@@ -136,40 +137,43 @@ type disj_thy = cached_branches
   * 2. Should we eagerly factor out common cofibrations to facilitate the refactoring
   *    steps later on? (This does not seem to be helpful in preliminary experiments.)
 *)
-let rec dissect_cofibrations : cof list -> branches =
-  function
-  | [] -> [[], []]
-  | cof :: cofs ->
-    match cof with
+let dissect_cofibrations : cof list -> branches =
+  let rec loop (vars, eqs) =
+    function
+    | [] -> [Bwd.to_list vars, Bwd.to_list eqs]
+    | cof :: cofs ->
+      match cof with
+      | Cof.Var v ->
+        loop (vars #< (v, true), eqs) cofs
+      | Cof.Cof cof ->
+        match cof with
+        | Cof.Meet meet_cofs ->
+          loop (vars, eqs) @@ meet_cofs @ cofs
+        | Cof.Join join_cofs ->
+          join_cofs |> List.concat_map @@ fun join_cof ->
+          loop (vars, eqs) @@ join_cof :: cofs
+        | Cof.Eq (r, s) ->
+          loop (vars, eqs #< (r, s)) cofs
+        | Cof.Neg cof ->
+          loop_neg (vars, eqs) ~neg:cof cofs
+
+  and loop_neg (vars, eqs) ~neg cofs =
+    match neg with
     | Cof.Var v ->
-      List.map (fun (vars, eqs) -> (v, true) :: vars, eqs) @@
-      dissect_cofibrations cofs
+      loop (vars #< (v, false), eqs) cofs
     | Cof.Cof cof ->
       match cof with
-      | Cof.Meet meet_cofs ->
-        dissect_cofibrations @@ meet_cofs @ cofs
-      | Cof.Join join_cofs ->
-        join_cofs |> List.concat_map @@ fun join_cof ->
-        dissect_cofibrations @@ join_cof :: cofs
+      | Cof.Meet negated_meet_cofs ->
+        negated_meet_cofs |> List.concat_map @@ fun negated_meet_cof ->
+        loop (vars, eqs) @@ Cof.neg negated_meet_cof :: cofs
+      | Cof.Join negated_join_cofs ->
+        loop (vars, eqs) @@ List.map Cof.neg negated_join_cofs @ cofs
       | Cof.Eq (r, s) ->
-        List.map (fun (vars, eqs) -> vars, (r, s) :: eqs) @@
-        dissect_cofibrations cofs
+        loop (vars, eqs) @@ neg_eq r s :: cofs
       | Cof.Neg cof ->
-        match cof with
-        | Cof.Var v ->
-          List.map (fun (vars, eqs) -> (v, false) :: vars, eqs) @@
-          dissect_cofibrations cofs
-        | Cof.Cof cof ->
-          match cof with
-          | Cof.Meet negated_meet_cofs ->
-            negated_meet_cofs |> List.concat_map @@ fun negated_meet_cof ->
-            dissect_cofibrations @@ Cof.neg negated_meet_cof :: cofs
-          | Cof.Join negated_join_cofs ->
-            dissect_cofibrations @@ List.map Cof.neg negated_join_cofs @ cofs
-          | Cof.Eq (r, s) ->
-            dissect_cofibrations @@ neg_eq r s :: cofs
-          | Cof.Neg cof ->
-            dissect_cofibrations @@ cof :: cofs
+        loop (vars, eqs) @@ cof :: cofs
+  in
+  loop (Emp, Emp)
 
 module Alg =
 struct
