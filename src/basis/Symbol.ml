@@ -1,26 +1,32 @@
-type t = {gen : int; name : string option}
+type t =
+  { origin : string;
+    index : int;
+    name : string option }
 [@@deriving show]
 
-let global = ref 0
+let probe_counter = ref 0
 
 let compare s1 s2 =
-  Int.compare s1.gen s2.gen
+  Int.compare s1.index s2.index
 
 let equal s1 s2 =
-  s1.gen = s2.gen
+  s1.index = s2.index
 
-let named_opt ostr =
-  let i = !global in
-  let s = {gen = i; name = ostr} in
-  global := i + 1;
+let fresh_probe () =
+  let i = !probe_counter in
+  let s = {origin = "<dim>"; index = i; name = Some "forall_probe"} in
+  probe_counter := i + 1;
   s
 
-let named str = named_opt (Some str)
-let fresh () = named_opt None
+let fresh_coe () =
+  let i = !probe_counter in
+  let s = {origin = "<dim>"; index = i; name = None} in
+  probe_counter := i + 1;
+  s
 
 let pp fmt sym =
   match sym.name with
   | Some nm ->
     Format.fprintf fmt "%a" Uuseg_string.pp_utf_8 nm
   | None ->
-    Format.fprintf fmt "#%i" sym.gen
+    Format.fprintf fmt "#%i" sym.index

@@ -2,51 +2,44 @@ open Basis
 
 module D = Domain
 module StringMap = Map.Make (String)
-module SymbolTable = SymbolTable.Make (Symbol)
 
 type t =
   { current_unit : string;
     code_units : CodeUnit.t StringMap.t;
-    globals : (D.tp * D.con option) SymbolTable.t
   }
 
 let init unit_name =
   { current_unit = unit_name;
-    code_units = StringMap.singleton unit_name (CodeUnit.create 0);
-    globals = SymbolTable.empty ()}
-
-(* Helpers for getting/modifying the current code unit *)
+    code_units = StringMap.singleton unit_name (CodeUnit.create unit_name) }
 
 let get_current_unit st = StringMap.find st.current_unit st.code_units
 
-let update_current_unit f st =
-  { st with code_units = StringMap.update st.current_unit (Option.map f) st.code_units }
+let update_current_unit f st = { st with code_units = StringMap.update st.current_unit (Option.map f) st.code_units }
 
-(* Conversion between fuly qualified names and symbols *)
+let set_current_unit code_unit st = { st with code_units = StringMap.add st.current_unit code_unit st.code_units }
 
-let sym_to_fqn (sym : Symbol.t) st =
-  let cunit = get_current_unit st in
-  let index = sym.gen - cunit.offset in
-  { CodeUnit.code_unit = st.current_unit; index = index }
-
-(* Symbol Management *)
-
-let add_global (ident : Ident.t) tp ocon st =
-  let sym = SymbolTable.named_opt (Ident.pp_name ident) (tp, ocon) st.globals in
-  let fqn = sym_to_fqn sym st in
-  (sym, update_current_unit (CodeUnit.add_global ident fqn) st)
+let add_global ident tp ocon st =
+  let code_unit = get_current_unit st in
+  let (sym, code_unit') = CodeUnit.add_global ident tp ocon code_unit in
+  (sym, set_current_unit code_unit' st)
 
 let resolve_global ident st =
-  let cunit = get_current_unit st in
-  let ofqn = CodeUnit.resolve_global ident cunit in
-  Option.map (fun (fqn : CodeUnit.fqn) -> {  Symbol.gen = fqn.index + cunit.offset; Symbol.name = Ident.pp_name ident }) ofqn
+  let code_unit = get_current_unit st in
+  CodeUnit.resolve_global ident code_unit
 
 let get_global sym st =
-  SymbolTable.find sym st.globals
+  let unit_name = CodeUnit.origin sym in
+  let code_unit = StringMap.find unit_name st.code_units in
+  CodeUnit.get_global sym code_unit
 
-(* FIXME: Actually implement this! *)
-let add_import path imp st = st
-  (* { st with code_units = StringMap.update st.current_unit (Namespace.add_namespace __) st.code_units;
-   *           globals = __
-   *             (\* SymbolMap.union (fun key _ _ -> failwith @@ "Symbol Overlap: " ^ Symbol.show key) imp.globals st.globals *\)
-   * } *)
+let add_import path code_unit st =
+  let st' = update_current_unit (CodeUnit.add_import path code_unit) st in
+  { st' with code_units = StringMap.add (CodeUnit.name code_unit) code_unit st'.code_units }
+
+let enter_unit unit_name st =
+  print_string @@ "Entering Unit " ^ unit_name ^ "\n";
+  { current_unit = unit_name;
+    code_units = StringMap.add unit_name (CodeUnit.create unit_name) st.code_units }
+
+let restore_unit unit_name st =
+  { st with current_unit = unit_name }

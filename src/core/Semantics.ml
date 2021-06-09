@@ -629,7 +629,7 @@ and eval : S.t -> D.con EvM.m =
           D.Cof (Cof.Meet phis)
       end
     | S.ForallCof tm ->
-      let sym = Symbol.named "forall_probe" in
+      let sym = Symbol.fresh_probe () in
       let i = Dim.DimProbe sym in
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
@@ -1397,7 +1397,7 @@ and dispatch_rigid_coe ~style line =
       ret @@ `Unknown
   in
   let peek line =
-    let x = Symbol.fresh () in
+    let x = Symbol.fresh_coe () in
     go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ Dim.DimProbe x |>>
     function
     | `Reduce _ | `Done as res -> ret res

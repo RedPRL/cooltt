@@ -12,7 +12,7 @@ let main {mode; width} =
   match
     match mode with
     | `Interactive -> Driver.do_repl ()
-    | `Scripting input -> Driver.process_file input
+    | `Scripting input -> Driver.load_file input
   with
   | Ok () -> `Ok ()
   | Error () -> `Error (false, "encountered one or more errors")

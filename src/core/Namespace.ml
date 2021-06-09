@@ -2,8 +2,6 @@ open Basis
 
 module StringMap = Map.Make (String)
 
-type fqn = { code_unit : string; index : int }
-
 type 'a t = {
     (** Used to resolve an identifier to a unique symbol in this namespace. *)
     names : 'a StringMap.t;

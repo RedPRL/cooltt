@@ -68,7 +68,7 @@ let protect m =
 
 (* Interfaces and Imports *)
 
-type iface = { contents : ST.t;
+type iface = { code_unit : CodeUnit.t;
                hash: Digest.t }
 
 let resolve_import_path imp =
@@ -95,27 +95,23 @@ let load_iface_opt src_path =
 let rec build_iface src_path =
   let iface_path = resolve_iface_path src_path in
   let digest = Digest.file src_path in
-  match process_import (`File src_path) with
-  | Ok st ->
-     let iface = { contents = st; hash = digest } in
-     let chan = open_out_bin iface_path in
-     let _ = Marshal.to_channel chan iface [Marshal.No_sharing] in
-     let _ = close_out chan in
-     Ok iface
-  | Error () -> Error ()
+  let* _ = process_file (`File src_path) in
+  let* st = RM.get in
+  RM.ret @@ { code_unit = ST.get_current_unit st;
+              hash = digest;
+            }
 
 and load_iface imp =
   let src_path = resolve_import_path imp in
   match load_iface_opt src_path with
   | Some iface -> iface
-  | None -> build_iface src_path
+  | None -> RM.with_code_unit imp (fun () -> build_iface src_path)
 
 and import_module path : command =
-  match load_iface path with
-  | Ok iface ->
-     let* () = RM.modify (ST.add_import [] iface.contents) in
-     RM.ret @@ Continue Fun.id
-  | Error () -> RM.ret Quit
+  let* iface = load_iface path in
+  (* FIXME: Ugly code! *)
+  let* _ = RM.modify (ST.add_import [] iface.code_unit) in
+  RM.ret @@ Continue Fun.id
 
 and execute_decl : CS.decl -> command =
   function
@@ -153,25 +149,18 @@ and execute_signature ~status sign =
     | Error () ->
       RM.ret @@ Error ()
 
-and process_sign sign =
-  RM.run_globals_exn (RefineState.init "<unit>") Env.init @@
-  execute_signature ~status:(Ok ()) sign
-
-(* Process a file, returning the resulting refiner state after execution. *)
-and process_import input =
+and process_file input =
   match Load.load_file input with
-  | Ok sign ->
-     let (res, st) = process_sign sign
-     in Result.map (Fun.const st) res
+  | Ok sign -> execute_signature ~status:(Ok ()) sign
   | Error (Load.ParseError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
-    Error ()
+    RM.ret @@ Error ()
   | Error (Load.LexingError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
-    Error ()
+    RM.ret @@ Error ()
 
-let process_file input =
-  Result.map ignore @@ process_import input
+let load_file input =
+  RM.run_exn (ST.init "<unit>") Env.init @@ process_file input
 
 let execute_command =
   function

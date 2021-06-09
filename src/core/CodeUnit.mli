@@ -2,21 +2,28 @@ open Basis
 
 module D = Domain
 
-(* FIXME: Anti-modular *)
-type fqn = { code_unit : string; index : int }
-
-
 (** Some metadata about a given code unit. *)
-type t = private
-  { namespace : fqn Namespace.t;
-    offset : int;
-  }
+type t
 
-(** Create a code unit, using a given offset. *)
-val create : int -> t
+type symbol = Symbol.t
+
+(** Return the name of the code unit that a symbol originated from. *)
+val origin : symbol -> string
+
+(** The name of a given code unit *)
+val name : t -> string
+
+(** Create a code unit. *)
+val create : string -> t
 
 (** Add a binding to a given code unit. *)
-val add_global : Ident.t -> fqn -> t -> t
+val add_global : Ident.t -> D.tp -> D.con option -> t -> (symbol * t)
 
 (** Attempt to resolve an identifier a given code unit. *)
-val resolve_global : Ident.t -> t -> fqn option
+val resolve_global : Ident.t -> t -> symbol option
+
+(** Get the binding associated with a symbol. *)
+val get_global : symbol -> t -> D.tp * D.con option
+
+(** Add another code unit as an import. *)
+val add_import : string list -> t -> t -> t

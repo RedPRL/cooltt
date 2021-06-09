@@ -50,6 +50,16 @@ let get_local ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
+let with_code_unit unit_name (action : unit -> 'a m) =
+  let* st = get in
+  let cunit = St.get_current_unit st in
+  let st' = St.enter_unit unit_name st in
+  let* _ = set st' in
+  let* a = action () in
+  let* _ = modify (St.restore_unit (CodeUnit.name cunit)) in
+  ret a
+
+
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con
 
