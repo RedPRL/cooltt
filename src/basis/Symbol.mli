@@ -1,4 +1,7 @@
-type t
+(* FIXME: This is anti-modular, but it makes the symbol
+   table code less janky for now.
+ *)
+type t = {gen : int; name : string option}
 
 val fresh : unit -> t
 val named : string -> t
