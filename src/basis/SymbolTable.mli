@@ -1,5 +1,6 @@
 module type Symbol =
 sig
+  (** FIXME: Anti-modular *)
   type t = {gen : int; name : string option}
 
   val compare : t -> t -> int

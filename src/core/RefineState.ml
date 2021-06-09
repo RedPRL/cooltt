@@ -5,36 +5,48 @@ module StringMap = Map.Make (String)
 module SymbolTable = SymbolTable.Make (Symbol)
 
 type t =
-  { (** A namespace for the current module. *)
-    current_scope : Namespace.t;
-    (** The namespace of imports. These are kept separate so that creating interface files is simpler. *)
-    imports : Namespace.t;
-    (** The set of bindings currently in scope. This includes all bindings from the namespaces *)
-    (* FIXME: Perhaps we ought to use an array here? We could get O(1) indexing. *)
-    (* FIXME: We should make sure not to bloat the symbol table too much... *)
+  { current_unit : string;
+    code_units : CodeUnit.t StringMap.t;
     globals : (D.tp * D.con option) SymbolTable.t
   }
 
-let init =
-  {current_scope = Namespace.empty;
-   imports = Namespace.empty;
-   globals = SymbolTable.empty ()}
+let init unit_name =
+  { current_unit = unit_name;
+    code_units = StringMap.singleton unit_name (CodeUnit.create 0);
+    globals = SymbolTable.empty ()}
+
+(* Helpers for getting/modifying the current code unit *)
+
+let get_current_unit st = StringMap.find st.current_unit st.code_units
+
+let update_current_unit f st =
+  { st with code_units = StringMap.update st.current_unit (Option.map f) st.code_units }
+
+(* Conversion between fuly qualified names and symbols *)
+
+let sym_to_fqn (sym : Symbol.t) st =
+  let cunit = get_current_unit st in
+  let index = sym.gen - cunit.offset in
+  { CodeUnit.code_unit = st.current_unit; index = index }
+
+(* Symbol Management *)
 
 let add_global (ident : Ident.t) tp ocon st =
-  let sym = SymbolTable.named_opt (Ident.pp_name ident) (tp, ocon) st.globals
-  in
-  sym,
-  { st with current_scope = Namespace.add_symbol ident sym st.current_scope }
+  let sym = SymbolTable.named_opt (Ident.pp_name ident) (tp, ocon) st.globals in
+  let fqn = sym_to_fqn sym st in
+  (sym, update_current_unit (CodeUnit.add_global ident fqn) st)
 
 let resolve_global ident st =
-  match Namespace.resolve_symbol ident st.current_scope with
-  | Some sym -> Some sym
-  | None -> Namespace.resolve_symbol ident st.imports
+  let cunit = get_current_unit st in
+  let ofqn = CodeUnit.resolve_global ident cunit in
+  Option.map (fun (fqn : CodeUnit.fqn) -> {  Symbol.gen = fqn.index + cunit.offset; Symbol.name = Ident.pp_name ident }) ofqn
 
 let get_global sym st =
   SymbolTable.find sym st.globals
 
-let add_import path imp st =
-  { st with imports = Namespace.add_namespace path imp.current_scope st.imports;
-            (* globals = SymbolMap.union (fun key _ _ -> failwith @@ "Symbol Overlap: " ^ Symbol.show key) imp.globals st.globals *)
-  }
+(* FIXME: Actually implement this! *)
+let add_import path imp st = st
+  (* { st with code_units = StringMap.update st.current_unit (Namespace.add_namespace __) st.code_units;
+   *           globals = __
+   *             (\* SymbolMap.union (fun key _ _ -> failwith @@ "Symbol Overlap: " ^ Symbol.show key) imp.globals st.globals *\)
+   * } *)

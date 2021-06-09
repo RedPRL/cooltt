@@ -1,14 +1,14 @@
 open Basis
 
-type t
+type 'a t
 
-val empty : t
+val empty : 'a t
 
 (** Associate a symbol with a possibly qualified identifier in a namespace. *)
-val add_symbol : Ident.t -> Symbol.t -> t -> t
+val add : Ident.t -> 'a -> 'a t -> 'a t
 
 (** Nest a namespace inside of another namespace under a qualified path. *)
-val add_namespace : string list -> t -> t -> t
+val nest : string list -> 'a t -> 'a t -> 'a t
 
 (** Look up the symbol associated with an possibly qualified identifier in a namespace. *)
-val resolve_symbol : Ident.t -> t -> Symbol.t option
+val find : Ident.t -> 'a t -> 'a option

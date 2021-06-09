@@ -154,7 +154,7 @@ and execute_signature ~status sign =
       RM.ret @@ Error ()
 
 and process_sign sign =
-  RM.run_globals_exn RefineState.init Env.init @@
+  RM.run_globals_exn (RefineState.init "<unit>") Env.init @@
   execute_signature ~status:(Ok ()) sign
 
 (* Process a file, returning the resulting refiner state after execution. *)
@@ -200,5 +200,5 @@ let rec repl (ch : in_channel) lexbuf =
 
 let do_repl () =
   let ch, lexbuf = Load.prepare_repl () in
-  RM.run_exn RefineState.init Env.init @@
+  RM.run_exn (RefineState.init "<repl>") Env.init @@
   repl ch lexbuf
