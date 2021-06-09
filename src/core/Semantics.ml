@@ -559,7 +559,7 @@ and eval : S.t -> D.con EvM.m =
     | S.Loop tr ->
       let* r = eval_dim tr in
       begin
-        CM.test_sequent [] (Cof.boundary r) |> lift_cmp |>> function
+        CM.test_sequent [] (Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r) |> lift_cmp |>> function
         | true ->
           ret D.Base
         | false ->
@@ -809,7 +809,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
     whnf_boundary ~style @@ Splice.Bdry.vin ~r ~pivot ~base
   | D.Loop r ->
     begin
-      test_sequent [] (Cof.boundary r) |>>
+      test_sequent [] (Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r) |>>
       function
       | true -> ret (`Reduce D.Base)
       | false -> ret `Done
