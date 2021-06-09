@@ -37,7 +37,6 @@ let add_import path code_unit st =
   { st' with code_units = StringMap.add (CodeUnit.name code_unit) code_unit st'.code_units }
 
 let enter_unit unit_name st =
-  print_string @@ "Entering Unit " ^ unit_name ^ "\n";
   { current_unit = unit_name;
     code_units = StringMap.add unit_name (CodeUnit.create unit_name) st.code_units }
 

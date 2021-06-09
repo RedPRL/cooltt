@@ -30,7 +30,7 @@ let add (ident : Ident.t) sym ns =
 
 (* FIXME: Deal with naming conflicts better! *)
 let rec merge_namespaces ns ns' =
-  { names = StringMap.union (fun nm _ _-> failwith @@ "Duplicate identifiers for" ^ nm) ns.names ns'.names;
+  { names = StringMap.union (fun nm _ _-> failwith @@ "Duplicate identifiers for " ^ nm) ns.names ns'.names;
     namespaces = StringMap.union (fun _ nested nested' -> Some (merge_namespaces nested nested')) ns.namespaces ns'.namespaces }
 
 let rec nest parts imported ns =
