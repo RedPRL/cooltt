@@ -27,7 +27,7 @@
 %token LOCKED UNLOCK
 %token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
-%token EQUALS JOIN MEET NEG
+%token EQUALS JOIN MEET
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
@@ -74,7 +74,6 @@ atomic_in_cof: t = located(plain_atomic_in_cof) {t}
 name: t = located(plain_name) {t}
 atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
-atomic_in_cof_except_term: t = located(plain_atomic_in_cof_except_term) {t}
 spine: t = located(plain_spine) {t}
 
 plain_name:
@@ -116,10 +115,6 @@ plain_atomic_in_cof_except_term:
     { CofBoundary t }
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
-  | NEG t = atomic_in_cof_except_term
-    { CofNeg t }
-  | NEG t = atomic_term
-    { CofNeg t }
 
 plain_atomic_in_cof:
   | t = plain_atomic_term
