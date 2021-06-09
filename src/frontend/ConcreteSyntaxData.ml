@@ -51,7 +51,6 @@ and con_ =
   | CofEq of con * con
   | Join of con list
   | Meet of con list
-  | CofNeg of con
   | CofBoundary of con
   | Prf of con
   | CofSplit of (con * con) list

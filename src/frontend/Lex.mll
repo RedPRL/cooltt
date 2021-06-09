@@ -130,10 +130,6 @@ rule token = parse
     { JOIN }
   | "\\/"
     { JOIN }
-  | "¬"
-    { NEG }
-  | "~"
-    { NEG }
   | "="
     { EQUALS }
   | ":="

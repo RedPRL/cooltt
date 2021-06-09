@@ -49,7 +49,6 @@ let rec cof_to_con =
   | Cof.Cof (Cof.Eq (r, s)) -> Cof (Cof.Eq (dim_to_con r, dim_to_con s))
   | Cof.Cof (Cof.Join phis) -> Cof (Cof.Join (List.map cof_to_con phis))
   | Cof.Cof (Cof.Meet phis) -> Cof (Cof.Meet (List.map cof_to_con phis))
-  | Cof.Cof (Cof.Neg phi) -> Cof (Cof.Neg (cof_to_con phi))
   | Cof.Var (`L lvl) -> Cut {tp = TpCof; cut = Var lvl, []}
   | Cof.Var (`G sym) -> Cut {tp = TpCof; cut = Global sym, []}
 
@@ -147,8 +146,6 @@ and pp_con : con Pp.printer =
     Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
   | Cof (Cof.Eq (r, s)) ->
     Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
-  | Cof (Cof.Neg phi) ->
-    Format.fprintf fmt "neg[%a]" pp_con phi
   | DimProbe x ->
     Format.fprintf fmt "probe[%a]" Symbol.pp x
   | Lam (_, clo) ->

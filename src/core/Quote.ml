@@ -522,9 +522,6 @@ and quote_cof phi =
       | Cof.Meet phis ->
         let+ tphis = MU.map go phis in
         S.Cof (Cof.Meet tphis)
-      | Cof.Neg phi ->
-        let+ tphi = go phi in
-        S.Cof (Cof.Neg tphi)
   in
   go @<< lift_cmp @@ Sem.normalize_cof phi
 
