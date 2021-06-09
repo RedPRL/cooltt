@@ -27,12 +27,6 @@ val join : ('a, 'v) cof list -> ('a, 'v) cof
 (** Given a list [φ0,...,φn : 𝔽] of cofibrations, the conjunction [φ0 ∧ ... ∧ φn]. *)
 val meet : ('a, 'v) cof list -> ('a, 'v) cof
 
-(** Given dimensions [r, r' : 𝕀], a cofibration equivalent to [¬(r=r')] that does not use [¬]. *)
-val neg_eq : dim0:'a -> dim1:'a -> 'a -> 'a -> ('a, 'v) cof
-
-(** Given [φ : 𝔽], the negation [¬φ]. This would not expand [¬(r=r')] as [neg_eq]. *)
-val neg : ('a, 'v) cof -> ('a, 'v) cof
-
 (** The false cofibration, equivalent to [join []]. *)
 val bot : ('a, 'v) cof
 
@@ -40,4 +34,10 @@ val bot : ('a, 'v) cof
 val top : ('a, 'v) cof
 
 (** The boundary [∂r] of a dimension [r : 𝕀] is the disjunction [r=0 ∨ r=1] *)
-val boundary : Dim.dim -> (Dim.dim, 'v) cof
+val boundary : dim0:'a -> dim1:'a -> 'a -> ('a, 'v) cof
+
+(** Given dimensions [r, r' : 𝕀], a cofibration equivalent to [¬(r=r')] that does not use [¬]. *)
+val neg_eq : dim0:'a -> dim1:'a -> 'a -> 'a -> ('a, 'v) cof
+
+(** Given [φ : 𝔽], the negation [¬φ]. This would not expand [¬(r=r')] as [neg_eq]. *)
+val neg : ('a, 'v) cof -> ('a, 'v) cof
