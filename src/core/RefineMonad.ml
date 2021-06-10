@@ -59,12 +59,16 @@ let with_code_unit unit_name (action : unit -> 'a m) =
   let* _ = modify (St.restore_unit (CodeUnit.name cunit)) in
   ret a
 
+let get_current_unit =
+  let* st = get in
+  ret @@ St.get_current_unit st
+
 let add_import path code_unit =
   modify (St.add_import path code_unit)
 
-let has_imported path =
+let get_import path =
   let* st = get in
-  ret @@ St.has_imported path st
+  ret @@ St.get_import path st
 
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con

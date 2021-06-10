@@ -13,8 +13,8 @@ val get_global : CodeUnit.symbol -> t -> D.tp * D.con option
 (** Add a code unit as an import. *)
 val add_import : string list -> CodeUnit.t -> t -> t
 
-(** Check to see if a code unit has already been imported. *)
-val has_imported : string -> t -> bool
+(** Try to get a code unit from the imports. *)
+val get_import : string -> t -> CodeUnit.t option
 
 (** Create a new code unit, and set it as the current unit. *)
 val enter_unit : string -> t -> t

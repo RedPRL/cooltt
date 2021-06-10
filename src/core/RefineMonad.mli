@@ -22,9 +22,10 @@ val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 
 val with_code_unit : string -> (unit -> 'a m) -> 'a m
+val get_current_unit : CodeUnit.t m
 
 val add_import : string list -> CodeUnit.t -> unit m
-val has_imported : string -> bool m
+val get_import : string -> (CodeUnit.t option) m
 
 val quote_con : D.tp -> D.con -> S.t m
 val quote_tp : D.tp -> S.tp m

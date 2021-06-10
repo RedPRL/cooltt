@@ -67,60 +67,26 @@ let protect m =
     let+ () = RM.emit ~lvl:`Error (RefineEnv.location env) PpExn.pp exn in
     Error ()
 
-(* Interfaces and Imports *)
-
-type iface = { code_unit : CodeUnit.t;
-               hash: Digest.t }
-
+(* Imports *)
 let resolve_source_path imp =
   imp ^ ".cooltt"
 
-let resolve_iface_path src_path =
-  Filename.remove_extension src_path ^ ".cooltti"
-
-let should_invalidate_iface iface src_path =
-  String.equal iface.hash (Digest.file src_path)
-
-(* Try to load an interface file, failing if the file does not exist or is out of date. *)
-let load_iface_opt src_path =
-  let iface_path = resolve_iface_path src_path in
-  if Sys.file_exists iface_path then
-    let chan = open_in_bin iface_path in
-    let iface = Marshal.from_channel chan in
-    let _ = close_in chan in
-    (* FIXME: Check if the dependencies have been invalidated *)
-    if should_invalidate_iface iface src_path then
-      Some iface
-    else
-      None
-  else
-    None
-
 (* Create an interface file for a given source file. *)
-let rec build_iface src_path =
-  let iface_path = resolve_iface_path src_path in
-  let digest = Digest.file src_path in
+let rec build_code_unit src_path =
   let* _ = process_file (`File src_path) in
-  let* st = RM.get in
-  let iface = { code_unit = ST.get_current_unit st;
-                hash = digest; } in
-  let chan = open_out_bin iface_path in
-  let _ = Marshal.to_channel chan iface [Marshal.No_sharing] in
-  let _ = close_out chan in
-  RM.ret @@ iface
+  RM.get_current_unit
 
-and load_iface imp =
+and load_code_unit imp =
   let src_path = resolve_source_path imp in
-  match load_iface_opt src_path with
-  | Some iface -> iface
-  | None -> RM.with_code_unit imp (fun () -> build_iface src_path)
+  RM.with_code_unit imp (fun () -> build_code_unit src_path)
 
-and import_module path : command =
-  let* iface_loaded = RM.has_imported path in
-  let* _ = RMU.guard (not iface_loaded) @@ fun _ ->
-    let* iface = load_iface path in
-    (* TODO: When we add qualified imports, this is where we pass in the path *)
-    RM.add_import [] iface.code_unit in
+and import_code_unit path : command =
+  let* unit_loaded = RM.get_import path in
+  let* import_unit =
+    match unit_loaded with
+    | Some import_unit -> RM.ret import_unit
+    | None -> load_code_unit path in
+  let* _ = RM.add_import [] import_unit in
   RM.ret @@ Continue Fun.id
 
 and execute_decl : CS.decl -> command =
@@ -142,7 +108,7 @@ and execute_decl : CS.decl -> command =
   | CS.Print ident ->
     print_ident ident
   | CS.Import path ->
-     import_module path
+     import_code_unit path
   | CS.Quit ->
     RM.ret Quit
 
