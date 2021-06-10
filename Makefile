@@ -19,4 +19,4 @@ install:
 	${OPAM} reinstall cooltt
 
 test:
-	@./test.sh
+	@${DUNE} build @install @runtest

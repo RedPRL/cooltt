@@ -1,0 +1,685 @@
+com.cooltt:22.10-22.19 [Info]:
+  Computed normal form of mycom/fun as
+   A B com/A com/B r φ p i x =>
+   com/B r φ {j _x => p j * {com/A i #f {_x₁ _x₂ => x} j}} i
+
+com.cooltt:35.10-35.16 [Info]:
+  Computed normal form of coe/pi as
+   A B r r' f _x =>
+   coe {_x₁ => B _x₁ {coe {_x₂ => A _x₂} r' _x₁ _x}} r r'
+     {f {coe {_x₁ => A _x₁} r' r _x}}
+
+com.cooltt:45.10-45.19 [Info]:
+  Computed normal form of coe/sigma as
+   A B r r' p =>
+   [ coe {_x => A _x} r r' {fst p}
+   , coe {_x => B _x {coe {_x₁ => A _x₁} r _x {fst p}}} r r' {snd p}
+   ]
+
+com.cooltt:66.10-66.19 [Info]:
+  Computed normal form of coe/pathd as
+   A r r' a b m _x =>
+   hcom {A r' _x} r r' {{_x = 0} ∨ {_x = 1}}
+     {_x₁ _x₂ =>
+      coe {_x₃ => A _x₃ _x} _x₁ r'
+        [ {_x = 0} ∨ {_x = 1} => [ _x = 0 => a _x₁ | _x = 1 => b _x₁ ]
+        | _x₁ = r => m _x
+        ]}
+
+com.cooltt:82.10-82.18 [Info]:
+  Computed normal form of hcom/fun as
+   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ _x₂ _x}
+
+com.cooltt:91.10-91.19 [Info]:
+  Computed normal form of com/intro as
+   A r r' φ p =>
+   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
+
+circle.cooltt:20.10-20.20 [Info]:
+  Computed normal form of loopn 45 as
+   i =>
+   hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+     {_x _x₁ =>
+      [ _x = 0 =>
+        hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+          {_x₃ _x₄ =>
+           [ _x₃ = 0 =>
+             hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+               {_x₆ _x₇ =>
+                [ _x₆ = 0 =>
+                  hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                    {_x₉ _x₁₀ =>
+                     [ _x₉ = 0 =>
+                       hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                         {_x₁₂ _x₁₃ =>
+                          [ _x₁₂ = 0 =>
+                            hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                              {_x₁₅ _x₁₆ =>
+                               [ _x₁₅ = 0 =>
+                                 hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                   {_x₁₈ _x₁₉ =>
+                                    [ _x₁₈ = 0 =>
+                                      hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                        {_x₂₁ _x₂₂ =>
+                                         [ _x₂₁ = 0 =>
+                                           hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                             {_x₂₄ _x₂₅ =>
+                                              [ _x₂₄ = 0 =>
+                                                hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                  {_x₂₇ _x₂₈ =>
+                                                   [ _x₂₇ = 0 =>
+                                                     hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                       {_x₃₀ _x₃₁ =>
+                                                        [ _x₃₀ = 0 =>
+                                                          hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                            {_x₃₃ _x₃₄ =>
+                                                             [ _x₃₃ = 0 =>
+                                                               hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                 {_x₃₆ _x₃₇ =>
+                                                                  [ _x₃₆ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₃₉ _x₄₀ =>
+                                                                    [ 
+                                                                    _x₃₉ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₄₂ _x₄₃ =>
+                                                                    [ 
+                                                                    _x₄₂ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₄₅ _x₄₆ =>
+                                                                    [ 
+                                                                    _x₄₅ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₄₈ _x₄₉ =>
+                                                                    [ 
+                                                                    _x₄₈ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₅₁ _x₅₂ =>
+                                                                    [ 
+                                                                    _x₅₁ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₅₄ _x₅₅ =>
+                                                                    [ 
+                                                                    _x₅₄ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₅₇ _x₅₈ =>
+                                                                    [ 
+                                                                    _x₅₇ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₆₀ _x₆₁ =>
+                                                                    [ 
+                                                                    _x₆₀ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₆₃ _x₆₄ =>
+                                                                    [ 
+                                                                    _x₆₃ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₆₆ _x₆₇ =>
+                                                                    [ 
+                                                                    _x₆₆ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₆₉ _x₇₀ =>
+                                                                    [ 
+                                                                    _x₆₉ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₇₂ _x₇₃ =>
+                                                                    [ 
+                                                                    _x₇₂ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₇₅ _x₇₆ =>
+                                                                    [ 
+                                                                    _x₇₅ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₇₈ _x₇₉ =>
+                                                                    [ 
+                                                                    _x₇₈ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₈₁ _x₈₂ =>
+                                                                    [ 
+                                                                    _x₈₁ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₈₄ _x₈₅ =>
+                                                                    [ 
+                                                                    _x₈₄ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₈₇ _x₈₈ =>
+                                                                    [ 
+                                                                    _x₈₇ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₉₀ _x₉₁ =>
+                                                                    [ 
+                                                                    _x₉₀ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₉₃ _x₉₄ =>
+                                                                    [ 
+                                                                    _x₉₃ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₉₆ _x₉₇ =>
+                                                                    [ 
+                                                                    _x₉₆ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₉₉ _x₁₀₀ =>
+                                                                    [ 
+                                                                    _x₉₉ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₀₂ _x₁₀₃ =>
+                                                                    [ 
+                                                                    _x₁₀₂ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₀₅ _x₁₀₆ =>
+                                                                    [ 
+                                                                    _x₁₀₅ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₀₈ _x₁₀₉ =>
+                                                                    [ 
+                                                                    _x₁₀₈ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₁₁ _x₁₁₂ =>
+                                                                    [ 
+                                                                    _x₁₁₁ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₁₄ _x₁₁₅ =>
+                                                                    [ 
+                                                                    _x₁₁₄ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₁₇ _x₁₁₈ =>
+                                                                    [ 
+                                                                    _x₁₁₇ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₂₀ _x₁₂₁ =>
+                                                                    [ 
+                                                                    _x₁₂₀ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₂₃ _x₁₂₄ =>
+                                                                    [ 
+                                                                    _x₁₂₃ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₂₆ _x₁₂₇ =>
+                                                                    [ 
+                                                                    _x₁₂₆ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₂₉ _x₁₃₀ =>
+                                                                    [ 
+                                                                    _x₁₂₉ = 0 =>
+                                                                    hcom circle 0 1 {{i = 0} ∨ {i = 1}}
+                                                                    {_x₁₃₂ _x₁₃₃ =>
+                                                                    [ 
+                                                                    _x₁₃₂ = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₃₂
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₂₉
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₂₆
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₂₃
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₂₀
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₁₇
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₁₄
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₁₁
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₀₈
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₀₅
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₁₀₂
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₉₉
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₉₆
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₉₃
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₉₀
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₈₇
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₈₄
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₈₁
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₇₈
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₇₅
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₇₂
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₆₉
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₆₆
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₆₃
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₆₀
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₅₇
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₅₄
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₅₁
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₄₈
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₄₅
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₄₂
+                                                                    ]}
+                                                                    | 
+                                                                    i = 0 =>
+                                                                    base
+                                                                    | 
+                                                                    i = 1 =>
+                                                                    loop _x₃₉
+                                                                    ]}
+                                                                  | i = 0 =>
+                                                                    base
+                                                                  | i = 1 =>
+                                                                    loop _x₃₆
+                                                                  ]}
+                                                             | i = 0 => base
+                                                             | i = 1 =>
+                                                               loop _x₃₃
+                                                             ]}
+                                                        | i = 0 => base
+                                                        | i = 1 => loop _x₃₀
+                                                        ]}
+                                                   | i = 0 => base
+                                                   | i = 1 => loop _x₂₇
+                                                   ]}
+                                              | i = 0 => base
+                                              | i = 1 => loop _x₂₄
+                                              ]}
+                                         | i = 0 => base
+                                         | i = 1 => loop _x₂₁
+                                         ]}
+                                    | i = 0 => base
+                                    | i = 1 => loop _x₁₈
+                                    ]}
+                               | i = 0 => base
+                               | i = 1 => loop _x₁₅
+                               ]}
+                          | i = 0 => base
+                          | i = 1 => loop _x₁₂
+                          ]}
+                     | i = 0 => base
+                     | i = 1 => loop _x₉
+                     ]}
+                | i = 0 => base
+                | i = 1 => loop _x₆
+                ]}
+           | i = 0 => base
+           | i = 1 => loop _x₃
+           ]}
+      | i = 0 => base
+      | i = 1 => loop _x
+      ]}
+
+hcom-type.cooltt:17.8-17.13 [Info]:
+  Emitted hole:
+    i : 𝕀
+    _x : [{i = 0} ∨ {i = 1}]
+    |- ?asdf : nat
+
+
+hcom-type.cooltt:17.16-17.17 [Info]:
+  Emitted hole:
+    i : 𝕀
+    |- ? : (_x : [i = 0]) → nat [{i = 0} ∨ {i = 1} => _x => ?asdf 0 *]
+
+
+hcom-type.cooltt:17.18-17.19 [Info]:
+  Emitted hole:
+    i : 𝕀
+    |- ? : nat
+           [{i = 0} ∨ {i = 0} ∨ {i = 1} => [ i = 0 => ?asdf 0 *
+                                           | i = 1 => ?asdf 1 *
+                                           ]]
+
+
+selfification.cooltt:8.10-8.17 [Info]:
+  Computed normal form of testing as
+   _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
+
+path-types.cooltt:8.10-8.19 [Info]:
+  Computed normal form of formation as
+   A a b =>
+   ext {i => A i} {i => {i = 0} ∨ {i = 1}} {i _x =>
+                                            [ i = 0 => a | i = 1 => b ]}
+
+path-types.cooltt:21.10-21.16 [Info]:
+  Computed normal form of myrefl as A a i => a
+
+path-types.cooltt:32.10-32.16 [Info]:
+  Computed normal form of funext as A B f g h i x => h x i
+
+path-types.cooltt:55.10-55.17 [Info]:
+  Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
+
+nat-path.cooltt:36.10-36.11 [Info]:
+  Computed normal form of J as
+   A p C d =>
+   coe {i =>
+        C {_x =>
+           hcom A 0 _x {{i = 0} ∨ {i = 1}}
+             {_x₁ _x₂ => [ {_x₁ = 0} ∨ {i = 0} => p 0 | i = 1 => p _x₁ ]}}} 0 1
+     d
+
+nat-path.cooltt:77.10-77.25 [Info]:
+  Computed normal form of trans-left-unit as
+   A p k i =>
+   hcom A 0 1 {{k = 0} ∨ {i = 0} ∨ {i = 1}}
+     {_x _x₁ =>
+      [ {_x = 0} ∨ {i = 0} => p 0
+      | i = 1 => p _x
+      | k = 0 =>
+        hcom A 0 1 {{i = 0} ∨ {i = 1} ∨ {_x = 0} ∨ {_x = 1}}
+          {_x₃ _x₄ =>
+           [ {_x₃ = 0} ∨ {i = 0} ∨ {_x = 1} =>
+             hcom A 0 i {{_x₃ = 0} ∨ {_x₃ = 1}}
+               {_x₆ _x₇ =>
+                [ {_x₆ = 0} ∨ {_x₃ = 0} => p 0 | _x₃ = 1 => p _x₆ ]}
+           | {i = 1} ∨ {_x = 0} =>
+             hcom A 0 _x {{_x₃ = 0} ∨ {_x₃ = 1}}
+               {_x₆ _x₇ =>
+                [ {_x₆ = 0} ∨ {_x₃ = 0} => p 0 | _x₃ = 1 => p _x₆ ]}
+           ]}
+      ]}
+
+nat-path.cooltt:78.10-78.26 [Info]:
+  Computed normal form of trans-right-unit as
+   A p _x _x₁ =>
+   hcom A 0 _x {{_x₁ = 0} ∨ {_x₁ = 1}}
+     {_x₂ _x₃ => [ {_x₂ = 0} ∨ {_x₁ = 0} => p _x₁ | _x₁ = 1 => p 1 ]}
+
+nat-path.cooltt:79.10-79.25 [Info]:
+  Computed normal form of trans-symm-refl as
+   A p k i =>
+   hcom A 0 1 {{k = 0} ∨ {i = 0} ∨ {i = 1}}
+     {_x _x₁ =>
+      hcom A 0 i {{_x = 0} ∨ {_x = 1}}
+        {_x₂ _x₃ => [ {_x₂ = 0} ∨ {_x = 1} => p 0 | _x = 0 => p _x₂ ]}}
+
+nat-path.cooltt:141.10-141.14 [Info]:
+  Computed normal form of test as
+   p i =>
+   hcom nat 0 1 {{i = 0} ∨ {i = 1}}
+     {_x _x₁ =>
+      [ {_x = 0} ∨ {i = 1} =>
+        elim {p 0} @ {_x₃ => nat} [ zero => 0
+                                  | suc => _x₃ _x₄ => 0
+                                  ]
+      | i = 0 =>
+        elim {p _x} @ {_x₃ => nat} [ zero => 0
+                                   | suc => _x₃ _x₄ => 0
+                                   ]
+      ]}
+
+nat-path.cooltt:143.10-143.15 [Info]:
+  Computed normal form of test2 as
+   i =>
+   hcom nat 0 1 {{i = 0} ∨ {i = 1}}
+     {_x _x₁ => [ {_x = 0} ∨ {i = 1} => 0 | i = 0 => 0 ]}
+
+hlevel.cooltt:33.6-33.11 [Info]:
+  hProp
+  : type
+  = hLevel 1
+
+hlevel.cooltt:34.10-34.15 [Info]:
+  Computed normal form of hProp as
+   (_x : type) × (_x₁ : _x) → (_x₂ : _x) → ext {i => _x} {i =>
+                                                          {i = 0} ∨ {i = 1}} {
+                                           i _x₃ =>
+                                           [ i = 0 => _x₁ | i = 1 => _x₂ ]}
+
+elab.cooltt:7.10-7.23 [Info]:
+  Computed normal form of boundary-test as
+   i _x => [ i = 1 => 5 | i = 0 => 19 ]
+
+elab.cooltt:18.10-18.22 [Info]:
+  Computed normal form of pi-code-test as (_x : nat) → nat
+
+elab.cooltt:28.10-28.20 [Info]:
+  Computed normal form of simple-let as A a => a
+
+elab.cooltt:33.6-33.13 [Info]:
+  Emitted hole:
+    x : nat
+    y : nat
+    z : nat
+    |- ?tyhole : type
+
+
+elab.cooltt:35.9-35.16 [Info]:
+  Emitted hole:
+    y : nat
+    z : nat
+    |- ?tmhole : (_x : nat) → ?tyhole y z _x
+
+
+elab.cooltt:42.6-42.12 [Info]:
+  Emitted hole:
+    x : nat
+    |- ?hole1 : path nat x x
+
+
+axiom.cooltt:6.10-6.14 [Info]:
+  Computed normal form of path as path
+
+axiom.cooltt:12.10-12.14 [Info]:
+  Computed normal form of test as unlock u/path : φ/path in _x i => 3
+
+axiom.cooltt:18.6-18.11 [Info]:
+  test2
+  : unlock u/path : φ/path in
+    _x =>
+    ext {i =>
+         ext {i₁ => nat} {i => {i = 0} ∨ {i = 1}} {i₁ _x₁ =>
+                                                   [ i₁ = 0 => 3
+                                                   | i₁ = 1 => 3
+                                                   ]}} {i =>
+                                                        {i = 0} ∨ {i = 1}} {
+    i _x₁ => [ i = 0 => _x₃ => test _x₃ | i = 1 => _x₃ => 3 ]}
+  = unlock u/path : φ/path in _x _x₁ _x₂ => 3
+
+v.cooltt:13.10-13.16 [Info]:
+  Computed normal form of v-test as
+   r A =>
+   V r {_x => A} A {_x =>
+                    [ x => x
+                    , x =>
+                      [ [ x , _x₁ => x ]
+                      , p i =>
+                        [ hcom A 1 0 {{i = 0} ∨ {i = 1}}
+                            {_x₁ _x₂ =>
+                             [ _x₁ = 1 => x
+                             | i = 1 => snd p _x₁
+                             | i = 0 => x
+                             ]}
+                        , _x₁ =>
+                          hcom A 1 _x₁ {{i = 0} ∨ {i = 1}}
+                            {_x₂ _x₃ =>
+                             [ _x₂ = 1 => x
+                             | i = 1 => snd p _x₂
+                             | i = 0 => x
+                             ]}
+                        ]
+                      ]
+                    ]}
+
+v.cooltt:21.10-21.14 [Info]:
+  Computed normal form of cool as A a => coe {_x => A} 0 1 a
+
+v.cooltt:22.10-22.15 [Info]:
+  Computed normal form of cool2 as
+   A a i =>
+   hcom A 0 1 {i = 0}
+     {_x _x₁ =>
+      [ _x = 0 => coe {_x₃ => A} i 0 a
+      | i = 0 =>
+        hcom A 1 0 {{_x = 0} ∨ {_x = 1}}
+          {_x₃ _x₄ => [ _x₃ = 1 => a | _x = 1 => a | _x = 0 => a ]}
+      ]}
+
+v.cooltt:28.10-28.15 [Info]:
+  Computed normal form of cool3 as A a i => a
+
