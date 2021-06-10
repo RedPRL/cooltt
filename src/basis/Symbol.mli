@@ -1,7 +1,10 @@
 (* FIXME: This is anti-modular, but it makes the symbol
    table code less janky for now.
  *)
-type t = { origin : string; index : int; name : string option}
+type t =
+  { origin : string;
+    index : int;
+    name : string option }
 
 val compare : t -> t -> int
 val equal : t -> t -> bool
