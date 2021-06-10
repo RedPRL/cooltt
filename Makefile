@@ -20,3 +20,6 @@ install:
 
 test:
 	@${DUNE} build @install @runtest
+
+snapshot:
+	@${DUNE} promote
