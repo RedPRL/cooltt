@@ -64,11 +64,8 @@ let resolve_local (ident : Ident.t) env =
     | Emp -> raise E
     | Snoc (xs, cell) ->
       begin
-        (* FIXME: As of now, local vars can /only/ be unqualified.
-           This may change when we start using record types!
-         *)
         match ident, Cell.ident cell with
-        | `Unqual y, `Unqual x when x = y -> i
+        | `User (parts_x, x), `User (parts_y, y) when x = y && List.for_all2 (=) parts_x parts_y -> i
         | _ -> go (i + 1) xs
       end
   in

@@ -5,16 +5,15 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
-  let atom_as_name a = `Unqual a
+  let atom_as_name a = `User ([], a)
 
   let add_part part =
     function
-    | `Unqual nm        -> `Qual ([part], nm)
-    | `Qual (parts, nm) -> `Qual (part :: parts, nm)
+    | `User (parts, nm) -> `User (part :: parts, nm)
 
   let rec parts_as_name =
     function
-    | (t :: []) -> `Unqual t
+    | (t :: []) -> `User ([], t)
     | (t :: ts) -> add_part t (parts_as_name ts)
     | []        -> failwith "Impossible Internal Error"
 
@@ -22,8 +21,7 @@
 
   let qualified_name_to_term =
     function
-    | `Unqual a -> Var (`Unqual a)
-    | `Qual a -> Var (`Qual a)
+    | `User a -> Var (`User a)
     | `Anon -> Underscore
     | `Machine _ -> failwith "Impossible Internal Error"
 
