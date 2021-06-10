@@ -1,3 +1,4 @@
+Processing axiom.cooltt
 axiom.cooltt:6.10-6.14 [Info]:
   Computed normal form of path as path
 
@@ -17,6 +18,8 @@ axiom.cooltt:18.6-18.11 [Info]:
     i _x₁ => [ i = 0 => _x₃ => test _x₃ | i = 1 => _x₃ => 3 ]}
   = unlock u/path : φ/path in _x _x₁ _x₂ => 3
 
+Processing base-types.cooltt
+Processing circle.cooltt
 circle.cooltt:20.10-20.20 [Info]:
   Computed normal form of loopn 45 as
    i =>
@@ -455,6 +458,7 @@ circle.cooltt:20.10-20.20 [Info]:
       | i = 1 => loop _x
       ]}
 
+Processing com.cooltt
 com.cooltt:22.10-22.19 [Info]:
   Computed normal form of mycom/fun as
    A B com/A com/B r φ p i x =>
@@ -492,6 +496,7 @@ com.cooltt:91.10-91.19 [Info]:
    A r r' φ p =>
    hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
 
+Processing elab.cooltt
 elab.cooltt:7.10-7.23 [Info]:
   Computed normal form of boundary-test as
    i _x => [ i = 1 => 5 | i = 0 => 19 ]
@@ -523,6 +528,9 @@ elab.cooltt:42.6-42.12 [Info]:
     |- ?hole1 : path nat x x
 
 
+Processing evan.cooltt
+Processing groupoid-laws.cooltt
+Processing hcom-type.cooltt
 hcom-type.cooltt:17.8-17.13 [Info]:
   Emitted hole:
     i : 𝕀
@@ -545,6 +553,7 @@ hcom-type.cooltt:17.18-17.19 [Info]:
                                            ]]
 
 
+Processing hlevel.cooltt
 hlevel.cooltt:33.6-33.11 [Info]:
   hProp
   : type
@@ -557,6 +566,8 @@ hlevel.cooltt:34.10-34.15 [Info]:
                                            i _x₃ =>
                                            [ i = 0 => _x₁ | i = 1 => _x₂ ]}
 
+Processing isos.cooltt
+Processing nat-path.cooltt
 nat-path.cooltt:36.10-36.11 [Info]:
   Computed normal form of J as
    A p C d =>
@@ -622,6 +633,7 @@ nat-path.cooltt:143.10-143.15 [Info]:
    hcom nat 0 1 {{i = 0} ∨ {i = 1}}
      {_x _x₁ => [ {_x = 0} ∨ {i = 1} => 0 | i = 0 => 0 ]}
 
+Processing path-types.cooltt
 path-types.cooltt:8.10-8.19 [Info]:
   Computed normal form of formation as
    A a b =>
@@ -637,10 +649,12 @@ path-types.cooltt:32.10-32.16 [Info]:
 path-types.cooltt:55.10-55.17 [Info]:
   Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
 
+Processing selfification.cooltt
 selfification.cooltt:8.10-8.17 [Info]:
   Computed normal form of testing as
    _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
+Processing v.cooltt
 v.cooltt:13.10-13.16 [Info]:
   Computed normal form of v-test as
    r A =>
