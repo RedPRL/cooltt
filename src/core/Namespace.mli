@@ -1,5 +1,3 @@
-open Basis
-
 type 'a t
 
 val empty : 'a t

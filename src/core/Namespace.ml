@@ -1,5 +1,3 @@
-open Basis
-
 module StringMap = Map.Make (String)
 
 type 'a t = {

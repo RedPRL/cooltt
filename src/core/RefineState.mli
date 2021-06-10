@@ -1,5 +1,3 @@
-open Basis
-
 module D := Domain
 
 type t
