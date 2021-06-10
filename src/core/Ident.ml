@@ -1,6 +1,6 @@
 type t = [`Anon | `User of string list * string | `Machine of string]
 
-let pp_qual parts nm = List.fold_right (fun x acc -> x ^ "." ^ acc) parts nm
+let pp_qual parts nm = String.concat "." (parts @ [nm])
 
 let pp fmt =
   function
