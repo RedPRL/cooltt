@@ -1,39 +1,21 @@
-com.cooltt:22.10-22.19 [Info]:
-  Computed normal form of mycom/fun as
-   A B com/A com/B r φ p i x =>
-   com/B r φ {j _x => p j * {com/A i #f {_x₁ _x₂ => x} j}} i
+axiom.cooltt:6.10-6.14 [Info]:
+  Computed normal form of path as path
 
-com.cooltt:35.10-35.16 [Info]:
-  Computed normal form of coe/pi as
-   A B r r' f _x =>
-   coe {_x₁ => B _x₁ {coe {_x₂ => A _x₂} r' _x₁ _x}} r r'
-     {f {coe {_x₁ => A _x₁} r' r _x}}
+axiom.cooltt:12.10-12.14 [Info]:
+  Computed normal form of test as unlock u/path : φ/path in _x i => 3
 
-com.cooltt:45.10-45.19 [Info]:
-  Computed normal form of coe/sigma as
-   A B r r' p =>
-   [ coe {_x => A _x} r r' {fst p}
-   , coe {_x => B _x {coe {_x₁ => A _x₁} r _x {fst p}}} r r' {snd p}
-   ]
-
-com.cooltt:66.10-66.19 [Info]:
-  Computed normal form of coe/pathd as
-   A r r' a b m _x =>
-   hcom {A r' _x} r r' {{_x = 0} ∨ {_x = 1}}
-     {_x₁ _x₂ =>
-      coe {_x₃ => A _x₃ _x} _x₁ r'
-        [ {_x = 0} ∨ {_x = 1} => [ _x = 0 => a _x₁ | _x = 1 => b _x₁ ]
-        | _x₁ = r => m _x
-        ]}
-
-com.cooltt:82.10-82.18 [Info]:
-  Computed normal form of hcom/fun as
-   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ _x₂ _x}
-
-com.cooltt:91.10-91.19 [Info]:
-  Computed normal form of com/intro as
-   A r r' φ p =>
-   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
+axiom.cooltt:18.6-18.11 [Info]:
+  test2
+  : unlock u/path : φ/path in
+    _x =>
+    ext {i =>
+         ext {i₁ => nat} {i => {i = 0} ∨ {i = 1}} {i₁ _x₁ =>
+                                                   [ i₁ = 0 => 3
+                                                   | i₁ = 1 => 3
+                                                   ]}} {i =>
+                                                        {i = 0} ∨ {i = 1}} {
+    i _x₁ => [ i = 0 => _x₃ => test _x₃ | i = 1 => _x₃ => 3 ]}
+  = unlock u/path : φ/path in _x _x₁ _x₂ => 3
 
 circle.cooltt:20.10-20.20 [Info]:
   Computed normal form of loopn 45 as
@@ -473,6 +455,74 @@ circle.cooltt:20.10-20.20 [Info]:
       | i = 1 => loop _x
       ]}
 
+com.cooltt:22.10-22.19 [Info]:
+  Computed normal form of mycom/fun as
+   A B com/A com/B r φ p i x =>
+   com/B r φ {j _x => p j * {com/A i #f {_x₁ _x₂ => x} j}} i
+
+com.cooltt:35.10-35.16 [Info]:
+  Computed normal form of coe/pi as
+   A B r r' f _x =>
+   coe {_x₁ => B _x₁ {coe {_x₂ => A _x₂} r' _x₁ _x}} r r'
+     {f {coe {_x₁ => A _x₁} r' r _x}}
+
+com.cooltt:45.10-45.19 [Info]:
+  Computed normal form of coe/sigma as
+   A B r r' p =>
+   [ coe {_x => A _x} r r' {fst p}
+   , coe {_x => B _x {coe {_x₁ => A _x₁} r _x {fst p}}} r r' {snd p}
+   ]
+
+com.cooltt:66.10-66.19 [Info]:
+  Computed normal form of coe/pathd as
+   A r r' a b m _x =>
+   hcom {A r' _x} r r' {{_x = 0} ∨ {_x = 1}}
+     {_x₁ _x₂ =>
+      coe {_x₃ => A _x₃ _x} _x₁ r'
+        [ {_x = 0} ∨ {_x = 1} => [ _x = 0 => a _x₁ | _x = 1 => b _x₁ ]
+        | _x₁ = r => m _x
+        ]}
+
+com.cooltt:82.10-82.18 [Info]:
+  Computed normal form of hcom/fun as
+   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ _x₂ _x}
+
+com.cooltt:91.10-91.19 [Info]:
+  Computed normal form of com/intro as
+   A r r' φ p =>
+   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
+
+elab.cooltt:7.10-7.23 [Info]:
+  Computed normal form of boundary-test as
+   i _x => [ i = 1 => 5 | i = 0 => 19 ]
+
+elab.cooltt:18.10-18.22 [Info]:
+  Computed normal form of pi-code-test as (_x : nat) → nat
+
+elab.cooltt:28.10-28.20 [Info]:
+  Computed normal form of simple-let as A a => a
+
+elab.cooltt:33.6-33.13 [Info]:
+  Emitted hole:
+    x : nat
+    y : nat
+    z : nat
+    |- ?tyhole : type
+
+
+elab.cooltt:35.9-35.16 [Info]:
+  Emitted hole:
+    y : nat
+    z : nat
+    |- ?tmhole : (_x : nat) → ?tyhole y z _x
+
+
+elab.cooltt:42.6-42.12 [Info]:
+  Emitted hole:
+    x : nat
+    |- ?hole1 : path nat x x
+
+
 hcom-type.cooltt:17.8-17.13 [Info]:
   Emitted hole:
     i : 𝕀
@@ -495,24 +545,17 @@ hcom-type.cooltt:17.18-17.19 [Info]:
                                            ]]
 
 
-selfification.cooltt:8.10-8.17 [Info]:
-  Computed normal form of testing as
-   _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
+hlevel.cooltt:33.6-33.11 [Info]:
+  hProp
+  : type
+  = hLevel 1
 
-path-types.cooltt:8.10-8.19 [Info]:
-  Computed normal form of formation as
-   A a b =>
-   ext {i => A i} {i => {i = 0} ∨ {i = 1}} {i _x =>
-                                            [ i = 0 => a | i = 1 => b ]}
-
-path-types.cooltt:21.10-21.16 [Info]:
-  Computed normal form of myrefl as A a i => a
-
-path-types.cooltt:32.10-32.16 [Info]:
-  Computed normal form of funext as A B f g h i x => h x i
-
-path-types.cooltt:55.10-55.17 [Info]:
-  Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
+hlevel.cooltt:34.10-34.15 [Info]:
+  Computed normal form of hProp as
+   (_x : type) × (_x₁ : _x) → (_x₂ : _x) → ext {i => _x} {i =>
+                                                          {i = 0} ∨ {i = 1}} {
+                                           i _x₃ =>
+                                           [ i = 0 => _x₁ | i = 1 => _x₂ ]}
 
 nat-path.cooltt:36.10-36.11 [Info]:
   Computed normal form of J as
@@ -579,67 +622,24 @@ nat-path.cooltt:143.10-143.15 [Info]:
    hcom nat 0 1 {{i = 0} ∨ {i = 1}}
      {_x _x₁ => [ {_x = 0} ∨ {i = 1} => 0 | i = 0 => 0 ]}
 
-hlevel.cooltt:33.6-33.11 [Info]:
-  hProp
-  : type
-  = hLevel 1
+path-types.cooltt:8.10-8.19 [Info]:
+  Computed normal form of formation as
+   A a b =>
+   ext {i => A i} {i => {i = 0} ∨ {i = 1}} {i _x =>
+                                            [ i = 0 => a | i = 1 => b ]}
 
-hlevel.cooltt:34.10-34.15 [Info]:
-  Computed normal form of hProp as
-   (_x : type) × (_x₁ : _x) → (_x₂ : _x) → ext {i => _x} {i =>
-                                                          {i = 0} ∨ {i = 1}} {
-                                           i _x₃ =>
-                                           [ i = 0 => _x₁ | i = 1 => _x₂ ]}
+path-types.cooltt:21.10-21.16 [Info]:
+  Computed normal form of myrefl as A a i => a
 
-elab.cooltt:7.10-7.23 [Info]:
-  Computed normal form of boundary-test as
-   i _x => [ i = 1 => 5 | i = 0 => 19 ]
+path-types.cooltt:32.10-32.16 [Info]:
+  Computed normal form of funext as A B f g h i x => h x i
 
-elab.cooltt:18.10-18.22 [Info]:
-  Computed normal form of pi-code-test as (_x : nat) → nat
+path-types.cooltt:55.10-55.17 [Info]:
+  Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
 
-elab.cooltt:28.10-28.20 [Info]:
-  Computed normal form of simple-let as A a => a
-
-elab.cooltt:33.6-33.13 [Info]:
-  Emitted hole:
-    x : nat
-    y : nat
-    z : nat
-    |- ?tyhole : type
-
-
-elab.cooltt:35.9-35.16 [Info]:
-  Emitted hole:
-    y : nat
-    z : nat
-    |- ?tmhole : (_x : nat) → ?tyhole y z _x
-
-
-elab.cooltt:42.6-42.12 [Info]:
-  Emitted hole:
-    x : nat
-    |- ?hole1 : path nat x x
-
-
-axiom.cooltt:6.10-6.14 [Info]:
-  Computed normal form of path as path
-
-axiom.cooltt:12.10-12.14 [Info]:
-  Computed normal form of test as unlock u/path : φ/path in _x i => 3
-
-axiom.cooltt:18.6-18.11 [Info]:
-  test2
-  : unlock u/path : φ/path in
-    _x =>
-    ext {i =>
-         ext {i₁ => nat} {i => {i = 0} ∨ {i = 1}} {i₁ _x₁ =>
-                                                   [ i₁ = 0 => 3
-                                                   | i₁ = 1 => 3
-                                                   ]}} {i =>
-                                                        {i = 0} ∨ {i = 1}} {
-    i _x₁ => [ i = 0 => _x₃ => test _x₃ | i = 1 => _x₃ => 3 ]}
-  = unlock u/path : φ/path in _x _x₁ _x₂ => 3
+selfification.cooltt:8.10-8.17 [Info]:
+  Computed normal form of testing as
+   _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
 v.cooltt:13.10-13.16 [Info]:
   Computed normal form of v-test as
