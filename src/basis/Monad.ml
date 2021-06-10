@@ -101,6 +101,12 @@ struct
     function
     | [] -> M.ret b
     | (x :: xs) -> M.bind (f x b) (fun b' -> fold_left_m f b' xs)
+
+  let guard b action =
+    if b then
+      action ()
+    else
+      M.ret ()
 end
 
 module type MonadReaderResult = sig

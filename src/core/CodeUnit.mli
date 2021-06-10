@@ -13,6 +13,9 @@ val origin : symbol -> string
 (** The name of a given code unit *)
 val name : t -> string
 
+(** All of the code unit this unit directly imports. *)
+val imports : t -> string list
+
 (** Create a code unit. *)
 val create : string -> t
 

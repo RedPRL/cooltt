@@ -36,6 +36,9 @@ let add_import path code_unit st =
   let st' = update_current_unit (CodeUnit.add_import path code_unit) st in
   { st' with code_units = StringMap.add (CodeUnit.name code_unit) code_unit st'.code_units }
 
+let has_imported path st =
+  StringMap.mem path st.code_units
+
 let enter_unit unit_name st =
   { current_unit = unit_name;
     code_units = StringMap.add unit_name (CodeUnit.create unit_name) st.code_units }

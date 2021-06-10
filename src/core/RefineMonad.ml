@@ -62,6 +62,10 @@ let with_code_unit unit_name (action : unit -> 'a m) =
 let add_import path code_unit =
   modify (St.add_import path code_unit)
 
+let has_imported path =
+  let* st = get in
+  ret @@ St.has_imported path st
+
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con
 

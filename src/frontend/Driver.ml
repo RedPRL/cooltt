@@ -12,6 +12,7 @@ module Qu = Quote
 
 module RM = RefineMonad
 module ST = RefineState
+module RMU = Monad.Util (RM)
 open Monad.Notation (RM)
 
 type status = (unit, unit) Result.t
@@ -71,11 +72,14 @@ let protect m =
 type iface = { code_unit : CodeUnit.t;
                hash: Digest.t }
 
-let resolve_import_path imp =
+let resolve_source_path imp =
   imp ^ ".cooltt"
 
 let resolve_iface_path src_path =
   Filename.remove_extension src_path ^ ".cooltti"
+
+let should_invalidate_iface iface src_path =
+  String.equal iface.hash (Digest.file src_path)
 
 (* Try to load an interface file, failing if the file does not exist or is out of date. *)
 let load_iface_opt src_path =
@@ -85,7 +89,7 @@ let load_iface_opt src_path =
     let iface = Marshal.from_channel chan in
     let _ = close_in chan in
     (* FIXME: Check if the dependencies have been invalidated *)
-    if iface.hash == Digest.file src_path then
+    if should_invalidate_iface iface src_path then
       Some iface
     else
       None
@@ -106,14 +110,17 @@ let rec build_iface src_path =
   RM.ret @@ iface
 
 and load_iface imp =
-  let src_path = resolve_import_path imp in
+  let src_path = resolve_source_path imp in
   match load_iface_opt src_path with
   | Some iface -> iface
   | None -> RM.with_code_unit imp (fun () -> build_iface src_path)
 
 and import_module path : command =
-  let* iface = load_iface path in
-  let* _ = RM.add_import [] iface.code_unit in
+  let* iface_loaded = RM.has_imported path in
+  let* _ = RMU.guard (not iface_loaded) @@ fun _ ->
+    let* iface = load_iface path in
+    (* TODO: When we add qualified imports, this is where we pass in the path *)
+    RM.add_import [] iface.code_unit in
   RM.ret @@ Continue Fun.id
 
 and execute_decl : CS.decl -> command =

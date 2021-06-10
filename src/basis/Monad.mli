@@ -31,6 +31,7 @@ module Util (M : S) : sig
   val iter : ('a -> unit M.m) -> 'a list -> unit M.m
   val ignore : 'a M.m -> unit M.m
   val fold_left_m : ('a -> 'b ->'b M.m) -> 'b -> 'a list -> 'b M.m
+  val guard : bool -> (unit -> unit M.m) -> unit M.m
 end
 
 module type MonadReaderResult = sig
