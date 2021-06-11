@@ -8,6 +8,8 @@ module Dim : module type of Dim
 (** The abstract syntax of the restricted predicate logic of cofibrations. *)
 module Cof : module type of Cof
 
+module DimProbe : module type of DimProbe
+
 (** {1 Semantics} *)
 
 open Basis
