@@ -18,13 +18,13 @@ open Monad.Notation (RM)
 
 type status = (unit, unit) Result.t
 type continuation = Continue of (status RM.m -> status RM.m) | Quit
-type command = continuation RM.m 
+type command = continuation RM.m
 
 (* Refinement Helpers *)
 
 let elaborate_typed_term name (args : CS.cell list) tp tm =
   RM.push_problem name @@
-  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
   let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
@@ -32,7 +32,7 @@ let elaborate_typed_term name (args : CS.cell list) tp tm =
 
 let add_global name vtp con : command =
   let+ _ = RM.add_global name vtp con in
-  let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in 
+  let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in
   Continue kont
 
 let print_ident (ident : Ident.t CS.node) : command =
@@ -48,9 +48,9 @@ let print_ident (ident : Ident.t CS.node) : command =
         let* tm = RM.quote_con vtp con in
         RM.ret @@ Some tm
     in
-    let+ () = 
-      RM.emit ident.info pp_message @@ 
-      OutputMessage (Definition {ident = ident.node; tp; tm}) 
+    let+ () =
+      RM.emit ident.info pp_message @@
+      OutputMessage (Definition {ident = ident.node; tp; tm})
     in
     Continue Fun.id
   | _ ->
@@ -96,7 +96,7 @@ and execute_decl : CS.decl -> command =
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
     add_global name vtp @@ Some vtm
   | CS.Def {name; args; def = None; tp} ->
-    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+    let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     add_global name vtp None
   | CS.NormalizeTerm term ->
