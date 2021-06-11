@@ -633,6 +633,10 @@ nat-path.cooltt:143.10-143.15 [Info]:
    hcom nat 0 1 {{i = 0} ∨ {i = 1}}
      {_x _x₁ => [ {_x = 0} ∨ {i = 1} => 0 | i = 0 => 0 ]}
 
+--------------------[nat.cooltt]--------------------
+nat.cooltt:9.10-9.15 [Info]:
+  Computed normal form of + 2 3 as 5
+
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.10-8.19 [Info]:
   Computed normal form of formation as
@@ -649,6 +653,7 @@ path-types.cooltt:32.10-32.16 [Info]:
 path-types.cooltt:55.10-55.17 [Info]:
   Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
 
+--------------------[prelude.cooltt]--------------------
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.10-8.17 [Info]:
   Computed normal form of testing as
