@@ -14,12 +14,6 @@ let equal s1 s2 =
 
 let fresh_probe () =
   let i = !probe_counter in
-  let s = {origin = "<dim>"; index = i; name = Some "forall_probe"} in
-  probe_counter := i + 1;
-  s
-
-let fresh_coe () =
-  let i = !probe_counter in
   let s = {origin = "<dim>"; index = i; name = None} in
   probe_counter := i + 1;
   s

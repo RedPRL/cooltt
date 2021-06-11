@@ -1397,7 +1397,7 @@ and dispatch_rigid_coe ~style line =
       ret @@ `Unknown
   in
   let peek line =
-    let x = Symbol.fresh_coe () in
+    let x = Symbol.fresh_probe () in
     go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ Dim.DimProbe x |>>
     function
     | `Reduce _ | `Done as res -> ret res

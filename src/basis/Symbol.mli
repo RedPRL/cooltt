@@ -16,8 +16,5 @@ val equal : t -> t -> bool
 (** Create a fresh symbol for probing cofibrations. *)
 val fresh_probe : unit -> t
 
-(** Create a fresh symbol for performing coercions *)
-val fresh_coe : unit -> t
-
 val pp : t Pp.printer
 val show : t -> string
