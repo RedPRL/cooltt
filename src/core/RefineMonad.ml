@@ -1,3 +1,5 @@
+open CodeUnit
+
 module D = Domain
 module S = Syntax
 module St = RefineState

@@ -1,11 +1,13 @@
+open Basis
+open Cubical
+open CodeUnit
+
 module S = Syntax
 module D = Domain
 module RM = RefineMonad
 module Sem = Semantics
 module Qu = Quote
 
-open Basis
-open Cubical
 open Monad.Notation (RM)
 
 module type Tactic =

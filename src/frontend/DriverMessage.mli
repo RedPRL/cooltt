@@ -1,4 +1,5 @@
 open Core
+open CodeUnit
 
 type output_message =
   | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}

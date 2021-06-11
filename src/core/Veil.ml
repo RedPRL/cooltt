@@ -1,12 +1,15 @@
 open Basis 
 
+module Global = CodeUnit.Global
+module SymbolMap = SymbolMap.Make (Global)
+
 type policy = [`Translucent | `Transparent]
 [@@deriving show]
 
 type t = {default : policy; custom : policy SymbolMap.t}
 [@@deriving show]
 
-let policy : Symbol.t -> t -> policy =
+let policy : Global.t -> t -> policy =
   fun sym veil ->
   match SymbolMap.find_opt sym veil.custom with
   | Some p -> p

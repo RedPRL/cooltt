@@ -1,5 +1,7 @@
-module D = Domain
+open CodeUnit
+
 module StringMap = Map.Make (String)
+module D = Domain
 
 type t =
   { current_unit : string;

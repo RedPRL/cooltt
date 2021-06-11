@@ -1,9 +1,13 @@
 open Basis
 open Core
 
+open CodeUnit
+
+module S = Syntax
+
 type output_message =
-  | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}
-  | Definition of {ident : Ident.t; tp : Syntax.tp; tm : Syntax.t option}
+  | NormalizedTerm of {orig : S.t; nf : S.t}
+  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
 
 type error_message =
   | LexingError

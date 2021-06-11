@@ -1,5 +1,6 @@
 open Core
 open Basis
+open CodeUnit
 open DriverMessage
 
 module CS = ConcreteSyntax

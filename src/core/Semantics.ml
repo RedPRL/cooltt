@@ -1,3 +1,9 @@
+open Basis
+open Cubical
+open Bwd
+
+open CodeUnit
+
 module S = Syntax
 module D = Domain
 
@@ -6,9 +12,6 @@ exception CJHM
 exception CFHM
 exception CCHM
 
-open Basis
-open Cubical
-open Bwd
 
 exception NbeFailed of string
 

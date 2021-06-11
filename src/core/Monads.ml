@@ -1,9 +1,12 @@
-module D = Domain
-module S = Syntax
-module St = RefineState
 open Basis
 open Cubical
 open Bwd
+
+open CodeUnit
+
+module D = Domain
+module S = Syntax
+module St = RefineState
 
 exception CCHM
 exception CJHM

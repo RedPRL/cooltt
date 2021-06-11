@@ -1,3 +1,4 @@
+open CodeUnit
 module S = Syntax
 module D = Domain
 module Sem = Semantics
@@ -381,7 +382,7 @@ and equate_hd hd0 hd1 =
   let* () = assert_done_hd hd0 in
   let* () = assert_done_hd hd1 in
   match hd0, hd1 with
-  | D.Global sym0, D.Global sym1 when Symbol.equal sym0 sym1 -> ret ()
+  | D.Global sym0, D.Global sym1 when Global.equal sym0 sym1 -> ret ()
   | D.Var lvl0, D.Var lvl1 when lvl0 = lvl1 -> ret ()
   | D.Coe (abs0, r0, s0, con0), D.Coe (abs1, r1, s1, con1) ->
     let* () = equate_dim r0 r1 in

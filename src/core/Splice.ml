@@ -2,6 +2,8 @@ open Basis.Bwd
 open Cubical
 open BwdNotation
 
+open CodeUnit
+
 module S = Syntax
 module D = Domain
 module TB = TermBuilder

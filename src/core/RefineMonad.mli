@@ -1,5 +1,6 @@
-module D := Domain
-module S := Syntax
+open CodeUnit
+module D = Domain
+module S = Syntax
 
 open Basis
 open Bwd
@@ -14,10 +15,10 @@ val refine_err : RefineError.t -> 'a m
 val update_span : LexingUtil.span option -> 'a m -> 'a m
 val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 
-val add_global : Ident.t -> D.tp -> D.con option -> CodeUnit.symbol m
+val add_global : Ident.t -> D.tp -> D.con option -> Global.t m
 
-val resolve : Ident.t -> [`Local of int | `Global of CodeUnit.symbol | `Unbound] m
-val get_global : CodeUnit.symbol -> (D.tp * D.con option) m
+val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
+val get_global : Global.t -> (D.tp * D.con option) m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 

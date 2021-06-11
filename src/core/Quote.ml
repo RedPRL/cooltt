@@ -1,3 +1,9 @@
+open Basis
+open Cubical
+open Monads
+
+open CodeUnit
+
 module S = Syntax
 module D = Domain
 module Sem = Semantics
@@ -7,9 +13,6 @@ exception CCHM
 exception CJHM
 exception CFHM
 
-open Basis
-open Cubical
-open Monads
 
 module Error =
 struct

@@ -1,11 +1,14 @@
-module StringMap = Map.Make (String)
-module D = Domain
-module S = Syntax
-
 open Basis
 open Cubical
 open Bwd
 open BwdNotation
+
+open CodeUnit
+
+module StringMap = Map.Make (String)
+module D = Domain
+module S = Syntax
+
 
 module Cell =
 struct
@@ -21,7 +24,7 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t =
-  {resolver : Symbol.t StringMap.t;
+  {resolver : Global.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
    cof_thy : CofThy.Disj.t;
