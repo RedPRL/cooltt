@@ -548,7 +548,7 @@ hlevel.cooltt:34.10-34.15 [Info]:
 
 --------------------[isos.cooltt]--------------------
 --------------------[nat-path.cooltt]--------------------
-/Users/reedmullanix/Documents/Projects/cooltt/_build/default/test/nat.cooltt:9.10-9.15 [Info]:
+nat.cooltt:9.10-9.15 [Info]:
   Computed normal form of + 2 3 as 5
 
 nat-path.cooltt:15.10-15.11 [Info]:
