@@ -274,7 +274,7 @@ struct
       Log.pp_error_message ~loc ~lvl pp a;
       Ok (), st
     | _ ->
-      Log.pp_runtime_messsage ~loc ~lvl pp a;
+      Log.pp_runtime_message ~loc ~lvl pp a;
       Ok (), st
 
   let veil v =
