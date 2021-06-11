@@ -134,7 +134,7 @@ let pp_braced pp fmt a =
     pp a
 
 let ppenv_bind env ident =
-  Pp.Env.bind env @@ Ident.pp_name ident
+  Pp.Env.bind env @@ Ident.to_string_opt ident
 
 let rec pp env fmt tm =
   match tm with

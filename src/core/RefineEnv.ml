@@ -79,7 +79,7 @@ let restrict phis env =
 
 let append_con ident con tp env =
   {env with
-   pp = snd @@ Pp.Env.bind env.pp (Ident.pp_name ident);
+   pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
    locals = env.locals <>< [{contents = tp, con; ident}];
    cof_thy =
      match tp with

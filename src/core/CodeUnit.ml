@@ -35,7 +35,7 @@ let create name =
 let add_global ident tp ocon code_unit =
   let index = Vector.length code_unit.symbol_table in
   let _ = Vector.push code_unit.symbol_table (tp, ocon) in
-  let sym = { Symbol.origin = code_unit.name; index = index; name = Ident.pp_name ident } in
+  let sym = { Symbol.origin = code_unit.name; index = index; name = Ident.to_string_opt ident } in
   let code_unit' = { code_unit with namespace = Namespace.add ident sym code_unit.namespace } in
   (sym, code_unit')
 
