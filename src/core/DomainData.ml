@@ -1,13 +1,17 @@
-module S = Syntax
 open Basis
 open Cubical
 open Bwd
 
-type dim = Dim.dim
-type cof = (dim, [`L of int | `G of Symbol.t]) Cof.cof
+module Make (Symbol : Symbol.S) =
+struct
 
-(** A type code whose head constructor is stable under dimension substitution. *)
-type 'a stable_code =
+  module S = Syntax.Make(Symbol)
+
+  type dim = Dim.dim
+  type cof = (dim, int) Cof.cof
+
+  (** A type code whose head constructor is stable under dimension substitution. *)
+  type 'a stable_code =
   [ `Pi of 'a * 'a
   (** Dependent product type *)
 
@@ -24,33 +28,33 @@ type 'a stable_code =
   (** The circle [S1]. *)
 
   | `Univ
-    (** A code for the universe (antinomous for now). *)
+      (** A code for the universe (antinomous for now). *)
   ]
 
-(** A type code whose head constructor is {i not} stable under dimension substitution. *)
-type 'a unstable_code =
+  (** A type code whose head constructor is {i not} stable under dimension substitution. *)
+  type 'a unstable_code =
   [ `HCom of dim * dim * cof * 'a
   (** Formal composite types *)
 
   | `V of dim * 'a * 'a * 'a
-    (** V types, for univalence *)
+      (** V types, for univalence *)
   ]
 
-type env = {tpenv : tp bwd; conenv: con bwd}
+  type env = {tpenv : tp bwd; conenv: con bwd}
 
-(** A {i closure} combines a semantic environment with a syntactic object binding an additional variable. *)
-and 'a clo = Clo of 'a * env
-and tp_clo = S.tp clo
-and tm_clo = S.t clo
+  (** A {i closure} combines a semantic environment with a syntactic object binding an additional variable. *)
+  and 'a clo = Clo of 'a * env
+  and tp_clo = S.tp clo
+  and tm_clo = S.t clo
 
-(** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
-and con =
+  (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
+  and con =
   | Lam of Ident.t * tm_clo
 
-  | BindSym of Symbol.t * con
+  | BindSym of DimProbe.t * con
   (** A nominal binder of a dimension; these are used during the execution of coercion, which must probe a line of type codes with a fresh dimension. *)
 
-  | LetSym of dim * Symbol.t * con
+  | LetSym of dim * DimProbe.t * con
   (** An explicit substitution of a dimension for a symbol. *)
 
   | Cut of {tp : tp; cut : cut}
@@ -68,7 +72,7 @@ and con =
 
   | Dim0
   | Dim1
-  | DimProbe of Symbol.t
+  | DimProbe of DimProbe.t
 
   | Cof of (con, con) Cof.cof_f
   (** A mixin of the language of cofibrations (as described in {!module:Cubical.Cof}), with dimensions and indeterminates in {!type:con}. *)
@@ -87,7 +91,7 @@ and con =
 
   | LockedPrfIn of con
 
-and tp =
+  and tp =
   | Sub of tp * cof * tm_clo
   | Univ
   | ElCut of cut
@@ -103,8 +107,8 @@ and tp =
   | Circle
   | TpLockedPrf of cof
 
-(** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
-and hd =
+  (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
+  and hd =
   | Global of Symbol.t
   (** A top-level declaration*)
 
@@ -114,11 +118,11 @@ and hd =
   | Coe of con * dim * dim * con
   | UnstableCut of cut * unstable_frm
 
-(** A {!type:cut} is a value that is blocked on the computation of a {!type:hd} ("head"); when the head is computed, the list of stack frames ({!type:frm}) carried by the cut will be enacted. *)
-and cut = hd * frm list
+  (** A {!type:cut} is a value that is blocked on the computation of a {!type:hd} ("head"); when the head is computed, the list of stack frames ({!type:frm}) carried by the cut will be enacted. *)
+  and cut = hd * frm list
 
-(** A {i stable} frame is a {i dimension substitution-stable} elimination form with a hole in place of its principal argument. Unstable elimination forms are governed by {!type:hd} to ease the "re-reduction" of a value to whnf under a stronger cofibration theory. *)
-and frm =
+  (** A {i stable} frame is a {i dimension substitution-stable} elimination form with a hole in place of its principal argument. Unstable elimination forms are governed by {!type:hd} to ease the "re-reduction" of a value to whnf under a stronger cofibration theory. *)
+  and frm =
   | KAp of tp * con
   | KFst
   | KSnd
@@ -129,10 +133,11 @@ and frm =
   (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
 
 
-(** An {i unstable} frame is a {i dimension substitution-unstable} elimination form with a hole in place of its principal argument. *)
-and unstable_frm =
+  (** An {i unstable} frame is a {i dimension substitution-unstable} elimination form with a hole in place of its principal argument. *)
+  and unstable_frm =
   | KHCom of dim * dim * cof * con
   | KCap of dim * dim * cof * con
   | KVProj of dim * con * con * con
   | KSubOut of cof * tm_clo
   | KLockedPrfUnlock of tp * cof * con
+end

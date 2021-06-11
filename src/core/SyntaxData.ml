@@ -1,7 +1,9 @@
 open Basis
 open Cubical
 
-type t =
+module Make (Symbol : Symbol.S) =
+struct
+  type t =
   | Var of int
   | Global of Symbol.t
   | Let of t * Ident.t * t
@@ -59,7 +61,7 @@ type t =
   | LockedPrfIn of t
   | LockedPrfUnlock of {tp : tp; cof : t; prf : t; bdy : t}
 
-and tp =
+  and tp =
   | Univ
   | El of t
   | TpVar of int
@@ -75,8 +77,8 @@ and tp =
   | TpESub of sub * tp
   | TpLockedPrf of t
 
-(** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
-and sub =
+  (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
+  and sub =
   | SbI
   (** The identity substitution [Γ → Γ]. *)
 
@@ -91,3 +93,4 @@ and sub =
 
   | SbP
   (** The projection from a extended context [Γ.A → Γ]. *)
+end

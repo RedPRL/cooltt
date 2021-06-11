@@ -2,39 +2,42 @@
 
 open Basis
 
-include module type of DomainData
+module Make : functor (Symbol : Symbol.S) -> sig
 
-(** {1 Convenience constructors} *)
+  include module type of DomainData.Make(Symbol)
 
-val dim_to_con : dim -> con
-val cof_to_con : cof -> con
-val mk_var : tp -> int -> con
-val push : frm -> cut -> cut
+  (** {1 Convenience constructors} *)
 
-val const_tm_clo : con -> tm_clo
-val const_tp_clo : tp -> tp_clo
+  val dim_to_con : dim -> con
+  val cof_to_con : cof -> con
+  val mk_var : tp -> int -> con
+  val push : frm -> cut -> cut
 
-val un_lam : con -> tm_clo
-val compose : con -> con -> con
-val apply_to : con -> tm_clo
+  val const_tm_clo : con -> tm_clo
+  val const_tp_clo : tp -> tp_clo
 
-val fst : con
-val snd : con
-val el_out : con
+  val un_lam : con -> tm_clo
+  val compose : con -> con -> con
+  val apply_to : con -> tm_clo
 
-val tm_abort : con
-val tp_abort : tp
+  val fst : con
+  val snd : con
+  val el_out : con
 
-(** {1 Pretty-printers }
+  val tm_abort : con
+  val tp_abort : tp
 
-    These are only for debugging. *)
+  (** {1 Pretty-printers }
 
-val pp_dim : dim Pp.printer
-val pp_clo : tm_clo Pp.printer
-val pp_cof : cof Pp.printer
-val pp_tp : tp Pp.printer
-val pp_con : con Pp.printer
-val pp_cut : cut Pp.printer
-val pp_hd : hd Pp.printer
-val pp_frame : frm Pp.printer
-val pp_spine : frm list Pp.printer
+      These are only for debugging. *)
+
+  val pp_dim : dim Pp.printer
+  val pp_clo : tm_clo Pp.printer
+  val pp_cof : cof Pp.printer
+  val pp_tp : tp Pp.printer
+  val pp_con : con Pp.printer
+  val pp_cut : cut Pp.printer
+  val pp_hd : hd Pp.printer
+  val pp_frame : frm Pp.printer
+  val pp_spine : frm list Pp.printer
+end
