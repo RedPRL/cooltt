@@ -88,7 +88,7 @@ sig
   val extend : gen -> D.cof -> D.cof CM.m
 
   (** Quantifier elimination *)
-  val forall : Symbol.t -> D.cof -> D.cof CM.m
+  val forall : DimProbe.t -> D.cof -> D.cof CM.m
 end =
 struct
   open CM
@@ -152,8 +152,7 @@ and con_to_cof =
     whnf_inspect_con ~style:`UnfoldAll con |>>
     function
     | D.Cof cof -> cof_con_to_cof cof
-    | D.Cut {cut = D.Var l, []; _} -> ret @@ Cof.var (`L l)
-    | D.Cut {cut = D.Global sym, []; _} -> ret @@ Cof.var (`G sym)
+    | D.Cut {cut = D.Var l, []; _} -> ret @@ Cof.var l
     | _ -> throw @@ NbeFailed "con_to_cof"
 
 and con_to_dim =
@@ -165,17 +164,16 @@ and con_to_dim =
     | D.Dim1 -> ret Dim.Dim1
     | D.DimProbe x -> ret @@ Dim.DimProbe x
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
-    | D.Cut {cut = Global x, []; _} -> ret @@ Dim.DimGlobal x
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
 
 
-and subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
+and subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x con ->
   CM.ret @@ D.LetSym (r, x, con)
 
-and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
+and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
@@ -280,36 +278,36 @@ and push_subst_con : D.dim -> Symbol.t -> D.con -> D.con CM.m =
     let+ prf = subst_con r x prf in
     D.LockedPrfIn prf
 
-and subst_dim : D.dim -> Symbol.t -> D.dim -> D.dim CM.m =
+and subst_dim : D.dim -> DimProbe.t -> D.dim -> D.dim CM.m =
   fun r x s ->
   let open CM in
   con_to_dim @<< push_subst_con r x @@ D.dim_to_con s
 
-and subst_cof : D.dim -> Symbol.t -> D.cof -> D.cof CM.m =
+and subst_cof : D.dim -> DimProbe.t -> D.cof -> D.cof CM.m =
   fun r x phi ->
   let open CM in
   con_to_cof @<< push_subst_con r x @@ D.cof_to_con phi
 
-and subst_clo : D.dim -> Symbol.t -> D.tm_clo -> D.tm_clo CM.m =
+and subst_clo : D.dim -> DimProbe.t -> D.tm_clo -> D.tm_clo CM.m =
   fun r x (Clo (tm, env)) ->
   let open CM in
   let+ env = subst_env r x env in
   D.Clo (tm, env)
 
-and subst_tp_clo : D.dim -> Symbol.t -> D.tp_clo -> D.tp_clo CM.m =
+and subst_tp_clo : D.dim -> DimProbe.t -> D.tp_clo -> D.tp_clo CM.m =
   fun r x (Clo (tp, env)) ->
   let open CM in
   let+ env = subst_env r x env in
   D.Clo (tp, env)
 
-and subst_env : D.dim -> Symbol.t -> D.env -> D.env CM.m =
+and subst_env : D.dim -> DimProbe.t -> D.env -> D.env CM.m =
   fun r x {tpenv; conenv} ->
   let open CM in
   let+ tpenv = MU.map_bwd (subst_tp r x) tpenv
   and+ conenv = MU.map_bwd (subst_con r x) conenv in
   D.{tpenv; conenv}
 
-and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
+and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
   fun r x ->
   let open CM in
   function
@@ -360,7 +358,7 @@ and subst_tp : D.dim -> Symbol.t -> D.tp -> D.tp CM.m =
     let+ phi = subst_cof r x phi in
     D.TpLockedPrf phi
 
-and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stable_code CM.m =
+and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.stable_code CM.m =
   fun r x ->
   let open CM in
   function
@@ -379,14 +377,14 @@ and subst_stable_code : D.dim -> Symbol.t -> D.con D.stable_code -> D.con D.stab
   | `Nat | `Circle | `Univ as code ->
     ret code
 
-and subst_cut : D.dim -> Symbol.t -> D.cut -> D.cut CM.m =
+and subst_cut : D.dim -> DimProbe.t -> D.cut -> D.cut CM.m =
   fun r x (hd, sp) ->
   let open CM in
   let+ hd = subst_hd r x hd
   and+ sp = subst_sp r x sp in
   (hd, sp)
 
-and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
+and subst_hd : D.dim -> DimProbe.t -> D.hd -> D.hd CM.m =
   fun r x ->
   let open CM in
   function
@@ -402,7 +400,7 @@ and subst_hd : D.dim -> Symbol.t -> D.hd -> D.hd CM.m =
     and+ ufrm = subst_unstable_frm r x ufrm in
     D.UnstableCut(cut, ufrm)
 
-and subst_unstable_frm : D.dim -> Symbol.t -> D.unstable_frm -> D.unstable_frm CM.m =
+and subst_unstable_frm : D.dim -> DimProbe.t -> D.unstable_frm -> D.unstable_frm CM.m =
   fun r x ->
   let open CM in
   function
@@ -435,7 +433,7 @@ and subst_unstable_frm : D.dim -> Symbol.t -> D.unstable_frm -> D.unstable_frm C
     D.KLockedPrfUnlock (tp, phi, con)
 
 
-and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
+and subst_frm : D.dim -> DimProbe.t -> D.frm -> D.frm CM.m =
   fun r x ->
   let open CM in
   function
@@ -456,7 +454,7 @@ and subst_frm : D.dim -> Symbol.t -> D.frm -> D.frm CM.m =
     D.KCircleElim (con0, con1, con2)
 
 
-and subst_sp : D.dim -> Symbol.t -> D.frm list -> D.frm list CM.m =
+and subst_sp : D.dim -> DimProbe.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
   CM.MU.map @@ subst_frm r x
 
@@ -632,7 +630,7 @@ and eval : S.t -> D.con EvM.m =
           D.Cof (Cof.Meet phis)
       end
     | S.ForallCof tm ->
-      let sym = Symbol.fresh_probe () in
+      let sym = DimProbe.fresh () in
       let i = Dim.DimProbe sym in
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
@@ -1400,7 +1398,7 @@ and dispatch_rigid_coe ~style line =
       ret @@ `Unknown
   in
   let peek line =
-    let x = Symbol.fresh_probe () in
+    let x = DimProbe.fresh () in
     go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ Dim.DimProbe x |>>
     function
     | `Reduce _ | `Done as res -> ret res
