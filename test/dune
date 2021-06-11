@@ -1,5 +1,15 @@
-(tests
-  (names test)
-  (libraries cooltt.frontend)
-  (deps
-        (glob_files ./*.cooltt)))
+(executables
+ (names test)
+ (libraries cooltt.frontend))
+
+(rule
+ (target test.output)
+ (deps test.exe
+       (glob_files ./*.cooltt))
+ (action (bash "./test.exe | tee test.output")))
+
+(rule
+ (alias runtest)
+ (action
+   (progn (bash "rm ./*.cooltt")
+          (diff test.expected test.output))))
