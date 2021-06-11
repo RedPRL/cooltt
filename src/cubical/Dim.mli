@@ -1,5 +1,3 @@
-open Basis
-
 type dim =
   | Dim0
     (** The left endpoint of the abstract interval. *)

@@ -12,8 +12,6 @@ module DimProbe : module type of DimProbe
 
 (** {1 Semantics} *)
 
-open Basis
-
 (** The {!module:CofThy} module implements decision procedures for sequents relative to a theory over the interval, stated in the language of cofibrations. *)
 module CofThy :
 sig

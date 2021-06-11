@@ -116,111 +116,111 @@ struct
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
   and pp_tp_clo : tp_clo Pp.printer =
-   let sep fmt () = Format.fprintf fmt "," in
-  fun fmt (Clo (tp, {tpenv; conenv})) ->
-    Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
-      S.dump_tp tp
-      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+    let sep fmt () = Format.fprintf fmt "," in
+    fun fmt (Clo (tp, {tpenv; conenv})) ->
+      Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
+        S.dump_tp tp
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
-and pp_con : con Pp.printer =
-  fun fmt ->
-  function
-  | Cut {cut;tp} ->
-    Format.fprintf fmt "cut[%a :: %a]" pp_cut cut pp_tp tp
-  | Zero ->
-    Format.fprintf fmt "zero"
-  | Suc con ->
-    Format.fprintf fmt "suc[%a]" pp_con con
-  | Base ->
-    Format.fprintf fmt "base"
-  | Loop r ->
-    Format.fprintf fmt "loop[%a]" pp_dim r
-  | Pair (con0, con1) ->
-    Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
-  | Prf ->
-    Format.fprintf fmt "*"
-  | Cof (Cof.Join phis) ->
-    Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
-  | Cof (Cof.Meet phis) ->
-    Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
-  | Cof (Cof.Eq (r, s)) ->
-    Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
-  | DimProbe x ->
-    Format.fprintf fmt "probe[%a]" DimProbe.pp x
-  | Lam (_, clo) ->
-    Format.fprintf fmt "lam[%a]" pp_clo clo
-  | Dim0 ->
-    Format.fprintf fmt "dim0"
-  | Dim1 ->
-    Format.fprintf fmt "dim1"
-  | ElIn con ->
-    Format.fprintf fmt "el/in[%a]" pp_con con
-  | StableCode `Nat ->
-    Format.fprintf fmt "nat/code"
-  | StableCode `Circle ->
-    Format.fprintf fmt "circle/code"
-  | SubIn _ ->
-    Format.fprintf fmt "<sub/in>"
-  | FHCom _ ->
-    Format.fprintf fmt "<fhcom>"
-  | LetSym _ ->
-    Format.fprintf fmt "<let-sym>"
-  | StableCode `Univ -> Format.fprintf fmt "<code-univ>"
-  | BindSym _ -> Format.fprintf fmt "<bind-sym>"
-  | StableCode code -> pp_stable_code fmt code
-  | UnstableCode _ -> Format.fprintf fmt "<unstable-code>"
-  | Box _ -> Format.fprintf fmt "<box>"
-  | VIn _ -> Format.fprintf fmt "<vin>"
-  | Split branches ->
-    let sep fmt () = Format.fprintf fmt "@ | " in
-    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
-      pp_split_branch
-      fmt
-      branches
-  | LockedPrfIn _ ->
-    Format.fprintf fmt "<wrap>"
+  and pp_con : con Pp.printer =
+    fun fmt ->
+    function
+    | Cut {cut;tp} ->
+      Format.fprintf fmt "cut[%a :: %a]" pp_cut cut pp_tp tp
+    | Zero ->
+      Format.fprintf fmt "zero"
+    | Suc con ->
+      Format.fprintf fmt "suc[%a]" pp_con con
+    | Base ->
+      Format.fprintf fmt "base"
+    | Loop r ->
+      Format.fprintf fmt "loop[%a]" pp_dim r
+    | Pair (con0, con1) ->
+      Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
+    | Prf ->
+      Format.fprintf fmt "*"
+    | Cof (Cof.Join phis) ->
+      Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
+    | Cof (Cof.Meet phis) ->
+      Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
+    | Cof (Cof.Eq (r, s)) ->
+      Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
+    | DimProbe x ->
+      Format.fprintf fmt "probe[%a]" DimProbe.pp x
+    | Lam (_, clo) ->
+      Format.fprintf fmt "lam[%a]" pp_clo clo
+    | Dim0 ->
+      Format.fprintf fmt "dim0"
+    | Dim1 ->
+      Format.fprintf fmt "dim1"
+    | ElIn con ->
+      Format.fprintf fmt "el/in[%a]" pp_con con
+    | StableCode `Nat ->
+      Format.fprintf fmt "nat/code"
+    | StableCode `Circle ->
+      Format.fprintf fmt "circle/code"
+    | SubIn _ ->
+      Format.fprintf fmt "<sub/in>"
+    | FHCom _ ->
+      Format.fprintf fmt "<fhcom>"
+    | LetSym _ ->
+      Format.fprintf fmt "<let-sym>"
+    | StableCode `Univ -> Format.fprintf fmt "<code-univ>"
+    | BindSym _ -> Format.fprintf fmt "<bind-sym>"
+    | StableCode code -> pp_stable_code fmt code
+    | UnstableCode _ -> Format.fprintf fmt "<unstable-code>"
+    | Box _ -> Format.fprintf fmt "<box>"
+    | VIn _ -> Format.fprintf fmt "<vin>"
+    | Split branches ->
+      let sep fmt () = Format.fprintf fmt "@ | " in
+      pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+        pp_split_branch
+        fmt
+        branches
+    | LockedPrfIn _ ->
+      Format.fprintf fmt "<wrap>"
 
-and pp_tp fmt =
-  function
-  | Pi (base, ident, fam) ->
-    Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
-  | Sg _ ->
-    Format.fprintf fmt "<sg>"
-  | Sub _ ->
-    Format.fprintf fmt "<sub>"
-  | TpPrf _ ->
-    Format.fprintf fmt "<prf>"
-  | TpCof ->
-    Format.fprintf fmt "<cof>"
-  | TpDim ->
-    Format.fprintf fmt "<dim>"
-  | Univ ->
-    Format.fprintf fmt "<univ>"
-  | Nat ->
-    Format.fprintf fmt "<nat>"
-  | Circle ->
-    Format.fprintf fmt "<circle>"
-  | ElStable code ->
-    Format.fprintf fmt "el[%a]" pp_stable_code code
-  | ElCut con ->
-    Format.fprintf fmt "el-cut[%a]" pp_cut con
-  | ElUnstable (`HCom _) ->
-    Format.fprintf fmt "<Hcom>"
-  | ElUnstable (`V _) ->
-    Format.fprintf fmt "<V>"
-  | TpSplit _ ->
-    Format.fprintf fmt "<split>"
-  | TpLockedPrf _ ->
-    Format.fprintf fmt "<wrap>"
+  and pp_tp fmt =
+    function
+    | Pi (base, ident, fam) ->
+      Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
+    | Sg _ ->
+      Format.fprintf fmt "<sg>"
+    | Sub _ ->
+      Format.fprintf fmt "<sub>"
+    | TpPrf _ ->
+      Format.fprintf fmt "<prf>"
+    | TpCof ->
+      Format.fprintf fmt "<cof>"
+    | TpDim ->
+      Format.fprintf fmt "<dim>"
+    | Univ ->
+      Format.fprintf fmt "<univ>"
+    | Nat ->
+      Format.fprintf fmt "<nat>"
+    | Circle ->
+      Format.fprintf fmt "<circle>"
+    | ElStable code ->
+      Format.fprintf fmt "el[%a]" pp_stable_code code
+    | ElCut con ->
+      Format.fprintf fmt "el-cut[%a]" pp_cut con
+    | ElUnstable (`HCom _) ->
+      Format.fprintf fmt "<Hcom>"
+    | ElUnstable (`V _) ->
+      Format.fprintf fmt "<V>"
+    | TpSplit _ ->
+      Format.fprintf fmt "<split>"
+    | TpLockedPrf _ ->
+      Format.fprintf fmt "<wrap>"
 
-and pp_stable_code fmt =
-  function
-  | `Ext _ -> Format.fprintf fmt "<code-ext>"
-  | `Pi _ -> Format.fprintf fmt "<code-pi>"
-  | `Sg _ -> Format.fprintf fmt "<code-sg>"
-  | `Nat -> Format.fprintf fmt "<code-nat>"
-  | `Circle -> Format.fprintf fmt "<code-circle>"
-  | `Univ -> Format.fprintf fmt "<code-univ>"
+  and pp_stable_code fmt =
+    function
+    | `Ext _ -> Format.fprintf fmt "<code-ext>"
+    | `Pi _ -> Format.fprintf fmt "<code-pi>"
+    | `Sg _ -> Format.fprintf fmt "<code-sg>"
+    | `Nat -> Format.fprintf fmt "<code-nat>"
+    | `Circle -> Format.fprintf fmt "<code-circle>"
+    | `Univ -> Format.fprintf fmt "<code-univ>"
 
 end
