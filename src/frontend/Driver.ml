@@ -69,28 +69,48 @@ let protect m =
     Error ()
 
 (* Imports *)
-let resolve_source_path imp =
-  imp ^ ".cooltt"
+
+let find_project_root () =
+  let working_dir = Sys.getcwd () in
+  let rec go dir =
+    if Sys.file_exists "cooltt-lib" then
+      Some dir
+    else
+      let () = Sys.chdir Filename.parent_dir_name in
+      let parent = Sys.getcwd () in
+      if parent = dir then
+        let () = Log.pp_runtime_message ~loc:None ~lvl:`Warn pp_message @@ WarningMessage MissingProject in
+        None
+      else
+        go parent
+  in let project_root = go working_dir in
+  let _ = Sys.chdir working_dir in
+  project_root
+
+let resolve_source_path project_root imp =
+  match project_root with
+  | Some root -> Filename.concat root (imp ^ ".cooltt")
+  | None -> imp ^ ".cooltt"
 
 (* Create an interface file for a given source file. *)
-let rec build_code_unit src_path =
-  let* _ = process_file (`File src_path) in
+let rec build_code_unit ~project_root src_path =
+  let* _ = process_file ~project_root (`File src_path) in
   RM.get_current_unit
 
-and load_code_unit imp =
-  let src_path = resolve_source_path imp in
-  RM.with_code_unit imp (fun () -> build_code_unit src_path)
+and load_code_unit ~project_root imp =
+  let src_path = resolve_source_path project_root imp in
+  RM.with_code_unit src_path (fun () -> build_code_unit ~project_root src_path)
 
-and import_code_unit path : command =
+and import_code_unit project_root path : command =
   let* unit_loaded = RM.get_import path in
   let* import_unit =
     match unit_loaded with
     | Some import_unit -> RM.ret import_unit
-    | None -> load_code_unit path in
+    | None -> load_code_unit ~project_root path in
   let* _ = RM.add_import [] import_unit in
   RM.ret @@ Continue Fun.id
 
-and execute_decl : CS.decl -> command =
+and execute_decl ~project_root : CS.decl -> command =
   function
   | CS.Def {name; args; def = Some def; tp} ->
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
@@ -109,26 +129,26 @@ and execute_decl : CS.decl -> command =
   | CS.Print ident ->
     print_ident ident
   | CS.Import path ->
-     import_code_unit path
+     import_code_unit project_root path
   | CS.Quit ->
     RM.ret Quit
 
-and execute_signature ~status sign =
+and execute_signature ~project_root ~status sign =
   match sign with
   | [] -> RM.ret status
   | d :: sign ->
-    let* res = protect @@ execute_decl d in
+    let* res = protect @@ execute_decl ~project_root d in
     match res with
     | Ok Continue k ->
-      k @@ execute_signature ~status sign
+      k @@ execute_signature ~project_root ~status sign
     | Ok Quit ->
       RM.ret @@ Ok ()
     | Error () ->
       RM.ret @@ Error ()
 
-and process_file input =
+and process_file ~project_root input =
   match Load.load_file input with
-  | Ok sign -> execute_signature ~status:(Ok ()) sign
+  | Ok sign -> execute_signature ~project_root ~status:(Ok ()) sign
   | Error (Load.ParseError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
     RM.ret @@ Error ()
@@ -137,34 +157,36 @@ and process_file input =
     RM.ret @@ Error ()
 
 let load_file input =
-  RM.run_exn (ST.init "<unit>") Env.init @@ process_file input
+  let project_root = find_project_root () in
+  RM.run_exn (ST.init "<unit>") Env.init @@ process_file ~project_root input
 
-let execute_command =
+let execute_command ~project_root =
   function
-  | CS.Decl decl -> execute_decl decl
+  | CS.Decl decl -> execute_decl ~project_root decl
   | CS.NoOp -> RM.ret @@ Continue Fun.id
   | CS.EndOfFile -> RM.ret Quit
 
-let rec repl (ch : in_channel) lexbuf =
+let rec repl ~project_root (ch : in_channel) lexbuf =
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError {span; last_token}) ->
     let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = ParseError; last_token} in
-    repl ch lexbuf
+    repl ~project_root ch lexbuf
   | Error (Load.LexingError {span; last_token}) ->
     let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = LexingError; last_token} in
-    repl ch lexbuf
+    repl ~project_root ch lexbuf
   | Ok cmd ->
-    protect @@ execute_command cmd |>>
+    protect @@ execute_command ~project_root cmd |>>
     function
     | Ok (Continue k) ->
-      k @@ repl ch lexbuf
+      k @@ repl ~project_root ch lexbuf
     | Error _  ->
-      repl ch lexbuf
+      repl ~project_root ch lexbuf
     | Ok Quit ->
       close_in ch;
       RM.ret @@ Ok ()
 
 let do_repl () =
   let ch, lexbuf = Load.prepare_repl () in
+  let project_root = find_project_root () in
   RM.run_exn (RefineState.init "<repl>") Env.init @@
-  repl ch lexbuf
+  repl ~project_root ch lexbuf

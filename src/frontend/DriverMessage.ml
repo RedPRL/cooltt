@@ -9,6 +9,9 @@ type output_message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
   | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
 
+type warning_message =
+  | MissingProject
+
 type error_message =
   | LexingError
   | ParseError
@@ -16,6 +19,7 @@ type error_message =
 
 type message =
   | OutputMessage of output_message
+  | WarningMessage of warning_message
   | ErrorMessage of {error : error_message; last_token : string option}
 
 
@@ -46,6 +50,10 @@ let pp_message fmt =
     Format.fprintf fmt
       "@[Unbound identifier %a@]"
       Ident.pp ident
+
+  | WarningMessage MissingProject ->
+    Format.fprintf fmt
+      "Could not find project file. Defaulting to current directory as project root.\n"
 
   | OutputMessage (NormalizedTerm {orig; nf}) ->
     let env = Pp.Env.emp in

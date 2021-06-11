@@ -5,7 +5,9 @@
 (rule
  (target test.output)
  (deps test.exe
-       (glob_files ./*.cooltt))
+       (glob_files ./*.cooltt)
+       (glob_files ./cooltt-lib)
+       )
  (action (bash "./test.exe | tee test.output")))
 
 (rule
