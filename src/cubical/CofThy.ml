@@ -2,16 +2,10 @@ open Basis
 open Bwd
 open Dim
 
-module CofVar =
-struct
-  type t = [`L of int | `G of Symbol.t]
-  let compare = compare
-end
-
-type cof = (Dim.dim, CofVar.t) Cof.cof
+type cof = (Dim.dim, int) Cof.cof
 
 module UF = DisjointSet.Make (struct type t = dim let compare = compare end)
-module VarSet = Set.Make (CofVar)
+module VarSet = Set.Make (Int)
 
 (** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
 type alg_thy' =

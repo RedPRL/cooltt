@@ -17,7 +17,7 @@ open Basis
 (** The {!module:CofThy} module implements decision procedures for sequents relative to a theory over the interval, stated in the language of cofibrations. *)
 module CofThy :
 sig
-  type cof = (Dim.dim, [`L of int | `G of Symbol.t]) Cof.cof
+  type cof = (Dim.dim, int) Cof.cof
 
   (** Algebraic theories over the interval. *)
   module Alg :
