@@ -568,7 +568,10 @@ hlevel.cooltt:34.10-34.15 [Info]:
 
 --------------------[isos.cooltt]--------------------
 --------------------[nat-path.cooltt]--------------------
-nat-path.cooltt:36.10-36.11 [Info]:
+nat.cooltt:9.10-9.15 [Info]:
+  Computed normal form of + 2 3 as 5
+
+nat-path.cooltt:15.10-15.11 [Info]:
   Computed normal form of J as
    A p C d =>
    coe {i =>
@@ -577,7 +580,45 @@ nat-path.cooltt:36.10-36.11 [Info]:
              {_x₁ _x₂ => [ {_x₁ = 0} ∨ {i = 0} => p 0 | i = 1 => p _x₁ ]}}} 0 1
      d
 
-nat-path.cooltt:77.10-77.25 [Info]:
+nat-path.cooltt:56.10-56.17 [Info]:
+  Computed normal form of +-assoc as
+   _x =>
+   elim _x @ {_x₁ =>
+              (_x₂ : nat) → (_x₃ : nat) → ext {i => nat} {i =>
+                                                          {i = 0} ∨ {i = 1}} {
+                                          i _x₄ =>
+                                          [ i = 0 =>
+                                            elim {elim _x₁ @ {_x₆ =>
+                                                              (_x₇ : nat) → nat}
+                                                    [ zero => n => n
+                                                    | suc => _x₆ ih n =>
+                                                             suc {ih n}
+                                                    ] _x₂} @ {_x₆ =>
+                                                              (_x₇ : nat) → nat}
+                                              [ zero => n => n
+                                              | suc => _x₆ ih n => suc {ih n}
+                                              ] _x₃
+                                          | i = 1 =>
+                                            elim _x₁ @ {_x₆ =>
+                                                        (_x₇ : nat) → nat}
+                                              [ zero => n => n
+                                              | suc => _x₆ ih n => suc {ih n}
+                                              ] {elim _x₂ @ {_x₆ =>
+                                                             (_x₇ : nat) → nat}
+                                                   [ zero => n => n
+                                                   | suc => _x₆ ih n =>
+                                                            suc {ih n}
+                                                   ] _x₃}
+                                          ]}}
+     [ zero => y z i =>
+               elim y @ {_x₁ => (_x₂ : nat) → nat}
+                 [ zero => n => n
+                 | suc => _x₁ ih n => suc {ih n}
+                 ] z
+     | suc => x ih y z i => suc {ih y z i}
+     ]
+
+nat-path.cooltt:58.10-58.25 [Info]:
   Computed normal form of trans-left-unit as
    A p k i =>
    hcom A 0 1 {{k = 0} ∨ {i = 0} ∨ {i = 1}}
@@ -598,13 +639,13 @@ nat-path.cooltt:77.10-77.25 [Info]:
            ]}
       ]}
 
-nat-path.cooltt:78.10-78.26 [Info]:
+nat-path.cooltt:59.10-59.26 [Info]:
   Computed normal form of trans-right-unit as
    A p _x _x₁ =>
    hcom A 0 _x {{_x₁ = 0} ∨ {_x₁ = 1}}
      {_x₂ _x₃ => [ {_x₂ = 0} ∨ {_x₁ = 0} => p _x₁ | _x₁ = 1 => p 1 ]}
 
-nat-path.cooltt:79.10-79.25 [Info]:
+nat-path.cooltt:60.10-60.25 [Info]:
   Computed normal form of trans-symm-refl as
    A p k i =>
    hcom A 0 1 {{k = 0} ∨ {i = 0} ∨ {i = 1}}
@@ -612,7 +653,7 @@ nat-path.cooltt:79.10-79.25 [Info]:
       hcom A 0 i {{_x = 0} ∨ {_x = 1}}
         {_x₂ _x₃ => [ {_x₂ = 0} ∨ {_x = 1} => p 0 | _x = 0 => p _x₂ ]}}
 
-nat-path.cooltt:141.10-141.14 [Info]:
+nat-path.cooltt:82.10-82.14 [Info]:
   Computed normal form of test as
    p i =>
    hcom nat 0 1 {{i = 0} ∨ {i = 1}}
@@ -627,7 +668,7 @@ nat-path.cooltt:141.10-141.14 [Info]:
                                    ]
       ]}
 
-nat-path.cooltt:143.10-143.15 [Info]:
+nat-path.cooltt:84.10-84.15 [Info]:
   Computed normal form of test2 as
    i =>
    hcom nat 0 1 {{i = 0} ∨ {i = 1}}
