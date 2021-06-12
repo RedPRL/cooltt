@@ -1,11 +1,11 @@
 module StringMap = Map.Make (String)
 
 type 'a t = {
-    (** Used to resolve an identifier to a unique symbol in this namespace. *)
-    names : 'a StringMap.t;
-    (** Namespaces may themselves contain other namespaces, so let's keep track of them. *)
-    namespaces : ('a t) StringMap.t
-  }
+  (** Used to resolve an identifier to a unique symbol in this namespace. *)
+  names : 'a StringMap.t;
+  (** Namespaces may themselves contain other namespaces, so let's keep track of them. *)
+  namespaces : ('a t) StringMap.t
+}
 
 let empty = { names = StringMap.empty; namespaces = StringMap.empty }
 

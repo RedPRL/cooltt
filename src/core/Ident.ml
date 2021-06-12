@@ -16,6 +16,6 @@ let to_string =
 
 let to_string_opt =
   function
-    | `User (parts, nm) -> Some (qual_to_string parts nm)
-    | `Machine nm -> Some nm
-    | `Anon -> None
+  | `User (parts, nm) -> Some (qual_to_string parts nm)
+  | `Machine nm -> Some nm
+  | `Anon -> None

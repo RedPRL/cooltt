@@ -35,16 +35,16 @@ last_token as it would contain nothing.
 let pp_message fmt =
   function
   | ErrorMessage {error = ParseError; last_token = None} ->
-      Format.fprintf fmt "Parse error"
+    Format.fprintf fmt "Parse error"
 
   | ErrorMessage {error = ParseError; last_token = Some last_token} ->
-      Format.fprintf fmt "Parse error near %s" last_token
+    Format.fprintf fmt "Parse error near %s" last_token
 
   | ErrorMessage {error = LexingError; last_token = None} ->
-      Format.fprintf fmt "Lexing error"
+    Format.fprintf fmt "Lexing error"
 
   | ErrorMessage {error = LexingError; last_token = Some last_token} ->
-      Format.fprintf fmt "Lexing error near %s" last_token
+    Format.fprintf fmt "Lexing error near %s" last_token
 
   | ErrorMessage {error = UnboundIdent ident; _} ->
     Format.fprintf fmt

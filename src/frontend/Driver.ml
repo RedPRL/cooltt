@@ -129,7 +129,7 @@ and execute_decl ~project_root : CS.decl -> command =
   | CS.Print ident ->
     print_ident ident
   | CS.Import path ->
-     import_code_unit project_root path
+    import_code_unit project_root path
   | CS.Quit ->
     RM.ret Quit
 

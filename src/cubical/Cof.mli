@@ -1,7 +1,7 @@
 (** {1 Types } *)
 
 (** Multiple types in [cooltt] will need to {i include} the langauge of cofibrations, relative to a particular interval algebra ['r]. Therefore, we define a family polynomial endofunctors [('r, -) cof_f] indexed in an interpretation of the interval algebra ['r].
- *)
+*)
 type ('r, 'a) cof_f =
   | Eq of 'r * 'r
   | Join of 'a list
