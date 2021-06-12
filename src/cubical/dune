@@ -4,5 +4,5 @@
   (:standard -w -32-38 -warn-error -a+31))
  (preprocess
   (pps ppx_deriving.std))
- (libraries uuseg uuseg.string uutf cooltt.basis)
+ (libraries uuseg uuseg.string uutf cooltt.basis z3)
  (public_name cooltt.cubical))
