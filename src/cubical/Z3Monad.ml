@@ -350,6 +350,10 @@ struct
 
   exception Z3Failure
 
+  let empty = Emp
+
+  let assume thy cof = Snoc (thy, cof)
+
   let assert_ thy : unit m =
     let assertions = Bwd.fold_right (fun x y -> assertion_of_cof x :: y) thy [] in
     add_assertions assertions
@@ -370,6 +374,4 @@ struct
     | UNSATISFIABLE -> ret `Consistent
     | SATISFIABLE -> ret `Inconsistent
     | _ -> throw Z3Failure
-
-  let assume thy cof = Snoc (thy, cof)
 end
