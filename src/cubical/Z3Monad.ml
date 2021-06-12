@@ -41,7 +41,7 @@ module Z3Maker =
 struct
   open Z3Raw
 
-  type sort = I | F | Real [@@deriving show]
+  type sort = I | F | Real
   type symbol = S of string | I of int
   type expr =
     | Bound of int * sort (* de Bruijn indexes *)
@@ -109,4 +109,29 @@ struct
       let func = func_decl_by_name sym in
       let args = List.map expr args in
       Z3Raw.apply func args
+
+  let pp_sort fmt : sort -> unit =
+    function
+    | I -> Uuseg_string.pp_utf_8 fmt "𝕀"
+    | F -> Uuseg_string.pp_utf_8 fmt "𝔽"
+    | Real -> Uuseg_string.pp_utf_8 fmt "ℝ"
+
+  let pp_symbol fmt =
+    function
+    | S s -> Format.pp_print_string fmt @@ String.escaped s
+    | I i -> Format.pp_print_int fmt i
+
+  let rec pp_expr fmt =
+    function
+    | Bound (i, s) -> Format.fprintf fmt "bound[%i;%a]" i pp_sort s
+    | Var (sym, s) -> Format.fprintf fmt "var[%a;%a]" pp_symbol sym pp_sort s
+    | Ite (e1, e2, e3) -> Format.fprintf fmt "ite[%a;%a;%a]" pp_expr e1 pp_expr e2 pp_expr e3
+    | Le (e1, e2) -> Format.fprintf fmt "le[%a;%a]" pp_expr e1 pp_expr e2
+    | Eq (e1, e2) -> Format.fprintf fmt "eq[%a;%a]" pp_expr e1 pp_expr e2
+    | RealConst i -> Format.fprintf fmt "real[%i]" i
+    | ForallI (sym, body) -> Format.fprintf fmt "forall_i[%a;%a]" pp_symbol sym pp_expr body
+    | Apply (sym, args) ->
+      Format.fprintf fmt "apply[%a%a]"
+        pp_symbol sym
+        (fun fmt args -> List.iter (Format.fprintf fmt ";%a" pp_expr) args) args
 end
