@@ -1,13 +1,16 @@
-(* create context and solver *)
+(* thin wrappers of raw OCaml API *)
 module Z3Raw =
 struct
+  type context = Z3.context
   let context = Z3.mk_context []
 
+  type solver = Z3.Solver.solver
   type result = Z3.Solver.status =
       UNSATISFIABLE | UNKNOWN | SATISFIABLE
-
+  let mk_solver () = Z3.Solver.mk_simple_solver context
+  let add_asserts solver exprs = Z3.Solver.add solver exprs
   let copy_solver solver = Z3.Solver.translate solver context
-  let check solver asserts = Z3.Solver.check solver asserts
+  let check solver exprs = Z3.Solver.check solver exprs
 
   type symbol = Z3.Symbol.symbol
   let mk_symbol_s s = Z3.Symbol.mk_string context s
@@ -36,13 +39,11 @@ struct
   let apply func args = Z3.FuncDecl.apply func args
 end
 
-(* wrapper *)
-module Z3Maker =
+(* smart builder for various components *)
+module Z3Builder =
 struct
-  open Z3Raw
-
   type sort = I | F | Real
-  type symbol = S of string | I of int
+  type symbol = string
   type expr =
     | Bound of int * sort (* de Bruijn indexes *)
     | Var of symbol * sort
@@ -52,46 +53,38 @@ struct
     | RealConst of int
     | ForallI of symbol * expr
     | Apply of symbol * expr list
-  type decl =
-    { name : symbol
-    ; domain : sort list
-    ; range : sort
-    }
-  let sort_store : (sort, Z3Raw.sort) Hashtbl.t = Hashtbl.create 10
-  let global_symbol_store : (symbol, Z3Raw.symbol) Hashtbl.t = Hashtbl.create 100
-  let expr_store : (expr, Z3Raw.expr) Hashtbl.t = Hashtbl.create 100
-  let func_decl_store : (symbol, Z3Raw.func_decl) Hashtbl.t = Hashtbl.create 10
 
   let memoize store f x =
     match Hashtbl.find_opt store x with
     | Some x -> x
     | None -> let res = f x in Hashtbl.replace store x res; res
 
+  let sort_store : (sort, Z3Raw.sort) Hashtbl.t = Hashtbl.create 10
   let sort =
     memoize sort_store @@ function
-    | I -> mk_sort_s "I"
-    | F -> mk_sort_s "F"
-    | Real -> mk_real ()
+    | I -> Z3Raw.mk_sort_s "I"
+    | F -> Z3Raw.mk_sort_s "F"
+    | Real -> Z3Raw.mk_real ()
 
-  let symbol =
-    function
-    | S str -> Z3Raw.mk_symbol_s str
-    | I i -> Z3Raw.mk_symbol_i i
+  let new_symbol str = Z3Raw.mk_symbol_s str
 
-  let global_symbol =
-    memoize global_symbol_store @@ symbol
+  let global_symbol_store : (symbol, Z3Raw.symbol) Hashtbl.t = Hashtbl.create 100
+  let global_symbol = memoize global_symbol_store @@ new_symbol
 
-  let func_decl {name; domain; range} =
+  let func_decl_store : (symbol, Z3Raw.func_decl) Hashtbl.t = Hashtbl.create 10
+  let func_decl ~name ~domain ~range =
     name |> begin
       memoize func_decl_store @@ fun name ->
-      let name = symbol name in
+      let name = new_symbol name in
       let domain = List.map sort domain in
       let range = sort range in
       Z3Raw.mk_func_decl ~name ~domain ~range
     end
 
-  let func_decl_by_name sym = Hashtbl.find func_decl_store sym
+  let get_func_decl_by_name sym =
+    Hashtbl.find func_decl_store sym
 
+  let expr_store : (expr, Z3Raw.expr) Hashtbl.t = Hashtbl.create 100
   let rec expr e =
     e |> memoize expr_store @@ function
     | Bound (i, s) -> Z3Raw.mk_bound i (sort s)
@@ -101,12 +94,12 @@ struct
     | Eq (e1, e2) -> Z3Raw.mk_eq (expr e1) (expr e2)
     | RealConst i -> Z3Raw.mk_real_numeral_i i
     | ForallI (sym, body) ->
-      let symbol = symbol sym in
+      let symbol = new_symbol sym in
       let sort = sort I in
       let body = expr body in
       Z3Raw.expr_of_quantifier @@ Z3Raw.mk_forall ~sort ~symbol ~body
     | Apply (sym, args) ->
-      let func = func_decl_by_name sym in
+      let func = get_func_decl_by_name sym in
       let args = List.map expr args in
       Z3Raw.apply func args
 
@@ -116,10 +109,8 @@ struct
     | F -> Uuseg_string.pp_utf_8 fmt "𝔽"
     | Real -> Uuseg_string.pp_utf_8 fmt "ℝ"
 
-  let pp_symbol fmt =
-    function
-    | S s -> Format.pp_print_string fmt @@ String.escaped s
-    | I i -> Format.pp_print_int fmt i
+  let pp_symbol fmt str =
+    Format.pp_print_string fmt @@ String.escaped str
 
   let rec pp_expr fmt =
     function
