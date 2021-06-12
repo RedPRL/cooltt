@@ -1,3 +1,2 @@
 #!/bin/bash
-git ls-files | grep -E ".*\.ml(i)?$" | xargs -I% bash -c 'ocp-indent -i %'
-
+git --no-pager diff origin/main --name-only | grep -E ".*\.ml(i)?$" | xargs -I% ocp-indent -i %
