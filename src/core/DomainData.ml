@@ -3,7 +3,7 @@ open Basis
 open Cubical
 open Bwd
 
-type dim = Dim.dim
+type dim = Dim.t
 type cof = (dim, [`L of int | `G of Symbol.t]) Cof.cof
 
 (** A type code whose head constructor is stable under dimension substitution. *)

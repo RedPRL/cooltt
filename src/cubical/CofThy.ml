@@ -8,9 +8,9 @@ struct
   let compare = compare
 end
 
-type cof = (Dim.dim, CofVar.t) Cof.cof
+type cof = (Dim.t, CofVar.t) Cof.cof
 
-module UF = DisjointSet.Make (struct type t = dim let compare = compare end)
+module UF = DisjointSet.Make (struct include Dim let compare = compare end)
 module VarSet = Set.Make (CofVar)
 
 (** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
@@ -21,7 +21,7 @@ type alg_thy' =
     true_vars : VarSet.t
   }
 
-type eq = Dim.dim * Dim.dim
+type eq = Dim.t * Dim.t
 
 (** A [branch] represents the meet of a bunch of atomic cofibrations. *)
 type branch = VarSet.t * eq list
