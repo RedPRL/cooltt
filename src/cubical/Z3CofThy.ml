@@ -10,7 +10,8 @@ exception Z3Failure
 
 let empty = Emp
 
-let assume thy cof = Snoc (thy, Assertion.of_cof cof)
+let assume thy cofs =
+  List.fold_left (fun thy cof -> Snoc (thy, Assertion.of_cof cof)) thy cofs
 
 let assert_ thy : unit m =
   add_assertions (Bwd.to_list thy)
@@ -33,4 +34,4 @@ let consistency thy =
   | _ -> throw Z3Failure
 
 let assume_vars thy vars =
-  List.fold_left (fun thy v -> Snoc (thy, Assertion.of_cof (Var v))) thy vars
+  assume thy (List.map (fun v -> Cof.Var v) vars)
