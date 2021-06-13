@@ -262,7 +262,8 @@ let base_solver =
   (* (define-fun neg ((i Real)) Real (arrow i bot)) *)
   let _ = Builder.func_decl ~name:"neg" ~domain:[Real] ~range:Real in
   let () = Z3Raw.add_assertions base_solver
-      [Builder.(expr @@ forall ["i", Real] ("arrow" $[!%0; !"bot"]))]
+      [Builder.(expr @@ forall ["i", Real]
+                  ("neg" $[!%0] = ("arrow" $[!%0; !"bot"])))]
   in
 
   (* (define-fun is-true ((i Real)) Bool (= i top)) *)
