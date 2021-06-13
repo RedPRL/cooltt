@@ -269,13 +269,13 @@ let base_solver =
   (* (define-fun is-true ((i Real)) Bool (= i top)) *)
   let _ = Builder.func_decl ~name:"is-true" ~domain:[Real] ~range:Bool in
   let () = Z3Raw.add_assertions base_solver
-      [Builder.(expr @@ forall ["i", Real] (!%0 = !"top"))]
+      [Builder.(expr @@ forall ["i", Real] ("is-true" $[!%0] = (!%0 = !"top")))]
   in
 
   (* (define-fun is-false ((i Real)) Bool (= i bot)) *)
   let _ = Builder.func_decl ~name:"is-false" ~domain:[Real] ~range:Bool in
   let () = Z3Raw.add_assertions base_solver
-      [Builder.(expr @@ forall ["i", Real] (!%0 = !"top"))]
+      [Builder.(expr @@ forall ["i", Real] ("is-false" $[!%0] = (!%0 = !"bot")))]
   in
 
   (* (declare-const one I) *)
@@ -306,7 +306,7 @@ let base_solver =
   let () = Z3Raw.add_assertions base_solver
       [Builder.(expr @@
                 forall ["i", II; "j", II; "k", II]
-                  ("is-true" $["arrow" $["eq" $[!%0; !%1] && "eq" $[!%1; !%2]; "eq" $[!%0; !%2]]]))]
+                  ("is-true" $["arrow" $["land" $["eq" $[!%0; !%1]; "eq" $[!%1; !%2]]; "eq" $[!%0; !%2]]]))]
   in
 
   (* (assert (is-false (eq one zero))) *)
