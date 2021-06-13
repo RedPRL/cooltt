@@ -35,8 +35,6 @@ val top : ('a, 'v) cof
 (** The boundary [∂r] of a dimension [r : 𝕀] is the disjunction [r=0 ∨ r=1] *)
 val boundary : dim0:'r -> dim1:'r -> 'r -> ('r, 'v) cof
 
-val complexity_cof_f : ('a -> int) -> ('r, 'a) cof_f -> int
-
 val complexity_cof : ('r, 'a) cof -> int
 
 val dump_cof_f : 'r Basis.Pp.printer -> 'a Basis.Pp.printer -> ('r, 'a) cof_f Basis.Pp.printer
