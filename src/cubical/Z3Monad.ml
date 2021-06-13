@@ -110,7 +110,7 @@ struct
       (env, e) |> memoize expr_store @@ fun (env, e) ->
       match e with
       | Bound l ->
-        let i = Bwd.length env - l in
+        let i = Bwd.length env - l - 1 in
         let s = Bwd.nth env i in
         Z3Raw.mk_bound i (sort s)
       | Ite (e1, e2, e3) -> Z3Raw.mk_ite (loop env e1) (loop env e2) (loop env e3)
@@ -232,7 +232,7 @@ let base_solver =
   let () = Z3Raw.add_assertions base_solver
       [Builder.(expr @@
                 forall ["i", Real]
-                  ("in-range" $[!%0] = !"bot" <= !%0 && !%0 <= !"top"))]
+                  ("in-range" $[!%0] = (!"bot" <= !%0 && !%0 <= !"top")))]
   in
 
   (* (define-fun land ((i Real) (j Real)) Real (ite (<= i j) i j)) *)
