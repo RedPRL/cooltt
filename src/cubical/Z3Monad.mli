@@ -13,5 +13,9 @@ val run_exn : 'a m -> 'a
 type check_result = Z3.Solver.status =
     UNSATISFIABLE | UNKNOWN | SATISFIABLE
 
+val reset : unit -> unit m
 val add_assertions : Assertion.t list -> unit m
 val check : Assertion.t list -> check_result m
+
+val dump_solver : unit -> unit m
+val get_reason_unknown : string m

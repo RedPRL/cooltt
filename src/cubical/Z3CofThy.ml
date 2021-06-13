@@ -18,20 +18,23 @@ let assert_ thy : unit m =
 
 let test_sequent thy goal =
   run_exn @@
+  let* () = reset () in
   let* () = assert_ thy in
   let negated_goal = Assertion.of_negated_cof goal in
-  check [negated_goal] |>> function
+  let* () = add_assertions [negated_goal] in
+  check [] |>> function
   | UNSATISFIABLE -> ret true
   | SATISFIABLE -> ret false
-  | _ -> throw Z3Failure
+  | UNKNOWN -> throw Z3Failure
 
 let consistency thy =
   run_exn @@
+  let* () = reset () in
   let* () = assert_ thy in
   check [] |>> function
   | UNSATISFIABLE -> ret `Consistent
   | SATISFIABLE -> ret `Inconsistent
-  | _ -> throw Z3Failure
+  | UNKNOWN -> throw Z3Failure
 
 let assume_vars thy vars =
   assume thy (List.map (fun v -> Cof.Var v) vars)

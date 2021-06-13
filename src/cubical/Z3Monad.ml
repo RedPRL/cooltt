@@ -5,15 +5,23 @@ open BwdNotation
 (* thin wrappers of raw OCaml API *)
 module Z3Raw =
 struct
-  let context = Z3.mk_context []
+  let context = Z3.mk_context ["timeout", "100"]
 
-  type solver = Z3.Solver.solver
   type result = Z3.Solver.status =
       UNSATISFIABLE | UNKNOWN | SATISFIABLE
-  let mk_solver () = Z3.Solver.mk_simple_solver context
-  let add_assertions solver exprs = Z3.Solver.add solver exprs
-  let copy_solver solver = Z3.Solver.translate solver context
-  let check solver exprs = Z3.Solver.check solver exprs
+  let solver =
+    let solver = Z3.Solver.mk_solver context None in
+    let params = Z3.Params.mk_params context in
+    Z3.Params.add_int params (Z3.Symbol.mk_string context "solver2_timeout") 10;
+    Z3.Solver.set_parameters solver params;
+    solver
+  let reset () = Z3.Solver.reset solver
+  let pop i = Z3.Solver.pop solver i
+  let push () = Z3.Solver.push solver
+  let add_assertions exprs = Z3.Solver.add solver exprs
+  let check exprs = Z3.Solver.check solver exprs
+  let get_reason_unknown () = Z3.Solver.get_reason_unknown solver
+  let dump_solver () = Format.eprintf "%s@." (Z3.Solver.to_string solver)
 
   type symbol = Z3.Symbol.symbol
   let mk_symbol_s s = Z3.Symbol.mk_string context s
@@ -181,10 +189,10 @@ struct
   let rec expr_of_cof_f : _ -> expr =
     let open Cof in
     function
-    | Eq (r1, r2) -> expr_of_dim r1 = expr_of_dim r2
-    | Join [] -> !"top"
+    | Eq (r1, r2) -> "eq" $[expr_of_dim r1; expr_of_dim r2]
+    | Join [] -> !"bot"
     | Join (cof::cofs) -> List.fold_left (fun cof1 cof2 -> "lor" $[cof1; expr_of_cof cof2]) (expr_of_cof cof) cofs
-    | Meet [] -> !"bot"
+    | Meet [] -> !"top"
     | Meet (cof::cofs) -> List.fold_left (fun cof1 cof2 -> "land" $[cof1; expr_of_cof cof2]) (expr_of_cof cof) cofs
 
   and expr_of_cof : CofThyData.cof -> expr =
@@ -203,33 +211,31 @@ struct
 end
 
 (* the high-level interface *)
-module R = Basis.Monad.MonadReaderResult(struct type local = Z3Raw.solver end)
+module R = Basis.Monad.MonadReaderResult(struct type local = unit end)
 type 'a m = 'a R.m
 let bind = R.bind
 let ret = R.ret
 let throw = R.throw
 
+open Monad.Notation (R)
+
 type check_result = Z3Raw.result =
     UNSATISFIABLE | UNKNOWN | SATISFIABLE
 
-let base_solver =
-  let base_solver = Z3Raw.mk_solver () in
-
+let () =
   (* (define-const bot Real 0.0) *)
   let _ = Builder.const_decl ~name:"bot" ~range:Real in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr (!"bot" = num 0))]
   in
 
   (* (define-const top Real 1.0) *)
   let _ = Builder.const_decl ~name:"top" ~range:Real in
-  let () = Z3Raw.add_assertions base_solver
-      [Builder.(expr (!"top" = num 1))]
-  in
+  let () = Z3Raw.add_assertions [Builder.(expr (!"top" = num 1))] in
 
   (* (define-fun in-range ((i Real)) Bool (<= bot i top)) *)
   let _ = Builder.func_decl ~name:"in-range" ~domain:[Real] ~range:Bool in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@
                 forall ["i", Real]
                   ("in-range" $[!%0] = (!"bot" <= !%0 && !%0 <= !"top")))]
@@ -237,7 +243,7 @@ let base_solver =
 
   (* (define-fun land ((i Real) (j Real)) Real (ite (<= i j) i j)) *)
   let _ = Builder.func_decl ~name:"land" ~domain:[Real; Real] ~range:Real in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@
                 forall ["i", Real; "j", Real]
                   ("land" $[!%0; !%1] = (ite (!%0 <= !%1) !%0 !%1)))]
@@ -245,7 +251,7 @@ let base_solver =
 
   (* (define-fun lor ((i Real) (j Real)) Real (ite (<= i j) j i)) *)
   let _ = Builder.func_decl ~name:"lor" ~domain:[Real; Real] ~range:Real in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@
                 forall ["i", Real; "j", Real]
                   ("lor" $[!%0; !%1] = (ite (!%0 <= !%1) !%1 !%0)))]
@@ -253,7 +259,7 @@ let base_solver =
 
   (* (define-fun arrow ((i Real) (j Real)) Real (ite (<= i j) top j)) *)
   let _ = Builder.func_decl ~name:"arrow" ~domain:[Real; Real] ~range:Real in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@
                 forall ["i", Real; "j", Real]
                   ("arrow" $[!%0; !%1] = ite (!%0 <= !%1) !"top" !%1))]
@@ -261,20 +267,20 @@ let base_solver =
 
   (* (define-fun neg ((i Real)) Real (arrow i bot)) *)
   let _ = Builder.func_decl ~name:"neg" ~domain:[Real] ~range:Real in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@ forall ["i", Real]
                   ("neg" $[!%0] = ("arrow" $[!%0; !"bot"])))]
   in
 
   (* (define-fun is-true ((i Real)) Bool (= i top)) *)
   let _ = Builder.func_decl ~name:"is-true" ~domain:[Real] ~range:Bool in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@ forall ["i", Real] ("is-true" $[!%0] = (!%0 = !"top")))]
   in
 
   (* (define-fun is-false ((i Real)) Bool (= i bot)) *)
   let _ = Builder.func_decl ~name:"is-false" ~domain:[Real] ~range:Bool in
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@ forall ["i", Real] ("is-false" $[!%0] = (!%0 = !"bot")))]
   in
 
@@ -288,29 +294,29 @@ let base_solver =
   let _ = Builder.func_decl ~name:"eq" ~domain:[II; II] ~range:Real in
 
   (* (assert (forall ((i I) (j I)) (in-range (eq i j)))) *)
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@ forall ["i", II; "j", II] ("in-range" $["eq" $[!%0; !%1]]))]
   in
 
   (* (assert (forall ((i I)) (= (eq i i) top))) *)
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@ forall ["i", II] ("eq" $[!%0; !%0] = !"top"))]
   in
 
   (* (assert (forall ((i I) (j I)) (= (eq i j) (eq j i)))) *)
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@ forall ["i", II; "j", II] (("eq" $[!%0; !%1]) = ("eq" $[!%1; !%0])))]
   in
 
   (* (assert (forall ((i I) (j I) (k I)) (is-true (arrow (land (eq i j) (eq j k)) (eq i k))))) *)
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr @@
                 forall ["i", II; "j", II; "k", II]
                   ("is-true" $["arrow" $["land" $["eq" $[!%0; !%1]; "eq" $[!%1; !%2]]; "eq" $[!%0; !%2]]]))]
   in
 
   (* (assert (is-false (eq one zero))) *)
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr ("is-false" $["eq" $[!"one"; !"zero"]]))]
   in
 
@@ -318,23 +324,35 @@ let base_solver =
   let _ = Builder.func_decl ~name:"val" ~domain:[FF] ~range:Real in
 
   (* (assert (forall ((f F)) (in-range (val f)))) *)
-  let () = Z3Raw.add_assertions base_solver
+  let () = Z3Raw.add_assertions
       [Builder.(expr (forall ["f", FF] ("in-range" $["val" $[!%0]])))]
   in
 
   (* the base solver with the above theory set up *)
-  base_solver
+  Z3Raw.push ()
+
+let reset () : unit m =
+  Z3Raw.pop 1;
+  Z3Raw.push ();
+  R.ret ()
 
 let run m =
-  let solver = Z3Raw.copy_solver base_solver in
-  R.run solver m
+  R.run () m
 
 let run_exn m =
-  let solver = Z3Raw.copy_solver base_solver in
-  R.run_exn solver m
+  R.run_exn () m
 
-let add_assertions assertions solver =
-  Result.ok @@ Z3Raw.add_assertions solver assertions
+let () = run_exn (reset ())
 
-let check assertions solver =
-  Result.ok @@ Z3Raw.check solver assertions
+let add_assertions assertions =
+  R.ret @@ Z3Raw.add_assertions assertions
+
+let check assertions =
+  let ans = Z3Raw.check assertions in
+  R.ret ans
+
+let dump_solver () =
+  R.ret @@ Z3Raw.dump_solver ()
+
+let get_reason_unknown =
+  R.ret @@ Z3Raw.get_reason_unknown ()
