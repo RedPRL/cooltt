@@ -256,7 +256,7 @@ let base_solver =
   let () = Z3Raw.add_assertions base_solver
       [Builder.(expr @@
                 forall ["i", Real; "j", Real]
-                  ("arrow" $[!%0; !%1] = (ite (!%0 <= !%1) !"top" !%1)))]
+                  ("arrow" $[!%0; !%1] = ite (!%0 <= !%1) !"top" !%1))]
   in
 
   (* (define-fun neg ((i Real)) Real (arrow i bot)) *)
