@@ -47,4 +47,4 @@ let rec reduce =
   | Cof (Eq (r, s)) -> eq r s
   | Var v -> var v
 
-let boundary r = join [eq r Dim.Dim0; eq r Dim.Dim1]
+let boundary ~dim0 ~dim1 r = join [eq r dim0; eq r dim1]
