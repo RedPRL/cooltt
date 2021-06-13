@@ -2,4 +2,4 @@ module Dim = Dim
 
 module Cof = Cof
 
-module CofThy = CofThy
+module CofThy = Z3CofThy

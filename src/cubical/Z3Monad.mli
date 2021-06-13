@@ -1,8 +1,10 @@
 module Assertion :
 sig
-  type t = Z3.Expr.expr
+  type t
   val of_cof : CofThyData.cof -> t
   val of_negated_cof : CofThyData.cof -> t
+  val complexity : t -> int
+  val dump : t Basis.Pp.printer
 end
 
 include Basis.Monad.S
@@ -15,7 +17,7 @@ type check_result = Z3.Solver.status =
 
 val reset : unit -> unit m
 val add_assertions : Assertion.t list -> unit m
-val check : Assertion.t list -> check_result m
+val check : unit -> check_result m
 
 val dump_solver : unit -> unit m
-val get_reason_unknown : string m
+val get_reason_unknown : unit -> string m

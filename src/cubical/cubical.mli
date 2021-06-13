@@ -11,4 +11,4 @@ module Cof : module type of Cof
 (** {1 Semantics} *)
 
 (** The {!module:CofThy} module implements decision procedures for sequents relative to a theory over the interval, stated in the language of cofibrations. *)
-module CofThy : module type of CofThy
+module CofThy : module type of Z3CofThy

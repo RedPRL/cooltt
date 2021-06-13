@@ -5,7 +5,7 @@ open BwdNotation
 (* thin wrappers of raw OCaml API *)
 module Z3Raw =
 struct
-  let context = Z3.mk_context ["timeout", "100"]
+  let context = Z3.mk_context []
 
   type result = Z3.Solver.status =
       UNSATISFIABLE | UNKNOWN | SATISFIABLE
@@ -168,13 +168,24 @@ struct
       Format.fprintf fmt "apply[%a%a]"
         pp_symbol sym
         (fun fmt -> List.iter @@ Format.fprintf fmt ";%a" pp_expr) args
+
+  let rec complexity_expr =
+    function
+    | Bound _l -> 1
+    | Ite (e1, e2, e3) -> 1 + complexity_expr e1 + complexity_expr e2 + complexity_expr e3
+    | Le (e1, e2) -> 1 + complexity_expr e1 + complexity_expr e2
+    | Eq (e1, e2) -> 1 + complexity_expr e1 + complexity_expr e2
+    | And es -> List.fold_left (fun c e -> c + complexity_expr e) 1 es
+    | RealNumeral _i -> 1
+    | Forall (binders, body) -> List.length binders + complexity_expr body
+    | Apply (_sym, args) -> List.fold_left (fun c e -> c + complexity_expr e) 1 args
 end
 
 module Assertion =
 struct
   open Builder
 
-  type t = Z3Raw.expr
+  type t = Builder.expr
 
   let expr_of_dim =
     let decl name = ignore @@ dim_decl name; !name in
@@ -204,10 +215,14 @@ struct
     | Cof cof_f -> expr_of_cof_f cof_f
 
   let of_cof (c : CofThyData.cof) =
-    expr ("is-true" $[expr_of_cof c])
+    "is-true" $[expr_of_cof c]
 
   let of_negated_cof (c : CofThyData.cof) =
-    expr ("is-false" $[expr_of_cof c])
+    "is-false" $[expr_of_cof c]
+
+  let complexity : t -> int = Builder.complexity_expr
+
+  let dump = Builder.pp_expr
 end
 
 (* the high-level interface *)
@@ -345,14 +360,14 @@ let run_exn m =
 let () = run_exn (reset ())
 
 let add_assertions assertions =
-  R.ret @@ Z3Raw.add_assertions assertions
+  R.ret @@ Z3Raw.add_assertions (List.map Builder.expr assertions)
 
-let check assertions =
-  let ans = Z3Raw.check assertions in
+let check () =
+  let ans = Z3Raw.check [] in (* checking with non-empty assumptions seem to be very slow *)
   R.ret ans
 
 let dump_solver () =
   R.ret @@ Z3Raw.dump_solver ()
 
-let get_reason_unknown =
+let get_reason_unknown () =
   R.ret @@ Z3Raw.get_reason_unknown ()

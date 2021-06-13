@@ -79,8 +79,8 @@ and pp_hd : hd Pp.printer =
     Format.fprintf fmt "global[%a]" Symbol.pp sym
   | Var lvl ->
     Format.fprintf fmt "var[%i]" lvl
-  | UnstableCut _ ->
-    Format.fprintf fmt "<unstable>"
+  | UnstableCut (cut, unstable_frm) ->
+    Format.fprintf fmt "unstable-cut[%a;%a]" pp_cut cut pp_unstable_frame unstable_frm
   | Coe _ ->
     Format.fprintf fmt "<coe>"
 
@@ -98,6 +98,15 @@ and pp_frame : frm Pp.printer =
   | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
   | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
   | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
+
+and pp_unstable_frame : unstable_frm Pp.printer =
+  fun fmt ->
+  function
+  | KHCom _ -> Format.fprintf fmt "<khcom>"
+  | KCap _ -> Format.fprintf fmt "<kcap>"
+  | KVProj _ -> Format.fprintf fmt "<kvproj>"
+  | KSubOut (cof, clo) -> Format.fprintf fmt "ksubout[%a;%a]" pp_cof cof pp_clo clo
+  | KLockedPrfUnlock _ -> Format.fprintf fmt "<klockedprfunlock>"
 
 and pp_cof : cof Pp.printer =
   fun fmt cof ->
