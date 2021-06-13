@@ -193,7 +193,7 @@ let rec quote_con (tp : D.tp) con =
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as tp, _ ->
     begin
-      lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
+      lift_cmp (CmpM.test_sequent [] (Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r)) |>> function
       | true ->
         let branch phi : (S.t * S.t) m =
           let* tphi = quote_cof phi in
