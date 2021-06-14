@@ -70,8 +70,13 @@ let protect m =
 
 (* Imports *)
 
-let find_project_root () =
+let find_project_root input =
   let working_dir = Sys.getcwd () in
+  let start_dir =
+    match input with
+    | `File fname -> Filename.dirname fname
+    | `Stdin -> working_dir
+  in
   let rec go dir =
     if Sys.file_exists "cooltt-lib" then
       Some dir
@@ -83,7 +88,9 @@ let find_project_root () =
         None
       else
         go parent
-  in let project_root = go working_dir in
+  in
+  let _ = Sys.chdir start_dir in
+  let project_root = go start_dir in
   let _ = Sys.chdir working_dir in
   project_root
 
@@ -157,7 +164,7 @@ and process_file ~project_root input =
     RM.ret @@ Error ()
 
 let load_file input =
-  let project_root = find_project_root () in
+  let project_root = find_project_root input in
   RM.run_exn (ST.init "<unit>") Env.init @@ process_file ~project_root input
 
 let execute_command ~project_root =
@@ -187,6 +194,6 @@ let rec repl ~project_root (ch : in_channel) lexbuf =
 
 let do_repl () =
   let ch, lexbuf = Load.prepare_repl () in
-  let project_root = find_project_root () in
+  let project_root = find_project_root `Stdin in
   RM.run_exn (RefineState.init "<repl>") Env.init @@
   repl ~project_root ch lexbuf
