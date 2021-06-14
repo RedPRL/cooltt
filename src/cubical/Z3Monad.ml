@@ -11,6 +11,7 @@ struct
     | Bound of int (* de Bruijn {b LEVELS} *)
     | Ite of expr * expr * expr
     | Le of expr * expr
+    | Lt of expr * expr
     | Eq of expr * expr
     | And of expr list
     | RealNumeral of int
@@ -20,6 +21,7 @@ struct
   let (!%) l = Bound l
   let ite e1 e2 e3 = Ite (e1, e2, e3)
   let (<=) e1 e2 = Le (e1, e2)
+  let (<) e1 e2 = Lt (e1, e2)
   let (=) e1 e2 = Eq (e1, e2)
   let (&&) e1 e2 = And [e1; e2]
   let num i = RealNumeral i
@@ -113,6 +115,7 @@ struct
         Z3Raw.mk_bound i (sort s)
       | Ite (e1, e2, e3) -> Z3Raw.mk_ite (loop env e1) (loop env e2) (loop env e3)
       | Le (e1, e2) -> Z3Raw.mk_le (loop env e1) (loop env e2)
+      | Lt (e1, e2) -> Z3Raw.mk_lt (loop env e1) (loop env e2)
       | Eq (e1, e2) -> Z3Raw.mk_eq (loop env e1) (loop env e2)
       | And es -> Z3Raw.mk_and @@ List.map (loop env) es
       | RealNumeral i -> Z3Raw.mk_real_numeral_i i
@@ -150,6 +153,7 @@ struct
     | Bound l -> Format.fprintf fmt "bound[%i]" l
     | Ite (e1, e2, e3) -> Format.fprintf fmt "ite[%a;%a;%a]" pp_expr e1 pp_expr e2 pp_expr e3
     | Le (e1, e2) -> Format.fprintf fmt "le[%a;%a]" pp_expr e1 pp_expr e2
+    | Lt (e1, e2) -> Format.fprintf fmt "lt[%a;%a]" pp_expr e1 pp_expr e2
     | Eq (e1, e2) -> Format.fprintf fmt "eq[%a;%a]" pp_expr e1 pp_expr e2
     | And es ->
       Format.fprintf fmt "and[%a]"
@@ -170,18 +174,6 @@ struct
       Format.fprintf fmt "apply[%a%a]"
         pp_symbol sym
         (fun fmt -> List.iter @@ Format.fprintf fmt ";%a" pp_expr) args
-
-  let rec complexity_expr =
-    let open Lang in
-    function
-    | Bound _l -> 1
-    | Ite (e1, e2, e3) -> 1 + complexity_expr e1 + complexity_expr e2 + complexity_expr e3
-    | Le (e1, e2) -> 1 + complexity_expr e1 + complexity_expr e2
-    | Eq (e1, e2) -> 1 + complexity_expr e1 + complexity_expr e2
-    | And es -> List.fold_left (fun c e -> c + complexity_expr e) 1 es
-    | RealNumeral _i -> 1
-    | Forall (binders, body) -> List.length binders + complexity_expr body
-    | Apply (_sym, args) -> List.fold_left (fun c e -> c + complexity_expr e) 1 args
 end
 
 module Assertion =
@@ -204,9 +196,9 @@ struct
     let open Cof in
     function
     | Eq (r1, r2) -> "eq"$[expr_of_dim r1; expr_of_dim r2]
-    | Join [] -> "bot"$[]
+    | Join [] -> num 0
     | Join (cof::cofs) -> List.fold_left (fun cof1 cof2 -> "lor"$[cof1; expr_of_cof cof2]) (expr_of_cof cof) cofs
-    | Meet [] -> "top"$[]
+    | Meet [] -> num 1
     | Meet (cof::cofs) -> List.fold_left (fun cof1 cof2 -> "land"$[cof1; expr_of_cof cof2]) (expr_of_cof cof) cofs
 
   and expr_of_cof : CofThyData.cof -> expr =
@@ -217,13 +209,11 @@ struct
     | Var (`G sym) -> "val"$[decl @@ Format.sprintf "cof#global[%s]" (Symbol.show sym)]
     | Cof cof_f -> expr_of_cof_f cof_f
 
-  let of_cof (c : CofThyData.cof) =
-    "is-true"$[expr_of_cof c]
+  let of_cof (c : CofThyData.cof) : t =
+    expr_of_cof c = num 1
 
-  let of_negated_cof (c : CofThyData.cof) =
-    "is-false"$[expr_of_cof c]
-
-  let complexity : t -> int = Builder.complexity_expr
+  let of_negated_cof (c : CofThyData.cof) : t =
+    expr_of_cof c < num 1
 
   let dump = Builder.pp_expr
 end
@@ -243,22 +233,12 @@ type check_result = Z3Raw.result =
 let solver =
   let solver = SolverBuilder.make () in
 
-  (* (define-const bot Real 0.0) *)
-  let _ = Builder.other_const_decl ~name:"bot" ~range:Real in
-  let () = Z3Raw.add_assertions solver
-      [Builder.(expr ("bot"$[] = num 0))]
-  in
-
-  (* (define-const top Real 1.0) *)
-  let _ = Builder.other_const_decl ~name:"top" ~range:Real in
-  let () = Z3Raw.add_assertions solver [Builder.(expr ("top"$[] = num 1))] in
-
-  (* (define-fun in-range ((i Real)) Bool (<= bot i top)) *)
+  (* (define-fun in-range ((i Real)) Bool (<= 0.0 i 1.0)) *)
   let _ = Builder.other_func_decl ~name:"in-range" ~domain:[Real] ~range:Bool in
   let () = Z3Raw.add_assertions solver
       [Builder.(expr @@
                 forall ["i", Real]
-                  ("in-range"$[!%0] = (("bot"$[]) <= !%0 && !%0 <= ("top"$[]))))]
+                  ("in-range"$[!%0] = (num 0 <= !%0 && !%0 <= num 1)))]
   in
 
   (* (define-fun land ((i Real) (j Real)) Real (ite (<= i j) i j)) *)
@@ -277,31 +257,19 @@ let solver =
                   ("lor"$[!%0; !%1] = (ite (!%0 <= !%1) !%1 !%0)))]
   in
 
-  (* (define-fun arrow ((i Real) (j Real)) Real (ite (<= i j) top j)) *)
+  (* (define-fun arrow ((i Real) (j Real)) Real (ite (<= i j) 1.0 j)) *)
   let _ = Builder.other_func_decl ~name:"arrow" ~domain:[Real; Real] ~range:Real in
   let () = Z3Raw.add_assertions solver
       [Builder.(expr @@
                 forall ["i", Real; "j", Real]
-                  ("arrow"$[!%0; !%1] = ite (!%0 <= !%1) ("top"$[]) !%1))]
+                  ("arrow"$[!%0; !%1] = ite (!%0 <= !%1) (num 1) !%1))]
   in
 
-  (* (define-fun neg ((i Real)) Real (arrow i bot)) *)
+  (* (define-fun neg ((i Real)) Real (arrow i 0.0)) *)
   let _ = Builder.other_func_decl ~name:"neg" ~domain:[Real] ~range:Real in
   let () = Z3Raw.add_assertions solver
       [Builder.(expr @@ forall ["i", Real]
-                  ("neg"$[!%0] = ("arrow"$[!%0; "bot"$[]])))]
-  in
-
-  (* (define-fun is-true ((i Real)) Bool (= i top)) *)
-  let _ = Builder.other_func_decl ~name:"is-true" ~domain:[Real] ~range:Bool in
-  let () = Z3Raw.add_assertions solver
-      [Builder.(expr @@ forall ["i", Real] ("is-true"$[!%0] = (!%0 = ("top"$[]))))]
-  in
-
-  (* (define-fun is-false ((i Real)) Bool (= i bot)) *)
-  let _ = Builder.other_func_decl ~name:"is-false" ~domain:[Real] ~range:Bool in
-  let () = Z3Raw.add_assertions solver
-      [Builder.(expr @@ forall ["i", Real] ("is-false"$[!%0] = (!%0 = ("bot"$[]))))]
+                  ("neg"$[!%0] = ("arrow"$[!%0; num 0])))]
   in
 
   (* (declare-const one I) *)
@@ -318,9 +286,9 @@ let solver =
       [Builder.(expr @@ forall ["i", II; "j", II] ("in-range"$["eq"$[!%0; !%1]]))]
   in
 
-  (* (assert (forall ((i I)) (= (eq i i) top))) *)
+  (* (assert (forall ((i I)) (= (eq i i) 1.0))) *)
   let () = Z3Raw.add_assertions solver
-      [Builder.(expr @@ forall ["i", II] ("eq"$[!%0; !%0] = ("top"$[])))]
+      [Builder.(expr @@ forall ["i", II] ("eq"$[!%0; !%0] = num 1))]
   in
 
   (* (assert (forall ((i I) (j I)) (= (eq i j) (eq j i)))) *)
@@ -337,7 +305,7 @@ let solver =
 
   (* (assert (is-false (eq one zero))) *)
   let () = Z3Raw.add_assertions solver
-      [Builder.(expr ("is-false"$["eq"$["one"$[]; "zero"$[]]]))]
+      [Builder.(expr (("eq"$["one"$[]; "zero"$[]]) = num 0))]
   in
 
   (* (declare-fun val (F) Real) *)

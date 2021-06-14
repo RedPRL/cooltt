@@ -37,6 +37,7 @@ struct
   let mk_eq e1 e2 = Z3.Boolean.mk_eq context e1 e2
   let mk_ite e1 e2 e3 = Z3.Boolean.mk_ite context e1 e2 e3
   let mk_le e1 e2 = Z3.Arithmetic.mk_le context e1 e2
+  let mk_lt e1 e2 = Z3.Arithmetic.mk_lt context e1 e2
   let mk_real_numeral_i i = Z3.Arithmetic.Real.mk_numeral_i context i
   let mk_int_numeral_i i = Z3.Arithmetic.Integer.mk_numeral_i context i
 

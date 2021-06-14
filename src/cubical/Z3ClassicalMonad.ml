@@ -143,15 +143,6 @@ struct
       Format.fprintf fmt "apply[%a%a]"
         pp_symbol sym
         (fun fmt -> List.iter @@ Format.fprintf fmt ";%a" pp_expr) args
-
-  let rec complexity_expr =
-    let open Lang in
-    function
-    | Eq (e1, e2) -> 1 + complexity_expr e1 + complexity_expr e2
-    | True | False -> 1
-    | And es | Or es -> List.fold_left (fun c e -> c + complexity_expr e) 1 es
-    | Not e -> 1 + complexity_expr e
-    | Apply (_sym, args) -> List.fold_left (fun c e -> c + complexity_expr e) 1 args
 end
 
 module Assertion =
@@ -188,13 +179,11 @@ struct
     | Var (`G sym) -> decl @@ Format.sprintf "cof#global[%s]" (Symbol.show sym)
     | Cof cof_f -> expr_of_cof_f cof_f
 
-  let of_cof (c : CofThyData.cof) =
+  let of_cof (c : CofThyData.cof) : t =
     expr_of_cof c
 
-  let of_negated_cof (c : CofThyData.cof) =
+  let of_negated_cof (c : CofThyData.cof) : t =
     not (expr_of_cof c)
-
-  let complexity : t -> int = Builder.complexity_expr
 
   let dump = Builder.pp_expr
 end
