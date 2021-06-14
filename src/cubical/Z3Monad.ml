@@ -17,9 +17,6 @@ struct
     | Forall of (symbol * sort) list * expr
     | Apply of [`Other of symbol | `Dim of symbol | `Cof of symbol] * expr list
 
-  let dim = II
-  let cof = FF
-  let real = Real
   let (!%) l = Bound l
   let ite e1 e2 e3 = Ite (e1, e2, e3)
   let (<=) e1 e2 = Le (e1, e2)
@@ -242,7 +239,7 @@ open Monad.Notation (R)
 type check_result = Z3Raw.result =
     UNSATISFIABLE | UNKNOWN | SATISFIABLE
 
-let heyting_solver =
+let solver =
   let open Lang in
 
   let solver = SolverBuilder.make () in
@@ -359,9 +356,9 @@ let heyting_solver =
   solver
 
 let reset () : unit m =
-  Z3Raw.pop heyting_solver 1;
+  Z3Raw.pop solver 1;
   Store.clear_remappings ();
-  Z3Raw.push heyting_solver;
+  Z3Raw.push solver;
   R.ret ()
 
 let run m =
@@ -373,19 +370,19 @@ let run_exn m =
 let () = run_exn (reset ())
 
 let add_cofs cofs =
-  R.ret @@ Z3Raw.add_assertions heyting_solver @@
+  R.ret @@ Z3Raw.add_assertions solver @@
   List.map (fun cof -> Builder.expr (Assertion.of_cof cof)) cofs
 
 let add_negated_cof cof =
-  R.ret @@ Z3Raw.add_assertions heyting_solver
+  R.ret @@ Z3Raw.add_assertions solver
     [Builder.expr (Assertion.of_negated_cof cof)]
 
 let check () =
-  let ans = Z3Raw.check heyting_solver [] in (* checking with non-empty assumptions seem to be very slow *)
+  let ans = Z3Raw.check solver [] in (* checking with non-empty assumptions seem to be very slow *)
   R.ret ans
 
 let dump_solver () =
-  R.ret @@ Z3Raw.dump_solver heyting_solver
+  R.ret @@ Z3Raw.dump_solver solver
 
 let get_reason_unknown () =
-  R.ret @@ Z3Raw.get_reason_unknown heyting_solver
+  R.ret @@ Z3Raw.get_reason_unknown solver

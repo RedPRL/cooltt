@@ -27,11 +27,15 @@ struct
   let mk_bool () = Z3.Boolean.mk_sort context
 
   type expr = Z3.Expr.expr
-  let mk_ite e1 e2 e3 = Z3.Boolean.mk_ite context e1 e2 e3
-  let mk_le e1 e2 = Z3.Arithmetic.mk_le context e1 e2
-  let mk_eq e1 e2 = Z3.Boolean.mk_eq context e1 e2
+  let mk_true () = Z3.Boolean.mk_true context
+  let mk_false () = Z3.Boolean.mk_false context
+  let mk_not e = Z3.Boolean.mk_not context e
   let mk_and es = Z3.Boolean.mk_and context es
   let mk_or es = Z3.Boolean.mk_or context es
+  let mk_implies e1 e2 = Z3.Boolean.mk_implies context e1 e2
+  let mk_eq e1 e2 = Z3.Boolean.mk_eq context e1 e2
+  let mk_ite e1 e2 e3 = Z3.Boolean.mk_ite context e1 e2 e3
+  let mk_le e1 e2 = Z3.Arithmetic.mk_le context e1 e2
   let mk_real_numeral_i i = Z3.Arithmetic.Real.mk_numeral_i context i
 
   type quantifier = Z3.Quantifier.quantifier

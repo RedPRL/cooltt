@@ -1,5 +1,6 @@
 open Basis
 open Bwd
+module Z3Monad = Z3ClassicalMonad
 open Z3Monad
 open Monad.Notation (Z3Monad)
 module MU = Monad.Util (Z3Monad)
@@ -30,12 +31,12 @@ struct
 
   let consistency_store : (t * cof option, [`Consistent | `Inconsistent]) Hashtbl.t = Hashtbl.create 1000
   let consistency_gen ?neg (thy : t) : [`Consistent | `Inconsistent] =
-    Format.printf "Checking %a@." dump thy;
-    begin
-      match neg with
-      | None -> ()
-      | Some cof -> Format.printf "  with negated %a@." CofThyData.dump_cof cof
-    end;
+    (* Format.printf "Checking %a@." dump thy;
+       begin
+       match neg with
+       | None -> ()
+       | Some cof -> Format.printf "  with negated %a@." CofThyData.dump_cof cof
+       end; *)
     (thy, neg) |> memoize consistency_store @@ fun (thy, neg) ->
     run_exn @@
     let* () = reset () in
@@ -43,35 +44,17 @@ struct
     (* XXX use guard *)
     let* () = match neg with Some cof -> add_negated_cof cof | None -> ret () in
     check () |>> function
-    | UNSATISFIABLE ->
-      Format.printf "==> inconsistent@.";
-      ret `Inconsistent
-    | SATISFIABLE ->
-      Format.printf "==> consistent@.";
-      ret `Consistent
-    | UNKNOWN ->
-      let* reason = get_reason_unknown () in
-      Format.printf "==> unknown %s@." reason;
-      throw Z3Failure
+    | UNSATISFIABLE -> ret `Inconsistent
+    | SATISFIABLE -> ret `Consistent
+    | UNKNOWN -> throw Z3Failure
   let consistency (thy : t) : [`Consistent | `Inconsistent] =
-    let ans = consistency_gen ?neg:None thy in
-    let real_ans = CofThy.Disj.(consistency (assume empty thy)) in
-    assert (ans = real_ans);
-    ans
+    consistency_gen ?neg:None thy
 
   let test (thy : t) cof =
-    Format.printf "Calling consistency from test_sequent@.";
+    (* Format.printf "Calling consistency from test_sequent@."; *)
     match consistency_gen ~neg:cof thy with
-    | `Inconsistent ->
-      Format.printf "==> true@.";
-      let real_ans = CofThy.Disj.(test_sequent (assume empty thy) [] cof) in
-      assert (real_ans = true);
-      true
-    | `Consistent ->
-      Format.printf "==> false@.";
-      let real_ans = CofThy.Disj.(test_sequent (assume empty thy) [] cof) in
-      assert (real_ans = false);
-      false
+    | `Inconsistent -> true
+    | `Consistent -> false
 
   let insert cof (thy : t) =
     (* XXX use CCOrd *)
@@ -117,6 +100,6 @@ struct
     test (assume thy cofs) cof
 
   let left_invert ~zero ~seq thy k =
-    Format.printf "Calling left_invert_under_cofs from left_invert@.";
+    (* Format.printf "Calling left_invert_under_cofs from left_invert@."; *)
     left_invert_under_cofs ~zero ~seq thy [] k
 end
