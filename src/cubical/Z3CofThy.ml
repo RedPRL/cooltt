@@ -23,9 +23,6 @@ struct
          CofThyData.dump_cof)
       thy
 
-  let assert_ (thy : t) : unit m =
-    add_assertions (List.map Assertion.of_cof thy)
-
   let memoize store f x =
     match Hashtbl.find_opt store x with
     | Some x -> x
@@ -42,9 +39,9 @@ struct
     (thy, neg) |> memoize consistency_store @@ fun (thy, neg) ->
     run_exn @@
     let* () = reset () in
-    let* () = assert_ thy in
+    let* () = add_cofs thy in
     (* XXX use guard *)
-    let* () = match neg with Some cof -> add_assertions [Assertion.of_negated_cof cof] | None -> ret () in
+    let* () = match neg with Some cof -> add_negated_cof cof | None -> ret () in
     check () |>> function
     | UNSATISFIABLE ->
       Format.printf "==> inconsistent@.";
