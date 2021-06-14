@@ -9,6 +9,11 @@ jobs:
         operating-system: [ubuntu-latest]
         ocaml-compiler: ['4.12.0']
     steps:
+    - name: Cache ~/.opam
+      uses: actions/cache@v2
+      with:
+        path: ~/.opam
+      key: ${{ runner.os }}-opam-deps
     - uses: actions/checkout@v2
     - uses: ocaml/setup-ocaml@v2
       with:
