@@ -355,19 +355,11 @@ let solver =
   Z3Raw.push solver;
   solver
 
-let reset () : unit m =
-  Z3Raw.pop solver 1;
-  Store.clear_remappings ();
-  Z3Raw.push solver;
-  R.ret ()
-
 let run m =
   R.run () m
 
 let run_exn m =
   R.run_exn () m
-
-let () = run_exn (reset ())
 
 let add_cofs cofs =
   R.ret @@ Z3Raw.add_assertions solver @@
@@ -379,7 +371,10 @@ let add_negated_cof cof =
 
 let check () =
   let ans = Z3Raw.check solver [] in (* checking with non-empty assumptions seem to be very slow *)
-  R.ret ans
+  Z3Raw.pop solver 1;
+  Store.clear_remappings ();
+  Z3Raw.push solver;
+  ret ans
 
 let dump_solver () =
   R.ret @@ Z3Raw.dump_solver solver

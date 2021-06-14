@@ -39,7 +39,6 @@ struct
        end; *)
     (thy, neg) |> memoize consistency_store @@ fun (thy, neg) ->
     run_exn @@
-    let* () = reset () in
     let* () = add_cofs thy in
     (* XXX use guard *)
     let* () = match neg with Some cof -> add_negated_cof cof | None -> ret () in

@@ -6,7 +6,6 @@ val run_exn : 'a m -> 'a
 type check_result = Z3.Solver.status =
     UNSATISFIABLE | UNKNOWN | SATISFIABLE
 
-val reset : unit -> unit m
 val add_cofs : CofThyData.cof list -> unit m
 val add_negated_cof : CofThyData.cof -> unit m
 val check : unit -> check_result m
