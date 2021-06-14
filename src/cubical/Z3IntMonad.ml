@@ -212,23 +212,14 @@ struct
     | Var (`G sym) -> "val"$[decl @@ Format.sprintf "cof#global[%s]" (Symbol.show sym)]
     | Cof cof_f -> expr_of_cof_f cof_f
 
-  let of_cof (c : CofThyData.cof) : t =
+  let of_lhs_cof (c : CofThyData.cof) : t =
     expr_of_cof c = ("top"$[])
 
-  let of_negated_cof (c : CofThyData.cof) : t =
+  let of_rhs_cof (c : CofThyData.cof) : t =
     expr_of_cof c < ("top"$[])
 
   let dump = Builder.pp_expr
 end
-
-(* the high-level interface *)
-module R = Basis.Monad.MonadReaderResult(struct type local = unit end)
-type 'a m = 'a R.m
-let bind = R.bind
-let ret = R.ret
-let throw = R.throw
-
-open Monad.Notation (R)
 
 type check_result = Z3Raw.result =
     UNSATISFIABLE | UNKNOWN | SATISFIABLE
@@ -336,30 +327,26 @@ let set_top () =
   let _ = Builder.other_const_decl ~name:"top" ~range:Int in
   Z3Raw.add_assertions solver [Builder.(expr ("top"$[] = num (num_possible_values - 1)))]
 
-let run m =
-  R.run () m
+let add_lhs_cofs cofs =
+  Z3Raw.add_assertions solver @@
+  List.map (fun cof -> Builder.expr (Assertion.of_lhs_cof cof)) cofs
 
-let run_exn m =
-  R.run_exn () m
+let add_rhs_cof cof =
+  Z3Raw.add_assertions solver
+    [Builder.expr (Assertion.of_rhs_cof cof)]
 
-let add_cofs cofs =
-  R.ret @@ Z3Raw.add_assertions solver @@
-  List.map (fun cof -> Builder.expr (Assertion.of_cof cof)) cofs
-
-let add_negated_cof cof =
-  R.ret @@ Z3Raw.add_assertions solver
-    [Builder.expr (Assertion.of_negated_cof cof)]
-
-let check () =
+let test_sequent ?rhs ~lhs =
+  add_lhs_cofs lhs;
+  begin match rhs with None -> () | Some cof -> add_rhs_cof cof end;
   set_top ();
   let ans = Z3Raw.check solver [] in (* checking with non-empty assumptions seem to be very slow *)
   Z3Raw.pop solver 1;
   Store.clear_remappings ();
   Z3Raw.push solver;
-  ret ans
+  ans
 
 let dump_solver () =
-  R.ret @@ Z3Raw.dump_solver solver
+  Z3Raw.dump_solver solver
 
 let get_reason_unknown () =
-  R.ret @@ Z3Raw.get_reason_unknown solver
+  Z3Raw.get_reason_unknown solver

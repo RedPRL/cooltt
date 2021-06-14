@@ -1,9 +1,6 @@
 open Basis
 open Bwd
-module Z3Monad = Z3ClassicalMonad
 open Z3Monad
-open Monad.Notation (Z3Monad)
-module MU = Monad.Util (Z3Monad)
 
 type cof = CofThyData.cof
 
@@ -29,29 +26,25 @@ struct
     | Some x -> x
     | None -> let res = f x in Hashtbl.replace store x res; res
 
-  let consistency_store : (t * cof option, [`Consistent | `Inconsistent]) Hashtbl.t = Hashtbl.create 1000
-  let consistency_gen ?neg (thy : t) : [`Consistent | `Inconsistent] =
+  let test_sequent_store : (t * cof option, [`Consistent | `Inconsistent]) Hashtbl.t = Hashtbl.create 1000
+  let test_sequent ?rhs ~lhs : [`Consistent | `Inconsistent] =
     (* Format.printf "Checking %a@." dump thy;
        begin
        match neg with
        | None -> ()
        | Some cof -> Format.printf "  with negated %a@." CofThyData.dump_cof cof
        end; *)
-    (thy, neg) |> memoize consistency_store @@ fun (thy, neg) ->
-    run_exn @@
-    let* () = add_cofs thy in
-    (* XXX use guard *)
-    let* () = match neg with Some cof -> add_negated_cof cof | None -> ret () in
-    check () |>> function
-    | UNSATISFIABLE -> ret `Inconsistent
-    | SATISFIABLE -> ret `Consistent
-    | UNKNOWN -> throw Z3Failure
+    (lhs, rhs) |> memoize test_sequent_store @@ fun (lhs, rhs) ->
+    match test_sequent ?rhs ~lhs with
+    | UNSATISFIABLE -> `Inconsistent
+    | SATISFIABLE -> `Consistent
+    | UNKNOWN -> raise Z3Failure
   let consistency (thy : t) : [`Consistent | `Inconsistent] =
-    consistency_gen ?neg:None thy
+    test_sequent ?rhs:None ~lhs:thy
 
   let test (thy : t) cof =
     (* Format.printf "Calling consistency from test_sequent@."; *)
-    match consistency_gen ~neg:cof thy with
+    match test_sequent ~rhs:cof ~lhs:thy with
     | `Inconsistent -> true
     | `Consistent -> false
 
