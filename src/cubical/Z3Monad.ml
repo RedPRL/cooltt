@@ -329,11 +329,11 @@ let solver =
       [Builder.(expr @@ forall ["i", II; "j", II] (("eq" $[!%0; !%1]) = ("eq" $[!%1; !%0])))]
   in
 
-  (* (assert (forall ((i I) (j I) (k I)) (is-true (arrow (land (eq i j) (eq j k)) (eq i k))))) *)
+  (* (assert (forall ((i I) (j I) (k I)) (<= (land (eq i j) (eq j k)) (eq i k) ))) *)
   let () = Z3Raw.add_assertions solver
       [Builder.(expr @@
                 forall ["i", II; "j", II; "k", II]
-                  ("is-true" $["arrow" $["land" $["eq" $[!%0; !%1]; "eq" $[!%1; !%2]]; "eq" $[!%0; !%2]]]))]
+                  (("land"$["eq"$[!%0; !%1]; "eq"$[!%1; !%2]]) <= ("eq"$[!%0; !%2])))]
   in
 
   (* (assert (is-false (eq one zero))) *)
