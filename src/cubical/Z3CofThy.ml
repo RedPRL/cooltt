@@ -4,6 +4,25 @@ open Z3Solver
 
 type cof = CofThyData.cof
 
+let dissect_cofibrations : cof list -> cof list list =
+  let rec loop_f acc todo =
+    function
+    | Cof.Meet meet_cofs -> loop acc @@ meet_cofs @ todo
+    | Cof.Join join_cofs ->
+      join_cofs |> List.concat_map @@ fun join_cof ->
+      loop acc @@ join_cof :: todo
+    | Cof.Eq _ as cof ->
+      loop (Snoc (acc, Cof.Cof cof)) todo
+  and loop acc =
+    function
+    | [] -> [Bwd.to_list acc]
+    | cof :: todo ->
+      match cof with
+      | Cof.Var _ -> loop (Snoc (acc, cof)) todo
+      | Cof.Cof cof -> loop_f acc todo cof
+  in
+  loop Emp
+
 module Alg =
 struct
   type t = cof list
@@ -67,31 +86,49 @@ struct
     Bwd.to_list reduced_thy_bwd
 
   let assume1 thy cof : t =
+    let thy = insert cof thy in
     match consistency thy with
-    | `Consistent -> insert cof thy
+    | `Consistent -> thy
     | `Inconsistent -> bot
 
   let assume thy cofs : t =
     List.fold_left assume1 thy cofs
 
-  let left_invert_under_cofs ~zero ~seq:_ thy cofs k =
-    let thy' = assume thy cofs in
-    match consistency thy' with
-    | `Inconsistent -> zero
-    | `Consistent -> k thy'
+  let split (thy : t) (cofs : cof list) : t list =
+    match consistency thy with
+    | `Inconsistent -> []
+    | `Consistent ->
+      List.map
+        (assume thy)
+        (dissect_cofibrations cofs)
 
+  let left_invert_under_cofs ~zero ~seq thy cofs cont =
+    match split thy cofs with
+    | [] -> zero
+    | [thy] -> cont thy
+    | thys -> seq cont thys
 end
 
 module Disj =
 struct
-  include Alg
+  type t = Alg.t * cof list
 
-  let envelope_alg (alg : t) = alg
+  let empty = Alg.empty, []
+
+  let envelope_alg (alg : Alg.t) = alg, []
+
+  let unsafe_to_alg (alg, pending) = Alg.assume alg pending
+
+  let consistency thy =
+    Alg.consistency (unsafe_to_alg thy)
+
+  let assume (alg, pending) cofs =
+    alg, cofs @ pending
 
   let test_sequent (thy : t) cofs cof =
-    test (assume thy cofs) cof
+    Alg.test (Alg.assume (unsafe_to_alg thy) cofs) cof
 
-  let left_invert ~zero ~seq thy k =
+  let left_invert ~zero ~seq (thy, pending) cont =
     (* Format.printf "Calling left_invert_under_cofs from left_invert@."; *)
-    left_invert_under_cofs ~zero ~seq thy [] k
+    Alg.left_invert_under_cofs ~zero ~seq thy pending cont
 end
