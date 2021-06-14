@@ -93,9 +93,7 @@ end
 module Store =
 struct
   let sort_store : (Lang.sort, Z3Raw.sort) Hashtbl.t = Hashtbl.create 10
-  let symbol_store : (Lang.symbol, Z3Raw.symbol) Hashtbl.t = Hashtbl.create 10
   let other_decl_store : (Lang.symbol, Z3Raw.func_decl) Hashtbl.t = Hashtbl.create 10
-  let expr_store : (Lang.sort bwd * Lang.expr, Z3Raw.expr) Hashtbl.t = Hashtbl.create 100
 
   let memoize store f x =
     match Hashtbl.find_opt store x with
@@ -125,7 +123,6 @@ struct
     assert (Hashtbl.length cof_remapping = 0)
 
   let clear_remappings () =
-    Hashtbl.clear expr_store; (* expressions can contain variables *)
     Hashtbl.clear dim_remapping;
     Hashtbl.clear cof_remapping
 end
@@ -140,7 +137,7 @@ struct
     | Real -> Z3Raw.mk_real ()
     | Bool -> Z3Raw.mk_bool ()
 
-  let symbol = Store.(memoize symbol_store) Z3Raw.mk_symbol_s
+  let symbol = Z3Raw.mk_symbol_s
 
   let other_func_decl ~name ~domain ~range =
     name |> begin
@@ -168,9 +165,9 @@ struct
     Store.(get2 cof_store cof_remapping) sym
 
   let expr =
-    let rec loop env e =
-      (env, e) |> Store.(memoize expr_store) @@ fun (env, e) ->
-      match e with
+    let open Lang in
+    let rec loop env =
+      function
       | Bound l ->
         let i = Bwd.length env - l - 1 in
         let s = Bwd.nth env i in
