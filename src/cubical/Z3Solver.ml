@@ -1,1 +1,1 @@
-include Z3ClassicalBoolSolver
+include Z3ClassicalBoolSolverWithUninterpretedDim
