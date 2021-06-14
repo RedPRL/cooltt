@@ -13,7 +13,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.opam
-      key: ${{ runner.os }}-opam-deps
+        key: ${{ runner.os }}-opam-deps
     - uses: actions/checkout@v2
     - uses: ocaml/setup-ocaml@v2
       with:
