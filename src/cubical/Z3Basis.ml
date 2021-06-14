@@ -23,6 +23,7 @@ struct
 
   type sort = Z3.Sort.sort
   let mk_sort_s s = Z3.Sort.mk_uninterpreted_s context s
+  let mk_int () = Z3.Arithmetic.Integer.mk_sort context
   let mk_real () = Z3.Arithmetic.Real.mk_sort context
   let mk_bool () = Z3.Boolean.mk_sort context
 
@@ -37,6 +38,7 @@ struct
   let mk_ite e1 e2 e3 = Z3.Boolean.mk_ite context e1 e2 e3
   let mk_le e1 e2 = Z3.Arithmetic.mk_le context e1 e2
   let mk_real_numeral_i i = Z3.Arithmetic.Real.mk_numeral_i context i
+  let mk_int_numeral_i i = Z3.Arithmetic.Integer.mk_numeral_i context i
 
   type quantifier = Z3.Quantifier.quantifier
   let mk_bound i sort = Z3.Quantifier.mk_bound context i sort
