@@ -1,6 +1,6 @@
 open Basis
 open Bwd
-open Z3Monad
+open Z3Solver
 
 type cof = CofThyData.cof
 
