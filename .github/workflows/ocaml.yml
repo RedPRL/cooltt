@@ -14,6 +14,5 @@ jobs:
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
         dune-cache: true
-    - run: opam pin add -y cooltt .
     - run: make
     - run: make test
