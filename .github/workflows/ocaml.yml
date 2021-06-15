@@ -10,10 +10,16 @@ jobs:
         ocaml-compiler: ['4.12.0']
     steps:
     - uses: actions/checkout@v2
+    - name: Cache ~/.opam
+      uses: actions/cache@v2
+      with:
+        path: ~/.opam
+        key: ${{ runner.os }}-opam
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
-        dune-cache: true
-    - run: opam install . --deps-only --with-test
+    - name: Opam Install
+      if: steps.cache-opam.outputs.cache-hit != 'true'
+      run: opam install . --deps-only
     - run: make
     - run: make test
