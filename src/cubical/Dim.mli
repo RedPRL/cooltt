@@ -1,4 +1,6 @@
-type dim =
+open Basis
+
+type t =
   | Dim0
   (** The left endpoint of the abstract interval. *)
 
@@ -11,3 +13,4 @@ type dim =
   | DimProbe of DimProbe.t
   (** Some dimension variables must be generated to probe underneath a binder. Subject to substitution. *)
 
+val dump : t Pp.printer

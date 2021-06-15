@@ -47,4 +47,29 @@ let rec reduce =
   | Cof (Eq (r, s)) -> eq r s
   | Var v -> var v
 
-let boundary r = join [eq r Dim.Dim0; eq r Dim.Dim1]
+let boundary ~dim0 ~dim1 r = join [eq r dim0; eq r dim1]
+
+let complexity_cof_f complexity_a =
+  function
+  | Eq _ -> 1
+  | Join l | Meet l -> List.fold_left (fun i c -> i + complexity_a c) 1 l
+
+let rec complexity_cof =
+  function
+  | Cof cof -> 1 + complexity_cof_f complexity_cof cof
+  | Var _ -> 1
+
+let dump_cof_f dump_r dump_a fmt =
+  function
+  | Eq (r1, r2) -> Format.fprintf fmt "eq[%a;%a]" dump_r r1 dump_r r2
+  | Join l ->
+    Format.fprintf fmt "join[%a]"
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_char fmt ';') dump_a) l
+  | Meet l ->
+    Format.fprintf fmt "meet[%a]"
+      (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_char fmt ';') dump_a) l
+
+let rec dump_cof dump_r dump_v fmt =
+  function
+  | Cof cof -> dump_cof_f dump_r (dump_cof dump_r dump_v) fmt cof
+  | Var v -> dump_v fmt v

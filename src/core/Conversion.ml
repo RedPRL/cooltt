@@ -76,9 +76,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   match tp0, tp1 with
   | D.TpSplit branches, _
   | _, D.TpSplit branches ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    ConvM.restrict_ [Cof.join phis] @@
-    equate_tp tp0 tp1
+    MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_tp tp0 tp1) branches
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
@@ -173,14 +171,10 @@ and equate_con tp con0 con1 =
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
   | D.TpSplit branches, _, _ ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    ConvM.restrict_ [Cof.join phis] @@
-    equate_con tp con0 con1
+    MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_con tp con0 con1) branches
   | _, D.Split branches, _
   | _, _, D.Split branches ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    ConvM.restrict_ [Cof.join phis] @@
-    equate_con tp con0 con1
+    MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_con tp con0 con1) branches
   | D.Pi (base, _, fam), _, _ ->
     bind_var_ base @@ fun x ->
     let* fib = lift_cmp @@ inst_tp_clo fam x in
