@@ -25,6 +25,6 @@ jobs:
     # that it gets written to the cache in the right place.
     - run: opam install . --deps-only
     # Just make sure that things actually get installed...
-    - run: ls -al ~/.opam
+    - run: opam env
     - run: make
     - run: make test
