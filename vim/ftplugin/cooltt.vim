@@ -45,7 +45,7 @@ function! CheckBuffer(...)
   execute 'sign unplace * file=' . l:current
 
   let s:job = job_start(g:cooltt_path .
-    \' - -w ' . s:EditWidth(), {
+    \' - -w ' . s:EditWidth() . ' -p ' . expand('%:p'), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
     \'out_cb': 'ParseMessages',
