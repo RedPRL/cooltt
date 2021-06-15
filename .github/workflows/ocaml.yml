@@ -20,6 +20,7 @@ jobs:
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
         dune-cache: true
+    - run: ls -al ~/.opam
     # Even if we load from the cache, we still may need to
     # install external dependencies! We also need to bring
     # 'dune' into scope for this, hence the 'opam env'
