@@ -1,6 +1,6 @@
 open Basis
 open Bwd
-open Z3Solver
+open Z3Solvers.BoolSolver
 
 type cof = CofThyData.cof
 
