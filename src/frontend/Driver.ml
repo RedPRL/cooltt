@@ -92,12 +92,12 @@ let find_project_root input =
   let _ = Sys.chdir start_dir in
   let project_root = go start_dir in
   let _ = Sys.chdir working_dir in
-  project_root
+  match project_root with
+  | Some root -> root
+  | None -> working_dir
 
 let resolve_source_path project_root imp =
-  match project_root with
-  | Some root -> Filename.concat root (imp ^ ".cooltt")
-  | None -> imp ^ ".cooltt"
+  Filename.concat project_root (imp ^ ".cooltt")
 
 (* Create an interface file for a given source file. *)
 let rec build_code_unit ~project_root src_path =
@@ -163,8 +163,7 @@ and process_file ~project_root input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file input =
-  let project_root = find_project_root input in
+let load_file project_root input =
   RM.run_exn (ST.init "<unit>") Env.init @@ process_file ~project_root input
 
 let execute_command ~project_root =
@@ -192,8 +191,7 @@ let rec repl ~project_root (ch : in_channel) lexbuf =
       close_in ch;
       RM.ret @@ Ok ()
 
-let do_repl () =
+let do_repl project_root =
   let ch, lexbuf = Load.prepare_repl () in
-  let project_root = find_project_root `Stdin in
   RM.run_exn (RefineState.init "<repl>") Env.init @@
   repl ~project_root ch lexbuf
