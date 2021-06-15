@@ -1,5 +1,3 @@
-open Basis
-
 type var = int
 
 type cof = (Dim.t, var) Cof.cof

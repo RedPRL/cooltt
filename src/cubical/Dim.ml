@@ -1,5 +1,3 @@
-open Basis
-
 type t =
   | Dim0
   | Dim1
