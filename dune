@@ -1,0 +1,7 @@
+(env
+ (z3
+  (env-vars (USE_Z3 1)))
+ (dev
+  (env-vars (USE_Z3 0)))
+ (release
+  (env-vars (USE_Z3 0))))

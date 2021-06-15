@@ -11,6 +11,7 @@ license: "Apache-2.0"
 depends: [
   "dune" {>= "2.0"}
   "ocaml" {>= "4.10.0"}
+  "cppo" {build & >= "1.6.7"}
   "ppx_deriving" {>= "4.4.1"}
   "cmdliner" {>= "1.0"}
   "menhir" {>= "20180703"}

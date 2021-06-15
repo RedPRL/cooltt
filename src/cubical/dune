@@ -6,3 +6,8 @@
   (pps ppx_deriving.std))
  (libraries uuseg uuseg.string uutf cooltt.basis z3)
  (public_name cooltt.cubical))
+
+(rule
+ (target CofThy.ml)
+ (deps (:ml CofThy.cppo.ml))
+ (action (run %{bin:cppo} -V OCAML:%{ocaml_version} -D "USE_Z3 %{env:USE_Z3=0}" %{ml} -o %{target})))
