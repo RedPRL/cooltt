@@ -16,10 +16,10 @@ jobs:
       with:
         path: ~/.opam
         key: ${{ runner.os }}-opam
-        dune-cache: true
     - uses: ocaml/setup-ocaml@v2
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
+        dune-cache: true
     # So if we skip the install step, it appears that we can't find 'dune'.
     # However, what if we bring the opam environment into the shell???
     - name: Opam Install
