@@ -20,13 +20,13 @@ jobs:
       with:
         ocaml-compiler: ${{ matrix.ocaml-compiler }}
         dune-cache: true
-    # So if we skip the install step, it appears that we can't find 'dune'.
-    # However, what if we bring the opam environment into the shell???
+    # Even if we load from the cache, we still may need to
+    # install external dependencies!
     - name: Opam Install
       if: steps.cache-opam.outputs.cache-hit != 'true'
       run: opam install . --deps-only
     - name: Opam Eval
       if: steps.cache-opam.outputs.cache-hit == 'true'
-      run: eval $(opam env)
+      run: dune external-lib-deps --missing @install
     - run: make
     - run: make test
