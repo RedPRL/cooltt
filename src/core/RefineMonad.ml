@@ -1,3 +1,5 @@
+open CodeUnit
+
 module D = Domain
 module S = Syntax
 module St = RefineState
@@ -49,6 +51,26 @@ let get_local ix =
   match Env.get_local ix env with
   | tp -> ret tp
   | exception exn -> throw exn
+
+let with_code_unit unit_name (action : unit -> 'a m) =
+  let* st = get in
+  let cunit = St.get_current_unit st in
+  let st' = St.enter_unit unit_name st in
+  let* _ = set st' in
+  let* a = action () in
+  let* _ = modify (St.restore_unit (CodeUnit.name cunit)) in
+  ret a
+
+let get_current_unit =
+  let* st = get in
+  ret @@ St.get_current_unit st
+
+let add_import path code_unit =
+  modify (St.add_import path code_unit)
+
+let get_import path =
+  let* st = get in
+  ret @@ St.get_import path st
 
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con

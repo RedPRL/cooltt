@@ -19,7 +19,7 @@ Error messages either have a span where we can output lots of data about where
 the error occured or no span where we just output the data we have avaiable
 
 *)
-let pp_runtime_messsage ~loc ~lvl pp data =
+let pp_runtime_message ~loc ~lvl pp data =
   match loc with
   | None ->
     pp Format.std_formatter data

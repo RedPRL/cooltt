@@ -1,5 +1,8 @@
 open Basis 
 open Core
+
+open CodeUnit
+
 module CS := ConcreteSyntax
 module S := Syntax
 

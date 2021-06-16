@@ -1,5 +1,7 @@
 open Basis
 open Core
+open CodeUnit
+
 module RM = RefineMonad
 module T = Tactic
 module D = Domain

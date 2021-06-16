@@ -1,8 +1,10 @@
-module D := Domain
-
 open Basis
 open Cubical
 open Bwd
+
+open CodeUnit
+
+module D := Domain
 
 module Cell : sig
   type 'a t

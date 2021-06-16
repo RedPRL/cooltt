@@ -1,11 +1,14 @@
-module StringMap = Map.Make (String)
-module D = Domain
-module S = Syntax
-
 open Basis
 open Cubical
 open Bwd
 open BwdNotation
+
+open CodeUnit
+
+module StringMap = Map.Make (String)
+module D = Domain
+module S = Syntax
+
 
 module Cell =
 struct
@@ -21,7 +24,7 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t =
-  {resolver : Symbol.t StringMap.t;
+  {resolver : Global.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
    cof_thy : CofThy.Disj.t;
@@ -65,7 +68,7 @@ let resolve_local (ident : Ident.t) env =
     | Snoc (xs, cell) ->
       begin
         match ident, Cell.ident cell with
-        | `User y, `User x when x = y -> i
+        | `User (parts_x, x), `User (parts_y, y) when x = y && List.for_all2 (=) parts_x parts_y -> i
         | _ -> go (i + 1) xs
       end
   in
@@ -78,14 +81,8 @@ let restrict phis env =
    cof_thy = CofThy.Disj.assume env.cof_thy phis}
 
 let append_con ident con tp env =
-  let pp_name =
-    match ident with
-    | `User nm -> Some nm
-    | `Machine nm -> Some nm
-    | `Anon -> None
-  in
   {env with
-   pp = snd @@ Pp.Env.bind env.pp pp_name;
+   pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
    locals = env.locals <>< [{contents = tp, con; ident}];
    cof_thy =
      match tp with

@@ -96,6 +96,17 @@ struct
 
   let ignore m =
     let+ _ = m in ()
+
+  let rec fold_left_m f b =
+    function
+    | [] -> M.ret b
+    | (x :: xs) -> M.bind (f x b) (fun b' -> fold_left_m f b' xs)
+
+  let guard b action =
+    if b then
+      action ()
+    else
+      M.ret ()
 end
 
 module type MonadReaderResult = sig
@@ -118,9 +129,11 @@ module type MonadReaderStateResult = sig
   val scope : (local -> local) -> 'a m -> 'a m
   val get : global m
   val set : global -> unit m
+  val modify : (global -> global) -> unit m
 
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a
+  val run_globals_exn : global -> local -> 'a m -> ('a * global)
   val throw : exn -> 'a m
   val trap : 'a m -> ('a, exn) result m
 end
@@ -182,6 +195,8 @@ struct
   let get (st, _) = Ok st, st
   let set st (_, _) = Ok (), st
 
+  let modify f (st, _) = Ok (), f st
+
   let run st env m =
     let a, _ = m (st, env) in
     a
@@ -190,4 +205,9 @@ struct
     match run st env m with
     | Ok a -> a
     | Error exn -> raise exn
+
+  let run_globals_exn st env m =
+    match m (st, env) with
+    | (Ok a, st') -> (a, st')
+    | (Error exn, _) -> raise exn
 end

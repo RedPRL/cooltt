@@ -1,5 +1,6 @@
 open Core
 open Basis
+open CodeUnit
 open DriverMessage
 
 module CS = ConcreteSyntax
@@ -11,15 +12,19 @@ module Sem = Semantics
 module Qu = Quote
 
 module RM = RefineMonad
+module ST = RefineState
+module RMU = Monad.Util (RM)
 open Monad.Notation (RM)
 
 type status = (unit, unit) Result.t
 type continuation = Continue of (status RM.m -> status RM.m) | Quit
-type command = continuation RM.m 
+type command = continuation RM.m
+
+(* Refinement Helpers *)
 
 let elaborate_typed_term name (args : CS.cell list) tp tm =
   RM.push_problem name @@
-  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
   let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
@@ -27,7 +32,7 @@ let elaborate_typed_term name (args : CS.cell list) tp tm =
 
 let add_global name vtp con : command =
   let+ _ = RM.add_global name vtp con in
-  let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in 
+  let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in
   Continue kont
 
 let print_ident (ident : Ident.t CS.node) : command =
@@ -43,35 +48,13 @@ let print_ident (ident : Ident.t CS.node) : command =
         let* tm = RM.quote_con vtp con in
         RM.ret @@ Some tm
     in
-    let+ () = 
-      RM.emit ident.info pp_message @@ 
-      OutputMessage (Definition {ident = ident.node; tp; tm}) 
+    let+ () =
+      RM.emit ident.info pp_message @@
+      OutputMessage (Definition {ident = ident.node; tp; tm})
     in
     Continue Fun.id
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
-
-
-let execute_decl : CS.decl -> command =
-  function
-  | CS.Def {name; args; def = Some def; tp} ->
-    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    add_global name vtp @@ Some vtm 
-  | CS.Def {name; args; def = None; tp} ->
-    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
-    let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    add_global name vtp None
-  | CS.NormalizeTerm term ->
-    RM.veil (Veil.const `Transparent) @@
-    let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
-    let* vtm = RM.lift_ev @@ Sem.eval tm in
-    let* tm' = RM.quote_con vtp vtm in
-    let+ () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
-    Continue Fun.id
-  | CS.Print ident ->
-    print_ident ident
-  | CS.Quit ->
-    RM.ret Quit
 
 let protect m =
   RM.trap m |>> function
@@ -85,60 +68,130 @@ let protect m =
     let+ () = RM.emit ~lvl:`Error (RefineEnv.location env) PpExn.pp exn in
     Error ()
 
-let rec execute_signature ~status sign =
+(* Imports *)
+
+let find_project_root input =
+  let working_dir = Sys.getcwd () in
+  let start_dir =
+    match input with
+    | `File fname -> Filename.dirname fname
+    | `Stdin -> working_dir
+  in
+  let rec go dir =
+    if Sys.file_exists "cooltt-lib" then
+      Some dir
+    else
+      let () = Sys.chdir Filename.parent_dir_name in
+      let parent = Sys.getcwd () in
+      if parent = dir then
+        let () = Log.pp_runtime_message ~loc:None ~lvl:`Warn pp_message @@ WarningMessage MissingProject in
+        None
+      else
+        go parent
+  in
+  let _ = Sys.chdir start_dir in
+  let project_root = go start_dir in
+  let _ = Sys.chdir working_dir in
+  match project_root with
+  | Some root -> root
+  | None -> working_dir
+
+let resolve_source_path project_root imp =
+  Filename.concat project_root (imp ^ ".cooltt")
+
+(* Create an interface file for a given source file. *)
+let rec build_code_unit ~project_root src_path =
+  let* _ = process_file ~project_root (`File src_path) in
+  RM.get_current_unit
+
+and load_code_unit ~project_root imp =
+  let src_path = resolve_source_path project_root imp in
+  RM.with_code_unit src_path (fun () -> build_code_unit ~project_root src_path)
+
+and import_code_unit project_root path : command =
+  let* unit_loaded = RM.get_import path in
+  let* import_unit =
+    match unit_loaded with
+    | Some import_unit -> RM.ret import_unit
+    | None -> load_code_unit ~project_root path in
+  let* _ = RM.add_import [] import_unit in
+  RM.ret @@ Continue Fun.id
+
+and execute_decl ~project_root : CS.decl -> command =
+  function
+  | CS.Def {name; args; def = Some def; tp} ->
+    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
+    add_global name vtp @@ Some vtm
+  | CS.Def {name; args; def = None; tp} ->
+    let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
+    let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+    add_global name vtp None
+  | CS.NormalizeTerm term ->
+    RM.veil (Veil.const `Transparent) @@
+    let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
+    let* vtm = RM.lift_ev @@ Sem.eval tm in
+    let* tm' = RM.quote_con vtp vtm in
+    let+ () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
+    Continue Fun.id
+  | CS.Print ident ->
+    print_ident ident
+  | CS.Import path ->
+    import_code_unit project_root path
+  | CS.Quit ->
+    RM.ret Quit
+
+and execute_signature ~project_root ~status sign =
   match sign with
   | [] -> RM.ret status
   | d :: sign ->
-    let* res = protect @@ execute_decl d in
+    let* res = protect @@ execute_decl ~project_root d in
     match res with
     | Ok Continue k ->
-      k @@ execute_signature ~status sign
+      k @@ execute_signature ~project_root ~status sign
     | Ok Quit ->
       RM.ret @@ Ok ()
     | Error () ->
       RM.ret @@ Error ()
 
-let process_sign : CS.signature -> status =
-  fun sign ->
-  RM.run_exn RefineState.init Env.init @@
-  execute_signature ~status:(Ok ()) sign
-
-let process_file input =
+and process_file ~project_root input =
   match Load.load_file input with
-  | Ok sign -> process_sign sign
+  | Ok sign -> execute_signature ~project_root ~status:(Ok ()) sign
   | Error (Load.ParseError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
-    Error ()
+    RM.ret @@ Error ()
   | Error (Load.LexingError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
-    Error ()
+    RM.ret @@ Error ()
 
-let execute_command =
+let load_file project_root input =
+  RM.run_exn (ST.init "<unit>") Env.init @@ process_file ~project_root input
+
+let execute_command ~project_root =
   function
-  | CS.Decl decl -> execute_decl decl
+  | CS.Decl decl -> execute_decl ~project_root decl
   | CS.NoOp -> RM.ret @@ Continue Fun.id
   | CS.EndOfFile -> RM.ret Quit
 
-let rec repl (ch : in_channel) lexbuf =
+let rec repl ~project_root (ch : in_channel) lexbuf =
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError {span; last_token}) ->
     let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = ParseError; last_token} in
-    repl ch lexbuf
+    repl ~project_root ch lexbuf
   | Error (Load.LexingError {span; last_token}) ->
     let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = LexingError; last_token} in
-    repl ch lexbuf
+    repl ~project_root ch lexbuf
   | Ok cmd ->
-    protect @@ execute_command cmd |>>
+    protect @@ execute_command ~project_root cmd |>>
     function
     | Ok (Continue k) ->
-      k @@ repl ch lexbuf
+      k @@ repl ~project_root ch lexbuf
     | Error _  ->
-      repl ch lexbuf
+      repl ~project_root ch lexbuf
     | Ok Quit ->
       close_in ch;
       RM.ret @@ Ok ()
 
-let do_repl () =
+let do_repl project_root =
   let ch, lexbuf = Load.prepare_repl () in
-  RM.run_exn RefineState.init Env.init @@
-  repl ch lexbuf
+  RM.run_exn (RefineState.init "<repl>") Env.init @@
+  repl ~project_root ch lexbuf

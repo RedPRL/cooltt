@@ -1,3 +1,9 @@
+open Basis
+open Monads
+open Bwd
+
+open CodeUnit
+
 module D = Domain
 module S = Syntax
 module Env = RefineEnv
@@ -9,13 +15,11 @@ module TB = TermBuilder
 module Sem = Semantics
 module Qu = Quote
 
-exception CJHM
-
-open Basis
-open Monads
 open Monad.Notation (RM)
 module MU = Monad.Util (RM)
-open Bwd
+
+exception CJHM
+
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 

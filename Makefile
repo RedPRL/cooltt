@@ -23,3 +23,6 @@ test:
 
 snapshot:
 	@${DUNE} promote
+
+format:
+	./format.sh

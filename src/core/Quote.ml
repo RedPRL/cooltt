@@ -1,3 +1,9 @@
+open Basis
+open Cubical
+open Monads
+
+open CodeUnit
+
 module S = Syntax
 module D = Domain
 module Sem = Semantics
@@ -7,9 +13,6 @@ exception CCHM
 exception CJHM
 exception CFHM
 
-open Basis
-open Cubical
-open Monads
 
 module Error =
 struct
@@ -505,11 +508,9 @@ and quote_dim d : S.t quote =
 and quote_cof phi =
   let rec go =
     function
-    | Cof.Var (`L lvl) ->
+    | Cof.Var lvl ->
       let+ ix = quote_var lvl in
       S.Var ix
-    | Cof.Var (`G sym) ->
-      ret @@ S.Global sym
     | Cof.Cof phi ->
       match phi with
       | Cof.Eq (r, s) ->

@@ -10,7 +10,7 @@ val pp_error_message
   -> 'a
   -> unit
 
-val pp_runtime_messsage
+val pp_runtime_message
   : loc:LexingUtil.span option
   -> lvl:level
   -> 'a Pp.printer

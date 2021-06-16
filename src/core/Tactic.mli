@@ -1,4 +1,6 @@
 open Basis
+open CodeUnit
+
 module S := Syntax
 module D := Domain
 module RM := RefineMonad
