@@ -1,3 +1,5 @@
+open Containers
+
 open Basis
 open Monads
 open Bwd
@@ -899,7 +901,7 @@ struct
         RM.lift_ev @@ Sem.eval_tp tp
       in
       let* def =
-        let prefix = ListUtil.take lvl cells_fwd in
+        let prefix = List.take lvl cells_fwd in
         let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
