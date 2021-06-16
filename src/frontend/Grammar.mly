@@ -5,18 +5,28 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
-  let atom_as_name a = `User a
+  let atom_as_name a = `User ([], a)
+
+  let add_part part =
+    function
+    | `User (parts, nm) -> `User (part :: parts, nm)
+
+  let rec parts_as_name =
+    function
+    | (t :: []) -> `User ([], t)
+    | (t :: ts) -> add_part t (parts_as_name ts)
+    | []        -> failwith "Impossible Internal Error"
 
   let underscore_as_name = `Anon
 
-  let plain_name_to_term =
+  let qualified_name_to_term =
     function
     | `User a -> Var (`User a)
     | `Anon -> Underscore
     | `Machine _ -> failwith "Impossible Internal Error"
 
   let name_to_term {node; info} =
-    {node = plain_name_to_term node; info}
+    {node = qualified_name_to_term node; info}
 
   let forget_location {node; info = _} = node
 %}
@@ -25,7 +35,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token COLON COLON_EQUALS PIPE COMMA SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token COLON COLON_EQUALS PIPE COMMA DOT SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -36,6 +46,7 @@
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM
+%token <string> IMPORT
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
@@ -82,6 +93,10 @@ plain_name:
   | UNDERSCORE
     { underscore_as_name }
 
+qualified_name:
+  | parts = separated_nonempty_list(DOT, ATOM)
+    { parts_as_name parts }
+
 decl:
   | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Def {name = nm; args = tele; def = Some body; tp} }
@@ -91,6 +106,9 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
+(* FIXME: Think about how project structures work! *)
+  | s = IMPORT;
+    { Import s }
   | PRINT; name = name
     { Print name }
 
@@ -180,8 +198,8 @@ bracketed:
     { Prf t }
 
 plain_atomic_term:
-  | name = plain_name
-    { plain_name_to_term name }
+  | name = qualified_name
+    { qualified_name_to_term name }
   | t = plain_atomic_term_except_name
     { t }
 

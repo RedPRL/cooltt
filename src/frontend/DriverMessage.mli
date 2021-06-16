@@ -1,8 +1,12 @@
 open Core
+open CodeUnit
 
 type output_message =
   | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}
   | Definition of {ident : Ident.t; tp : Syntax.tp; tm : Syntax.t option}
+
+type warning_message =
+  | MissingProject
 
 type error_message =
   | LexingError
@@ -11,6 +15,7 @@ type error_message =
 
 type message =
   | OutputMessage of output_message
+  | WarningMessage of warning_message
   | ErrorMessage of {error : error_message; last_token : string option}
 
 val pp_message : Format.formatter -> message -> unit

@@ -75,6 +75,9 @@ let atom_subsequent =
   [^                     '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' ' ' '\t' '\n' '\r']
 let atom = atom_initial atom_subsequent*
 
+let module_name =
+  [^ '/' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '\\' '*' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r' ]+
+
 let hole_atom_initial
   = atom_initial
   | '?'
@@ -114,6 +117,8 @@ rule token = parse
     { PIPE }
   | ','
     { COMMA }
+  | '.'
+    { DOT }
   | ";"
     { SEMI }
   | '*'
@@ -168,8 +173,14 @@ rule token = parse
       try Hashtbl.find keywords input with
       | Not_found -> Grammar.ATOM input
     }
+  | "import" whitespace
+    { module_path lexbuf }
   | _
     { Printf.eprintf "Unexpected char: %s" (lexeme lexbuf); token lexbuf }
+
+and module_path = parse
+  | module_name
+    { IMPORT (lexeme lexbuf) }
 
 and line_comment kont = parse
   | line_ending

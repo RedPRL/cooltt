@@ -1,6 +1,8 @@
 open Core
 open Basis
 
+open CodeUnit
+
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain

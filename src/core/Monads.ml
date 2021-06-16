@@ -1,9 +1,12 @@
-module D = Domain
-module S = Syntax
-module St = RefineState
 open Basis
 open Cubical
 open Bwd
+
+open CodeUnit
+
+module D = Domain
+module S = Syntax
+module St = RefineState
 
 exception CCHM
 exception CJHM
@@ -267,12 +270,12 @@ struct
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) -> match lvl with
-    | `Error ->
-      Log.pp_error_message ~loc ~lvl pp a;
-      Ok (), st
-    | _ ->
-      Log.pp_runtime_messsage ~loc ~lvl pp a;
-      Ok (), st
+      | `Error ->
+        Log.pp_error_message ~loc ~lvl pp a;
+        Ok (), st
+      | _ ->
+        Log.pp_runtime_message ~loc ~lvl pp a;
+        Ok (), st
 
   let veil v =
     M.scope @@ fun env ->

@@ -30,6 +30,8 @@ module Util (M : S) : sig
   val map_bwd : ('a -> 'b M.m) -> 'a bwd -> 'b bwd M.m
   val iter : ('a -> unit M.m) -> 'a list -> unit M.m
   val ignore : 'a M.m -> unit M.m
+  val fold_left_m : ('a -> 'b ->'b M.m) -> 'b -> 'a list -> 'b M.m
+  val guard : bool -> (unit -> unit M.m) -> unit M.m
 end
 
 module type MonadReaderResult = sig
@@ -53,9 +55,11 @@ module type MonadReaderStateResult = sig
   val scope : (local -> local) -> 'a m -> 'a m
   val get : global m
   val set : global -> unit m
+  val modify : (global -> global) -> unit m
 
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a
+  val run_globals_exn : global -> local -> 'a m -> ('a * global)
   val throw : exn -> 'a m
   val trap : 'a m -> ('a, exn) result m
 end

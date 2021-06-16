@@ -1,4 +1,3 @@
-open Basis
 open Z3Basis
 
 module Lang =
@@ -159,8 +158,7 @@ struct
     | Dim0 -> "zero"$[]
     | Dim1 -> "one"$[]
     | DimVar i -> decl @@ Format.sprintf "dim#var[%i]" i
-    | DimGlobal sym -> decl @@ Format.sprintf "dim#probe[%s]" (Symbol.show sym)
-    | DimProbe sym -> decl @@ Format.sprintf "dim#probe[%s]" (Symbol.show sym)
+    | DimProbe sym -> decl @@ Format.sprintf "dim#probe[%s]" (DimProbe.show sym)
 
   let rec expr_of_cof_f : _ -> expr =
     let open Cof in
@@ -175,8 +173,7 @@ struct
     let decl x = ignore @@ cof_decl x; Apply (`Cof x, []) in
     let open Cof in
     function
-    | Var (`L i) -> decl @@ Format.sprintf "cof#var[%i]" i
-    | Var (`G sym) -> decl @@ Format.sprintf "cof#global[%s]" (Symbol.show sym)
+    | Var i -> decl @@ Format.sprintf "cof#global[%i]" i
     | Cof cof_f -> expr_of_cof_f cof_f
 
   let of_lhs_cof (c : CofThyData.cof) : t =

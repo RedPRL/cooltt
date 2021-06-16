@@ -2,6 +2,8 @@ open Basis
 open Bwd
 open Cubical
 
+open CodeUnit
+
 exception CFHM
 exception CCHM
 exception CJHM

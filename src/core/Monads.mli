@@ -1,11 +1,13 @@
 (** All the monads in this file keep track of a cofibration theory. *)
+open Basis
+open Cubical
+
+open CodeUnit
 
 module D := Domain
 module S := Syntax
 module St := RefineState
 
-open Basis
-open Cubical
 
 type 'a compute
 type 'a evaluate

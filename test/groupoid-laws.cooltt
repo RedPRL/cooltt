@@ -1,8 +1,6 @@
 -- J-like proofs without carrying around J-on-refl paths everywhere
 -- (by carrying around cofibrations everywhere instead)
-
-def path (A : type) (a : A) (b : A) : type :=
-  ext i => A with [i=0 => a | i=1 => b]
+import prelude
 
 -- pretend we have CCHM Id-types
 def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0 ∨ φ} x} → type)

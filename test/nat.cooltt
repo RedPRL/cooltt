@@ -1,0 +1,48 @@
+import prelude
+
+def + : nat → nat → nat :=
+  elim [
+  | zero => n => n
+  | suc {_ => ih} => n => suc {ih n}
+  ]
+
+normalize + 2 3
+
+def pred : nat → nat :=
+  elim [
+  | zero => zero
+  | suc {n => _} => n
+  ]
+
+def +-left-unit (x : nat) : path nat {+ 0 x} x :=
+  _ => x
+
+def +-right-unit : (x : nat) → path nat {+ x 0} x :=
+  elim [
+  | zero =>
+    _ => 0
+  | suc {y => ih} =>
+    i => suc {ih i}
+  ]
+
+def +-suc-r : (x : nat) (y : nat) → path nat {+ x {suc y}} {suc {+ x y}} :=
+  elim [
+  | zero =>
+    x i => {suc x}
+  | suc {x => ih} =>
+    y i => suc {ih y i}
+  ]
+
+def +-comm : (x : nat) (y : nat) → path nat {+ y x} {+ x y} :=
+  elim [
+  | zero => +-right-unit
+  | suc {y => ih} =>
+    z =>
+    trans nat {+-suc-r z y} {j => suc {ih z j}}
+  ]
+
+def +-assoc : (x : nat) (y : nat) (z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
+  elim [
+  | zero => y z i => + y z
+  | suc {x => ih} => y z i => suc {ih y z i}
+  ]

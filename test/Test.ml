@@ -6,7 +6,7 @@ let header fname =
 let execute_file fname =
   if String.equal (Filename.extension fname) ".cooltt" then
     let _ = print_string (header fname) in
-    ignore @@ Driver.process_file (`File fname)
+    ignore @@ Driver.load_file "." (`File fname)
 
 let () =
   let cooltt_files = Sys.readdir "." in

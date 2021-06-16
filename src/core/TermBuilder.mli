@@ -3,11 +3,14 @@
  * for instance, the algorithm of coercion and composition in various type connectives. *)
 
 open Basis
+open CodeUnit
 
 include Monad.S
 
-type t := Syntax.t
-type tp := Syntax.tp
+module S := Syntax
+
+type t := S.t
+type tp := S.tp
 
 type 'a b = t m -> 'a m
 val scope : 'a b -> 'a m

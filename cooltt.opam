@@ -10,6 +10,7 @@ synopsis: "Experimental implementation of Cartesian cubical type theory"
 license: "Apache-2.0"
 depends: [
   "cmdliner" {>= "1.0"}
+  "containers" {>= "3.4"}
   "cppo" {build & >= "1.6.7"}
   "dune" {>= "2.0"}
   "menhir" {>= "20180703"}

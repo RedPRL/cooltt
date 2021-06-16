@@ -1,9 +1,10 @@
-module S := Syntax
-module D := Domain
-
-open Basis
 open Cubical
 open Monads
+
+open CodeUnit
+
+module S := Syntax
+module D := Domain
 
 val eval : S.t -> D.con evaluate
 val eval_cof : S.t -> D.cof evaluate
@@ -44,5 +45,5 @@ val do_rigid_vproj : D.dim -> D.con -> D.con -> D.con -> D.con -> D.con compute
 val splice_tm : S.t Splice.t -> D.con compute
 val splice_tp : S.tp Splice.t -> D.tp compute
 
-val subst_con : D.dim -> Symbol.t -> D.con -> D.con compute
-val push_subst_con : D.dim -> Symbol.t -> D.con -> D.con compute
+val subst_con : D.dim -> DimProbe.t -> D.con -> D.con compute
+val push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con compute
