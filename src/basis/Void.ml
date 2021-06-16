@@ -1,4 +1,4 @@
-type t = unit
+type t = |
 
 exception Void
 
