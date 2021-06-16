@@ -17,7 +17,7 @@ depends: [
   "menhir" {>= "20180703"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
-  "yuujinchou" { pinned }
+  "yuujinchou"
 ]
 pin-depends: [
   "yuujinchou.~dev" "git+https://github.com/RedPRL/yuujinchou"
