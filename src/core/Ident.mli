@@ -1,6 +1,6 @@
 open Basis
 
-type t = [`Anon | `User of string list * string | `Machine of string]
+type t = [`Anon | `User of string list | `Machine of string]
 
 val pp : t Pp.printer
 val to_string : t -> string

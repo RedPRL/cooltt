@@ -1,3 +1,4 @@
+open ContainersLabels
 open Basis
 open Cubical
 open Bwd
@@ -68,7 +69,7 @@ let resolve_local (ident : Ident.t) env =
     | Snoc (xs, cell) ->
       begin
         match ident, Cell.ident cell with
-        | `User (parts_x, x), `User (parts_y, y) when x = y && List.for_all2 (=) parts_x parts_y -> i
+        | `User parts_x, `User parts_y when List.equal String.equal parts_x parts_y -> i
         | _ -> go (i + 1) xs
       end
   in
