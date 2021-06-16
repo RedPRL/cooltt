@@ -1,5 +1,3 @@
-type t = unit
+type t = |
 
-exception Void
-
-let abort _ = raise Void
+let abort : t -> 'a = function _ -> .
