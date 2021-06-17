@@ -17,25 +17,17 @@ let eq x y =
 
 let join2 phi psi =
   match phi, psi with
-  | Cof (Meet []), _ -> Cof (Meet [])
-  | _, Cof (Meet []) -> Cof (Meet [])
-  | Cof (Join []), psi -> psi
-  | phi, Cof (Join []) -> phi
-  | Cof (Join phis), Cof (Join psis) -> Cof (Join (phis @ psis))
-  | Cof (Join phis), psi -> Cof (Join (phis @ [psi]))
-  | phi, Cof (Join psis) -> Cof (Join ([phi] @ psis ))
-  | phi, psi -> Cof (Join [phi; psi])
+  | Cof (Meet []), _ | _, Cof (Meet []) -> Cof (Meet [])
+  | phi, psi ->
+    let expose = function Cof (Join phis) -> phis | phi -> [phi] in
+    match expose phi @ expose psi with [phi] -> phi | l -> Cof (Join l)
 
 let meet2 phi psi =
   match phi, psi with
-  | Cof (Join []), _ -> Cof (Join [])
-  | _, Cof (Join []) -> Cof (Join [])
-  | Cof (Meet []), psi -> psi
-  | phi, Cof (Meet []) -> phi
-  | Cof (Meet phis), Cof (Meet psis) -> Cof (Meet (phis @ psis))
-  | Cof (Meet phis), psi -> Cof (Meet (phis @ [psi]))
-  | phi, Cof (Meet psis) -> Cof (Meet ([phi] @ psis ))
-  | phi, psi -> Cof (Meet [phi; psi])
+  | Cof (Join []), _ | _, Cof (Join []) -> Cof (Join [])
+  | phi, psi ->
+    let expose = function Cof (Meet phis) -> phis | phi -> [phi] in
+    match expose phi @ expose psi with [phi] -> phi | l -> Cof (Meet l)
 
 let join l = List.fold_left join2 bot l
 let meet l = List.fold_left meet2 top l
