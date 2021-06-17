@@ -32,13 +32,6 @@ let meet2 phi psi =
 let join l = List.fold_left join2 bot l
 let meet l = List.fold_left meet2 top l
 
-let rec reduce =
-  function
-  | Cof (Join phis) -> join @@ List.map reduce phis
-  | Cof (Meet phis) -> meet @@ List.map reduce phis
-  | Cof (Eq (r, s)) -> eq r s
-  | Var v -> var v
-
 let boundary ~dim0 ~dim1 r = join [eq r dim0; eq r dim1]
 
 let complexity_cof_f complexity_a =
