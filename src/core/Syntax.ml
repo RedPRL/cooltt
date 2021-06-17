@@ -79,6 +79,7 @@ struct
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
     | CodeCircle -> Format.fprintf fmt "circle"
+    | CodeCon (sym, tps) -> Format.fprintf fmt "tp/con[%a %a]" Symbol.pp sym (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " ") dump) tps
 
     | ESub _ -> Format.fprintf fmt "<esub>"
 
@@ -298,7 +299,8 @@ struct
       Format.fprintf fmt "circle"
     | CodeUniv ->
       Format.fprintf fmt "type"
-
+    | CodeCon (sym, tps) ->
+       Format.fprintf fmt "@[%a %a@]" Symbol.pp sym (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt " ") (pp env)) tps
     | Dim0 ->
       Format.fprintf fmt "0"
     | Dim1 ->

@@ -28,6 +28,8 @@ struct
 
     | `Univ
       (** A code for the universe (antinomous for now). *)
+    | `TpCon of Symbol.t * 'a list
+      (** A code for a user defined type constructor *)
     ]
 
   (** A type code whose head constructor is {i not} stable under dimension substitution. *)

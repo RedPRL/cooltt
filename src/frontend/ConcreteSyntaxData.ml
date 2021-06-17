@@ -16,6 +16,8 @@ type 'a node =
 
 [@@deriving show]
 
+let unloc con = { node = con; info = None }
+
 
 type cell = Cell of {name : Ident.t; tp : con}
 and con = con_ node
@@ -39,6 +41,7 @@ and con_ =
   | Fst of con
   | Snd of con
   | Record of Ident.t * cell list
+  | TpCon of Ident.t * con list
   | Type
   | Hole of string option * con option
   | Underscore

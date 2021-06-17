@@ -380,6 +380,9 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (n, code, `Global cof, con)
+  | `TpCon (sym, cons) ->
+     let+ cons = MU.map (subst_con r x) cons in
+     `TpCon (sym, cons)
   | `Nat | `Circle | `Univ as code ->
     ret code
 
@@ -681,6 +684,10 @@ and eval : S.t -> D.con EvM.m =
 
     | S.CodeCircle ->
       ret @@ D.StableCode `Circle
+
+    | S.CodeCon (sym, tps) ->
+       let+ vtps = MU.map eval tps in
+       D.StableCode (`TpCon (sym, vtps))
 
     | S.CodeUniv ->
       ret @@ D.StableCode `Univ
@@ -1420,6 +1427,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.cube n @@ fun js ->
         TB.sub (TB.el @@ TB.ap fam js) (TB.ap phi js) @@ fun _ ->
         TB.ap bdry @@ js @ [TB.prf]
+      | `TpCon (sym, tps) -> failwith "FIXME: Implement 'unfold_el' for `TpCon"
     end
 
 
@@ -1511,6 +1519,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
+      | `TpCon (sym, cons) -> failwith "FIXME: Implement 'enact_rigid_coe' for `TpCon"
     end
   | `Unstable (x, codex) ->
     begin
@@ -1604,6 +1613,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
           TB.el_out @@ TB.ap bdy [i; prf]
         in
         D.ElIn (D.UnstableCode (`HCom (r, r', phi, bdy')))
+      | `TpCon (sym, cons) -> failwith "FIXME: Implement 'enact_rigid_hcom' for `TpCon"
     end
   | `Unstable code ->
     begin

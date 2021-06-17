@@ -55,6 +55,7 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
+  val tp_constructor : Ident.t -> Chk.tac list -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac

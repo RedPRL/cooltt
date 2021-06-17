@@ -509,11 +509,14 @@ struct
        let* res = RM.resolve nm in
        match res with
        | (`Global sym) when Global.equal ctor_sym sym ->
+          Format.printf "[DEBUG] Found the correct type...\n";
           let+ tms = intro_fields phi phi_clo Emp (tp_clos, tacs) in
           S.Constructor (ctor_sym, tms)
        | _ -> RM.expected_connective (`Record nm) tp
        end
-    | (tp, _, _) -> RM.expected_connective (`Record nm) tp
+    | (tp, _, _) ->
+       Format.printf "[DEBUG] Goal wasn't a TpCon: %a\n" D.pp_tp tp;
+       RM.expected_connective (`Record nm) tp
 end
 
 
@@ -566,6 +569,15 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
+  let tp_constructor tp_name arg_tacs : T.Chk.tac =
+    univ_tac @@ fun univ -> 
+      let* res = RM.resolve tp_name in
+      match res with
+      | `Global sym ->
+         (* FIXME: This is a bit ???, we should probably use the type here somehow *)
+         let+ tps = MU.map (fun tac -> T.Chk.run tac univ) arg_tacs in
+         S.CodeCon (sym, tps)
+      | _ -> failwith "FIXME: Better Errors"
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun univ ->

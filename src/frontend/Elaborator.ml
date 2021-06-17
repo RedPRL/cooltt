@@ -256,6 +256,9 @@ and chk_tm : CS.con -> T.Chk.tac =
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
+    | CS.TpCon (tp_name, con_args) ->
+       R.Univ.tp_constructor tp_name @@ List.map chk_tm con_args
+
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
 

@@ -127,7 +127,31 @@ and execute_decl ~project_root : CS.decl -> command =
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     add_global name vtp None
   | CS.DefRecord {name; constructor; args; fields} ->
-     RM.ret @@ Continue Fun.id
+     (* We start by adding the record's type constructor to the global scope. *)
+     (* Note that we do this by treating the record type constructor as if it were a postulate. *)
+     let* record_tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args (CS.unloc CS.Type) in
+     let* record_vtp = RM.lift_ev @@ Sem.eval_tp record_tp in
+     let* _ = RM.add_global name record_vtp None in
+
+     Format.printf "[DEBUG] Admitted record type constructor '%a : %a'\n" Ident.pp name (Syntax.pp_tp Pp.Env.emp) record_tp;
+
+     (* Next, we will add in the actual record constructor. We start by computing it's type. *)
+     let saturated_record_tp = CS.unloc @@ CS.TpCon (name, List.map (fun (CS.Cell cell) -> CS.unloc @@ CS.Var cell.name) args) in
+     let* ctor_tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele (args @ fields) saturated_record_tp in
+     let* ctor_vtp = RM.lift_ev @@ Sem.eval_tp ctor_tp in
+
+     Format.printf "[DEBUG] Admitted record constructor type '%a : %a'\n" Ident.pp constructor (Syntax.pp_tp Pp.Env.emp) ctor_tp;
+
+     (* Now, we construct the actual constructor term *)
+     let* ctor_tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele (args @ fields) (CS.unloc @@ CS.Record (name, fields))) ctor_vtp in
+     let* ctor_vtm = RM.lift_ev @@ Sem.eval ctor_tm in
+
+     Format.printf "[DEBUG] Admitted record constructor term '%a = %a'\n" Ident.pp constructor (Syntax.pp Pp.Env.emp) ctor_tm;
+
+     let+ _ = RM.add_global constructor ctor_vtp (Some ctor_vtm) in
+     (* FIXME: Add in the projections *)
+
+     Continue Fun.id
   | CS.NormalizeTerm term ->
     RM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in

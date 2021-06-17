@@ -57,6 +57,7 @@ struct
     | CodeUniv
     | CodeV of t * t * t * t
     | CodeCircle
+    | CodeCon of Symbol.t * t list
 
     | ESub of sub * t
     (** Explicit substition *)
