@@ -5,17 +5,13 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
-  let atom_as_name a = `User ([], a)
+  let atom_as_name a = `User [a]
 
   let add_part part =
     function
-    | `User (parts, nm) -> `User (part :: parts, nm)
+    | `User parts -> `User (part :: parts)
 
-  let rec parts_as_name =
-    function
-    | (t :: []) -> `User ([], t)
-    | (t :: ts) -> add_part t (parts_as_name ts)
-    | []        -> failwith "Impossible Internal Error"
+  let parts_as_name parts = `User parts
 
   let underscore_as_name = `Anon
 

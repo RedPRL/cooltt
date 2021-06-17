@@ -1,4 +1,4 @@
-type 'a t
+type +'a t
 
 val empty : 'a t
 
