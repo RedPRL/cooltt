@@ -116,12 +116,12 @@ struct
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
   and pp_tp_clo : tp_clo Pp.printer =
-    let sep fmt () = Format.fprintf fmt "," in
-    fun fmt (Clo (tp, {tpenv; conenv})) ->
-      Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
-        S.dump_tp tp
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+   let sep fmt () = Format.fprintf fmt "," in
+   fun fmt (Clo (tp, {tpenv; conenv})) ->
+   Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
+     S.dump_tp tp
+     (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+     (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
   and pp_con : con Pp.printer =
     fun fmt ->
@@ -138,6 +138,8 @@ struct
       Format.fprintf fmt "loop[%a]" pp_dim r
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
+    | Constructor (nm, args) ->
+       Format.fprintf fmt "constructor[%a,%a]" Symbol.pp nm (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) args
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
@@ -180,7 +182,7 @@ struct
         branches
     | LockedPrfIn _ ->
       Format.fprintf fmt "<wrap>"
-
+  
   and pp_tp fmt =
     function
     | Pi (base, ident, fam) ->
@@ -213,7 +215,10 @@ struct
       Format.fprintf fmt "<split>"
     | TpLockedPrf _ ->
       Format.fprintf fmt "<wrap>"
-
+    | TpCon (sym, args) ->
+       let comma fmt () = Format.fprintf fmt ", " in
+       Format.fprintf fmt "con[%a, %a]" Symbol.pp sym (Format.pp_print_list ~pp_sep:comma pp_tp_clo) args
+  
   and pp_stable_code fmt =
     function
     | `Ext _ -> Format.fprintf fmt "<code-ext>"

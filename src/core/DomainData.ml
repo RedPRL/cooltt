@@ -64,6 +64,7 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
+    | Constructor of Symbol.t * con list
     | SubIn of con
 
     | ElIn of con
@@ -105,6 +106,9 @@ struct
     | Nat
     | Circle
     | TpLockedPrf of cof
+    (** A fully saturated type constructor *)
+    (** FIXME: I think we need a separate namespace for these? Unclear... *)
+    | TpCon of Symbol.t * tp_clo list
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =

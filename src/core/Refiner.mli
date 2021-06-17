@@ -92,6 +92,10 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
+module Record : sig
+  val intro : Ident.t -> Chk.tac list -> Chk.tac
+end
+
 module Sub : sig
   val formation : Tp.tac -> Chk.tac -> (var -> Chk.tac) -> Tp.tac
   val intro : Chk.tac -> Chk.tac

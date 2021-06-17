@@ -24,6 +24,9 @@ struct
     | Fst of t
     | Snd of t
 
+    | Constructor of Symbol.t * t list
+    | Selector of t * int
+
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
     | Com of t * t * t * t * t
@@ -76,6 +79,8 @@ struct
     | Circle
     | TpESub of sub * tp
     | TpLockedPrf of t
+    (** Fully Saturated type constructors *)
+    | TpCon of Symbol.t * tp list
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

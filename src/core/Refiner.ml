@@ -485,6 +485,36 @@ struct
       RM.expected_connective `Sg tp
 end
 
+module Record =
+struct
+
+  let rec intro_fields phi phi_clo env =
+    function
+    | [], [] -> RM.ret []
+    | (tp_clo :: tp_clos), (tac :: tacs) ->
+       (* FIXME: What do we do with paths here? *)
+       let* tp = RM.lift_cmp @@ Sem.inst_tp_clos tp_clo env in
+       let* tm = T.Chk.brun tac (tp, phi, phi_clo) in
+       let* vtm = RM.lift_ev @@ Sem.eval tm in
+       let updated_env = Snoc (env, vtm) in
+       let+ tms = intro_fields phi phi_clo updated_env (tp_clos, tacs) in
+       (tm :: tms)
+    | _, _ -> failwith "Internal Error: mismatch between number of tactics and record fields"
+
+  let intro nm tacs =
+    T.Chk.brule @@
+    function
+    | (TpCon (ctor_sym, tp_clos) as tp, phi, phi_clo) ->
+       begin
+       let* res = RM.resolve nm in
+       match res with
+       | (`Global sym) when Global.equal ctor_sym sym ->
+          let+ tms = intro_fields phi phi_clo Emp (tp_clos, tacs) in
+          S.Constructor (ctor_sym, tms)
+       | _ -> RM.expected_connective (`Record nm) tp
+       end
+    | (tp, _, _) -> RM.expected_connective (`Record nm) tp
+end
 
 
 module Univ =

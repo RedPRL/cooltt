@@ -126,6 +126,8 @@ and execute_decl ~project_root : CS.decl -> command =
     let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     add_global name vtp None
+  | CS.DefRecord {name; constructor; args; fields} ->
+     RM.ret @@ Continue Fun.id
   | CS.NormalizeTerm term ->
     RM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in

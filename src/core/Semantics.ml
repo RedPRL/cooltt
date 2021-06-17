@@ -1,6 +1,7 @@
 open Basis
 open Cubical
 open Bwd
+open BwdNotation
 
 open CodeUnit
 
@@ -35,14 +36,14 @@ let get_local i =
   let* env = EvM.read_local in
   match Bwd.nth env.conenv i with
   | v -> EvM.ret v
-  | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
+  | exception _ -> EvM.throw @@ NbeFailed "get_local: Variable out of bounds"
 
 let get_local_tp i =
   let open EvM in
   let* env = EvM.read_local in
   match Bwd.nth env.tpenv i with
   | v -> EvM.ret v
-  | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
+  | exception _ -> EvM.throw @@ NbeFailed "get_local_tp: Variable out of bounds"
 
 
 let tri_test_cof phi =
@@ -202,6 +203,9 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
+  | D.Constructor (ident, fields) ->
+     let+ cons = MU.map (subst_con r x) fields in
+     D.Constructor (ident, cons)
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
     D.StableCode code
@@ -356,6 +360,9 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
   | D.TpLockedPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpLockedPrf phi
+  | D.TpCon (nm, args) ->
+     let+ args = MU.map (subst_tp_clo r x) args in
+     D.TpCon (nm, args)
 
 and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.stable_code CM.m =
   fun r x ->
@@ -500,6 +507,11 @@ and eval_tp : S.tp -> D.tp EvM.m =
   | S.TpLockedPrf phi ->
     let+ phi = eval_cof phi in
     D.TpLockedPrf phi
+  | S.TpCon (nm, args) ->
+    let+ env = read_local in
+    (* FIXME: Some serious ??? here. We need to create a bunch of closures for each of the fields, but this feels fishy... *)
+    let clos = List.map (fun tm -> D.Clo (tm, env)) args in
+    D.TpCon (nm, clos)
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -562,6 +574,12 @@ and eval : S.t -> D.con EvM.m =
     | S.Snd t ->
       let* con = eval t in
       lift_cmp @@ do_snd con
+    | S.Constructor (ident, args) ->
+       let+ vargs = EvM.MU.map eval args in
+       D.Constructor(ident, vargs)
+    | S.Selector (tm, ix) ->
+       let* con = eval tm in
+       lift_cmp @@ do_selector con ix
     | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
@@ -763,7 +781,7 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Constructor _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
@@ -1058,6 +1076,13 @@ and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval_tp bdy
 
+and inst_tp_clos : D.tp_clo -> D.con bwd -> D.tp CM.m =
+  fun clo xs ->
+  match clo with
+  | Clo (bdy, env) ->
+    CM.lift_ev {env with conenv = (env.conenv <.> xs)} @@
+    eval_tp bdy
+
 and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
   fun clo x ->
   match clo with
@@ -1126,6 +1151,27 @@ and do_snd con : D.con CM.m =
     | _ ->
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
+
+and do_selector con (ix : int) : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis TB.snd in
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.Constructor (_, fields) -> ret @@ List.nth fields ix
+    | D.Split branches ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.Sg (_, _, fam); cut} ->
+      let* fst = do_fst con in
+      let+ fib = inst_tp_clo fam fst in
+      cut_frm ~tp:fib ~cut D.KSnd
+    | _ ->
+      throw @@ NbeFailed ("Couldn't select argument in do_selector")
+  end
+
 
 
 and do_ap2 f a b =

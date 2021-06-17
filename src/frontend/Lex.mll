@@ -40,6 +40,8 @@ let keywords =
     ("normalize", NORMALIZE);
     ("print", PRINT);
     ("quit", QUIT);
+    ("record", RECORD);
+    ("constructor", CONSTRUCTOR);
     ("type", TYPE);
     ("→", RIGHT_ARROW);
     ("𝕀", DIM);

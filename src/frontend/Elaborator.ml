@@ -222,7 +222,8 @@ and chk_tm : CS.con -> T.Chk.tac =
         | tp, _, _ ->
           RM.expected_connective `Sg tp
       end
-
+    | CS.Record (nm, fields) ->
+       R.Record.intro nm @@ List.map (fun (CS.Cell {name = _; tp = tm}) -> chk_tm tm) fields
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)
 

@@ -36,6 +36,8 @@ let pp_connective fmt =
     Format.fprintf fmt "V"
   | `ElHCom ->
     Format.fprintf fmt "hcom"
+  | `Record ident ->
+     Format.fprintf fmt "%a" Ident.pp ident
 
 let pp fmt =
   function

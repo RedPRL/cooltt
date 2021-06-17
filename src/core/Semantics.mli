@@ -1,3 +1,5 @@
+open Basis
+open Bwd
 open Cubical
 open Monads
 
@@ -23,6 +25,7 @@ val whnf_tp_ : style:whnf_style -> D.tp -> D.tp compute
 val normalize_cof : D.cof -> D.cof compute
 
 val inst_tp_clo : D.tp_clo -> D.con -> D.tp compute
+val inst_tp_clos : D.tp_clo -> D.con bwd -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con -> D.con compute
 
 val do_ap : D.con -> D.con -> D.con compute

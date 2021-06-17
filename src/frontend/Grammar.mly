@@ -41,7 +41,7 @@
 %token CIRCLE BASE LOOP
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM
+%token QUIT NORMALIZE RECORD CONSTRUCTOR PRINT DEF AXIOM
 %token <string> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -98,6 +98,8 @@ decl:
     { Def {name = nm; args = tele; def = Some body; tp} }
   | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Def {name = nm; args = tele; def = None; tp} }
+  | RECORD; nm = plain_name; tele = list(tele_cell); COLON_EQUALS; CONSTRUCTOR; ctor = plain_name ; fields = list(tele_cell)
+    { DefRecord { name = nm; args = tele; constructor = ctor; fields = fields } }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term

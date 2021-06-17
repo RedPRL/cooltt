@@ -45,6 +45,10 @@ struct
     | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
+    | Constructor(sym, args) ->
+       Format.fprintf fmt "constructor[%a, %a]" Symbol.pp sym (pp_sep_list dump) args
+    | Selector(tm, ix) -> Format.fprintf fmt "selector[%a, %a]" dump tm Format.pp_print_int ix
+
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -97,6 +101,7 @@ struct
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
     | TpLockedPrf _ -> Format.fprintf fmt "<locked>"
+    | TpCon (nm, args) -> Format.fprintf fmt "tp/con[%a, %a]" Symbol.pp nm (Format.pp_print_list dump_tp) args
 
 
   and dump_cof fmt =
@@ -147,6 +152,10 @@ struct
       pp_applications env fmt tm
     | Pair (tm0, tm1) ->
       pp_tuple (pp env) fmt [tm0; tm1]
+    | Constructor (ident, fields) ->
+       pp_constructor env fmt ident fields
+    | Selector (tm, ix) -> 
+       pp_selector env fmt tm ix
     | CofSplit branches ->
       let sep fmt () = Format.fprintf fmt "@ | " in
       pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
@@ -441,6 +450,8 @@ struct
     | TpLockedPrf phi ->
       Format.fprintf fmt "locked %a"
         (pp_atomic env) phi
+    | TpCon (nm, args) ->
+       Format.fprintf fmt "@[%a %a@]" Symbol.pp nm (Format.pp_print_list (pp_tp env)) args
 
   and pp_atomic_tp env fmt tp =
     match tp with
@@ -491,7 +502,11 @@ struct
       Format.fprintf fmt "=>@ @[%a@]"
         (pp env) tm
 
+  and pp_constructor env fmt nm fields =
+    Format.fprintf fmt "@[%a, %a@]" Symbol.pp nm (pp_sep_list (pp env)) fields
 
+  and pp_selector env fmt tm ix =
+    Format.fprintf fmt "@[%a.%a@]" (pp env) tm Format.pp_print_int ix
 
   let pp_sequent_goal ~lbl env fmt tp  =
     let lbl = Option.value ~default:"" lbl in

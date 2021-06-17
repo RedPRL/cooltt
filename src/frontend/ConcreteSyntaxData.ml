@@ -38,6 +38,7 @@ and con_ =
   | Pair of con * con
   | Fst of con
   | Snd of con
+  | Record of Ident.t * cell list
   | Type
   | Hole of string option * con option
   | Underscore
@@ -79,6 +80,7 @@ and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 
 type decl =
   | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
+  | DefRecord of {name : Ident.t; constructor: Ident.t; args : cell list; fields : cell list}
   | Print of Ident.t node
   | Import of string
   | NormalizeTerm of con

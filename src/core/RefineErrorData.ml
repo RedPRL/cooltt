@@ -21,6 +21,7 @@ struct
     | `El
     | `ElV
     | `ElHCom
+    | `Record of Ident.t
     ]
 
   type t =

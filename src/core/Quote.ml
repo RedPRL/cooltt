@@ -1,4 +1,5 @@
 open Basis
+open Bwd
 open Cubical
 open Monads
 
@@ -362,6 +363,14 @@ and quote_tp_clo base fam =
   let* tp = lift_cmp @@ inst_tp_clo fam var in
   quote_tp tp
 
+and quote_tps_clo (bases : D.tp bwd) fam =
+  let rec go vars =
+    function
+    | Emp -> lift_cmp @@ inst_tp_clos fam vars
+    | (Snoc (bases, base)) -> bind_var base @@ fun var -> go (Snoc (vars, var)) bases
+  in
+  go Emp bases
+
 and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
@@ -433,6 +442,18 @@ and quote_tp (tp : D.tp) =
   | D.TpLockedPrf phi ->
     let+ tphi = quote_cof phi in
     S.TpLockedPrf tphi
+  | D.TpCon (sym, args) ->
+     let rec quote_args tps =
+       function
+       | [] -> ret []
+       | (tp_clo :: tp_clos) ->
+          let* tp = quote_tps_clo tps tp_clo in
+          let* qtp = quote_tp tp in
+          let+ qtps = quote_args (Snoc (tps, tp)) tp_clos in
+          qtp :: qtps
+     in
+     let+ qargs = quote_args Emp args in
+     S.TpCon (sym, qargs)
 
 and quote_hd =
   function
