@@ -21,8 +21,6 @@ struct
 
   module Fmt = Format
 
-  let pp_sep_list pp fmt = Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt ", ") pp fmt
-
   let rec dump fmt =
     function
     | Var i -> Format.fprintf fmt "var[%i]" i
@@ -56,7 +54,7 @@ struct
     | Dim1 -> Format.fprintf fmt "<dim1>"
     | Cof cof -> Format.fprintf fmt "cof[%a]" dump_cof cof
     | ForallCof _ -> Format.fprintf fmt "<dim1>"
-    | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (pp_sep_list dump_branch) branches
+    | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (Pp.pp_sep_list dump_branch) branches
     | Prf -> Format.fprintf fmt "prf"
 
     | ElIn tm -> Format.fprintf fmt "el/in[%a]" dump tm
@@ -93,6 +91,7 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
+    | Record fields -> Format.fprintf fmt "tp/record [%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump_tp tp)) fields
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
@@ -102,8 +101,8 @@ struct
   and dump_cof fmt =
     function
     | Cof.Eq (r1, r2) -> Format.fprintf fmt "eq[%a, %a]" dump r1 dump r2
-    | Cof.Join cofs -> Format.fprintf fmt "join[%a]" (pp_sep_list dump) cofs
-    | Cof.Meet cofs -> Format.fprintf fmt "meet[%a]" (pp_sep_list dump) cofs
+    | Cof.Join cofs -> Format.fprintf fmt "join[%a]" (Pp.pp_sep_list dump) cofs
+    | Cof.Meet cofs -> Format.fprintf fmt "meet[%a]" (Pp.pp_sep_list dump) cofs
 
   and dump_branch fmt (cof, bdy) =
     Format.fprintf fmt "[%a, %a]" dump cof dump bdy
@@ -410,6 +409,15 @@ struct
         (pp_tp env) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx) fam
+    | Record fields ->
+       let rec pp_fields env fmt =
+         function
+         | [] -> Format.fprintf fmt ""
+         | ((ident, tp) :: fields) ->
+            let x, envx = ppenv_bind env ident in
+            Format.fprintf fmt "(%a : %a) %a" Uuseg_string.pp_utf_8 x (pp_tp env) tp (pp_fields envx) fields
+       in
+       Format.fprintf fmt "record %a" (pp_fields env) fields
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

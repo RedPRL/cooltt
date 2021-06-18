@@ -141,9 +141,9 @@ struct
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
-      Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
+      Format.fprintf fmt "join[%a]" (Pp.pp_sep_list pp_con) phis
     | Cof (Cof.Meet phis) ->
-      Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt ",") pp_con) phis
+      Format.fprintf fmt "meet[%a]" (Pp.pp_sep_list pp_con) phis
     | Cof (Cof.Eq (r, s)) ->
       Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
     | DimProbe x ->
@@ -187,6 +187,9 @@ struct
       Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
     | Sg _ ->
       Format.fprintf fmt "<sg>"
+    | RecordField (ident, tp, rest) ->
+       Format.fprintf fmt "field[%a,%a,%a]" Ident.pp ident pp_tp tp pp_tp_clo rest
+    | EmptyRecord -> Format.fprintf fmt "<empty-record>"
     | Sub _ ->
       Format.fprintf fmt "<sub>"
     | TpPrf _ ->
