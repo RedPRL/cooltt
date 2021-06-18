@@ -72,6 +72,7 @@ struct
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
+    | Record of (Ident.t * tp) list
     | Nat
     | Circle
     | TpESub of sub * tp

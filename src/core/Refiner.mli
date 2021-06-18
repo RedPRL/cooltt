@@ -9,6 +9,10 @@ open Tactic
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
+type 'a telescope =
+   | Bind of Ident.t * 'a * (var -> 'a telescope)
+   | Done
+
 module Hole : sig
   val unleash_hole : string option -> Chk.tac
   val unleash_syn_hole : string option -> Syn.tac
@@ -90,6 +94,10 @@ module Sg : sig
 
   val pi1 : Syn.tac -> Syn.tac
   val pi2 : Syn.tac -> Syn.tac
+end
+
+module Record : sig
+  val formation : Tp.tac telescope -> Tp.tac
 end
 
 module Sub : sig

@@ -25,6 +25,10 @@ exception CJHM
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
+type 'a telescope =
+   | Bind of Ident.t * 'a * (T.var -> 'a telescope)
+   | Done
+
 module GlobalUtil : sig
   val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
   val multi_pi : Env.cell list -> S.tp m -> S.tp m
@@ -486,6 +490,18 @@ struct
 end
 
 
+module Record =
+struct
+  let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
+    let rec form_fields tele =
+      function
+      | Bind (nm, tac, tacs) ->
+         let* tp = T.Tp.run tac in
+         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+         T.abstract ~ident:nm vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
+      | Done -> RM.ret @@ S.Record (Bwd.to_list tele)
+    in T.Tp.rule @@ form_fields Emp tacs
+end
 
 module Univ =
 struct

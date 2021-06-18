@@ -37,6 +37,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
+  val record : (Ident.t * tac) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -91,6 +92,17 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
+  let record (tacs : (Ident.t * tac) list) : tac =
+    (* FIXME: Handle universes *)
+    let rec mk_tac_tele =
+      function
+      | [] -> R.Done
+      | ((nm, tac) :: tacs) -> R.Bind (nm, as_tp tac, fun _ -> mk_tac_tele tacs)
+    in
+    let tele = mk_tac_tele tacs in
+    let tac = R.Record.formation tele in
+    Tp tac
+
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
     Tp tac
@@ -123,6 +135,9 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Sg (CS.Cell cell :: cells, body) ->
     CoolTp.sg (cool_chk_tp cell.tp) cell.name @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
+  | CS.Record cells ->
+     let tacs = List.map (fun (CS.Cell cell) -> (cell.name, cool_chk_tp cell.tp)) cells in
+     CoolTp.record tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
