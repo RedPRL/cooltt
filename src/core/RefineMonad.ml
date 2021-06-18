@@ -27,16 +27,16 @@ let resolve id =
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
-let add_global id tp con =
+let add_global id defn =
   let* st = get in
-  let sym, st' = St.add_global id tp con st in
+  let sym, st' = St.add_global id defn st in
   let* () = set st' in
   ret sym
 
-let get_global sym : (D.tp * D.con option) m =
+let get_global sym =
   let* st = get in
   match St.get_global sym st with
-  | tp, con -> ret (tp, con)
+  | defn -> ret defn
   | exception exn -> throw exn
 
 let get_local_tp ix =
@@ -45,6 +45,11 @@ let get_local_tp ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
+let get_global_tp sym =
+  let* st = get in
+  match St.get_global_tp sym st with
+  | tp -> ret tp
+  | exception exn -> throw exn
 
 let get_local ix =
   let* env = read in

@@ -3,7 +3,9 @@ open CodeUnit
 
 type output_message =
   | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}
-  | Definition of {ident : Ident.t; tp : Syntax.tp; tm : Syntax.t option}
+  | Definition of {ident : Ident.t; tp : Syntax.tp; tm : Syntax.t }
+  | Axiom of { ident : Ident.t; tp : Syntax.tp }
+  | Record of { ident : Ident.t; tp : Syntax.tp;  }
 
 type warning_message =
   | MissingProject

@@ -4,10 +4,11 @@ module D = Domain
 type t
 
 val init : string -> t
-val add_global : Ident.t -> D.tp -> D.con option -> t -> Global.t * t
+val add_global : Ident.t -> Definition.t -> t -> Global.t * t
 val resolve_global : Ident.t -> t -> Global.t option
 
-val get_global : Global.t -> t -> D.tp * D.con option
+val get_global : Global.t -> t -> Definition.t
+val get_global_tp : Global.t -> t -> D.tp
 
 (** Add a code unit as an import. *)
 val add_import : string list -> CodeUnit.t -> t -> t

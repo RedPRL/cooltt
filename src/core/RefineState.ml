@@ -2,6 +2,7 @@ open CodeUnit
 
 module StringMap = Map.Make (String)
 module D = Domain
+module Defn = Definition
 
 type t =
   { current_unit : string;
@@ -18,9 +19,9 @@ let update_current_unit f st = { st with code_units = StringMap.update st.curren
 
 let set_current_unit code_unit st = { st with code_units = StringMap.add st.current_unit code_unit st.code_units }
 
-let add_global ident tp ocon st =
+let add_global ident defn st =
   let code_unit = get_current_unit st in
-  let (sym, code_unit') = CodeUnit.add_global ident tp ocon code_unit in
+  let (sym, code_unit') = CodeUnit.add_global ident defn code_unit in
   (sym, set_current_unit code_unit' st)
 
 let resolve_global ident st =
@@ -31,6 +32,12 @@ let get_global sym st =
   let unit_name = CodeUnit.origin sym in
   let code_unit = StringMap.find unit_name st.code_units in
   CodeUnit.get_global sym code_unit
+
+let get_global_tp sym st =
+  match (get_global sym st) with
+  | Defn.Axiom {tp} -> tp
+  | Defn.Defn {tp;_} -> tp
+  | Defn.Record {tp;_} -> tp
 
 let add_import path code_unit st =
   let st' = update_current_unit (CodeUnit.add_import path code_unit) st in

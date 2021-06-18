@@ -122,7 +122,7 @@ struct
         | None -> `Anon
         | Some str -> `Machine ("?" ^ str)
       in
-      RM.add_global ident vtp None
+      RM.add_global ident (Definition.Axiom { tp = vtp })
     in
 
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
@@ -897,7 +897,7 @@ struct
       let+ tp = RM.get_local_tp ix in
       S.Var ix, tp
     | `Global sym ->
-      let+ tp, _ = RM.get_global sym in
+      let+ tp = RM.get_global_tp sym in
       S.Global sym, tp
     | `Unbound ->
       RM.refine_err @@ Err.UnboundVariable id
@@ -947,7 +947,7 @@ struct
         let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
-      let* sym = RM.add_global `Anon global_tp @@ Some def in
+      let* sym = RM.add_global `Anon (Definition.Defn { tp = global_tp; con = def }) in
       RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
     in
     RM.quote_cut cut

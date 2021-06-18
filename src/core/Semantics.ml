@@ -7,6 +7,7 @@ open CodeUnit
 
 module S = Syntax
 module D = Domain
+module Defn = Definition
 
 exception Todo
 exception CJHM
@@ -525,7 +526,7 @@ and eval : S.t -> D.con EvM.m =
       lift_cmp @@ whnf_inspect_con ~style:`UnfoldNone con
     | S.Global sym ->
       let* st = EvM.read_global in
-      let tp, _ = RefineState.get_global sym st in
+      let tp = RefineState.get_global_tp sym st in
       ret @@ D.Cut {tp; cut = (D.Global sym, [])}
     | S.Let (def, _, body) ->
       let* vdef = eval def in
@@ -868,10 +869,8 @@ and whnf_hd ~style hd =
       let* st = CM.read_global in
       begin
         match RefineState.get_global sym st with
-        | _tp, Some con ->
-          reduce_to ~style con
-        | _, None | exception _ ->
-          ret `Done
+        | Defn.Defn {tp = _; con} -> reduce_to ~style con
+        | _ | exception _ -> ret `Done
       end
     else
       ret `Done

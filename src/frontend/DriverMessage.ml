@@ -7,7 +7,9 @@ module S = Syntax
 
 type output_message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
-  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
+  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t }
+  | Axiom of { ident : Ident.t; tp : S.tp }
+  | Record of { ident : Ident.t; tp : S.tp;  }
 
 type warning_message =
   | MissingProject
@@ -62,7 +64,7 @@ let pp_message fmt =
       (Syntax.pp env) orig
       (Syntax.pp env) nf
 
-  | OutputMessage (Definition {ident; tp; tm = Some tm}) ->
+  | OutputMessage (Definition {ident; tp; tm}) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
       "@[<v>%a@ : %a@ = %a@]"
@@ -70,9 +72,13 @@ let pp_message fmt =
       (Syntax.pp_tp env) tp
       (Syntax.pp env) tm
 
-  | OutputMessage (Definition {ident; tp; tm = None}) ->
+  | OutputMessage (Axiom {ident; tp }) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
       "@[%a : %a@]"
       Ident.pp ident
       (Syntax.pp_tp env) tp
+  | OutputMessage (Record {ident; tp}) ->
+     let env = Pp.Env.emp in
+     Format.fprintf fmt
+     "@[ record %a : %a@]" Ident.pp ident (Syntax.pp_tp env) tp

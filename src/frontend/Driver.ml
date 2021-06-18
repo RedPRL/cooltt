@@ -6,6 +6,7 @@ open DriverMessage
 module CS = ConcreteSyntax
 module S = Syntax
 module D = Domain
+module Defn = Definition
 module Env = RefineEnv
 module Err = RefineError
 module Sem = Semantics
@@ -30,8 +31,9 @@ let elaborate_typed_term name (args : CS.cell list) tp tm =
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
   vtp, vtm
 
-let add_global name vtp con : command =
-  let+ _ = RM.add_global name vtp con in
+let add_global name defn : command =
+  let vtp = Defn.tp_of defn in
+  let+ _ = RM.add_global name defn in
   let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in
   Continue kont
 
@@ -39,19 +41,21 @@ let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
   function
   | `Global sym ->
-    let* vtp, con = RM.get_global sym in
-    let* tp = RM.quote_tp vtp in
-    let* tm =
-      match con with
-      | None -> RM.ret None
-      | Some con ->
-        let* tm = RM.quote_con vtp con in
-        RM.ret @@ Some tm
+    let* defn = RM.get_global sym in
+    let* msg =
+      match defn with
+      | Defn.Axiom {tp = vtp} ->
+         let* tp = RM.quote_tp vtp in
+         RM.ret @@ Axiom { ident = ident.node; tp }
+      | Defn.Defn {tp = vtp; con} ->
+         let* tp = RM.quote_tp vtp in
+         let* tm = RM.quote_con vtp con in
+         RM.ret @@ Definition { ident = ident.node; tp; tm }
+      | Defn.Record {tp = vtp; fields} ->
+         let* tp = RM.quote_tp vtp in
+         RM.ret @@ Record { ident = ident.node; tp }
     in
-    let+ () =
-      RM.emit ident.info pp_message @@
-      OutputMessage (Definition {ident = ident.node; tp; tm})
-    in
+    let+ () = RM.emit ident.info pp_message @@ OutputMessage msg in
     Continue Fun.id
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
@@ -121,35 +125,19 @@ and execute_decl ~project_root : CS.decl -> command =
   function
   | CS.Def {name; args; def = Some def; tp} ->
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    add_global name vtp @@ Some vtm
+    add_global name @@ Defn.Defn { tp = vtp; con = vtm }
   | CS.Def {name; args; def = None; tp} ->
     let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    add_global name vtp None
+    add_global name @@ Defn.Axiom { tp = vtp }
   | CS.DefRecord {name; constructor; args; fields} ->
      (* We start by adding the record's type constructor to the global scope. *)
      (* Note that we do this by treating the record type constructor as if it were a postulate. *)
      let* record_tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args (CS.unloc CS.Type) in
      let* record_vtp = RM.lift_ev @@ Sem.eval_tp record_tp in
-     let* _ = RM.add_global name record_vtp None in
 
-     Format.printf "[DEBUG] Admitted record type constructor '%a : %a'\n" Ident.pp name (Syntax.pp_tp Pp.Env.emp) record_tp;
-
-     (* Next, we will add in the actual record constructor. We start by computing it's type. *)
-     let saturated_record_tp = CS.unloc @@ CS.TpCon (name, List.map (fun (CS.Cell cell) -> CS.unloc @@ CS.Var cell.name) args) in
-     let* ctor_tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele (args @ fields) saturated_record_tp in
-     let* ctor_vtp = RM.lift_ev @@ Sem.eval_tp ctor_tp in
-
-     Format.printf "[DEBUG] Admitted record constructor type '%a : %a'\n" Ident.pp constructor (Syntax.pp_tp Pp.Env.emp) ctor_tp;
-
-     (* Now, we construct the actual constructor term *)
-     let* ctor_tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele (args @ fields) (CS.unloc @@ CS.Record (name, fields))) ctor_vtp in
-     let* ctor_vtm = RM.lift_ev @@ Sem.eval ctor_tm in
-
-     Format.printf "[DEBUG] Admitted record constructor term '%a = %a'\n" Ident.pp constructor (Syntax.pp Pp.Env.emp) ctor_tm;
-
-     let+ _ = RM.add_global constructor ctor_vtp (Some ctor_vtm) in
-     (* FIXME: Add in the projections *)
+     (* FIXME: Add in the record fields! *)
+     let+ _ = RM.add_global name (Defn.Record { tp = record_vtp; fields = [] }) in
 
      Continue Fun.id
   | CS.NormalizeTerm term ->

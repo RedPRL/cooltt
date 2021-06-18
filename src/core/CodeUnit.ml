@@ -28,8 +28,24 @@ end
 module Domain = Domain.Make (Global)
 module Syntax = Syntax.Make (Global)
 
+module Definition =
+struct
+  type t =
+    | Axiom of { tp : Domain.tp }
+    | Defn of { tp : Domain.tp; con : Domain.con }
+    (* FIXME: Should we use some sort of telescope here? *)
+    | Record of { tp : Domain.tp; fields : Domain.tp list }
+
+  let tp_of =
+    function
+    | Axiom {tp} -> tp
+    | Defn {tp; _} -> tp
+    | Record {tp; _} -> tp
+end
+
 module CodeUnit =
 struct
+
   type t =
     { (* The name of the code unit.  *)
       name : string;
@@ -40,7 +56,8 @@ struct
       (* The namespace of imports. *)
       import_namespace : Global.t Namespace.t;
       (* All the top-level bindings for this code unit. *)
-      symbol_table :  (Domain.tp * Domain.con option) Vector.vector }
+      symbol_table :  Definition.t Vector.vector }
+
 
   let origin (sym : Global.t) = sym.origin
 
@@ -55,9 +72,9 @@ struct
       import_namespace = Namespace.empty;
       symbol_table = Vector.create () }
 
-  let add_global ident tp ocon code_unit =
+  let add_global ident defn code_unit =
     let index = Vector.length code_unit.symbol_table in
-    let _ = Vector.push code_unit.symbol_table (tp, ocon) in
+    let _ = Vector.push code_unit.symbol_table defn in
     let sym = { Global.origin = code_unit.name; index = index; name = Ident.to_string_opt ident } in
     let code_unit' = { code_unit with namespace = Namespace.add ident sym code_unit.namespace } in
     (sym, code_unit')

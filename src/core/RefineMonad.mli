@@ -15,11 +15,12 @@ val refine_err : RefineError.t -> 'a m
 val update_span : LexingUtil.span option -> 'a m -> 'a m
 val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 
-val add_global : Ident.t -> D.tp -> D.con option -> Global.t m
+val add_global : Ident.t -> Definition.t -> Global.t m
 
 val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
-val get_global : Global.t -> (D.tp * D.con option) m
+val get_global : Global.t -> Definition.t m
 val get_local_tp : int -> D.tp m
+val get_global_tp : Global.t -> D.tp m
 val get_local : int -> D.con m
 
 val with_code_unit : string -> (unit -> 'a m) -> 'a m
