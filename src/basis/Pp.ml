@@ -56,4 +56,7 @@ struct
     env <>> []
 end
 
+let pp_sep_list ?(sep = ", ") pp_elem fmt xs =
+  Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt sep) pp_elem fmt xs
+
 type env = Env.t
