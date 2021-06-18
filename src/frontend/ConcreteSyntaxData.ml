@@ -34,6 +34,7 @@ and con_ =
   | Lam of Ident.t list * con
   | Ap of con * con list
   | Sg of cell list * con
+  | Record of cell list
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con
