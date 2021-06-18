@@ -107,6 +107,14 @@ struct
       action ()
     else
       M.ret ()
+
+  let first f (a, b) =
+    let+ c = f a in
+    (c, b)
+
+  let second f (a, b) =
+    let+ c = f b in
+    (a, c)
 end
 
 module type MonadReaderResult = sig
