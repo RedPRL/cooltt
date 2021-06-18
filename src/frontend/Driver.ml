@@ -70,12 +70,15 @@ let protect m =
 
 (* Imports *)
 
-let find_project_root input =
+let find_project_root ~as_file input =
   let working_dir = Sys.getcwd () in
   let start_dir =
-    match input with
-    | `File fname -> Filename.dirname fname
-    | `Stdin -> working_dir
+    match as_file with
+    | Some fname -> Filename.dirname fname
+    | None ->
+      match input with
+      | `File fname -> Filename.dirname fname
+      | `Stdin -> working_dir
   in
   let rec go dir =
     if Sys.file_exists "cooltt-lib" then
@@ -163,7 +166,8 @@ and process_file ~project_root input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file project_root input =
+let load_file ~as_file input =
+  let project_root = find_project_root ~as_file input in
   RM.run_exn (ST.init "<unit>") Env.init @@ process_file ~project_root input
 
 let execute_command ~project_root =
@@ -191,7 +195,8 @@ let rec repl ~project_root (ch : in_channel) lexbuf =
       close_in ch;
       RM.ret @@ Ok ()
 
-let do_repl project_root =
+let do_repl ~as_file =
+  let project_root = find_project_root ~as_file `Stdin in
   let ch, lexbuf = Load.prepare_repl () in
   RM.run_exn (RefineState.init "<repl>") Env.init @@
   repl ~project_root ch lexbuf
