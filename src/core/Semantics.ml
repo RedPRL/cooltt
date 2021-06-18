@@ -318,6 +318,12 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     let+ base = subst_tp r x base
     and+ fam = subst_tp_clo r x fam in
     D.Sg (base, ident, fam)
+  | D.RecordField (ident, tp, clo) ->
+     let+ tp = subst_tp r x tp
+     and+ clo = subst_tp_clo r x clo in
+     D.RecordField (ident, tp, clo)
+  | D.EmptyRecord ->
+     ret D.EmptyRecord
   | D.Sub (base, phi, clo) ->
     let+ base = subst_tp r x base
     and+ phi = subst_cof r x phi
@@ -470,6 +476,11 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
+  | S.Record [] -> ret D.EmptyRecord
+  | S.Record ((nm, field_tp) :: fields) ->
+     let+ env = read_local
+     and+ vtp = eval_tp field_tp in
+     D.RecordField (nm, vtp, D.Clo (S.Record fields, env))
   | S.Univ ->
     ret D.Univ
   | S.El tm ->

@@ -102,6 +102,8 @@ struct
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
+    | RecordField of Ident.t * tp * tp_clo
+    | EmptyRecord
     | Nat
     | Circle
     | TpLockedPrf of cof

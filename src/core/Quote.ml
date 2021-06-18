@@ -376,6 +376,13 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
+  | D.RecordField (ident, tp, rest) ->
+     let* qtp = quote_tp tp in
+     (* FIXME: This feels like there ought to be a better design! *)
+     let+ (S.Record qrest) = quote_tp_clo tp rest in
+     S.Record ((ident, qtp) :: qrest)
+  | D.EmptyRecord ->
+     ret @@ S.Record []
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->
