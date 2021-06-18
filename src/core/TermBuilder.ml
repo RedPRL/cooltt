@@ -227,6 +227,10 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)
 
+let record fields : _ m =
+  let+ fields = MU.map (MU.second Fun.id) fields in
+  S.Record fields
+
 let code_pi mbase mfam : _ m =
   let+ base = mbase
   and+ fam = mfam in

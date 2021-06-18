@@ -375,6 +375,9 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     `Sg (con0, con1)
+  | `Record fields ->
+     let+ fields = MU.map (MU.second (subst_con r x)) fields in
+     `Record fields
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
@@ -668,7 +671,12 @@ and eval : S.t -> D.con EvM.m =
       let+ vbase = eval base
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
-
+    | S.CodeRecord fields ->
+       let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
+         let+ vtp = eval tp in
+         (ident, vtp)
+       in
+       D.StableCode (`Record vfields)
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -1375,6 +1383,18 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.term @@
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
+      | `Record fields ->
+         (* FIXME: Allow dependencies in record fields. Also this code is bad *)
+         let splice_fields fields (kont : ((Ident.t * S.t TB.m) list -> S.tp Splice.t)) : S.tp Splice.t =
+           let rec go acc =
+             function
+             | [] -> kont (Bwd.to_list acc)
+             | ((ident, tp) :: fields) -> Splice.con tp @@ fun tm -> go (Snoc (acc, (ident, tm))) fields
+           in
+           go Emp fields
+         in
+         splice_tp @@ splice_fields fields @@ fun fields ->
+         Splice.term @@ TB.record @@ List.map (fun (ident, tp) -> (ident, TB.el tp)) fields
 
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@
@@ -1467,6 +1487,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
+      | `Record _fields -> failwith "FIXME: Implement 'enact_rigid_coe' for `Record"
       | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1540,6 +1561,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
+      | `Record _fields -> failwith "FIXME: Implement 'enact_rigid_hcom' for `Record"
       | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->

@@ -50,6 +50,7 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
+    | CodeRecord of (Ident.t * t) list
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t

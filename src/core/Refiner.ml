@@ -542,6 +542,12 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
+  let quantifiers (tacs : (Ident.t * T.Chk.tac) list) univ =
+    (* FIXME: Allow dependencies here! *)
+    tacs |> MU.map @@ fun (ident, tac) ->
+      let+ tp = T.Chk.run tac univ
+      in (ident, tp)
+
   let pi tac_base tac_fam : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ tp, fam = quantifier tac_base tac_fam univ in
@@ -552,6 +558,11 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
+
+  let record (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
+    univ_tac @@ fun univ ->
+    let+ fields = quantifiers tacs univ in
+    S.CodeRecord fields
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun univ ->

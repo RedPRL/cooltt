@@ -222,6 +222,7 @@ struct
     | `Ext _ -> Format.fprintf fmt "<code-ext>"
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
+    | `Record _ -> Format.fprintf fmt "<code-record>"
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"
     | `Univ -> Format.fprintf fmt "<code-univ>"

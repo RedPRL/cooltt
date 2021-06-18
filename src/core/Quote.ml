@@ -297,6 +297,13 @@ and quote_stable_code univ =
       lift_cmp @@ do_ap fam var
     in
     S.CodeSg (tbase, tfam)
+  | `Record fields ->
+     (* FIXME: Allow dependencies between record fields *)
+     let+ tfields = fields |> MU.map @@ fun (ident, tm) ->
+       let+ qtm = quote_con univ tm in
+       (ident, qtm)
+     in
+     S.CodeRecord tfields
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =

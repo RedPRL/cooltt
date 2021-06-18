@@ -69,6 +69,7 @@ struct
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
+    | CodeRecord fields -> Format.fprintf fmt "record[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump tp)) fields
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
@@ -91,7 +92,7 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
-    | Record fields -> Format.fprintf fmt "tp/record [%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump_tp tp)) fields
+    | Record fields -> Format.fprintf fmt "tp/record[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump_tp tp)) fields
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
@@ -136,6 +137,13 @@ struct
 
   let ppenv_bind env ident =
     Pp.Env.bind env @@ Ident.to_string_opt ident
+
+  let rec pp_fields env pp_field fmt  =
+    function
+    | [] -> Format.fprintf fmt ""
+    | ((ident, tp) :: fields) ->
+       let x, envx = ppenv_bind env ident in
+       Format.fprintf fmt "(%a : %a) %a" Uuseg_string.pp_utf_8 x (pp_field env) tp (pp_fields envx pp_field) fields
 
   let rec pp env fmt tm =
     match tm with
@@ -269,7 +277,8 @@ struct
         Uuseg_string.pp_utf_8 "Σ"
         (pp_atomic env) base
         (pp_atomic env) tm
-
+    | CodeRecord fields ->
+       Format.fprintf fmt "@[record %a@]" (pp_fields env pp) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -387,7 +396,7 @@ struct
       pp_braced (pp_sub env) fmt sb
 
 
-  and pp_tp env fmt tp =
+  and pp_tp env fmt (tp : tp) =
     match tp with
     | TpCofSplit branches ->
       let sep fmt () = Format.fprintf fmt "@ | " in
@@ -410,14 +419,7 @@ struct
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx) fam
     | Record fields ->
-       let rec pp_fields env fmt =
-         function
-         | [] -> Format.fprintf fmt ""
-         | ((ident, tp) :: fields) ->
-            let x, envx = ppenv_bind env ident in
-            Format.fprintf fmt "(%a : %a) %a" Uuseg_string.pp_utf_8 x (pp_tp env) tp (pp_fields envx) fields
-       in
-       Format.fprintf fmt "record %a" (pp_fields env) fields
+       Format.fprintf fmt "record %a" (pp_fields env pp_tp) fields
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

@@ -17,6 +17,8 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
+    | `Record of (Ident.t * 'a) list
+
     | `Ext of int * 'a * [`Global of 'a] * 'a
     (** Extension type *)
 
