@@ -7,15 +7,15 @@ let _ =
 
 type options =
   { mode: [`Interactive | `Scripting of [`Stdin | `File of string]];
-    project_root : string;
+    as_file : string option;
     width: int }
 
-let main {mode; project_root; width} =
+let main {mode; as_file; width} =
   Format.set_margin width;
   match
     match mode with
-    | `Interactive -> Driver.do_repl project_root
-    | `Scripting input -> Driver.load_file project_root input
+    | `Interactive -> Driver.do_repl ~as_file
+    | `Scripting input -> Driver.load_file ~as_file input
   with
   | Ok () -> `Ok ()
   | Error () -> `Error (false, "encountered one or more errors")
@@ -41,9 +41,11 @@ let opt_input_file =
   let parse_dash = Term.(app @@ const @@ Option.map @@ fun str -> if str = "-" then `Stdin else `File str) in
   Arg.(parse_dash & value & pos ~rev:true 0 (some string) None & info [] ~doc ~docv:"FILE")
 
-let opt_root_search =
-  let doc = "The location to start the search for the project root from. This is mainly useful when reading from stdin." in
-  Arg.(value & opt (some string) None & info ["p"; "project-root"] ~doc ~docv:"FILE")
+let opt_as_file =
+  let doc = "Pretend the input was located at $(docv) when searching for the project root. \
+             This is mainly useful when reading from stdin."
+  in
+  Arg.(value & opt (some string) None & info ["as-file"] ~doc ~docv:"FILE")
 
 let myinfo =
   let doc = "elaborate and normalize terms in Cartesian cubical type theory" in
@@ -66,21 +68,14 @@ let parse_mode s =
 
 let quote s = "`" ^ s ^ "'"
 
-let determine_project_root input_file root_search =
-  match input_file, root_search with
-  | _, Some root_search -> Driver.find_project_root (`File root_search)
-  | Some input_file, None -> Driver.find_project_root input_file
-  | None, None -> Sys.getcwd ()
-
-let consolidate_options mode interactive width input_file root_search : options Term.ret =
-  let project_root = determine_project_root input_file root_search in
+let consolidate_options mode interactive width input_file as_file : options Term.ret =
   match Option.map parse_mode mode, interactive, width, input_file with
   | (Some `Scripting | None), false, width, Some input_file ->
-    `Ok {mode = `Scripting input_file; project_root; width;}
+    `Ok {mode = `Scripting input_file; as_file; width;}
   | (Some `Scripting | None), false, _, None ->
     `Error (true, "scripting mode expects an input file")
   | Some `Interactive, _, width, None | None, true, width, None ->
-    `Ok {mode = `Interactive; project_root; width}
+    `Ok {mode = `Interactive; as_file; width}
   | Some `Interactive, _, _, Some _ | None, true, _, _ ->
     `Error (true, "interactive mode expects no input files")
   | Some `Scripting, true, _, _ ->
@@ -91,6 +86,8 @@ let consolidate_options mode interactive width input_file root_search : options 
     `Error (true, "no mode with the prefix " ^ quote s)
 
 let () =
-  let options : options Term.t = Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file $ opt_root_search)) in
+  let options : options Term.t =
+    Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file $ opt_as_file))
+  in
   let t = Term.ret @@ Term.(const main $ options) in
   Term.exit @@ Term.eval ~catch:true ~err:Format.std_formatter (t, myinfo)
