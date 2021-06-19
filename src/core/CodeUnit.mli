@@ -1,5 +1,15 @@
 open Basis
 
+module CodeUnitID :
+sig
+  type t
+  val compare : t -> t -> int
+  val pp : t Pp.printer
+  val top_level : t
+  val file : string -> t
+end
+type id = CodeUnitID.t
+
 module Global : Symbol.S
 
 module Domain : module type of Domain.Make(Global)
@@ -11,16 +21,16 @@ module CodeUnit : sig
   type t
 
   (** Return the name of the code unit that a symbol originated from. *)
-  val origin : Global.t -> string
+  val origin : Global.t -> id
 
   (** The name of a given code unit *)
-  val name : t -> string
+  val id : t -> id
 
   (** All of the code unit this unit directly imports *)
-  val imports : t -> string list
+  val imports : t -> id list
 
   (** Create a code unit. *)
-  val create : string -> t
+  val create : id -> t
 
   (** Add a binding to a given code unit. *)
   val add_global : Ident.t -> Domain.tp -> Domain.con option -> t -> (Global.t * t)

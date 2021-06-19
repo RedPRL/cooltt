@@ -58,7 +58,7 @@ let with_code_unit unit_name (action : unit -> 'a m) =
   let st' = St.enter_unit unit_name st in
   let* _ = set st' in
   let* a = action () in
-  let* _ = modify (St.restore_unit (CodeUnit.name cunit)) in
+  let* _ = modify (St.restore_unit (CodeUnit.id cunit)) in
   ret a
 
 let get_current_unit =
