@@ -23,13 +23,18 @@ let resolve id =
   | Some ix -> ret @@ `Local ix
   | None ->
     let* st = get in
-    match St.resolve_global id st with
+    match St.resolve_global (Env.current_unit_id env) id st with
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
+let get_current_unit_id =
+  let* env = read in
+  ret @@ Env.current_unit_id env
+
 let add_global id tp con =
   let* st = get in
-  let sym, st' = St.add_global id tp con st in
+  let* current_unit_id = get_current_unit_id in
+  let sym, st' = St.add_global current_unit_id id tp con st in
   let* () = set st' in
   ret sym
 
@@ -52,21 +57,18 @@ let get_local ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
-let with_code_unit unit_name (action : unit -> 'a m) =
-  let* st = get in
-  let cunit = St.get_current_unit st in
-  let st' = St.enter_unit unit_name st in
-  let* _ = set st' in
-  let* a = action () in
-  let* _ = modify (St.restore_unit (CodeUnit.id cunit)) in
-  ret a
+let with_code_unit unit_id (action : 'a m) =
+  let* () = modify (St.init_unit unit_id) in
+  scope (fun _ -> Env.set_current_unit_id unit_id Env.init) action
 
 let get_current_unit =
   let* st = get in
-  ret @@ St.get_current_unit st
+  let* current_unit_id = get_current_unit_id in
+  ret @@ St.get_unit current_unit_id st
 
 let add_import path code_unit =
-  modify (St.add_import path code_unit)
+  let* current_unit_id = get_current_unit_id in
+  modify (St.add_import current_unit_id path code_unit)
 
 let get_import path =
   let* st = get in

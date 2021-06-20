@@ -26,6 +26,9 @@ val cof_thy : t -> CofThy.Disj.t
 val get_veil : t -> Veil.t
 val problem : t -> string bwd
 
+val current_unit_id : t -> id
+val set_current_unit_id : id -> t -> t
+
 val location : t -> LexingUtil.span option
 val set_location : LexingUtil.span option -> t -> t
 
