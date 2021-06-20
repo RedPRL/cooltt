@@ -1,12 +1,21 @@
+open ContainersLabels
 open Basis
 open Bwd
 
-module Vector = CCVector
+module CodeUnitID =
+struct
+  type t = string option
+  let compare = Option.compare String.compare
+  let pp fmt id = Format.pp_print_string fmt (Option.value ~default:"<top-level>" id)
+  let top_level : t = None
+  let file s : t = Some s
+end
+type id = CodeUnitID.t
 
 module Global =
 struct
   type t =
-    { origin : string;
+    { origin : CodeUnitID.t;
       index : int;
       name : string option }
   [@@deriving show]
@@ -32,11 +41,11 @@ module CodeUnit =
 struct
   type t =
     { (* The name of the code unit.  *)
-      name : string;
+      id : id;
       (* The top-level namespace of this code unit. Import namespaces are stored separately. *)
       namespace : Global.t Namespace.t;
       (* The code unit names of all of this code unit's imports. *)
-      imports : string bwd;
+      imports : id bwd;
       (* The namespace of imports. *)
       import_namespace : Global.t Namespace.t;
       (* All the top-level bindings for this code unit. *)
@@ -44,12 +53,12 @@ struct
 
   let origin (sym : Global.t) = sym.origin
 
-  let name code_unit = code_unit.name
+  let id code_unit = code_unit.id
 
   let imports code_unit = Bwd.to_list code_unit.imports
 
-  let create name =
-    { name = name;
+  let create id =
+    { id = id;
       namespace = Namespace.empty;
       imports = Emp;
       import_namespace = Namespace.empty;
@@ -58,7 +67,7 @@ struct
   let add_global ident tp ocon code_unit =
     let index = Vector.length code_unit.symbol_table in
     let _ = Vector.push code_unit.symbol_table (tp, ocon) in
-    let sym = { Global.origin = code_unit.name; index = index; name = Ident.to_string_opt ident } in
+    let sym = { Global.origin = code_unit.id; index = index; name = Ident.to_string_opt ident } in
     let code_unit' = { code_unit with namespace = Namespace.add ident sym code_unit.namespace } in
     (sym, code_unit')
 
@@ -72,5 +81,5 @@ struct
 
   let add_import path import code_unit =
     { code_unit with import_namespace = Namespace.nest path import.namespace code_unit.import_namespace;
-                     imports = Snoc (code_unit.imports, code_unit.name) }
+                     imports = Snoc (code_unit.imports, code_unit.id) }
 end

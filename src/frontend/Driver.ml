@@ -99,6 +99,14 @@ let find_project_root ~as_file input =
   | Some root -> root
   | None -> working_dir
 
+let assign_unit_id ~as_file input =
+  match as_file with
+  | Some fname -> CodeUnitID.file fname
+  | None ->
+    match input with
+    | `File fname -> CodeUnitID.file fname
+    | `Stdin -> CodeUnitID.top_level
+
 let resolve_source_path project_root imp =
   Filename.concat project_root (imp ^ ".cooltt")
 
@@ -109,10 +117,10 @@ let rec build_code_unit ~project_root src_path =
 
 and load_code_unit ~project_root imp =
   let src_path = resolve_source_path project_root imp in
-  RM.with_code_unit src_path (fun () -> build_code_unit ~project_root src_path)
+  RM.with_code_unit (CodeUnitID.file src_path) @@ build_code_unit ~project_root src_path
 
 and import_code_unit project_root path : command =
-  let* unit_loaded = RM.get_import path in
+  let* unit_loaded = RM.get_import (CodeUnitID.file path) in
   let* import_unit =
     match unit_loaded with
     | Some import_unit -> RM.ret import_unit
@@ -168,7 +176,8 @@ and process_file ~project_root input =
 
 let load_file ~as_file input =
   let project_root = find_project_root ~as_file input in
-  RM.run_exn (ST.init "<unit>") Env.init @@ process_file ~project_root input
+  let unit_id = assign_unit_id ~as_file input in
+  RM.run_exn ST.init Env.init @@ RM.with_code_unit unit_id @@ process_file ~project_root input
 
 let execute_command ~project_root =
   function
@@ -197,6 +206,8 @@ let rec repl ~project_root (ch : in_channel) lexbuf =
 
 let do_repl ~as_file =
   let project_root = find_project_root ~as_file `Stdin in
+  let unit_id = assign_unit_id ~as_file `Stdin in
   let ch, lexbuf = Load.prepare_repl () in
-  RM.run_exn (RefineState.init "<repl>") Env.init @@
+  RM.run_exn RefineState.init Env.init @@
+  RM.with_code_unit unit_id @@
   repl ~project_root ch lexbuf
