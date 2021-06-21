@@ -39,7 +39,7 @@
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token SIGNATURE
+%token SIGNATURE STRUCT
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM
@@ -255,6 +255,8 @@ plain_term_except_cof_case:
     { Sg (tele, cod) }
   | SIGNATURE; tele = nonempty_list(tele_cell);
     { Signature tele }
+  | STRUCT; tele = nonempty_list(tele_cell);
+    { Struct tele }
   | dom = spine; RIGHT_ARROW; cod = term
     { Pi ([Cell {name = `Anon; tp = dom}], cod) }
   | dom = spine; TIMES; cod = term

@@ -21,6 +21,7 @@ struct
 
   module Fmt = Format
 
+
   let rec dump fmt =
     function
     | Var i -> Format.fprintf fmt "var[%i]" i
@@ -42,6 +43,8 @@ struct
     | Pair (tm0, tm1) -> Format.fprintf fmt "pair[%a, %a]" dump tm0 dump tm1
     | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
+
+    | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
 
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
@@ -80,9 +83,11 @@ struct
     | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
+  and dump_struct fmt fields =
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump tp)) fields
+
   and dump_sign fmt sign =
     Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump_tp tp)) sign
-
 
   and dump_tp fmt =
     function
@@ -158,6 +163,8 @@ struct
       pp_applications env fmt tm
     | Pair (tm0, tm1) ->
       pp_tuple (pp env) fmt [tm0; tm1]
+    | Struct fields ->
+       Format.fprintf fmt "@[struct %a@]" (pp_fields env pp) fields
     | CofSplit branches ->
       let sep fmt () = Format.fprintf fmt "@ | " in
       pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep

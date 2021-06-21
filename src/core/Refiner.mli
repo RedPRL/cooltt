@@ -97,8 +97,9 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
-module Record : sig
+module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
+  val intro : (Ident.t * Chk.tac) list -> Chk.tac
 end
 
 module Sub : sig

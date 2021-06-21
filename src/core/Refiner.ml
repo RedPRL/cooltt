@@ -490,7 +490,7 @@ struct
 end
 
 
-module Record =
+module Signature =
 struct
   let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
     let rec form_fields tele =
@@ -501,6 +501,29 @@ struct
          T.abstract ~ident:nm vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule @@ form_fields Emp tacs
+
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (Ident.t * T.Chk.tac) list) : (Ident.t * S.t) list m =
+    match (sign, tacs) with
+    | D.Field (ident, tp, sign_clo), (tac_ident, tac) :: tacs ->
+       (* FIXME: Check that the field names are the same *)
+       (* FIXME: Take Cofibrations into account *)
+       let* tfield = T.Chk.brun tac (tp, phi, phi_clo) in
+       let* vfield = RM.lift_ev @@ Sem.eval tfield in
+       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
+       let+ tfields = intro_fields phi phi_clo tsign tacs in
+       (ident, tfield) :: tfields
+    | D.Empty, [] -> RM.ret []
+    | sign, tacs -> failwith "FIXME: Better error handling for tactic/signature mismatch in 'intro_fields'"
+
+
+  let intro (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
+    T.Chk.brule @@
+    function
+    | (D.Signature sign, phi, phi_clo) ->
+       let+ fields = intro_fields phi phi_clo sign tacs in
+       S.Struct fields
+    | (tp, _, _) -> RM.expected_connective `Signature tp
+    (* failwith "FIXME: Implement Signature.intros" *)
 end
 
 module Univ =

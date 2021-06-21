@@ -202,6 +202,9 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
+  | D.Struct fields ->
+     let+ fields = MU.map (MU.second (subst_con r x)) fields in
+     D.Struct fields
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
     D.StableCode code
@@ -590,6 +593,9 @@ and eval : S.t -> D.con EvM.m =
       let+ el1 = eval t1
       and+ el2 = eval t2 in
       D.Pair (el1, el2)
+    | S.Struct fields ->
+       let+ vfields = MU.map (MU.second eval) fields in
+       D.Struct vfields
     | S.Fst t ->
       let* con = eval t in
       lift_cmp @@ do_fst con
@@ -802,7 +808,7 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
@@ -1420,7 +1426,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
            go Emp fields
          in
          splice_tp @@ splice_fields fields @@ fun fields ->
-         Splice.term @@ TB.record @@ List.map (fun (ident, tp) -> (ident, TB.el tp)) fields
+         Splice.term @@ TB.signature @@ List.map (fun (ident, tp) -> (ident, TB.el tp)) fields
 
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@

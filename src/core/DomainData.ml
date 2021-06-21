@@ -68,6 +68,7 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
+    | Struct of (Ident.t * con) list
     | SubIn of con
 
     | ElIn of con

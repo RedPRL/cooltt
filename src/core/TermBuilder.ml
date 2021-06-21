@@ -227,7 +227,7 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)
 
-let record fields : _ m =
+let signature fields : _ m =
   let+ fields = MU.map (MU.second Fun.id) fields in
   S.Signature fields
 

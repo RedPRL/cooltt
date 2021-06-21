@@ -35,6 +35,7 @@ and con_ =
   | Ap of con * con list
   | Sg of cell list * con
   | Signature of cell list
+  | Struct of cell list
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con

@@ -24,6 +24,8 @@ struct
     | Fst of t
     | Snd of t
 
+    | Struct of (Ident.t * t) list
+
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
     | Com of t * t * t * t * t

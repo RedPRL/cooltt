@@ -28,6 +28,7 @@ let keywords =
     ("loop", LOOP);
     ("circle", CIRCLE);
     ("sig", SIGNATURE);
+    ("struct", STRUCT);
     ("🍪", CIRCLE);
     ("let", LET);
     ("in", IN);

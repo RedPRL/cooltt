@@ -37,7 +37,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val record : (Ident.t * tac) list -> tac
+  val signature : (Ident.t * tac) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -92,7 +92,7 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let record (tacs : (Ident.t * tac) list) : tac =
+  let signature (tacs : (Ident.t * tac) list) : tac =
     (* FIXME: Handle universes *)
     let rec mk_tac_tele =
       function
@@ -100,7 +100,7 @@ struct
       | ((nm, tac) :: tacs) -> R.Bind (nm, as_tp tac, fun _ -> mk_tac_tele tacs)
     in
     let tele = mk_tac_tele tacs in
-    let tac = R.Record.formation tele in
+    let tac = R.Signature.formation tele in
     Tp tac
 
   let sub tac_tp tac_phi tac_pel : tac =
@@ -137,7 +137,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
      let tacs = List.map (fun (CS.Cell cell) -> (cell.name, cool_chk_tp cell.tp)) cells in
-     CoolTp.record tacs
+     CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
@@ -237,6 +237,11 @@ and chk_tm : CS.con -> T.Chk.tac =
         | tp, _, _ ->
           RM.expected_connective `Sg tp
       end
+
+    | CS.Struct fields ->
+       (* FIXME: Consider ElUnstable *)
+       let tacs = List.map (fun (CS.Cell cell) -> (cell.name, chk_tm cell.tp)) fields in
+       R.Signature.intro tacs
 
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)

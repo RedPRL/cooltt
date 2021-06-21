@@ -146,6 +146,8 @@ struct
       Format.fprintf fmt "loop[%a]" pp_dim r
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
+    | Struct fields ->
+       Format.fprintf fmt "struct[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
