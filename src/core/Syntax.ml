@@ -69,7 +69,7 @@ struct
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
-    | CodeRecord fields -> Format.fprintf fmt "record[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump tp)) fields
+    | CodeSignature fields -> Format.fprintf fmt "sig[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump tp)) fields
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
@@ -79,6 +79,10 @@ struct
 
     | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
+
+  and dump_sign fmt sign =
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump_tp tp)) sign
+
 
   and dump_tp fmt =
     function
@@ -92,7 +96,7 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
-    | Record fields -> Format.fprintf fmt "tp/record[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump_tp tp)) fields
+    | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
@@ -277,8 +281,8 @@ struct
         Uuseg_string.pp_utf_8 "Σ"
         (pp_atomic env) base
         (pp_atomic env) tm
-    | CodeRecord fields ->
-       Format.fprintf fmt "@[record %a@]" (pp_fields env pp) fields
+    | CodeSignature fields ->
+       Format.fprintf fmt "@[sig %a@]" (pp_fields env pp) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -418,8 +422,8 @@ struct
         (pp_tp env) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx) fam
-    | Record fields ->
-       Format.fprintf fmt "record %a" (pp_fields env pp_tp) fields
+    | Signature fields ->
+       Format.fprintf fmt "sig %a" (pp_fields env pp_tp) fields
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

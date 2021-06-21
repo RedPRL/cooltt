@@ -135,7 +135,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Sg (CS.Cell cell :: cells, body) ->
     CoolTp.sg (cool_chk_tp cell.tp) cell.name @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
-  | CS.Record cells ->
+  | CS.Signature cells ->
      let tacs = List.map (fun (CS.Cell cell) -> (cell.name, cool_chk_tp cell.tp)) cells in
      CoolTp.record tacs
   | CS.Dim -> CoolTp.dim
@@ -270,7 +270,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
-    | CS.Record cells ->
+    | CS.Signature cells ->
        let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
        R.Univ.record tacs
 

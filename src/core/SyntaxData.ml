@@ -50,7 +50,7 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
-    | CodeRecord of (Ident.t * t) list
+    | CodeSignature of (Ident.t * t) list
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t
@@ -73,11 +73,13 @@ struct
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
-    | Record of (Ident.t * tp) list
+    | Signature of sign
     | Nat
     | Circle
     | TpESub of sub * tp
     | TpLockedPrf of t
+
+  and sign = (Ident.t * tp) list
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

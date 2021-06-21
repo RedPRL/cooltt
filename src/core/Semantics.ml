@@ -299,12 +299,28 @@ and subst_tp_clo : D.dim -> DimProbe.t -> D.tp_clo -> D.tp_clo CM.m =
   let+ env = subst_env r x env in
   D.Clo (tp, env)
 
+and subst_sign_clo : D.dim -> DimProbe.t -> D.sign_clo -> D.sign_clo CM.m =
+  fun r x (Clo (sign, env)) ->
+  let open CM in
+  let+ env = subst_env r x env in
+  D.Clo (sign, env)
+
 and subst_env : D.dim -> DimProbe.t -> D.env -> D.env CM.m =
   fun r x {tpenv; conenv} ->
   let open CM in
   let+ tpenv = MU.map_bwd (subst_tp r x) tpenv
   and+ conenv = MU.map_bwd (subst_con r x) conenv in
   D.{tpenv; conenv}
+
+and subst_sign : D.dim -> DimProbe.t -> D.sign -> D.sign CM.m =
+  fun r x ->
+  let open CM in
+  function
+  | D.Field (ident, tp, clo) ->
+     let+ tp = subst_tp r x tp
+     and+ clo = subst_sign_clo r x clo in
+     D.Field (ident, tp, clo)
+  | D.Empty -> ret D.Empty
 
 and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
   fun r x ->
@@ -318,12 +334,9 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     let+ base = subst_tp r x base
     and+ fam = subst_tp_clo r x fam in
     D.Sg (base, ident, fam)
-  | D.RecordField (ident, tp, clo) ->
-     let+ tp = subst_tp r x tp
-     and+ clo = subst_tp_clo r x clo in
-     D.RecordField (ident, tp, clo)
-  | D.EmptyRecord ->
-     ret D.EmptyRecord
+  | D.Signature sign ->
+     let+ sign = subst_sign r x sign in
+     D.Signature sign
   | D.Sub (base, phi, clo) ->
     let+ base = subst_tp r x base
     and+ phi = subst_cof r x phi
@@ -375,9 +388,9 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     `Sg (con0, con1)
-  | `Record fields ->
+  | `Signature fields ->
      let+ fields = MU.map (MU.second (subst_con r x)) fields in
-     `Record fields
+     `Signature fields
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
@@ -466,6 +479,15 @@ and subst_sp : D.dim -> DimProbe.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
   CM.MU.map @@ subst_frm r x
 
+and eval_sign : S.sign -> D.sign EvM.m =
+  let open EvM in
+  function
+  | [] -> ret D.Empty
+  | (ident, field) :: fields ->
+     let+ env = read_local
+     and+ vfield = eval_tp field in
+     D.Field (ident, vfield, D.Clo (fields, env))
+
 and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
@@ -479,11 +501,9 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
-  | S.Record [] -> ret D.EmptyRecord
-  | S.Record ((nm, field_tp) :: fields) ->
-     let+ env = read_local
-     and+ vtp = eval_tp field_tp in
-     D.RecordField (nm, vtp, D.Clo (S.Record fields, env))
+  | S.Signature sign ->
+     let+ vsign = eval_sign sign in
+     D.Signature vsign
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -671,12 +691,12 @@ and eval : S.t -> D.con EvM.m =
       let+ vbase = eval base
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
-    | S.CodeRecord fields ->
+    | S.CodeSignature fields ->
        let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
          let+ vtp = eval tp in
          (ident, vtp)
        in
-       D.StableCode (`Record vfields)
+       D.StableCode (`Signature vfields)
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -1084,6 +1104,12 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval bdy
 
+and inst_sign_clo : D.sign_clo -> D.con -> D.sign CM.m =
+  fun clo x ->
+  match clo with
+  | D.Clo (sign, env) ->
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_sign sign
+
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con ~style con =
   let open CM in
@@ -1383,7 +1409,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.term @@
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
-      | `Record fields ->
+      | `Signature fields ->
          (* FIXME: Allow dependencies in record fields. Also this code is bad *)
          let splice_fields fields (kont : ((Ident.t * S.t TB.m) list -> S.tp Splice.t)) : S.tp Splice.t =
            let rec go acc =
@@ -1487,7 +1513,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
-      | `Record _fields -> failwith "FIXME: Implement 'enact_rigid_coe' for `Record"
+      | `Signature _fields -> failwith "FIXME: Implement 'enact_rigid_coe' for `Signature"
       | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1561,7 +1587,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
-      | `Record _fields -> failwith "FIXME: Implement 'enact_rigid_hcom' for `Record"
+      | `Signature _fields -> failwith "FIXME: Implement 'enact_rigid_hcom' for `Signature"
       | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->

@@ -499,7 +499,7 @@ struct
          let* tp = T.Tp.run tac in
          let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
          T.abstract ~ident:nm vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
-      | Done -> RM.ret @@ S.Record (Bwd.to_list tele)
+      | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule @@ form_fields Emp tacs
 end
 
@@ -562,7 +562,7 @@ struct
   let record (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ fields = quantifiers tacs univ in
-    S.CodeRecord fields
+    S.CodeSignature fields
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac @@ fun univ ->

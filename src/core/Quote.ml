@@ -297,13 +297,13 @@ and quote_stable_code univ =
       lift_cmp @@ do_ap fam var
     in
     S.CodeSg (tbase, tfam)
-  | `Record fields ->
+  | `Signature fields ->
      (* FIXME: Allow dependencies between record fields *)
      let+ tfields = fields |> MU.map @@ fun (ident, tm) ->
        let+ qtm = quote_con univ tm in
        (ident, qtm)
      in
-     S.CodeRecord tfields
+     S.CodeSignature tfields
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =
@@ -369,6 +369,16 @@ and quote_tp_clo base fam =
   let* tp = lift_cmp @@ inst_tp_clo fam var in
   quote_tp tp
 
+and quote_sign : D.sign -> S.sign m =
+  function
+  | Field (ident, field, clo) ->
+     let* tfield = quote_tp field in
+     bind_var field @@ fun var ->
+     let* fields = lift_cmp @@ inst_sign_clo clo var in
+     let+ tfields = quote_sign fields in
+     (ident, tfield) :: tfields
+  | Empty -> ret []
+
 and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
@@ -383,13 +393,9 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
-  | D.RecordField (ident, tp, rest) ->
-     let* qtp = quote_tp tp in
-     (* FIXME: This feels like there ought to be a better design! *)
-     let+ (S.Record qrest) = quote_tp_clo tp rest in
-     S.Record ((ident, qtp) :: qrest)
-  | D.EmptyRecord ->
-     ret @@ S.Record []
+  | D.Signature sign ->
+     let+ sign = quote_sign sign in
+     S.Signature sign
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->

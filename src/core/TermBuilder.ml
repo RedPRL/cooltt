@@ -229,7 +229,7 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
 
 let record fields : _ m =
   let+ fields = MU.map (MU.second Fun.id) fields in
-  S.Record fields
+  S.Signature fields
 
 let code_pi mbase mfam : _ m =
   let+ base = mbase

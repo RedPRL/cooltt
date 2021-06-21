@@ -123,6 +123,14 @@ struct
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
+  and pp_sign_clo : (S.sign clo) Pp.printer =
+    let sep fmt () = Format.fprintf fmt "," in
+    fun fmt (Clo (sign, {tpenv; conenv})) ->
+      Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
+        S.dump_sign sign
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+
   and pp_con : con Pp.printer =
     fun fmt ->
     function
@@ -181,15 +189,20 @@ struct
     | LockedPrfIn _ ->
       Format.fprintf fmt "<wrap>"
 
+
+  and pp_sign fmt =
+    function
+    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp ident pp_tp tp pp_sign_clo clo
+    | Empty -> Format.fprintf fmt "sig/empty"
+
   and pp_tp fmt =
     function
     | Pi (base, ident, fam) ->
       Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
     | Sg _ ->
       Format.fprintf fmt "<sg>"
-    | RecordField (ident, tp, rest) ->
-       Format.fprintf fmt "field[%a,%a,%a]" Ident.pp ident pp_tp tp pp_tp_clo rest
-    | EmptyRecord -> Format.fprintf fmt "<empty-record>"
+    | Signature sign ->
+       Format.fprintf fmt "sig[%a]" pp_sign sign
     | Sub _ ->
       Format.fprintf fmt "<sub>"
     | TpPrf _ ->
@@ -222,7 +235,7 @@ struct
     | `Ext _ -> Format.fprintf fmt "<code-ext>"
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
-    | `Record _ -> Format.fprintf fmt "<code-record>"
+    | `Signature _ -> Format.fprintf fmt "<code-sig>"
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"
     | `Univ -> Format.fprintf fmt "<code-univ>"

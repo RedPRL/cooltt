@@ -33,5 +33,6 @@ module Make : functor (Symbol : Symbol.S) -> sig
       When debugging, we are not likely to have enough context to use the nice pretty printers above; as a last resort, {!val:dump} and {!val:dump_tp} may be used. *)
 
   val dump : t Pp.printer
+  val dump_sign : sign Pp.printer
   val dump_tp : tp Pp.printer
 end
