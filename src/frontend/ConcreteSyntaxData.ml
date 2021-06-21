@@ -80,7 +80,7 @@ and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 type decl =
   | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
   | Print of Ident.t node
-  | Import of string
+  | Import of string list
   | NormalizeTerm of con
   | Quit
 
