@@ -57,9 +57,13 @@ let get_local ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
-let with_code_unit unit_id (action : 'a m) =
+let with_code_unit lib unit_id (action : 'a m) =
   let* () = modify (St.init_unit unit_id) in
-  scope (fun _ -> Env.set_current_unit_id unit_id Env.init) action
+  scope (fun _ -> Env.set_current_unit_id unit_id (Env.init lib)) action
+
+let get_current_lib =
+  let* env = read in
+  ret @@ Env.current_lib env
 
 let get_current_unit =
   let* st = get in

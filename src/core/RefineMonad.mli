@@ -22,7 +22,8 @@ val get_global : Global.t -> (D.tp * D.con option) m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 
-val with_code_unit : id -> 'a m -> 'a m
+val with_code_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
+val get_current_lib : Bantorra.Manager.library m
 val get_current_unit : CodeUnit.t m
 
 val add_import : string list -> CodeUnit.t -> unit m

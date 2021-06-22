@@ -70,13 +70,13 @@ let number =
 let whitespace =
   [' ' '\t']+
 let atom_initial =
-  [^ '0'-'9' '-' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']
+  [^ '0'-'9' '-'     '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']
 let atom_subsequent =
-  [^                     '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' ' ' '\t' '\n' '\r']
+  [^                         '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"'     ' ' '\t' '\n' '\r']
 let atom = atom_initial atom_subsequent*
 
-let module_name =
-  [^ '/' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '\\' '*' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r' ]+
+let module_part =
+  [^             '/' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.'     '\\'     '*'     ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']+
 
 let hole_atom_initial
   = atom_initial
@@ -174,13 +174,15 @@ rule token = parse
       | Not_found -> Grammar.ATOM input
     }
   | "import" whitespace
-    { module_path lexbuf }
+    { IMPORT (module_path lexbuf) }
   | _
     { Printf.eprintf "Unexpected char: %s" (lexeme lexbuf); token lexbuf }
 
 and module_path = parse
-  | module_name
-    { IMPORT (lexeme lexbuf) }
+  | (module_part as part) '.'
+    { let parts = module_path lexbuf in part :: parts }
+  | module_part
+    { [lexeme lexbuf] }
 
 and line_comment kont = parse
   | line_ending

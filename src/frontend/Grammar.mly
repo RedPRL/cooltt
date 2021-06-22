@@ -42,7 +42,7 @@
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM
-%token <string> IMPORT
+%token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
@@ -102,9 +102,8 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
-(* FIXME: Think about how project structures work! *)
-  | s = IMPORT;
-    { Import s }
+  | unitpath = IMPORT;
+    { Import unitpath }
   | PRINT; name = name
     { Print name }
 
