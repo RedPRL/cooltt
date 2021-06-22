@@ -25,7 +25,8 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t =
-  {resolver : Global.t StringMap.t;
+  {current_unit_id : id;
+   resolver : Global.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
    cof_thy : CofThy.Disj.t;
@@ -36,13 +37,17 @@ type t =
 let locals env = env.locals
 
 let init =
-  {resolver = StringMap.empty;
+  {current_unit_id = CodeUnitID.top_level;
+   resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
    cof_thy = CofThy.Disj.empty;
    locals = Emp;
    problem = Emp;
    location = None}
+
+let current_unit_id env = env.current_unit_id
+let set_current_unit_id current_unit_id env = {env with current_unit_id}
 
 let location env = env.location
 let set_location loc env =
