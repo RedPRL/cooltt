@@ -34,6 +34,7 @@ module Util (M : S) : sig
   val guard : bool -> (unit -> unit M.m) -> unit M.m
   val first : ('a -> 'b M.m) -> ('a * 'c) -> ('b * 'c) M.m
   val second : ('b -> 'c M.m) -> ('a * 'b) -> ('a * 'c) M.m
+  val map_accum_left_m : ('a list -> 'a -> 'b M.m) -> 'a list -> ('b list) M.m
 end
 
 module type MonadReaderResult = sig

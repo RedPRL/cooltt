@@ -115,6 +115,17 @@ struct
   let second f (a, b) =
     let+ c = f b in
     (a, c)
+
+  let map_accum_left_m f xs =
+    let rec go acc =
+      function
+      | [] -> M.ret []
+      | (x :: xs) ->
+         let+ y = f acc x
+         and+ ys = go (acc @ [x]) xs in
+         y :: ys
+    in
+    go [] xs
 end
 
 module type MonadReaderResult = sig
