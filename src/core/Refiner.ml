@@ -565,11 +565,38 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
-  let quantifiers (tacs : (Ident.t * T.Chk.tac) list) univ =
-    (* FIXME: Allow dependencies here! *)
-    tacs |> MU.map @@ fun (ident, tac) ->
-      let+ tp = T.Chk.run tac univ
-      in (ident, tp)
+  (* FIXME: Clean this up!!! *)
+  let quantifiers (tacs : (Ident.t * T.Chk.tac) list) univ : (Ident.t * S.t) list m =
+    (* FIXME: This nightmare probably belongs in splice *)
+    let rec splice_args cons args (k : (Ident.t * S.t TB.m) list -> S.tp TB.m) : S.tp Splice.t =
+      match cons with
+      | [] -> Splice.term @@ k args
+      | ((ident, vfam) :: cons) -> Splice.con vfam @@ fun vfam -> splice_args cons (args @ [ident, vfam]) k
+    in
+    (* FIXME: Thread through the field names *)
+    let pi_type (args : (Ident.t * S.t TB.m) list) (univ : S.tp TB.m) : S.tp TB.m =
+      let rec go args vars =
+        match args with
+        | [] -> univ
+        | ((ident, arg) :: args) -> TB.pi ~ident (TB.el @@ TB.ap arg vars) @@ fun var -> go args (vars @ [var])
+      in
+      go args []
+    in
+    let rec mk_fams fams vfams =
+      function
+      | [] -> RM.ret fams
+      | (ident, tac) :: tacs ->
+         let* famtp =
+           RM.lift_cmp @@
+           Sem.splice_tp @@
+           Splice.tp univ @@ fun univ ->
+           splice_args vfams [] @@ fun args -> pi_type args univ
+         in
+         let* fam = T.Chk.run tac famtp in
+         let* vfam = RM.lift_ev @@ Sem.eval fam in
+         mk_fams (fams @ [ident, fam]) (vfams @ [ident, vfam]) tacs
+    in
+    mk_fams [] [] tacs
 
   let pi tac_base tac_fam : T.Chk.tac =
     univ_tac @@ fun univ ->
@@ -582,7 +609,7 @@ struct
     S.CodeSg (tp, fam)
 
 
-  let record (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
+  let signature (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ fields = quantifiers tacs univ in
     S.CodeSignature fields

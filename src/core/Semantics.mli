@@ -28,6 +28,7 @@ val inst_sign_clo : D.sign_clo -> D.con -> D.sign compute
 
 val do_ap : D.con -> D.con -> D.con compute
 val do_ap2 : D.con -> D.con -> D.con -> D.con compute
+val do_aps : D.con -> D.con list -> D.con compute
 val do_fst : D.con -> D.con compute
 val do_snd : D.con -> D.con compute
 val do_sub_out : D.con -> D.con compute

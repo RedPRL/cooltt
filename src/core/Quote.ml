@@ -282,6 +282,28 @@ and quote_fields (sign : D.sign) (fields : (Ident.t * D.con) list) : (Ident.t * 
   | D.Empty, [] -> ret []
   | _, _ -> failwith "FIXME: Better Error handling on sig/field mismatch in 'quote_fields'"
 
+(* Given a signature:
+       sig (x : type)
+           (y : (arg : x) -> type)
+           (z : (arg1 : x) -> (arg2 : y) -> type)
+   We elaborate to the following form to ensure that things are well-scoped:
+       sig (x : type)
+           (y : x => (arg : x) -> type)
+           (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
+    Therefore, when quoting, we need to make sure that we handle these lambdas correctly. *)
+and quote_stable_field_code univ args (ident, fam) =
+  let rec go vars =
+    function
+    | [] -> quote_con univ @<< lift_cmp @@ do_aps fam vars
+    | (ident, arg) :: args ->
+       (* The 'do_aps' here instantiates the argument type families so that we can handle
+          the telescopic nature of fields correctly. *)
+       let* elarg = lift_cmp @@ CmpM.bind (do_aps arg vars) do_el in
+       quote_lam ~ident elarg @@ fun var -> go (vars @ [var]) args
+  in
+  let+ tfam = go [] args in
+  (ident, tfam)
+
 and quote_stable_code univ =
   function
   | `Nat ->
@@ -313,10 +335,7 @@ and quote_stable_code univ =
     in
     S.CodeSg (tbase, tfam)
   | `Signature fields ->
-     (* FIXME: Allow dependencies between record fields *)
-     let+ tfields = fields |> MU.map @@ fun (ident, tm) ->
-       let+ qtm = quote_con univ tm in
-       (ident, qtm)
+     let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
      in
      S.CodeSignature tfields
 

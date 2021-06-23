@@ -1178,6 +1178,9 @@ and do_snd con : D.con CM.m =
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
 
+and do_aps (con : D.con) (args : D.con list) : D.con CM.m =
+  let open CM in
+  MU.fold_left_m (fun arg f -> do_ap f arg) con args
 
 and do_ap2 f a b =
   let open CM in
@@ -1382,6 +1385,7 @@ and do_el : D.con -> D.tp CM.m =
       | D.StableCode code ->
         ret @@ D.ElStable code
       | _ ->
+        Format.eprintf "bad do_el: %a@." D.pp_con con;
         throw @@ NbeFailed "Invalid arguments to do_el"
     end
 
@@ -1416,17 +1420,19 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
       | `Signature fields ->
-         (* FIXME: Allow dependencies in record fields. Also this code is bad *)
+         (* FIXME: Pull this code into the Splice *)
          let splice_fields fields (kont : ((Ident.t * S.t TB.m) list -> S.tp Splice.t)) : S.tp Splice.t =
            let rec go acc =
              function
              | [] -> kont (Bwd.to_list acc)
-             | ((ident, tp) :: fields) -> Splice.con tp @@ fun tm -> go (Snoc (acc, (ident, tm))) fields
+             | ((ident, tp) :: fields) ->
+                Splice.con tp @@ fun tm -> go (Snoc (acc, (ident, tm))) fields
            in
            go Emp fields
          in
-         splice_tp @@ splice_fields fields @@ fun fields ->
-         Splice.term @@ TB.signature @@ List.map (fun (ident, tp) -> (ident, TB.el tp)) fields
+         splice_tp @@
+         splice_fields fields @@ fun fields ->
+         Splice.term @@ TB.signature @@ List.map (fun (ident, fam) -> (ident, fun bound -> TB.el @@ TB.ap fam bound)) fields
 
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@

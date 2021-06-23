@@ -60,7 +60,7 @@ val circle_elim : t m -> t m -> t m -> t m -> t m
 
 val pi : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
-val signature : (Ident.t * tp m) list -> tp m
+val signature : (Ident.t * (t m list -> tp m)) list -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m

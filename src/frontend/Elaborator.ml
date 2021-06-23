@@ -276,8 +276,16 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature cells ->
-       let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
-       R.Univ.record tacs
+       (* FIXME: Clean this mess up *)
+       let rec mk_tacs bound =
+         function
+         | [] -> []
+         | (CS.Cell cell) :: cells ->
+            let tac = List.fold_right (fun nm tac -> R.Pi.intro ~ident:nm (fun _ -> tac)) bound (chk_tm cell.tp) in
+            (cell.name, tac) :: mk_tacs (bound @ [cell.name]) cells
+       in
+       let tacs = mk_tacs [] cells in
+       R.Univ.signature tacs
 
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
