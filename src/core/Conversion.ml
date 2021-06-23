@@ -89,6 +89,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
     let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
+  | D.Signature sign1, D.Signature sign2 -> failwith "FIXME: Implement 'equate_tp' for D.Signature"
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in
@@ -159,6 +160,7 @@ and equate_stable_code univ code0 code1 =
     in
     equate_con tp_bdry bdry0 bdry1
 
+  | `Signature fields1, `Signature fields2 -> failwith "FIXME: Implement 'equate_stable_code' for `Signature"
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
 
@@ -189,6 +191,7 @@ and equate_con tp con0 con1 =
     let* snd0 = lift_cmp @@ do_snd con0 in
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
+  | D.Signature sign, _, _ -> failwith "FIXME: Implement 'equate_con' for D.Signature"
   | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
