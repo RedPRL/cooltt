@@ -10,7 +10,7 @@ open Tactic
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
 type 'a telescope =
-   | Bind of Ident.t * 'a * (var -> 'a telescope)
+   | Bind of string * 'a * (var -> 'a telescope)
    | Done
 
 module Hole : sig
@@ -59,7 +59,7 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : (Ident.t * Chk.tac) list -> Chk.tac
+  val signature : (string * Chk.tac) list -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
@@ -99,7 +99,8 @@ end
 
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
-  val intro : (Ident.t * Chk.tac) list -> Chk.tac
+  val intro : (string * Chk.tac) list -> Chk.tac
+  val proj : Syn.tac -> string -> Syn.tac
 end
 
 module Sub : sig

@@ -29,6 +29,7 @@ struct
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t * Conversion.Error.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | ExpectedConnective of connective * Pp.env * S.tp
+    | ExpectedFieldName of string * string
     | ExpectedDimensionLiteral of int
     | ExpectedTrue of Pp.env * S.t
     | VirtualType

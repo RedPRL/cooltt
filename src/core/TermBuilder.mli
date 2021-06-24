@@ -28,6 +28,7 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
+val proj : t m -> string -> t m
 
 val zero : t m
 val suc : t m -> t m
@@ -60,7 +61,7 @@ val circle_elim : t m -> t m -> t m -> t m -> t m
 
 val pi : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
-val signature : (Ident.t * (t m list -> tp m)) list -> tp m
+val signature : (string * (t m list -> tp m)) list -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m

@@ -26,7 +26,7 @@ exception CJHM
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 type 'a telescope =
-   | Bind of Ident.t * 'a * (T.var -> 'a telescope)
+   | Bind of string * 'a * (T.var -> 'a telescope)
    | Done
 
 module GlobalUtil : sig
@@ -498,32 +498,51 @@ struct
       | Bind (nm, tac, tacs) ->
          let* tp = T.Tp.run tac in
          let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-         T.abstract ~ident:nm vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
+         T.abstract ~ident:(`User [nm]) vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule @@ form_fields Emp tacs
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (Ident.t * T.Chk.tac) list) : (Ident.t * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string * T.Chk.tac) list) : (string * S.t) list m =
     match (sign, tacs) with
-    | D.Field (ident, tp, sign_clo), (tac_ident, tac) :: tacs ->
-       (* FIXME: Check that the field names are the same *)
+    | D.Field (lbl, tp, sign_clo), (tac_lbl, tac) :: tacs ->
+       let* _ = MU.guard (not @@ String.equal lbl tac_lbl) @@ fun () ->
+          RM.expected_field_name ~expected:lbl ~actual:tac_lbl
+       in
        (* FIXME: Take Cofibrations into account *)
        let* tfield = T.Chk.brun tac (tp, phi, phi_clo) in
        let* vfield = RM.lift_ev @@ Sem.eval tfield in
        let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
        let+ tfields = intro_fields phi phi_clo tsign tacs in
-       (ident, tfield) :: tfields
+       (lbl, tfield) :: tfields
     | D.Empty, [] -> RM.ret []
     | sign, tacs -> failwith "FIXME: Better error handling for tactic/signature mismatch in 'intro_fields'"
 
 
-  let intro (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
+  let intro (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
     T.Chk.brule @@
     function
     | (D.Signature sign, phi, phi_clo) ->
        let+ fields = intro_fields phi phi_clo sign tacs in
        S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
-    (* failwith "FIXME: Implement Signature.intros" *)
+
+  let rec proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string) : D.tp m =
+    match sign with
+    | D.Field (flbl, tp, _) when String.equal flbl lbl -> RM.ret tp
+    | D.Field (flbl, __, clo) ->
+       let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
+       let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
+       proj_tp vsign tstruct lbl
+    | D.Empty -> failwith "FIXME: Better error handling for missing field projection in 'proj_sign_field'"
+
+  let proj tac lbl : T.Syn.tac =
+    T.Syn.rule @@
+    let* tstruct, tp = T.Syn.run tac in
+    match tp with
+    | D.Signature sign ->
+       let+ tp = proj_tp sign tstruct lbl in
+       S.Proj (tstruct, lbl), tp
+    | _ -> RM.expected_connective `Signature tp
 end
 
 module Univ =
@@ -566,19 +585,19 @@ struct
     base, fam
 
   (* FIXME: Clean this up!!! *)
-  let quantifiers (tacs : (Ident.t * T.Chk.tac) list) univ : (Ident.t * S.t) list m =
+  let quantifiers (tacs : (string * T.Chk.tac) list) univ : (string * S.t) list m =
     (* FIXME: This nightmare probably belongs in splice *)
-    let rec splice_args cons args (k : (Ident.t * S.t TB.m) list -> S.tp TB.m) : S.tp Splice.t =
+    let rec splice_args cons args (k : (string * S.t TB.m) list -> S.tp TB.m) : S.tp Splice.t =
       match cons with
       | [] -> Splice.term @@ k args
       | ((ident, vfam) :: cons) -> Splice.con vfam @@ fun vfam -> splice_args cons (args @ [ident, vfam]) k
     in
     (* FIXME: Thread through the field names *)
-    let pi_type (args : (Ident.t * S.t TB.m) list) (univ : S.tp TB.m) : S.tp TB.m =
+    let pi_type (args : (string * S.t TB.m) list) (univ : S.tp TB.m) : S.tp TB.m =
       let rec go args vars =
         match args with
         | [] -> univ
-        | ((ident, arg) :: args) -> TB.pi ~ident (TB.el @@ TB.ap arg vars) @@ fun var -> go args (vars @ [var])
+        | ((lbl, arg) :: args) -> TB.pi ~ident:(`User [lbl]) (TB.el @@ TB.ap arg vars) @@ fun var -> go args (vars @ [var])
       in
       go args []
     in
@@ -609,7 +628,7 @@ struct
     S.CodeSg (tp, fam)
 
 
-  let signature (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
+  let signature (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ fields = quantifiers tacs univ in
     S.CodeSignature fields

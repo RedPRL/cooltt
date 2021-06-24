@@ -95,6 +95,7 @@ struct
     | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
+    | KProj lbl -> Format.fprintf fmt "proj[%s]" lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -147,7 +148,7 @@ struct
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
-       Format.fprintf fmt "struct[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm pp_con tp)) fields
+       Format.fprintf fmt "struct[%a]" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
@@ -194,7 +195,7 @@ struct
 
   and pp_sign fmt =
     function
-    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp ident pp_tp tp pp_sign_clo clo
+    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%s,%a,%a]" ident pp_tp tp pp_sign_clo clo
     | Empty -> Format.fprintf fmt "sig/empty"
 
   and pp_tp fmt =

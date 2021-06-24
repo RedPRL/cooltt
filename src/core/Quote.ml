@@ -271,14 +271,14 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_fields (sign : D.sign) (fields : (Ident.t * D.con) list) : (Ident.t * S.t) list m =
+and quote_fields (sign : D.sign) (fields : (string * D.con) list) : (string * S.t) list m =
   match sign, fields with
-  | D.Field (ident, tp, sign_clo), (field_ident, field) :: fields ->
+  | D.Field (lbl, tp, sign_clo), (flbl, fcon) :: fields ->
      (* FIXME: Computation??? *)
-     let* sign = lift_cmp @@ inst_sign_clo sign_clo field in
-     let* tfield = quote_con tp field in
+     let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
+     let* tfield = quote_con tp fcon in
      let+ tfields = quote_fields sign fields in
-     (ident, tfield) :: tfields
+     (lbl, tfield) :: tfields
   | D.Empty, [] -> ret []
   | _, _ -> failwith "FIXME: Better Error handling on sig/field mismatch in 'quote_fields'"
 
@@ -291,18 +291,18 @@ and quote_fields (sign : D.sign) (fields : (Ident.t * D.con) list) : (Ident.t * 
            (y : x => (arg : x) -> type)
            (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
     Therefore, when quoting, we need to make sure that we handle these lambdas correctly. *)
-and quote_stable_field_code univ args (ident, fam) =
+and quote_stable_field_code univ args (lbl, fam) =
   let rec go vars =
     function
     | [] -> quote_con univ @<< lift_cmp @@ do_aps fam vars
-    | (ident, arg) :: args ->
+    | (lbl, arg) :: args ->
        (* The 'do_aps' here instantiates the argument type families so that we can handle
           the telescopic nature of fields correctly. *)
        let* elarg = lift_cmp @@ CmpM.bind (do_aps arg vars) do_el in
-       quote_lam ~ident elarg @@ fun var -> go (vars @ [var]) args
+       quote_lam ~ident:(`User [lbl]) elarg @@ fun var -> go (vars @ [var]) args
   in
   let+ tfam = go [] args in
-  (ident, tfam)
+  (lbl, tfam)
 
 and quote_stable_code univ =
   function
@@ -642,6 +642,8 @@ and quote_frm tm =
     ret @@ S.Fst tm
   | D.KSnd ->
     ret @@ S.Snd tm
+  | D.KProj lbl ->
+     ret @@ S.Proj (tm, lbl)
   | D.KAp (tp, con) ->
     let+ targ = quote_con tp con in
     S.Ap (tm, targ)

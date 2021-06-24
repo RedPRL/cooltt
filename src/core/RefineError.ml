@@ -66,6 +66,8 @@ let pp fmt =
     Fmt.fprintf fmt
       "Expected true cofibration: %a"
       (S.pp ppenv) cof
+  | ExpectedFieldName (expected, actual) ->
+     Fmt.fprintf fmt "Field name mismatch, expected %s but got %s" expected actual
   | VirtualType ->
     Fmt.fprintf fmt "Virtual type (dim, cof, etc.) cannot appear in this position"
   | HoleNotPermitted (ppenv, tp) ->

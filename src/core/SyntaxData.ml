@@ -24,7 +24,8 @@ struct
     | Fst of t
     | Snd of t
 
-    | Struct of (Ident.t * t) list
+    | Struct of (string * t) list
+    | Proj of t * string
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -52,7 +53,7 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
-    | CodeSignature of (Ident.t * t) list
+    | CodeSignature of (string * t) list
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t
@@ -81,7 +82,7 @@ struct
     | TpESub of sub * tp
     | TpLockedPrf of t
 
-  and sign = (Ident.t * tp) list
+  and sign = (string * tp) list
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

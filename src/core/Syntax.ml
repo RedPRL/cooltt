@@ -46,6 +46,7 @@ struct
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
 
+    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %s]" dump tm lbl
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -72,7 +73,7 @@ struct
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
-    | CodeSignature fields -> Format.fprintf fmt "sig[%a]" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump tp)) fields
+    | CodeSignature fields -> Format.fprintf fmt "sig[%a]" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl dump tp)) fields
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
@@ -84,10 +85,10 @@ struct
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
   and dump_struct fmt fields =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump tp)) fields
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl dump tp)) fields
 
   and dump_sign fmt sign =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (nm, tp) -> Format.fprintf fmt "%a : %a" Ident.pp nm dump_tp tp)) sign
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl dump_tp tp)) sign
 
   and dump_tp fmt =
     function
@@ -150,8 +151,9 @@ struct
   let rec pp_fields env pp_field fmt  =
     function
     | [] -> Format.fprintf fmt ""
-    | ((ident, tp) :: fields) ->
-       let x, envx = ppenv_bind env ident in
+    | ((lbl, tp) :: fields) ->
+       (* FIXME: Better pretty printing *)
+       let x, envx = ppenv_bind env (`User [lbl]) in
        Format.fprintf fmt "(%a : %a) %a" Uuseg_string.pp_utf_8 x (pp_field env) tp (pp_fields envx pp_field) fields
 
   let rec pp env fmt tm =
@@ -165,6 +167,8 @@ struct
       pp_tuple (pp env) fmt [tm0; tm1]
     | Struct fields ->
        Format.fprintf fmt "@[struct %a@]" (pp_fields env pp) fields
+    | Proj (tm, lbl) ->
+       Format.fprintf fmt "@[%a %@ %s@]" (pp env) tm lbl
     | CofSplit branches ->
       let sep fmt () = Format.fprintf fmt "@ | " in
       pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep

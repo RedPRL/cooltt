@@ -461,7 +461,7 @@ and subst_frm : D.dim -> DimProbe.t -> D.frm -> D.frm CM.m =
   fun r x ->
   let open CM in
   function
-  | D.KFst | D.KSnd | D.KElOut as frm -> ret frm
+  | D.KFst | D.KSnd | D.KElOut | D.KProj _ as frm -> ret frm
   | D.KAp (tp, arg) ->
     let+ tp = subst_tp r x tp
     and+ arg = subst_con r x arg in
@@ -593,15 +593,18 @@ and eval : S.t -> D.con EvM.m =
       let+ el1 = eval t1
       and+ el2 = eval t2 in
       D.Pair (el1, el2)
-    | S.Struct fields ->
-       let+ vfields = MU.map (MU.second eval) fields in
-       D.Struct vfields
     | S.Fst t ->
       let* con = eval t in
       lift_cmp @@ do_fst con
     | S.Snd t ->
       let* con = eval t in
       lift_cmp @@ do_snd con
+    | S.Struct fields ->
+       let+ vfields = MU.map (MU.second eval) fields in
+       D.Struct vfields
+    | S.Proj (t, lbl) ->
+       let* con = eval t in
+       lift_cmp @@ do_proj con lbl
     | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
@@ -1158,6 +1161,7 @@ and do_fst con : D.con CM.m =
       throw @@ NbeFailed "Couldn't fst argument in do_fst"
   end
 
+
 and do_snd con : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
@@ -1176,6 +1180,37 @@ and do_snd con : D.con CM.m =
       cut_frm ~tp:fib ~cut D.KSnd
     | _ ->
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
+  end
+
+and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : string) =
+  let open CM in
+  match sign with
+  | D.Field (flbl, tp, _) when String.equal flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
+  | D.Field (flbl, _, clo) ->
+     (* FIXME: Is this right?? *)
+     let* field = cut_frm_sign cut sign flbl in
+     let* sign = inst_sign_clo clo field in
+     cut_frm_sign cut sign lbl
+  | D.Empty -> failwith "FIXME: Better Error handling for missing fields in 'cut_frm_sign'"
+
+and do_proj (con : D.con) (lbl : string) : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl) in
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.Struct fields ->
+       (* FIXME: Handle errors here *)
+       ret @@ List.assoc lbl fields
+    | D.Split branches ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.Signature sign; cut} ->
+       cut_frm_sign cut sign lbl
+    | _ ->
+      throw @@ NbeFailed ("Couldn't proj argument in do_proj")
   end
 
 and do_aps (con : D.con) (args : D.con list) : D.con CM.m =
@@ -1421,7 +1456,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.el @@ TB.ap fam [x]
       | `Signature fields ->
          (* FIXME: Pull this code into the Splice *)
-         let splice_fields fields (kont : ((Ident.t * S.t TB.m) list -> S.tp Splice.t)) : S.tp Splice.t =
+         let splice_fields fields (kont : ((string * S.t TB.m) list -> S.tp Splice.t)) : S.tp Splice.t =
            let rec go acc =
              function
              | [] -> kont (Bwd.to_list acc)
@@ -1726,6 +1761,7 @@ and do_frm con =
   | D.KAp (_, con') -> do_ap con con'
   | D.KFst -> do_fst con
   | D.KSnd -> do_snd con
+  | D.KProj lbl -> do_proj con lbl
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con
   | D.KElOut -> do_el_out con

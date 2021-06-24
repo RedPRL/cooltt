@@ -145,6 +145,8 @@ rule token = parse
     { RIGHT_ARROW }
   | "=>"
     { RRIGHT_ARROW }
+  | "@"
+    { PROJ }
   | '_'
     { UNDERSCORE }
   | "?" hole_atom

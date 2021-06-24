@@ -37,7 +37,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : (Ident.t * tac) list -> tac
+  val signature : (string * tac) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -92,7 +92,7 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : (Ident.t * tac) list) : tac =
+  let signature (tacs : (string * tac) list) : tac =
     (* FIXME: Handle universes *)
     let rec mk_tac_tele =
       function
@@ -136,7 +136,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     CoolTp.sg (cool_chk_tp cell.tp) cell.name @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-     let tacs = List.map (fun (CS.Cell cell) -> (cell.name, cool_chk_tp cell.tp)) cells in
+     let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
      CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -240,7 +240,7 @@ and chk_tm : CS.con -> T.Chk.tac =
 
     | CS.Struct fields ->
        (* FIXME: Consider ElUnstable *)
-       let tacs = List.map (fun (CS.Cell cell) -> (cell.name, chk_tm cell.tp)) fields in
+       let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
        R.Signature.intro tacs
 
     | CS.Suc c ->
@@ -280,9 +280,9 @@ and chk_tm : CS.con -> T.Chk.tac =
        let rec mk_tacs bound =
          function
          | [] -> []
-         | (CS.Cell cell) :: cells ->
-            let tac = List.fold_right (fun nm tac -> R.Pi.intro ~ident:nm (fun _ -> tac)) bound (chk_tm cell.tp) in
-            (cell.name, tac) :: mk_tacs (bound @ [cell.name]) cells
+         | (CS.Field field) :: cells ->
+            let tac = List.fold_right (fun lbl tac -> R.Pi.intro ~ident:(`User [lbl]) (fun _ -> tac)) bound (chk_tm field.tp) in
+            (field.lbl, tac) :: mk_tacs (bound @ [field.lbl]) cells
        in
        let tacs = mk_tacs [] cells in
        R.Univ.signature tacs
@@ -357,6 +357,8 @@ and syn_tm : CS.con -> T.Syn.tac =
       R.Sg.pi1 @@ syn_tm t
     | CS.Snd t ->
       R.Sg.pi2 @@ syn_tm t
+    | CS.Proj (t, ident) ->
+       R.Signature.proj (syn_tm t) ident
     | CS.VProj t ->
       R.ElV.elim @@ syn_tm t
     | CS.Cap t ->

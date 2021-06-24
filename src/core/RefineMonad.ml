@@ -128,6 +128,9 @@ let expected_connective conn tp =
   let* ttp = quote_tp tp in
   refine_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
 
+let expected_field_name ~expected ~actual =
+  refine_err @@ Err.ExpectedFieldName (expected, actual)
+
 let abstract nm tp k =
   let rho env =
     let con = D.mk_var tp @@ Env.size env in
