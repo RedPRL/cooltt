@@ -157,6 +157,8 @@ rule token = parse
     }
   | "?"
     { HOLE_NAME None }
+  | "!"
+    { BANG }
   | "#t"
     { TOPC }
   | "#f"

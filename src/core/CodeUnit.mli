@@ -42,5 +42,5 @@ module CodeUnit : sig
   val get_global : Global.t -> t -> Domain.tp * Domain.con option
 
   (** Add another code unit as an import. *)
-  val add_import : string list -> t -> t -> t
+  val add_import : [< `Print of string option] Yuujinchou.Pattern.t -> t -> t -> t
 end

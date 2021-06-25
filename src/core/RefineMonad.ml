@@ -70,9 +70,9 @@ let get_current_unit =
   let* current_unit_id = get_current_unit_id in
   ret @@ St.get_unit current_unit_id st
 
-let add_import path code_unit =
+let add_import modifier code_unit =
   let* current_unit_id = get_current_unit_id in
-  modify (St.add_import current_unit_id path code_unit)
+  modify (St.add_import current_unit_id modifier code_unit)
 
 let get_import path =
   let* st = get in

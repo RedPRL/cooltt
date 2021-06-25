@@ -546,6 +546,35 @@ hlevel.cooltt:34.10-34.15 [Info]:
                                            i _x₃ =>
                                            [ i = 0 => _x₁ | i = 1 => _x₂ ]}
 
+--------------------[import.cooltt]--------------------
+Emitted namespace under p2:
+  ?cool = { cong => cong; funext => funext; path-p => path-p; q.t => tt
+          ; refl => refl; symm => symm; symm/filler => symm/filler
+          ; trans => trans; trans/filler => trans/filler; u => unit
+          ; unit/eta => unit/eta }
+
+Emitted namespace under (root):
+  ?all = { p1.cong => cong; p1.funext => funext; p1.path => path
+         ; p1.path-p => path-p; p1.refl => refl; p1.symm => symm
+         ; p1.symm/filler => symm/filler; p1.trans => trans
+         ; p1.trans/filler => trans/filler; p1.tt => tt
+         ; p1.unit/eta => unit/eta; p2.cong => cong; p2.funext => funext
+         ; p2.path-p => path-p; p2.q.t => tt; p2.refl => refl
+         ; p2.symm => symm; p2.symm/filler => symm/filler; p2.trans => trans
+         ; p2.trans/filler => trans/filler; p2.u => unit
+         ; p2.unit/eta => unit/eta }
+
+Emitted namespace under (root):
+  ? = { cong => cong; funext => funext; path => path; path-p => path-p
+      ; refl => refl; symm => symm; symm/filler => symm/filler
+      ; trans => trans; trans/filler => trans/filler; tt => tt; unit => unit
+      ; unit/eta => unit/eta }
+
+import.cooltt:20.6-20.13 [Info]:
+  cool-tt
+  : unit
+  = 0
+
 --------------------[isos.cooltt]--------------------
 --------------------[nat-path.cooltt]--------------------
 nat.cooltt:9.10-9.15 [Info]:
