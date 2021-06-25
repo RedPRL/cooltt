@@ -17,7 +17,7 @@ let nest modifier imported ns =
   | Ok transformed_imported ->
     Trie.union report_duplicate ns transformed_imported
   | Error (`BindingNotFound path) ->
-    failwith @@ "No identifier at" ^ Ident.to_string (`User path)
+    failwith @@ "No identifier at " ^ Ident.to_string (`User path)
 
 let find (ident : Ident.t) ns =
   match ident with
