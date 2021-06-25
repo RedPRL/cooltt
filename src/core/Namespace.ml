@@ -13,7 +13,7 @@ let nest pp_a modifier imported ns =
   let report_duplicate ~rev_path _old _new =
     failwith @@ "Duplicate identifiers for " ^ Ident.to_string (`User (List.rev rev_path))
   in
-  let custom (`Print lbl) ~rev_prefix t =
+  let hooks (`Print lbl) ~rev_prefix t =
     let lbl = Option.fold ~none:"?" ~some:(fun lbl -> "?" ^ lbl) lbl in
     Format.printf "@[<v2>Emitted namespace under %a:@,%s = @[{ "
       Ident.pp (`User (List.rev rev_prefix)) lbl;
@@ -25,7 +25,7 @@ let nest pp_a modifier imported ns =
     Format.printf "@ }@]@]@.@.";
     Result.ok t
   in
-  match Action.run_with_custom ~custom ~union:report_duplicate modifier imported with
+  match Action.run_with_hooks ~hooks ~union:report_duplicate modifier imported with
   | Ok transformed_imported ->
     Trie.union report_duplicate ns transformed_imported
   | Error (`BindingNotFound path) ->
