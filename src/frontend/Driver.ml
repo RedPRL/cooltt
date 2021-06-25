@@ -73,7 +73,7 @@ let protect m =
 let library_manager =
   match Bantorra.Manager.init ~anchor:"cooltt-lib" ~routers:[] with
   | Ok ans -> ans
-  | Error (`InvalidRoutingTable msg) -> failwith msg (* this should not happen! *)
+  | Error (`InvalidRouter msg) -> failwith msg (* this should not happen! *)
 
 let load_current_library ~as_file input =
   match
