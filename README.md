@@ -26,7 +26,7 @@ Once these dependencies are installed cooltt can be built with the following set
 ```
 $ opam update
 $ opam pin add -y cooltt .              # first time
-$ opam upgrade
+$ opam upgrade                          # after packages change
 ```
 
 After this, the executable `cooltt` should be available. The makefile can be
