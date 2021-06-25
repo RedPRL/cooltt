@@ -7,6 +7,9 @@ import prelude
   ; ! p2.path /- remove p2.path -/
   ]
 import prelude [unit; unit -> p1.u] /- re-introduce p1.u; would err if p1.u is already there -/
+import prelude [] /- import everything, unqualified -/
+import prelude {} /- import nothing -/
+import prelude [ ! ] /- import nothing (the bang removes the entire tree) -/
 
 def cool-tt : p1.u := p2.q.t
 
