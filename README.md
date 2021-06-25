@@ -26,7 +26,7 @@ Once these dependencies are installed cooltt can be built with the following set
 ```
 $ opam update
 $ opam pin add -y cooltt .              # first time
-$ opam upgrade                          # after packages change
+$ opam upgrade
 ```
 
 After this, the executable `cooltt` should be available. The makefile can be
@@ -36,6 +36,7 @@ Once dune is available the executable can be locally changed and run with the
 following:
 
 ```
+$ make upgrade-pins                     # update and upgrade dependencies in active development
 $ dune exec cooltt                      # from the `cooltt` top-level directory
 ```
 
