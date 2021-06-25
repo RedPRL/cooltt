@@ -26,7 +26,7 @@ val with_code_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
 val get_current_lib : Bantorra.Manager.library m
 val get_current_unit : CodeUnit.t m
 
-val add_import : unit Yuujinchou.Pattern.t -> CodeUnit.t -> unit m
+val add_import : [< `Print of string option] Yuujinchou.Pattern.t -> CodeUnit.t -> unit m
 val get_import : id -> (CodeUnit.t option) m
 
 val quote_con : D.tp -> D.con -> S.t m

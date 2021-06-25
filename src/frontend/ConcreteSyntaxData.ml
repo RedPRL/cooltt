@@ -74,6 +74,7 @@ and con_ =
   | ModSeq of con list
   | ModUnion of con list
   | ModInSubtree of string list * con
+  | ModPrint of string option
 [@@deriving show]
 
 and case = pat * con

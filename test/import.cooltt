@@ -5,12 +5,15 @@ import prelude
   ; [[[[[{[]};{[{[[];[]]}]}]]]]] -- no op
   ; p1.[ ! u ] -- remove p1.u
   ; ! .p2.path -- remove p2.path
+  ; p2.[?cool] -- print out the bindings under p2
+  ; ?all -- print all the bindings to be imported
   ]
 import prelude [.unit; unit -> p1.u] -- re-introduce p1.u; would err if p1.u is already there
 import prelude [] -- import everything, unqualified
 import prelude {} -- import nothing
 import prelude [ ! ] -- import nothing (the bang removes the entire tree)
 import prelude [ ! . ] -- import nothing
+import prelude [?; !] -- import everything, unqualified
 
 def cool-tt : p1.u := p2.q.t
 

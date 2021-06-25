@@ -75,12 +75,26 @@ located(X):
   | e = X
     { locate $loc e }
 
+reversed_list_left_recursive(X):
+  | {[]}
+  | xs = reversed_list_left_recursive(X) x = X {x::xs}
+
+%inline list_left_recursive(X):
+  | xs = rev(reversed_list_left_recursive(X)) {xs}
+
 reversed_nonempty_list_left_recursive(X):
   | x = X {[x]}
   | xs = reversed_nonempty_list_left_recursive(X) x = X {x::xs}
 
 %inline nonempty_list_left_recursive(X):
   | xs = rev(reversed_nonempty_list_left_recursive(X)) {xs}
+
+reversed_separated_list_left_recursive(S,X):
+  | {[]}
+  | xs = reversed_separated_list_left_recursive(S,X) S x = X {x::xs}
+
+%inline separated_list_left_recursive(S,X):
+  | xs = rev(reversed_separated_list_left_recursive(S,X)) {xs}
 
 reversed_separated_nonempty_list_left_recursive(S,X):
   | x = X {[x]}
@@ -169,6 +183,8 @@ plain_modifier:
     { ModNone }
   | BANG path = unitpath_left_recursive
     { ModExcept path }
+  | name = HOLE_NAME
+    { ModPrint name }
 
 plain_atomic_in_cof_except_term:
   | BOUNDARY t = atomic_term

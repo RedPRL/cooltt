@@ -80,6 +80,6 @@ struct
     Vector.get code_unit.symbol_table sym.index
 
   let add_import modifier import code_unit =
-    { code_unit with import_namespace = Namespace.nest modifier import.namespace code_unit.import_namespace;
+    { code_unit with import_namespace = Namespace.nest Global.pp modifier import.namespace code_unit.import_namespace;
                      imports = Snoc (code_unit.imports, code_unit.id) }
 end
