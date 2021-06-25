@@ -79,7 +79,7 @@ struct
   let get_global (sym : Global.t) code_unit =
     Vector.get code_unit.symbol_table sym.index
 
-  let add_import path import code_unit =
-    { code_unit with import_namespace = Namespace.nest path import.namespace code_unit.import_namespace;
+  let add_import modifier import code_unit =
+    { code_unit with import_namespace = Namespace.transform modifier import.namespace code_unit.import_namespace;
                      imports = Snoc (code_unit.imports, code_unit.id) }
 end

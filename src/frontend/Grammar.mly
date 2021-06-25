@@ -31,7 +31,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token COLON COLON_EQUALS PIPE COMMA DOT SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token BANG COLON COLON_EQUALS PIPE COMMA DOT SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ
 %token EQUALS JOIN MEET
 %token TYPE
@@ -75,10 +75,26 @@ located(X):
   | e = X
     { locate $loc e }
 
+reversed_nonempty_list_left_recursive(X):
+  | x = X {[x]}
+  | xs = reversed_nonempty_list_left_recursive(X) x = X {x::xs}
+
+%inline nonempty_list_left_recursive(X):
+  | xs = rev(reversed_nonempty_list_left_recursive(X)) {xs}
+
+reversed_separated_nonempty_list_left_recursive(S,X):
+  | x = X {[x]}
+  | xs = reversed_separated_nonempty_list_left_recursive(S,X) S x = X {x::xs}
+
+%inline separated_nonempty_list_left_recursive(S,X):
+  | xs = rev(reversed_separated_nonempty_list_left_recursive(S,X)) {xs}
+
 term: t = located(plain_term) {t}
 atomic_in_cof: t = located(plain_atomic_in_cof) {t}
 %inline
 name: t = located(plain_name) {t}
+bracketed_modifier: t = located(plain_bracketed_modifier) {t}
+modifier: t = located(plain_modifier) {t}
 atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
 spine: t = located(plain_spine) {t}
@@ -102,8 +118,10 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
-  | unitpath = IMPORT;
-    { Import unitpath }
+  | unitpath = IMPORT; m = bracketed_modifier
+    { Import (unitpath, Some m) }
+  | unitpath = IMPORT
+    { Import (unitpath, None) }
   | PRINT; name = name
     { Print name }
 
@@ -122,6 +140,32 @@ command:
     { NoOp }
   | d = decl; SEMISEMI
     { Decl d }
+
+plain_bracketed_modifier:
+  | LSQ list = separated_list(SEMI, modifier) RSQ
+    { ModSeq list }
+  | LBR list = separated_list(COMMA, modifier) RBR
+    { ModUnion list }
+
+plain_modifier:
+  | m = plain_bracketed_modifier
+    { m }
+  | path = separated_nonempty_list_left_recursive(DOT, ATOM) DOT m = bracketed_modifier
+    { ModInSubtree (path, m) }
+  | RIGHT_ARROW
+    { ModRename ([], []) }
+  | path = separated_nonempty_list_left_recursive(DOT, ATOM) RIGHT_ARROW
+    { ModRename (path, []) }
+  | RIGHT_ARROW path = separated_nonempty_list(DOT, ATOM)
+    { ModRename ([], path) }
+  | path1 = separated_nonempty_list_left_recursive(DOT, ATOM) RIGHT_ARROW path2 = separated_nonempty_list(DOT, ATOM)
+    { ModRename (path1, path2) }
+  | path = separated_nonempty_list_left_recursive(DOT, ATOM)
+    { ModOnly path }
+  | BANG
+    { ModNone }
+  | BANG path = separated_nonempty_list(DOT, ATOM)
+    { ModExcept path }
 
 plain_atomic_in_cof_except_term:
   | BOUNDARY t = atomic_term

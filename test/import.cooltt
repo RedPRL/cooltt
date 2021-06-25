@@ -1,0 +1,5 @@
+import prelude [unit -> u; [{-> p1, -> p2}; p2.[tt -> q.t]]]
+
+def cool-tt : p1.u := p2.q.t
+
+print cool-tt

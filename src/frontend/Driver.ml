@@ -121,7 +121,7 @@ let rec build_code_unit src_path =
 and load_code_unit lib src =
   RM.with_code_unit lib (CodeUnitID.file src) @@ build_code_unit src
 
-and import_code_unit path : command =
+and import_code_unit path modifier : command =
   let* lib = RM.get_current_lib in
   match resolve_source_path lib path with
   | Error () -> RM.ret Quit
@@ -131,7 +131,7 @@ and import_code_unit path : command =
       match unit_loaded with
       | Some import_unit -> RM.ret import_unit
       | None -> load_code_unit lib src in
-    let* _ = RM.add_import [] import_unit in
+    let* _ = RM.add_import modifier import_unit in
     RM.ret @@ Continue Fun.id
 
 and execute_decl : CS.decl -> command =
@@ -152,8 +152,9 @@ and execute_decl : CS.decl -> command =
     Continue Fun.id
   | CS.Print ident ->
     print_ident ident
-  | CS.Import path ->
-    import_code_unit path
+  | CS.Import (path, modifier) ->
+    let* modifier = Elaborator.modifier modifier in
+    import_code_unit path modifier
   | CS.Quit ->
     RM.ret Quit
 

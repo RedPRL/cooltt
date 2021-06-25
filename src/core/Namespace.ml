@@ -8,11 +8,16 @@ let add ident sym ns =
   | `User path -> Trie.update_singleton path (fun _ -> Some sym) ns
   | _ -> ns
 
-let nest parts imported ns =
+(* XXX No [failwith]! *)
+let transform modifier imported ns =
   let report_duplicate ~rev_path _old _new =
     failwith @@ "Duplicate identifiers for " ^ Ident.to_string (`User (List.rev rev_path))
   in
-  Trie.union_subtree report_duplicate ns (parts, imported)
+  match Action.run ~union:report_duplicate modifier imported with
+  | Ok transformed_imported ->
+    Trie.union report_duplicate ns transformed_imported
+  | Error (`BindingNotFound path) ->
+    failwith @@ "Expected identifier at" ^ Ident.to_string (`User path)
 
 let find (ident : Ident.t) ns =
   match ident with

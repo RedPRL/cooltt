@@ -14,6 +14,7 @@ module T = Tactic
 module Sem = Semantics
 
 open Monad.Notation (RM)
+module MU = Monad.Util (RM)
 
 let rec unfold idents k =
   match idents with
@@ -373,3 +374,20 @@ and chk_cases cases =
 
 and chk_case (pat, c) =
   pat, chk_tm c
+
+let rec modifier_ (con : CS.con) =
+  let open Yuujinchou.Pattern in
+  RM.update_span con.info @@
+  match con.node with
+  | CS.ModAny -> RM.ret any
+  | CS.ModOnly path -> RM.ret @@ only_subtree path
+  | CS.ModRename (path1, path2) -> RM.ret @@ renaming_subtree path1 path2
+  | CS.ModNone -> RM.ret none
+  | CS.ModExcept path -> RM.ret @@ except_subtree path
+  | CS.ModSeq l -> seq <@> MU.map modifier_ l
+  | CS.ModUnion l -> union <@> MU.map modifier_ l
+  | CS.ModInSubtree (p, m) -> in_subtree p <@> modifier_ m
+  | _ -> RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
+
+let modifier con =
+  Option.fold ~none:(RM.ret Yuujinchou.Pattern.any) ~some:modifier_ con
