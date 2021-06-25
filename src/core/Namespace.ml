@@ -9,7 +9,7 @@ let add ident sym ns =
   | _ -> ns
 
 (* XXX No [failwith]! *)
-let transform modifier imported ns =
+let nest modifier imported ns =
   let report_duplicate ~rev_path _old _new =
     failwith @@ "Duplicate identifiers for " ^ Ident.to_string (`User (List.rev rev_path))
   in
