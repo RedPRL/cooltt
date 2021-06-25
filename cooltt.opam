@@ -18,10 +18,12 @@ depends: [
   "ppx_deriving" {>= "4.4.1"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
+  "bantorra"
   "yuujinchou"
   "z3" {>= "4.8.9"}
 ]
 pin-depends: [
-  "yuujinchou.~dev" "git+https://github.com/RedPRL/yuujinchou"
+  [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
+  [ "yuujinchou.~dev" "git+https://github.com/RedPRL/yuujinchou" ]
 ]
 build: [["dune" "build" "-p" name "-j" jobs]]

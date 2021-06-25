@@ -87,11 +87,11 @@
 
 (defvar cooltt-mode-syntax-table
   (let ((table (make-syntax-table)))
-    (modify-syntax-entry ?- "w" table)
     (modify-syntax-entry ?_ "w" table)
     (modify-syntax-entry ?= "w" table)
     (modify-syntax-entry ?' "w" table)
     (modify-syntax-entry ?/  "_ 123" table)
+    (modify-syntax-entry ?- ". 12" table)
     (modify-syntax-entry ?\n ">" table)
     table)
   "Syntax table for cooltt.")

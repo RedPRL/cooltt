@@ -6,7 +6,7 @@
 
 (library
  (name Frontend)
- (libraries cooltt.basis cooltt.cubical cooltt.core menhirLib)
+ (libraries bantorra cooltt.basis cooltt.cubical cooltt.core menhirLib)
  (preprocess
   (pps ppx_deriving.std))
  (flags

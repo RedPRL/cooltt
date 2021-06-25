@@ -25,7 +25,8 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t =
-  {current_unit_id : id;
+  {current_lib : Bantorra.Manager.library;
+   current_unit_id : id;
    resolver : Global.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
@@ -36,8 +37,9 @@ type t =
 
 let locals env = env.locals
 
-let init =
-  {current_unit_id = CodeUnitID.top_level;
+let init lib =
+  {current_lib = lib;
+   current_unit_id = CodeUnitID.top_level;
    resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
@@ -45,6 +47,8 @@ let init =
    locals = Emp;
    problem = Emp;
    location = None}
+
+let current_lib env = env.current_lib
 
 let current_unit_id env = env.current_unit_id
 let set_current_unit_id current_unit_id env = {env with current_unit_id}
