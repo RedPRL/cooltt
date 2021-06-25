@@ -147,24 +147,27 @@ plain_bracketed_modifier:
   | LBR list = separated_list(COMMA, modifier) RBR
     { ModUnion list }
 
+%inline unitpath_left_recursive:
+  | ioption(DOT) path = separated_nonempty_list_left_recursive(DOT, ATOM) {path}
+
 plain_modifier:
   | m = plain_bracketed_modifier
     { m }
-  | path = separated_nonempty_list_left_recursive(DOT, ATOM) DOT m = bracketed_modifier
+  | path = unitpath_left_recursive DOT m = bracketed_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW
     { ModRename ([], []) }
-  | path = separated_nonempty_list_left_recursive(DOT, ATOM) RIGHT_ARROW
+  | path = unitpath_left_recursive RIGHT_ARROW ioption(DOT)
     { ModRename (path, []) }
-  | RIGHT_ARROW path = separated_nonempty_list(DOT, ATOM)
+  | ioption(DOT) RIGHT_ARROW path = unitpath_left_recursive
     { ModRename ([], path) }
-  | path1 = separated_nonempty_list_left_recursive(DOT, ATOM) RIGHT_ARROW path2 = separated_nonempty_list(DOT, ATOM)
+  | path1 = unitpath_left_recursive RIGHT_ARROW path2 = unitpath_left_recursive
     { ModRename (path1, path2) }
-  | path = separated_nonempty_list_left_recursive(DOT, ATOM)
+  | path = unitpath_left_recursive
     { ModOnly path }
-  | BANG
+  | BANG ioption(DOT)
     { ModNone }
-  | BANG path = separated_nonempty_list(DOT, ATOM)
+  | BANG path = unitpath_left_recursive
     { ModExcept path }
 
 plain_atomic_in_cof_except_term:

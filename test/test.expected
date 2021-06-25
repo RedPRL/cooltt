@@ -547,7 +547,7 @@ hlevel.cooltt:34.10-34.15 [Info]:
                                            [ i = 0 => _x₁ | i = 1 => _x₂ ]}
 
 --------------------[import.cooltt]--------------------
-import.cooltt:16.6-16.13 [Info]:
+import.cooltt:17.6-17.13 [Info]:
   cool-tt
   : unit
   = 0
