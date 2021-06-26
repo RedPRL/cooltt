@@ -546,7 +546,8 @@ hlevel.cooltt:34.10-34.15 [Info]:
                                            i _x₃ =>
                                            [ i = 0 => _x₁ | i = 1 => _x₂ ]}
 
---------------------[import.cooltt]--------------------
+--------------------[isos.cooltt]--------------------
+--------------------[names.cooltt]--------------------
 Emitted namespace under p2:
   ?cool = { cong => cong; funext => funext; path-p => path-p; q.t => tt
           ; refl => refl; symm => symm; symm/filler => symm/filler
@@ -570,12 +571,16 @@ Emitted namespace under (root):
       ; trans => trans; trans/filler => trans/filler; tt => tt; unit => unit
       ; unit/eta => unit/eta }
 
-import.cooltt:20.6-20.13 [Info]:
+names.cooltt:20.6-20.13 [Info]:
   cool-tt
   : unit
   = 0
 
---------------------[isos.cooltt]--------------------
+names.cooltt:28.6-28.9 [Info]:
+  x.y
+  : (_x : nat) → nat
+  = z.w => z.w
+
 --------------------[nat-path.cooltt]--------------------
 nat.cooltt:9.10-9.15 [Info]:
   Computed normal form of + 2 3 as 5

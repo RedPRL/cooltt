@@ -5,30 +5,24 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
-  let atom_as_name a = `User [a]
+  let name_of_atoms parts = `User parts
 
-  let add_part part =
-    function
-    | `User parts -> `User (part :: parts)
+  let name_of_underscore = `Anon
 
-  let parts_as_name parts = `User parts
-
-  let underscore_as_name = `Anon
-
-  let qualified_name_to_term =
+  let plain_term_of_name =
     function
     | `User a -> Var (`User a)
     | `Anon -> Underscore
     | `Machine _ -> failwith "Impossible Internal Error"
 
-  let name_to_term {node; info} =
-    {node = qualified_name_to_term node; info}
+  let term_of_name {node; info} =
+    {node = plain_term_of_name node; info}
 
-  let forget_location {node; info = _} = node
+  let drop_location {node; info = _} = node
 
   let ap_or_atomic f =
     function
-    | [] -> forget_location f
+    | [] -> drop_location f
     | args -> Ap (f, args)
 %}
 
@@ -60,7 +54,7 @@
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
-%type <Ident.t> plain_name name
+%type <Ident.t> plain_name
 %type <con_>
   plain_atomic_in_cof_except_term
   plain_cof_except_term
@@ -118,11 +112,15 @@ atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
 spine: t = located(plain_spine) {t}
 
+%inline path:
+  | path = separated_nonempty_list_left_recursive(DOT, ATOM)
+    { path }
+
 plain_name:
-  | s = ATOM
-    { atom_as_name s }
+  | path = path
+    { name_of_atoms path }
   | UNDERSCORE
-    { underscore_as_name }
+    { name_of_underscore }
 
 decl:
   | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
@@ -133,10 +131,8 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
-  | unitpath = IMPORT; m = bracketed_modifier
-    { Import (unitpath, Some m) }
-  | unitpath = IMPORT
-    { Import (unitpath, None) }
+  | unitpath = IMPORT; m = ioption(bracketed_modifier)
+    { Import (unitpath, m) }
   | PRINT; name = name
     { Print name }
 
@@ -162,27 +158,24 @@ plain_bracketed_modifier:
   | LBR list = separated_list(COMMA, modifier) RBR
     { ModUnion list }
 
-%inline unitpath_left_recursive:
-  | ioption(DOT) path = separated_nonempty_list_left_recursive(DOT, ATOM) {path}
-
 plain_modifier:
   | m = plain_bracketed_modifier
     { m }
-  | path = unitpath_left_recursive DOT m = bracketed_modifier
+  | path = path DOT m = bracketed_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW
     { ModRename ([], []) }
-  | path = unitpath_left_recursive RIGHT_ARROW ioption(DOT)
+  | path = path RIGHT_ARROW ioption(DOT)
     { ModRename (path, []) }
-  | ioption(DOT) RIGHT_ARROW path = unitpath_left_recursive
+  | ioption(DOT) RIGHT_ARROW path = path
     { ModRename ([], path) }
-  | path1 = unitpath_left_recursive RIGHT_ARROW path2 = unitpath_left_recursive
+  | path1 = path RIGHT_ARROW path2 = path
     { ModRename (path1, path2) }
-  | path = unitpath_left_recursive
+  | path = path
     { ModOnly path }
   | BANG ioption(DOT)
     { ModNone }
-  | BANG path = unitpath_left_recursive
+  | BANG path = path
     { ModExcept path }
   | name = HOLE_NAME
     { ModPrint name }
@@ -220,8 +213,6 @@ plain_cof_or_term:
     { t }
 
 plain_atomic_term_except_name:
-  | part1 = ATOM DOT parts2 = separated_nonempty_list(DOT, ATOM)
-    { qualified_name_to_term (`User (part1 :: parts2)) }
   | LBR t = plain_cof_or_term RBR
     { t }
   | ZERO
@@ -260,15 +251,15 @@ bracketed:
 
 plain_atomic_term:
   | name = plain_name
-    { qualified_name_to_term name }
+    { plain_term_of_name name }
   | t = plain_atomic_term_except_name
     { t }
 
 plain_spine:
   | spine = nonempty_list_left_recursive(name); arg = atomic_term_except_name; args = list(atomic_term)
-    { Ap (name_to_term (List.hd spine), List.map name_to_term (List.tl spine) @ [arg] @ args) }
+    { Ap (term_of_name (List.hd spine), List.concat [List.map term_of_name (List.tl spine); [arg]; args]) }
   | spine = nonempty_list_left_recursive(name)
-    { ap_or_atomic (name_to_term (List.hd spine)) (List.map name_to_term (List.tl spine)) }
+    { ap_or_atomic (term_of_name (List.hd spine)) (List.map term_of_name (List.tl spine)) }
   | f = atomic_term_except_name; args = list(atomic_term)
     { ap_or_atomic f args }
 
@@ -278,11 +269,11 @@ plain_lambda_and_cof_case:
 
 plain_lambda_except_cof_case:
   | names1 = nonempty_list_left_recursive(name); name2 = plain_name; RRIGHT_ARROW; body = term
-  { Lam (List.map forget_location names1 @ [name2], body) }
+  { Lam (List.map drop_location names1 @ [name2], body) }
 
 plain_term:
   | t = plain_lambda_and_cof_case
-    { let name, body = t in Lam ([forget_location name], body)  }
+    { let name, body = t in Lam ([drop_location name], body)  }
   | t = plain_term_except_cof_case
     { t }
 
@@ -356,7 +347,7 @@ case:
 
 cof_case:
   | t = plain_lambda_and_cof_case
-    { let name, body = t in name_to_term name, body }
+    { let name, body = t in term_of_name name, body }
   | phi = located(plain_cof_or_atomic_term_except_name) RRIGHT_ARROW t = term
     { phi, t }
 
