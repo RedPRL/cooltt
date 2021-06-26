@@ -266,7 +266,7 @@ plain_atomic_term:
 
 plain_spine:
   | spine = nonempty_list_left_recursive(name); arg = atomic_term_except_name; args = list(atomic_term)
-    { Ap (name_to_term (List.hd spine), List.map name_to_term (List.tl spine) @ [arg] @ args) }
+    { Ap (name_to_term (List.hd spine), List.concat [List.map name_to_term (List.tl spine); [arg]; args]) }
   | spine = nonempty_list_left_recursive(name)
     { ap_or_atomic (name_to_term (List.hd spine)) (List.map name_to_term (List.tl spine)) }
   | f = atomic_term_except_name; args = list(atomic_term)
