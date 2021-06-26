@@ -8,6 +8,7 @@
     "splice" into it; then, the resulting value will have the desired behavior.
     This module, which is called [Splice] for lack of a better name,
     achieves this in an automatic way, avoiding all De Bruijn arithmetic.  *)
+open CodeUnit
 
 module S := Syntax
 module D := Domain

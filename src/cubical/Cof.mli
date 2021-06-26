@@ -1,7 +1,7 @@
 (** {1 Types } *)
 
 (** Multiple types in [cooltt] will need to {i include} the langauge of cofibrations, relative to a particular interval algebra ['r]. Therefore, we define a family polynomial endofunctors [('r, -) cof_f] indexed in an interpretation of the interval algebra ['r].
- *)
+*)
 type ('r, 'a) cof_f =
   | Eq of 'r * 'r
   | Join of 'a list
@@ -33,5 +33,10 @@ val bot : ('a, 'v) cof
 val top : ('a, 'v) cof
 
 (** The boundary [∂r] of a dimension [r : 𝕀] is the disjunction [r=0 ∨ r=1] *)
-val boundary : Dim.dim -> (Dim.dim, 'v) cof
+val boundary : dim0:'r -> dim1:'r -> 'r -> ('r, 'v) cof
 
+val complexity_cof : ('r, 'a) cof -> int
+
+val dump_cof_f : 'r Basis.Pp.printer -> 'a Basis.Pp.printer -> ('r, 'a) cof_f Basis.Pp.printer
+
+val dump_cof : 'r Basis.Pp.printer -> 'v Basis.Pp.printer -> ('r, 'v) cof Basis.Pp.printer

@@ -1,5 +1,6 @@
-module D := Domain
-module S := Syntax
+open CodeUnit
+module D = Domain
+module S = Syntax
 
 open Basis
 open Bwd
@@ -14,12 +15,19 @@ val refine_err : RefineError.t -> 'a m
 val update_span : LexingUtil.span option -> 'a m -> 'a m
 val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 
-val add_global : Ident.t -> D.tp -> D.con option -> Symbol.t m
+val add_global : Ident.t -> D.tp -> D.con option -> Global.t m
 
-val resolve : Ident.t -> [`Local of int | `Global of Symbol.t | `Unbound] m
-val get_global : Symbol.t -> (D.tp * D.con option) m
+val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
+val get_global : Global.t -> (D.tp * D.con option) m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
+
+val with_code_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
+val get_current_lib : Bantorra.Manager.library m
+val get_current_unit : CodeUnit.t m
+
+val add_import : [< `Print of string option] Yuujinchou.Pattern.t -> CodeUnit.t -> unit m
+val get_import : id -> (CodeUnit.t option) m
 
 val quote_con : D.tp -> D.con -> S.t m
 val quote_tp : D.tp -> S.tp m

@@ -2,6 +2,8 @@ open Basis.Bwd
 open Cubical
 open BwdNotation
 
+open CodeUnit
+
 module S = Syntax
 module D = Domain
 module TB = TermBuilder
@@ -87,7 +89,7 @@ struct
        phi, TB.coe code r' r box]
 
   let vproj ~r ~pcode ~code ~pequiv ~v =
-    Cof.boundary r,
+    Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r,
     F.dim r @@ fun r ->
     F.con pcode @@ fun _pcode ->
     F.con code @@ fun _code ->
@@ -99,7 +101,7 @@ struct
        TB.eq r TB.dim1, v]
 
   let vin ~r ~pivot ~base =
-    Cof.boundary r,
+    Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r,
     F.dim r @@ fun r ->
     F.con pivot @@ fun pivot ->
     F.con base @@ fun base ->
@@ -139,8 +141,13 @@ struct
       F.dim s @@ fun s ->
       F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [s; TB.prf]
+<<<<<<< HEAD
     | `V (_, r, pcode, code, _) ->
       Cof.boundary r,
+=======
+    | `V (r, pcode, code, _) ->
+      Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r,
+>>>>>>> main
       F.dim r @@ fun r ->
       F.con pcode @@ fun pcode ->
       F.con code @@ fun code ->

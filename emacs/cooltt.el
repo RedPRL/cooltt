@@ -87,17 +87,17 @@
 
 (defvar cooltt-mode-syntax-table
   (let ((table (make-syntax-table)))
-    (modify-syntax-entry ?- "w" table)
     (modify-syntax-entry ?_ "w" table)
     (modify-syntax-entry ?= "w" table)
     (modify-syntax-entry ?' "w" table)
     (modify-syntax-entry ?/  "_ 123" table)
+    (modify-syntax-entry ?- ". 12" table)
     (modify-syntax-entry ?\n ">" table)
     table)
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "let" "normalize" "quit")
+  '("def" "let" "normalize" "quit" "import")
   "Declaration keywords.")
 
 
@@ -108,7 +108,7 @@
 
 
 (defconst cooltt-expression-symbols
-  '("=>" "|" "[" "," "*" "×" ":" "=" "_" "𝕀" "𝔽" "∂" "∧" "∨" "→" "]" "->" "#t" "#f" "\\/" "/\\")
+  '("=>" "|" "[" "," "*" "×" ":" "=" "_" "𝕀" "𝔽" "∂" "∧" "∨" "→" "!" "]" "->" "#t" "#f" "\\/" "/\\")
   "Expression symbols.")
 
 (defvar cooltt-mode-font-lock-keywords

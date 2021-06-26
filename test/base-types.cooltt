@@ -1,5 +1,4 @@
-def path (A : type) (x : A) (y : A) : type :=
-  ext i => A with [i=0 => x | i=1 => y]
+import prelude
 
 def unit : type := ext => nat with [#t => 0]
 

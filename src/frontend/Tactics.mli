@@ -1,5 +1,7 @@
 open Core
 
+open CodeUnit
+
 module D := Domain
 module S := Syntax
 module RM := Monads.RefineM

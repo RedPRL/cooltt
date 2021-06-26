@@ -67,6 +67,15 @@ and con_ =
   | Cap of con
   | Locked of con
   | Unlock of con * con
+  | ModAny
+  | ModOnly of string list
+  | ModRename of string list * string list
+  | ModNone
+  | ModExcept of string list
+  | ModSeq of con list
+  | ModUnion of con list
+  | ModInSubtree of string list * con
+  | ModPrint of string option
 [@@deriving show]
 
 and case = pat * con
@@ -81,6 +90,7 @@ and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 type decl =
   | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
   | Print of Ident.t node
+  | Import of string list * con option
   | NormalizeTerm of con
   | Quit
 

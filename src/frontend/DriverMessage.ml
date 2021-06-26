@@ -1,17 +1,26 @@
 open Basis
 open Core
 
+open CodeUnit
+
+module S = Syntax
+
 type output_message =
-  | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}
-  | Definition of {ident : Ident.t; tp : Syntax.tp; tm : Syntax.t option}
+  | NormalizedTerm of {orig : S.t; nf : S.t}
+  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
+
+type warning_message = |
 
 type error_message =
   | LexingError
   | ParseError
   | UnboundIdent of Ident.t
+  | InvalidLibrary of string
+  | UnitNotFound of string
 
 type message =
   | OutputMessage of output_message
+  | WarningMessage of warning_message
   | ErrorMessage of {error : error_message; last_token : string option}
 
 
@@ -27,21 +36,31 @@ last_token as it would contain nothing.
 let pp_message fmt =
   function
   | ErrorMessage {error = ParseError; last_token = None} ->
-      Format.fprintf fmt "Parse error"
+    Format.fprintf fmt "Parse error"
 
   | ErrorMessage {error = ParseError; last_token = Some last_token} ->
-      Format.fprintf fmt "Parse error near %s" last_token
+    Format.fprintf fmt "Parse error near %s" last_token
 
   | ErrorMessage {error = LexingError; last_token = None} ->
-      Format.fprintf fmt "Lexing error"
+    Format.fprintf fmt "Lexing error"
 
   | ErrorMessage {error = LexingError; last_token = Some last_token} ->
-      Format.fprintf fmt "Lexing error near %s" last_token
+    Format.fprintf fmt "Lexing error near %s" last_token
 
   | ErrorMessage {error = UnboundIdent ident; _} ->
     Format.fprintf fmt
       "@[Unbound identifier %a@]"
       Ident.pp ident
+
+  | ErrorMessage {error = InvalidLibrary msg; _} ->
+    Format.fprintf fmt
+      "@[Could not load the library.@ %a@]" BantorraBasis.Error.pp_lines msg
+
+  | ErrorMessage {error = UnitNotFound msg; _} ->
+    Format.fprintf fmt
+      "@[Could not find the unit.@ %a@]" BantorraBasis.Error.pp_lines msg
+
+  | WarningMessage _ -> .
 
   | OutputMessage (NormalizedTerm {orig; nf}) ->
     let env = Pp.Env.emp in

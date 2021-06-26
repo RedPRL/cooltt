@@ -1,44 +1,38 @@
-open Basis
+open CodeUnit
 
+module IDMap = Map.Make (CodeUnitID)
 module D = Domain
-module StringMap = Map.Make (String)
 
-type t =
-  {resolver : Symbol.t StringMap.t;
-   globals : (D.tp * D.con option) SymbolMap.t}
+type t = { code_units : CodeUnit.t IDMap.t }
 
-let init =
-  {resolver = StringMap.empty;
-   globals = SymbolMap.empty}
+let init = { code_units = IDMap.empty }
 
-let add_global (ident : Ident.t) tp ocon st =
-  let sym =
-    Symbol.named_opt @@
-    match ident with
-    | `User id -> Some id
-    | `Machine id -> Some id
-    | `Anon -> None
-  in
-  sym,
-  {resolver =
-     begin
-       match ident with
-       | `User ident -> StringMap.add ident sym st.resolver
-       | _ -> st.resolver
-     end;
-   globals = SymbolMap.add sym (tp, ocon) st.globals}
+let get_unit id st =
+  IDMap.find id st.code_units
 
-let add_flex_global tp st =
-  let sym = Symbol.fresh () in
-  sym,
-  {st with
-   globals = SymbolMap.add sym (tp, None) st.globals}
+let update_unit id f st = { code_units = IDMap.update id (Option.map f) st.code_units }
 
-let resolve_global ident st =
-  match ident with
-  | `User id -> StringMap.find_opt id st.resolver
-  | _ -> None
+let set_unit id code_unit st = { code_units = IDMap.add id code_unit st.code_units }
+
+let add_global id ident tp ocon st =
+  let code_unit = get_unit id st in
+  let (sym, code_unit') = CodeUnit.add_global ident tp ocon code_unit in
+  (sym, set_unit id code_unit' st)
+
+let resolve_global id ident st =
+  let code_unit = get_unit id st in
+  CodeUnit.resolve_global ident code_unit
 
 let get_global sym st =
-  SymbolMap.find sym st.globals
+  let unit_name = CodeUnit.origin sym in
+  let code_unit = IDMap.find unit_name st.code_units in
+  CodeUnit.get_global sym code_unit
 
+let add_import id modifier code_unit st =
+  update_unit id (CodeUnit.add_import modifier code_unit) st
+
+let init_unit id st =
+  { code_units = IDMap.add id (CodeUnit.create id) st.code_units }
+
+let get_import path st =
+  IDMap.find_opt path st.code_units

@@ -1,3 +1,9 @@
+open Basis
+open Cubical
+open Monads
+
+open CodeUnit
+
 module S = Syntax
 module D = Domain
 module Sem = Semantics
@@ -7,9 +13,6 @@ exception CCHM
 exception CJHM
 exception CFHM
 
-open Basis
-open Cubical
-open Monads
 
 module Error =
 struct
@@ -193,7 +196,7 @@ let rec quote_con (tp : D.tp) con =
 
   | D.ElUnstable (`V (_lvl, r, pcode, code, pequiv)) as tp, _ ->
     begin
-      lift_cmp (CmpM.test_sequent [] (Cof.boundary r)) |>> function
+      lift_cmp (CmpM.test_sequent [] (Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r)) |>> function
       | true ->
         let branch phi : (S.t * S.t) m =
           let* tphi = quote_cof phi in
@@ -271,7 +274,6 @@ and quote_lvl =
     S.Var i
   | ULvl.LvlMagic -> ret S.LvlMagic
   | ULvl.LvlTop -> ret S.LvlTop
-  | ULvl.LvlGlobal x -> ret @@ S.Global x
 
 and quote_stable_code univ =
   function
@@ -527,11 +529,9 @@ and quote_dim d : S.t quote =
 and quote_cof phi =
   let rec go =
     function
-    | Cof.Var (`L lvl) ->
+    | Cof.Var lvl ->
       let+ ix = quote_var lvl in
       S.Var ix
-    | Cof.Var (`G sym) ->
-      ret @@ S.Global sym
     | Cof.Cof phi ->
       match phi with
       | Cof.Eq (r, s) ->

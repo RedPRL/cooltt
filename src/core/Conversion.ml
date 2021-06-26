@@ -1,3 +1,4 @@
+open CodeUnit
 module S = Syntax
 module D = Domain
 module Sem = Semantics
@@ -84,9 +85,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   match tp0, tp1 with
   | D.TpSplit branches, _
   | _, D.TpSplit branches ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    ConvM.restrict_ [Cof.join phis] @@
-    equate_tp tp0 tp1
+    MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_tp tp0 tp1) branches
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof | D.TpLvl, D.TpLvl -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
@@ -188,14 +187,10 @@ and equate_con tp con0 con1 =
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
   | D.TpSplit branches, _, _ ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    ConvM.restrict_ [Cof.join phis] @@
-    equate_con tp con0 con1
+    MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_con tp con0 con1) branches
   | _, D.Split branches, _
   | _, _, D.Split branches ->
-    let phis = List.map (fun (phi, _) -> phi) branches in
-    ConvM.restrict_ [Cof.join phis] @@
-    equate_con tp con0 con1
+    MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_con tp con0 con1) branches
   | D.Pi (base, _, fam), _, _ ->
     bind_var_ base @@ fun x ->
     let* fib = lift_cmp @@ inst_tp_clo fam x in
@@ -401,7 +396,7 @@ and equate_hd hd0 hd1 =
   let* () = assert_done_hd hd0 in
   let* () = assert_done_hd hd1 in
   match hd0, hd1 with
-  | D.Global sym0, D.Global sym1 when Symbol.equal sym0 sym1 -> ret ()
+  | D.Global sym0, D.Global sym1 when Global.equal sym0 sym1 -> ret ()
   | D.Var lvl0, D.Var lvl1 when lvl0 = lvl1 -> ret ()
   | D.Coe (abs0, r0, s0, con0), D.Coe (abs1, r1, s1, con1) ->
     let* () = equate_dim r0 r1 in

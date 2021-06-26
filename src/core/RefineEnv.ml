@@ -1,11 +1,15 @@
-module StringMap = Map.Make (String)
-module D = Domain
-module S = Syntax
-
+open ContainersLabels
 open Basis
 open Cubical
 open Bwd
 open BwdNotation
+
+open CodeUnit
+
+module StringMap = Map.Make (String)
+module D = Domain
+module S = Syntax
+
 
 module Cell =
 struct
@@ -21,7 +25,9 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t =
-  {resolver : Symbol.t StringMap.t;
+  {current_lib : Bantorra.Manager.library;
+   current_unit_id : id;
+   resolver : Global.t StringMap.t;
    veil : Veil.t;
    pp : Pp.env;
    cof_thy : CofThy.Disj.t;
@@ -31,14 +37,21 @@ type t =
 
 let locals env = env.locals
 
-let init =
-  {resolver = StringMap.empty;
+let init lib =
+  {current_lib = lib;
+   current_unit_id = CodeUnitID.top_level;
+   resolver = StringMap.empty;
    veil = Veil.const `Translucent;
    pp = Pp.Env.emp;
    cof_thy = CofThy.Disj.empty;
    locals = Emp;
    problem = Emp;
    location = None}
+
+let current_lib env = env.current_lib
+
+let current_unit_id env = env.current_unit_id
+let set_current_unit_id current_unit_id env = {env with current_unit_id}
 
 let location env = env.location
 let set_location loc env =
@@ -65,7 +78,7 @@ let resolve_local (ident : Ident.t) env =
     | Snoc (xs, cell) ->
       begin
         match ident, Cell.ident cell with
-        | `User y, `User x when x = y -> i
+        | `User parts_x, `User parts_y when List.equal String.equal parts_x parts_y -> i
         | _ -> go (i + 1) xs
       end
   in
@@ -78,14 +91,8 @@ let restrict phis env =
    cof_thy = CofThy.Disj.assume env.cof_thy phis}
 
 let append_con ident con tp env =
-  let pp_name =
-    match ident with
-    | `User nm -> Some nm
-    | `Machine nm -> Some nm
-    | `Anon -> None
-  in
   {env with
-   pp = snd @@ Pp.Env.bind env.pp pp_name;
+   pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
    locals = env.locals <>< [{contents = tp, con; ident}];
    cof_thy =
      match tp with

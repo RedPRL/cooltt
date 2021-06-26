@@ -36,6 +36,7 @@ Once dune is available the executable can be locally changed and run with the
 following:
 
 ```
+$ make upgrade-pins                     # update and upgrade dependencies in active development
 $ dune exec cooltt                      # from the `cooltt` top-level directory
 ```
 

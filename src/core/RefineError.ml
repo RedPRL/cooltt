@@ -1,6 +1,8 @@
+open Basis
+open CodeUnit
+
 module D = Domain
 module S = Syntax
-open Basis
 
 include RefineErrorData.Data
 

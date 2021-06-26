@@ -1,8 +1,10 @@
-module D := Domain
-
 open Basis
 open Cubical
 open Bwd
+
+open CodeUnit
+
+module D := Domain
 
 module Cell : sig
   type 'a t
@@ -14,7 +16,7 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t
-val init : t
+val init : Bantorra.Manager.library -> t
 
 val size : t -> int
 val locals : t -> cell bwd
@@ -24,9 +26,13 @@ val cof_thy : t -> CofThy.Disj.t
 val get_veil : t -> Veil.t
 val problem : t -> string bwd
 
+val current_lib : t -> Bantorra.Manager.library
+
+val current_unit_id : t -> id
+val set_current_unit_id : id -> t -> t
+
 val location : t -> LexingUtil.span option
 val set_location : LexingUtil.span option -> t -> t
-
 
 val append_con : Ident.t -> D.con -> D.tp -> t -> t
 val restrict : CofThy.cof list -> t -> t

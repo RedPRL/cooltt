@@ -1,6 +1,9 @@
+open Basis
+
+open CodeUnit
+
 module S = Syntax
 module D = Domain
-open Basis
 
 module Data =
 struct

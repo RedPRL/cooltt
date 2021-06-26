@@ -41,13 +41,11 @@ let keywords =
     ("print", PRINT);
     ("quit", QUIT);
     ("type", TYPE);
-    ("→", RIGHT_ARROW);
     ("𝕀", DIM);
     ("dim", DIM);
     ("lvl", LVL);
     ("𝔽", COF);
     ("cof", COF);
-    ("∂", BOUNDARY);
     ("sub", SUB);
     ("ext", EXT);
     ("coe", COE);
@@ -59,6 +57,7 @@ let keywords =
     ("vproj", VPROJ);
     ("cap", CAP);
     ("with", WITH);
+    ("import",IMPORT []);
   ]
 }
 
@@ -71,10 +70,13 @@ let number =
 let whitespace =
   [' ' '\t']+
 let atom_initial =
-  [^ '0'-'9' '-' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']
+  [^ '0'-'9' '-'     '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']
 let atom_subsequent =
-  [^                     '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"' ' ' '\t' '\n' '\r']
+  [^                         '(' ')' '[' ']' '{' '}' '<' '>' '.' '#' '\\' '@' '*' '^' ':' ',' ';' '|' '=' '"'     ' ' '\t' '\n' '\r']
 let atom = atom_initial atom_subsequent*
+
+let module_part =
+  [^             '/' '?' '!' '(' ')' '[' ']' '{' '}' '<' '>' '.'     '\\'     '*'     ':' ',' ';' '|' '=' '"' '`' ' ' '\t' '\n' '\r']+
 
 let hole_atom_initial
   = atom_initial
@@ -86,19 +88,25 @@ let hole_atom_subsequent
 
 let hole_atom = hole_atom_initial hole_atom_subsequent*
 
-rule token = parse
-  | number
-    { (NUMERAL (int_of_string (Lexing.lexeme lexbuf))) }
-  | "--"
-    { line_comment token lexbuf }
-  | "⍝" (* APL *)
-    { line_comment token lexbuf }
-  | "⨾"
-    { SEMISEMI }
-  | ";;"
-    { SEMISEMI }
+rule token = parse "" { skip_whitespace real_token lexbuf }
+
+and skip_whitespace kont = parse
+  | "--" | "⍝" (* APL *)
+    { line_comment (skip_whitespace kont) lexbuf }
   | "/-"
-    { block_comment token lexbuf }
+    { block_comment (skip_whitespace kont) lexbuf }
+  | line_ending
+    { new_line lexbuf; (skip_whitespace kont) lexbuf }
+  | whitespace
+    { skip_whitespace kont lexbuf }
+  | ""
+    { kont lexbuf }
+
+and real_token = parse
+  | number
+    { NUMERAL (int_of_string (Lexing.lexeme lexbuf)) }
+  | "⨾" | ";;"
+    { SEMISEMI }
   | '('
     { LPR }
   | ')'
@@ -115,29 +123,25 @@ rule token = parse
     { PIPE }
   | ','
     { COMMA }
+  | '.'
+    { DOT }
   | ";"
     { SEMI }
-  | '*'
-    { TIMES }
-  | "×"
+  | "×" | '*'
     { TIMES }
   | ':'
     { COLON }
-  | "∧"
+  | "∧" | "/\\"
     { MEET }
-  | "/\\"
-    { MEET }
-  | "∨"
-    { JOIN }
-  | "\\/"
+  | "∨" | "\\/"
     { JOIN }
   | "="
     { EQUALS }
-  | ":="
+  | "≔" | ":="
     { COLON_EQUALS }
-  | "->"
+  | "→" | "->"
     { RIGHT_ARROW }
-  | "=>"
+  | "⇒" | "=>"
     { RRIGHT_ARROW }
   | '_'
     { UNDERSCORE }
@@ -153,24 +157,42 @@ rule token = parse
     }
   | "?"
     { HOLE_NAME None }
-  | "#t"
+  | "!"
+    { BANG }
+  | "∂" (* XXX what to do with "∂i"? *)
+    { BOUNDARY }
+  | "#t" (* XXX what to do with "#txyz"? *)
     { TOPC }
-  | "#f"
+  | "#f" (* XXX what to do with "#fxyz"? *)
     { BOTC }
-  | line_ending
-    { new_line lexbuf; token lexbuf }
-  | whitespace
-    { token lexbuf }
   | eof
     { EOF }
   | atom
     {
       let input = lexeme lexbuf in
-      try Hashtbl.find keywords input with
-      | Not_found -> Grammar.ATOM input
+      match Hashtbl.find keywords input with
+      | IMPORT _ -> import_path [] lexbuf
+      | tok -> tok
+      | exception Not_found -> Grammar.ATOM input
     }
   | _
     { Printf.eprintf "Unexpected char: %s" (lexeme lexbuf); token lexbuf }
+
+and import_path rev_path = parse "" { skip_whitespace (real_import_path rev_path) lexbuf }
+
+and real_import_path rev_path = parse
+  | module_part
+    { dot_import_path (lexeme lexbuf :: rev_path) lexbuf }
+  | _
+    { Printf.eprintf "Expected unit path: %s" (lexeme lexbuf); token lexbuf }
+
+and dot_import_path rev_path = parse "" { skip_whitespace (real_dot_import_path rev_path) lexbuf }
+
+and real_dot_import_path rev_path = parse
+  | '.'
+    { import_path rev_path lexbuf }
+  | ""
+    { IMPORT (List.rev rev_path) }
 
 and line_comment kont = parse
   | line_ending

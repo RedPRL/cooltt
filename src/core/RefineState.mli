@@ -1,11 +1,23 @@
-open Basis
-
-module D := Domain
+open CodeUnit
+module D = Domain
 
 type t
 
 val init : t
-val add_global : Ident.t -> D.tp -> D.con option -> t -> Symbol.t * t
-val resolve_global : Ident.t -> t -> Symbol.t option
 
-val get_global : Symbol.t -> t -> D.tp * D.con option
+val get_unit : id -> t -> CodeUnit.t
+
+val add_global : id -> Ident.t -> D.tp -> D.con option -> t -> Global.t * t
+
+val resolve_global : id -> Ident.t -> t -> Global.t option
+
+val get_global : Global.t -> t -> D.tp * D.con option
+
+(** Add a code unit as an import. *)
+val add_import : id -> [< `Print of string option] Yuujinchou.Pattern.t -> CodeUnit.t -> t -> t
+
+(** Try to get a code unit from the imports. *)
+val get_import : id -> t -> CodeUnit.t option
+
+(** Create and add a new code unit. *)
+val init_unit : id -> t -> t

@@ -13,8 +13,15 @@ depends: [
   "ocaml" {>= "4.10.0"}
   "ppx_deriving" {>= "4.4.1"}
   "cmdliner" {>= "1.0"}
+  "containers" {>= "3.4"}
   "menhir" {>= "20180703"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
+  "bantorra"
+  "yuujinchou"
+]
+pin-depends: [
+  [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
+  [ "yuujinchou.~dev" "git+https://github.com/RedPRL/yuujinchou" ]
 ]
 build: [["dune" "build" "-p" name "-j" jobs]]

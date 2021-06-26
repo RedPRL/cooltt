@@ -1,32 +1,11 @@
-def path (A : type) (a : A) (b : A) : type :=
-  ext i => A with [i=0 => a | i=1 => b]
+import prelude
+import nat
 
 def evan-test (A : type) (φ : 𝔽) (a : A)
   (p : sub {path A a a} φ {_ => a})
   : (j : 𝕀) → A
   :=
   p
-
-def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A :=
-  hfill A 0 {∂ i} {j _ =>
-    [ j=0 ∨ i=1 => p 0
-    | i=0 => p j
-    ]
-  }
-
-def symm (A : type) (p : 𝕀 → A) : path A {p 1} {p 0} :=
-  i => symm/filler A p i 1
-
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A :=
-  hcom A 0 j {∂ i} {j _ =>
-    [ j=0 ∨ i=0 => p i
-    | i=1 => q j
-    ]
-  }
-
-def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
-  trans/filler A p q 1
-
 
 def J (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) (d : C {_ => p 0}) : C p :=
   coe {i =>
@@ -74,49 +53,11 @@ def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ =
     symm/filler A p j i
   }
 
+normalize +-assoc
+
 normalize trans-left-unit
 normalize trans-right-unit
 normalize trans-symm-refl
-
-def + : nat → nat → nat :=
-  elim [
-  | zero => n => n
-  | suc {_ => ih} => n => suc {ih n}
-  ]
-
-def +-right-unit : (x : nat) → path nat {+ x 0} x :=
-  elim [
-  | zero =>
-    _ => 0
-  | suc {y => ih} =>
-    i => suc {ih i}
-  ]
-
-def +-left-unit (x : nat) : path nat {+ 0 x} x :=
-  _ => x
-
-def +-suc-r : (x : nat) (y : nat) → path nat {+ x {suc y}} {suc {+ x y}} :=
-  elim [
-  | zero =>
-    x i => {suc x}
-  | suc {x => ih} =>
-    y i => suc {ih y i}
-  ]
-
-def +-comm : (x : nat) (y : nat) → path nat {+ y x} {+ x y} :=
-  elim [
-  | zero => +-right-unit
-  | suc {y => ih} =>
-    z =>
-    trans nat {+-suc-r z y} {j => suc {ih z j}}
-  ]
-
-def +-assoc : (x : nat) (y : nat) (z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
-  elim [
-  | zero => y z i => + y z
-  | suc {x => ih} => y z i => suc {ih y z i}
-  ]
-
 
 def test (p : 𝕀 → nat) : (i : 𝕀) → nat :=
   let fun : nat → nat :=

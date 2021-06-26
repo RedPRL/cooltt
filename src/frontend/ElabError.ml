@@ -1,6 +1,8 @@
 open Basis
 open Core
 
+open CodeUnit
+
 module CS = ConcreteSyntax
 module S = Syntax
 
@@ -10,6 +12,7 @@ type t =
   | ExpectedSynthesizableTerm of CS.con_
   | CannotEliminate of Pp.env * S.tp
   | ExpectedSimpleInductive of Pp.env * S.tp
+  | InvalidModifier of CS.con
 
 
 let pp fmt =
@@ -32,6 +35,10 @@ let pp fmt =
     Format.fprintf fmt
       "Expected simple inductive type but found %a"
       (S.pp_tp ppenv) tp
+  | InvalidModifier cs ->
+    Format.fprintf fmt
+      "Invalid modifier: %a"
+      CS.pp_con cs
 
 exception ElabError of t * LexingUtil.span option
 

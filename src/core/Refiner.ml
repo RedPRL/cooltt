@@ -1,3 +1,11 @@
+open Containers
+
+open Basis
+open Monads
+open Bwd
+
+open CodeUnit
+
 module D = Domain
 module S = Syntax
 module Env = RefineEnv
@@ -9,13 +17,11 @@ module TB = TermBuilder
 module Sem = Semantics
 module Qu = Quote
 
-exception CJHM
-
-open Basis
-open Monads
 open Monad.Notation (RM)
 module MU = Monad.Util (RM)
-open Bwd
+
+exception CJHM
+
 
 type ('a, 'b) quantifier = 'a -> Ident.t -> (T.var -> 'b) -> 'b
 
@@ -944,7 +950,7 @@ struct
         RM.lift_ev @@ Sem.eval_tp tp
       in
       let* def =
-        let prefix = ListUtil.take lvl cells_fwd in
+        let prefix = List.take lvl cells_fwd in
         let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
