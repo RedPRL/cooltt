@@ -87,17 +87,17 @@ let hole_atom_subsequent
 
 let hole_atom = hole_atom_initial hole_atom_subsequent*
 
-rule token = parse "" { skip_comment real_token lexbuf }
+rule token = parse "" { skip_whitespace real_token lexbuf }
 
-and skip_comment kont = parse
+and skip_whitespace kont = parse
   | "--" | "⍝" (* APL *)
-    { line_comment (skip_comment kont) lexbuf }
+    { line_comment (skip_whitespace kont) lexbuf }
   | "/-"
-    { block_comment (skip_comment kont) lexbuf }
+    { block_comment (skip_whitespace kont) lexbuf }
   | line_ending
-    { new_line lexbuf; (skip_comment kont) lexbuf }
+    { new_line lexbuf; (skip_whitespace kont) lexbuf }
   | whitespace
-    { skip_comment kont lexbuf }
+    { skip_whitespace kont lexbuf }
   | ""
     { kont lexbuf }
 
@@ -177,7 +177,7 @@ and real_token = parse
   | _
     { Printf.eprintf "Unexpected char: %s" (lexeme lexbuf); token lexbuf }
 
-and import_path rev_path = parse "" { skip_comment (real_import_path rev_path) lexbuf }
+and import_path rev_path = parse "" { skip_whitespace (real_import_path rev_path) lexbuf }
 
 and real_import_path rev_path = parse
   | module_part
@@ -185,7 +185,7 @@ and real_import_path rev_path = parse
   | _
     { Printf.eprintf "Expected unit path: %s" (lexeme lexbuf); token lexbuf }
 
-and dot_import_path rev_path = parse "" { skip_comment (real_dot_import_path rev_path) lexbuf }
+and dot_import_path rev_path = parse "" { skip_whitespace (real_dot_import_path rev_path) lexbuf }
 
 and real_dot_import_path rev_path = parse
   | '.'
