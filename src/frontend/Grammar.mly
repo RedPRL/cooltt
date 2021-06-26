@@ -25,6 +25,11 @@
     {node = qualified_name_to_term node; info}
 
   let forget_location {node; info = _} = node
+
+  let ap_or_atomic f =
+    function
+    | [] -> forget_location f
+    | args -> Ap (f, args)
 %}
 
 %token <int> NUMERAL
@@ -118,10 +123,6 @@ plain_name:
     { atom_as_name s }
   | UNDERSCORE
     { underscore_as_name }
-
-qualified_name:
-  | parts = separated_nonempty_list(DOT, ATOM)
-    { parts_as_name parts }
 
 decl:
   | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
@@ -219,6 +220,8 @@ plain_cof_or_term:
     { t }
 
 plain_atomic_term_except_name:
+  | part1 = ATOM DOT parts2 = separated_nonempty_list(DOT, ATOM)
+    { qualified_name_to_term (`User (part1 :: parts2)) }
   | LBR t = plain_cof_or_term RBR
     { t }
   | ZERO
@@ -256,28 +259,26 @@ bracketed:
     { Prf t }
 
 plain_atomic_term:
-  | name = qualified_name
+  | name = plain_name
     { qualified_name_to_term name }
   | t = plain_atomic_term_except_name
     { t }
 
 plain_spine:
-  | spine = nonempty_list(name); arg = atomic_term_except_name; args = list(atomic_term)
+  | spine = nonempty_list_left_recursive(name); arg = atomic_term_except_name; args = list(atomic_term)
     { Ap (name_to_term (List.hd spine), List.map name_to_term (List.tl spine) @ [arg] @ args) }
-  | f = atomic_term_except_name; args = nonempty_list(atomic_term)
-    { Ap (f, args) }
-  | f = name; args = nonempty_list(name)
-    { Ap (name_to_term f, List.map name_to_term args) }
-  | t = plain_atomic_term
-    { t }
+  | spine = nonempty_list_left_recursive(name)
+    { ap_or_atomic (name_to_term (List.hd spine)) (List.map name_to_term (List.tl spine)) }
+  | f = atomic_term_except_name; args = list(atomic_term)
+    { ap_or_atomic f args }
 
 plain_lambda_and_cof_case:
   | name = name; RRIGHT_ARROW; body = term
     { name, body }
 
 plain_lambda_except_cof_case:
-  | name1 = name; names2 = nonempty_list(plain_name); RRIGHT_ARROW; body = term
-    { Lam (forget_location name1 :: names2, body) }
+  | names1 = nonempty_list_left_recursive(name); name2 = plain_name; RRIGHT_ARROW; body = term
+  { Lam (List.map forget_location names1 @ [name2], body) }
 
 plain_term:
   | t = plain_lambda_and_cof_case
