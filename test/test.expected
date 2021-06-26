@@ -546,8 +546,7 @@ hlevel.cooltt:34.10-34.15 [Info]:
                                            i _x₃ =>
                                            [ i = 0 => _x₁ | i = 1 => _x₂ ]}
 
---------------------[isos.cooltt]--------------------
---------------------[names.cooltt]--------------------
+--------------------[import.cooltt]--------------------
 Emitted namespace under p2:
   ?cool = { cong => cong; funext => funext; path-p => path-p; q.t => tt
           ; refl => refl; symm => symm; symm/filler => symm/filler
@@ -571,15 +570,17 @@ Emitted namespace under (root):
       ; trans => trans; trans/filler => trans/filler; tt => tt; unit => unit
       ; unit/eta => unit/eta }
 
-names.cooltt:20.6-20.13 [Info]:
+import.cooltt:24.6-24.13 [Info]:
   cool-tt
   : unit
   = 0
 
-names.cooltt:28.6-28.9 [Info]:
-  x.y
+--------------------[isos.cooltt]--------------------
+--------------------[names.cooltt]--------------------
+names.cooltt:5.6-5.11 [Info]:
+  x.y.z
   : (_x : nat) → nat
-  = z.w => z.w
+  = u.v => u.v
 
 --------------------[nat-path.cooltt]--------------------
 nat.cooltt:9.10-9.15 [Info]:

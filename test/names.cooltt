@@ -1,28 +1,5 @@
-import prelude
-  [ unit -> u -- rename unit to u
-  ; {. -> p1, -> p2} -- take the union of two prefix modifiers; u becomes p1.u and p2.u, for example
-  ; p2.[tt -> q.t] -- rename p2.tt to p2.q.t
-  ; [[[[[{[]};{[{[[];[]]}]}]]]]] -- no op
-  ; p1.[ ! u ] -- remove p1.u
-  ; ! p2.path -- remove p2.path
-  ; p2.[?cool] -- print out the bindings under p2
-  ; ?all -- print all the bindings to be imported
-  ]
-import prelude [unit; unit -> p1.u] -- re-introduce p1.u; would err if p1.u is already there
-import prelude [] -- import everything, unqualified
-import prelude {} -- import nothing
-import prelude [ ! ] -- import nothing (the bang removes the entire tree)
-import prelude [ ! . ] -- import nothing
-import prelude [?; !] -- import everything, unqualified
-
-def cool-tt : p1.u := p2.q.t
-
-print cool-tt
-
--- regression test 0
+def x.y : nat := 0
 def x (_ : nat) : nat := 0
-def y : nat := x p1.tt
-
--- regression test 1
-def x.y (z.w : nat) : nat := z.w
-print x.y
+def y : nat := x x.y
+def x.y.z (u.v : nat) : nat := u.v
+print x.y.z
