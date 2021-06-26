@@ -141,13 +141,8 @@ struct
       F.dim s @@ fun s ->
       F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [s; TB.prf]
-<<<<<<< HEAD
-    | `V (_, r, pcode, code, _) ->
-      Cof.boundary r,
-=======
     | `V (r, pcode, code, _) ->
       Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r,
->>>>>>> main
       F.dim r @@ fun r ->
       F.con pcode @@ fun pcode ->
       F.con code @@ fun code ->
