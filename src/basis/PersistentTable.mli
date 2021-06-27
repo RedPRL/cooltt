@@ -1,6 +1,4 @@
-(* Due to Conchon & Filliatre *)
-
-(* Redone using Map.Make *)
+(* Originally due to Conchon & Filliatre, but then redone using Map.Make *)
 
 module type S =
 sig
@@ -10,6 +8,7 @@ sig
   val empty : 'a t
   val size : 'a t -> int
   val get : key -> 'a t -> 'a
+  val get_opt : key -> 'a t -> 'a option
   val set : key -> 'a -> 'a t -> 'a t
   val mem : key -> 'a t -> bool
   val remove : key -> 'a t -> 'a t

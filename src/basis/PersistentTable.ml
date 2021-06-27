@@ -6,6 +6,7 @@ sig
   val empty : 'a t
   val size : 'a t -> int
   val get : key -> 'a t -> 'a
+  val get_opt : key -> 'a t -> 'a option
   val set : key -> 'a -> 'a t -> 'a t
   val mem : key -> 'a t -> bool
   val remove : key -> 'a t -> 'a t
@@ -37,6 +38,8 @@ struct
   let size t = M.cardinal t
 
   let get k t = M.find k t
+
+  let get_opt k t = M.find_opt k t
 
   let mem k t = M.mem k t
 

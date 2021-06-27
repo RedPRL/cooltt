@@ -18,38 +18,29 @@ struct
   type key = O.t
   type t =
     {rank : int T.t;
-     mutable parent : key T.t}
+     parent : key T.t}
 
   let empty =
     {rank = T.empty;
      parent = T.empty}
 
 
-  let rec find_aux (x : key) (f : key T.t) =
-    try
-      let fx = T.get x f in
-      if fx == x then
-        f, x
-      else
-        let f, y = find_aux fx f in
-        let f = T.set x y f in
-        f, y
-    with
-    | _ ->
-      let f = T.set x x f in
-      f, x
-
-  let find (x : key) (h : t) : key =
-    let f, cx = find_aux x h.parent in
-    h.parent <- f;
-    cx
+  let find (x : key) (h : t) =
+    let rec loop x p =
+      match
+        T.get_opt x p
+      with
+      | Some x -> loop x p
+      | None -> x
+    in
+    loop x h.parent
 
   let get_rank cx h =
-    try
-      T.get cx h.rank
+    match
+      T.get_opt cx h.rank
     with
-    | _ ->
-      0
+    | Some r -> r
+    | _ -> 0
 
   let test (x : key) (y : key) (h : t) =
     x = y ||
