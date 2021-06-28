@@ -504,10 +504,7 @@ struct
 
   let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string * T.Chk.tac) list) : (string * S.t) list m =
     match (sign, tacs) with
-    | D.Field (lbl, tp, sign_clo), (tac_lbl, tac) :: tacs ->
-       let* _ = MU.guard (not @@ String.equal lbl tac_lbl) @@ fun () ->
-          RM.expected_field_name ~expected:lbl ~actual:tac_lbl
-       in
+    | D.Field (lbl, tp, sign_clo), (tac_lbl, tac) :: tacs when (String.equal lbl tac_lbl) ->
        (* FIXME: Take Cofibrations into account *)
        let* tfield = T.Chk.brun tac (tp, phi, phi_clo) in
        let* vfield = RM.lift_ev @@ Sem.eval tfield in
@@ -515,7 +512,10 @@ struct
        let+ tfields = intro_fields phi phi_clo tsign tacs in
        (lbl, tfield) :: tfields
     | D.Empty, [] -> RM.ret []
-    | sign, tacs -> failwith "FIXME: Better error handling for tactic/signature mismatch in 'intro_fields'"
+    | sign, tacs ->
+       let expected = D.sign_lbls sign in
+       let actual = List.map fst tacs in
+       RM.field_names_mismatch ~expected ~actual
 
 
   let intro (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
@@ -584,38 +584,25 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
-  (* FIXME: Clean this up!!! *)
   let quantifiers (tacs : (string * T.Chk.tac) list) univ : (string * S.t) list m =
-    (* FIXME: This nightmare probably belongs in splice *)
-    let rec splice_args cons args (k : (string * S.t TB.m) list -> S.tp TB.m) : S.tp Splice.t =
-      match cons with
-      | [] -> Splice.term @@ k args
-      | ((ident, vfam) :: cons) -> Splice.con vfam @@ fun vfam -> splice_args cons (args @ [ident, vfam]) k
-    in
-    (* FIXME: Thread through the field names *)
-    let pi_type (args : (string * S.t TB.m) list) (univ : S.tp TB.m) : S.tp TB.m =
-      let rec go args vars =
-        match args with
-        | [] -> univ
-        | ((lbl, arg) :: args) -> TB.pi ~ident:(`User [lbl]) (TB.el @@ TB.ap arg vars) @@ fun var -> go args (vars @ [var])
-      in
-      go args []
-    in
+    let (lbls, tacs) = ListUtil.unzip tacs in
+    let idents = List.map (fun lbl -> `User [lbl]) lbls in
     let rec mk_fams fams vfams =
       function
       | [] -> RM.ret fams
-      | (ident, tac) :: tacs ->
+      | tac :: tacs ->
          let* famtp =
            RM.lift_cmp @@
            Sem.splice_tp @@
            Splice.tp univ @@ fun univ ->
-           splice_args vfams [] @@ fun args -> pi_type args univ
+           Splice.cons vfams @@ fun args -> Splice.term @@ TB.pis ~idents:idents args @@ fun _ -> univ
          in
          let* fam = T.Chk.run tac famtp in
          let* vfam = RM.lift_ev @@ Sem.eval fam in
-         mk_fams (fams @ [ident, fam]) (vfams @ [ident, vfam]) tacs
+         mk_fams (fams @ [fam]) (vfams @ [vfam]) tacs
     in
-    mk_fams [] [] tacs
+    let+ fams = mk_fams [] [] tacs in
+    ListUtil.zip lbls fams
 
   let pi tac_base tac_fam : T.Chk.tac =
     univ_tac @@ fun univ ->

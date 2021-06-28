@@ -36,6 +36,11 @@ struct
   let tm_abort = Split []
   let tp_abort = TpSplit []
 
+  let sign_lbls =
+    function
+    | Field (lbl, _, Clo (sign, _)) -> lbl :: (List.map (fun (lbl, _) -> lbl) sign)
+    | Empty -> []
+
   let dim_to_con =
     function
     | Dim.Dim0 -> Dim0

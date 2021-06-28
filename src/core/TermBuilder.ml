@@ -282,6 +282,13 @@ let tp_prf mphi =
 let prf =
   ret S.Prf
 
+let pis ?(idents = []) margs mfam : _ m =
+  let rec go idents margs vars =
+    match (idents, margs) with
+    | (ident :: idents), (marg :: margs) -> pi ~ident (el @@ ap marg vars) @@ fun var -> go idents margs (vars @ [var])
+    | [], (marg :: margs) -> pi (el @@ ap marg vars) @@ fun var -> go [] margs (vars @ [var])
+    | _, [] -> mfam vars
+  in go idents margs []
 
 let eq mr ms =
   let+ r = mr

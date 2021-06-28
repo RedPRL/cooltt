@@ -40,4 +40,4 @@ val equate : D.tp -> D.con -> D.con -> unit m
 val with_pp : (Pp.env -> 'a m) -> 'a m
 
 val expected_connective : RefineError.connective -> D.tp -> 'a m
-val expected_field_name : expected:string -> actual:string -> 'a m
+val field_names_mismatch : expected:string list -> actual:string list -> 'a m

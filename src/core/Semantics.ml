@@ -1455,19 +1455,10 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
       | `Signature fields ->
-         (* FIXME: Pull this code into the Splice *)
-         let splice_fields fields (kont : ((string * S.t TB.m) list -> S.tp Splice.t)) : S.tp Splice.t =
-           let rec go acc =
-             function
-             | [] -> kont (Bwd.to_list acc)
-             | ((ident, tp) :: fields) ->
-                Splice.con tp @@ fun tm -> go (Snoc (acc, (ident, tm))) fields
-           in
-           go Emp fields
-         in
+         let (lbls, field_cons) = ListUtil.unzip fields in
          splice_tp @@
-         splice_fields fields @@ fun fields ->
-         Splice.term @@ TB.signature @@ List.map (fun (ident, fam) -> (ident, fun bound -> TB.el @@ TB.ap fam bound)) fields
+         Splice.cons field_cons @@ fun fields ->
+         Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
 
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@
