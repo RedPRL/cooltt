@@ -505,8 +505,7 @@ struct
   let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string * T.Chk.tac) list) : (string * S.t) list m =
     match (sign, tacs) with
     | D.Field (lbl, tp, sign_clo), (tac_lbl, tac) :: tacs when (String.equal lbl tac_lbl) ->
-       (* FIXME: Take Cofibrations into account *)
-       let* tfield = T.Chk.brun tac (tp, phi, phi_clo) in
+       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
        let* vfield = RM.lift_ev @@ Sem.eval tfield in
        let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
        let+ tfields = intro_fields phi phi_clo tsign tacs in

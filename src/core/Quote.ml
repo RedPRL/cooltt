@@ -95,8 +95,8 @@ let rec quote_con (tp : D.tp) con =
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
 
-  | D.Signature sign, D.Struct fields ->
-     let+ tfields = quote_fields sign fields in
+  | D.Signature sign, _ ->
+     let+ tfields = quote_fields sign con in
      S.Struct tfields
 
   | D.Sub (tp, _phi, _clo), _ ->
@@ -271,16 +271,15 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_fields (sign : D.sign) (fields : (string * D.con) list) : (string * S.t) list m =
-  match sign, fields with
-  | D.Field (lbl, tp, sign_clo), (flbl, fcon) :: fields ->
-     (* FIXME: Computation??? *)
+and quote_fields (sign : D.sign) con : (string * S.t) list m =
+  match sign with
+  | D.Field (lbl, tp, sign_clo) ->
+     let* fcon = lift_cmp @@ do_proj con lbl in
      let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
      let* tfield = quote_con tp fcon in
-     let+ tfields = quote_fields sign fields in
+     let+ tfields = quote_fields sign con in
      (lbl, tfield) :: tfields
-  | D.Empty, [] -> ret []
-  | _, _ -> failwith "FIXME: Better Error handling on sig/field mismatch in 'quote_fields'"
+  | D.Empty -> ret []
 
 (* Given a signature:
        sig (x : type)

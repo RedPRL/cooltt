@@ -276,7 +276,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature cells ->
-       (* FIXME: Clean this mess up *)
+       (* Make sure that our tactics properly account for the lambda-bound field variables. *)
        let rec mk_tacs bound =
          function
          | [] -> []
