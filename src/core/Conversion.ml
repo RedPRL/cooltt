@@ -21,6 +21,7 @@ struct
     | ExpectedTypeEq of D.tp * D.tp
     | ExpectedConEq of D.tp * D.con * D.con
     | ExpectedFrmEq of D.frm * D.frm
+    | ExpectedSignEq of D.sign * D.sign
     | SpineLengthMismatch of D.frm list * D.frm list
     | HeadMismatch of D.hd * D.hd
 
@@ -37,6 +38,8 @@ struct
       Format.fprintf fmt "Expected %a = %a : %a" D.pp_con con0 D.pp_con con1 D.pp_tp tp
     | ExpectedFrmEq (frm0, frm1) ->
       Format.fprintf fmt "Expected %a = %a" D.pp_frame frm0 D.pp_frame frm1
+    | ExpectedSignEq (sign0, sign1) ->
+      Format.fprintf fmt "Expected %a = %a sig" D.pp_sign sign0 D.pp_sign sign1
     | SpineLengthMismatch (sp0, sp1) ->
       Format.fprintf fmt "Spine length mismatch between %a and %a" D.pp_spine sp0 D.pp_spine sp1
     | HeadMismatch (hd0, hd1) ->
@@ -89,7 +92,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
     let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
-  | D.Signature sign1, D.Signature sign2 -> failwith "FIXME: Implement 'equate_tp' for D.Signature"
+  | D.Signature sign1, D.Signature sign2 -> equate_sign sign1 sign2
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in
@@ -124,6 +127,17 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
+
+and equate_sign sign0 sign1 =
+  match sign0, sign1 with
+  | D.Field (lbl0, tp0, clo0), D.Field (lbl1, tp1, clo1) when String.equal lbl0 lbl1 ->
+     let* () = equate_tp tp0 tp1 in
+     bind_var_ tp0 @@ fun x ->
+     let* sign0 = lift_cmp @@ inst_sign_clo clo0 x in
+     let* sign1 = lift_cmp @@ inst_sign_clo clo1 x in
+     equate_sign sign0 sign1
+  | D.Empty, D.Empty -> ret ()
+  | _, _ -> conv_err @@ ExpectedSignEq (sign0, sign1)
 
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
@@ -160,9 +174,27 @@ and equate_stable_code univ code0 code1 =
     in
     equate_con tp_bdry bdry0 bdry1
 
-  | `Signature fields1, `Signature fields2 -> failwith "FIXME: Implement 'equate_stable_code' for `Signature"
+  | `Signature sign0, `Signature sign1 ->
+     equate_sign_code univ sign0 sign1
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
+
+and equate_sign_code univ sign0 sign1 =
+  let rec go vfams sign0 sign1 =
+    match sign0, sign1 with
+    | [], [] -> ret ()
+    | (lbl0, fam0) :: sign0 , (lbl1, fam1) :: sign1 when String.equal lbl0 lbl1 ->
+       let* fam_tp =
+         lift_cmp @@
+         splice_tp @@
+         Splice.tp univ @@ fun univ ->
+         Splice.cons vfams @@ fun args ->
+         Splice.term @@ TB.pis args @@ fun _ -> univ
+       in
+       let* _ = equate_con fam_tp fam0 fam1 in
+       go (vfams @ [fam0]) sign0 sign1
+    | _, _ -> conv_err @@ ExpectedConEq (univ, D.StableCode (`Signature sign0), D.StableCode (`Signature sign1))
+  in go [] sign0 sign1
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
@@ -191,7 +223,8 @@ and equate_con tp con0 con1 =
     let* snd0 = lift_cmp @@ do_snd con0 in
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
-  | D.Signature sign, _, _ -> failwith "FIXME: Implement 'equate_con' for D.Signature"
+  | D.Signature sign, _, _ ->
+     equate_struct sign con0 con1
   | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
@@ -281,6 +314,17 @@ and equate_con tp con0 con1 =
     Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
     conv_err @@ ExpectedConEq (tp, con0, con1)
 
+and equate_struct (sign : D.sign) con0 con1 =
+  match sign with
+  | D.Field (lbl, tp, clo) ->
+     let* field0 = lift_cmp @@ do_proj con0 lbl in
+     let* field1 = lift_cmp @@ do_proj con1 lbl in
+     let* () = equate_con tp field0 field1 in
+     let* sign = lift_cmp @@ inst_sign_clo clo field0 in
+     equate_struct sign con0 con1
+  | D.Empty ->
+     ret ()
+
 
 (* Invariant: cut0, cut1 are whnf *)
 and equate_cut cut0 cut1 =
@@ -314,6 +358,8 @@ and equate_frm k0 k1 =
   | D.KFst, D.KFst
   | D.KSnd, D.KSnd ->
     ret ()
+  | D.KProj lbl0, D.KProj lbl1 when String.equal lbl0 lbl1 ->
+     ret ()
   | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
     let* () = equate_tp tp0 tp1 in
     equate_con tp0 con0 con1
