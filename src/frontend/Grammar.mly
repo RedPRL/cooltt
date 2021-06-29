@@ -47,9 +47,8 @@
 %token TOPC BOTC
 %token V VPROJ CAP
 
-%nonassoc IN RRIGHT_ARROW
+%nonassoc IN RRIGHT_ARROW SEMI
 %nonassoc COLON
-%right SEMI
 %right RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
