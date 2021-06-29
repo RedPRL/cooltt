@@ -27,7 +27,7 @@ let keywords =
     ("base", BASE);
     ("loop", LOOP);
     ("circle", CIRCLE);
-    ("sig", SIGNATURE);
+    ("sig", SIG);
     ("struct", STRUCT);
     ("🍪", CIRCLE);
     ("let", LET);
