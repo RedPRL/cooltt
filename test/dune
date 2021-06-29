@@ -4,14 +4,17 @@
 
 (rule
  (target test.output)
- (deps test.exe
-       (glob_files ./*.cooltt)
-       (glob_files ./cooltt-lib)
-       )
- (action (bash "./test.exe | tee test.output")))
+ (deps
+  (glob_files ./*.cooltt)
+  (glob_files ./cooltt-lib))
+ (action (with-stdout-to %{target} (run ./test.exe))))
 
 (rule
  (alias runtest)
  (action
-   (progn (bash "rm ./*.cooltt")
-          (diff test.expected test.output))))
+  (diff test.expected test.output)))
+
+(rule
+ (alias test-display)
+ (deps (universe))
+ (action (cat test.output)))
