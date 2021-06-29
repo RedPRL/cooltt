@@ -70,6 +70,12 @@ struct
     | Tp tac -> tac
     | Code tac -> R.El.formation tac
 
+  let as_codes =
+    ListUtil.map_opt @@
+      function
+      | (_, Tp _) -> None
+      | (lbl, Code tac) -> Some (lbl, tac)
+
   let pi (tac_base : tac) (ident : Ident.t) (tac_fam : tac) : tac =
     match tac_base, tac_fam with
     | Code tac_base, Code tac_fam ->
@@ -93,15 +99,14 @@ struct
       Tp tac
 
   let signature (tacs : (string * tac) list) : tac =
-    (* FIXME: Handle universes *)
-    let rec mk_tac_tele =
-      function
-      | [] -> R.Done
-      | ((nm, tac) :: tacs) -> R.Bind (nm, as_tp tac, fun _ -> mk_tac_tele tacs)
-    in
-    let tele = mk_tac_tele tacs in
-    let tac = R.Signature.formation tele in
-    Tp tac
+    match (as_codes tacs) with
+    | Some tacs ->
+       let tac = R.Univ.signature tacs in
+       Code tac
+    | None ->
+       let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
+       let tac = R.Signature.formation tele in
+       Tp tac
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -239,7 +244,6 @@ and chk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Struct fields ->
-       (* FIXME: Consider ElUnstable *)
        let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
        R.Signature.intro tacs
 
