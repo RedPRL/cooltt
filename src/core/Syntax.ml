@@ -207,9 +207,8 @@ struct
         | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
       end
     | NatElim (mot, zero, suc, tm) ->
-      Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
+      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
         (pp_atomic env) tm
-        "@"
         (pp_atomic env) mot
         (pp env) zero
         (pp env) suc
@@ -218,9 +217,8 @@ struct
     | Loop tm ->
       Format.fprintf fmt "loop %a" (pp_atomic env) tm
     | CircleElim (mot, base, loop, tm) ->
-      Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
+      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
         (pp_atomic env) tm
-        "@"
         (pp_atomic env) mot
         (pp env) base
         (pp env) loop

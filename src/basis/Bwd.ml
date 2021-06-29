@@ -36,7 +36,7 @@ struct
     | Emp ->
       failwith "Bwd.nth"
     | Snoc (_, x) when i = 0 -> x
-    | Snoc (xs, _) -> nth xs @@ i - 1
+    | Snoc (xs, _) -> (nth[@tailcall]) xs @@ i - 1
 
   let rec mem a xs =
     match xs with
@@ -62,11 +62,13 @@ struct
     | Snoc (xs, x) ->
       p x; (iter[@tailcall]) p xs
 
-  let rec length =
-    function
-    | Emp -> 0
-    | Snoc (xs, _) ->
-      1 + length xs
+  let length xs =
+    let rec go acc =
+      function
+      | Emp -> acc
+      | Snoc (xs, _) -> (go[@tailcall]) (acc+1) xs
+    in
+    go 0 xs
 
   let rec map f =
     function
