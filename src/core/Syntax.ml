@@ -152,9 +152,7 @@ struct
     function
     | [] -> Format.fprintf fmt ""
     | ((lbl, tp) :: fields) ->
-       (* FIXME: Better pretty printing *)
-       let x, envx = ppenv_bind env (`User [lbl]) in
-       Format.fprintf fmt "(%a : %a) %a" Uuseg_string.pp_utf_8 x (pp_field env) tp (pp_fields envx pp_field) fields
+       Format.fprintf fmt "(%a : %a) @, %a" Uuseg_string.pp_utf_8 lbl (pp_field env) tp (pp_fields env pp_field) fields
 
   let rec pp env fmt tm =
     match tm with
