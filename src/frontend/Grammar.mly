@@ -20,10 +20,11 @@
 
   let drop_location {node; info = _} = node
 
-  let ap_or_atomic f =
+  let ap_or_atomic =
     function
-    | [] -> drop_location f
-    | args -> Ap (f, args)
+    | [] -> failwith "Impossible Internal Error"
+    | [f] -> drop_location f
+    | f :: args -> Ap (f, args)
 %}
 
 %token <int> NUMERAL
@@ -267,12 +268,10 @@ plain_term:
     { t }
 
 plain_term_except_cof_case:
-  | spine = nonempty_list_left_recursive(name); arg = atomic_term_except_name; args = list(atomic_term)
-    { Ap (term_of_name (List.hd spine), List.concat [List.map term_of_name (List.tl spine); [arg]; args]) }
+  | spine = ioption(nonempty_list_left_recursive(name)); arg1 = atomic_term_except_name; args2 = list(atomic_term)
+    { ap_or_atomic (List.concat [List.map term_of_name @@ Option.value ~default:[] spine; [arg1]; args2]) }
   | spine = nonempty_list_left_recursive(name)
-    { ap_or_atomic (term_of_name (List.hd spine)) (List.map term_of_name (List.tl spine)) }
-  | f = atomic_term_except_name; args = list(atomic_term)
-    { ap_or_atomic f args }
+    { ap_or_atomic (List.map term_of_name spine) }
   | UNLOCK; t = term; IN; body = term;
     { Unlock (t, body) }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
