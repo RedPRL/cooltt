@@ -9,13 +9,14 @@ type output_message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
   | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
 
-type warning_message =
-  | MissingProject
+type warning_message = |
 
 type error_message =
   | LexingError
   | ParseError
   | UnboundIdent of Ident.t
+  | InvalidLibrary of string
+  | UnitNotFound of string
 
 type message =
   | OutputMessage of output_message
@@ -51,9 +52,15 @@ let pp_message fmt =
       "@[Unbound identifier %a@]"
       Ident.pp ident
 
-  | WarningMessage MissingProject ->
+  | ErrorMessage {error = InvalidLibrary msg; _} ->
     Format.fprintf fmt
-      "Could not find project file. Defaulting to current directory as project root.\n"
+      "@[Could not load the library.@ %a@]" BantorraBasis.Error.pp_lines msg
+
+  | ErrorMessage {error = UnitNotFound msg; _} ->
+    Format.fprintf fmt
+      "@[Could not find the unit.@ %a@]" BantorraBasis.Error.pp_lines msg
+
+  | WarningMessage _ -> .
 
   | OutputMessage (NormalizedTerm {orig; nf}) ->
     let env = Pp.Env.emp in

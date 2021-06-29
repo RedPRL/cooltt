@@ -70,57 +70,71 @@ let protect m =
 
 (* Imports *)
 
-let find_project_root ~as_file input =
-  let working_dir = Sys.getcwd () in
-  let start_dir =
+let library_manager =
+  match Bantorra.Manager.init ~anchor:"cooltt-lib" ~routers:[] with
+  | Ok ans -> ans
+  | Error (`InvalidRouter msg) -> failwith msg (* this should not happen! *)
+
+let load_current_library ~as_file input =
+  match
     match as_file with
-    | Some fname -> Filename.dirname fname
+    | Some fname ->
+      Bantorra.Manager.load_library_from_unit library_manager fname ~suffix:".cooltt"
     | None ->
       match input with
-      | `File fname -> Filename.dirname fname
-      | `Stdin -> working_dir
-  in
-  let rec go dir =
-    if Sys.file_exists "cooltt-lib" then
-      Some dir
-    else
-      let () = Sys.chdir Filename.parent_dir_name in
-      let parent = Sys.getcwd () in
-      if parent = dir then
-        let () = Log.pp_runtime_message ~loc:None ~lvl:`Warn pp_message @@ WarningMessage MissingProject in
-        None
-      else
-        go parent
-  in
-  let _ = Sys.chdir start_dir in
-  let project_root = go start_dir in
-  let _ = Sys.chdir working_dir in
-  match project_root with
-  | Some root -> root
-  | None -> working_dir
+      | `File fname ->
+        Bantorra.Manager.load_library_from_unit library_manager fname ~suffix:".cooltt"
+      | `Stdin ->
+        Bantorra.Manager.load_library_from_cwd library_manager
+  with
+  | Ok (lib, _) -> Ok lib
+  | Error (`InvalidLibrary msg) ->
+    Log.pp_error_message ~loc:None ~lvl:`Error pp_message @@
+    ErrorMessage {error = InvalidLibrary msg; last_token = None};
+    Error ()
 
-let resolve_source_path project_root imp =
-  Filename.concat project_root (imp ^ ".cooltt")
+let assign_unit_id ~as_file input =
+  match as_file with
+  | Some fname -> CodeUnitID.file fname
+  | None ->
+    match input with
+    | `File fname -> CodeUnitID.file fname
+    | `Stdin -> CodeUnitID.top_level
+
+let resolve_source_path lib unitpath =
+  match Bantorra.Manager.resolve library_manager lib unitpath ~suffix:".cooltt" with
+  | Ok ans -> Ok ans
+  | Error (`InvalidLibrary msg) ->
+    Log.pp_error_message ~loc:None ~lvl:`Error pp_message @@
+    ErrorMessage {error = InvalidLibrary msg; last_token = None};
+    Error ()
+  | Error (`UnitNotFound msg) ->
+    Log.pp_error_message ~loc:None ~lvl:`Error pp_message @@
+    ErrorMessage {error = UnitNotFound msg; last_token = None};
+    Error ()
 
 (* Create an interface file for a given source file. *)
-let rec build_code_unit ~project_root src_path =
-  let* _ = process_file ~project_root (`File src_path) in
+let rec build_code_unit src_path =
+  let* _ = process_file (`File src_path) in
   RM.get_current_unit
 
-and load_code_unit ~project_root imp =
-  let src_path = resolve_source_path project_root imp in
-  RM.with_code_unit src_path (fun () -> build_code_unit ~project_root src_path)
+and load_code_unit lib src =
+  RM.with_code_unit lib (CodeUnitID.file src) @@ build_code_unit src
 
-and import_code_unit project_root path : command =
-  let* unit_loaded = RM.get_import path in
-  let* import_unit =
-    match unit_loaded with
-    | Some import_unit -> RM.ret import_unit
-    | None -> load_code_unit ~project_root path in
-  let* _ = RM.add_import [] import_unit in
-  RM.ret @@ Continue Fun.id
+and import_code_unit path modifier : command =
+  let* lib = RM.get_current_lib in
+  match resolve_source_path lib path with
+  | Error () -> RM.ret Quit
+  | Ok (lib, _, src) ->
+    let* unit_loaded = RM.get_import (CodeUnitID.file src) in
+    let* import_unit =
+      match unit_loaded with
+      | Some import_unit -> RM.ret import_unit
+      | None -> load_code_unit lib src in
+    let* _ = RM.add_import modifier import_unit in
+    RM.ret @@ Continue Fun.id
 
-and execute_decl ~project_root : CS.decl -> command =
+and execute_decl : CS.decl -> command =
   function
   | CS.Def {name; args; def = Some def; tp} ->
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
@@ -138,27 +152,28 @@ and execute_decl ~project_root : CS.decl -> command =
     Continue Fun.id
   | CS.Print ident ->
     print_ident ident
-  | CS.Import path ->
-    import_code_unit project_root path
+  | CS.Import (path, modifier) ->
+    let* modifier = Elaborator.modifier modifier in
+    import_code_unit path modifier
   | CS.Quit ->
     RM.ret Quit
 
-and execute_signature ~project_root ~status sign =
+and execute_signature ~status sign =
   match sign with
   | [] -> RM.ret status
   | d :: sign ->
-    let* res = protect @@ execute_decl ~project_root d in
+    let* res = protect @@ execute_decl d in
     match res with
     | Ok Continue k ->
-      k @@ execute_signature ~project_root ~status sign
+      k @@ execute_signature ~status sign
     | Ok Quit ->
       RM.ret @@ Ok ()
     | Error () ->
       RM.ret @@ Error ()
 
-and process_file ~project_root input =
+and process_file input =
   match Load.load_file input with
-  | Ok sign -> execute_signature ~project_root ~status:(Ok ()) sign
+  | Ok sign -> execute_signature ~status:(Ok ()) sign
   | Error (Load.ParseError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
     RM.ret @@ Error ()
@@ -167,36 +182,45 @@ and process_file ~project_root input =
     RM.ret @@ Error ()
 
 let load_file ~as_file input =
-  let project_root = find_project_root ~as_file input in
-  RM.run_exn (ST.init "<unit>") Env.init @@ process_file ~project_root input
+  match load_current_library ~as_file input with
+  | Error () -> Error ()
+  | Ok lib ->
+    let unit_id = assign_unit_id ~as_file input in
+    RM.run_exn ST.init (Env.init lib) @@
+    RM.with_code_unit lib unit_id @@
+    process_file input
 
-let execute_command ~project_root =
+let execute_command =
   function
-  | CS.Decl decl -> execute_decl ~project_root decl
+  | CS.Decl decl -> execute_decl decl
   | CS.NoOp -> RM.ret @@ Continue Fun.id
   | CS.EndOfFile -> RM.ret Quit
 
-let rec repl ~project_root (ch : in_channel) lexbuf =
+let rec repl lib (ch : in_channel) lexbuf =
   match Load.load_cmd lexbuf with
   | Error (Load.ParseError {span; last_token}) ->
     let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = ParseError; last_token} in
-    repl ~project_root ch lexbuf
+    repl lib ch lexbuf
   | Error (Load.LexingError {span; last_token}) ->
     let* () = RM.emit ~lvl:`Error (Some span) pp_message @@ ErrorMessage {error = LexingError; last_token} in
-    repl ~project_root ch lexbuf
+    repl lib ch lexbuf
   | Ok cmd ->
-    protect @@ execute_command ~project_root cmd |>>
+    protect @@ execute_command cmd |>>
     function
     | Ok (Continue k) ->
-      k @@ repl ~project_root ch lexbuf
+      k @@ repl lib ch lexbuf
     | Error _  ->
-      repl ~project_root ch lexbuf
+      repl lib ch lexbuf
     | Ok Quit ->
       close_in ch;
       RM.ret @@ Ok ()
 
 let do_repl ~as_file =
-  let project_root = find_project_root ~as_file `Stdin in
-  let ch, lexbuf = Load.prepare_repl () in
-  RM.run_exn (RefineState.init "<repl>") Env.init @@
-  repl ~project_root ch lexbuf
+  match load_current_library ~as_file `Stdin with
+  | Error () -> Error ()
+  | Ok lib ->
+    let unit_id = assign_unit_id ~as_file `Stdin in
+    let ch, lexbuf = Load.prepare_repl () in
+    RM.run_exn RefineState.init (Env.init lib) @@
+    RM.with_code_unit lib unit_id @@
+    repl lib ch lexbuf
