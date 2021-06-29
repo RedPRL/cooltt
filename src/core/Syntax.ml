@@ -1,5 +1,4 @@
 open Basis
-open Bwd
 open Cubical
 
 module Make (Symbol : Symbol.S) =
@@ -111,11 +110,6 @@ struct
 
   let pp_var env fmt ix =
     Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
-
-  and pp_problem fmt problem =
-    let lbls = Bwd.to_list problem in
-    let dot fmt () = Fmt.fprintf fmt "." in
-    Fmt.pp_print_list ~pp_sep:dot Uuseg_string.pp_utf_8 fmt lbls
 
 
   let pp_lsq fmt () = Format.fprintf fmt "["
