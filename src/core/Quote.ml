@@ -35,6 +35,15 @@ let contractum_or x =
   | `Done -> x
   | `Reduce y -> y
 
+let rec guess_bound_name : D.con -> Ident.t =
+  function
+  | D.Lam (x, _) -> x
+  | D.BindSym (_x, _) -> `Anon
+  | D.Cut {tp = D.Pi (_, x, _); _} -> x
+  | D.Cut {tp = D.TpSplit (_branch :: _); _} -> `Anon (* XXX what should we do here? *)
+  | D.Split (_branch :: _) -> `Anon (* XXX what should we do here? *)
+  | _ -> `Anon
+
 let rec quote_con (tp : D.tp) con =
   QuM.abort_if_inconsistent (ret S.tm_abort) @@
   let* veil = read_veil in
@@ -185,7 +194,7 @@ let rec quote_con (tp : D.tp) con =
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
     and+ tsides =
-      quote_lam (D.TpPrf phi) @@ fun _prf ->
+      quote_lam ~ident:`Anon (D.TpPrf phi) @@ fun _prf ->
       quote_con tp con
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
@@ -210,7 +219,7 @@ let rec quote_con (tp : D.tp) con =
       | false ->
         let+ tr = quote_dim r
         and+ part =
-          quote_lam (D.TpPrf (Cof.eq r Dim.Dim0)) @@ fun _ ->
+          quote_lam ~ident:`Anon (D.TpPrf (Cof.eq r Dim.Dim0)) @@ fun _ ->
           let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
           let* tp = lift_cmp @@ do_el pcode_fib in
           quote_con tp con
@@ -279,20 +288,22 @@ and quote_stable_code univ =
     ret S.CodeUniv
 
   | `Pi (base, fam) ->
+    let ident = guess_bound_name fam in
     let+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
-      quote_lam elbase @@ fun var ->
+      quote_lam ~ident elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
     S.CodePi (tbase, tfam)
 
   | `Sg (base, fam) ->
+    let ident = guess_bound_name fam in
     let+ tbase = quote_con univ base
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
-      quote_lam elbase @@ fun var ->
+      quote_lam ~ident elbase @@ fun var ->
       quote_con univ @<<
       lift_cmp @@ do_ap fam var
     in
@@ -324,7 +335,7 @@ and quote_global_con tp (`Global con) =
   let+ tm = quote_con tp con in
   `Global tm
 
-and quote_lam ?(ident = `Anon) tp mbdy =
+and quote_lam ~ident tp mbdy =
   let+ bdy = bind_var tp mbdy in
   S.Lam (ident, bdy)
 
@@ -348,9 +359,10 @@ and quote_hcom code r s phi bdy =
   let* ts = quote_dim s in
   let* tphi = quote_cof phi in
   let+ tbdy =
-    quote_lam D.TpDim @@ fun i ->
+    let ident_i = guess_bound_name bdy in
+    quote_lam ~ident:ident_i D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    quote_lam (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
+    quote_lam ~ident:`Anon (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     let* tp = lift_cmp @@ do_el code in
     quote_con tp body
