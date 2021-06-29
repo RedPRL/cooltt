@@ -1191,7 +1191,8 @@ and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : string) =
      let* field = cut_frm_sign cut sign flbl in
      let* sign = inst_sign_clo clo field in
      cut_frm_sign cut sign lbl
-  | D.Empty -> failwith "FIXME: Better Error handling for missing fields in 'cut_frm_sign'"
+  | D.Empty ->
+     throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
 
 and do_proj (con : D.con) (lbl : string) : D.con CM.m =
   let open CM in
@@ -1201,8 +1202,11 @@ and do_proj (con : D.con) (lbl : string) : D.con CM.m =
     inspect_con ~style:`UnfoldNone con |>>
     function
     | D.Struct fields ->
-       (* FIXME: Handle errors here *)
-       ret @@ List.assoc lbl fields
+       begin
+       match List.assoc_opt lbl fields with
+       | Some con -> ret con
+       | None -> throw @@ NbeFailed "Couldn't proj argument in do_proj, struct was missing field"
+       end
     | D.Split branches ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
