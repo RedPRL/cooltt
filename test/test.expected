@@ -482,7 +482,7 @@ elab.cooltt:7.10-7.23 [Info]:
    i _x => [ i = 1 => 5 | i = 0 => 19 ]
 
 elab.cooltt:18.10-18.22 [Info]:
-  Computed normal form of pi-code-test as (_x : nat) → nat
+  Computed normal form of pi-code-test as (x : nat) → nat
 
 elab.cooltt:28.10-28.20 [Info]:
   Computed normal form of simple-let as A a => a
@@ -499,7 +499,7 @@ elab.cooltt:35.9-35.16 [Info]:
   Emitted hole:
     y : nat
     z : nat
-    |- ?tmhole : (_x : nat) → ?tyhole y z _x
+    |- ?tmhole : (z₁ : nat) → ?tyhole y z z₁
 
 
 elab.cooltt:42.6-42.12 [Info]:
@@ -541,10 +541,8 @@ hlevel.cooltt:33.6-33.11 [Info]:
 
 hlevel.cooltt:34.10-34.15 [Info]:
   Computed normal form of hProp as
-   (_x : type) × (_x₁ : _x) → (_x₂ : _x) → ext {i => _x} {i =>
-                                                          {i = 0} ∨ {i = 1}} {
-                                           i _x₃ =>
-                                           [ i = 0 => _x₁ | i = 1 => _x₂ ]}
+   (A : type) × (c : A) → (c' : A) → ext {i => A} {i => {i = 0} ∨ {i = 1}} {
+                                     i _x => [ i = 0 => c | i = 1 => c' ]}
 
 --------------------[import.cooltt]--------------------
 Emitted namespace under p2:
@@ -579,7 +577,7 @@ import.cooltt:24.6-24.13 [Info]:
 --------------------[names.cooltt]--------------------
 names.cooltt:5.6-5.11 [Info]:
   x.y.z
-  : (_x : nat) → nat
+  : (u.v : nat) → nat
   = u.v => u.v
 
 --------------------[nat-path.cooltt]--------------------
@@ -592,39 +590,37 @@ nat-path.cooltt:15.10-15.11 [Info]:
    coe {i =>
         C {_x =>
            hcom A 0 _x {{i = 0} ∨ {i = 1}}
-             {_x₁ _x₂ => [ {_x₁ = 0} ∨ {i = 0} => p 0 | i = 1 => p _x₁ ]}}} 0 1
+             {k _x₁ => [ {k = 0} ∨ {i = 0} => p 0 | i = 1 => p k ]}}} 0 1
      d
 
 nat-path.cooltt:56.10-56.17 [Info]:
   Computed normal form of +-assoc as
    _x =>
    elim _x @ {_x₁ =>
-              (_x₂ : nat) → (_x₃ : nat) → ext {i => nat} {i =>
-                                                          {i = 0} ∨ {i = 1}} {
-                                          i _x₄ =>
-                                          [ i = 0 =>
-                                            elim {elim _x₁ @ {_x₆ =>
-                                                              (_x₇ : nat) → nat}
-                                                    [ zero => n => n
-                                                    | suc => _x₆ ih n =>
-                                                             suc {ih n}
-                                                    ] _x₂} @ {_x₆ =>
-                                                              (_x₇ : nat) → nat}
-                                              [ zero => n => n
-                                              | suc => _x₆ ih n => suc {ih n}
-                                              ] _x₃
-                                          | i = 1 =>
-                                            elim _x₁ @ {_x₆ =>
-                                                        (_x₇ : nat) → nat}
-                                              [ zero => n => n
-                                              | suc => _x₆ ih n => suc {ih n}
-                                              ] {elim _x₂ @ {_x₆ =>
-                                                             (_x₇ : nat) → nat}
-                                                   [ zero => n => n
-                                                   | suc => _x₆ ih n =>
-                                                            suc {ih n}
-                                                   ] _x₃}
-                                          ]}}
+              (y : nat) → (z : nat) → ext {i => nat} {i => {i = 0} ∨ {i = 1}} {
+                                      i _x₂ =>
+                                      [ i = 0 =>
+                                        elim {elim _x₁ @ {_x₄ =>
+                                                          (_x₅ : nat) → nat}
+                                                [ zero => n => n
+                                                | suc => _x₄ ih n =>
+                                                         suc {ih n}
+                                                ] y} @ {_x₄ =>
+                                                        (_x₅ : nat) → nat}
+                                          [ zero => n => n
+                                          | suc => _x₄ ih n => suc {ih n}
+                                          ] z
+                                      | i = 1 =>
+                                        elim _x₁ @ {_x₄ => (_x₅ : nat) → nat}
+                                          [ zero => n => n
+                                          | suc => _x₄ ih n => suc {ih n}
+                                          ] {elim y @ {_x₄ =>
+                                                       (_x₅ : nat) → nat}
+                                               [ zero => n => n
+                                               | suc => _x₄ ih n =>
+                                                        suc {ih n}
+                                               ] z}
+                                      ]}}
      [ zero => y z i =>
                elim y @ {_x₁ => (_x₂ : nat) → nat}
                  [ zero => n => n
@@ -637,20 +633,18 @@ nat-path.cooltt:58.10-58.25 [Info]:
   Computed normal form of trans-left-unit as
    A p k i =>
    hcom A 0 1 {{k = 0} ∨ {i = 0} ∨ {i = 1}}
-     {_x _x₁ =>
-      [ {_x = 0} ∨ {i = 0} => p 0
-      | i = 1 => p _x
+     {j _x =>
+      [ {j = 0} ∨ {i = 0} => p 0
+      | i = 1 => p j
       | k = 0 =>
-        hcom A 0 1 {{i = 0} ∨ {i = 1} ∨ {_x = 0} ∨ {_x = 1}}
-          {_x₃ _x₄ =>
-           [ {_x₃ = 0} ∨ {i = 0} ∨ {_x = 1} =>
-             hcom A 0 i {{_x₃ = 0} ∨ {_x₃ = 1}}
-               {_x₆ _x₇ =>
-                [ {_x₆ = 0} ∨ {_x₃ = 0} => p 0 | _x₃ = 1 => p _x₆ ]}
-           | {i = 1} ∨ {_x = 0} =>
-             hcom A 0 _x {{_x₃ = 0} ∨ {_x₃ = 1}}
-               {_x₆ _x₇ =>
-                [ {_x₆ = 0} ∨ {_x₃ = 0} => p 0 | _x₃ = 1 => p _x₆ ]}
+        hcom A 0 1 {{i = 0} ∨ {i = 1} ∨ {j = 0} ∨ {j = 1}}
+          {l _x₂ =>
+           [ {l = 0} ∨ {i = 0} ∨ {j = 1} =>
+             hcom A 0 i {{l = 0} ∨ {l = 1}}
+               {j₁ _x₄ => [ {j₁ = 0} ∨ {l = 0} => p 0 | l = 1 => p j₁ ]}
+           | {i = 1} ∨ {j = 0} =>
+             hcom A 0 j {{l = 0} ∨ {l = 1}}
+               {j₁ _x₄ => [ {j₁ = 0} ∨ {l = 0} => p 0 | l = 1 => p j₁ ]}
            ]}
       ]}
 
@@ -658,15 +652,15 @@ nat-path.cooltt:59.10-59.26 [Info]:
   Computed normal form of trans-right-unit as
    A p _x _x₁ =>
    hcom A 0 _x {{_x₁ = 0} ∨ {_x₁ = 1}}
-     {_x₂ _x₃ => [ {_x₂ = 0} ∨ {_x₁ = 0} => p _x₁ | _x₁ = 1 => p 1 ]}
+     {j _x₂ => [ {j = 0} ∨ {_x₁ = 0} => p _x₁ | _x₁ = 1 => p 1 ]}
 
 nat-path.cooltt:60.10-60.25 [Info]:
   Computed normal form of trans-symm-refl as
    A p k i =>
    hcom A 0 1 {{k = 0} ∨ {i = 0} ∨ {i = 1}}
-     {_x _x₁ =>
-      hcom A 0 i {{_x = 0} ∨ {_x = 1}}
-        {_x₂ _x₃ => [ {_x₂ = 0} ∨ {_x = 1} => p 0 | _x = 0 => p _x₂ ]}}
+     {j _x =>
+      hcom A 0 i {{j = 0} ∨ {j = 1}}
+        {j₁ _x₁ => [ {j₁ = 0} ∨ {j = 1} => p 0 | j = 0 => p j₁ ]}}
 
 nat-path.cooltt:82.10-82.14 [Info]:
   Computed normal form of test as
@@ -725,18 +719,12 @@ v.cooltt:13.10-13.16 [Info]:
                       [ [ x , _x₁ => x ]
                       , p i =>
                         [ hcom A 1 0 {{i = 0} ∨ {i = 1}}
-                            {_x₁ _x₂ =>
-                             [ _x₁ = 1 => x
-                             | i = 1 => snd p _x₁
-                             | i = 0 => x
-                             ]}
+                            {k _x₁ =>
+                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
                         , _x₁ =>
                           hcom A 1 _x₁ {{i = 0} ∨ {i = 1}}
-                            {_x₂ _x₃ =>
-                             [ _x₂ = 1 => x
-                             | i = 1 => snd p _x₂
-                             | i = 0 => x
-                             ]}
+                            {k _x₂ =>
+                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
                         ]
                       ]
                     ]}
@@ -752,7 +740,7 @@ v.cooltt:22.10-22.15 [Info]:
       [ _x = 0 => coe {_x₃ => A} i 0 a
       | i = 0 =>
         hcom A 1 0 {{_x = 0} ∨ {_x = 1}}
-          {_x₃ _x₄ => [ _x₃ = 1 => a | _x = 1 => a | _x = 0 => a ]}
+          {k _x₃ => [ k = 1 => a | _x = 1 => a | _x = 0 => a ]}
       ]}
 
 v.cooltt:28.10-28.15 [Info]:

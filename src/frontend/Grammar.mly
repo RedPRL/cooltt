@@ -157,8 +157,8 @@ plain_bracketed_modifier:
     { ModUnion list }
 
 plain_modifier:
-  | m = plain_bracketed_modifier
-    { m }
+  | DOT
+    { ModAny }
   | path = path DOT m = bracketed_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW
@@ -177,6 +177,8 @@ plain_modifier:
     { ModExcept path }
   | name = HOLE_NAME
     { ModPrint name }
+  | m = plain_bracketed_modifier
+    { m }
 
 plain_atomic_in_cof_except_term:
   | BOUNDARY t = atomic_term
