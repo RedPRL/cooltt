@@ -293,7 +293,7 @@ struct
         (pp_atomic env) base
         (pp_atomic env) tm
     | CodeSignature fields ->
-       Format.fprintf fmt "@[sig %a@]" (pp_fields env pp) fields
+       Format.fprintf fmt "@[sig %a@]" (pp_fields env pp_binders) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -516,7 +516,13 @@ struct
       Format.fprintf fmt "=>@ @[%a@]"
         (pp env) tm
 
-
+  (* Pretty print a term that uses lambdas as binders. *)
+  and pp_binders env fmt tm =
+    match tm with
+    | Lam (nm, tm) ->
+      let _, envx = ppenv_bind env nm in
+      pp_binders envx fmt tm
+    | _ -> Format.fprintf fmt "%a" (pp env) tm
 
   let pp_sequent_goal ~lbl env fmt tp  =
     let lbl = Option.value ~default:"" lbl in
