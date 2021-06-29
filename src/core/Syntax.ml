@@ -409,6 +409,12 @@ struct
       pp_braced (pp_sub env) fmt sb
 
 
+  and pp_sign env fmt (sign : sign) =
+    match sign with
+    | [] -> ()
+    | (lbl, tp) :: fields ->
+       Format.fprintf fmt "(%a : %a) @, %a" Uuseg_string.pp_utf_8 lbl (pp_tp env) tp (pp_sign env) fields
+
   and pp_tp env fmt (tp : tp) =
     match tp with
     | TpCofSplit branches ->
@@ -432,7 +438,7 @@ struct
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx) fam
     | Signature fields ->
-       Format.fprintf fmt "sig %a" (pp_fields env pp_tp) fields
+       Format.fprintf fmt "sig %a" (pp_sign env) fields
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

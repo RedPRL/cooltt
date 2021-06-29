@@ -525,14 +525,16 @@ struct
        S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let rec proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string) : D.tp m =
-    match sign with
-    | D.Field (flbl, tp, _) when String.equal flbl lbl -> RM.ret tp
-    | D.Field (flbl, __, clo) ->
-       let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
-       let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
-       proj_tp vsign tstruct lbl
-    | D.Empty -> failwith "FIXME: Better error handling for missing field projection in 'proj_sign_field'"
+  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string) : D.tp m =
+    let rec go =
+      function
+      | D.Field (flbl, tp, _) when String.equal flbl lbl -> RM.ret tp
+      | D.Field (flbl, __, clo) ->
+         let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
+         let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
+         go vsign
+      | D.Empty -> RM.expected_field sign tstruct lbl
+   in go sign
 
   let proj tac lbl : T.Syn.tac =
     T.Syn.rule @@

@@ -17,6 +17,9 @@ module Make : functor (Symbol : Symbol.S) -> sig
   (** Print a core language term. *)
   val pp : Pp.env -> t Pp.printer
 
+  (** Print a signature. *)
+  val pp_sign : Pp.env -> sign Pp.printer
+
   (** Print with braces if non-atomic term. *)
   val pp_atomic : Pp.env -> t Pp.printer
 
