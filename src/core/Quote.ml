@@ -40,8 +40,8 @@ let rec guess_bound_name : D.con -> Ident.t =
   | D.Lam (x, _) -> x
   | D.BindSym (_x, _) -> `Anon
   | D.Cut {tp = D.Pi (_, x, _); _} -> x
-  | D.Cut {tp = D.TpSplit (_branch :: _); _} -> `Anon (* ??? *)
-  | D.Split (_branch :: _) -> `Anon
+  | D.Cut {tp = D.TpSplit (_branch :: _); _} -> `Anon (* XXX what should we do here? *)
+  | D.Split (_branch :: _) -> `Anon (* XXX what should we do here? *)
   | _ -> `Anon
 
 let rec quote_con (tp : D.tp) con =
