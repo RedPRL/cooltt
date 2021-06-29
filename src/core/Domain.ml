@@ -31,6 +31,8 @@ struct
 
   let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
   let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
+
+  let proj lbl = Lam (`Anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = Emp; conenv = Emp}))
   let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
   let tm_abort = Split []

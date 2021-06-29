@@ -1551,7 +1551,14 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
-      | `Signature _fields -> failwith "FIXME: Implement 'enact_rigid_coe' for `Signature"
+      | `Signature fields ->
+         let (lbls, fams) = ListUtil.unzip fields in
+         splice_tm @@
+         Splice.cons (List.map (fun famx -> D.BindSym (x, famx)) fams) @@ fun fam_lines ->
+         Splice.dim r @@ fun r ->
+         Splice.dim r' @@ fun r' ->
+         Splice.con con @@ fun bdy ->
+         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
       | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1625,7 +1632,16 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
-      | `Signature _fields -> failwith "FIXME: Implement 'enact_rigid_hcom' for `Signature"
+      | `Signature fields ->
+         let (lbls, fams) = ListUtil.unzip fields in
+         splice_tm @@
+         Splice.cons fams @@ fun fams ->
+         Splice.dim r @@ fun r ->
+         Splice.dim r' @@ fun r' ->
+         Splice.cof phi @@ fun phi ->
+         Splice.con bdy @@ fun bdy ->
+         Splice.term @@
+         TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
       | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->

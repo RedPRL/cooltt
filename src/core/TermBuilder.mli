@@ -28,6 +28,7 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
+val struct_ : (string * t m) list -> t m
 val proj : t m -> string -> t m
 
 val zero : t m
@@ -110,6 +111,9 @@ module Kan : sig
 
   val coe_sg : base_line:t m -> fam_line:t m -> coe
   val hcom_sg : base:t m -> fam:t m -> hcom
+
+  val coe_sign : field_lines:(string * t m) list -> coe
+  val hcom_sign : fields:(string * t m) list -> hcom
 
   val hcom_ext : n:int -> cof:t m -> fam:t m -> bdry:t m -> hcom
   val coe_ext : n:int -> cof:t m -> fam_line:t m -> bdry_line:t m -> coe
