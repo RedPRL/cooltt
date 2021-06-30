@@ -439,25 +439,25 @@ circle.cooltt:20.10-20.20 [Info]:
       ]}
 
 --------------------[com.cooltt]--------------------
-com.cooltt:21.10-21.19 [Info]:
+com.cooltt:22.10-22.19 [Info]:
   Computed normal form of mycom/fun as
    A B com/A com/B r φ p i x =>
    com/B r φ {j _x => p j * {com/A i #f {_x₁ _x₂ => x} j}} i
 
-com.cooltt:34.10-34.16 [Info]:
+com.cooltt:35.10-35.16 [Info]:
   Computed normal form of coe/pi as
    A B r r' f _x =>
    coe {_x₁ => B _x₁ {coe {_x₂ => A _x₂} r' _x₁ _x}} r r'
      {f {coe {_x₁ => A _x₁} r' r _x}}
 
-com.cooltt:44.10-44.19 [Info]:
+com.cooltt:45.10-45.19 [Info]:
   Computed normal form of coe/sigma as
    A B r r' p =>
    [ coe {_x => A _x} r r' {fst p}
    , coe {_x => B _x {coe {_x₁ => A _x₁} r _x {fst p}}} r r' {snd p}
    ]
 
-com.cooltt:64.10-64.19 [Info]:
+com.cooltt:66.10-66.19 [Info]:
   Computed normal form of coe/pathd as
    A r r' a b m _x =>
    hcom {A r' _x} r r' {{_x = 0} ∨ {_x = 1}}
@@ -467,11 +467,11 @@ com.cooltt:64.10-64.19 [Info]:
         | _x₁ = r => m _x
         ]}
 
-com.cooltt:80.10-80.18 [Info]:
+com.cooltt:82.10-82.18 [Info]:
   Computed normal form of hcom/fun as
    A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ _x₂ _x}
 
-com.cooltt:89.10-89.19 [Info]:
+com.cooltt:91.10-91.19 [Info]:
   Computed normal form of com/intro as
    A r r' φ p =>
    hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}

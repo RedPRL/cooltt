@@ -1,5 +1,5 @@
 def testing : {
-  (Z A : type) (B : A → type) (p : Z → (x : A) × B x) →
+  (Z : type) (A : type) (B : A → type) (p : Z → (x : A) × B x) →
   (z : Z) → {sub A #t {fst {p z}}} × {sub {B {fst {p z}}} #t {snd {p z}}}
 } := {
   _ _ _ p => p

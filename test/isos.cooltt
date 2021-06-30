@@ -1,7 +1,7 @@
 -- "stdlib"
 import prelude
 
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
+def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A :=
   hcom A 0 j {∂ i} {j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
@@ -17,7 +17,7 @@ def tt : unit := 0
 
 -- isomorphisms
 
-def iso (A B : type) : type :=
+def iso (A : type) (B : type) : type :=
     (f : A → B)
   × (g : B → A)
   × {(b : B) → path B {f {g b}} b}
@@ -30,14 +30,14 @@ def iso/refl (A : type) : iso A A :=
       , a i => a
   ] ] ]
 
-def iso/symm (A B : type) (I : iso A B) : iso B A :=
+def iso/symm (A : type) (B : type) (I : iso A B) : iso B A :=
   let f := fst I in
   let g := fst {snd I} in
   let α := fst {snd {snd I}} in
   let β := snd {snd {snd I}} in
   [ g , [ f , [ β , α ] ] ]
 
-def iso/trans (A B C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
+def iso/trans (A : type) (B : type) (C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
   let f1 := fst I1 in
   let g1 := fst {snd I1} in
   let α1 := fst {snd {snd I1}} in
@@ -53,13 +53,13 @@ def iso/trans (A B C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
 
 -- pair isos
 
-def iso/pair/comm (A B : type) : iso {A × B} {B × A} :=
+def iso/pair/comm (A : type) (B : type) : iso {A × B} {B × A} :=
   [ab => [snd ab, fst ab],
    [ba => [snd ba, fst ba],
     [ba i => ba,
      ab i => ab]]]
 
-def iso/pair/assoc (A B C : type) : iso {A × B × C} {{A × B} × C} :=
+def iso/pair/assoc (A : type) (B : type) (C : type) : iso {A × B × C} {{A × B} × C} :=
   [a_bc => [[fst a_bc, fst {snd a_bc}], snd {snd a_bc}],
    [ab_c => [fst {fst ab_c}, [snd {fst ab_c}, snd ab_c]],
     [ab_c i => ab_c, a_bc i => a_bc]]]
@@ -72,19 +72,19 @@ def iso/pair/unit (A : type) : iso {A × unit} A :=
 
 -- function isos
 
-def curry (A B C : type) : {{A × B} → C} → {A → B → C} :=
+def curry (A : type) (B : type) (C : type) : {{A × B} → C} → {A → B → C} :=
   f a b => f [a , b]
 
-def uncurry (A B C : type) : {A → B → C} → {{A × B} → C} :=
+def uncurry (A : type) (B : type) (C : type) : {A → B → C} → {{A × B} → C} :=
   f ab => f {fst ab} {snd ab}
 
-def iso/curry (A B C : type) : iso {A → B → C} {{A × B} → C} :=
+def iso/curry (A : type) (B : type) (C : type) : iso {A → B → C} {{A × B} → C} :=
   [uncurry A B C,
    [curry A B C,
     [ab_c i => ab_c,
      a_b_c i => a_b_c]]]
 
-def iso/lhs (A B C : type) (I : iso A B) : iso {A → C} {B → C} :=
+def iso/lhs (A : type) (B : type) (C : type) (I : iso A B) : iso {A → C} {B → C} :=
   let f := fst I in
   let g := fst {snd I} in
   let α := fst {snd {snd I}} in
@@ -94,7 +94,7 @@ def iso/lhs (A B C : type) (I : iso A B) : iso {A → C} {B → C} :=
     [bc i b => bc {α b i},
      ac i a => ac {β a i}]]]
 
-def iso/lhs (A B C : type) (I : iso A B) : iso {C → A} {C → B} :=
+def iso/lhs (A : type) (B : type) (C : type) (I : iso A B) : iso {C → A} {C → B} :=
   let f := fst I in
   let g := fst {snd I} in
   let α := fst {snd {snd I}} in
@@ -104,7 +104,7 @@ def iso/lhs (A B C : type) (I : iso A B) : iso {C → A} {C → B} :=
     [cb i c => α {cb c} i,
      ca i c => β {ca c} i]]]
 
-def iso/flip (A B C : type) : iso {A → B → C} {B → A → C} :=
+def iso/flip (A : type) (B : type) (C : type) : iso {A → B → C} {B → A → C} :=
   [abc b a => abc a b,
    [bac a b => bac b a,
     [bac i => bac,
