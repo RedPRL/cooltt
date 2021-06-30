@@ -105,8 +105,8 @@ let rec quote_con (tp : D.tp) con =
     S.Pair (tfst, tsnd)
 
   | D.Signature sign, _ ->
-     let+ tfields = quote_fields sign con in
-     S.Struct tfields
+    let+ tfields = quote_fields sign con in
+    S.Struct tfields
 
   | D.Sub (tp, _phi, _clo), _ ->
     let+ tout =
