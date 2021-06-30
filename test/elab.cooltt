@@ -20,7 +20,7 @@ normalize pi-code-test
 
 def simple-let :
   (A : type) (a : A) -> A
-:= 
+:=
   A a =>
   let b : A := a in
   b
@@ -29,12 +29,12 @@ normalize simple-let
 
 
 def hole-in-type :
-  (x : nat) (y : nat) (z : nat)
+  (x y z : nat)
   → ?tyhole
-:= 
+:=
   y z => ?tmhole
 
-def path (A : type) (a : A) (b : A) : type :=
+def path (A : type) (a b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
 def foo : (x : nat) → (y : nat) × path nat x y :=

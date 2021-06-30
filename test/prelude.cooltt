@@ -1,5 +1,5 @@
 -- Path Types, and some common operations
-def path (A : type) (x : A) (y : A) : type :=
+def path (A : type) (x y : A) : type :=
   ext i => A with [i=0 => x | i=1 => y]
 
 def path-p (A : 𝕀 → type) (x : A 0) (y : A 1) : type :=
@@ -28,7 +28,7 @@ def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 
 def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   trans/filler A p q 1
 
-def cong (A : type) (B : A → type) (f : (a : A) → B a) (x : A) (y : A) (p : path A x y) : path-p {i => B {p i}} {f x} {f y} :=
+def cong (A : type) (B : A → type) (f : (a : A) → B a) (x y : A) (p : path A x y) : path-p {i => B {p i}} {f x} {f y} :=
   i => f {p i}
 
 def funext (A : type) (B : type) (f : (x : A) → B) (g : (x : A) → B) (h : (x : A) → path B {f x} {g x}) : path {(x : A) → B} f g :=

@@ -117,12 +117,12 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Pi ([], body) ->
     cool_chk_tp body
   | CS.Pi (CS.Cell cell :: cells, body) ->
-    CoolTp.pi (cool_chk_tp cell.tp) cell.name @@
+    List.fold_right (CoolTp.pi (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Pi (cells, body)}
   | CS.Sg ([], body) ->
     cool_chk_tp body
   | CS.Sg (CS.Cell cell :: cells, body) ->
-    CoolTp.sg (cool_chk_tp cell.tp) cell.name @@
+    List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -149,9 +149,9 @@ and chk_tp_in_tele (args : CS.cell list) (con : CS.con) : T.Tp.tac =
   let rec loop args =
     match args with
     | [] -> cool_chk_tp con
-    | CS.Cell {name; tp} :: args ->
+    | CS.Cell {names; tp} :: args ->
       CoolTp.update_span tp.info @@
-      CoolTp.pi (cool_chk_tp tp) name @@
+      List.fold_right (CoolTp.pi (cool_chk_tp tp)) names @@
       loop args
   in
   CoolTp.as_tp @@ loop args
@@ -160,11 +160,16 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
   let rec loop args =
     match args with
     | [] -> chk_tm con
-    | CS.Cell {name; tp} :: args ->
-      T.Chk.update_span tp.info @@
-      Tactics.intro_implicit_connectives @@
-      R.Pi.intro ~ident:name @@ fun _ ->
-      loop args
+    | CS.Cell {names; tp} :: args ->
+      (* XXX a mechanical translation was done to support multiple names
+         in a cell. Someone should rethink and refactor the code. *)
+      List.fold_right
+        (fun name body ->
+           T.Chk.update_span tp.info @@
+           Tactics.intro_implicit_connectives @@
+           R.Pi.intro ~ident:name @@ fun _ -> body)
+        names
+        (loop args)
   in
   loop args
 
@@ -246,13 +251,14 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Univ.univ
 
     | CS.Pi (cells, body) ->
-      let tac (CS.Cell cell) = cell.name, chk_tm cell.tp in
-      let tacs = cells |> List.map tac in
+      let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
+      let tacs = cells |> List.concat_map tac in
       let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Sg (cells, body) ->
-      let tacs = cells |> List.map @@ fun (CS.Cell cell) -> cell.name, chk_tm cell.tp in
+      let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
+      let tacs = cells |> List.concat_map tac in
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
