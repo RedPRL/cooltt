@@ -309,9 +309,9 @@ plain_term_except_cof_case:
   | t = term; PROJ; lbl = ATOM
     { Proj (t, lbl) }
   | dom = term; RIGHT_ARROW; cod = term
-    { Pi ([Cell {name = `Anon; tp = dom}], cod) }
+    { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
-    { Sg ([Cell {name = `Anon; tp = dom}], cod) }
+    { Sg ([Cell {names = [`Anon]; tp = dom}], cod) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
   | FST; t = atomic_term
@@ -381,5 +381,5 @@ field:
     { Field {lbl; tp} }
 
 tele_cell:
-  | LPR name = plain_name; COLON tp = term; RPR
-    { Cell {name; tp} }
+  | LPR names = nonempty_list(plain_name); COLON tp = term; RPR
+    { Cell {names; tp} }

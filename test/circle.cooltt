@@ -1,4 +1,4 @@
-def path (A : type) (a : A) (b : A) : type :=
+def path (A : type) (a b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
 def Ω1s1 : type :=
