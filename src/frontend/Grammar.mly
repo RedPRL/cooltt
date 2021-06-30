@@ -20,10 +20,11 @@
 
   let drop_location {node; info = _} = node
 
-  let ap_or_atomic f =
+  let ap_or_atomic =
     function
-    | [] -> drop_location f
-    | args -> Ap (f, args)
+    | [] -> failwith "Impossible Internal Error"
+    | [f] -> drop_location f
+    | f :: args -> Ap (f, args)
 %}
 
 %token <int> NUMERAL
@@ -48,11 +49,10 @@
 %token TOPC BOTC
 %token V VPROJ CAP
 
-%nonassoc IN RRIGHT_ARROW
+%nonassoc IN RRIGHT_ARROW SEMI
 %nonassoc COLON
 %left PROJ
-%right SEMI
-%nonassoc SUC LOOP RIGHT_ARROW TIMES
+%right RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -62,7 +62,6 @@
   plain_cof_except_term
   plain_atomic_term_except_name
   bracketed
-  plain_spine
   plain_lambda_except_cof_case
   plain_term_except_cof_case
 %type <pat> pat
@@ -112,7 +111,6 @@ bracketed_modifier: t = located(plain_bracketed_modifier) {t}
 modifier: t = located(plain_modifier) {t}
 atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
-spine: t = located(plain_spine) {t}
 
 %inline path:
   | path = separated_nonempty_list_left_recursive(DOT, ATOM)
@@ -259,14 +257,6 @@ plain_atomic_term:
   | t = plain_atomic_term_except_name
     { t }
 
-plain_spine:
-  | spine = nonempty_list_left_recursive(name); arg = atomic_term_except_name; args = list(atomic_term)
-    { Ap (term_of_name (List.hd spine), List.concat [List.map term_of_name (List.tl spine); [arg]; args]) }
-  | spine = nonempty_list_left_recursive(name)
-    { ap_or_atomic (term_of_name (List.hd spine)) (List.map term_of_name (List.tl spine)) }
-  | f = atomic_term_except_name; args = list(atomic_term)
-    { ap_or_atomic f args }
-
 plain_lambda_and_cof_case:
   | name = name; RRIGHT_ARROW; body = term
     { name, body }
@@ -282,8 +272,10 @@ plain_term:
     { t }
 
 plain_term_except_cof_case:
-  | t = plain_spine
-    { t }
+  | spine = ioption(nonempty_list_left_recursive(name)); arg1 = atomic_term_except_name; args2 = list(atomic_term)
+    { ap_or_atomic (List.concat [List.map term_of_name @@ Option.value ~default:[] spine; [arg1]; args2]) }
+  | spine = nonempty_list_left_recursive(name)
+    { ap_or_atomic (List.map term_of_name spine) }
   | UNLOCK; t = term; IN; body = term;
     { Unlock (t, body) }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
@@ -298,9 +290,9 @@ plain_term_except_cof_case:
     { Ann {term = t; tp} }
   | LOCKED; phi = atomic_term
     { Locked phi }
-  | SUC; t = term
+  | SUC; t = atomic_term
     { Suc t }
-  | LOOP; t = term
+  | LOOP; t = atomic_term
     { Loop t }
   | t = plain_lambda_except_cof_case
     { t }
@@ -316,9 +308,9 @@ plain_term_except_cof_case:
     { Struct tele }
   | t = term; PROJ; lbl = ATOM
     { Proj (t, lbl) }
-  | dom = spine; RIGHT_ARROW; cod = term
+  | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {name = `Anon; tp = dom}], cod) }
-  | dom = spine; TIMES; cod = term
+  | dom = term; TIMES; cod = term
     { Sg ([Cell {name = `Anon; tp = dom}], cod) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
@@ -348,7 +340,7 @@ plain_term_except_cof_case:
     { Com (fam, src, trg, phi, body) }
 
 cases:
-  | LSQ option(PIPE) cases = separated_list(PIPE, case) RSQ
+  | LSQ ioption(PIPE) cases = separated_list(PIPE, case) RSQ
     { cases }
 
 case:
