@@ -9,13 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: avsm/setup-ocaml@v1
+    - uses: ocaml/setup-ocaml@v2
       with:
-        ocaml-version: '4.10.0'
-    - run: opam install odoc -y
-    - run: opam pin . -y
-    - run: opam exec -- dune build @doc
+        ocaml-compiler: '4.12.0'
+    - run: opam pin . -y --with-test --with-doc
+    - run: echo 'opam-build-root='`opam config var cooltt:build` >> $GITHUB_ENV
     - uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./_build/default/_doc/_html/
+        publish_dir: ${{ format('{0}/_build/default/_doc/_html/', env.opam-build-root) }}
