@@ -711,14 +711,14 @@ record.cooltt:11.6-11.11 [Info]:
   = sig (foo : nat) (bar : (_x : nat) → nat) 
 
 record.cooltt:12.6-12.19 [Info]:
-  basic/inhabit
+  basic.inhabit
   : basic
   = struct (foo : 1) (bar : x => x) 
 
 record.cooltt:13.10-13.23 [Info]:
-  Computed normal form of basic/inhabit as struct (foo : 1) (bar : x => x) 
+  Computed normal form of basic.inhabit as struct (foo : 1) (bar : x => x) 
 
-record.cooltt:26.6-26.12 [Info]:
+record.cooltt:30.6-30.12 [Info]:
   depend
   : type
   = sig (tp : type) (fun : (_x : tp) → tp) 
