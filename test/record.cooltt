@@ -33,7 +33,7 @@ def depend/ext (d0 : depend) (d1 : depend)
   i => struct (tp : p i) (fun : q i)
 
 -- Can we inhabit first class sigs?
-def sig/inhabit : sig (tp : type) (fun : tp → tp → type) (comp : (X : tp) (Y : tp) (Z : tp) → (f : fun Y Z) → (g : fun X Y) → fun X Z)
+def sig/inhabit : sig (tp : type) (fun : tp → tp → type) (comp : (X : tp) (Y : tp) (Z : tp) (f : fun Y Z) → (g : fun X Y) → fun X Z)
   :=
   struct (tp : nat) (fun : x y => nat) (comp : x y z f g => 1)
 
