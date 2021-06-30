@@ -521,6 +521,7 @@ struct
       (pp env P.(left_of double_arrow)) phi
       (pp_tp envx P.(right_of double_arrow)) tm
 
+  (* XXX [pp_atomic] should have been removed, but it was kept to minimize git diff. It now means printing the term to the right of the juxtaposition operator, like [arg] in [f arg]. The fine-grained control brought by {!module:SyntaxPrecedence} obsoletes the old classification of terms. *)
   and pp_atomic env fmt tm =
     pp env P.(right_of juxtaposition) fmt tm
 
