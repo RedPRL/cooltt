@@ -21,7 +21,7 @@ def myrefl : {
 normalize myrefl
 
 def funext : {
-  (A : type) (B : type) (f : (x : A) → B) (g : (x : A) → B)
+  (A B : type) (f : (x : A) → B) (g : (x : A) → B)
   (h : (x : A) → path B {f x} {g x})
   → path {(x : A) → B} f g
 } := {
@@ -42,7 +42,7 @@ def funextdep : {
 }
 
 def pairext : {
-  (A : type) (B : type) (p : (x : A) × B) (q : (x : A) × B)
+  (A B : type) (p : (x : A) × B) (q : (x : A) × B)
   (h : (x : path A {fst p} {fst q}) × path B {snd p} {snd q})
   → path {(x : A) × B} p q
 } := {

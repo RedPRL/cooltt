@@ -1,4 +1,4 @@
-def path (A : type) (a : A) (b : A) : type :=
+def path (A : type) (a b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
 def is-contr (C : type) : type :=
@@ -81,9 +81,9 @@ def prop-hlevel : (l : nat) (A : type) → is-prop A → has-hlevel {suc l} A :=
   | suc {l => ih} => A A/prop => raise-hlevel {suc l} A {ih A A/prop}
   ]
 
-def path-hlevel 
+def path-hlevel
   : (l : nat) (A : type) (A/level : has-hlevel {suc l} A) (a : A) (a' : A)
-  → has-hlevel l {path A a a'} 
+  → has-hlevel l {path A a a'}
   :=
   elim [
   | zero => A A/prop a a' => [A/prop a a', p => prop-set A A/prop a a' {A/prop a a'} p]
