@@ -13,18 +13,18 @@ def abort (P : empty -> type) (e : empty) : P e :=
   let myelim : nat -> type := elim [ zero => unit | suc _ => P e ] in
   coe {i => myelim {e i}} 0 1 tt
 
-def sum (A : type) (B : type) : type :=
+def sum (A B : type) : type :=
   let fam/shifted : nat -> type := elim [ zero => B | suc _ => empty ] in
   let fam : nat -> type := elim [ zero => A | suc n => fam/shifted n ] in
   (n : nat) * fam n
 
-def inl (A : type) (B : type) (x : A) : sum A B :=
+def inl (A B : type) (x : A) : sum A B :=
   [ 0 , x ]
 
-def inr (A : type) (B : type) (y : B) : sum A B :=
+def inr (A B : type) (y : B) : sum A B :=
   [ 1 , y ]
 
-def case (A : type) (B : type) (P : sum A B -> type)
+def case (A B : type) (P : sum A B -> type)
   (P/inl : (a : A) -> P {inl A B a})
   (P/inr : (b : B) -> P {inr A B b})
   (s : sum A B) : P s

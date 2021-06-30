@@ -20,14 +20,8 @@ module Make : functor (Symbol : Symbol.S) -> sig
   (** Print a signature. *)
   val pp_sign : Pp.env -> sign Pp.printer
 
-  (** Print with braces if non-atomic term. *)
-  val pp_atomic : Pp.env -> t Pp.printer
-
   (** Print a core language type. *)
   val pp_tp : Pp.env -> tp Pp.printer
-
-  (** Print with braces if non-atomic term. *)
-  val pp_atomic_tp : Pp.env -> tp Pp.printer
 
   (** Vertically print an iterated dependent product type as if it were a sequent, for display of goals. *)
   val pp_sequent : lbl:string option -> (Ident.t * tp) list -> tp Pp.printer

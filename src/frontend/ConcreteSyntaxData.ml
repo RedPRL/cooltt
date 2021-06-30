@@ -17,7 +17,7 @@ type 'a node =
 [@@deriving show]
 
 
-type cell = Cell of {name : Ident.t; tp : con}
+type cell = Cell of {names : Ident.t list; tp : con}
 and con = con_ node
 and con_ =
   | Var of Ident.t
