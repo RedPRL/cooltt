@@ -704,6 +704,25 @@ path-types.cooltt:55.10-55.17 [Info]:
   Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
 
 --------------------[prelude.cooltt]--------------------
+--------------------[record.cooltt]--------------------
+record.cooltt:11.6-11.11 [Info]:
+  basic
+  : type
+  = sig (foo : nat)  (bar : (_x : nat) → nat)  
+
+record.cooltt:12.6-12.19 [Info]:
+  basic/inhabit
+  : basic
+  = struct (foo : 1)  (bar : x => x)  
+
+record.cooltt:13.10-13.23 [Info]:
+  Computed normal form of basic/inhabit as struct (foo : 1)  (bar : x => x)  
+
+record.cooltt:26.6-26.12 [Info]:
+  depend
+  : type
+  = sig (tp : type)  (fun : (_x : tp) → tp)  
+
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.10-8.17 [Info]:
   Computed normal form of testing as
