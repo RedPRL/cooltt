@@ -145,9 +145,9 @@ struct
 
   let rec pp_fields env pp_field fmt  =
     function
-    | [] -> Format.fprintf fmt ""
+    | [] -> ()
     | ((lbl, tp) :: fields) ->
-       Format.fprintf fmt "(%a : %a) @, %a" Uuseg_string.pp_utf_8 lbl (pp_field env) tp (pp_fields env pp_field) fields
+       Format.fprintf fmt "(%a : %a)@ @,%a" Uuseg_string.pp_utf_8 lbl (pp_field env) tp (pp_fields env pp_field) fields
 
   let rec pp env fmt tm =
     match tm with
@@ -401,12 +401,7 @@ struct
     | _ ->
       pp_braced (pp_sub env) fmt sb
 
-
-  and pp_sign env fmt (sign : sign) =
-    match sign with
-    | [] -> ()
-    | (lbl, tp) :: fields ->
-       Format.fprintf fmt "(%a : %a) @, %a" Uuseg_string.pp_utf_8 lbl (pp_tp env) tp (pp_sign env) fields
+  and pp_sign env fmt (sign : sign) = pp_fields env pp_tp fmt sign
 
   and pp_tp env fmt (tp : tp) =
     match tp with
