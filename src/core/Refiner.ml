@@ -26,8 +26,8 @@ exception CJHM
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 type 'a telescope =
-   | Bind of string * 'a * (T.var -> 'a telescope)
-   | Done
+  | Bind of string * 'a * (T.var -> 'a telescope)
+  | Done
 
 module GlobalUtil : sig
   val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
@@ -496,33 +496,33 @@ struct
     let rec form_fields tele =
       function
       | Bind (nm, tac, tacs) ->
-         let* tp = T.Tp.run tac in
-         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-         T.abstract ~ident:(`User [nm]) vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
+        let* tp = T.Tp.run tac in
+        let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+        T.abstract ~ident:(`User [nm]) vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule @@ form_fields Emp tacs
 
   let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string * T.Chk.tac) list) : (string * S.t) list m =
     match (sign, tacs) with
     | D.Field (lbl, tp, sign_clo), (tac_lbl, tac) :: tacs when (String.equal lbl tac_lbl) ->
-       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
-       let* vfield = RM.lift_ev @@ Sem.eval tfield in
-       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
-       let+ tfields = intro_fields phi phi_clo tsign tacs in
-       (lbl, tfield) :: tfields
+      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
+      let* vfield = RM.lift_ev @@ Sem.eval tfield in
+      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
+      let+ tfields = intro_fields phi phi_clo tsign tacs in
+      (lbl, tfield) :: tfields
     | D.Empty, [] -> RM.ret []
     | sign, tacs ->
-       let expected = D.sign_lbls sign in
-       let actual = List.map fst tacs in
-       RM.field_names_mismatch ~expected ~actual
+      let expected = D.sign_lbls sign in
+      let actual = List.map fst tacs in
+      RM.field_names_mismatch ~expected ~actual
 
 
   let intro (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
     T.Chk.brule @@
     function
     | (D.Signature sign, phi, phi_clo) ->
-       let+ fields = intro_fields phi phi_clo sign tacs in
-       S.Struct fields
+      let+ fields = intro_fields phi phi_clo sign tacs in
+      S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
   let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string) : D.tp m =
@@ -530,19 +530,19 @@ struct
       function
       | D.Field (flbl, tp, _) when String.equal flbl lbl -> RM.ret tp
       | D.Field (flbl, __, clo) ->
-         let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
-         let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
-         go vsign
+        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
+        let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
+        go vsign
       | D.Empty -> RM.expected_field sign tstruct lbl
-   in go sign
+    in go sign
 
   let proj tac lbl : T.Syn.tac =
     T.Syn.rule @@
     let* tstruct, tp = T.Syn.run tac in
     match tp with
     | D.Signature sign ->
-       let+ tp = proj_tp sign tstruct lbl in
-       S.Proj (tstruct, lbl), tp
+      let+ tp = proj_tp sign tstruct lbl in
+      S.Proj (tstruct, lbl), tp
     | _ -> RM.expected_connective `Signature tp
 end
 
@@ -592,15 +592,15 @@ struct
       function
       | [] -> RM.ret fams
       | tac :: tacs ->
-         let* famtp =
-           RM.lift_cmp @@
-           Sem.splice_tp @@
-           Splice.tp univ @@ fun univ ->
-           Splice.cons vfams @@ fun args -> Splice.term @@ TB.pis ~idents:idents args @@ fun _ -> univ
-         in
-         let* fam = T.Chk.run tac famtp in
-         let* vfam = RM.lift_ev @@ Sem.eval fam in
-         mk_fams (fams @ [fam]) (vfams @ [vfam]) tacs
+        let* famtp =
+          RM.lift_cmp @@
+          Sem.splice_tp @@
+          Splice.tp univ @@ fun univ ->
+          Splice.cons vfams @@ fun args -> Splice.term @@ TB.pis ~idents:idents args @@ fun _ -> univ
+        in
+        let* fam = T.Chk.run tac famtp in
+        let* vfam = RM.lift_ev @@ Sem.eval fam in
+        mk_fams (fams @ [fam]) (vfams @ [vfam]) tacs
     in
     let+ fams = mk_fams [] [] tacs in
     ListUtil.zip lbls fams
@@ -632,7 +632,7 @@ struct
          sig (x : type)
              (y : x => (arg : x) -> type)
              (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
-   *)
+  *)
   let signature (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ fields = quantifiers tacs univ in

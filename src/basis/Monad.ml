@@ -121,9 +121,9 @@ struct
       function
       | [] -> M.ret []
       | (x :: xs) ->
-         let+ y = f acc x
-         and+ ys = go (acc @ [x]) xs in
-         y :: ys
+        let+ y = f acc x
+        and+ ys = go (acc @ [x]) xs in
+        y :: ys
     in
     go [] xs
 end

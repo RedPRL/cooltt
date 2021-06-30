@@ -203,8 +203,8 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
   | D.Struct fields ->
-     let+ fields = MU.map (MU.second (subst_con r x)) fields in
-     D.Struct fields
+    let+ fields = MU.map (MU.second (subst_con r x)) fields in
+    D.Struct fields
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
     D.StableCode code
@@ -320,9 +320,9 @@ and subst_sign : D.dim -> DimProbe.t -> D.sign -> D.sign CM.m =
   let open CM in
   function
   | D.Field (ident, tp, clo) ->
-     let+ tp = subst_tp r x tp
-     and+ clo = subst_sign_clo r x clo in
-     D.Field (ident, tp, clo)
+    let+ tp = subst_tp r x tp
+    and+ clo = subst_sign_clo r x clo in
+    D.Field (ident, tp, clo)
   | D.Empty -> ret D.Empty
 
 and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
@@ -338,8 +338,8 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ fam = subst_tp_clo r x fam in
     D.Sg (base, ident, fam)
   | D.Signature sign ->
-     let+ sign = subst_sign r x sign in
-     D.Signature sign
+    let+ sign = subst_sign r x sign in
+    D.Signature sign
   | D.Sub (base, phi, clo) ->
     let+ base = subst_tp r x base
     and+ phi = subst_cof r x phi
@@ -392,8 +392,8 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     and+ con1 = subst_con r x con1 in
     `Sg (con0, con1)
   | `Signature fields ->
-     let+ fields = MU.map (MU.second (subst_con r x)) fields in
-     `Signature fields
+    let+ fields = MU.map (MU.second (subst_con r x)) fields in
+    `Signature fields
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
@@ -487,9 +487,9 @@ and eval_sign : S.sign -> D.sign EvM.m =
   function
   | [] -> ret D.Empty
   | (ident, field) :: fields ->
-     let+ env = read_local
-     and+ vfield = eval_tp field in
-     D.Field (ident, vfield, D.Clo (fields, env))
+    let+ env = read_local
+    and+ vfield = eval_tp field in
+    D.Field (ident, vfield, D.Clo (fields, env))
 
 and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
@@ -505,8 +505,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
   | S.Signature sign ->
-     let+ vsign = eval_sign sign in
-     D.Signature vsign
+    let+ vsign = eval_sign sign in
+    D.Signature vsign
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -600,11 +600,11 @@ and eval : S.t -> D.con EvM.m =
       let* con = eval t in
       lift_cmp @@ do_snd con
     | S.Struct fields ->
-       let+ vfields = MU.map (MU.second eval) fields in
-       D.Struct vfields
+      let+ vfields = MU.map (MU.second eval) fields in
+      D.Struct vfields
     | S.Proj (t, lbl) ->
-       let* con = eval t in
-       lift_cmp @@ do_proj con lbl
+      let* con = eval t in
+      lift_cmp @@ do_proj con lbl
     | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
@@ -701,11 +701,11 @@ and eval : S.t -> D.con EvM.m =
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
     | S.CodeSignature fields ->
-       let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
-         let+ vtp = eval tp in
-         (ident, vtp)
-       in
-       D.StableCode (`Signature vfields)
+      let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
+        let+ vtp = eval tp in
+        (ident, vtp)
+      in
+      D.StableCode (`Signature vfields)
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -1187,12 +1187,12 @@ and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : string) =
   match sign with
   | D.Field (flbl, tp, _) when String.equal flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
   | D.Field (flbl, _, clo) ->
-     (* FIXME: Is this right?? *)
-     let* field = cut_frm_sign cut sign flbl in
-     let* sign = inst_sign_clo clo field in
-     cut_frm_sign cut sign lbl
+    (* FIXME: Is this right?? *)
+    let* field = cut_frm_sign cut sign flbl in
+    let* sign = inst_sign_clo clo field in
+    cut_frm_sign cut sign lbl
   | D.Empty ->
-     throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
+    throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
 
 and do_proj (con : D.con) (lbl : string) : D.con CM.m =
   let open CM in
@@ -1202,17 +1202,17 @@ and do_proj (con : D.con) (lbl : string) : D.con CM.m =
     inspect_con ~style:`UnfoldNone con |>>
     function
     | D.Struct fields ->
-       begin
-       match List.assoc_opt lbl fields with
-       | Some con -> ret con
-       | None -> throw @@ NbeFailed "Couldn't proj argument in do_proj, struct was missing field"
-       end
+      begin
+        match List.assoc_opt lbl fields with
+        | Some con -> ret con
+        | None -> throw @@ NbeFailed "Couldn't proj argument in do_proj, struct was missing field"
+      end
     | D.Split branches ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.Signature sign; cut} ->
-       cut_frm_sign cut sign lbl
+      cut_frm_sign cut sign lbl
     | _ ->
       throw @@ NbeFailed ("Couldn't proj argument in do_proj")
   end
@@ -1459,10 +1459,10 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
       | `Signature fields ->
-         let (lbls, field_cons) = ListUtil.unzip fields in
-         splice_tp @@
-         Splice.cons field_cons @@ fun fields ->
-         Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
+        let (lbls, field_cons) = ListUtil.unzip fields in
+        splice_tp @@
+        Splice.cons field_cons @@ fun fields ->
+        Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
 
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@
@@ -1556,13 +1556,13 @@ and enact_rigid_coe line r r' con tag =
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
       | `Signature fields ->
-         let (lbls, fams) = ListUtil.unzip fields in
-         splice_tm @@
-         Splice.cons (List.map (fun famx -> D.BindSym (x, famx)) fams) @@ fun fam_lines ->
-         Splice.dim r @@ fun r ->
-         Splice.dim r' @@ fun r' ->
-         Splice.con con @@ fun bdy ->
-         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
+        let (lbls, fams) = ListUtil.unzip fields in
+        splice_tm @@
+        Splice.cons (List.map (fun famx -> D.BindSym (x, famx)) fams) @@ fun fam_lines ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
+        Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
       | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1637,15 +1637,15 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
       | `Signature fields ->
-         let (lbls, fams) = ListUtil.unzip fields in
-         splice_tm @@
-         Splice.cons fams @@ fun fams ->
-         Splice.dim r @@ fun r ->
-         Splice.dim r' @@ fun r' ->
-         Splice.cof phi @@ fun phi ->
-         Splice.con bdy @@ fun bdy ->
-         Splice.term @@
-         TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
+        let (lbls, fams) = ListUtil.unzip fields in
+        splice_tm @@
+        Splice.cons fams @@ fun fams ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
       | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->

@@ -155,7 +155,7 @@ struct
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
-       Format.fprintf fmt "struct[%a]" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl pp_con tp)) fields
+      Format.fprintf fmt "struct[%a]" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
@@ -212,7 +212,7 @@ struct
     | Sg _ ->
       Format.fprintf fmt "<sg>"
     | Signature sign ->
-       Format.fprintf fmt "sig[%a]" pp_sign sign
+      Format.fprintf fmt "sig[%a]" pp_sign sign
     | Sub _ ->
       Format.fprintf fmt "<sub>"
     | TpPrf _ ->

@@ -240,9 +240,9 @@ let signature (mfields : (string * (S.t m list -> S.tp m)) list) : _ m =
     function
     | [] -> ret []
     | ((ident, mfield) :: mfields) ->
-       let* field = mfield bound in
-       let+ fields = scope @@ fun tm -> scope_fields (bound @ [tm]) mfields in
-       (ident, field) :: fields
+      let* field = mfield bound in
+      let+ fields = scope @@ fun tm -> scope_fields (bound @ [tm]) mfields in
+      (ident, field) :: fields
   in
   let+ fields = scope_fields [] mfields in
   S.Signature fields
@@ -496,13 +496,13 @@ struct
       match fields with
       | [] -> []
       | (lbl, field) :: fields ->
-         let p0_line =
-           lam @@ fun i ->
-           hcom field r i phi @@
-           lam @@ fun j ->
-           lam @@ fun prf ->
-           proj (ap bdy [j; prf]) lbl
-         in List.fold_left mk_line [(lbl, p0_line)] fields
+        let p0_line =
+          lam @@ fun i ->
+          hcom field r i phi @@
+          lam @@ fun j ->
+          lam @@ fun prf ->
+          proj (ap bdy [j; prf]) lbl
+        in List.fold_left mk_line [(lbl, p0_line)] fields
     in
     el_in @@ struct_ @@ List.map (fun (lbl, p_line) -> lbl, ap p_line [r']) lines
 

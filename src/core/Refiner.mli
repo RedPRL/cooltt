@@ -10,8 +10,8 @@ open Tactic
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
 type 'a telescope =
-   | Bind of string * 'a * (var -> 'a telescope)
-   | Done
+  | Bind of string * 'a * (var -> 'a telescope)
+  | Done
 
 module Hole : sig
   val unleash_hole : string option -> Chk.tac

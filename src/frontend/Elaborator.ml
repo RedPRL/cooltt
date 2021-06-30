@@ -83,9 +83,9 @@ struct
 
   let as_codes =
     ListUtil.map_opt @@
-      function
-      | (_, Tp _) -> None
-      | (lbl, Code tac) -> Some (lbl, tac)
+    function
+    | (_, Tp _) -> None
+    | (lbl, Code tac) -> Some (lbl, tac)
 
   let pi (tac_base : tac) (ident : Ident.t) (tac_fam : tac) : tac =
     match tac_base, tac_fam with
@@ -112,12 +112,12 @@ struct
   let signature (tacs : (string * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
-       let tac = R.Univ.signature (bind_sig_tacs tacs) in
-       Code tac
+      let tac = R.Univ.signature (bind_sig_tacs tacs) in
+      Code tac
     | None ->
-       let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
-       let tac = R.Signature.formation tele in
-       Tp tac
+      let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
+      let tac = R.Signature.formation tele in
+      Tp tac
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -152,8 +152,8 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     CoolTp.sg (cool_chk_tp cell.tp) cell.name @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-     let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
-     CoolTp.signature tacs
+    let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
+    CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
@@ -255,8 +255,8 @@ and chk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Struct fields ->
-       let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
-       R.Signature.intro tacs
+      let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
+      R.Signature.intro tacs
 
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)
@@ -291,8 +291,8 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature fields ->
-       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
-       R.Univ.signature tacs
+      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
+      R.Univ.signature tacs
 
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
@@ -365,7 +365,7 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Snd t ->
       R.Sg.pi2 @@ syn_tm t
     | CS.Proj (t, ident) ->
-       R.Signature.proj (syn_tm t) ident
+      R.Signature.proj (syn_tm t) ident
     | CS.VProj t ->
       R.ElV.elim @@ syn_tm t
     | CS.Cap t ->

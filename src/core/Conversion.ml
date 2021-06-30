@@ -131,11 +131,11 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 and equate_sign sign0 sign1 =
   match sign0, sign1 with
   | D.Field (lbl0, tp0, clo0), D.Field (lbl1, tp1, clo1) when String.equal lbl0 lbl1 ->
-     let* () = equate_tp tp0 tp1 in
-     bind_var_ tp0 @@ fun x ->
-     let* sign0 = lift_cmp @@ inst_sign_clo clo0 x in
-     let* sign1 = lift_cmp @@ inst_sign_clo clo1 x in
-     equate_sign sign0 sign1
+    let* () = equate_tp tp0 tp1 in
+    bind_var_ tp0 @@ fun x ->
+    let* sign0 = lift_cmp @@ inst_sign_clo clo0 x in
+    let* sign1 = lift_cmp @@ inst_sign_clo clo1 x in
+    equate_sign sign0 sign1
   | D.Empty, D.Empty -> ret ()
   | _, _ -> conv_err @@ ExpectedSignEq (sign0, sign1)
 
@@ -175,7 +175,7 @@ and equate_stable_code univ code0 code1 =
     equate_con tp_bdry bdry0 bdry1
 
   | `Signature sign0, `Signature sign1 ->
-     equate_sign_code univ sign0 sign1
+    equate_sign_code univ sign0 sign1
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
 
@@ -184,15 +184,15 @@ and equate_sign_code univ sign0 sign1 =
     match sign0, sign1 with
     | [], [] -> ret ()
     | (lbl0, fam0) :: sign0 , (lbl1, fam1) :: sign1 when String.equal lbl0 lbl1 ->
-       let* fam_tp =
-         lift_cmp @@
-         splice_tp @@
-         Splice.tp univ @@ fun univ ->
-         Splice.cons vfams @@ fun args ->
-         Splice.term @@ TB.pis args @@ fun _ -> univ
-       in
-       let* _ = equate_con fam_tp fam0 fam1 in
-       go (vfams @ [fam0]) sign0 sign1
+      let* fam_tp =
+        lift_cmp @@
+        splice_tp @@
+        Splice.tp univ @@ fun univ ->
+        Splice.cons vfams @@ fun args ->
+        Splice.term @@ TB.pis args @@ fun _ -> univ
+      in
+      let* _ = equate_con fam_tp fam0 fam1 in
+      go (vfams @ [fam0]) sign0 sign1
     | _, _ -> conv_err @@ ExpectedConEq (univ, D.StableCode (`Signature sign0), D.StableCode (`Signature sign1))
   in go [] sign0 sign1
 
@@ -224,7 +224,7 @@ and equate_con tp con0 con1 =
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
   | D.Signature sign, _, _ ->
-     equate_struct sign con0 con1
+    equate_struct sign con0 con1
   | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
@@ -317,13 +317,13 @@ and equate_con tp con0 con1 =
 and equate_struct (sign : D.sign) con0 con1 =
   match sign with
   | D.Field (lbl, tp, clo) ->
-     let* field0 = lift_cmp @@ do_proj con0 lbl in
-     let* field1 = lift_cmp @@ do_proj con1 lbl in
-     let* () = equate_con tp field0 field1 in
-     let* sign = lift_cmp @@ inst_sign_clo clo field0 in
-     equate_struct sign con0 con1
+    let* field0 = lift_cmp @@ do_proj con0 lbl in
+    let* field1 = lift_cmp @@ do_proj con1 lbl in
+    let* () = equate_con tp field0 field1 in
+    let* sign = lift_cmp @@ inst_sign_clo clo field0 in
+    equate_struct sign con0 con1
   | D.Empty ->
-     ret ()
+    ret ()
 
 
 (* Invariant: cut0, cut1 are whnf *)
@@ -359,7 +359,7 @@ and equate_frm k0 k1 =
   | D.KSnd, D.KSnd ->
     ret ()
   | D.KProj lbl0, D.KProj lbl1 when String.equal lbl0 lbl1 ->
-     ret ()
+    ret ()
   | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
     let* () = equate_tp tp0 tp1 in
     equate_con tp0 con0 con1

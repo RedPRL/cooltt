@@ -147,7 +147,7 @@ struct
     function
     | [] -> ()
     | ((lbl, tp) :: fields) ->
-       Format.fprintf fmt "(%a : %a)@ @,%a" Uuseg_string.pp_utf_8 lbl (pp_field env) tp (pp_fields env pp_field) fields
+      Format.fprintf fmt "(%a : %a)@ @,%a" Uuseg_string.pp_utf_8 lbl (pp_field env) tp (pp_fields env pp_field) fields
 
   let rec pp env fmt tm =
     match tm with
@@ -159,9 +159,9 @@ struct
     | Pair (tm0, tm1) ->
       pp_tuple (pp env) fmt [tm0; tm1]
     | Struct fields ->
-       Format.fprintf fmt "@[struct %a@]" (pp_fields env pp) fields
+      Format.fprintf fmt "@[struct %a@]" (pp_fields env pp) fields
     | Proj (tm, lbl) ->
-       Format.fprintf fmt "@[%a %@ %s@]" (pp env) tm lbl
+      Format.fprintf fmt "@[%a %@ %s@]" (pp env) tm lbl
     | CofSplit branches ->
       let sep fmt () = Format.fprintf fmt "@ | " in
       pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
@@ -284,7 +284,7 @@ struct
         (pp_atomic env) base
         (pp_atomic env) tm
     | CodeSignature fields ->
-       Format.fprintf fmt "@[sig %a@]" (pp_fields env pp_binders) fields
+      Format.fprintf fmt "@[sig %a@]" (pp_fields env pp_binders) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -426,7 +426,7 @@ struct
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx) fam
     | Signature fields ->
-       Format.fprintf fmt "sig %a" (pp_sign env) fields
+      Format.fprintf fmt "sig %a" (pp_sign env) fields
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

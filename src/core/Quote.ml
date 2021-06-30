@@ -283,11 +283,11 @@ let rec quote_con (tp : D.tp) con =
 and quote_fields (sign : D.sign) con : (string * S.t) list m =
   match sign with
   | D.Field (lbl, tp, sign_clo) ->
-     let* fcon = lift_cmp @@ do_proj con lbl in
-     let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
-     let* tfield = quote_con tp fcon in
-     let+ tfields = quote_fields sign con in
-     (lbl, tfield) :: tfields
+    let* fcon = lift_cmp @@ do_proj con lbl in
+    let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
+    let* tfield = quote_con tp fcon in
+    let+ tfields = quote_fields sign con in
+    (lbl, tfield) :: tfields
   | D.Empty -> ret []
 
 and quote_stable_field_code univ args (lbl, fam) =
@@ -296,10 +296,10 @@ and quote_stable_field_code univ args (lbl, fam) =
     function
     | [] -> quote_con univ @<< lift_cmp @@ do_aps fam vars
     | (lbl, arg) :: args ->
-       (* The 'do_aps' here instantiates the argument type families so that we can handle
-          the telescopic nature of fields correctly. *)
-       let* elarg = lift_cmp @@ CmpM.bind (do_aps arg vars) do_el in
-       quote_lam ~ident:(`User [lbl]) elarg @@ fun var -> go (vars @ [var]) args
+      (* The 'do_aps' here instantiates the argument type families so that we can handle
+         the telescopic nature of fields correctly. *)
+      let* elarg = lift_cmp @@ CmpM.bind (do_aps arg vars) do_el in
+      quote_lam ~ident:(`User [lbl]) elarg @@ fun var -> go (vars @ [var]) args
   in
   let+ tfam = go [] args in
   (lbl, tfam)
@@ -337,9 +337,9 @@ and quote_stable_code univ =
     in
     S.CodeSg (tbase, tfam)
   | `Signature fields ->
-     let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
-     in
-     S.CodeSignature tfields
+    let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
+    in
+    S.CodeSignature tfields
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =
@@ -409,11 +409,11 @@ and quote_tp_clo base fam =
 and quote_sign : D.sign -> S.sign m =
   function
   | Field (ident, field, clo) ->
-     let* tfield = quote_tp field in
-     bind_var field @@ fun var ->
-     let* fields = lift_cmp @@ inst_sign_clo clo var in
-     let+ tfields = quote_sign fields in
-     (ident, tfield) :: tfields
+    let* tfield = quote_tp field in
+    bind_var field @@ fun var ->
+    let* fields = lift_cmp @@ inst_sign_clo clo var in
+    let+ tfields = quote_sign fields in
+    (ident, tfield) :: tfields
   | Empty -> ret []
 
 and quote_tp (tp : D.tp) =
@@ -431,8 +431,8 @@ and quote_tp (tp : D.tp) =
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
   | D.Signature sign ->
-     let+ sign = quote_sign sign in
-     S.Signature sign
+    let+ sign = quote_sign sign in
+    S.Signature sign
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->
@@ -646,7 +646,7 @@ and quote_frm tm =
   | D.KSnd ->
     ret @@ S.Snd tm
   | D.KProj lbl ->
-     ret @@ S.Proj (tm, lbl)
+    ret @@ S.Proj (tm, lbl)
   | D.KAp (tp, con) ->
     let+ targ = quote_con tp con in
     S.Ap (tm, targ)
