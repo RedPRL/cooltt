@@ -302,9 +302,9 @@ plain_term_except_cof_case:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
-  | SIG; tele = nonempty_list(field);
+  | SIG; tele = list(field);
     { Signature tele }
-  | STRUCT; tele = nonempty_list(field);
+  | STRUCT; tele = list(field);
     { Struct tele }
   | t = term; PROJ; lbl = ATOM
     { Proj (t, lbl) }

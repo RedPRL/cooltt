@@ -59,3 +59,8 @@ def sig/ext
   : path {sig (foo : nat)} b0 b1
 :=
 i => struct (foo : p i)
+
+
+-- Test that empty sigs/structs work
+def empty : type := sig
+def empty/inhabit : empty := struct
