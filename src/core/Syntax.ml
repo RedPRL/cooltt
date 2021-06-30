@@ -149,7 +149,6 @@ struct
       | NatElim _ | Loop _ | CircleElim _ | CodeExt _ -> juxtaposition
 
       | SubIn _ | SubOut _ | ElIn _ | ElOut _ -> passed
-      | CodePi (_, Lam _) | CodeSg (_, Lam _) -> juxtaposition
       | CodePi _ -> arrow
       | CodeSg _ -> times
 
