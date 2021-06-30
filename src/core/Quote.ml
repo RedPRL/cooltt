@@ -104,6 +104,10 @@ let rec quote_con (tp : D.tp) con =
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
 
+  | D.Signature sign, _ ->
+    let+ tfields = quote_fields sign con in
+    S.Struct tfields
+
   | D.Sub (tp, _phi, _clo), _ ->
     let+ tout =
       let* out = lift_cmp @@ do_sub_out con in
@@ -276,6 +280,30 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
+and quote_fields (sign : D.sign) con : (string * S.t) list m =
+  match sign with
+  | D.Field (lbl, tp, sign_clo) ->
+    let* fcon = lift_cmp @@ do_proj con lbl in
+    let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
+    let* tfield = quote_con tp fcon in
+    let+ tfields = quote_fields sign con in
+    (lbl, tfield) :: tfields
+  | D.Empty -> ret []
+
+and quote_stable_field_code univ args (lbl, fam) =
+  (* See [NOTE: Sig Code Quantifiers] for more details *)
+  let rec go vars =
+    function
+    | [] -> quote_con univ @<< lift_cmp @@ do_aps fam vars
+    | (lbl, arg) :: args ->
+      (* The 'do_aps' here instantiates the argument type families so that we can handle
+         the telescopic nature of fields correctly. *)
+      let* elarg = lift_cmp @@ CmpM.bind (do_aps arg vars) do_el in
+      quote_lam ~ident:(`User [lbl]) elarg @@ fun var -> go (vars @ [var]) args
+  in
+  let+ tfam = go [] args in
+  (lbl, tfam)
+
 and quote_stable_code univ =
   function
   | `Nat ->
@@ -308,6 +336,10 @@ and quote_stable_code univ =
       lift_cmp @@ do_ap fam var
     in
     S.CodeSg (tbase, tfam)
+  | `Signature fields ->
+    let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
+    in
+    S.CodeSignature tfields
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =
@@ -374,6 +406,16 @@ and quote_tp_clo base fam =
   let* tp = lift_cmp @@ inst_tp_clo fam var in
   quote_tp tp
 
+and quote_sign : D.sign -> S.sign m =
+  function
+  | Field (ident, field, clo) ->
+    let* tfield = quote_tp field in
+    bind_var field @@ fun var ->
+    let* fields = lift_cmp @@ inst_sign_clo clo var in
+    let+ tfields = quote_sign fields in
+    (ident, tfield) :: tfields
+  | Empty -> ret []
+
 and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
@@ -388,6 +430,9 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
+  | D.Signature sign ->
+    let+ sign = quote_sign sign in
+    S.Signature sign
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->
@@ -600,6 +645,8 @@ and quote_frm tm =
     ret @@ S.Fst tm
   | D.KSnd ->
     ret @@ S.Snd tm
+  | D.KProj lbl ->
+    ret @@ S.Proj (tm, lbl)
   | D.KAp (tp, con) ->
     let+ targ = quote_con tp con in
     S.Ap (tm, targ)

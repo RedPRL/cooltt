@@ -10,6 +10,7 @@ struct
   type connective =
     [ `Pi
     | `Sg
+    | `Signature
     | `Nat
     | `Circle
     | `Univ
@@ -25,6 +26,8 @@ struct
 
   type t =
     | UnboundVariable of Ident.t
+    | FieldNameMismatches of string list * string list
+    | ExpectedField of Pp.env * S.sign * S.t * string
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t * Conversion.Error.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | ExpectedConnective of connective * Pp.env * S.tp

@@ -34,6 +34,9 @@ and con_ =
   | Lam of Ident.t list * con
   | Ap of con * con list
   | Sg of cell list * con
+  | Signature of field list
+  | Struct of field list
+  | Proj of con * string
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con
@@ -78,6 +81,9 @@ and con_ =
 [@@deriving show]
 
 and case = pat * con
+[@@deriving show]
+
+and field = Field of { lbl : string; tp : con }
 [@@deriving show]
 
 and pat = Pat of {lbl : string; args : pat_arg list}

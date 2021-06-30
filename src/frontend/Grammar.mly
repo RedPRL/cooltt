@@ -39,6 +39,7 @@
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
+%token SIG STRUCT PROJ
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM
@@ -50,6 +51,7 @@
 
 %nonassoc IN RRIGHT_ARROW SEMI
 %nonassoc COLON
+%left PROJ
 %right RIGHT_ARROW TIMES
 
 %start <ConcreteSyntax.signature> sign
@@ -300,6 +302,12 @@ plain_term_except_cof_case:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
+  | SIG; tele = list(field);
+    { Signature tele }
+  | STRUCT; tele = list(field);
+    { Struct tele }
+  | t = term; PROJ; lbl = ATOM
+    { Proj (t, lbl) }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
@@ -367,6 +375,10 @@ pat_arg:
     { `Simple ident }
   | LBR i0 = plain_name RRIGHT_ARROW i1 = plain_name RBR
     { `Inductive (i0, i1) }
+
+field:
+  | LPR lbl = ATOM; COLON tp = term; RPR
+    { Field {lbl; tp} }
 
 tele_cell:
   | LPR names = nonempty_list(plain_name); COLON tp = term; RPR

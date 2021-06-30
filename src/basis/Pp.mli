@@ -12,4 +12,6 @@ sig
   val names : t -> string list
 end
 
+val pp_sep_list : ?sep:string -> 'a printer -> ('a list) printer
+
 type env = Env.t

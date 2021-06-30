@@ -17,6 +17,9 @@ module Make : functor (Symbol : Symbol.S) -> sig
   (** Print a core language term. *)
   val pp : Pp.env -> t Pp.printer
 
+  (** Print a signature. *)
+  val pp_sign : Pp.env -> sign Pp.printer
+
   (** Print a core language type. *)
   val pp_tp : Pp.env -> tp Pp.printer
 
@@ -27,5 +30,6 @@ module Make : functor (Symbol : Symbol.S) -> sig
       When debugging, we are not likely to have enough context to use the nice pretty printers above; as a last resort, {!val:dump} and {!val:dump_tp} may be used. *)
 
   val dump : t Pp.printer
+  val dump_sign : sign Pp.printer
   val dump_tp : tp Pp.printer
 end
