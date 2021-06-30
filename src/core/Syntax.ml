@@ -108,46 +108,123 @@ struct
   and dump_branch fmt (cof, bdy) =
     Format.fprintf fmt "[%a, %a]" dump cof dump bdy
 
+  module P =
+  struct
+    type tm = t (* anti-shadowing *)
+    include SyntaxPrecedence
+
+    let passed = nonassoc 11
+    let atom = nonassoc 10
+    let delimited = nonassoc 10
+    let tuple = delimited
+    let substitution = right 9
+    let juxtaposition = left 8
+    let sub_compose = left 7
+    let cof_eq = nonassoc 6
+    let cof_meet = nonassoc 5
+    let cof_join = nonassoc 5
+    let sub_comma = left 4
+    let arrow = right 3
+    let times = right 3
+    let colon = nonassoc 2
+    let double_arrow = right 1
+    let in_ = nonassoc 0
+
+    (** assumes [debug_mode] = [false] *)
+    let classify_tm : tm -> t =
+      function
+      | Var _ | Global _ -> atom
+      | Lam _ -> double_arrow
+      | Ap _ -> juxtaposition
+      | Pair _ | CofSplit _ -> tuple
+      | Cof (Cof.Eq _) -> cof_eq
+      | Cof (Cof.Join [] | Cof.Meet []) -> atom
+      | Cof (Cof.Join _) -> cof_join
+      | Cof (Cof.Meet _) -> cof_meet
+      | ForallCof _ -> dual juxtaposition arrow
+
+      | Zero | Base | CodeNat | CodeCircle | CodeUniv | Dim0 | Dim1 | Prf -> atom
+      | Suc _ as tm -> if Option.is_some (to_numeral tm) then atom else juxtaposition
+      | HCom _ | Com _ | Coe _ | Fst _ | Snd _
+      | NatElim _ | Loop _ | CircleElim _ | CodeExt _ -> juxtaposition
+
+      | SubIn _ | SubOut _ | ElIn _ | ElOut _ -> passed
+      | CodePi _ -> arrow
+      | CodeSg _ -> times
+
+      | Ann _ -> passed
+      | Let _ -> dual juxtaposition in_
+
+      | Box _ -> tuple
+      | Cap _ -> juxtaposition
+      | CodeV _ -> juxtaposition
+      | VIn _ -> tuple
+      | VProj _ -> juxtaposition
+      | ESub _ -> juxtaposition
+      | LockedPrfIn _ -> juxtaposition
+      | LockedPrfUnlock _ -> delimited
+
+    let classify_sub : sub -> t =
+      function
+      | SbI | Sb1 | SbP -> atom
+      | SbC _ -> sub_compose
+      | SbE _ -> sub_comma
+
+    let classify_tp : tp -> t =
+      function
+      | Univ | TpDim | TpCof | Nat | Circle -> atom
+      | El _ -> passed
+      | TpVar _ -> atom
+      | TpPrf _ -> delimited
+      | TpCofSplit _ -> delimited
+      | Sub _ -> juxtaposition
+      | Pi _ -> arrow
+      | Sg _ -> times
+      | TpESub _ -> substitution
+      | TpLockedPrf _ -> juxtaposition
+  end
 
   let pp_var env fmt ix =
     Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
 
+  let pp_bracketed pp fmt a =
+    Format.fprintf fmt "@[<hv>[ %a@ ]@]"
+      pp a
 
-  let pp_lsq fmt () = Format.fprintf fmt "["
-  let pp_rsq fmt () = Format.fprintf fmt "]"
+  let pp_bracketed_list ~pp_sep pp fmt xs =
+    pp_bracketed (Format.pp_print_list ~pp_sep pp) fmt xs
 
-  let pp_list_group ~left ~right ~sep pp fmt xs =
-    Format.fprintf fmt "@[<hv0>%a %a@ %a@]"
-      left ()
-      (Format.pp_print_list ~pp_sep:sep pp) xs
-      right ()
-
-  let pp_tuple =
-    let sep fmt () = Format.fprintf fmt "@ , " in
-    pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+  let pp_tuple pp =
+    let pp_sep fmt () = Format.fprintf fmt "@ , " in
+    pp_bracketed_list ~pp_sep pp
 
   let pp_braced pp fmt a =
     Format.fprintf fmt "{%a}"
       pp a
 
+  let pp_braced_cond classify plain_pp penv fmt tm =
+    if P.parens penv @@ classify tm then
+      pp_braced (plain_pp penv) fmt tm
+    else
+      plain_pp penv fmt tm
+
   let ppenv_bind env ident =
     Pp.Env.bind env @@ Ident.to_string_opt ident
 
-  let rec pp env fmt tm =
-    match tm with
-    | Lam _ ->
+  let rec pp env =
+    pp_braced_cond P.classify_tm @@ fun penv fmt ->
+    function
+    | Lam _ as tm ->
       Format.fprintf fmt "@[%a@]"
         (pp_lambdas env) tm
-    | Ap _ ->
-      pp_applications env fmt tm
+    | Ap (tm0, tm1) ->
+      Format.fprintf fmt "%a %a"
+        (pp env P.(left_of juxtaposition)) tm0 (pp_atomic env) tm1
     | Pair (tm0, tm1) ->
-      pp_tuple (pp env) fmt [tm0; tm1]
+      pp_tuple (pp env P.isolated) fmt [tm0; tm1]
     | CofSplit branches ->
-      let sep fmt () = Format.fprintf fmt "@ | " in
-      pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
-        (pp_cof_split_branch env)
-        fmt
-        branches
+      let pp_sep fmt () = Format.fprintf fmt "@ | " in
+      pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches
     | HCom (code, r, s, phi, bdy) ->
       Format.fprintf fmt "@[<hv2>hcom %a %a %a %a@ %a@]"
         (pp_atomic env) code
@@ -173,22 +250,24 @@ struct
     | Global sym ->
       Symbol.pp fmt sym
     | Cof (Cof.Eq (r, s)) ->
-      Format.fprintf fmt "%a = %a" (pp_atomic env) r (pp_atomic env) s
+      Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
     | Cof (Cof.Join []) ->
       Format.fprintf fmt "#f"
     | Cof (Cof.Join phis) ->
-      Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∨ ") (pp_atomic env) fmt phis
+      let pp_sep fmt () = Uuseg_string.pp_utf_8 fmt " ∨ " in
+      Format.pp_print_list ~pp_sep (pp env P.(surrounded_by cof_join)) fmt phis
     | Cof (Cof.Meet []) ->
       Format.fprintf fmt "#t"
     | Cof (Cof.Meet phis) ->
-      Format.pp_print_list ~pp_sep:(fun fmt () -> Uuseg_string.pp_utf_8 fmt " ∧ ") (pp_atomic env) fmt phis
+      let pp_sep fmt () = Uuseg_string.pp_utf_8 fmt " ∧ " in
+      Format.pp_print_list ~pp_sep (pp env P.(surrounded_by cof_meet)) fmt phis
     | ForallCof phi ->
       let x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "%a %a %a %a"
         Uuseg_string.pp_utf_8 "∀"
         Uuseg_string.pp_utf_8 x
         Uuseg_string.pp_utf_8 "→"
-        (pp envx) phi
+        (pp envx P.(right_of arrow)) phi
     | Fst tm ->
       Format.fprintf fmt "fst %a" (pp_atomic env) tm
     | Snd tm ->
@@ -205,8 +284,8 @@ struct
       Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
         (pp_atomic env) tm
         (pp_atomic env) mot
-        (pp env) zero
-        (pp env) suc
+        (pp env P.isolated) zero
+        (pp env P.isolated) suc
     | Base ->
       Format.fprintf fmt "base"
     | Loop tm ->
@@ -215,8 +294,8 @@ struct
       Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
         (pp_atomic env) tm
         (pp_atomic env) mot
-        (pp env) base
-        (pp env) loop
+        (pp env P.isolated) base
+        (pp env P.isolated) loop
     | SubIn tm when debug_mode ->
       Format.fprintf fmt "sub/in %a" (pp_atomic env) tm
     | SubOut tm when debug_mode ->
@@ -226,7 +305,7 @@ struct
     | ElOut tm when debug_mode ->
       Format.fprintf fmt "el/out %a" (pp_atomic env) tm
     | SubIn tm | SubOut tm | ElIn tm | ElOut tm ->
-      pp env fmt tm
+      pp env penv fmt tm
 
     | CodePi (base, fam) when debug_mode ->
       Format.fprintf fmt "@[%a %a %a@]"
@@ -237,9 +316,9 @@ struct
       let x, envx = ppenv_bind env ident in
       Format.fprintf fmt "(%a : %a) %a %a"
         Uuseg_string.pp_utf_8 x
-        (pp env) base
+        (pp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"
-        (pp envx) fam
+        (pp envx P.(right_of arrow)) fam
     | CodePi (base, tm) ->
       Format.fprintf fmt "@[%a %a %a@]"
         Uuseg_string.pp_utf_8 "∏"
@@ -255,9 +334,9 @@ struct
       let x, envx = ppenv_bind env ident in
       Format.fprintf fmt "(%a : %a) %a %a"
         Uuseg_string.pp_utf_8 x
-        (pp env) base
+        (pp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
-        (pp envx) fam
+        (pp envx P.(right_of times)) fam
     | CodeSg (base, tm) ->
       Format.fprintf fmt "@[%a %a %a@]"
         Uuseg_string.pp_utf_8 "Σ"
@@ -290,13 +369,13 @@ struct
     | Prf ->
       Format.fprintf fmt "*"
     | Ann (tm, _) ->
-      pp env fmt tm
+      pp env penv fmt tm
     | Let (tm, ident, bdy) ->
       let x, envx = ppenv_bind env ident in
       Format.fprintf fmt "@[let %a = %a in@ %a@]"
         Uuseg_string.pp_utf_8 x
-        (pp env) tm
-        (pp envx) bdy
+        (pp env P.isolated) tm
+        (pp envx P.(right_of in_)) bdy
     | Box (r, s, phi, sides, cap) when debug_mode ->
       Format.fprintf fmt "@[<hv2>box %a %a %a %a %a@]"
         (pp_atomic env) r
@@ -305,7 +384,7 @@ struct
         (pp_atomic env) sides
         (pp_atomic env) cap
     | Box (_r, _s, _phi, sides, cap) ->
-      pp_tuple (pp env) fmt [sides; cap]
+      pp_tuple (pp env P.isolated) fmt [sides; cap]
     | Cap (r, s, phi, code, box) when debug_mode->
       Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
         (pp_atomic env) r
@@ -328,7 +407,7 @@ struct
         (pp_atomic env) pivot
         (pp_atomic env) base
     | VIn (_, _, pivot, base) ->
-      pp_tuple (pp env) fmt [pivot; base]
+      pp_tuple (pp env P.isolated) fmt [pivot; base]
     | VProj (r, pcode, code, pequiv, v) when debug_mode ->
       Format.fprintf fmt "@[<hv2>vproj %a %a %a %a %a@]"
         (pp_atomic env) r
@@ -342,8 +421,8 @@ struct
 
     | ESub (sub, tm) ->
       Format.fprintf fmt "[%a]%a"
-        (pp_sub env) sub
-        (pp_atomic env) tm
+        (pp_sub env P.isolated) sub
+        (pp env P.(right_of substitution)) tm
 
     | LockedPrfIn prf ->
       Format.fprintf fmt "@[<hv2>lock %a@]"
@@ -351,11 +430,12 @@ struct
 
     | LockedPrfUnlock {cof; prf; bdy; _} ->
       Format.fprintf fmt "@[unlock %a : %a in@ %a@]"
-        (pp env) prf
-        (pp env) cof
-        (pp env) bdy
+        (pp env P.(left_of colon)) prf
+        (pp env P.(right_of colon)) cof
+        (pp env P.(right_of in_)) bdy
 
-  and pp_sub env fmt =
+  and pp_sub env =
+    pp_braced_cond P.classify_sub @@ fun _ fmt ->
     function
     | Sb1 ->
       Uuseg_string.pp_utf_8 fmt "ε"
@@ -365,27 +445,21 @@ struct
       Format.fprintf fmt "id"
     | SbE (sb, tm) ->
       Format.fprintf fmt "%a, %a"
-        (pp_atomic_sub env) sb
-        (pp env) tm
+        (pp_sub env P.(left_of sub_comma)) sb
+        (pp env P.(right_of sub_comma)) tm
     | SbC (sb0, sb1) ->
       Format.fprintf fmt "%a %a %a"
-        (pp_atomic_sub env) sb0
+        (pp_sub env P.(left_of sub_compose)) sb0
         Uuseg_string.pp_utf_8 "∘"
-        (pp_atomic_sub env) sb1
-
-  and pp_atomic_sub env fmt sb =
-    match sb with
-    | Sb1 | SbP | SbI ->
-      pp_sub env fmt sb
-    | _ ->
-      pp_braced (pp_sub env) fmt sb
+        (pp_sub env P.(right_of sub_compose)) sb1
 
 
-  and pp_tp env fmt tp =
-    match tp with
+  and pp_tp env =
+    pp_braced_cond P.classify_tp @@ fun penv fmt ->
+    function
     | TpCofSplit branches ->
-      let sep fmt () = Format.fprintf fmt "@ | " in
-      pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep
+      let pp_sep fmt () = Format.fprintf fmt "@ | " in
+      pp_bracketed_list ~pp_sep
         (pp_tp_cof_split_branch env)
         fmt
         branches
@@ -393,20 +467,20 @@ struct
       let x, envx = ppenv_bind env ident in
       Format.fprintf fmt "(%a : %a) %a %a"
         Uuseg_string.pp_utf_8 x
-        (pp_tp env) base
+        (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"
-        (pp_tp envx) fam
+        (pp_tp envx P.(right_of arrow)) fam
     | Sg (base, ident, fam) ->
       let x, envx = ppenv_bind env ident in
       Format.fprintf fmt "(%a : %a) %a %a"
         Uuseg_string.pp_utf_8 x
-        (pp_tp env) base
+        (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
-        (pp_tp envx) fam
+        (pp_tp envx P.(right_of times)) fam
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"
-        (pp_atomic_tp env) tp
+        (pp_tp env P.(right_of juxtaposition)) tp
         (pp_atomic env) phi
         (pp_atomic envx) tm
     | TpDim ->
@@ -422,54 +496,34 @@ struct
     | El tm when debug_mode ->
       Format.fprintf fmt "el %a" (pp_atomic env) tm
     | El tm ->
-      Format.fprintf fmt "%a" (pp env) tm
+      pp env penv fmt tm
     | TpVar ix ->
       Format.fprintf fmt "#var[%i]" ix
     | TpPrf cof ->
-      Format.fprintf fmt "[%a]" (pp env) cof
+      pp_bracketed (pp env P.isolated) fmt cof
     | TpESub (sub, tp) ->
       Format.fprintf fmt "[%a]%a"
-        (pp_sub env) sub
-        (pp_atomic_tp env) tp
+        (pp_sub env P.isolated) sub
+        (pp_tp env P.(right_of substitution)) tp
     | TpLockedPrf phi ->
       Format.fprintf fmt "locked %a"
         (pp_atomic env) phi
 
-  and pp_atomic_tp env fmt tp =
-    match tp with
-    | TpDim | TpCof | Nat | Univ ->
-      pp_tp env fmt tp
-    | _ ->
-      pp_braced (pp_tp env) fmt tp
-
   and pp_cof_split_branch env fmt (phi, tm) =
     let _x, envx = ppenv_bind env `Anon in
-    Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp envx) tm
+    Format.fprintf fmt "@[<hv>%a =>@ %a@]"
+      (pp env P.(left_of double_arrow)) phi
+      (pp envx P.(right_of double_arrow)) tm
 
   and pp_tp_cof_split_branch env fmt (phi, tm) =
     let _x, envx = ppenv_bind env `Anon in
-    Format.fprintf fmt "@[<hv>%a =>@ %a@]" (pp env) phi (pp_tp envx) tm
+    Format.fprintf fmt "@[<hv>%a =>@ %a@]"
+      (pp env P.(left_of double_arrow)) phi
+      (pp_tp envx P.(right_of double_arrow)) tm
 
+  (* XXX [pp_atomic] should have been removed, but it was kept to minimize git diff. It now means printing the term to the right of the juxtaposition operator, like [arg] in [f arg]. The fine-grained control brought by {!module:SyntaxPrecedence} obsoletes the old classification of terms. *)
   and pp_atomic env fmt tm =
-    match tm with
-    | Var _ | Global _ | Pair _ | CofSplit _ | Dim0 | Dim1 | Cof (Cof.Meet [] | Cof.Join []) | CodeNat | CodeCircle | CodeUniv
-    | Zero | Base | Prf ->
-      pp env fmt tm
-    | Suc _ as tm when Option.is_some (to_numeral tm) ->
-      pp env fmt tm
-    | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not debug_mode ->
-      pp_atomic env fmt tm
-    | _ ->
-      pp_braced (pp env) fmt tm
-
-  and pp_applications env fmt tm =
-    match tm with
-    | Ap (tm0, tm1) ->
-      Format.fprintf fmt "%a %a" (pp_applications env) tm0 (pp_atomic env) tm1
-    | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not debug_mode ->
-      pp_applications env fmt tm
-    | _ ->
-      pp env fmt tm
+    pp env P.(right_of juxtaposition) fmt tm
 
   and pp_lambdas env fmt tm =
     match tm with
@@ -482,7 +536,7 @@ struct
       pp_lambdas env fmt tm
     | _ ->
       Format.fprintf fmt "=>@ @[%a@]"
-        (pp env) tm
+        (pp env P.(right_of double_arrow)) tm
 
 
 
@@ -492,18 +546,18 @@ struct
     | Sub (tp, Cof (Cof.Join []), _) ->
       Format.fprintf fmt "?%a : @[<hov>%a@]"
         Uuseg_string.pp_utf_8 lbl
-        (pp_tp env) tp
+        (pp_tp env P.(right_of colon)) tp
     | Sub (tp, phi, tm) ->
       let _x, envx = Pp.Env.bind env (Some "_") in
       Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
         Uuseg_string.pp_utf_8 lbl
-        (pp_tp env) tp
-        (pp env) phi
-        (pp envx) tm
+        (pp_tp env P.(left_of juxtaposition)) tp
+        (pp env P.(left_of double_arrow)) phi
+        (pp envx P.(right_of double_arrow)) tm
     | tp ->
       Format.fprintf fmt "?%a : @[<hov>%a@]"
         Uuseg_string.pp_utf_8 lbl
-        (pp_tp env) tp
+        (pp_tp env P.(right_of colon)) tp
 
   let rec pp_sequent_inner ~lbl env ctx fmt tp =
     match ctx with
@@ -515,11 +569,14 @@ struct
       let x, envx = ppenv_bind env var in
       Fmt.fprintf fmt "%a : %a@;%a"
         Uuseg_string.pp_utf_8 x
-        (pp_tp env) var_tp
+        (pp_tp env P.(right_of colon)) var_tp
         (pp_sequent_inner ~lbl envx ctx) tp
 
   let pp_sequent ~lbl ctx : tp Pp.printer =
     fun fmt tp ->
     Format.fprintf fmt "@[<v>%a@]"
       (pp_sequent_inner ~lbl Pp.Env.emp ctx) tp
+
+  let pp env = pp env P.isolated
+  let pp_tp env = pp_tp env P.isolated
 end
