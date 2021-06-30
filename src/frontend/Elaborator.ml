@@ -161,6 +161,8 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
     match args with
     | [] -> chk_tm con
     | CS.Cell {names; tp} :: args ->
+      (* XXX a mechanical translation was done to support multiple names
+         in a cell. Someone should rethink and refactor the code. *)
       List.fold_right
         (fun name body ->
            T.Chk.update_span tp.info @@
