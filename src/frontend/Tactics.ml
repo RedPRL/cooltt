@@ -66,7 +66,7 @@ module Elim =
 struct
   type case_tac = CS.pat * T.Chk.tac
 
-  let rec find_case (lbl : string) (cases : case_tac list) : (CS.pat_arg list * T.Chk.tac) option =
+  let rec find_case (lbl : string list) (cases : case_tac list) : (CS.pat_arg list * T.Chk.tac) option =
     match cases with
     | (CS.Pat pat, tac) :: _ when pat.lbl = lbl ->
       Some (pat.args, tac)
@@ -82,13 +82,13 @@ struct
     match ind_tp, mot with
     | D.Nat, mot ->
       let* tac_zero : T.Chk.tac =
-        match find_case "zero" cases with
+        match find_case ["zero"] cases with
         | Some ([], tac) -> RM.ret tac
         | Some _ -> elab_err ElabError.MalformedCase
         | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "zero"
       in
       let* tac_suc =
-        match find_case "suc" cases with
+        match find_case ["suc"] cases with
         | Some ([`Simple nm_z], tac) ->
           RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro @@ fun _ -> tac
         | Some ([`Inductive (nm_z, nm_ih)], tac) ->
@@ -99,13 +99,13 @@ struct
       T.Syn.run @@ R.Nat.elim mot tac_zero tac_suc scrut
     | D.Circle, mot ->
       let* tac_base : T.Chk.tac =
-        match find_case "base" cases with
+        match find_case ["base"] cases with
         | Some ([], tac) -> RM.ret tac
         | Some _ -> elab_err ElabError.MalformedCase
         | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "base"
       in
       let* tac_loop =
-        match find_case "loop" cases with
+        match find_case ["loop"] cases with
         | Some ([`Simple nm_x], tac) ->
           RM.ret @@ R.Pi.intro ~ident:nm_x @@ fun _ -> tac
         | Some _ -> elab_err ElabError.MalformedCase

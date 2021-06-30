@@ -22,13 +22,13 @@ module Make : functor (Symbol : Symbol.S) -> sig
 
   val fst : con
   val snd : con
-  val proj : string -> con
+  val proj : string list -> con
   val el_out : con
 
   val tm_abort : con
   val tp_abort : tp
 
-  val sign_lbls : sign -> string list
+  val sign_lbls : sign -> string list list
 
   (** {1 Pretty-printers }
 

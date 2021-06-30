@@ -30,6 +30,10 @@ let cut_frm ~tp ~cut frm =
   D.Cut {tp; cut = D.push frm cut}
 
 
+let equal_path p1 p2 =
+  List.equal String.equal p1 p2
+
+
 let get_local i =
   let open EvM in
   let* env = EvM.read_local in
@@ -1182,10 +1186,10 @@ and do_snd con : D.con CM.m =
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
 
-and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : string) =
+and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : string list) =
   let open CM in
   match sign with
-  | D.Field (flbl, tp, _) when String.equal flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
+  | D.Field (flbl, tp, _) when equal_path flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
   | D.Field (flbl, _, clo) ->
     (* FIXME: Is this right?? *)
     let* field = cut_frm_sign cut sign flbl in
@@ -1194,7 +1198,7 @@ and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : string) =
   | D.Empty ->
     throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
 
-and do_proj (con : D.con) (lbl : string) : D.con CM.m =
+and do_proj (con : D.con) (lbl : string list) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl) in

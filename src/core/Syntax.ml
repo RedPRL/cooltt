@@ -21,6 +21,11 @@ struct
 
   module Fmt = Format
 
+  let pp_path fmt p =
+    Uuseg_string.pp_utf_8 fmt @@
+    match p with
+    | [] -> "(root)"
+    | _ -> String.concat "." p
 
   let rec dump fmt =
     function
@@ -46,7 +51,7 @@ struct
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
 
-    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %s]" dump tm lbl
+    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm pp_path lbl
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -73,7 +78,10 @@ struct
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
-    | CodeSignature fields -> Format.fprintf fmt "sig[%a]" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl dump tp)) fields
+    | CodeSignature fields ->
+      Format.fprintf fmt "sig[%a]"
+        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl dump tp))
+        fields
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
@@ -85,10 +93,10 @@ struct
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
   and dump_struct fmt fields =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl dump tp)) fields
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl dump tp)) fields
 
   and dump_sign fmt sign =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%s : %a" lbl dump_tp tp)) sign
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl dump_tp tp)) sign
 
   and dump_tp fmt =
     function
@@ -235,7 +243,7 @@ struct
     | [] -> ()
     | ((lbl, tp) :: fields) ->
       Format.fprintf fmt "(%a : %a)@ @,%a"
-        Uuseg_string.pp_utf_8 lbl
+        pp_path lbl
         (pp_field env P.(right_of colon)) tp
         (pp_fields pp_field env) fields
 
@@ -253,7 +261,7 @@ struct
     | Struct fields ->
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->
-      Format.fprintf fmt "@[%a %@ %s@]" (pp env P.(left_of proj)) tm lbl
+      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm pp_path lbl
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches
