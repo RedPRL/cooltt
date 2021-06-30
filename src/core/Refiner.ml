@@ -502,20 +502,31 @@ struct
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule @@ form_fields Emp tacs
 
+  let rec find_field_tac (lbl : string) (fields : (string * T.Chk.tac) list) : T.Chk.tac option =
+    match fields with
+    | (lbl', tac) :: _ when String.equal (lbl : string) lbl'  ->
+      Some tac
+    | _ :: fields ->
+      find_field_tac lbl fields
+    | [] ->
+      None
+
+
   let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string * T.Chk.tac) list) : (string * S.t) list m =
-    match (sign, tacs) with
-    | D.Field (lbl, tp, sign_clo), (tac_lbl, tac) :: tacs when (String.equal lbl tac_lbl) ->
+    match sign with
+    | D.Field (lbl, tp, sign_clo) ->
+      let tac =
+        match find_field_tac lbl tacs with
+        | Some tac -> tac
+        | None -> Hole.unleash_hole (Some lbl)
+      in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
       let+ tfields = intro_fields phi phi_clo tsign tacs in
       (lbl, tfield) :: tfields
-    | D.Empty, [] -> RM.ret []
-    | sign, tacs ->
-      let expected = D.sign_lbls sign in
-      let actual = List.map fst tacs in
-      RM.field_names_mismatch ~expected ~actual
-
+    | D.Empty ->
+      RM.ret []
 
   let intro (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
     T.Chk.brule @@
