@@ -1,5 +1,4 @@
 open Basis
-open Bwd
 open Cubical
 
 module Make (Symbol : Symbol.S) =
@@ -112,11 +111,6 @@ struct
   let pp_var env fmt ix =
     Uuseg_string.pp_utf_8 fmt @@ Pp.Env.var ix env
 
-  and pp_problem fmt problem =
-    let lbls = Bwd.to_list problem in
-    let dot fmt () = Fmt.fprintf fmt "." in
-    Fmt.pp_print_list ~pp_sep:dot Uuseg_string.pp_utf_8 fmt lbls
-
 
   let pp_lsq fmt () = Format.fprintf fmt "["
   let pp_rsq fmt () = Format.fprintf fmt "]"
@@ -207,9 +201,8 @@ struct
         | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
       end
     | NatElim (mot, zero, suc, tm) ->
-      Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
+      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
         (pp_atomic env) tm
-        "@"
         (pp_atomic env) mot
         (pp env) zero
         (pp env) suc
@@ -218,9 +211,8 @@ struct
     | Loop tm ->
       Format.fprintf fmt "loop %a" (pp_atomic env) tm
     | CircleElim (mot, base, loop, tm) ->
-      Format.fprintf fmt "@[<hv2>elim %a %s %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
+      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
         (pp_atomic env) tm
-        "@"
         (pp_atomic env) mot
         (pp env) base
         (pp env) loop

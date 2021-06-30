@@ -28,8 +28,8 @@ let get_global sym st =
   let code_unit = IDMap.find unit_name st.code_units in
   CodeUnit.get_global sym code_unit
 
-let add_import id path code_unit st =
-  update_unit id (CodeUnit.add_import path code_unit) st
+let add_import id modifier code_unit st =
+  update_unit id (CodeUnit.add_import modifier code_unit) st
 
 let init_unit id st =
   { code_units = IDMap.add id (CodeUnit.create id) st.code_units }

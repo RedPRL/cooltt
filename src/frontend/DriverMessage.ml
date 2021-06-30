@@ -54,11 +54,11 @@ let pp_message fmt =
 
   | ErrorMessage {error = InvalidLibrary msg; _} ->
     Format.fprintf fmt
-      "@[Could not load the library.@ %s@]" msg
+      "@[Could not load the library.@ %a@]" BantorraBasis.Error.pp_lines msg
 
   | ErrorMessage {error = UnitNotFound msg; _} ->
     Format.fprintf fmt
-      "@[Could not find the unit.@ %s@]" msg
+      "@[Could not find the unit.@ %a@]" BantorraBasis.Error.pp_lines msg
 
   | WarningMessage _ -> .
 
