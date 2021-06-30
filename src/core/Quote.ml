@@ -35,7 +35,7 @@ let contractum_or x =
   | `Done -> x
   | `Reduce y -> y
 
-let rec guess_bound_name : D.con -> Ident.t =
+let guess_bound_name : D.con -> Ident.t =
   function
   | D.Lam (x, _) -> x
   | D.BindSym (_x, _) -> `Anon
