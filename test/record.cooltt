@@ -1,17 +1,16 @@
 -- Various tests for sig types + structs
 import prelude
 
-
 def basic : type :=
   sig
     (foo : nat)
     (bar : nat → nat)
 
-def basic/inhabit : basic := struct (foo : 1) (bar : x => x)
+def basic.inhabit : basic := struct (foo : 1) (bar : x => x)
 
 print basic
-print basic/inhabit
-normalize basic/inhabit
+print basic.inhabit
+normalize basic.inhabit
 
 def basic/ext
   (b0 : basic) (b1 : basic)
