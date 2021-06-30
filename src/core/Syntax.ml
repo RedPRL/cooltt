@@ -7,13 +7,14 @@ struct
 
   let debug_mode = false
 
-  let rec to_numeral =
-    function
-    | Zero -> Some 0
-    | Suc t ->
-      Option.map (fun n -> n + 1) @@
-      to_numeral t
-    | _ -> None
+  let to_numeral =
+    let rec go acc =
+      function
+      | Zero -> Some acc
+      | Suc t -> (go[@tailcall]) (acc+1) t
+      | _ -> None
+    in
+    go 0
 
   let tm_abort = CofSplit []
   let tp_abort = TpCofSplit []
