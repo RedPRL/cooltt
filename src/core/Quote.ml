@@ -290,16 +290,8 @@ and quote_fields (sign : D.sign) con : (string * S.t) list m =
      (lbl, tfield) :: tfields
   | D.Empty -> ret []
 
-(* Given a signature:
-       sig (x : type)
-           (y : (arg : x) -> type)
-           (z : (arg1 : x) -> (arg2 : y) -> type)
-   We elaborate to the following form to ensure that things are well-scoped:
-       sig (x : type)
-           (y : x => (arg : x) -> type)
-           (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
-    Therefore, when quoting, we need to make sure that we handle these lambdas correctly. *)
 and quote_stable_field_code univ args (lbl, fam) =
+  (* See [NOTE: Sig Code Quantifiers] for more details *)
   let rec go vars =
     function
     | [] -> quote_con univ @<< lift_cmp @@ do_aps fam vars

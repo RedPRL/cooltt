@@ -1,5 +1,6 @@
 open Core
 open Basis
+open Bwd
 
 open CodeUnit
 
@@ -30,6 +31,15 @@ let rec unfold idents k =
       let* env = RM.read in
       let span = Env.location env in
       RM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
+
+(* Account for the lambda-bound signature field dependencies.
+    See [NOTE: Sig Code Quantifiers] for more info. *)
+let bind_sig_tacs (tacs : (string * T.Chk.tac) list) : (string * T.Chk.tac) list =
+  let bind_tac lbls (lbl, tac) =
+    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(`User [lbl]) (fun _ -> tac)) lbls tac in
+    Snoc (lbls, lbl) , (lbl, tac)
+  in
+  snd @@ ListUtil.map_accum_left bind_tac Emp tacs
 
 module CoolTp :
 sig
@@ -102,7 +112,7 @@ struct
   let signature (tacs : (string * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
-       let tac = R.Univ.signature tacs in
+       let tac = R.Univ.signature (bind_sig_tacs tacs) in
        Code tac
     | None ->
        let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
@@ -280,16 +290,8 @@ and chk_tm : CS.con -> T.Chk.tac =
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
-    | CS.Signature cells ->
-       (* Make sure that our tactics properly account for the lambda-bound field variables. *)
-       let rec mk_tacs bound =
-         function
-         | [] -> []
-         | (CS.Field field) :: cells ->
-            let tac = List.fold_right (fun lbl tac -> R.Pi.intro ~ident:(`User [lbl]) (fun _ -> tac)) bound (chk_tm field.tp) in
-            (field.lbl, tac) :: mk_tacs (bound @ [field.lbl]) cells
-       in
-       let tacs = mk_tacs [] cells in
+    | CS.Signature fields ->
+       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
        R.Univ.signature tacs
 
     | CS.V (r, pcode, code, pequiv) ->

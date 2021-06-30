@@ -615,7 +615,24 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
-
+  (* [NOTE: Sig Code Quantifiers]
+     When we are creating a code for a signature, we need to make sure
+     that we can depend on the values of previous fields. To achieve this,
+     we do something similar to pi/sigma codes, and add in extra pi types to
+     bind the names of previous fields. As an example, the signature:
+         sig (x : type)
+             (y : (arg : x) -> type)
+             (z : (arg1 : x) -> (arg2 : y) -> type)
+     will produce the following goals:
+          type
+          (x : type) -> type
+          (x : type) -> (y : type) -> type
+     and once the tactics for each field are run, we will get the following
+     signature code (notice the lambdas!):
+         sig (x : type)
+             (y : x => (arg : x) -> type)
+             (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
+   *)
   let signature (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ fields = quantifiers tacs univ in
