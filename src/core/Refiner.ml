@@ -495,6 +495,10 @@ struct
   let equal_path p1 p2 =
     List.equal String.equal p1 p2
 
+  let hole_name_of_path =
+    function
+    | [] -> None
+    | p -> Some (String.concat "." p)
 
   let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
     let rec form_fields tele =
@@ -522,7 +526,7 @@ struct
       let tac =
         match find_field_tac lbl tacs with
         | Some tac -> tac
-        | None -> Hole.unleash_hole (Some (String.concat "." lbl))
+        | None -> Hole.unleash_hole (hole_name_of_path lbl)
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in

@@ -42,7 +42,7 @@ let pp_connective fmt =
 let pp_path fmt p =
   Uuseg_string.pp_utf_8 fmt @@
   match p with
-  | [] -> "(root)"
+  | [] -> "."
   | _ -> String.concat "." p
 
 let pp fmt =
