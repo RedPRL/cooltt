@@ -162,6 +162,11 @@
   ;; Bind mode-specific commands to keys
   (define-key cooltt-mode-map (kbd "C-c C-l") 'cooltt-compile-buffer)
 
+  (add-to-list 'compilation-error-regexp-alist 'cooltt)
+  (add-to-list 'compilation-error-regexp-alist-alist
+               '(cooltt "^\\([^ \n]+\\):\\([0-9]+\\)\\.\\([0-9]+\\)-\\([0-9]+\\).\\([0-9]+\\) \\[Error\\]:$"
+                        1 (2 . 4) (3 . 5) nil))
+
   (set (make-local-variable 'completion-at-point-functions)
        '(cooltt-completion-at-point)))
 
