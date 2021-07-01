@@ -17,6 +17,9 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
+    | `Signature of (string * 'a) list
+    (** First-Class Record types *)
+
     | `Ext of int * 'a * [`Global of 'a] * 'a
     (** Extension type *)
 
@@ -45,6 +48,7 @@ struct
   and 'a clo = Clo of 'a * env
   and tp_clo = S.tp clo
   and tm_clo = S.t clo
+  and sign_clo = S.sign clo
 
   (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
   and con =
@@ -64,6 +68,7 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
+    | Struct of (string * con) list
     | SubIn of con
 
     | ElIn of con
@@ -102,9 +107,14 @@ struct
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
+    | Signature of sign
     | Nat
     | Circle
     | TpLockedPrf of cof
+
+  and sign =
+    | Field of string * tp * S.sign clo
+    | Empty
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =
@@ -125,6 +135,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
+    | KProj of string
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

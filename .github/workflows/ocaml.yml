@@ -2,12 +2,7 @@ name: Build and test
 on: [push,pull_request]
 jobs:
   run:
-    name: Build
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      matrix:
-        operating-system: [ubuntu-latest]
-        ocaml-compiler: ['4.12.0']
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Cache _opam
@@ -18,11 +13,9 @@ jobs:
         key: ${{ runner.os }}-opam
     - uses: ocaml/setup-ocaml@v2
       with:
-        ocaml-compiler: ${{ matrix.ocaml-compiler }}
+        ocaml-compiler: '4.12.0'
         dune-cache: true
     # It looks like the cache isn't being populated here,
     # so let's try to do an explicit install then make sure
     # that it gets written to the cache in the right place.
-    - run: opam install . --deps-only
-    - run: make
-    - run: make test
+    - run: opam install . -y --with-test

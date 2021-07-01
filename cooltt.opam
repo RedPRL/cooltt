@@ -18,6 +18,7 @@ depends: [
   "ppx_deriving" {>= "4.4.1"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
+  "odoc" {with-doc}
   "bantorra"
   "yuujinchou"
   "z3" {>= "4.8.9"}
@@ -26,4 +27,8 @@ pin-depends: [
   [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
   [ "yuujinchou.~dev" "git+https://github.com/RedPRL/yuujinchou" ]
 ]
-build: [["dune" "build" "-p" name "-j" jobs]]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "build" "-p" name "-j" jobs "@runtest"] {with-test}
+  ["dune" "build" "-p" name "-j" jobs "@doc"] {with-doc}
+]

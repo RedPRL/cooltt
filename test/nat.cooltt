@@ -25,7 +25,7 @@ def +-right-unit : (x : nat) → path nat {+ x 0} x :=
     i => suc {ih i}
   ]
 
-def +-suc-r : (x : nat) (y : nat) → path nat {+ x {suc y}} {suc {+ x y}} :=
+def +-suc-r : (x y : nat) → path nat {+ x {suc y}} {suc {+ x y}} :=
   elim [
   | zero =>
     x i => {suc x}
@@ -33,7 +33,7 @@ def +-suc-r : (x : nat) (y : nat) → path nat {+ x {suc y}} {suc {+ x y}} :=
     y i => suc {ih y i}
   ]
 
-def +-comm : (x : nat) (y : nat) → path nat {+ y x} {+ x y} :=
+def +-comm : (x y : nat) → path nat {+ y x} {+ x y} :=
   elim [
   | zero => +-right-unit
   | suc {y => ih} =>
@@ -41,7 +41,7 @@ def +-comm : (x : nat) (y : nat) → path nat {+ y x} {+ x y} :=
     trans nat {+-suc-r z y} {j => suc {ih z j}}
   ]
 
-def +-assoc : (x : nat) (y : nat) (z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
+def +-assoc : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
   elim [
   | zero => y z i => + y z
   | suc {x => ih} => y z i => suc {ih y z i}

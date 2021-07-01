@@ -27,6 +27,8 @@ let keywords =
     ("base", BASE);
     ("loop", LOOP);
     ("circle", CIRCLE);
+    ("sig", SIG);
+    ("struct", STRUCT);
     ("🍪", CIRCLE);
     ("let", LET);
     ("in", IN);
@@ -142,6 +144,8 @@ and real_token = parse
     { RIGHT_ARROW }
   | "⇒" | "=>"
     { RRIGHT_ARROW }
+  | "@"
+    { PROJ }
   | '_'
     { UNDERSCORE }
   | "?" hole_atom
