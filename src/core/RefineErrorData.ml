@@ -26,8 +26,8 @@ struct
 
   type t =
     | UnboundVariable of Ident.t
-    | FieldNameMismatches of string list * string list
-    | ExpectedField of Pp.env * S.sign * S.t * string
+    | FieldNameMismatches of string list list * string list list
+    | ExpectedField of Pp.env * S.sign * S.t * string list
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t * Conversion.Error.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | ExpectedConnective of connective * Pp.env * S.tp

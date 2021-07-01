@@ -17,7 +17,7 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
-    | `Signature of (string * 'a) list
+    | `Signature of (string list * 'a) list
     (** First-Class Record types *)
 
     | `Ext of int * 'a * [`Global of 'a] * 'a
@@ -68,7 +68,7 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
-    | Struct of (string * con) list
+    | Struct of (string list * con) list
     | SubIn of con
 
     | ElIn of con
@@ -113,7 +113,7 @@ struct
     | TpLockedPrf of cof
 
   and sign =
-    | Field of string * tp * S.sign clo
+    | Field of string list * tp * S.sign clo
     | Empty
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
@@ -135,7 +135,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
-    | KProj of string
+    | KProj of string list
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

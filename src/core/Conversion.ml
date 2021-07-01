@@ -59,6 +59,9 @@ open Sem
 let conv_err err =
   throw @@ ConversionError err
 
+let equal_path p1 p2 =
+  List.equal String.equal p1 p2
+
 let equate_dim r s =
   CmpM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
   | true ->
@@ -130,7 +133,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
 
 and equate_sign sign0 sign1 =
   match sign0, sign1 with
-  | D.Field (lbl0, tp0, clo0), D.Field (lbl1, tp1, clo1) when String.equal lbl0 lbl1 ->
+  | D.Field (lbl0, tp0, clo0), D.Field (lbl1, tp1, clo1) when equal_path lbl0 lbl1 ->
     let* () = equate_tp tp0 tp1 in
     bind_var_ tp0 @@ fun x ->
     let* sign0 = lift_cmp @@ inst_sign_clo clo0 x in
@@ -183,7 +186,7 @@ and equate_sign_code univ sign0 sign1 =
   let rec go vfams sign0 sign1 =
     match sign0, sign1 with
     | [], [] -> ret ()
-    | (lbl0, fam0) :: sign0 , (lbl1, fam1) :: sign1 when String.equal lbl0 lbl1 ->
+    | (lbl0, fam0) :: sign0 , (lbl1, fam1) :: sign1 when equal_path lbl0 lbl1 ->
       let* fam_tp =
         lift_cmp @@
         splice_tp @@
@@ -358,7 +361,7 @@ and equate_frm k0 k1 =
   | D.KFst, D.KFst
   | D.KSnd, D.KSnd ->
     ret ()
-  | D.KProj lbl0, D.KProj lbl1 when String.equal lbl0 lbl1 ->
+  | D.KProj lbl0, D.KProj lbl1 when equal_path lbl0 lbl1 ->
     ret ()
   | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
     let* () = equate_tp tp0 tp1 in

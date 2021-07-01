@@ -707,15 +707,16 @@ path-types.cooltt:55.10-55.17 [Info]:
 record.cooltt:11.6-11.11 [Info]:
   basic
   : type
-  = sig (foo : nat) (bar : (_x : nat) → nat) 
+  = sig (foo.x : nat) (bar : (_x : nat) → nat) 
 
 record.cooltt:12.6-12.19 [Info]:
   basic.inhabit
   : basic
-  = struct (foo : 1) (bar : {x => x}) 
+  = struct (foo.x : 1) (bar : {x => x}) 
 
 record.cooltt:13.10-13.23 [Info]:
-  Computed normal form of basic.inhabit as struct (foo : 1) (bar : {x => x}) 
+  Computed normal form of basic.inhabit as
+   struct (foo.x : 1) (bar : {x => x}) 
 
 record.cooltt:30.6-30.12 [Info]:
   depend
