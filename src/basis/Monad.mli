@@ -1,4 +1,5 @@
 open Bwd
+open ContainersLabels
 
 module type S = sig
   type 'a m
@@ -35,6 +36,7 @@ module Util (M : S) : sig
   val first : ('a -> 'b M.m) -> ('a * 'c) -> ('b * 'c) M.m
   val second : ('b -> 'c M.m) -> ('a * 'b) -> ('a * 'c) M.m
   val map_accum_left_m : ('a list -> 'a -> 'b M.m) -> 'a list -> ('b list) M.m
+  val map_vec : ('a -> 'b M.m) -> 'a Vector.ro_vector -> 'b Vector.ro_vector M.m
 end
 
 module type MonadReaderResult = sig

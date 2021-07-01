@@ -520,21 +520,25 @@ struct
       None
 
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string list * T.Chk.tac) list) : (string list * S.t) list m =
-    match sign with
-    | D.Field (lbl, tp, sign_clo) ->
-      let tac =
-        match find_field_tac lbl tacs with
-        | Some tac -> tac
-        | None -> Hole.unleash_hole (hole_name_of_path lbl)
-      in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
-      let* vfield = RM.lift_ev @@ Sem.eval tfield in
-      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
-      let+ tfields = intro_fields phi phi_clo tsign tacs in
-      (lbl, tfield) :: tfields
-    | D.Empty ->
-      RM.ret []
+  let intro_fields phi phi_clo (sign : D.sign) (tacs : (string list * T.Chk.tac) list) : S.struct_ m =
+    let struct_ = CCVector.create () in
+    let rec go ix =
+      function
+      | D.Field (lbl, tp, sign_clo) ->
+        let tac =
+          match find_field_tac lbl tacs with
+          | Some tac -> tac
+          | None -> Hole.unleash_hole (hole_name_of_path lbl)
+        in
+        let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj ix) @@ D.Lam (`Anon, phi_clo)) in
+        let _ = CCVector.push struct_ tfield in
+        let* vfield = RM.lift_ev @@ Sem.eval tfield in
+        let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
+        go (ix + 1) tsign
+      | D.Empty -> RM.ret ()
+    in
+    let+ _ = go 0 sign in
+    CCVector.freeze struct_
 
   let intro (tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
     T.Chk.brule @@
@@ -544,24 +548,24 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string list) : D.tp m =
-    let rec go =
+  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string list) : (D.tp * int) m =
+    let rec go ix =
       function
-      | D.Field (flbl, tp, _) when equal_path flbl lbl -> RM.ret tp
-      | D.Field (flbl, __, clo) ->
-        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
+      | D.Field (flbl, tp, _) when equal_path flbl lbl -> RM.ret (tp, ix)
+      | D.Field (_, _, clo) ->
+        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, ix) in
         let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
-        go vsign
+        go (ix + 1) vsign
       | D.Empty -> RM.expected_field sign tstruct lbl
-    in go sign
+    in go 0 sign
 
   let proj tac lbl : T.Syn.tac =
     T.Syn.rule @@
     let* tstruct, tp = T.Syn.run tac in
     match tp with
     | D.Signature sign ->
-      let+ tp = proj_tp sign tstruct lbl in
-      S.Proj (tstruct, lbl), tp
+      let+ (tp, ix) = proj_tp sign tstruct lbl in
+      S.Proj (tstruct, ix), tp
     | _ -> RM.expected_connective `Signature tp
 end
 

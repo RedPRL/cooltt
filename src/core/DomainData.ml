@@ -1,4 +1,5 @@
 open Basis
+open ContainersLabels
 open Cubical
 open Bwd
 
@@ -68,7 +69,7 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
-    | Struct of (string list * con) list
+    | Struct of struct_
     | SubIn of con
 
     | ElIn of con
@@ -94,6 +95,8 @@ struct
     | Split of (cof * tm_clo) list
 
     | LockedPrfIn of con
+
+  and struct_ = con Vector.ro_vector
 
   and tp =
     | Sub of tp * cof * tm_clo
@@ -135,7 +138,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
-    | KProj of string list
+    | KProj of int
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

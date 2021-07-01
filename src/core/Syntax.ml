@@ -51,7 +51,7 @@ struct
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
 
-    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm pp_path lbl
+    | Proj (tm, ix) -> Format.fprintf fmt "proj[%a, %i]" dump tm ix
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -93,7 +93,7 @@ struct
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
   and dump_struct fmt fields =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl dump tp)) fields
+    Format.fprintf fmt "%a" (CCVector.pp dump) fields
 
   and dump_sign fmt sign =
     Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl dump_tp tp)) sign
@@ -258,10 +258,9 @@ struct
         (pp env P.(left_of juxtaposition)) tm0 (pp_atomic env) tm1
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
-    | Struct fields ->
-      Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
-    | Proj (tm, lbl) ->
-      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm pp_path lbl
+    | Struct fields -> Format.fprintf fmt "@[struct %a@]" (CCVector.pp (pp env penv)) fields
+    | Proj (tm, ix) ->
+      Format.fprintf fmt "@[%a %@ %i@]" (pp env P.(left_of proj)) tm ix
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches

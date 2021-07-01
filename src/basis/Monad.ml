@@ -126,6 +126,16 @@ struct
         y :: ys
     in
     go [] xs
+
+  let map_vec f xs =
+    let ys = CCVector.create () in
+    let push_elem m x =
+      let* _ = m in
+      let+ y = f x in
+      CCVector.push ys y
+    in
+    let+ () = CCVector.fold push_elem (M.ret ()) xs in
+    CCVector.freeze ys
 end
 
 module type MonadReaderResult = sig

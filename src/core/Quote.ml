@@ -280,15 +280,29 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_fields (sign : D.sign) con : (string list * S.t) list m =
-  match sign with
-  | D.Field (lbl, tp, sign_clo) ->
-    let* fcon = lift_cmp @@ do_proj con lbl in
-    let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
-    let* tfield = quote_con tp fcon in
-    let+ tfields = quote_fields sign con in
-    (lbl, tfield) :: tfields
-  | D.Empty -> ret []
+and quote_fields (sign : D.sign) con : S.struct_ m =
+  let struct_ = CCVector.create () in
+  let rec go ix =
+    function
+    | D.Field (lbl, tp, sign_clo) ->
+       let* fcon = lift_cmp @@ do_proj con ix in
+       let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
+       let* tfield = quote_con tp fcon in
+       let _ = CCVector.push struct_ tfield in
+       go (ix + 1) sign
+    | D.Empty -> ret ()
+  in
+  let+ _ = go 0 sign in
+  CCVector.freeze struct_
+  (* match sign with
+   * | D.Field (lbl, tp, sign_clo) ->
+   *   let* fcon = lift_cmp @@ do_proj con lbl in
+   *   let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
+   *   let* tfield = quote_con tp fcon in
+   *   let+ tfields = quote_fields sign con in
+   *   __
+   *   (\* (lbl, tfield) :: tfields *\)
+   * | D.Empty -> __ *)
 
 and quote_stable_field_code univ args (lbl, fam) =
   (* See [NOTE: Sig Code Quantifiers] for more details *)

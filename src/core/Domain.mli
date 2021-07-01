@@ -22,7 +22,7 @@ module Make : functor (Symbol : Symbol.S) -> sig
 
   val fst : con
   val snd : con
-  val proj : string list -> con
+  val proj : int -> con
   val el_out : con
 
   val tm_abort : con

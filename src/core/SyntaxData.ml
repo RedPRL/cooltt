@@ -1,8 +1,11 @@
 open Basis
+open ContainersLabels
 open Cubical
 
 module Make (Symbol : Symbol.S) =
 struct
+
+
   type t =
     | Var of int
     | Global of Symbol.t
@@ -24,8 +27,8 @@ struct
     | Fst of t
     | Snd of t
 
-    | Struct of (string list * t) list
-    | Proj of t * string list
+    | Struct of struct_
+    | Proj of t * int
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -64,6 +67,11 @@ struct
 
     | LockedPrfIn of t
     | LockedPrfUnlock of {tp : tp; cof : t; prf : t; bdy : t}
+
+  (* In order to get good asymptotics for field projections,
+     we use a vector rather than an alist/map. The indicies for
+     projections get determined during elaboration.*)
+  and struct_ = t Vector.ro_vector
 
   and tp =
     | Univ

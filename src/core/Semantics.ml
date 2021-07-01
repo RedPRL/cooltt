@@ -207,7 +207,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
   | D.Struct fields ->
-    let+ fields = MU.map (MU.second (subst_con r x)) fields in
+    let+ fields = MU.map_vec (subst_con r x) fields in
     D.Struct fields
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
@@ -604,7 +604,7 @@ and eval : S.t -> D.con EvM.m =
       let* con = eval t in
       lift_cmp @@ do_snd con
     | S.Struct fields ->
-      let+ vfields = MU.map (MU.second eval) fields in
+      let+ vfields = MU.map_vec eval fields in
       D.Struct vfields
     | S.Proj (t, lbl) ->
       let* con = eval t in
@@ -1186,37 +1186,32 @@ and do_snd con : D.con CM.m =
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
 
-and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : string list) =
+and cut_frm_sign (cut : D.cut) (sign : D.sign) (ix : int) =
   let open CM in
-  match sign with
-  | D.Field (flbl, tp, _) when equal_path flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
-  | D.Field (flbl, _, clo) ->
-    (* FIXME: Is this right?? *)
-    let* field = cut_frm_sign cut sign flbl in
-    let* sign = inst_sign_clo clo field in
-    cut_frm_sign cut sign lbl
-  | D.Empty ->
-    throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
+  let rec go n =
+    function
+    | D.Field (_, tp, _) when ix = n -> ret @@ cut_frm ~tp ~cut (D.KProj ix)
+    | D.Field (_, tp, clo) ->
+       let field = cut_frm ~tp ~cut (D.KProj n) in
+       let* sign = inst_sign_clo clo field in
+       go (n + 1) sign
+    | D.Empty -> throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
+  in go 0 sign
 
-and do_proj (con : D.con) (lbl : string list) : D.con CM.m =
+and do_proj (con : D.con) (ix : int) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
-  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl) in
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm ix) in
   begin
     inspect_con ~style:`UnfoldNone con |>>
     function
-    | D.Struct fields ->
-      begin
-        match List.assoc_opt lbl fields with
-        | Some con -> ret con
-        | None -> throw @@ NbeFailed "Couldn't proj argument in do_proj, struct was missing field"
-      end
+    | D.Struct fields -> ret @@ CCVector.get fields ix
     | D.Split branches ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.Signature sign; cut} ->
-      cut_frm_sign cut sign lbl
+      cut_frm_sign cut sign ix
     | _ ->
       throw @@ NbeFailed ("Couldn't proj argument in do_proj")
   end

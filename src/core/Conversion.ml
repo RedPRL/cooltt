@@ -318,15 +318,17 @@ and equate_con tp con0 con1 =
     conv_err @@ ExpectedConEq (tp, con0, con1)
 
 and equate_struct (sign : D.sign) con0 con1 =
-  match sign with
-  | D.Field (lbl, tp, clo) ->
-    let* field0 = lift_cmp @@ do_proj con0 lbl in
-    let* field1 = lift_cmp @@ do_proj con1 lbl in
-    let* () = equate_con tp field0 field1 in
-    let* sign = lift_cmp @@ inst_sign_clo clo field0 in
-    equate_struct sign con0 con1
-  | D.Empty ->
-    ret ()
+  let rec go ix =
+    function
+    | D.Field (_, tp, clo) ->
+      let* field0 = lift_cmp @@ do_proj con0 ix in
+      let* field1 = lift_cmp @@ do_proj con1 ix in
+      let* () = equate_con tp field0 field1 in
+      let* sign = lift_cmp @@ inst_sign_clo clo field0 in
+      go (ix + 1) sign
+    | D.Empty ->
+      ret ()
+  in go 0 sign
 
 
 (* Invariant: cut0, cut1 are whnf *)
@@ -361,7 +363,7 @@ and equate_frm k0 k1 =
   | D.KFst, D.KFst
   | D.KSnd, D.KSnd ->
     ret ()
-  | D.KProj lbl0, D.KProj lbl1 when equal_path lbl0 lbl1 ->
+  | D.KProj lbl0, D.KProj lbl1 when lbl0 = lbl1 ->
     ret ()
   | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
     let* () = equate_tp tp0 tp1 in

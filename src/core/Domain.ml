@@ -32,7 +32,7 @@ struct
   let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
   let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
-  let proj lbl = Lam (`Anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = Emp; conenv = Emp}))
+  let proj ix = Lam (`Anon, Clo (S.Proj (S.Var 0, ix), {tpenv = Emp; conenv = Emp}))
   let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
   let tm_abort = Split []
@@ -108,7 +108,7 @@ struct
     | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
-    | KProj lbl -> Format.fprintf fmt "proj[%a]" pp_path lbl
+    | KProj lbl -> Format.fprintf fmt "proj[%i]" lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -162,7 +162,7 @@ struct
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl pp_con tp)) fields
+        (CCVector.pp pp_con) fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
