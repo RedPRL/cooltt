@@ -168,6 +168,8 @@ and real_token = parse
     { TOPC }
   | "#f" (* XXX what to do with "#fxyz"? *)
     { BOTC }
+  | "#" atom as atom
+    { Printf.eprintf "Unexpected symbol: %s" atom; token lexbuf }
   | eof
     { EOF }
   | atom
