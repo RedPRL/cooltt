@@ -164,12 +164,12 @@ and real_token = parse
     { BANG }
   | "∂" (* XXX what to do with "∂i"? *)
     { BOUNDARY }
-  | "#t" (* XXX what to do with "#txyz"? *)
+  | "#t"
     { TOPC }
-  | "#f" (* XXX what to do with "#fxyz"? *)
+  | "#f"
     { BOTC }
-  | "#" atom as atom
-    { Printf.eprintf "Unexpected symbol: %s" atom; token lexbuf }
+  | "#" atom_subsequent+
+    { Printf.eprintf "Unexpected symbol: %s\n" (lexeme lexbuf); token lexbuf }
   | eof
     { EOF }
   | atom
@@ -181,7 +181,7 @@ and real_token = parse
       | exception Not_found -> Grammar.ATOM input
     }
   | _
-    { Printf.eprintf "Unexpected char: %s" (lexeme lexbuf); token lexbuf }
+    { Printf.eprintf "Unexpected char: %s\n" (lexeme lexbuf); token lexbuf }
 
 and import_path rev_path = parse "" { skip_whitespace (real_import_path rev_path) lexbuf }
 
