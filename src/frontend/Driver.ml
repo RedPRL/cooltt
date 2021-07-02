@@ -131,7 +131,7 @@ and import_code_unit path modifier : command =
       match unit_loaded with
       | Some import_unit -> RM.ret import_unit
       | None -> load_code_unit lib src in
-    let* _ = RM.add_import modifier import_unit in
+    let* _ = RM.add_import modifier (CodeUnitID.file src) in
     RM.ret @@ Continue Fun.id
 
 and execute_decl : CS.decl -> command =
