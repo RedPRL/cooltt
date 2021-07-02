@@ -306,8 +306,8 @@ plain_term_except_cof_case:
     { Signature tele }
   | STRUCT; tele = list(field);
     { Struct tele }
-  | t = term; PROJ; lbl = path
-    { Proj (t, lbl) }
+  | t = term; PROJ; lbl = path; spine = list_left_recursive(atomic_term)
+    { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
