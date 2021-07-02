@@ -28,7 +28,7 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
-val struct_ : t m list -> t m
+val struct_ : (string list * t m) list -> t m
 val proj : t m -> int -> t m
 
 val zero : t m

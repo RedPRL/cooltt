@@ -207,7 +207,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
   | D.Struct fields ->
-    let+ fields = MU.map_vec (subst_con r x) fields in
+    let+ fields = MU.map_vec (MU.second (subst_con r x)) fields in
     D.Struct fields
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
@@ -604,7 +604,7 @@ and eval : S.t -> D.con EvM.m =
       let* con = eval t in
       lift_cmp @@ do_snd con
     | S.Struct fields ->
-      let+ vfields = MU.map_vec eval fields in
+      let+ vfields = MU.map_vec (MU.second eval) fields in
       D.Struct vfields
     | S.Proj (t, lbl) ->
       let* con = eval t in
@@ -1205,7 +1205,7 @@ and do_proj (con : D.con) (ix : int) : D.con CM.m =
   begin
     inspect_con ~style:`UnfoldNone con |>>
     function
-    | D.Struct fields -> ret @@ CCVector.get fields ix
+    | D.Struct fields -> ret @@ snd @@ CCVector.get fields ix
     | D.Split branches ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->

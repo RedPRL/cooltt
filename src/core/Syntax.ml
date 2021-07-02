@@ -93,7 +93,7 @@ struct
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
   and dump_struct fmt fields =
-    Format.fprintf fmt "%a" (CCVector.pp dump) fields
+    Format.fprintf fmt "%a" (CCVector.pp ~pp_sep:(fun _ _ -> ()) (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl dump tp)) fields
 
   and dump_sign fmt sign =
     Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl dump_tp tp)) sign
@@ -238,15 +238,6 @@ struct
   let ppenv_bind env ident =
     Pp.Env.bind env @@ Ident.to_string_opt ident
 
-  let rec pp_fields pp_field env fmt  =
-    function
-    | [] -> ()
-    | ((lbl, tp) :: fields) ->
-      Format.fprintf fmt "(%a : %a)@ @,%a"
-        pp_path lbl
-        (pp_field env P.(right_of colon)) tp
-        (pp_fields pp_field env) fields
-
   let rec pp env =
     pp_braced_cond P.classify_tm @@ fun penv fmt ->
     function
@@ -258,7 +249,7 @@ struct
         (pp env P.(left_of juxtaposition)) tm0 (pp_atomic env) tm1
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
-    | Struct fields -> Format.fprintf fmt "@[struct %a@]" (CCVector.pp (pp env penv)) fields
+    | Struct fields -> Format.fprintf fmt "@[struct %a@]" (pp_struct env) fields
     | Proj (tm, ix) ->
       Format.fprintf fmt "@[%a %@ %i@]" (pp env P.(left_of proj)) tm ix
     | CofSplit branches ->
@@ -382,7 +373,7 @@ struct
         (pp_atomic env) base
         (pp_atomic env) tm
     | CodeSignature fields ->
-      Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
+      Format.fprintf fmt "@[sig %a@]" (pp_code_sign env) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -493,7 +484,30 @@ struct
         Uuseg_string.pp_utf_8 "∘"
         (pp_sub env P.(right_of sub_compose)) sb1
 
-  and pp_sign env fmt (sign : sign) : unit = pp_fields pp_tp env fmt sign
+  and pp_struct env fmt (struct_ : struct_) : unit =
+    CCVector.pp ~pp_sep:(fun fmt _ -> Format.fprintf fmt "@ ")
+      (fun fmt (path, tm) -> Format.fprintf fmt "(%a : %a)" pp_path path (pp env P.(right_of colon)) tm)
+      fmt
+      struct_
+
+  and pp_sign env fmt (sign : sign) : unit =
+    match sign with
+    | [] -> ()
+    | ((lbl, tp) :: sign) ->
+      Format.fprintf fmt "(%a : %a)@ @,%a"
+        pp_path lbl
+        (pp_tp env P.(right_of colon)) tp
+        (pp_sign env) sign
+
+  and pp_code_sign env fmt sign : unit =
+    match sign with
+    | [] -> ()
+    | ((lbl, tp) :: sign) ->
+      Format.fprintf fmt "(%a : %a)@ @,%a"
+        pp_path lbl
+        (pp_binders env P.(right_of colon)) tp
+        (pp_code_sign env) sign
+
 
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->

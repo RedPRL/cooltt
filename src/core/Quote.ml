@@ -288,7 +288,7 @@ and quote_fields (sign : D.sign) con : S.struct_ m =
        let* fcon = lift_cmp @@ do_proj con ix in
        let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
        let* tfield = quote_con tp fcon in
-       let _ = CCVector.push struct_ tfield in
+       let _ = CCVector.push struct_ (lbl, tfield) in
        go (ix + 1) sign
     | D.Empty -> ret ()
   in

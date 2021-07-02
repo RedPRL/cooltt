@@ -70,8 +70,8 @@ struct
 
   (* In order to get good asymptotics for field projections,
      we use a vector rather than an alist/map. The indicies for
-     projections get determined during elaboration.*)
-  and struct_ = t Vector.ro_vector
+     projections get determined during elaboration. *)
+  and struct_ = (string list * t) Vector.ro_vector
 
   and tp =
     | Univ

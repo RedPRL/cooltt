@@ -162,7 +162,7 @@ struct
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
-        (CCVector.pp pp_con) fields
+        (CCVector.pp (fun fmt (lbl, con) -> Format.fprintf fmt "%a : %a" pp_path lbl pp_con con)) fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->

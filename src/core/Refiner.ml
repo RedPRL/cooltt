@@ -531,7 +531,7 @@ struct
           | None -> Hole.unleash_hole (hole_name_of_path lbl)
         in
         let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj ix) @@ D.Lam (`Anon, phi_clo)) in
-        let _ = CCVector.push struct_ tfield in
+        let _ = CCVector.push struct_ (lbl, tfield) in
         let* vfield = RM.lift_ev @@ Sem.eval tfield in
         let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
         go (ix + 1) tsign

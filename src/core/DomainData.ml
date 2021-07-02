@@ -96,7 +96,9 @@ struct
 
     | LockedPrfIn of con
 
-  and struct_ = con Vector.ro_vector
+  (** We keep track of the labels here for pretty printing purposes,
+      but we use indexes to actually project out of the struct. *)
+  and struct_ = (string list * con) Vector.ro_vector
 
   and tp =
     | Sub of tp * cof * tm_clo
