@@ -43,6 +43,7 @@
 
 
 (require 'cl-lib)
+(require 'compile)
 
 (defgroup cooltt nil "cooltt" :prefix 'cooltt :group 'languages)
 
@@ -124,6 +125,23 @@
     (,(regexp-opt cooltt-expression-symbols 'nil) 0 'cooltt-expression-symbol-face)
     ))
 
+
+(defconst cooltt-compilation-error-regexp-alist
+  `((,(concat
+       "^\\([^ \n]+\\):"             ;; Filename
+       "\\([0-9]+\\)\\.\\([0-9]+\\)" ;; Starting Line/Column
+       "-"
+       "\\([0-9]+\\)\\.\\([0-9]+\\)" ;; Ending Line/Column
+       " \\(\\[Info\\]\\)?")         ;; Match forward if we see [Info]
+     1 (2 . 4) (3 . 5) (nil . 6)))
+  "Regexps used for matching cooltt compilation messages.
+See `compilation-error-regexp-alist' for semantics.")
+
+(define-compilation-mode cooltt-compilation-mode "Cooltt"
+  "Cooltt specific `compilation-mode' derivative."
+  (setq-local compilation-error-regexp-alist
+              cooltt-compilation-error-regexp-alist))
+
 (defconst cooltt--compilation-buffer-name
   "*cooltt*"
   "The name to use for cooltt compilation buffers.")
@@ -147,7 +165,7 @@
                  (compilation-buffer-name-function
                   'cooltt--compilation-buffer-name-function)
                  (default-directory dir))
-            (compile command)))
+            (compilation-start command 'cooltt-compilation-mode nil t)))
       (error "Buffer has no file name"))))
 
 ;;;###autoload

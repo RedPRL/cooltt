@@ -3,10 +3,10 @@ import prelude
 
 def basic : type :=
   sig
-    (foo : nat)
+    (foo.x : nat)
     (bar : nat → nat)
 
-def basic.inhabit : basic := struct (foo : 1) (bar : x => x)
+def basic.inhabit : basic := struct (foo.x : 1) (bar : x => x)
 
 print basic
 print basic.inhabit
@@ -14,12 +14,12 @@ normalize basic.inhabit
 
 def basic/ext
   (b0 : basic) (b1 : basic)
-  (p : path nat {b0 @ foo} {b1 @ foo})
+  (p : path nat {b0 @ foo.x} {b1 @ foo.x})
   (q : path {nat → nat} {b0 @ bar} {b1 @ bar}) : path basic b0 b1
 :=
 i =>
 struct
-  (foo : p i)
+  (foo.x : p i)
   (bar : q i)
 
 def depend : type :=

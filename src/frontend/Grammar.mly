@@ -306,7 +306,7 @@ plain_term_except_cof_case:
     { Signature tele }
   | STRUCT; tele = list(field);
     { Struct tele }
-  | t = term; PROJ; lbl = ATOM
+  | t = term; PROJ; lbl = path
     { Proj (t, lbl) }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
@@ -355,14 +355,14 @@ cof_case:
 
 pat_lbl:
   | ZERO
-    { "zero" }
+    { ["zero"] }
   | SUC
-    { "suc" }
+    { ["suc"] }
   | BASE
-    { "base" }
+    { ["base"] }
   | LOOP
-    { "loop" }
-  | lbl = ATOM
+    { ["loop"] }
+  | lbl = path
     { lbl }
 
 
@@ -377,7 +377,7 @@ pat_arg:
     { `Inductive (i0, i1) }
 
 field:
-  | LPR lbl = ATOM; COLON tp = term; RPR
+  | LPR lbl = path; COLON tp = term; RPR
     { Field {lbl; tp} }
 
 tele_cell:

@@ -36,7 +36,7 @@ and con_ =
   | Sg of cell list * con
   | Signature of field list
   | Struct of field list
-  | Proj of con * string
+  | Proj of con * string list
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con
@@ -83,10 +83,10 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and field = Field of { lbl : string; tp : con }
+and field = Field of { lbl : string list; tp : con }
 [@@deriving show]
 
-and pat = Pat of {lbl : string; args : pat_arg list}
+and pat = Pat of {lbl : string list; args : pat_arg list}
 [@@deriving show]
 
 and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]

@@ -26,7 +26,7 @@ exception CJHM
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 type 'a telescope =
-  | Bind of string * 'a * (T.var -> 'a telescope)
+  | Bind of string list * 'a * (T.var -> 'a telescope)
   | Done
 
 module GlobalUtil : sig
@@ -492,19 +492,27 @@ end
 
 module Signature =
 struct
+  let equal_path p1 p2 =
+    List.equal String.equal p1 p2
+
+  let hole_name_of_path =
+    function
+    | [] -> None
+    | p -> Some (String.concat "." p)
+
   let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
     let rec form_fields tele =
       function
       | Bind (nm, tac, tacs) ->
         let* tp = T.Tp.run tac in
         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(`User [nm]) vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
+        T.abstract ~ident:(`User nm) vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule @@ form_fields Emp tacs
 
-  let rec find_field_tac (lbl : string) (fields : (string * T.Chk.tac) list) : T.Chk.tac option =
+  let rec find_field_tac (lbl : string list) (fields : (string list * T.Chk.tac) list) : T.Chk.tac option =
     match fields with
-    | (lbl', tac) :: _ when String.equal (lbl : string) lbl'  ->
+    | (lbl', tac) :: _ when equal_path (lbl : string list) lbl'  ->
       Some tac
     | _ :: fields ->
       find_field_tac lbl fields
@@ -512,13 +520,13 @@ struct
       None
 
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string * T.Chk.tac) list) : (string * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string list * T.Chk.tac) list) : (string list * S.t) list m =
     match sign with
     | D.Field (lbl, tp, sign_clo) ->
       let tac =
         match find_field_tac lbl tacs with
         | Some tac -> tac
-        | None -> Hole.unleash_hole (Some lbl)
+        | None -> Hole.unleash_hole (hole_name_of_path lbl)
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
@@ -528,7 +536,7 @@ struct
     | D.Empty ->
       RM.ret []
 
-  let intro (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
+  let intro (tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
     T.Chk.brule @@
     function
     | (D.Signature sign, phi, phi_clo) ->
@@ -536,10 +544,10 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string) : D.tp m =
+  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string list) : D.tp m =
     let rec go =
       function
-      | D.Field (flbl, tp, _) when String.equal flbl lbl -> RM.ret tp
+      | D.Field (flbl, tp, _) when equal_path flbl lbl -> RM.ret tp
       | D.Field (flbl, __, clo) ->
         let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
         let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
@@ -596,9 +604,9 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
-  let quantifiers (tacs : (string * T.Chk.tac) list) univ : (string * S.t) list m =
+  let quantifiers (tacs : (string list * T.Chk.tac) list) univ : (string list * S.t) list m =
     let (lbls, tacs) = ListUtil.unzip tacs in
-    let idents = List.map (fun lbl -> `User [lbl]) lbls in
+    let idents = List.map (fun lbl -> `User lbl) lbls in
     let rec mk_fams fams vfams =
       function
       | [] -> RM.ret fams
@@ -644,7 +652,7 @@ struct
              (y : x => (arg : x) -> type)
              (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
   *)
-  let signature (tacs : (string * T.Chk.tac) list) : T.Chk.tac =
+  let signature (tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
     univ_tac @@ fun univ ->
     let+ fields = quantifiers tacs univ in
     S.CodeSignature fields
