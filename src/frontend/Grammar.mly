@@ -276,6 +276,8 @@ plain_term_except_cof_case:
     { ap_or_atomic (List.concat [List.map term_of_name @@ Option.value ~default:[] spine; [arg1]; args2]) }
   | spine = nonempty_list_left_recursive(name)
     { ap_or_atomic (List.map term_of_name spine) }
+  | t = term; PROJ; lbl = path; spine = list_left_recursive(atomic_term)
+    { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | UNLOCK; t = term; IN; body = term;
     { Unlock (t, body) }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
@@ -306,8 +308,6 @@ plain_term_except_cof_case:
     { Signature tele }
   | STRUCT; tele = list(field);
     { Struct tele }
-  | t = term; PROJ; lbl = path; spine = list_left_recursive(atomic_term)
-    { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
