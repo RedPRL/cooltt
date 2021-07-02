@@ -19,5 +19,7 @@ val add_import : id -> [< `Print of string option] Yuujinchou.Pattern.t -> id ->
 (** Try to get a code unit from the imports. *)
 val get_import : id -> t -> CodeUnit.t option
 
+val is_imported : id -> t -> bool
+
 (** Create and add a new code unit. *)
 val init_unit : id -> t -> t

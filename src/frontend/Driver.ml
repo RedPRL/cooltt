@@ -115,8 +115,7 @@ let resolve_source_path lib unitpath =
 
 (* Create an interface file for a given source file. *)
 let rec build_code_unit src_path =
-  let* _ = process_file (`File src_path) in
-  RM.get_current_unit
+  RMU.ignore @@ process_file (`File src_path)
 
 and load_code_unit lib src =
   RM.with_code_unit lib (CodeUnitID.file src) @@ build_code_unit src
@@ -126,13 +125,10 @@ and import_code_unit path modifier : command =
   match resolve_source_path lib path with
   | Error () -> RM.ret Quit
   | Ok (lib, _, src) ->
-    let* unit_loaded = RM.get_import (CodeUnitID.file src) in
-    let* import_unit =
-      match unit_loaded with
-      | Some import_unit -> RM.ret import_unit
-      | None -> load_code_unit lib src in
-    let* _ = RM.add_import modifier (CodeUnitID.file src) in
-    RM.ret @@ Continue Fun.id
+    let* unit_loaded = RM.is_imported (CodeUnitID.file src) in
+    let* _ = RMU.guard (not unit_loaded)  (fun () -> load_code_unit lib src) in
+    let+ _ = RM.add_import modifier (CodeUnitID.file src) in
+    Continue Fun.id
 
 and execute_decl : CS.decl -> command =
   function

@@ -61,3 +61,6 @@ let init_unit id st =
 
 let get_import path st =
   IDMap.find_opt path st.code_units
+
+let is_imported path st =
+  IDMap.mem path st.code_units

@@ -28,6 +28,7 @@ val get_current_unit : CodeUnit.t m
 
 val add_import : [< `Print of string option] Yuujinchou.Pattern.t -> id -> unit m
 val get_import : id -> (CodeUnit.t option) m
+val is_imported : id -> bool m
 
 val quote_con : D.tp -> D.con -> S.t m
 val quote_tp : D.tp -> S.tp m
