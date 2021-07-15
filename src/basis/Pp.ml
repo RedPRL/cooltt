@@ -15,27 +15,47 @@ struct
 
   let emp : t = { names = CCVector.create (); bound = 0; used = StringSet.empty }
 
-  let nat_to_suffix n =
-    let formatted = string_of_int n in
-    let lookup : int -> string = List.nth ["₀";"₁";"₂";"₃";"₄";"₅";"₆";"₇";"₈";"₉"] in
-    String.concat "" @@
-    List.init (String.length formatted) @@
-    fun n -> lookup (Char.code (String.get formatted n) - Char.code '0')
-
   let suffix_name nm i =
     if i == 0 then nm
-    else nm ^ (nat_to_suffix i)
+    else nm ^ (Int.to_string i)
 
   (* [NOTE: Fresh Names]
      To find the "best" fresh name possible, we perform a sort of binary search.
      We start by checking 'x1, x2, x4, x8...' until we find some name that isn't
-     in use yet. Once we have found this, we do a binary search between 'x_{n/2}' and 'x_{n}'
-     to find the smallest name not yet in use. *)
-  let upper_bound x env =
+     in use yet. Once we have found this, we do a binary search between 'x{n}' and 'x{n*2 + 1}'
+     to find the smallest name not yet in use.
+
+     When the name we are trying to freshen already has a numeric suffix, (For instance: x4)
+     we split the name into it's "base" and the suffix, and begin the search at the suffix
+     rather than 0. *)
+  let char_num (c : char) : int option =
+    (* 48 is the ASCII code for 0. *)
+    let n = Char.code c - 48 in
+    if n < 0 || n > 9 then None else Some n
+
+  (* Split a name into a base and a numerical suffix. *)
+  let split_name (nm : string) : string * (int option) =
+    let buf = Buffer.create 16 in
+    let handle_char sfx c =
+      match char_num c with
+      | Some n -> Some (Option.fold ~none:n ~some:(fun x -> (x * 10) + n) sfx)
+      | None ->
+         let _ = Option.iter (fun n -> Buffer.add_string buf @@ Int.to_string n) sfx in
+         let _ = Buffer.add_char buf c in
+         None
+    in
+    let sfx = CCString.fold handle_char None nm in
+    (Buffer.contents buf, sfx)
+
+  (** Compute the largest name still in use for a name. *)
+  let lower_bound x env =
+    let (base, n) = split_name x in
+    let beg = Option.value n ~default:0 in
     let rec go i =
-      if StringSet.mem (suffix_name x i) env.used then go (i * 2)
-      else i
-    in if StringSet.mem x env.used then go 1 else 0
+      if StringSet.mem (suffix_name base i) env.used then go (i * 2)
+      else (base, i / 2)
+    in
+    go (beg + 1)
 
   let rec binary_search x lo hi env =
     let mid = lo + (hi - lo)/2 in
@@ -45,8 +65,10 @@ struct
     else binary_search x lo mid env
 
   let rename x env =
-    let u = upper_bound x env in
-    binary_search x (u / 2) u env
+    if StringSet.mem x env.used then
+      let (base, u) = lower_bound x env in
+      binary_search base u (u*2 + 1) env
+    else x
 
   let var i (env : t) =
     if i < env.bound then
