@@ -1,0 +1,10 @@
+#compdef cooltt
+
+_arguments ':' \
+  '--as-file[pretend the input location]:file:_files' \
+  '(- :)--help=[get help]::format:(auto pager groff plain)' \
+  '(-i --interactive -m --mode)'{-i,--interactive}'[specify mode to "interactive"]' \
+  '(-i --interactive -m --mode)'{-m,--mode=}'[specify mode]:mode:(scripting interactve)' \
+  '(- :)--version[show version]' \
+  '(-w --width)'{-w,--width=}'[specify width for pretty printing]:width:' \
+  "1:CoolTT file:_files -g '*.cooltt'"
