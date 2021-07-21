@@ -70,7 +70,7 @@ module Probe : sig
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
 end =
 struct
-  let print_state lbl tp: unit m =
+  let print_state lbl tp : unit m =
     let* env = RM.read in
     let cells = Env.locals env in
 
@@ -79,7 +79,7 @@ struct
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
-  let print_boundary_warning lbl tm tp phi clo: unit m =
+  let print_boundary_warning lbl tm tp phi clo : unit m =
     let lbl = Option.value ~default:"" lbl in
     let* env = RM.read in
     let* con = RM.lift_ev @@ Sem.eval tm in
