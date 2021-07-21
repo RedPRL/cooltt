@@ -132,8 +132,10 @@
        "\\([0-9]+\\)\\.\\([0-9]+\\)" ;; Starting Line/Column
        "-"
        "\\([0-9]+\\)\\.\\([0-9]+\\)" ;; Ending Line/Column
-       " \\(\\[Info\\]\\)?")         ;; Match forward if we see [Info]
-     1 (2 . 4) (3 . 5) (nil . 6)))
+       " "
+       "\\(\\[Warn\\]\\)?"          ;; Match forward if we see [Warn]
+       "\\(\\[Info\\]\\)?")         ;; Match forward if we see [Info]
+     1 (2 . 4) (3 . 5) (6 . 7)))
   "Regexps used for matching cooltt compilation messages.
 See `compilation-error-regexp-alist' for semantics.")
 
