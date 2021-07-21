@@ -66,8 +66,51 @@ function boundaryConstraints(dims, bdry) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Linear Algebra
+////////////////////////////////////////////////////////////////////////////////
+
+// We need some simple linear algebra functions for things like
+// higher dimensional rotations.
+
+// Construct the n-dimensional identity matrix
+function idmat(n) {
+    let mat = []
+    for(let i = 0; i < n; i++) {
+        let row = Array(n).fill(0)
+        row[i] = 1
+        mat.push(row)
+    }
+    return mat
+}
+
+// Multiply a matrix with a vector
+function matmul(m,v) {
+    let r = []
+    for(let i = 0; i < m.length; i++) {
+        let sum = 0
+        for(let j = 0; j < m[i].length; j++) {
+            sum += m[i][j] * v[j]
+        }
+        r.push(sum)
+    }
+    return r
+}
+
+// The n-dimensional rotation matrix around 2 axes
+function rotmat(n, axis0, axis1, theta) {
+    let rot = idmat(n)
+    rot[axis0][axis0] = Math.cos(theta)
+    rot[axis0][axis1] = Math.sin(theta)
+    rot[axis1][axis0] = -Math.sin(theta)
+    rot[axis1][axis1] = Math.cos(theta)
+    return rot
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Hypercubes
 ////////////////////////////////////////////////////////////////////////////////
+
 
 // [NOTE: Hypercube Geometry]
 // Rather than trying to make a really fancy geometry here, we
@@ -152,119 +195,113 @@ function points(n, i, r) {
     return bits.map((x) => x === "0" ? -r : r)
 }
 
-// Generate all of the vertices of the n-cube.
-// This makes sure that all of the vertices are set
-// up nicely for when we actually render triangles.
-function hypercube_vertices(n, r) {
-    let vertices = []
-    // To build a 2-face for an n-cube, we will need to pick
-    // 2 sets of dimensions to vary.
-    let free_dims = combinations(n, 2)
-    for(let i = 0; i < free_dims.length; i++) {
-        let free = free_dims[i]
-        // Now that we know what 2 dimensions, we will vary to make the 2-face,
-        // we need to pick where on the cube this 2-face will live. For instance,
-        // on a 3-cube, if we vary the 'x' and 'y' dimensions, we need to create
-        // faces when 'z' is 0 AND 1. To generalize to higher dimensions, we need
-        // to generate all possible places where the face can live by looking
-        // at all the dimensions that do not vary during face construction.
-        //
-        // To do this cheaply and easily, we will use some bit level-magic by
-        // realizing that an integer 'c < 2 ^ n' can represent a vertex on an
-        // n-cube by manner of it's binary representation.
-        for(let fx = 0; fx < 2**(n - 2); fx++) {
-            let bits = points(n - 2, fx, r)
+class HypercubeGeometry extends THREE.BufferGeometry {
+    constructor(dimension = 3, size = 1) {
+        super();
 
-            // Now, we need to splice in the 4 corners of the face.
-            // We are using 'bits.slice()' here to perform a shallow copy,
-            // as splice is the easiest way to perform an insertion, yet
-            // mutates the array.
-            let bottom_left = bits.slice()
-            bottom_left.splice(free[0], 0, -r)
-            bottom_left.splice(free[1], 0, -r)
-            let bottom_right = bits.slice()
-            bottom_right.splice(free[0], 0, r)
-            bottom_right.splice(free[1], 0, -r)
-            let top_left = bits.slice()
-            top_left.splice(free[0], 0, -r)
-            top_left.splice(free[1], 0, r)
-            let top_right = bits.slice()
-            top_right.splice(free[0], 0, r)
-            top_right.splice(free[1], 0, r)
-            // let pos = [ bottom_left, bottom_right, top_left, top_right ]
+        this.type = 'HypercubeGeometry'
+        this.dimension = dimension
 
-            // For the normal vector, we can just set the two free coordinates
-            // to 0 and get the correct orientation.
-            let norm = bits.slice()
-            norm.splice(free[0], 0, 0)
-            norm.splice(free[1], 0, 0)
+        this.parameters = { size: size }
 
-            vertices.push({pos: bottom_left, norm})
-            vertices.push({pos: bottom_right, norm})
-            vertices.push({pos: top_left, norm})
-            vertices.push({pos: top_right, norm})
+        // We want to keep track of the higher-dimensional coordinates and 3d positions separately.
+        // This makes it easier to perform higher dimensional transformations such as rotations.
+        let coordinates = []
+        let indicies = []
+
+        // To build a 2-face for an n-cube, we will need to pick
+        // 2 sets of dimensions to vary.
+        let free_dims = combinations(dimension, 2)
+        for(let i = 0; i < free_dims.length; i++) {
+            let free = free_dims[i]
+            // Now that we know what 2 dimensions, we will vary to make the 2-face,
+            // we need to pick where on the cube this 2-face will live. For instance,
+            // on a 3-cube, if we vary the 'x' and 'y' dimensions, we need to create
+            // faces when 'z' is 0 AND 1. To generalize to higher dimensions, we need
+            // to generate all possible places where the face can live by looking
+            // at all the dimensions that do not vary during face construction.
+            //
+            // To do this cheaply and easily, we will use some bit level-magic by
+            // realizing that an integer 'c < 2 ^ n' can represent a vertex on an
+            // n-cube by manner of it's binary representation.
+            for(let fx = 0; fx < 2**(dimension - 2); fx++) {
+                let bits = points(dimension - 2, fx, size)
+
+                // Now, we need to splice in the 4 corners of the face.
+                // We are using 'bits.slice()' here to perform a shallow copy,
+                // as splice is the easiest way to perform an insertion, yet
+                // mutates the array.
+                let bottom_left = bits.slice()
+                bottom_left.splice(free[0], 0, -size)
+                bottom_left.splice(free[1], 0, -size)
+                let bottom_right = bits.slice()
+                bottom_right.splice(free[0], 0, size)
+                bottom_right.splice(free[1], 0, -size)
+                let top_left = bits.slice()
+                top_left.splice(free[0], 0, -size)
+                top_left.splice(free[1], 0, size)
+                let top_right = bits.slice()
+                top_right.splice(free[0], 0, size)
+                top_right.splice(free[1], 0, size)
+
+                coordinates.push(bottom_left)
+                coordinates.push(bottom_right)
+                coordinates.push(top_left)
+                coordinates.push(top_right)
+            }
         }
-    }
-    return vertices
-}
 
-// When we actually render the faces, we need to
-// tell THREE how to actually render the triangles.
-// In particular, we will use some vertices /twice/,
-// as they are contained in both of the 2 triangles
-// that we will use to build our quad. Luckily,
-// 'hypercube_vertices' is set up so that this is done
-// easily.
-function hypercube_indicies(n) {
-    let indicies = []
-    for(let i = 0; i < num_faces(n,2); i++) {
-        let vtx = i*4
-        indicies.push(vtx)
-        indicies.push(vtx+1)
-        indicies.push(vtx+2)
-        indicies.push(vtx+2)
-        indicies.push(vtx+1)
-        indicies.push(vtx+3)
-    }
-    return indicies
-}
+        this.coordinates = coordinates
 
-// FIXME: Use some OO nonsense here
-function 
+        // The actual 3D positions of the points on the sphere.
+        // We store these in a flat Float32Array so that it's faster
+        // to modify these on the fly.
+        const num_components = 3
+        this.positions = new Float32Array(num_components * this.coordinates.length)
 
-function hypercube_geometry(n, r) {
-    let geometry = new THREE.BufferGeometry()
-    let vertices = hypercube_vertices(n, r)
-    let indicies = hypercube_indicies(n)
+        this.position_attr = new THREE.BufferAttribute(this.positions, num_components)
+        this.position_attr.setUsage(THREE.DynamicDrawUsage)
 
-    let positions = []
-    let normals = []
+        this.update_positions()
+        this.setAttribute('position', this.position_attr)
 
-    for (let vtx of vertices) {
-        positions.push(...project(vtx.pos))
-        normals.push(...project(vtx.norm))
+        // Furthermore, let's mark this as a dynamic attribute to hint to three.js
+        // that this will probably be changing often.
+
+        // When we actually render the faces, we need to
+        // tell THREE how to actually render the triangles.
+        // In particular, we will use some vertices /twice/,
+        // as they are contained in both of the 2 triangles
+        // that we will use to build our quad.
+        for(let i = 0; i < num_faces(dimension,2); i++) {
+            let vtx = i*4
+            indicies.push(vtx)
+            indicies.push(vtx+1)
+            indicies.push(vtx+2)
+            indicies.push(vtx+2)
+            indicies.push(vtx+1)
+            indicies.push(vtx+3)
+        }
+
+        this.setIndex(indicies)
     }
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
-    geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3));
-    geometry.setIndex(indicies)
-
-    return geometry
-}
-
-
-// Generate an n-dimensional hypercube.
-function hypercube(n, r) {
-    let vertices = []
-    for(i = 0; i < 2**n; i++) {
-        // Dumb hack to convert an integer to bits
-        let bits = Array.from((i).toString(2).padStart(n, "0"))
-        // We want our cube to be cenetered at 0, so we need to
-        // turn any '0's into '-1's
-        let recenter = (x) => x === "0" ? -r : r
-        vertices.push(bits.map(recenter))
+    update_positions() {
+        let position_idx = 0
+        for (let i = 0; i < this.coordinates.length; i++) {
+            this.positions.set(project(this.coordinates[i]), position_idx)
+            position_idx += 3
+        }
+        this.position_attr.needsUpdate = true
     }
-    return vertices
+
+    rotate(axis0, axis1, theta) {
+        let rot = rotmat(this.dimension, axis0, axis1, theta)
+        for(let i = 0; i < this.coordinates.length; i++) {
+            this.coordinates[i] = matmul(rot, this.coordinates[i])
+        }
+        this.update_positions()
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -313,14 +350,13 @@ function initScene() {
     let scene = new THREE.Scene()
     scene.background = new THREE.Color(0xffffff)
 
-    // let geometry = new THREE.BoxGeometry(2, 2, 2)
-    let geometry = hypercube_geometry(1,2)
+    let geometry = new HypercubeGeometry(5,2)
     let edges = new THREE.EdgesGeometry(geometry)
-    let material = new THREE.MeshBasicMaterial({ color: 0x000000 })
+    let material = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 4 })
 
     camera.position.set(0, 0, 3)
 
-    let cube = new THREE.LineSegments(edges, material)
+    let cube = new THREE.LineSegments(geometry, material)
     scene.add(cube)
 
     // let constraints = boundaryConstraints(goal.dims, goal.bdry)
@@ -343,6 +379,8 @@ function initScene() {
 
         renderer.render(scene, camera)
         labelRenderer.render(scene, camera);
+        geometry.rotate(3,4,0.01)
+        // geometry.rotate(1,3,0.01)
 
         // cube.rotation.y += 0.01
         // cube.rotation.z += 0.01
