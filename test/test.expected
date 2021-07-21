@@ -521,16 +521,22 @@ hcom-type.cooltt:17.8-17.13 [Info]:
 hcom-type.cooltt:17.16-17.17 [Info]:
   Emitted hole:
     i : 𝕀
-    |- ? : {(_x : [ i = 0 ]) → nat} [i = 0 ∨ i = 1 => _x => ?asdf 0 *]
+    |- ? : (_x : [ i = 0 ]) → nat
+    
+    Boundary:
+    i = 0 ∨ i = 1
+    |- _x => ?asdf 0 *
 
 
 hcom-type.cooltt:17.18-17.19 [Info]:
   Emitted hole:
     i : 𝕀
     |- ? : nat
-           [i = 0 ∨ i = 0 ∨ i = 1 => [ i = 0 => ?asdf 0 *
-                                     | i = 1 => ?asdf 1 *
-                                     ]]
+    
+    Boundary:
+    i = 0 ∨ i = 0 ∨ i = 1
+    |- i = 0 => ?asdf 0 *
+       i = 1 => ?asdf 1 *
 
 
 --------------------[hlevel.cooltt]--------------------
