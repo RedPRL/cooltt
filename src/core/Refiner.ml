@@ -79,6 +79,22 @@ struct
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
+  let print_boundary_warning lbl tm tp phi clo: unit m =
+    let lbl = Option.value ~default:"" lbl in
+    let* env = RM.read in
+    let* con = RM.lift_ev @@ Sem.eval tm in
+    let* res = RM.trap @@ RM.abstract `Anon (D.TpPrf phi) @@ fun prf ->
+      RM.equate tp con @<< RM.lift_cmp @@ Sem.inst_tm_clo clo prf
+    in
+    match res with
+    | Ok _ -> RM.ret ()
+    | Error _ ->
+       RM.with_pp @@ fun penv ->
+       () |> RM.emit ~lvl:`Warn (RefineEnv.location env) @@ fun fmt () ->
+       Format.fprintf fmt "Boundary Mismatch:@,  ?%a : @[<hov>%a@]"
+         Uuseg_string.pp_utf_8 lbl
+         (S.pp penv) tm
+
   let probe_chk name tac =
     T.Chk.brule @@ fun (tp, phi, clo) ->
     let* s = T.Chk.brun tac (tp, phi, clo) in
@@ -93,7 +109,8 @@ struct
     let* s = T.Chk.run tac tp in
     let+ () =
       let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
-      print_state name stp
+      let* _ = print_state name stp in
+      print_boundary_warning name s tp phi clo
     in
     s
 
