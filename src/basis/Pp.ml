@@ -28,24 +28,12 @@ struct
      When the name we are trying to freshen already has a numeric suffix, (For instance: x4)
      we split the name into it's "base" and the suffix, and begin the search at the suffix
      rather than 0. *)
-  let char_num (c : char) : int option =
-    (* 48 is the ASCII code for 0. *)
-    let n = Char.code c - 48 in
-    if n < 0 || n > 9 then None else Some n
 
-  (* Split a name into a base and a numerical suffix. *)
+
+  (** Split a name into a base and a numerical suffix. *)
   let split_name (nm : string) : string * (int option) =
-    let buf = Buffer.create 16 in
-    let handle_char sfx c =
-      match char_num c with
-      | Some n -> Some (Option.fold ~none:n ~some:(fun x -> (x * 10) + n) sfx)
-      | None ->
-         let _ = Option.iter (fun n -> Buffer.add_string buf @@ Int.to_string n) sfx in
-         let _ = Buffer.add_char buf c in
-         None
-    in
-    let sfx = CCString.fold handle_char None nm in
-    (Buffer.contents buf, sfx)
+    let (pfx, sfx) = StringUtil.rpartition StringUtil.is_digit nm in
+    (pfx, int_of_string_opt sfx)
 
   (** Compute the largest name still in use for a name. *)
   let lower_bound x env =
