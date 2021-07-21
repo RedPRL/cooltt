@@ -32,7 +32,7 @@
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
 %token BANG COLON COLON_EQUALS PIPE COMMA DOT SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
-%token LPR RPR LBR RBR LSQ RSQ
+%token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS JOIN MEET
 %token TYPE
 %token TIMES FST SND
@@ -326,6 +326,8 @@ plain_term_except_cof_case:
     { Cap t }
   | name = HOLE_NAME; SEMI; t = term
     { Hole (name, Some t) }
+  | LBANG; t = ioption(term); RBANG
+    { BoundaryHole t }
 
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }

@@ -43,6 +43,7 @@ and con_ =
   | Snd of con
   | Type
   | Hole of string option * con option
+  | BoundaryHole of con option
   | Underscore
   | Unfold of Ident.t list * con
   | Generalize of Ident.t * con

@@ -120,6 +120,10 @@ and real_token = parse
     { LSQ }
   | ']'
     { RSQ }
+  | "{!"
+    { LBANG }
+  | "!}"
+    { RBANG }
   | '|'
     { PIPE }
   | ','

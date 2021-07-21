@@ -590,42 +590,58 @@ struct
       pp_binders envx penv fmt tm
     | _ -> pp env penv fmt tm
 
+  let pp_boundary env fmt tm =
+    let rec pp_branches env fmt (bdry, cons) =
+      begin
+      match cons with
+      | CofSplit branches ->
+         let _x, envx = ppenv_bind env `Anon in
+         Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches envx) fmt branches
+      | _ -> pp_cof_split_branch env fmt (bdry, cons)
+      end
+    in
+    match tm with
+    | CofSplit branches when not (CCList.is_empty branches) ->
+       (* let _x, envx = ppenv_bind env `Anon in *)
+       Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches env) fmt branches
+    | _ -> pp env P.isolated fmt tm
+
   let pp_sequent_goal ~lbl env fmt tp  =
     let lbl = Option.value ~default:"" lbl in
     match tp with
     | Sub (tp, Cof (Cof.Join []), _) ->
-      Format.fprintf fmt "?%a : @[<hov>%a@]"
+      Format.fprintf fmt "|- ?%a : @[<hov>%a@]"
         Uuseg_string.pp_utf_8 lbl
         (pp_tp env P.(right_of colon)) tp
     | Sub (tp, phi, tm) ->
       let _x, envx = Pp.Env.bind env (Some "_") in
-      Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
+      Format.fprintf fmt "|- ?%a : @[<hov>%a@]@,@,Boundary:@,%a@,|- @[<v>%a@]"
         Uuseg_string.pp_utf_8 lbl
-        (pp_tp env P.(left_of juxtaposition)) tp
-        (pp env P.(left_of double_arrow)) phi
-        (pp envx P.(right_of double_arrow)) tm
+        (pp_tp env P.(right_of colon)) tp
+        (pp env P.(right_of colon))
+        phi
+        (pp_boundary envx)
+        tm
     | tp ->
-      Format.fprintf fmt "?%a : @[<hov>%a@]"
+      Format.fprintf fmt "|- ?%a : @[<hov>%a@]"
         Uuseg_string.pp_utf_8 lbl
         (pp_tp env P.(right_of colon)) tp
 
-  let rec pp_sequent_inner ~lbl env ctx fmt tp =
+
+  let rec pp_in_ctx ~lbl env ctx fmt tp =
     match ctx with
-    | [] ->
-      Format.fprintf fmt "|- @[<hov>%a@]"
-        (pp_sequent_goal ~lbl env)
-        tp
+    | [] -> pp_sequent_goal ~lbl env fmt tp
     | (var, var_tp) :: ctx ->
       let x, envx = ppenv_bind env var in
       Fmt.fprintf fmt "%a : %a@;%a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) var_tp
-        (pp_sequent_inner ~lbl envx ctx) tp
+        (pp_in_ctx ~lbl envx ctx) tp
 
   let pp_sequent ~lbl ctx : tp Pp.printer =
     fun fmt tp ->
     Format.fprintf fmt "@[<v>%a@]"
-      (pp_sequent_inner ~lbl Pp.Env.emp ctx) tp
+      (pp_in_ctx ~lbl Pp.Env.emp ctx) tp
 
   let pp env = pp env P.isolated
   let pp_tp env = pp_tp env P.isolated
