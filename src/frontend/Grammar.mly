@@ -239,9 +239,10 @@ plain_atomic_term_except_name:
     { TopC }
   | BOTC
     { BotC }
-
   | LSQ t = bracketed RSQ
     { t }
+  | LBANG; t = ioption(term); RBANG
+    { BoundaryHole t }
 
 bracketed:
   | left = term COMMA right = term
@@ -326,8 +327,6 @@ plain_term_except_cof_case:
     { Cap t }
   | name = HOLE_NAME; SEMI; t = term
     { Hole (name, Some t) }
-  | LBANG; t = ioption(term); RBANG
-    { BoundaryHole t }
 
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }
