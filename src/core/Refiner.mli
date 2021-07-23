@@ -20,7 +20,7 @@ end
 
 module Probe : sig
   val probe_chk : string option -> Chk.tac -> Chk.tac
-  val probe_chk_no_bdry : string option -> Chk.tac -> Chk.tac
+  val probe_boundary : string option -> Chk.tac -> Chk.tac -> Chk.tac
   val probe_syn : string option -> Syn.tac -> Syn.tac
 end
 

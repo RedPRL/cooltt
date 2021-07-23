@@ -66,7 +66,7 @@ end
 
 module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
-  val probe_chk_no_bdry : string option -> T.Chk.tac -> T.Chk.tac
+  val probe_boundary : string option -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
 end =
 struct
@@ -104,15 +104,11 @@ struct
     in
     s
 
-  let probe_chk_no_bdry name tac =
+  let probe_boundary name probe tac =
     T.Chk.brule @@ fun (tp, phi, clo) ->
-    let* s = T.Chk.run tac tp in
-    let+ () =
-      let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
-      let* _ = print_state name stp in
-      print_boundary_warning name s tp phi clo
-    in
-    s
+    let* probe_tm = T.Chk.run probe tp in
+    let* () = print_boundary_warning name probe_tm tp phi clo in
+    T.Chk.brun tac (tp, phi, clo)
 
   let probe_syn name tac =
     T.Syn.rule @@
