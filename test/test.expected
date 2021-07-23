@@ -583,25 +583,11 @@ holes.cooltt:8.27-8.28 [Info]:
     |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 A p q i 1}
 
 
-holes.cooltt:8.7-8.35 [Info]:
-  Emitted hole:
-    A : type
-    p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
-    i : 𝕀
-    |- ? : A
-    
-    Boundary:
-    i = 0 ∨ i = 1
-    |- i = 0 => p 0
-       i = 1 => q 1
-
-
 holes.cooltt:8.7-8.35 [Warn]:
   Boundary Mismatch:
     ? : trans/filler A {#2 A p q i} {#3 A p q i} 1 i
 
-holes.cooltt:11.7-11.35 [Info]:
+holes.cooltt:8.7-8.35 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
@@ -619,7 +605,35 @@ holes.cooltt:11.7-11.35 [Warn]:
   Boundary Mismatch:
     ? : trans/filler A {_x => p _x} {_x => q _x} 0 i
 
-holes.cooltt:14.26-14.30 [Info]:
+holes.cooltt:11.7-11.35 [Info]:
+  Emitted hole:
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- ? : A
+    
+    Boundary:
+    i = 0 ∨ i = 1
+    |- i = 0 => p 0
+       i = 1 => q 1
+
+
+holes.cooltt:14.7-14.35 [Info]:
+  Emitted hole:
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- ? : A
+    
+    Boundary:
+    i = 0 ∨ i = 1
+    |- i = 0 => p 0
+       i = 1 => q 1
+
+
+holes.cooltt:17.26-17.30 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
@@ -628,8 +642,8 @@ holes.cooltt:14.26-14.30 [Info]:
     |- ? : (_x : 𝕀) → (_x₁ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) → A
 
 
-holes.cooltt:14.7-14.30 [Error]:
-  Expected #6 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+holes.cooltt:17.7-17.30 [Error]:
+  Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
 
 --------------------[import.cooltt]--------------------
 Emitted namespace under p2:
