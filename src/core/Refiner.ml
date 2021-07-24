@@ -70,6 +70,25 @@ module Probe : sig
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
 end =
 struct
+  (* FIXME: Bad!!!! *)
+
+  let server_init () =
+    let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    (* Technically we are the client here, as we will be the one making requests
+       to the render server *)
+    let () = Unix.connect socket (Unix.ADDR_INET (Unix.inet_addr_of_string "127.0.0.1", 8080)) in
+    socket
+
+  let server_socket = ref (server_init ())
+
+  let dispatch_goal (ctx : (Ident.t * S.tp) list) (goal : S.tp) : unit =
+    let buf = Buffer.create 16384 in
+    J.to_buffer ~minify:true buf @@ Serialize.serialize_goal ctx goal;
+    Format.eprintf "[DEBUG] %s@." (Buffer.contents buf);
+    let nbytes = Unix.send !server_socket (Buffer.to_bytes buf) 0 (Buffer.length buf) [] in
+    Format.eprintf "[DEBUG] Wrote %n@." nbytes;
+    ()
+
   let print_state lbl tp : unit m =
     let* env = RM.read in
     let cells = Env.locals env in
@@ -77,7 +96,8 @@ struct
     RM.globally @@
     let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
-    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
+    let _ = Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp in
+    dispatch_goal ctx tp
 
   let boundary_satisfied tm tp phi clo : _ m =
     let* con = RM.lift_ev @@ Sem.eval tm in
