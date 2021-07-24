@@ -87,7 +87,12 @@ struct
       RM.equate tp con @<< RM.lift_cmp @@ Sem.inst_tm_clo clo prf
     in
     match res with
-    | Ok _ -> RM.ret ()
+    | Ok _ ->
+       RM.with_pp @@ fun penv ->
+       () |> RM.emit ~lvl:`Info (RefineEnv.location env) @@ fun fmt () ->
+       Format.fprintf fmt "Boundary Conditions Met:@,  ?%a : @[<hov>%a@]"
+         Uuseg_string.pp_utf_8 lbl
+         (S.pp penv) tm
     | Error _ ->
        RM.with_pp @@ fun penv ->
        () |> RM.emit ~lvl:`Warn (RefineEnv.location env) @@ fun fmt () ->

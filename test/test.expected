@@ -620,6 +620,10 @@ holes.cooltt:11.7-11.35 [Info]:
 
 
 holes.cooltt:14.7-14.35 [Info]:
+  Boundary Conditions Met:
+    ? : trans/filler A {_x => p _x} {_x => q _x} 1 i
+
+holes.cooltt:14.7-14.35 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
