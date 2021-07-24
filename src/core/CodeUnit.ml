@@ -1,4 +1,9 @@
 open ContainersLabels
+open Basis
+open Bwd
+
+module J = Ezjsonm
+
 module CodeUnitID =
 struct
   type t = string option
@@ -29,6 +34,19 @@ struct
       Format.fprintf fmt "%a" Uuseg_string.pp_utf_8 nm
     | None ->
       Format.fprintf fmt "#%i" sym.index
+
+  let serialize sym =
+    `O [("origin", J.option J.string @@ sym.origin);
+        ("index", `String (Int.to_string sym.index));
+        ("name", J.option J.string @@ sym.name) ]
+
+  let deserialize : J.value -> t =
+    function
+    | `O [("origin", j_origin); ("index", j_index); ("name", j_name)] ->
+      { origin = J.get_option J.get_string j_origin;
+        index = int_of_string @@ J.get_string j_index;
+        name = J.get_option J.get_string j_name }
+    | j -> J.parse_error j "Global.deserialize"
 end
 
 module Domain = Domain.Make (Global)
