@@ -1,5 +1,0 @@
-name: 'Compile Cooltt'
-description: 'Compile and Test Cooltt'
-runs:
-  using: 'docker'
-  image: 'Dockerfile'
