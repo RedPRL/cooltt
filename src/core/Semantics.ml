@@ -31,7 +31,7 @@ let cut_frm ~tp ~cut frm =
 
 
 let equal_path p1 p2 =
-  List.equal String.equal p1 p2
+  CCList.equal String.equal p1 p2
 
 
 let get_local i =
