@@ -8,6 +8,6 @@ jobs:
     - uses: satackey/action-docker-layer-caching@v0.0.11
       continue-on-error: true
     - name: Build the Cooltt Image
-      run: docker build . --file .github/workflows/Dockerfile -t cooltt:${GITHUB_REF##*/}
+      run: docker build . --file .github/workflows/Dockerfile -t cooltt:${{ github.head_ref }}
     - name: Run Tests
-      run: docker run -v /home/runner/work/cooltt/cooltt:/github/workspace cooltt:${GITHUB_REF##*/}
+      run: docker run -v /home/runner/work/cooltt/cooltt:/github/workspace cooltt:${{ github.head_ref }}
