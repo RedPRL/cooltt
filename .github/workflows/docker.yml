@@ -55,6 +55,7 @@ jobs:
           push: true
   doc:
     name: Doc
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/doc') }}
     needs: build
     runs-on: ubuntu-latest
     steps:
