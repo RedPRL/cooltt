@@ -1,7 +1,4 @@
-### STAGE opam START
-### Prepare the Docker with basic dependencies
-
-FROM alpine:3.14 AS opam
+FROM alpine:3.14
 
 WORKDIR "/src/"
 
@@ -24,69 +21,12 @@ RUN \
   opam init --disable-sandboxing --disable-completion --no-setup --yes && \
   opam install --deps-only --yes --with-test --with-doc "./"
 
-### STAGE opam END
-
-############################################################################
-
-### STAGE build START
-### Build statically-linked cooltt
-
-FROM opam AS build
-
-COPY ["src", "src"]
-
-# We use dune instead of opam because of the --profile option
-RUN \
-  opam exec -- dune build --profile static && \
-  opam exec -- dune install --section bin && \
-  cp "`opam config var bin`/cooltt" /cooltt
-
-### STAGE build END
-
-############################################################################
-
-### STAGE test START
-### Test cooltt
-
-FROM build AS test
-
-# If only test cases are modified, Docker should start from here.
-COPY ["src", "src"]
 COPY ["Makefile", "Makefile"]
+COPY ["src", "src"]
 COPY ["test", "test"]
 
-RUN ["make", "test"]
+RUN \
+  opam exec -- dune build --profile static && \
+  opam exec -- dune install --section bin
 
-ENTRYPOINT []
-
-### STAGE test END
-
-############################################################################
-
-### STAGE doc START
-### Generate cooltt documentation
-
-FROM opam AS doc
-
-COPY ["src", "src"]
-COPY ["Makefile", "Makefile"]
-
-RUN ["make", "doc"]
-
-ENTRYPOINT ["cp", "-a", "_build/default/_doc/_html"]
-CMD ["/output/"]
-
-### STAGE doc END
-
-############################################################################
-
-### STAGE deploy START
-### Place statically-linked cooltt in an empty image
-
-FROM scratch AS deploy
-
-COPY --from=build ["/cooltt", "/cooltt"]
-
-ENTRYPOINT ["/cooltt"]
-
-### STAGE test END
+ENTRYPOINT ["opam", "exec", "--", "cooltt"]
