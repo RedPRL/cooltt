@@ -38,6 +38,7 @@ jobs:
             --entrypoint '/bin/sh' ${{ needs.builder.outputs.tag }} '-c' \
             'make test'
   deploy:
+    if: ${{ github.ref == 'refs/heads/main' }}
     name: Deploy
     needs: builder
     runs-on: ubuntu-latest
