@@ -12,6 +12,9 @@ jobs:
         id: meta
         with:
           images: ghcr.io/${{ github.repository }}
+          # The other steps will assume that there's only one tag in
+          # steps.meta.outputs.tags, and that's why `latest=false` and
+          # there is only one line in `tags`.
           flavor: latest=false,prefix=runner-
           tags: type=ref,event=branch
       - uses: docker/login-action@v1
