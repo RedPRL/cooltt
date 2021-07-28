@@ -1,5 +1,5 @@
-ARG BUILDER_TAG
-FROM ${BUILDER_TAG} AS build
+ARG RUNNER_TAG
+FROM ${RUNNER_TAG} AS build
 RUN cp "`opam config var bin`/cooltt" /cooltt
 
 FROM scratch
