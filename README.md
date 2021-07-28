@@ -13,12 +13,12 @@ Favonia.
 
 ## building
 
-cooltt has been built with OCaml 4.10.0 with [opam
-2.0.5](https://opam.ocaml.org/). If you are running an older version of OCaml,
+cooltt has been built with OCaml 4.12.0 with [opam
+2.0.8](https://opam.ocaml.org/). If you are running an older version of OCaml,
 try executing the following command:
 
 ```
-$ opam switch create 4.10.0
+$ opam switch create 4.12.0
 ```
 
 Once these dependencies are installed cooltt can be built with the following set of commands.
@@ -31,7 +31,7 @@ $ opam upgrade                          # after packages change
 
 After this, the executable `cooltt` should be available. The makefile can be
 used to rebuild the package for small tests. Locally, cooltt is built with
-[dune](https://dune.build), running the above commands will also install dune.
+[dune](https://dune.build); running the above commands will also install dune.
 Once dune is available the executable can be locally changed and run with the
 following:
 

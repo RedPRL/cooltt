@@ -23,7 +23,7 @@ let main {mode; as_file; width} =
 let opt_mode =
   let doc =
     "Set the interaction mode. "^
-    "The value $(docv) must be (an unambiguous prefix of) one of "^
+    "The value $(docv) must be one of "^
     "$(b,scripting) (default) or $(b,interactive)." in
   Arg.(value & opt (some string) None & info ["m"; "mode"] ~doc ~docv:"MODE")
 
@@ -53,18 +53,11 @@ let myinfo =
   Term.info "cooltt" ~version:"0.0" ~doc
     ~exits:(err_exit :: Term.default_exits)
 
-let is_prefix substr str =
-  let sublen = String.length substr in
-  try
-    String.equal substr @@ String.sub str 0 sublen
-  with Invalid_argument _ -> false
-
-let parse_mode s =
-  match is_prefix s "interactive", is_prefix s "scripting" with
-  | true, true -> `Ambiguous s
-  | false, false -> `Nonexistent s
-  | true, false -> `Interactive
-  | false, true -> `Scripting
+let parse_mode =
+  function
+  | "interactive" -> `Interactive
+  | "scripting" -> `Scripting
+  | s -> `Nonexistent s
 
 let quote s = "`" ^ s ^ "'"
 
@@ -80,10 +73,8 @@ let consolidate_options mode interactive width input_file as_file : options Term
     `Error (true, "interactive mode expects no input files")
   | Some `Scripting, true, _, _ ->
     `Error (true, "inconsistent mode assignment")
-  | Some (`Ambiguous s), _, _, _ ->
-    `Error (true, "ambiguous mode prefix " ^ quote s)
   | Some (`Nonexistent s), _, _, _ ->
-    `Error (true, "no mode with the prefix " ^ quote s)
+    `Error (true, "no mode named " ^ quote s)
 
 let () =
   let options : options Term.t =
