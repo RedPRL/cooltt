@@ -17,8 +17,9 @@ COPY ["cooltt.opam", "cooltt.opam"]
 # make, m4, musl-dev         | Requird by many OPAM packages
 # git                        | Get yuujinchou and bantorra
 # python2, gmp-dev           | z3
+# ocaml-ocamldoc             | Zarith (which is required by z3)
 RUN \
-  apk add --no-cache opam ocaml ocaml-compiler-libs make m4 musl-dev git python2 gmp-dev && \
+  apk add --no-cache ocaml ocaml-ocamldoc ocaml-compiler-libs opam make m4 musl-dev git python2 gmp-dev && \
   opam init --disable-sandboxing --disable-completion --no-setup --yes && \
   opam install --deps-only --yes --with-test --with-doc "./"
 
