@@ -63,9 +63,9 @@ ENTRYPOINT []
 ### STAGE doc START
 ### Generate cooltt documentation
 
-COPY ["src", "Makefile", "./"]
-
 FROM opam AS doc
+
+COPY ["src", "Makefile", "./"]
 
 RUN ["make", "doc"]
 

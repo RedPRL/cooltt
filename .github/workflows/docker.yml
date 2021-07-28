@@ -2,7 +2,7 @@ name: Docker
 on: [push]
 jobs:
   test:
-    name: Test
+    name: Test/Deploy/Doc
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v1
@@ -14,35 +14,18 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha
-  deploy:
-    name: Deploy
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: docker/setup-buildx-action@v1
-        with:
-          version: latest
       - uses: docker/build-push-action@v2
         with:
           target: deploy
           push: false
           cache-from: type=gha
-          cache-to: type=gha
-  doc:
-    name: Doc
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: docker/setup-buildx-action@v1
-        with:
-          version: latest
       - uses: docker/build-push-action@v2
         with:
           target: doc
           tags: cooltt-doc
+          load: true
           push: false
           cache-from: type=gha
-          cache-to: type=gha
       - run: docker run -v ${PWD}/output:/output cooltt-doc /output
       - uses: peaceiris/actions-gh-pages@v3
         with:
