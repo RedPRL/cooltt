@@ -38,8 +38,7 @@ jobs:
     steps:
       - run: |
           docker run \
-            --entrypoint '/bin/sh' ${{ needs.runner.outputs.tag }} '-c' \
-            'make test'
+            --entrypoint 'make' ${{ needs.runner.outputs.tag }} 'test'
   deploy:
     if: ${{ github.ref == 'refs/heads/main' }}
     name: Deploy
