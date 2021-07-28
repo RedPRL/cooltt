@@ -1,3 +1,5 @@
+(env (static (flags (:standard -ccopt "-static -s"))))
+
 (executables
  (names main)
  (libraries cooltt.frontend cmdliner))

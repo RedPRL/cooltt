@@ -4,7 +4,7 @@ let header fname =
   String.make 20 '-' ^ "[" ^ fname ^ "]" ^ String.make 20 '-' ^ "\n"
 
 let execute_file fname =
-  if String.equal (Filename.extension fname) ".cooltt" then
+  if String.equal (Filename.extension fname) ".cooltt" && fname <> "META.cooltt" then
     let _ = print_string (header fname) in
     ignore @@ Driver.load_file ~as_file:None (`File fname)
 

@@ -1,13 +1,14 @@
-name: Build and test
+name: Docker
 on: [push]
 jobs:
-  run:
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: satackey/action-docker-layer-caching@v0.0.11
-      continue-on-error: true
-    - name: Build the Cooltt Image
-      run: docker build . --file .github/workflows/Dockerfile -t cooltt:${GITHUB_REF##*/}
-    - name: Run Tests
-      run: docker run -v /home/runner/work/cooltt/cooltt:/github/workspace cooltt:${GITHUB_REF##*/}
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/build-push-action@v2
+        with:
+          push: no
+          tags: cooltt
+          # cache-from: type=gha
+          # cache-to: type=gha
