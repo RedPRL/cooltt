@@ -60,7 +60,7 @@ let conv_err err =
   throw @@ ConversionError err
 
 let equal_path p1 p2 =
-  CCList.equal String.equal p1 p2
+  List.equal String.equal p1 p2
 
 let equate_dim r s =
   CmpM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
