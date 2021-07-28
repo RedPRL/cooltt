@@ -5,7 +5,8 @@ FROM alpine:3.14 AS opam
 
 WORKDIR "/src/"
 
-COPY ["dune-project", "cooltt.opam", "./"]
+COPY ["dune-project", "dune-project"]
+COPY ["cooltt.opam", "cooltt.opam"]
 
 # If only the OPAM is modified, Docker should start from here.
 # We copy dune-project because dune _could_ generate OPAM files from dune-project (not used in cooltt)
@@ -32,7 +33,7 @@ RUN \
 
 FROM opam AS build
 
-COPY ["src", "./"]
+COPY ["src", "src"]
 
 # We use dune instead of opam because of the --profile option
 RUN \
@@ -50,7 +51,9 @@ RUN \
 FROM build AS test
 
 # If only test cases are modified, Docker should start from here.
-COPY ["src", "test", "Makefile", "./"]
+COPY ["src", "src"]
+COPY ["Makefile", "Makefile"]
+COPY ["test", "test"]
 
 RUN ["make", "test"]
 
@@ -65,7 +68,8 @@ ENTRYPOINT []
 
 FROM opam AS doc
 
-COPY ["src", "Makefile", "./"]
+COPY ["src", "src"]
+COPY ["Makefile", "Makefile"]
 
 RUN ["make", "doc"]
 
@@ -81,7 +85,7 @@ CMD ["/output/"]
 
 FROM scratch AS deploy
 
-COPY --from=build ["/cooltt", "/"]
+COPY --from=build ["/cooltt", "/cooltt"]
 
 ENTRYPOINT ["/cooltt"]
 
