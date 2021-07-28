@@ -64,6 +64,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   doc:
+    if: ${{ github.ref == 'refs/heads/main' }}
     name: Doc
     needs: builder
     runs-on: ubuntu-latest
