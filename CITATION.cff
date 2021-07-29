@@ -1,0 +1,22 @@
+cff-version: 1.1.0
+message: If you use this software, please cite it as below.
+authors:
+  - family-names: Sterling
+    given-names: Jonathan
+    orcid: https://orcid.org/0000-0002-0585-5564
+    website: https://www.jonmsterling.com/
+  - name: Favonia
+    orcid: https://orcid.org/0000-0002-2310-3673
+    website: https://www.favonia.org/
+  - family-names: Angiuli
+    given-names: Carlo
+    orcid: https://orcid.org/0000-0002-9590-3303
+    website: http://www.cs.cmu.edu/~cangiuli/
+  - family-names: Mullanix
+    given-names: Reed
+    website: https://totbwf.github.io/
+  - name: The RedPRL Development Team
+    website: https://www.redprl.org
+title: cooltt
+version: 0.0
+date-released: 2021-07-29
