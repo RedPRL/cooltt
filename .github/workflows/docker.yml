@@ -1,8 +1,8 @@
 name: Docker
 on: [push]
 jobs:
-  runner:
-    name: Runner
+  builder:
+    name: Builder
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v1
@@ -15,7 +15,7 @@ jobs:
           # The other steps will assume that there's only one tag in
           # steps.meta.outputs.tags, and that's why `latest=false` and
           # there is only one line in `tags`.
-          flavor: latest=false,prefix=runner-
+          flavor: latest=false,prefix=builder-
           tags: type=ref,event=branch
       - uses: docker/login-action@v1
         with:
@@ -33,16 +33,16 @@ jobs:
       tag: ${{ steps.meta.outputs.tags }}
   test:
     name: Test
-    needs: runner
+    needs: builder
     runs-on: ubuntu-latest
     steps:
       - run: |
           docker run \
-            --entrypoint 'make' ${{ needs.runner.outputs.tag }} 'test'
+            --entrypoint 'make' ${{ needs.builder.outputs.tag }} 'test'
   deploy:
     if: ${{ github.ref == 'refs/heads/main' }}
     name: Deploy
-    needs: runner
+    needs: builder
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v1
@@ -63,19 +63,19 @@ jobs:
         with:
           push: ${{ github.ref == 'refs/heads/main' }}
           file: ./Dockerfile-deploy
-          build-args: RUNNER_TAG=${{ needs.runner.outputs.tag }}
+          build-args: BUILDER_TAG=${{ needs.builder.outputs.tag }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
   doc:
     if: ${{ github.ref == 'refs/heads/main' }}
     name: Doc
-    needs: runner
+    needs: builder
     runs-on: ubuntu-latest
     steps:
       - run: |
           docker run \
             -v ${PWD}/output:/output \
-            --entrypoint '/bin/sh' ${{ needs.runner.outputs.tag }} '-c' \
+            --entrypoint '/bin/sh' ${{ needs.builder.outputs.tag }} '-c' \
             'make doc && cp -r _build/default/_doc/_html /output/'
       - uses: peaceiris/actions-gh-pages@v3
         with:
