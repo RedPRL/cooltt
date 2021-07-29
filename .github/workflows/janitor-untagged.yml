@@ -1,7 +1,6 @@
 name: Janitor
 on:
   push:
-    branches: main
   schedule:
     cron: "5 2 * * 2" # Some randomly picked time
 jobs:
