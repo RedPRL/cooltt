@@ -211,7 +211,7 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
   | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
-  | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary None (chk_tm con) (Refiner.Hole.unleash_hole None)
+  | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
   | CS.Unfold (idents, c) ->
     (* TODO: move to a trusted rule *)
     T.Chk.brule @@

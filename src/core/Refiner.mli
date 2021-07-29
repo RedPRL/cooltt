@@ -14,13 +14,14 @@ type 'a telescope =
   | Done
 
 module Hole : sig
+  val silent_hole : string option -> Chk.tac
   val unleash_hole : string option -> Chk.tac
   val unleash_syn_hole : string option -> Syn.tac
 end
 
 module Probe : sig
   val probe_chk : string option -> Chk.tac -> Chk.tac
-  val probe_boundary : string option -> Chk.tac -> Chk.tac -> Chk.tac
+  val probe_boundary : Chk.tac -> Chk.tac -> Chk.tac
   val probe_syn : string option -> Syn.tac -> Syn.tac
 end
 
