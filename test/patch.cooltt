@@ -1,0 +1,2 @@
+def el : type := sig (A : type) (a : A)
+def el-patch : type := el as x [ A .= _ => nat | a .= _ => 4 ]

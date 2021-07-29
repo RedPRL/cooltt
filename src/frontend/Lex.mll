@@ -29,6 +29,7 @@ let keywords =
     ("circle", CIRCLE);
     ("sig", SIG);
     ("struct", STRUCT);
+    ("as", AS);
     ("🍪", CIRCLE);
     ("let", LET);
     ("in", IN);
@@ -144,6 +145,8 @@ and real_token = parse
     { EQUALS }
   | "≔" | ":="
     { COLON_EQUALS }
+  | ".="
+     { DOT_EQUALS }
   | "→" | "->"
     { RIGHT_ARROW }
   | "⇒" | "=>"
