@@ -2,13 +2,13 @@ name: Janitor
 on:
   push:
   schedule:
-    cron: "5 2 * * 2" # Some randomly picked time
+    - cron: "5 2 * * 2" # Some randomly picked time
 jobs:
   untagged:
     name: Untagged
     runs-on: ubuntu-latest
     steps:
-      - uses: bots-house/ghcr-delete-image-action@master
+      - uses: bots-house/ghcr-delete-image-action@main
         with:
           owner: redprl
           name: cooltt
