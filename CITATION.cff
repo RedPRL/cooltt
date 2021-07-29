@@ -5,9 +5,12 @@ authors:
     given-names: Jonathan
     orcid: https://orcid.org/0000-0002-0585-5564
     website: https://www.jonmsterling.com/
-  - name: Favonia
-    orcid: https://orcid.org/0000-0002-2310-3673
-    website: https://www.favonia.org/
+  - family-names: "{Hou (Favonia)}"
+    given-names: "Kuen-Bang"
+    email: "kbh@umn.edu"
+    affiliation: "Department of Computer Science, University of Minnesota"
+    orcid: "https://orcid.org/0000-0002-2310-3673"
+    website: "https://www.favonia.org/"
   - family-names: Angiuli
     given-names: Carlo
     orcid: https://orcid.org/0000-0002-9590-3303
