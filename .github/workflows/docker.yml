@@ -6,8 +6,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v1
-        with:
-          version: latest
       - uses: docker/metadata-action@v3
         id: meta
         with:
@@ -46,8 +44,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: docker/setup-buildx-action@v1
-        with:
-          version: latest
       - uses: docker/metadata-action@v3
         id: meta
         with:
