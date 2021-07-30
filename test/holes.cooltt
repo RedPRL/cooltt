@@ -1,0 +1,17 @@
+import prelude
+
+-- Test that the cone of silence tactic works
+def incomplete-trans₁ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+  i => {!  !}
+
+def incomplete-trans₂ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+  i => {! trans/filler A ? ? 1 i !}
+
+def incomplete-trans₂ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+  i => {! trans/filler A p q 0 i !}
+
+def incomplete-trans₃ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+  i => {! trans/filler A p q 1 i !}
+
+def cone-of-silence-hcom  (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+  i => hcom A 0 1 {∂ i} {!!}

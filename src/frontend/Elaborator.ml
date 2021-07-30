@@ -210,6 +210,8 @@ and chk_tm : CS.con -> T.Chk.tac =
   match con.node with
   | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
+  | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
+  | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
   | CS.Unfold (idents, c) ->
     (* TODO: move to a trusted rule *)
     T.Chk.brule @@
@@ -351,6 +353,8 @@ and syn_tm : CS.con -> T.Syn.tac =
     match con.node with
     | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
     | CS.Hole (name, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
+    | CS.BoundaryHole None ->  Refiner.Hole.unleash_syn_hole None
+    | CS.BoundaryHole (Some con) ->  Refiner.Probe.probe_syn None @@ syn_tm con
     | CS.Var id ->
       R.Structural.lookup_var id
     | CS.DeBruijnLevel lvl ->

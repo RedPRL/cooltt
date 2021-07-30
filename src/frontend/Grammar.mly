@@ -32,7 +32,7 @@
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
 %token BANG COLON COLON_EQUALS PIPE COMMA DOT SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
-%token LPR RPR LBR RBR LSQ RSQ
+%token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS JOIN MEET
 %token TYPE
 %token TIMES FST SND
@@ -239,9 +239,10 @@ plain_atomic_term_except_name:
     { TopC }
   | BOTC
     { BotC }
-
   | LSQ t = bracketed RSQ
     { t }
+  | LBANG; t = ioption(term); RBANG
+    { BoundaryHole t }
 
 bracketed:
   | left = term COMMA right = term

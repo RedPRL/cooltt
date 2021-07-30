@@ -66,6 +66,7 @@ end
 
 module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
+  val probe_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
 end =
 struct
@@ -78,6 +79,25 @@ struct
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
+  let boundary_satisfied tm tp phi clo : _ m =
+    let* con = RM.lift_ev @@ Sem.eval tm in
+    let+ res = RM.trap @@ RM.abstract `Anon (D.TpPrf phi) @@ fun prf ->
+      RM.equate tp con @<< RM.lift_cmp @@ Sem.inst_tm_clo clo prf
+    in match res with
+    | Ok _ -> `BdrySat
+    | Error _ -> `BdryUnsat
+
+  let print_boundary tm tp phi clo : unit m =
+    let* env = RM.read in
+    let cells = Env.locals env in
+    let* bdry_sat = boundary_satisfied tm tp phi clo in
+    let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
+
+    RM.globally @@
+    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+    () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
+    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
+
   let probe_chk name tac =
     T.Chk.brule @@ fun (tp, phi, clo) ->
     let* s = T.Chk.brun tac (tp, phi, clo) in
@@ -86,6 +106,12 @@ struct
       print_state name stp
     in
     s
+
+  let probe_boundary probe tac =
+    T.Chk.brule @@ fun (tp, phi, clo) ->
+    let* probe_tm = T.Chk.run probe tp in
+    let* () = print_boundary probe_tm tp phi clo in
+    T.Chk.brun tac (tp, phi, clo)
 
   let probe_syn name tac =
     T.Syn.rule @@
@@ -99,6 +125,7 @@ end
 
 
 module Hole : sig
+  val silent_hole : string option -> T.Chk.tac
   val unleash_hole : string option -> T.Chk.tac
   val unleash_syn_hole : string option -> T.Syn.tac
 end =
@@ -131,6 +158,11 @@ struct
 
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
+
+  let silent_hole name : T.Chk.tac =
+    T.Chk.brule @@ fun (tp, phi, clo) ->
+    let* cut = make_hole name (tp, phi, clo) in
+    RM.quote_cut cut
 
   let unleash_hole name : T.Chk.tac =
     Probe.probe_chk name @@
