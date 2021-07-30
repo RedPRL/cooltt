@@ -593,16 +593,16 @@ struct
   let pp_sequent_boundary env fmt tm =
     let rec pp_branches env fmt (bdry, cons) =
       begin
-      match cons with
-      | CofSplit branches ->
-         let _x, envx = ppenv_bind env `Anon in
-         Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches envx) fmt branches
-      | _ -> pp_cof_split_branch env fmt (bdry, cons)
+        match cons with
+        | CofSplit branches ->
+          let _x, envx = ppenv_bind env `Anon in
+          Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches envx) fmt branches
+        | _ -> pp_cof_split_branch env fmt (bdry, cons)
       end
     in
     match tm with
     | CofSplit branches when not (CCList.is_empty branches) ->
-       Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches env) fmt branches
+      Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches env) fmt branches
     | _ -> pp env P.isolated fmt tm
 
   let rec pp_in_ctx env ctx pp_goal fmt goal =
