@@ -84,8 +84,8 @@ struct
     let+ res = RM.trap @@ RM.abstract `Anon (D.TpPrf phi) @@ fun prf ->
       RM.equate tp con @<< RM.lift_cmp @@ Sem.inst_tm_clo clo prf
     in match res with
-       | Ok _ -> `BdrySat
-       | Error _ -> `BdryUnsat
+    | Ok _ -> `BdrySat
+    | Error _ -> `BdryUnsat
 
   let print_boundary tm tp phi clo : unit m =
     let* env = RM.read in
