@@ -75,8 +75,12 @@ let add_import modifier code_unit =
   modify (St.add_import current_unit_id modifier code_unit)
 
 let get_import path =
-  let* st = get in
-  ret @@ St.get_import path st
+  let+ st = get in
+  St.get_import path st
+
+let is_imported path =
+  let+ st = get in
+  St.is_imported path st
 
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con
