@@ -43,3 +43,7 @@ $ dune exec cooltt                      # from the `cooltt` top-level directory
 
 A small collection of example programs is contained in the `test/` directory.
 See `test/README.md` for a brief description of each program's purpose.
+
+## Acknowledgments
+
+This research was supported by the Air Force Office of Scientific Research under MURI grants FA9550-19-1-0216 and FA9550-21-0009. Any opinions, findings and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of any sponsoring institution, government or any other entity.
