@@ -79,13 +79,13 @@ struct
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
-  let boundary_satisfied tm tp phi clo : bool m =
+  let boundary_satisfied tm tp phi clo : _ m =
     let* con = RM.lift_ev @@ Sem.eval tm in
     let+ res = RM.trap @@ RM.abstract `Anon (D.TpPrf phi) @@ fun prf ->
       RM.equate tp con @<< RM.lift_cmp @@ Sem.inst_tm_clo clo prf
-    in
-    Result.is_ok res
-
+    in match res with
+       | Ok _ -> `BdrySat
+       | Error _ -> `BdryUnsat
 
   let print_boundary tm tp phi clo : unit m =
     let* env = RM.read in
@@ -96,7 +96,7 @@ struct
     RM.globally @@
     let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
-    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent ~bdry_sat ctx) (tm, stp)
+    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
 
   let probe_chk name tac =
     T.Chk.brule @@ fun (tp, phi, clo) ->

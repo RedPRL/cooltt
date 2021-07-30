@@ -590,7 +590,7 @@ struct
       pp_binders envx penv fmt tm
     | _ -> pp env penv fmt tm
 
-  let pp_boundary env fmt tm =
+  let pp_sequent_boundary env fmt tm =
     let rec pp_branches env fmt (bdry, cons) =
       begin
       match cons with
@@ -602,9 +602,9 @@ struct
     in
     match tm with
     | CofSplit branches when not (CCList.is_empty branches) ->
-       (* let _x, envx = ppenv_bind env `Anon in *)
        Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches env) fmt branches
     | _ -> pp env P.isolated fmt tm
+
   let rec pp_in_ctx env ctx pp_goal fmt goal =
     match ctx with
     | [] -> pp_goal env fmt goal
@@ -629,7 +629,7 @@ struct
         (pp_tp env P.(right_of colon)) tp
         (pp env P.(right_of colon))
         phi
-        (pp_boundary envx)
+        (pp_sequent_boundary envx)
         tm
     | tp ->
       Format.fprintf fmt "|- ?%a : @[<hov>%a@]"
@@ -643,10 +643,10 @@ struct
 
   let pp_boundary_sat fmt =
     function
-    | true -> Format.pp_print_string fmt "satisfied"
-    | false -> Format.pp_print_string fmt "unsatisfied"
+    | `BdrySat -> Format.pp_print_string fmt "satisfied"
+    | `BdryUnsat -> Format.pp_print_string fmt "unsatisfied"
 
-  let pp_partial_sequent_goal ~bdry_sat env fmt (partial, tp) =
+  let pp_partial_sequent_goal bdry_sat env fmt (partial, tp) =
     match tp with
     | Sub (tp, Cof (Cof.Join []), _) ->
       Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]"
@@ -656,20 +656,19 @@ struct
       let _x, envx = Pp.Env.bind env (Some "_") in
       Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]@,@,Boundary (%a):@,%a@,|- @[<v>%a@]"
         (pp env P.(right_of colon)) partial
-        (* Uuseg_string.pp_utf_8 lbl *)
         (pp_tp env P.(right_of colon)) tp
         pp_boundary_sat bdry_sat
         (pp env P.(right_of colon)) phi
-        (pp_boundary envx) tm
+        (pp_sequent_boundary envx) tm
     | tp ->
       Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]"
         (pp env P.(right_of colon)) partial
         (pp_tp env P.(right_of colon)) tp
 
-  let pp_partial_sequent ~bdry_sat ctx : (t * tp) Pp.printer =
+  let pp_partial_sequent bdry_sat ctx : (t * tp) Pp.printer =
     fun fmt goal ->
     Format.fprintf fmt "@[<v>%a@]"
-      (pp_in_ctx Pp.Env.emp ctx (pp_partial_sequent_goal ~bdry_sat)) goal
+      (pp_in_ctx Pp.Env.emp ctx (pp_partial_sequent_goal bdry_sat)) goal
 
   let pp env = pp env P.isolated
   let pp_tp env = pp_tp env P.isolated
