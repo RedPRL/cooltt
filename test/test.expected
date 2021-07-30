@@ -534,12 +534,12 @@ hcom-type.cooltt:17.18-17.19 [Info]:
 
 
 --------------------[hlevel.cooltt]--------------------
-hlevel.cooltt:33.6-33.11 [Info]:
+hlevel.cooltt:32.6-32.11 [Info]:
   hProp
   : type
   = hLevel 1
 
-hlevel.cooltt:34.10-34.15 [Info]:
+hlevel.cooltt:33.10-33.15 [Info]:
   Computed normal form of hProp as
    (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
                                      i _x => [ i = 0 => c | i = 1 => c' ]}
@@ -712,13 +712,19 @@ record.cooltt:11.6-11.11 [Info]:
 record.cooltt:12.6-12.19 [Info]:
   basic.inhabit
   : basic
-  = struct (foo.x : 1) (bar : {x => x}) 
+  = struct (foo.x : 1) (bar : {x => suc x}) 
 
 record.cooltt:13.10-13.23 [Info]:
   Computed normal form of basic.inhabit as
-   struct (foo.x : 1) (bar : {x => x}) 
+   struct (foo.x : 1) (bar : {x => suc x}) 
 
-record.cooltt:30.6-30.12 [Info]:
+record.cooltt:14.10-14.29 [Info]:
+  Computed normal form of basic.inhabit @ foo.x as 1
+
+record.cooltt:15.10-15.29 [Info]:
+  Computed normal form of {basic.inhabit @ bar} 1 as 2
+
+record.cooltt:32.6-32.12 [Info]:
   depend
   : type
   = sig (tp : type) (fun : (_x : tp) → tp) 
