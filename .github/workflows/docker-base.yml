@@ -1,6 +1,5 @@
 name: Docker/Base
 on:
-  push:
   workflow_dispatch:
   schedule:
     - cron: "2 6 * * *"
