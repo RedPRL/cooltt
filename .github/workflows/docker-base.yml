@@ -1,9 +1,6 @@
 name: Docker
 on:
-  push:
-    branches:
-      - main
-      - docker-nextgen
+  workflow_dispatch:
   schedule:
     - cron: "2 6 * * *"
 jobs:
