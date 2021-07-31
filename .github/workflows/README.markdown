@@ -9,4 +9,5 @@
 
 - `base`: This is the our customized Alpine Linux with OCaml, OPAM, and many OPAM packages installed.
   They only depend on `cooltt.opam`. It is expected that the same image can be used for all branches for months.
-  The `base` image is purely for efficiency. Correctness is still guaranteed even if the OPAM files have been changed.
+  The `base` image is purely for efficiency. Correctness is still guaranteed even if a different `cooltt.opam` is used
+  when creating `builder-<branchname>` from `base`.
