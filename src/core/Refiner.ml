@@ -689,6 +689,45 @@ struct
     let+ fields = quantifiers tacs univ in
     S.CodeSignature fields
 
+  let rec patch_fields (idents : string list list) (vpatches : D.con list) (ext_tps : D.con list) (sign : (string list * D.con) list) (patch_tacs : (string list * T.Chk.tac) list) (univ : D.tp) : S.t m =
+    match sign, patch_tacs with
+    | (field_name, vfield_tp) :: sign, (patch_name, patch_tac) :: patch_tacs when CCList.equal String.equal field_name patch_name ->
+      (* As the signatures field types are really lambdas (See [NOTE: Sig Code Quantifiers]),
+         we want to apply them to the patch values that we have already computed. *)
+      let* patchtp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con vfield_tp @@ fun field_tp ->
+        Splice.cons vpatches @@ fun patches -> Splice.term @@ TB.el @@ TB.ap field_tp patches
+      in
+      let* patch = T.Chk.run patch_tac patchtp in
+      let* vpatch = RM.lift_ev @@ Sem.eval patch in
+      let* ext_tp =
+        RM.lift_cmp @@
+        Sem.splice_tm @@
+        Splice.con vfield_tp @@ fun field_tp ->
+        Splice.con vpatch @@ fun patch ->
+        Splice.cons vpatches @@ fun vpatches -> Splice.term @@ TB.code_ext 0 (TB.ap field_tp vpatches) TB.top (TB.lam @@ fun _ -> patch)
+      in
+      patch_fields (idents @ [field_name]) (vpatches @ [vpatch]) (ext_tps @ [ext_tp]) sign patch_tacs univ
+    | [], [] ->
+      let+ qext_tps = MU.map (RM.quote_con univ) ext_tps in
+      S.CodeSignature (List.combine idents qext_tps)
+    | _ -> failwith "[FIXME] Better Error Handling in Univ.patch_fields"
+
+  let patch (sig_tac : T.Chk.tac) (patch_tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
+    univ_tac "Univ.patch" @@ fun univ ->
+    let* tp = T.Chk.run sig_tac univ in
+    let* vtp = RM.lift_ev @@ Sem.eval tp in
+    let* whnf_vtp = RM.lift_cmp @@ Sem.whnf_con_ ~style:`UnfoldAll vtp in
+    match whnf_vtp with
+    | D.StableCode (`Signature sign) ->
+      let+ res = patch_fields [] [] [] sign patch_tacs univ in
+      Format.eprintf "[DEBUG] Patch: %a@." (S.pp Pp.Env.emp) res;
+      res
+    | _ -> failwith "[FIXME] Better error handling in Univ.patch"
+
+
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->
     let* tcof =
