@@ -36,7 +36,6 @@ jobs:
           cache-to: type=gha
           cache-from: type=gha
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
     outputs:
       tag: ${{ steps.meta.outputs.tags }}
   test:
