@@ -1,6 +1,6 @@
-ARG BASE
+ARG BASE_TAG
 
-FROM ${BASE:-alpine:latest} AS base
+FROM ${BASE_TAG:-alpine:latest} AS base
 
 WORKDIR "/src/"
 

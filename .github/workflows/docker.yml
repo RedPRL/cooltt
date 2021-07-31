@@ -1,5 +1,5 @@
 name: Docker
-on: [push]
+on: push
 jobs:
   builder:
     name: Builder
@@ -23,6 +23,7 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           push: true
+          build-args: BASE_TAG=ghcr.io/${{ github.repository }}:base
           cache-to: type=gha
           cache-from: type=gha
           tags: ${{ steps.meta.outputs.tags }}
