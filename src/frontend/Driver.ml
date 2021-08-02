@@ -133,9 +133,11 @@ and import_code_unit path modifier : command =
 and execute_decl : CS.decl -> command =
   function
   | CS.Def {name; args; def = Some def; tp} ->
+    Debug.print "Defining %a@." Ident.pp name;
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
     add_global name vtp @@ Some vtm
   | CS.Def {name; args; def = None; tp} ->
+    Debug.print "Defining Axiom %a@." Ident.pp name;
     let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     add_global name vtp None
