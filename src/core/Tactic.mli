@@ -18,10 +18,10 @@ module Tp :
 sig
   include Tactic
 
-  val rule : S.tp RM.m -> tac
+  val rule : ?name:string -> S.tp RM.m -> tac
 
   (** A "virtual type" is one that is only permitted to appear as the domain of a pi type *)
-  val virtual_rule : S.tp RM.m -> tac
+  val virtual_rule : ?name:string -> S.tp RM.m -> tac
 
   (** Only succeeds for non-virtual types *)
   val run : tac -> S.tp RM.m
@@ -36,8 +36,8 @@ module rec Chk :
 sig
   include Tactic
 
-  val rule : (D.tp -> S.t RM.m) -> tac
-  val brule : (D.tp * D.cof * D.tm_clo -> S.t RM.m) -> tac
+  val rule : ?name:string -> (D.tp -> S.t RM.m) -> tac
+  val brule : ?name:string -> (D.tp * D.cof * D.tm_clo -> S.t RM.m) -> tac
   val run : tac -> D.tp -> S.t RM.m
   val brun : tac -> D.tp * D.cof * D.tm_clo -> S.t RM.m
 
@@ -46,7 +46,7 @@ end
 and Syn :
 sig
   include Tactic
-  val rule : (S.t * D.tp) RM.m -> tac
+  val rule : ?name:string -> (S.t * D.tp) RM.m -> tac
   val run : tac -> (S.t * D.tp) RM.m
   val ann : Chk.tac -> Tp.tac -> tac
 end

@@ -133,9 +133,11 @@ and import_code_unit path modifier : command =
 and execute_decl : CS.decl -> command =
   function
   | CS.Def {name; args; def = Some def; tp} ->
+    Debug.print "Defining %a@." Ident.pp name;
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
     add_global name vtp @@ Some vtm
   | CS.Def {name; args; def = None; tp} ->
+    Debug.print "Defining Axiom %a@." Ident.pp name;
     let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     add_global name vtp None
@@ -177,10 +179,11 @@ and process_file input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file ~as_file input =
+let load_file ~as_file ~debug_mode input =
   match load_current_library ~as_file input with
   | Error () -> Error ()
   | Ok lib ->
+    Debug.debug_mode debug_mode;
     let unit_id = assign_unit_id ~as_file input in
     RM.run_exn ST.init (Env.init lib) @@
     RM.with_code_unit lib unit_id @@
@@ -211,10 +214,11 @@ let rec repl lib (ch : in_channel) lexbuf =
       close_in ch;
       RM.ret @@ Ok ()
 
-let do_repl ~as_file =
+let do_repl ~as_file ~debug_mode =
   match load_current_library ~as_file `Stdin with
   | Error () -> Error ()
   | Ok lib ->
+    Debug.debug_mode debug_mode;
     let unit_id = assign_unit_id ~as_file `Stdin in
     let ch, lexbuf = Load.prepare_repl () in
     RM.run_exn RefineState.init (Env.init lib) @@

@@ -5,8 +5,6 @@ module Make (Symbol : Symbol.S) =
 struct
   include SyntaxData.Make (Symbol)
 
-  let debug_mode = false
-
   let to_numeral =
     let rec go acc =
       function
@@ -149,7 +147,7 @@ struct
     let double_arrow = right 1
     let in_ = nonassoc 0
 
-    (** assumes [debug_mode] = [false] *)
+    (** assumes [Debug.is_debug_mode ()] = [false] *)
     let classify_tm : tm -> t =
       function
       | Var _ | Global _ -> atom
@@ -336,18 +334,18 @@ struct
         (pp_atomic env) mot
         (pp env P.isolated) base
         (pp env P.isolated) loop
-    | SubIn tm when debug_mode ->
+    | SubIn tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "sub/in %a" (pp_atomic env) tm
-    | SubOut tm when debug_mode ->
+    | SubOut tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "sub/out %a" (pp_atomic env) tm
-    | ElIn tm when debug_mode ->
+    | ElIn tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "el/in %a" (pp_atomic env) tm
-    | ElOut tm when debug_mode ->
+    | ElOut tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "el/out %a" (pp_atomic env) tm
     | SubIn tm | SubOut tm | ElIn tm | ElOut tm ->
       pp env penv fmt tm
 
-    | CodePi (base, fam) when debug_mode ->
+    | CodePi (base, fam) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[%a %a %a@]"
         Uuseg_string.pp_utf_8 "<∏>"
         (pp_atomic env) base
@@ -365,7 +363,7 @@ struct
         (pp_atomic env) base
         (pp_atomic env) tm
 
-    | CodeSg (base, fam) when debug_mode ->
+    | CodeSg (base, fam) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[%a %a %a@]"
         Uuseg_string.pp_utf_8 "<Σ>"
         (pp_atomic env) base
@@ -390,11 +388,11 @@ struct
         (pp_atomic Pp.Env.emp) phi
         (pp_atomic env) bdry
 
-    | CodeNat when debug_mode ->
+    | CodeNat when Debug.is_debug_mode () ->
       Format.fprintf fmt "`nat"
-    | CodeCircle when debug_mode ->
+    | CodeCircle when Debug.is_debug_mode () ->
       Format.fprintf fmt "`circle"
-    | CodeUniv when debug_mode ->
+    | CodeUniv when Debug.is_debug_mode () ->
       Format.fprintf fmt "`type"
     | CodeNat ->
       Format.fprintf fmt "nat"
@@ -417,7 +415,7 @@ struct
         Uuseg_string.pp_utf_8 x
         (pp env P.isolated) tm
         (pp envx P.(right_of in_)) bdy
-    | Box (r, s, phi, sides, cap) when debug_mode ->
+    | Box (r, s, phi, sides, cap) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[<hv2>box %a %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) s
@@ -426,7 +424,7 @@ struct
         (pp_atomic env) cap
     | Box (_r, _s, _phi, sides, cap) ->
       pp_tuple (pp env P.isolated) fmt [sides; cap]
-    | Cap (r, s, phi, code, box) when debug_mode->
+    | Cap (r, s, phi, code, box) when Debug.is_debug_mode ()->
       Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) s
@@ -441,7 +439,7 @@ struct
         (pp_atomic env) pcode
         (pp_atomic env) code
         (pp_atomic env) pequiv
-    | VIn (r, equiv, pivot, base) when debug_mode ->
+    | VIn (r, equiv, pivot, base) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[<hv2>vin %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) equiv
@@ -449,7 +447,7 @@ struct
         (pp_atomic env) base
     | VIn (_, _, pivot, base) ->
       pp_tuple (pp env P.isolated) fmt [pivot; base]
-    | VProj (r, pcode, code, pequiv, v) when debug_mode ->
+    | VProj (r, pcode, code, pequiv, v) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[<hv2>vproj %a %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) pcode
@@ -537,7 +535,7 @@ struct
       Format.fprintf fmt "nat"
     | Circle ->
       Format.fprintf fmt "circle"
-    | El tm when debug_mode ->
+    | El tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "el %a" (pp_atomic env) tm
     | El tm ->
       pp env penv fmt tm
@@ -576,7 +574,7 @@ struct
       Format.fprintf fmt "%a %a"
         Uuseg_string.pp_utf_8 x
         (pp_lambdas envx) tm
-    | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not debug_mode ->
+    | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not @@ Debug.is_debug_mode () ->
       pp_lambdas env fmt tm
     | _ ->
       Format.fprintf fmt "=>@ @[%a@]"
