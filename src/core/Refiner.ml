@@ -689,11 +689,18 @@ struct
     let+ fields = quantifiers tacs univ in
     S.CodeSignature fields
 
-  let rec patch_fields (idents : string list list) (vpatches : D.con list) (ext_tps : D.con list) (sign : (string list * D.con) list) (patch_tacs : (string list * T.Chk.tac) list) (univ : D.tp) : S.t m =
+  (* [NOTE: Patch Quantifiers]
+     As described in [NOTE: Sig Code Quantifiers], the field types of a signature code
+     all use lambdas to bind variables from earlier on in the signature. Therefore,
+     when we construct the patched versions of the field codes, we need to re-insert
+     the lambdas.*)
+  let rec patch_fields (field_names : string list list) (field_tps : D.con list) (vpatches : D.con list) (ext_codes : S.t list) (sign : (string list * D.con) list) (patch_tacs : (string list * T.Chk.tac) list) (univ : D.tp) : S.t m =
     match sign, patch_tacs with
     | (field_name, vfield_tp) :: sign, (patch_name, patch_tac) :: patch_tacs when CCList.equal String.equal field_name patch_name ->
       (* As the signatures field types are really lambdas (See [NOTE: Sig Code Quantifiers]),
          we want to apply them to the patch values that we have already computed. *)
+      (* FIXME: This is bad! *)
+      let idents = List.map (fun nm -> `User nm) field_names in
       let* patchtp =
         RM.lift_cmp @@
         Sem.splice_tp @@
@@ -702,17 +709,28 @@ struct
       in
       let* patch = T.Chk.run patch_tac patchtp in
       let* vpatch = RM.lift_ev @@ Sem.eval patch in
-      let* ext_tp =
+
+      (* As noted in [NOTE: Patch Quantifiers], we need to re-add the lambda binders to the patched field types.
+         Therefore, we need to construct the type /of the patched field type/ to quote against. *)
+      let* fam_tp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.tp univ @@ fun univ ->
+        Splice.cons field_tps @@ fun args -> Splice.term @@ TB.pis ~idents args @@ fun _ -> univ
+      in
+
+      let* ext_code =
         RM.lift_cmp @@
         Sem.splice_tm @@
         Splice.con vfield_tp @@ fun field_tp ->
-        Splice.con vpatch @@ fun patch ->
-        Splice.cons vpatches @@ fun vpatches -> Splice.term @@ TB.code_ext 0 (TB.ap field_tp vpatches) TB.top (TB.lam @@ fun _ -> patch)
+        Splice.cons vpatches @@ fun patches ->
+        Splice.con vpatch @@ fun patch -> Splice.term @@ TB.lams idents @@ fun _ -> TB.code_ext 0 (TB.ap field_tp patches) TB.top @@ TB.lam @@ fun _ -> patch
       in
-      patch_fields (idents @ [field_name]) (vpatches @ [vpatch]) (ext_tps @ [ext_tp]) sign patch_tacs univ
+      let* qext_code = RM.quote_con fam_tp ext_code in
+      (* FIXME: Bad Asymptotics!! *)
+      patch_fields (field_names @ [field_name]) (field_tps @ [vfield_tp]) (vpatches @ [vpatch]) (ext_codes @ [qext_code]) sign patch_tacs univ
     | [], [] ->
-      let+ qext_tps = MU.map (RM.quote_con univ) ext_tps in
-      S.CodeSignature (List.combine idents qext_tps)
+      RM.ret @@ S.CodeSignature (List.combine field_names ext_codes)
     | _ -> failwith "[FIXME] Better Error Handling in Univ.patch_fields"
 
   let patch (sig_tac : T.Chk.tac) (patch_tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
@@ -722,9 +740,7 @@ struct
     let* whnf_vtp = RM.lift_cmp @@ Sem.whnf_con_ ~style:`UnfoldAll vtp in
     match whnf_vtp with
     | D.StableCode (`Signature sign) ->
-      let+ res = patch_fields [] [] [] sign patch_tacs univ in
-      Format.eprintf "[DEBUG] Patch: %a@." (S.pp Pp.Env.emp) res;
-      res
+      patch_fields [] [] [] [] sign patch_tacs univ
     | _ -> failwith "[FIXME] Better error handling in Univ.patch"
 
 

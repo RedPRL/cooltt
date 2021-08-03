@@ -303,8 +303,8 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Univ.signature tacs
 
     | CS.Patch (tp, _ident, patches) ->
-       let tacs = List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
-       R.Univ.patch (chk_tm tp) tacs
+      let tacs = List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      R.Univ.patch (chk_tm tp) tacs
 
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
