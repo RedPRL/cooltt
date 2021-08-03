@@ -780,6 +780,27 @@ nat-path.cooltt:84.10-84.15 [Info]:
 nat.cooltt:9.10-9.15 [Info]:
   Computed normal form of + 2 3 as 5
 
+--------------------[patch.cooltt]--------------------
+patch.cooltt:5.49-5.50 [Info]:
+  Emitted hole:
+    |- ? : ext type #t {_x => nat}
+
+
+patch.cooltt:5.57-5.58 [Info]:
+  Emitted hole:
+    |- ? : ext nat #t {_x => 4}
+
+
+patch.cooltt:7.6-7.14 [Info]:
+  el-patch
+  : type
+  = sig (A : ext type #t {_x => nat}) (a : ext nat #t {_x => 4}) 
+
+patch.cooltt:8.6-8.19 [Info]:
+  patch/inhabit
+  : el-patch
+  = struct (A : nat) (a : 4) 
+
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.10-8.19 [Info]:
   Computed normal form of formation as

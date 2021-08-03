@@ -1,2 +1,8 @@
 def el : type := sig (A : type) (a : A)
-def el-patch : type := el as x [ A .= _ => nat | a .= _ => 4 ]
+def el-patch : type := el as x [ A .= nat | a .= 4 ]
+
+def patch/inhabit : el-patch := struct (A : nat) (a : 4)
+def patch/inhabit/hole : el-patch := struct (A : ?) (a : ?)
+
+print el-patch
+print patch/inhabit
