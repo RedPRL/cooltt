@@ -809,6 +809,15 @@ patch.cooltt:8.6-8.19 [Info]:
   : el-patch
   = struct (A : nat) (a : 4) 
 
+patch.cooltt:13.6-13.13 [Info]:
+  testing
+  : (A : type) → (Z : type) → (B : (_x : A) → type) → (p : (_x : Z) → 
+  sig (x : A) (bx : B x) ) → (z : Z) → sig (x : ext A #t {_x => p z @ x}) 
+                                       (bx : ext {B {p z @ x}} #t {_x =>
+                                                                   p z @ bx})
+                                       
+  = A Z B p z => struct (x : p z @ x) (bx : p z @ bx) 
+
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.10-8.19 [Info]:
   Computed normal form of formation as
