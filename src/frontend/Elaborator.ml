@@ -347,6 +347,9 @@ and chk_tm : CS.con -> T.Chk.tac =
         RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
         RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
+      | D.Signature _ ->
+        let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
+        RM.ret @@ R.Signature.intro field_tac
       | _ ->
         RM.ret @@ T.Chk.syn @@ syn_tm con
 
