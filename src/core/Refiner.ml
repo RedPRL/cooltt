@@ -542,21 +542,20 @@ struct
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
-  let rec find_field_tac (lbl : string list) (fields : (string list * T.Chk.tac) list) : T.Chk.tac option =
+  let rec find_field_tac (fields : (string list * T.Chk.tac) list) (lbl : string list) : T.Chk.tac option =
     match fields with
     | (lbl', tac) :: _ when equal_path (lbl : string list) lbl'  ->
       Some tac
     | _ :: fields ->
-      find_field_tac lbl fields
+      find_field_tac fields lbl
     | [] ->
       None
 
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string list * T.Chk.tac) list) : (string list * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : string list -> T.Chk.tac option) : (string list * S.t) list m =
     match sign with
     | D.Field (lbl, tp, sign_clo) ->
-      let tac =
-        match find_field_tac lbl tacs with
+      let tac = match tacs lbl with
         | Some tac -> tac
         | None -> Hole.unleash_hole (hole_name_of_path lbl)
       in
@@ -568,7 +567,7 @@ struct
     | D.Empty ->
       RM.ret []
 
-  let intro (tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
+  let intro (tacs : string list -> T.Chk.tac option) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->

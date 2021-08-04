@@ -263,7 +263,7 @@ and chk_tm : CS.con -> T.Chk.tac =
 
     | CS.Struct fields ->
       let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
-      R.Signature.intro tacs
+      R.Signature.intro @@ R.Signature.find_field_tac tacs
 
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)

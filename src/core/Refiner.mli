@@ -102,8 +102,10 @@ end
 
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
-  val intro : (string list * Chk.tac) list -> Chk.tac
+  val intro : (string list -> Chk.tac option) -> Chk.tac
   val proj : Syn.tac -> string list -> Syn.tac
+
+  val find_field_tac : (string list * Chk.tac) list -> string list -> Chk.tac option
 end
 
 module Sub : sig
