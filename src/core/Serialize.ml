@@ -52,6 +52,12 @@ let json_to_ident : J.value -> Ident.t =
   | `String nm -> `User (String.split_on_char '.' nm)
   | j -> J.parse_error j "json_to_ident"
 
+let ident_of_string : string -> Ident.t =
+  function
+  | "<anon>" -> `Anon
+  | nm -> `User (String.split_on_char '.' nm)
+
+
 let json_of_path path = `String (String.concat "." path)
 
 let json_to_path =
@@ -707,3 +713,13 @@ let deserialize_goal : J.t -> ((Ident.t * S.tp) list * S.tp) =
     let goal = Syntax.json_to_tp j_goal in
     (ctx, goal)
   | j -> J.parse_error (J.value j) "deserialize_goal"
+
+let serialize_bindings (bindings : (Ident.t * D.tp * D.con option) list) : J.t =
+  `O (List.map (fun (ident, tp, con) -> (Ident.to_string ident, (json_of_pair (Domain.json_of_tp tp) (J.option Domain.json_of_con con)))) bindings)
+
+let deserialize_bindings : J.t -> (Ident.t * D.tp * D.con option) list =
+  function
+  | `O j_bindings -> j_bindings |> List.map @@ fun (j_ident, j_binding) ->
+    let (tp, ocon) = json_to_pair Domain.json_to_tp (J.get_option Domain.json_to_con) j_binding in
+    (ident_of_string j_ident, tp, ocon)
+  | j -> J.parse_error (J.value j) "deserialize_bindings"
