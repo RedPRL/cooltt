@@ -15,8 +15,6 @@ type id = CodeUnitID.t
 module Global :
 sig
   include Symbol.S
-  val serialize : t -> J.value
-  val deserialize : J.value -> t
 end
 
 module Domain : module type of Domain.Make(Global)
