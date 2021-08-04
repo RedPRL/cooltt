@@ -80,8 +80,8 @@ struct
 
   let rec json_of_cof (json_of_r : 'r -> J.value) (json_of_v : 'v -> J.value) : ('r, 'v) Cof.cof -> J.value =
     function
-    | Cof cof -> json_of_cof_f json_of_r (json_of_cof json_of_r json_of_v) cof
-    | Var v -> json_of_v v
+    | Cof cof -> labeled "cof" [json_of_cof_f json_of_r (json_of_cof json_of_r json_of_v) cof]
+    | Var v -> labeled "var" [json_of_v v]
 
   let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_a : J.value -> 'a) : J.value -> ('r, 'a) Cof.cof_f =
     function
@@ -89,6 +89,12 @@ struct
     | `A (`String "join" :: xs) -> Join (List.map json_to_a xs)
     | `A (`String "meet" :: xs) -> Meet (List.map json_to_a xs)
     | j -> J.parse_error j "Cof.json_to_cof_f"
+
+  let rec json_to_cof (json_to_r : J.value -> 'r) (json_to_v : J.value -> 'v) : J.value -> ('r, 'v) Cof.cof =
+    function
+    | `A [`String "cof"; j_cof_f] -> Cof (json_to_cof_f json_to_r (json_to_cof json_to_r json_to_v) j_cof_f)
+    | `A [`String "var"; j_var] -> Var (json_to_v j_var)
+    | j -> J.parse_error j "Cof.json_to_cof"
 end
 
 (* Terms/Types *)
@@ -409,6 +415,9 @@ struct
       S.TpLockedPrf tm
     | j -> J.parse_error j "json_to_tp"
 
+  and json_to_sign : J.value -> S.sign =
+    fun j_sign -> json_to_labeled json_to_tp j_sign
+
   let json_to_ctx : J.value -> (Ident.t * S.tp) list =
     function
     | `O j_ctx -> j_ctx |> List.map @@ fun (nm_str, j_tp) ->
@@ -421,10 +430,9 @@ end
 
 module Domain =
 struct
-
   let rec json_of_con : D.con -> J.value =
     function
-    | Lam (ident, clo) -> labeled "lam" [json_of_tm_clo clo]
+    | Lam (ident, clo) -> labeled "lam" [json_of_ident ident; json_of_tm_clo clo]
     | BindSym (dim_probe, con) -> labeled "bind_sym" [DimProbe.serialize dim_probe; json_of_con con]
     | LetSym (dim, dim_probe, con) -> labeled "let_sym" [json_of_dim dim; DimProbe.serialize dim_probe; json_of_con con]
     | Cut {tp; cut} -> labeled "cut" [json_of_tp tp; json_of_cut cut]
@@ -458,17 +466,16 @@ struct
     function
     | Clo (tp, env) -> labeled "clo" [Syntax.json_of_tp tp; json_of_env env]
 
-  and json_of_sign_clo : S.sign D.clo -> J.value =
+  and json_of_sign_clo : D.sign_clo -> J.value =
     function
     | Clo (sign, env) -> labeled "clo" [Syntax.json_of_sign sign; json_of_env env]
-
-  and json_of_cof (cof : D.cof) : J.value =
-    Cof.json_of_cof json_of_dim json_of_int cof
 
   and json_of_env {tpenv; conenv} : J.value =
     `O [("tpenv", json_of_bwd json_of_tp tpenv); ("conenv", json_of_bwd json_of_con conenv)]
 
-  (* FIXME: Should this be in the cubical part? *)
+  and json_of_cof (cof : D.cof) : J.value =
+    Cof.json_of_cof json_of_dim json_of_int cof
+
   and json_of_dim : D.dim -> J.value =
     function
     | Dim0 -> `String "dim0"
@@ -546,8 +553,148 @@ struct
     function
     | `Nat -> `String "nat"
     | `Circle -> `String "circle"
-end
 
+  let rec json_to_con : J.value -> D.con =
+    function
+    | `A [`String "lam"; j_ident; j_clo] -> Lam (json_to_ident j_ident, json_to_tm_clo j_clo)
+    | `A [`String "bind_sym"; j_dim_probe; j_con] -> BindSym (DimProbe.deserialize j_dim_probe, json_to_con j_con)
+    | `A [`String "let_sym"; j_dim; j_dim_probe; j_con] -> LetSym (json_to_dim j_dim, DimProbe.deserialize j_dim_probe, json_to_con j_con)
+    | `A [`String "cut"; j_tp; j_cut] -> Cut {tp = json_to_tp j_tp; cut = json_to_cut j_cut}
+    | `String "zero" -> Zero
+    | `A [`String "suc"; j_con] -> Suc (json_to_con j_con)
+    | `String "base" -> Base
+    | `A [`String "loop"; j_dim] -> Loop (json_to_dim j_dim)
+    | `A [`String "pair"; j_con0; j_con1] -> Pair (json_to_con j_con0, json_to_con j_con1)
+    | `A [`String "struct"; j_fields] -> Struct (json_to_labeled json_to_con j_fields)
+    | `A [`String "sub_in"; j_con] -> SubIn (json_to_con j_con)
+    | `A [`String "el_in"; j_con] -> ElIn (json_to_con j_con)
+    | `String "dim0" -> Dim0
+    | `String "dim1" -> Dim1
+    | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
+    | `A [`String "cof"; j_cof] -> Cof (Cof.json_to_cof_f json_to_con json_to_con j_cof)
+    | `String "prf" -> Prf
+    | `A [`String "fhcom"; j_tag; j_src; j_trg; j_cof; j_con] -> FHCom (json_to_fhcom_tag j_tag, json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
+    | `A [`String "stable_code"; j_code] -> StableCode (json_to_stable_code j_code)
+    | `A [`String "unstable_code"; j_code] -> UnstableCode (json_to_unstable_code j_code)
+    | `A [`String "box"; j_src; j_trg; j_cof; j_sides; j_cap] -> Box (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_sides, json_to_con j_cap)
+    | `A [`String "v_in"; j_s; j_eq; j_pivot; j_base] -> VIn (json_to_dim j_s, json_to_con j_eq, json_to_con j_pivot, json_to_con j_base)
+    | `A (`String "split" :: j_branches) -> Split (json_to_alist json_to_cof json_to_tm_clo j_branches)
+    | `A [`String "locked_prf_in"; j_con] -> LockedPrfIn (json_to_con j_con)
+    | j -> J.parse_error j "Domain.json_to_con"
+
+  and json_to_tm_clo : J.value -> D.tm_clo =
+    function
+    | `A [`String "clo"; j_tm; j_env] -> Clo (Syntax.json_to_tm j_tm, json_to_env j_env)
+    | j -> J.parse_error j "Domain.json_to_tm_clo"
+
+  and json_to_tp_clo : J.value -> D.tp_clo =
+    function
+    | `A [`String "clo"; j_tp; j_env] -> Clo (Syntax.json_to_tp j_tp, json_to_env j_env)
+    | j -> J.parse_error j "Domain.json_to_tp_clo"
+
+  and json_to_sign_clo : J.value -> D.sign_clo =
+    function
+    | `A [`String "clo"; j_sign; j_env] -> Clo (Syntax.json_to_sign j_sign, json_to_env j_env)
+    | j -> J.parse_error j "Domain.json_to_tp_clo"
+
+  and json_to_env : J.value -> D.env =
+    function
+    | `O [("tpenv", j_tpenv); ("conenv", j_conenv)] ->
+      { tpenv = json_to_bwd json_to_tp j_tpenv; conenv = json_to_bwd json_to_con j_conenv }
+    | j -> J.parse_error j "Domain.json_to_env"
+
+  and json_to_cof : J.value -> D.cof =
+    fun j_cof -> Cof.json_to_cof json_to_dim json_to_int j_cof
+
+  and json_to_dim : J.value -> D.dim =
+    function
+    | `String "dim0" -> Dim0
+    | `String "dim1" -> Dim1
+    | `A [`String "dim_var"; j_n] -> DimVar (json_to_int j_n)
+    | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
+    | j -> J.parse_error j "Domain.json_to_dim"
+
+  and json_to_tp : J.value -> D.tp =
+    function
+    | `A [`String "sub"; j_tp; j_cof; j_clo] -> Sub (json_to_tp j_tp, json_to_cof j_cof, json_to_tm_clo j_clo)
+    | `String "univ" -> Univ
+    | `A [`String "el_cut"; j_cut] -> ElCut (json_to_cut j_cut)
+    | `A [`String "el_stable"; j_code] -> ElStable (json_to_stable_code j_code)
+    | `A [`String "el_unstable"; j_code] -> ElUnstable (json_to_unstable_code j_code)
+    | `String "tp_dim" -> TpDim
+    | `String "tp_cof" -> TpCof
+    | `A [`String "tp_prf"; j_cof] -> TpPrf (json_to_cof j_cof)
+    | `A (`String "tp_split" :: j_branches) -> TpSplit (json_to_alist json_to_cof json_to_tp_clo j_branches)
+    | `A [`String "pi"; j_tp; j_ident; j_clo] -> Pi (json_to_tp j_tp, json_to_ident j_ident, json_to_tp_clo j_clo)
+    | `A [`String "sg"; j_tp; j_ident; j_clo] -> Sg (json_to_tp j_tp, json_to_ident j_ident, json_to_tp_clo j_clo)
+    | `A [`String "signature"; j_sign] -> Signature (json_to_sign j_sign)
+    | `String "nat" -> Nat
+    | `String "circle" -> Circle
+    | `A [`String "tp_locked_prf"; j_cof] -> TpLockedPrf (json_to_cof j_cof)
+    | j -> J.parse_error j "Domain.json_to_tp"
+
+  and json_to_sign : J.value -> D.sign =
+    function
+    | `String "empty" -> Empty
+    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (json_to_path j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
+    | j -> J.parse_error j "Domain.json_to_sign"
+
+  and json_to_hd : J.value -> D.hd =
+    function
+    | `A [`String "global"; j_sym] -> Global (Global.deserialize j_sym)
+    | `A [`String "var"; j_n] -> Var (json_to_int j_n)
+    | `A [`String "coe"; j_code; j_src; j_trg; j_con] -> Coe (json_to_con j_code, json_to_dim j_src, json_to_dim j_trg, json_to_con j_con)
+    | `A [`String "unstable_cut"; j_cut; j_frm] -> UnstableCut (json_to_cut j_cut, json_to_unstable_frm j_frm)
+    | j -> J.parse_error j "Domain.json_to_hd"
+  and json_to_frm : J.value -> D.frm =
+    function
+    | `A [`String "k_ap"; j_tp; j_con] -> KAp (json_to_tp j_tp, json_to_con j_con)
+    | `String "k_fst" -> KFst
+    | `String "k_snd" -> KSnd
+    | `A [`String "k_proj"; j_lbl] -> KProj (json_to_path j_lbl)
+    | `A [`String "k_nat_elim"; j_mot; j_z; j_s] -> KNatElim (json_to_con j_mot, json_to_con j_z, json_to_con j_s)
+    | `A [`String "k_circle_elim"; j_mot; j_b; j_l] -> KCircleElim (json_to_con j_mot, json_to_con j_b, json_to_con j_l)
+    | `String "k-el_out" -> KElOut
+    | j -> J.parse_error j "Domain.json_to_frm"
+
+  and json_to_unstable_frm : J.value -> D.unstable_frm =
+    function
+    | `A [`String "k_hcom"; j_src; j_trg; j_cof; j_con] -> KHCom (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
+    | `A [`String "k_cap"; j_src; j_trg; j_cof; j_con] -> KCap (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
+    | `A [`String "k_vproj"; j_r; j_pcode; j_code; j_pequiv] -> KVProj (json_to_dim j_r, json_to_con j_pcode, json_to_con j_code, json_to_con j_pequiv)
+    | `A [`String "k_sub_out"; j_cof; j_clo] -> KSubOut (json_to_cof j_cof, json_to_tm_clo j_clo)
+    | `A [`String "k_locked_prf_unlock"; j_tp; j_cof; j_con] -> KLockedPrfUnlock (json_to_tp j_tp, json_to_cof j_cof, json_to_con j_con)
+    | j -> J.parse_error j "Domain.json_to_unstable_frm"
+
+  and json_to_cut : J.value -> D.cut =
+    function
+    | `A (`String "cut" :: j_hd :: j_frm) -> (json_to_hd j_hd, List.map json_to_frm j_frm)
+    | j -> J.parse_error j "Domain.json_to_cut"
+
+
+  and json_to_stable_code : J.value -> D.con D.stable_code =
+    function
+    | `A [`String "pi"; j_base; j_fam] -> `Pi (json_to_con j_base, json_to_con j_fam)
+    | `A [`String "sg"; j_base; j_fam] -> `Sg (json_to_con j_base, json_to_con j_fam)
+    | `A [`String "signature"; j_sign] -> `Signature (json_to_labeled json_to_con j_sign)
+    | `A [`String "ext"; j_n; j_code; j_phi; j_fam] -> `Ext (json_to_int j_n, json_to_con j_code, `Global (json_to_con j_phi), json_to_con j_fam)
+    | `String "nat" -> `Nat
+    | `String "circle" -> `Circle
+    | `String "univ" -> `Univ
+    | j -> J.parse_error j "Domain.json_to_stable_code"
+
+  and json_to_unstable_code : J.value -> D.con D.unstable_code =
+    function
+    | `A [`String "hcom"; j_src; j_trg; j_cof; j_con] -> `HCom (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
+    | `A [`String "v"; j_r; j_pcode; j_code; j_pequiv] -> `V (json_to_dim j_r, json_to_con j_pcode, json_to_con j_code, json_to_con j_pequiv)
+    | j -> J.parse_error j "Domain.json_to_unstable_code"
+
+  and json_to_fhcom_tag : J.value -> [ `Nat | `Circle ] =
+    function
+    | `String "nat" -> `Nat
+    | `String "circle" -> `Circle
+    | j -> J.parse_error j "Domain.json_to_fhcom_tag"
+end
 
 let serialize_goal (ctx : (Ident.t * S.tp) list) (tp : S.tp) : J.t =
   `O [ ("ctx", Syntax.json_of_ctx ctx);
