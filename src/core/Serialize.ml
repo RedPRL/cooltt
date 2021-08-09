@@ -42,27 +42,17 @@ let json_to_bwd json_to_el : J.value -> 'a bwd =
 let labeled lbl v = `A (`String lbl :: v)
 
 (* Identitifers *)
-let label_of_ident : Ident.t -> string =
+let json_of_ident : Ident.t -> J.value =
   function
-  | `Anon -> "anon"
-  | `User parts -> "user/" ^ String.concat "." parts
-  | `Machine str -> "machine/" ^ str
-
-let label_to_ident : string -> Ident.t =
-  fun str ->
-  if String.equal str "anon"
-  then `Anon
-  else if CCString.prefix ~pre:"user/" str
-  then `User (String.split_on_char '.' @@ CCString.drop 5 str)
-  else if CCString.prefix ~pre:"machine/" str
-  then `Machine (CCString.drop 8 str)
-  else J.parse_error (`String str) "label_to_ident"
-
-let json_of_ident nm = `String (label_of_ident nm)
+  | `Anon -> `String "anon"
+  | `User parts -> `O [("user", `String (String.concat "." parts))]
+  | `Machine str -> `O [("machine", `String str)]
 
 let json_to_ident : J.value -> Ident.t =
   function
-  | `String str -> label_to_ident str
+  | `String "anon" -> `Anon
+  | `O [("user", `String str)] -> `User (String.split_on_char '.' str)
+  | `O [("machine", `String str)] -> `Machine str
   | j -> J.parse_error j "json_to_ident"
 
 let json_of_path path = `String (String.concat "." path)
@@ -192,7 +182,7 @@ struct
     fun sign -> json_of_labeled json_of_tp sign
 
   let json_of_ctx ctx : J.value =
-    `O (List.map (fun (nm, tp) -> (label_of_ident nm, json_of_tp tp)) ctx)
+    `A (List.map (fun (nm, tp) -> json_of_pair (json_of_ident nm) (json_of_tp tp)) ctx)
 
   let rec json_to_tm : J.value -> S.t =
     function
@@ -432,10 +422,8 @@ struct
 
   let json_to_ctx : J.value -> (Ident.t * S.tp) list =
     function
-    | `O j_ctx -> j_ctx |> List.map @@ fun (nm_str, j_tp) ->
-      let nm = `User (String.split_on_char '.' nm_str) in
-      let tp = json_to_tp j_tp in
-      (nm, tp)
+    | `A j_ctx -> j_ctx |> List.map @@ fun binding ->
+      json_to_pair json_to_ident json_to_tp binding
     | j -> J.parse_error j "Syntax.json_to_ctx"
 end
 
@@ -719,11 +707,14 @@ let deserialize_goal : J.t -> ((Ident.t * S.tp) list * S.tp) =
   | j -> J.parse_error (J.value j) "deserialize_goal"
 
 let serialize_bindings (bindings : (Ident.t * D.tp * D.con option) list) : J.t =
-  `O (List.map (fun (ident, tp, con) -> (label_of_ident ident, (json_of_pair (Domain.json_of_tp tp) (J.option Domain.json_of_con con)))) bindings)
+  `A (List.map (fun (nm, tp, con) -> `A [json_of_ident nm; Domain.json_of_tp tp; J.option Domain.json_of_con con]) bindings)
 
 let deserialize_bindings : J.t -> (Ident.t * D.tp * D.con option) list =
   function
-  | `O j_bindings -> j_bindings |> List.map @@ fun (j_ident, j_binding) ->
-    let (tp, ocon) = json_to_pair Domain.json_to_tp (J.get_option Domain.json_to_con) j_binding in
-    (label_to_ident j_ident, tp, ocon)
+  | `A j_bindings -> j_bindings |> List.map @@
+    begin
+      function
+      | `A [j_nm; j_tp; j_con] -> (json_to_ident j_nm, Domain.json_to_tp j_tp, J.get_option Domain.json_to_con j_con)
+      | j -> J.parse_error j "deserialize_bindings"
+    end
   | j -> J.parse_error (J.value j) "deserialize_bindings"
