@@ -42,25 +42,26 @@ let json_to_bwd json_to_el : J.value -> 'a bwd =
 let labeled lbl v = `A (`String lbl :: v)
 
 (* Identitifers *)
+let json_of_path (path : string list) =
+  `A (List.map J.string path)
+
+let json_to_path : J.value -> string list =
+  function
+  | `A path -> List.map J.get_string path
+  | j -> J.parse_error j "json_to_path"
+
 let json_of_ident : Ident.t -> J.value =
   function
   | `Anon -> `String "anon"
-  | `User parts -> `O [("user", `String (String.concat "." parts))]
+  | `User parts -> `O [("user", json_of_path parts)]
   | `Machine str -> `O [("machine", `String str)]
 
 let json_to_ident : J.value -> Ident.t =
   function
   | `String "anon" -> `Anon
-  | `O [("user", `String str)] -> `User (String.split_on_char '.' str)
+  | `O [("user", parts)] -> `User (json_to_path parts)
   | `O [("machine", `String str)] -> `Machine str
   | j -> J.parse_error j "json_to_ident"
-
-let json_of_path path = `String (String.concat "." path)
-
-let json_to_path =
-  function
-  | `String path -> String.split_on_char '.' path
-  | j -> J.parse_error j "json_to_path"
 
 let json_of_labeled json_of_el els : J.value =
   `O (List.map (fun (path, el) -> (String.concat "." path, json_of_el el)) els)
