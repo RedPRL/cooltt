@@ -33,6 +33,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
+%token PROBE_HOLE
 %token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS LESS_THAN JOIN MEET
@@ -266,6 +267,8 @@ plain_atomic_term_except_sq:
     { Type }
   | name = HOLE_NAME
     { Hole (name, None) }
+  | PROBE_HOLE
+    { ProbeHole }
   | DIM
     { Dim }
   | COF
