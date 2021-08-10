@@ -179,7 +179,7 @@ See `compilation-error-regexp-alist' for semantics.")
 
 (defun cooltt-compile-options ()
   "Compute the options to provide to cooltt."
-  (let (opts cooltt-options)
+  (let ((opts cooltt-options))
     (when cooltt-debug
       (push "--debug" opts))
     opts))
