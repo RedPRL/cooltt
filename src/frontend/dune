@@ -6,7 +6,7 @@
 
 (library
  (name Frontend)
- (libraries bantorra cooltt.basis cooltt.cubical cooltt.core menhirLib)
+ (libraries bantorra cooltt.basis cooltt.cubical cooltt.core ezjsonm menhirLib)
  (preprocess
   (pps ppx_deriving.std))
  (flags
