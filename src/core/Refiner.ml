@@ -68,14 +68,13 @@ module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
   val probe_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
+
+  val probe_goal_chk : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> T.Chk.tac -> T.Chk.tac
+  val probe_goal_syn : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> T.Syn.tac -> T.Syn.tac
 end =
 struct
-  let print_state lbl tp : unit m =
+  let print_state lbl ctx tp : unit m =
     let* env = RM.read in
-    let cells = Env.locals env in
-
-    RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
@@ -98,14 +97,35 @@ struct
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
 
-  let probe_chk name tac =
-    T.Chk.brule ~name:"probe_chk" @@ fun (tp, phi, clo) ->
+  let probe_goal_chk k tac =
+    T.Chk.brule ~name:"probe_goal_chk" @@ fun (tp, phi, clo) ->
     let* s = T.Chk.brun tac (tp, phi, clo) in
     let+ () =
       let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
-      print_state name stp
+
+      let* env = RM.read in
+      let cells = Env.locals env in
+      RM.globally @@
+      let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+      k ctx stp
     in
     s
+
+  let probe_goal_syn k tac =
+    T.Syn.rule ~name:"probe_goal_syn" @@
+    let* s, tp = T.Syn.run tac in
+    let+ () =
+      let* stp = RM.quote_tp tp in
+      let* env = RM.read in
+      let cells = Env.locals env in
+      RM.globally @@
+      let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+      k ctx stp
+    in
+    s, tp
+
+  let probe_chk name tac =
+    probe_goal_chk (print_state name) tac
 
   let probe_boundary probe tac =
     T.Chk.brule ~name:"probe_boundary" @@ fun (tp, phi, clo) ->
@@ -114,13 +134,7 @@ struct
     T.Chk.brun tac (tp, phi, clo)
 
   let probe_syn name tac =
-    T.Syn.rule ~name:"probe_syn" @@
-    let* s, tp = T.Syn.run tac in
-    let+ () =
-      let* stp = RM.quote_tp tp in
-      print_state name stp
-    in
-    s, tp
+    probe_goal_syn (print_state name) tac
 end
 
 

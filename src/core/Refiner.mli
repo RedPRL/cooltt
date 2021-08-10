@@ -1,6 +1,8 @@
 (** This is the basis of trusted inference rules for cooltt. This module also contains
     some auxiliary tactics, but these don't need to be trusted so they should be moved elsewhere. *)
 
+open CodeUnit
+
 module D := Domain
 module S := Syntax
 module RM := Monads.RefineM
@@ -23,6 +25,9 @@ module Probe : sig
   val probe_chk : string option -> Chk.tac -> Chk.tac
   val probe_boundary : Chk.tac -> Chk.tac -> Chk.tac
   val probe_syn : string option -> Syn.tac -> Syn.tac
+
+  val probe_goal_chk : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Chk.tac -> Chk.tac
+  val probe_goal_syn : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Syn.tac -> Syn.tac
 end
 
 module Dim : sig
