@@ -170,6 +170,8 @@ and real_token = parse
     { HOLE_NAME None }
   | "!"
     { BANG }
+  | "!?"
+    { PROBE_HOLE }
   | "∂" (* XXX what to do with "∂i"? *)
     { BOUNDARY }
   | "#t"
