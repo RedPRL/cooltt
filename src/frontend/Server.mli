@@ -1,9 +1,7 @@
 open Core
 open CodeUnit
 
-type t
+val init : int -> unit
+val close : unit -> unit
 
-val init : int -> t
-val close : t -> unit
-
-val dispatch_goal : t -> (Ident.t * Syntax.tp) list -> Syntax.tp -> unit
+val dispatch_goal : (Ident.t * Syntax.tp) list -> Syntax.tp -> unit

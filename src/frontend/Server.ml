@@ -5,7 +5,11 @@ module S = Syntax
 
 module J = Ezjsonm
 
-type t = Unix.file_descr
+(* [NOTE: Cooltt Server]
+   We use a 'ref' here to prevent having to thread down a server handle
+   deep into the guts of the elaborator. *)
+let server : Unix.file_descr option ref =
+  ref None
 
 let init port =
   try
@@ -14,18 +18,30 @@ let init port =
     let localhost = Unix.inet_addr_of_string "127.0.0.1" in
     let () = Unix.connect socket (Unix.ADDR_INET (localhost, port)) in
     Format.eprintf "Cooltt server connection initialized@.";
-    socket
-  with Unix.Unix_error (Unix.ECONNREFUSED,_,_) ->
-    Format.eprintf "Error: Could not initialize cooltt server connection.@.";
-    failwith "Cooltt server init failed."
+    server := Some socket
+  with Unix.Unix_error _ ->
+    Format.eprintf "Error: Could not initialize cooltt server connection.@."
 
-let close socket =
-  Unix.close socket
+let close () =
+  match !server with
+  | Some socket ->
+    Unix.close socket;
+    server := None
+  | None -> ()
 
-let dispatch_goal socket ctx goal =
-  (* FIXME: Be smarter about the buffer sizes here. *)
-  let buf = Buffer.create 65536 in
-  J.to_buffer ~minify:true buf @@ Serialize.serialize_goal ctx goal;
-  let nbytes = Unix.send socket (Buffer.to_bytes buf) 0 (Buffer.length buf) [] in
-  Debug.print "Sent %n bytes to Server.@." nbytes;
-  ()
+let dispatch_goal ctx goal =
+  match !server with
+  | Some socket ->
+    begin
+      try
+        (* FIXME: Be smarter about the buffer sizes here. *)
+        let buf = Buffer.create 65536 in
+        J.to_buffer ~minify:true buf @@ Serialize.serialize_goal ctx goal;
+        let nbytes = Unix.send socket (Buffer.to_bytes buf) 0 (Buffer.length buf) [] in
+        Debug.print "Sent %n bytes to Server.@." nbytes;
+        ()
+      with Unix.Unix_error _ ->
+        Format.eprintf "Cooltt server connection lost.@.";
+        close ()
+    end
+  | None -> ()
