@@ -39,6 +39,7 @@ let keywords =
     ("generalize", GENERALIZE);
     ("def", DEF);
     ("axiom", AXIOM);
+    ("fail", FAIL);
     ("normalize", NORMALIZE);
     ("print", PRINT);
     ("quit", QUIT);
