@@ -112,7 +112,7 @@
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "let" "normalize" "quit" "import")
+  '("def" "let" "normalize" "quit" "import" "fail")
   "Declaration keywords.")
 
 
