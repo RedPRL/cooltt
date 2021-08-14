@@ -63,18 +63,21 @@ let print_fail (name : Ident.t) (info : CS.info) (res : (D.tp * D.con, exn) resu
     let* tp = RM.quote_tp vtp in
     let* env = RM.read in
     let penv = Env.pp_env env in
-    let+ () = RM.emit ~lvl:`Error info (fun fmt () ->
-        Format.fprintf fmt "fail %a:@.  Expected (%a : %a) to fail but it succeded."
-          Ident.pp name
-          (Syntax.pp penv) tm
-          (Syntax.pp_tp penv) tp) ()
+    let pp_failure fmt () =
+      Format.fprintf fmt "fail %a:@.  Expected (%a : %a) to fail but it succeded."
+        Ident.pp name
+        (Syntax.pp penv) tm
+        (Syntax.pp_tp penv) tp
     in
+    let+ () = RM.emit ~lvl:`Error info pp_failure () in
     Continue Fun.id
   | Error (Err.RefineError (err, info)) ->
-    let+ () = RM.emit ~lvl:`Info info (fun fmt () ->
-        Format.fprintf fmt "fail %a:@.  %a"
-          Ident.pp name
-          RefineError.pp err) () in
+    let pp_err_info fmt () =
+      Format.fprintf fmt "fail %a:@.  %a"
+        Ident.pp name
+        RefineError.pp err
+    in
+    let+ () = RM.emit ~lvl:`Info info pp_err_info () in
     Continue Fun.id
   | Error exn ->
     let+ () = RM.emit ~lvl:`Error info PpExn.pp exn in
