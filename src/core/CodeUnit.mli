@@ -1,5 +1,7 @@
 open Basis
 
+module J = Ezjsonm
+
 module CodeUnitID :
 sig
   type t
@@ -10,7 +12,10 @@ sig
 end
 type id = CodeUnitID.t
 
-module Global : Symbol.S
+module Global :
+sig
+  include Symbol.S
+end
 
 module Domain : module type of Domain.Make(Global)
 module Syntax : module type of Syntax.Make(Global)
