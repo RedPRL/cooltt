@@ -99,6 +99,7 @@ type decl =
   | Print of Ident.t node
   | Import of string list * con option
   | NormalizeTerm of con
+  | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
   | Quit
 
 type command =

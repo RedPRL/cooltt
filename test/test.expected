@@ -625,7 +625,7 @@ holes.cooltt:14.7-14.35 [Info]:
        i = 1 => q 1
 
 
-holes.cooltt:17.26-17.30 [Info]:
+holes.cooltt:18.26-18.30 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
@@ -634,7 +634,8 @@ holes.cooltt:17.26-17.30 [Info]:
     |- ? : (_x : 𝕀) → (_x₁ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) → A
 
 
-holes.cooltt:17.7-17.30 [Error]:
+holes.cooltt:18.7-18.30 [Info]:
+  fail cone-of-silence-hcom:
   Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
 
 --------------------[import.cooltt]--------------------

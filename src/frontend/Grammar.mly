@@ -5,6 +5,9 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
+  let info_at (start, stop) : info =
+    Some {start; stop}
+
   let name_of_atoms parts = `User parts
 
   let name_of_underscore = `Anon
@@ -42,7 +45,7 @@
 %token SIG STRUCT PROJ AS
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM
+%token QUIT NORMALIZE PRINT DEF AXIOM FAIL
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -127,6 +130,8 @@ decl:
     { Def {name = nm; args = tele; def = Some body; tp} }
   | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Def {name = nm; args = tele; def = None; tp} }
+  | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term
