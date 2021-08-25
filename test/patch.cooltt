@@ -1,0 +1,13 @@
+def el : type := sig (A : type) (a : A)
+def el-patch : type := el as x [ A .= nat | a .= 4 ]
+
+def patch/inhabit : el-patch := struct (A : nat) (a : 4)
+def patch/inhabit/hole : el-patch := struct (A : ?) (a : ?)
+
+print el-patch
+print patch/inhabit
+
+def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z : Z) : sig (x : A) (bx : B x) as _ [ x .= p z @ x | bx .= p z @ bx ] :=
+  p z
+
+print testing

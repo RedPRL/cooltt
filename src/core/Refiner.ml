@@ -542,21 +542,20 @@ struct
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
-  let rec find_field_tac (lbl : string list) (fields : (string list * T.Chk.tac) list) : T.Chk.tac option =
+  let rec find_field_tac (fields : (string list * T.Chk.tac) list) (lbl : string list) : T.Chk.tac option =
     match fields with
     | (lbl', tac) :: _ when equal_path (lbl : string list) lbl'  ->
       Some tac
     | _ :: fields ->
-      find_field_tac lbl fields
+      find_field_tac fields lbl
     | [] ->
       None
 
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : (string list * T.Chk.tac) list) : (string list * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : string list -> T.Chk.tac option) : (string list * S.t) list m =
     match sign with
     | D.Field (lbl, tp, sign_clo) ->
-      let tac =
-        match find_field_tac lbl tacs with
+      let tac = match tacs lbl with
         | Some tac -> tac
         | None -> Hole.unleash_hole (hole_name_of_path lbl)
       in
@@ -568,7 +567,7 @@ struct
     | D.Empty ->
       RM.ret []
 
-  let intro (tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
+  let intro (tacs : string list -> T.Chk.tac option) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->
@@ -688,6 +687,61 @@ struct
     univ_tac "Univ.signature" @@ fun univ ->
     let+ fields = quantifiers tacs univ in
     S.CodeSignature fields
+
+  (* [NOTE: Patch Quantifiers]
+     As described in [NOTE: Sig Code Quantifiers], the field types of a signature code
+     all use lambdas to bind variables from earlier on in the signature. Therefore,
+     when we construct the patched versions of the field codes, we need to re-insert
+     the lambdas.*)
+  let rec patch_fields (field_names : string list list) (field_tps : D.con list) (vpatches : D.con list) (ext_codes : S.t list) (sign : (string list * D.con) list) (patch_tacs : (string list * T.Chk.tac) list) (univ : D.tp) : S.t m =
+    match sign, patch_tacs with
+    | (field_name, vfield_tp) :: sign, (patch_name, patch_tac) :: patch_tacs when CCList.equal String.equal field_name patch_name ->
+      (* As the signatures field types are really lambdas (See [NOTE: Sig Code Quantifiers]),
+         we want to apply them to the patch values that we have already computed. *)
+      (* FIXME: This is bad! *)
+      let idents = List.map (fun nm -> `User nm) field_names in
+      let* patchtp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con vfield_tp @@ fun field_tp ->
+        Splice.cons vpatches @@ fun patches -> Splice.term @@ TB.el @@ TB.ap field_tp patches
+      in
+      let* patch = T.Chk.run patch_tac patchtp in
+      let* vpatch = RM.lift_ev @@ Sem.eval patch in
+
+      (* As noted in [NOTE: Patch Quantifiers], we need to re-add the lambda binders to the patched field types.
+         Therefore, we need to construct the type /of the patched field type/ to quote against. *)
+      let* fam_tp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.tp univ @@ fun univ ->
+        Splice.cons field_tps @@ fun args -> Splice.term @@ TB.pis ~idents args @@ fun _ -> univ
+      in
+
+      let* ext_code =
+        RM.lift_cmp @@
+        Sem.splice_tm @@
+        Splice.con vfield_tp @@ fun field_tp ->
+        Splice.cons vpatches @@ fun patches ->
+        Splice.con vpatch @@ fun patch -> Splice.term @@ TB.lams idents @@ fun _ -> TB.code_ext 0 (TB.ap field_tp patches) TB.top @@ TB.lam @@ fun _ -> patch
+      in
+      let* qext_code = RM.quote_con fam_tp ext_code in
+      (* FIXME: Bad Asymptotics!! *)
+      patch_fields (field_names @ [field_name]) (field_tps @ [vfield_tp]) (vpatches @ [vpatch]) (ext_codes @ [qext_code]) sign patch_tacs univ
+    | [], [] ->
+      RM.ret @@ S.CodeSignature (List.combine field_names ext_codes)
+    | _ -> failwith "[FIXME] Better Error Handling in Univ.patch_fields"
+
+  let patch (sig_tac : T.Chk.tac) (patch_tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
+    univ_tac "Univ.patch" @@ fun univ ->
+    let* tp = T.Chk.run sig_tac univ in
+    let* vtp = RM.lift_ev @@ Sem.eval tp in
+    let* whnf_vtp = RM.lift_cmp @@ Sem.whnf_con_ ~style:`UnfoldAll vtp in
+    match whnf_vtp with
+    | D.StableCode (`Signature sign) ->
+      patch_fields [] [] [] [] sign patch_tacs univ
+    | _ -> failwith "[FIXME] Better error handling in Univ.patch"
+
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->

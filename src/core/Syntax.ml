@@ -611,14 +611,17 @@ struct
         (pp_tp env P.(right_of colon)) var_tp
         (pp_in_ctx envx ctx pp_goal) goal
 
+  let rec get_constraints =
+    function
+    | Sub (tp, Cof (Cof.Join []), _) -> get_constraints tp
+    | Sub (tp, phi, tm) -> `Boundary (tp, phi, tm)
+    | El (CodeExt (0, tp, `Global phi, (Lam (_, tm)))) -> `Boundary (El tp, phi, tm)
+    | tp -> `Unconstrained tp
+
   let pp_sequent_goal ~lbl env fmt tp  =
     let lbl = Option.value ~default:"" lbl in
-    match tp with
-    | Sub (tp, Cof (Cof.Join []), _) ->
-      Format.fprintf fmt "|- ?%a : @[<hov>%a@]"
-        Uuseg_string.pp_utf_8 lbl
-        (pp_tp env P.(right_of colon)) tp
-    | Sub (tp, phi, tm) ->
+    match get_constraints tp with
+    | `Boundary (tp, phi, tm) ->
       let _x, envx = Pp.Env.bind env (Some "_") in
       Format.fprintf fmt "|- ?%a : @[<hov>%a@]@,@,Boundary:@,%a@,|- @[<v>%a@]"
         Uuseg_string.pp_utf_8 lbl
@@ -627,7 +630,7 @@ struct
         phi
         (pp_sequent_boundary envx)
         tm
-    | tp ->
+    | `Unconstrained tp ->
       Format.fprintf fmt "|- ?%a : @[<hov>%a@]"
         Uuseg_string.pp_utf_8 lbl
         (pp_tp env P.(right_of colon)) tp
@@ -643,12 +646,8 @@ struct
     | `BdryUnsat -> Format.pp_print_string fmt "unsatisfied"
 
   let pp_partial_sequent_goal bdry_sat env fmt (partial, tp) =
-    match tp with
-    | Sub (tp, Cof (Cof.Join []), _) ->
-      Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]"
-        (pp env P.(right_of colon)) partial
-        (pp_tp env P.(right_of colon)) tp
-    | Sub (tp, phi, tm) ->
+    match get_constraints tp with
+    | `Boundary (tp, phi, tm) ->
       let _x, envx = Pp.Env.bind env (Some "_") in
       Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]@,@,Boundary (%a):@,%a@,|- @[<v>%a@]"
         (pp env P.(right_of colon)) partial
@@ -656,7 +655,7 @@ struct
         pp_boundary_sat bdry_sat
         (pp env P.(right_of colon)) phi
         (pp_sequent_boundary envx) tm
-    | tp ->
+    | `Unconstrained tp ->
       Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]"
         (pp env P.(right_of colon)) partial
         (pp_tp env P.(right_of colon)) tp

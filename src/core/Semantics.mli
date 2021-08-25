@@ -19,6 +19,7 @@ val whnf_hd : style:whnf_style -> D.hd -> D.con whnf compute
 val whnf_tp : style:whnf_style -> D.tp -> D.tp whnf compute
 
 val whnf_tp_ : style:whnf_style -> D.tp -> D.tp compute
+val whnf_con_ : style:whnf_style -> D.con -> D.con compute
 
 val normalize_cof : D.cof -> D.cof compute
 

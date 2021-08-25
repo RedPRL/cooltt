@@ -95,6 +95,13 @@ let lam ?(ident = `Anon) mbdy : _ m =
   let+ bdy = mbdy var in
   S.Lam (ident, bdy)
 
+let lams idents mbdy : _ m =
+  let rec go vars =
+    function
+    | [] -> mbdy (Bwd.to_list vars)
+    | (ident :: idents) -> lam ~ident @@ fun var -> go (Snoc (vars, var)) idents
+  in go Emp idents
+
 let rec ap m0 ms : _ m =
   match ms with
   | [] -> m0
@@ -269,6 +276,19 @@ let code_v mr mpcode mcode mpequiv : _ m=
   and+ pequiv = mpequiv in
   S.CodeV (r, pcode, code, pequiv)
 
+let code_ext n mfam mcof mbdry =
+  let+ fam = mfam
+  and+ cof = mcof
+  and+ bdry = mbdry in
+  S.CodeExt (n, fam, `Global cof, bdry)
+
+let code_pis (margs : S.t m list) (mfam : S.t m list -> S.t m) : S.t m =
+  let rec go margs vars =
+    match margs with
+    | (marg ::  margs) -> code_pi (ap marg vars) @@ lam @@ fun var -> go margs (vars @ [var])
+    | [] -> mfam vars
+  in go margs []
+
 let sub mbase mphi mbdry =
   let+ base = mbase
   and+ phi = mphi
@@ -306,6 +326,12 @@ let join mphis =
 let meet mphis =
   let+ phis = MU.commute_list mphis in
   S.Cof (Cof.Meet phis)
+
+let top =
+  meet []
+
+let bot =
+  join []
 
 let forall mphi =
   let+ phi = scope mphi in

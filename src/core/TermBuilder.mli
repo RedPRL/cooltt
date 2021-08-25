@@ -28,6 +28,8 @@ val pair : t m -> t m -> t m
 val fst : t m -> t m
 val snd : t m -> t m
 
+val lams : Ident.t list -> (t m list -> t m) -> t m
+
 val struct_ : (string list * t m) list -> t m
 val proj : t m -> string list -> t m
 
@@ -81,13 +83,18 @@ val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
 val code_path : t m -> t m -> t m
 val code_v : t m -> t m -> t m -> t m -> t m
+val code_ext : int -> t m -> t m -> t m -> t m
 val vproj : t m -> t m -> t m -> t m -> t m -> t m
+
+val code_pis : t m list -> (t m list -> t m) -> t m
 
 val dim0 : t m
 val dim1 : t m
 val eq : t m -> t m -> t m
 val join : t m list -> t m
 val meet : t m list -> t m
+val top : t m
+val bot : t m
 val boundary : t m -> t m
 val forall : t b -> t m
 
