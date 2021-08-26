@@ -63,7 +63,7 @@ module Univ : sig
   val sg : Chk.tac -> Chk.tac -> Chk.tac
   val signature : (Ident.user * Chk.tac) list -> Chk.tac
   val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
-  val total : (Ident.user * CodeUnit.Domain.con) list -> CodeUnit.Domain.con -> Chk.tac
+  val total : (Ident.user * D.con) list -> D.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val infer_nullary_ext : Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
