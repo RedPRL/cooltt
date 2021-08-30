@@ -37,7 +37,8 @@ and con_ =
   | Signature of field list
   | Struct of field list
   | Proj of con * string list
-  | Patch of con * Ident.t * field list
+  | Patch of con * field list
+  | Total of con * field list
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con

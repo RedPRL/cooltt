@@ -128,6 +128,8 @@ and real_token = parse
     { RBANG }
   | '|'
     { PIPE }
+  | '#'
+    { HASH }
   | ','
     { COMMA }
   | '.'
