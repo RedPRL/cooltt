@@ -1,5 +1,7 @@
 type t = [`Anon | `User of string list | `Machine of string]
 
+let user parts = `User parts
+
 let qual_to_string =
   function
   | [] -> "(root)"
