@@ -29,8 +29,8 @@ def hProp : type := hLevel 1
 def hSet : type := hLevel 2
 def hGroupoid : type := hLevel 3
 
-print hProp
-normalize hProp
+#print hProp
+#normalize hProp
 
 def contr-prop (A : type) (A/contr : is-contr A) : is-prop A :=
   a a' => trans A {symm A {{snd A/contr} a}} {{snd A/contr} a'}

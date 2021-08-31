@@ -12,7 +12,7 @@ def J (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → ty
     C {hfill A 0 {∂ i} {k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}
   } 0 1 d
 
-normalize J
+#normalize J
 
 def J/eq
   (A : type)
@@ -53,11 +53,11 @@ def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ =
     symm/filler A p j i
   }
 
-normalize +-assoc
+#normalize +-assoc
 
-normalize trans-left-unit
-normalize trans-right-unit
-normalize trans-symm-refl
+#normalize trans-left-unit
+#normalize trans-right-unit
+#normalize trans-symm-refl
 
 def test (p : 𝕀 → nat) : (i : 𝕀) → nat :=
   let fun : nat → nat :=
@@ -79,9 +79,9 @@ def test2 : (i : 𝕀) → nat :=
   i =>
   fun {symm nat {_ => zero} i}
 
-normalize test
+#normalize test
 
-normalize test2
+#normalize test2
 
 -- The following illustrates that although cooltt's quasi-normal forms aren't as fully
 -- reduced as they could be, it is of no consequence for definitional

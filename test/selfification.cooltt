@@ -5,4 +5,4 @@ def testing : {
   _ _ _ p => p
 }
 
-normalize testing
+#normalize testing

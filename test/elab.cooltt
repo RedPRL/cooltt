@@ -4,7 +4,7 @@ def boundary-test : (i : 𝕀) (_ : [∂ i]) → nat :=
   | i=0 => 19
   ]
 
-normalize boundary-test
+#normalize boundary-test
 
 def reflexivity : (A : type) (a : A) (i : 𝕀) → A :=
   A a _ => a
@@ -15,7 +15,7 @@ def pi-code-test : type := (x : nat) → nat
 def foo : pi-code-test :=
   x => x
 
-normalize pi-code-test
+#normalize pi-code-test
 
 
 def simple-let :
@@ -25,7 +25,7 @@ def simple-let :
   let b : A := a in
   b
 
-normalize simple-let
+#normalize simple-let
 
 
 def hole-in-type :

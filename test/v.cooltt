@@ -10,7 +10,7 @@ def v-test (r : 𝕀) (A : type) : type :=
     ]
   }
 
-normalize v-test
+#normalize v-test
 
 def cool (A : type) (a : A) : sub A #t {coe {_ => A} 0 1 a} :=
   coe {i => v-test i A} 0 1 a
@@ -18,11 +18,11 @@ def cool (A : type) (a : A) : sub A #t {coe {_ => A} 0 1 a} :=
 def cool2 (A : type) (a : A) (i : 𝕀) : A :=
   coe {i => v-test i A} i 0 [_ => a, a]
 
-normalize cool
-normalize cool2
+#normalize cool
+#normalize cool2
 
 def cool3 (A : type) (a : A) (i : 𝕀) : sub A #t a :=
   let vin : v-test i A := [_ => a, a] in
   vproj vin
 
-normalize cool3
+#normalize cool3

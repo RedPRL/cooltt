@@ -21,4 +21,4 @@ import /- comment -/ prelude [?; !] -- import everything, unqualified
 
 def cool-tt : p1.u := p2.q.t
 
-print cool-tt
+#print cool-tt
