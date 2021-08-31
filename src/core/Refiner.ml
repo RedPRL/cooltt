@@ -748,15 +748,15 @@ struct
 
   let patch (sig_tac : T.Chk.tac) (tacs : string list -> T.Chk.tac option) : T.Chk.tac =
     univ_tac "Univ.patch" @@ fun univ ->
-    let* tp = T.Chk.run sig_tac univ in
-    let* vtp = RM.lift_ev @@ Sem.eval tp in
-    (* FIXME: Should I do_el here? *)
-    let* whnf_vtp = RM.lift_cmp @@ Sem.whnf_con_ ~style:`UnfoldAll vtp in
-    match whnf_vtp with
-    | D.StableCode (`Signature sign) ->
+    let* code = T.Chk.run sig_tac univ in
+    let* vcode = RM.lift_ev @@ Sem.eval code in
+    let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+    let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
+    match whnf_tp with
+    | D.ElStable (`Signature sign) ->
       patch_fields sign tacs univ
     | _ ->
-      failwith "[FIXME] Better error handling in Univ.patch"
+      RM.expected_connective `Signature whnf_tp
 
   let total (fam_tac : T.Syn.tac) : T.Chk.tac =
     univ_tac "Univ.total" @@ fun univ ->
