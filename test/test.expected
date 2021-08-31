@@ -829,7 +829,11 @@ patch.cooltt:21.6-21.13 [Info]:
                                        
   = A Z B p z => struct (x : p z @ x) (bx : p z @ bx) 
 
-patch.cooltt:32.6-32.14 [Info]:
+patch.cooltt:24.78-24.86 [Info]:
+  fail total-space/fail:
+  Head connective mismatch, expected univ but got (_x₁ : nat) → type
+
+patch.cooltt:35.6-35.14 [Info]:
   category
   : type
   = sig (ob : type) (hom : (_x : sig (s : ob) (t : ob) ) → type) 

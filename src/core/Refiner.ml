@@ -704,8 +704,8 @@ struct
 
      This requires us to run each of the patch tactics at pi types, which then causes
      the patches to be lambdas. This means that we need to do some fancier application
-     when we construct the final codes.
-
+     when we construct the final codes. Most notably, we need to make sure to properly
+     eliminate the 'ext' types introduced by previous patches.
   *)
   let patch_fields (sign : (string list * D.con) list) (tacs : string list -> T.Chk.tac option) (univ : D.tp) : S.t m =
     let rec go field_names (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
@@ -750,6 +750,7 @@ struct
     univ_tac "Univ.patch" @@ fun univ ->
     let* tp = T.Chk.run sig_tac univ in
     let* vtp = RM.lift_ev @@ Sem.eval tp in
+    (* FIXME: Should I do_el here? *)
     let* whnf_vtp = RM.lift_cmp @@ Sem.whnf_con_ ~style:`UnfoldAll vtp in
     match whnf_vtp with
     | D.StableCode (`Signature sign) ->
@@ -762,12 +763,24 @@ struct
     let* (tm, tp) = T.Syn.run fam_tac in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
     match tp with
-    (* FIXME: We should ensure that this is actually a type family *)
-    | D.Pi (D.ElStable (`Signature vsign), _, fam) ->
+    | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
+      (* HACK: Because we are using Weak Tarski Universes, we can't just
+         use the conversion checker to equate 'fam' and 'univ', as
+         'fam' may be 'el code-univ' instead.
+
+         Therefore, we do an explicit check here instead.
+         If we add universe levels, this code should probably be reconsidered. *)
+      let* _ = T.abstract ~ident base @@ fun var ->
+        let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+        match fam with
+        | D.Univ -> RM.ret ()
+        | D.ElStable `Univ -> RM.ret ()
+        | _ -> RM.expected_connective `Univ fam
+      in
       let (sign_names, vsign_codes) = List.split vsign in
       let idents = List.map Ident.user sign_names in
       let* qsign = quote_sign_codes vsign univ in
-      (* See NOTE:Sig Code Quantifiers. *)
+      (* See [NOTE: Sig Code Quantifiers]. *)
       let* fib_tp =
         RM.lift_cmp @@
         Sem.splice_tp @@
@@ -783,6 +796,7 @@ struct
       in
       let+ qfib = RM.quote_con fib_tp fib in
       S.CodeSignature (qsign @ [["fib"], qfib])
+    | D.Pi (base, _, _) -> RM.expected_connective `Signature base
     | _ -> RM.expected_connective `Pi tp
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =

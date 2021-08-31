@@ -20,6 +20,9 @@ def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z 
 
 print testing
 
+-- Record Patching + Total Space Conversion
+fail total-space/fail (fam : sig (A : type) (a : A) -> nat -> type) : type := fam # []
+
 def category : type :=
   sig (ob : type)
       (hom : sig (s : ob) (t : ob) → type)
