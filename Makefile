@@ -1,5 +1,5 @@
 OPAM=opam
-EXEC=${OPAM} config exec
+EXEC=${OPAM} exec
 DUNE=${EXEC} dune --
 PIN_DEPENDS=bantorra yuujinchou
 
