@@ -1,13 +1,41 @@
+import prelude
+
 def el : type := sig (A : type) (a : A)
-def el-patch : type := el as x [ A .= nat | a .= 4 ]
+def el-patch : type := el as [ A .= nat | a .= 4 ]
+def el-patch-partial : type := el as [ A .= nat ]
 
 def patch/inhabit : el-patch := struct (A : nat) (a : 4)
 def patch/inhabit/hole : el-patch := struct (A : ?) (a : ?)
 
 print el-patch
+print el-patch-partial
 print patch/inhabit
 
-def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z : Z) : sig (x : A) (bx : B x) as _ [ x .= p z @ x | bx .= p z @ bx ] :=
+def patch-depends : type := {sig (A : type) (B : type)} as [ A .= nat | B .= A ]
+print patch-depends
+def patch-depends/inhabit : patch-depends := struct (A : nat) (B : nat)
+
+def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z : Z) : sig (x : A) (bx : B x) as [ x .= p z @ x | bx .= p z @ bx ] :=
   p z
 
 print testing
+
+def category : type :=
+  sig (ob : type)
+      (hom : sig (s : ob) (t : ob) → type)
+      (idn : (x : ob) -> hom # [ s .= x | t .= x ])
+      (seq : (f : hom # []) -> (g : hom # [ s .= f @ t ]) -> hom # [ s .= f @ s | t .= g @ t ])
+      (seqL : (f : hom # []) -> path {hom # [ s .= f @ s | t .= f @ t ]} {seq {idn {f @ s}} f} f)
+      (seqR : (f : hom # []) -> path {hom # [ s .= f @ s | t .= f @ t ]} {seq f {idn {f @ t}}} f)
+      (seqA : (f : hom # []) -> (g : hom # [ s .= f @ t ]) -> (h : hom # [ s .= g @ t ]) -> path {hom # [ s .= f @ s | t .= h @ t ]} {seq f {seq g h}} {seq {seq f g} h})
+
+print category
+
+def types : category :=
+  struct (ob : type)
+         (hom : args => {args @ s} -> {args @ t})
+         (idn : x => struct (s : x) (t : x) (fib : x => x))
+         (seq : f g => struct (s : f @ s) (t : g @ t) (fib : x => g @ fib {f @ fib x}))
+         (seqL : f i => f)
+         (seqR : f i => f)
+         (seqA : f g h i => struct (s : f @ s) (t : h @ t) (fib : x => {h @ fib} {{g @ fib} {{f @ fib} x}}))
