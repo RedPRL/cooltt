@@ -1,7 +1,7 @@
 import prelude
   [ unit -> u -- rename unit to u
   ; {. -> p1, -> p2} -- take the union of two prefix modifiers; u becomes p1.u and p2.u, for example
-  ; p2.[tt -> q.t] -- rename p2.tt to p2.q.t
+  ; p2.[⋆ -> q.t] -- rename p2.tt to p2.q.t
   ; [[[[[{[]};{[{[[];[]]}]}]]]]] -- no op
   ; p1.[ ! u ] -- remove p1.u
   ; ! p2.path -- remove p2.path

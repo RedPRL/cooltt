@@ -1,6 +1,6 @@
 import prelude
 
-def refl2 (A : type) (p : (i : 𝕀) → A) : sub {path {path A {p 0} {p 1}} p p} #t {_ => p}
+def refl2 (A : type) (p : (i : 𝕀) → A) : sub {path {path A {p 0} {p 1}} p p} ⊤ {_ => p}
   :=
   _ => p
 

@@ -87,4 +87,4 @@ def test2 : (i : 𝕀) → nat :=
 -- reduced as they could be, it is of no consequence for definitional
 -- equivalence. That is, we don't bother pushing eliminators through all the
 -- branches of a disjunction split, but our equational theory acts as if we do.
-def test2' : sub {𝕀 → nat} #t {i => hcom nat 0 1 {∂ i} {_ _ => 0}} := test2
+def test2' : sub {𝕀 → nat} ⊤ {i => hcom nat 0 1 {∂ i} {_ _ => 0}} := test2
