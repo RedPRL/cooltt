@@ -176,9 +176,9 @@ and real_token = parse
     { BANG }
   | "∂" (* XXX what to do with "∂i"? *)
     { BOUNDARY }
-  | "#t"
+  | "tt" | "⊤"
     { TOPC }
-  | "#f"
+  | "ff" | "⊥"
     { BOTC }
   | "#" atom_subsequent+
     {
