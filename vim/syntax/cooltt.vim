@@ -28,7 +28,7 @@ syn keyword coolttKeyw cof sub ext coe hcom com hfill V vproj with struct sig
 syn keyword coolttDecl def axiom let import
 syn keyword coolttCmd #normalize #print #quit #fail
 
-syn match   coolttSymb '=>\|[|,*×:;=≔_𝕀𝔽∂∧∨→⇒!]\|->\|#t\|#f'
+syn match   coolttSymb '=>\|[|,*×:;=≔_𝕀𝔽∂∧∨→⇒!]\|->\|tt\|ff\|⊤\|⊥'
 syn match   coolttSymb '\\/\|/\\'
 
 syn region  coolttComm excludenl start="\k\@1<!--" end="$" contains=coolttTodo
