@@ -212,7 +212,7 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
   | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
   | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
-  | CS.ProbeHole -> Refiner.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal) @@ Refiner.Hole.unleash_hole None
+  | CS.Visualize -> Refiner.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal) @@ Refiner.Hole.unleash_hole None
   | CS.Unfold (idents, c) ->
     (* TODO: move to a trusted rule *)
     T.Chk.brule @@

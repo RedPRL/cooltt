@@ -33,7 +33,6 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token PROBE_HOLE
 %token LOCKED UNLOCK
 %token BANG COLON COLON_EQUALS PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
@@ -47,6 +46,7 @@
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM FAIL
+%token VISUALIZE
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -237,8 +237,8 @@ plain_atomic_term_except_name:
     { Type }
   | name = HOLE_NAME
     { Hole (name, None) }
-  | PROBE_HOLE
-    { ProbeHole }
+  | VISUALIZE
+    { Visualize }
   | DIM
     { Dim }
   | COF
