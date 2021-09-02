@@ -19,7 +19,7 @@ open Monad.Notation (RM)
 type options =
   { as_file : string option;
     debug_mode : bool;
-    server_port : int option }
+    server_info : (string * int) option }
 
 type status = (unit, unit) Result.t
 type continuation = Continue | Quit
@@ -248,7 +248,7 @@ let load_file {as_file; debug_mode; server_port} input : status =
   | Error () -> Error ()
   | Ok lib ->
     Debug.debug_mode debug_mode;
-    Option.iter Server.init server_port;
+    Option.iter (fun (hostname, port) -> Server.init hostname port) server_info;
     let unit_id = assign_unit_id ~as_file input in
     RM.run_exn (ST.init lib) Env.init @@
     RM.with_unit lib unit_id @@
