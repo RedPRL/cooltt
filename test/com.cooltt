@@ -16,9 +16,9 @@ def mycom/fun
   : sub {(_ : A i) → B i} {i=r ∨ φ} {p i _}
   :=
   x =>
-  com/B r φ {j _ => p j _ {com/A i #f {_ _ => x} j}} i
+  com/B r φ {j _ => p j _ {com/A i ⊥ {_ _ => x} j}} i
 
-normalize mycom/fun
+#normalize mycom/fun
 
 def coe/intro (A : 𝕀 → type) (r r' : 𝕀) (x : A r) : sub {A r'} {r=r'} x :=
  coe A r r' x
@@ -27,21 +27,21 @@ def coe/pi
   (A : 𝕀 → type) (B : (i : 𝕀) → A i → type)
   (r r' : 𝕀)
   (f : (x : A r) → B r x)
-  : sub {(x : A r') → B r' x} #t {x => coe {i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
+  : sub {(x : A r') → B r' x} ⊤ {x => coe {i => B i {coe A r' i x}} r r' {f {coe A r' r x}}}
   :=
   coe {i => (x : A i) → B i x} r r' f
 
-normalize coe/pi
+#normalize coe/pi
 
 def coe/sigma
   (A : 𝕀 → type) (B : (i : 𝕀) → A i → type)
   (r r' : 𝕀)
   (p : (x : A r) × B r x)
-  : sub {(x : A r') × B r' x} #t [coe A r r' {fst p}, coe {i => B i {coe A r i {fst p}}} r r' {snd p}]
+  : sub {(x : A r') × B r' x} ⊤ [coe A r r' {fst p}, coe {i => B i {coe A r i {fst p}}} r r' {snd p}]
   :=
   coe {i => (x : A i) × B i x} r r' p
 
-normalize coe/sigma
+#normalize coe/sigma
 
 def pathd (A : 𝕀 → type) (a : A 0) (b : A 1) : type :=
   ext i => A i with [i=0 => a | i=1 => b]
@@ -53,7 +53,7 @@ def coe/pathd
   (a : (i : 𝕀) -> A i 0)
   (b : (i : 𝕀) -> A i 1)
   (m : pathd {A r} {a r} {b r})
-  : sub {pathd {A r'} {a r'} {b r'}} #t {j =>
+  : sub {pathd {A r'} {a r'} {b r'}} ⊤ {j =>
       com {i => A i j} r r' {∂ j} {i p =>
         [j=0 => a i | j=1 => b i | i=r => m j]
       }
@@ -61,7 +61,7 @@ def coe/pathd
   :=
   coe {i => pathd {A i} {a i} {b i}} r r' m
 
-normalize coe/pathd
+#normalize coe/pathd
 
 def hcom/intro
   (A : type) (r r' : 𝕀) (φ : 𝔽)
@@ -73,11 +73,11 @@ def hcom/intro
 def hcom/fun
   (A B : type) (r r' : 𝕀) (φ : 𝔽)
   (p : (i : 𝕀) (_ : [i=r ∨ φ]) → A → B)
-  : sub {A → B} #t {x => hcom B r r' φ {j _ => p j _ x}}
+  : sub {A → B} ⊤ {x => hcom B r r' φ {j _ => p j _ x}}
   :=
   hcom {A → B} r r' φ p
 
-normalize hcom/fun
+#normalize hcom/fun
 
 def com/intro
   (A : 𝕀 → type) (r r' : 𝕀) (φ : 𝔽)
@@ -86,11 +86,11 @@ def com/intro
   :=
   com A r r' φ p
 
-normalize com/intro
+#normalize com/intro
 
 def com/decomposition
   (A : 𝕀 → type) (r r' : 𝕀) (φ : 𝔽)
   (p : (i : 𝕀) (_ : [i=r ∨ φ]) → A i)
-  : sub {A r'} #t {hcom {A r'} r r' φ {j _ => coe A j r' {p j _}}}
+  : sub {A r'} ⊤ {hcom {A r'} r r' φ {j _ => coe A j r' {p j _}}}
   :=
   com A r r' φ p

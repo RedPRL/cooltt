@@ -6,7 +6,7 @@ def + : nat → nat → nat :=
   | suc {_ => ih} => n => suc {ih n}
   ]
 
-normalize + 2 3
+#normalize + 2 3
 
 def pred : nat → nat :=
   elim [

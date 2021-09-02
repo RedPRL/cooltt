@@ -7,21 +7,21 @@ def el-patch-partial : type := el as [ A .= nat ]
 def patch/inhabit : el-patch := struct (A : nat) (a : 4)
 def patch/inhabit/hole : el-patch := struct (A : ?) (a : ?)
 
-print el-patch
-print el-patch-partial
-print patch/inhabit
+#print el-patch
+#print el-patch-partial
+#print patch/inhabit
 
 def patch-depends : type := {sig (A : type) (B : type)} as [ A .= nat | B .= A ]
-print patch-depends
+#print patch-depends
 def patch-depends/inhabit : patch-depends := struct (A : nat) (B : nat)
 
 def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z : Z) : sig (x : A) (bx : B x) as [ x .= p z @ x | bx .= p z @ bx ] :=
   p z
 
-print testing
+#print testing
 
 -- Record Patching + Total Space Conversion
-fail total-space/fail (fam : sig (A : type) (a : A) -> nat -> type) : type := fam # []
+#fail total-space/fail (fam : sig (A : type) (a : A) -> nat -> type) : type := fam # []
 
 def category : type :=
   sig (ob : type)
@@ -32,7 +32,7 @@ def category : type :=
       (seqR : (f : hom # []) -> path {hom # [ s .= f @ s | t .= f @ t ]} {seq f {idn {f @ t}}} f)
       (seqA : (f : hom # []) -> (g : hom # [ s .= f @ t ]) -> (h : hom # [ s .= g @ t ]) -> path {hom # [ s .= f @ s | t .= h @ t ]} {seq f {seq g h}} {seq {seq f g} h})
 
-print category
+#print category
 
 def types : category :=
   struct (ob : type)
