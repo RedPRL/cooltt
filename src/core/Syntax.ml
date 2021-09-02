@@ -290,12 +290,14 @@ struct
     | Cof (Cof.Eq (r, s)) ->
       Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
     | Cof (Cof.Join []) ->
-      Format.fprintf fmt "#f"
+      Format.fprintf fmt "%a"
+        Uuseg_string.pp_utf_8 "⊥"
     | Cof (Cof.Join phis) ->
       let pp_sep fmt () = Uuseg_string.pp_utf_8 fmt " ∨ " in
       Format.pp_print_list ~pp_sep (pp env P.(surrounded_by cof_join)) fmt phis
     | Cof (Cof.Meet []) ->
-      Format.fprintf fmt "#t"
+      Format.fprintf fmt "%a"
+        Uuseg_string.pp_utf_8 "⊤"
     | Cof (Cof.Meet phis) ->
       let pp_sep fmt () = Uuseg_string.pp_utf_8 fmt " ∧ " in
       Format.pp_print_list ~pp_sep (pp env P.(surrounded_by cof_meet)) fmt phis

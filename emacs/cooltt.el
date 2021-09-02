@@ -52,6 +52,10 @@
   '((t (:inherit font-lock-keyword-face))) "Face for cooltt's declaration keywords."
   :group 'cooltt)
 
+(defface cooltt-command-keyword-face
+  '((t (:inherit font-lock-preprocessor-face))) "Face for cooltt's command keywords."
+  :group 'cooltt)
+
 (defface cooltt-number-face
   '((t (:inherit font-lock-constant-face))) "Face for cooltt's numbers."
   :group 'cooltt)
@@ -112,24 +116,27 @@
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "let" "normalize" "quit" "import" "fail")
+  '("def" "let" "import")
   "Declaration keywords.")
 
+(defconst cooltt-command-keywords
+  '("#fail" "#normalize" "#print" "#quit")
+  "Command keywords.")
 
 (defconst cooltt-expression-keywords
   '("zero" "suc" "nat" "in" "fst" "snd" "elim" "unfold" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill" "sig" "struct")
   "Expression keywords.")
 
 
-
 (defconst cooltt-expression-symbols
-  '("=>" "|" "[" "," "*" "×" ":" "=" "_" "𝕀" "𝔽" "∂" "∧" "∨" "→" "!" "]" "->" "#t" "#f" "\\/" "/\\")
+  '("=>" "|" "[" "," "*" "×" ":" "=" "_" "𝕀" "𝔽" "∂" "∧" "∨" "→" "!" "]" "->" "tt" "⊤" "ff" "⊥" "\\/" "/\\")
   "Expression symbols.")
 
-(defvar cooltt-mode-font-lock-keywords
+(defconst cooltt-mode-font-lock-keywords
   `(
     ;; Declaration keyword
     (,(regexp-opt cooltt-declaration-keywords 'words) 0 'cooltt-declaration-keyword-face)
+    (,(regexp-opt cooltt-command-keywords 'nil) 0 'cooltt-command-keyword-face)
 
     ;; Numbers
     (,(rx word-start (? "-") (+ digit)) 0 'cooltt-number-face)

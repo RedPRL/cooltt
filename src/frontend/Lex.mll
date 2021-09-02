@@ -17,6 +17,14 @@ let make_table num elems =
   List.iter (fun (k, v) -> Hashtbl.add table k v) elems;
   table
 
+let commands =
+    make_table 0 [
+      ("#fail", FAIL);
+      ("#normalize", NORMALIZE);
+      ("#print", PRINT);
+      ("#quit", QUIT);
+    ]
+
 let keywords =
   make_table 0 [
     ("locked", LOCKED);
@@ -40,10 +48,6 @@ let keywords =
     ("generalize", GENERALIZE);
     ("def", DEF);
     ("axiom", AXIOM);
-    ("fail", FAIL);
-    ("normalize", NORMALIZE);
-    ("print", PRINT);
-    ("quit", QUIT);
     ("type", TYPE);
     ("𝕀", DIM);
     ("dim", DIM);
@@ -174,12 +178,17 @@ and real_token = parse
     { PROBE_HOLE }
   | "∂" (* XXX what to do with "∂i"? *)
     { BOUNDARY }
-  | "#t"
+  | "true" | "⊤"
     { TOPC }
-  | "#f"
+  | "false" | "⊥"
     { BOTC }
   | "#" atom_subsequent+
-    { Printf.eprintf "Unexpected symbol: %s\n" (lexeme lexbuf); token lexbuf }
+    {
+      let input = lexeme lexbuf in
+      match Hashtbl.find commands input with
+      | tok -> tok
+      | exception Not_found -> Printf.eprintf "Unknown Command: %s\n" (lexeme lexbuf); token lexbuf
+    }
   | eof
     { EOF }
   | atom
