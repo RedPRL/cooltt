@@ -15,14 +15,19 @@ module J = Ezjsonm
 let server : Unix.file_descr option ref =
   ref None
 
-let init port =
+let init host_name port =
   try
     Format.eprintf "Initializing cooltt server connection on port %n...@." port;
     let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-    let localhost = Unix.inet_addr_of_string "127.0.0.1" in
-    let () = Unix.connect socket (Unix.ADDR_INET (localhost, port)) in
-    Format.eprintf "Cooltt server connection initialized@.";
-    server := Some socket
+    let host_entry = Unix.gethostbyname host_name in
+    begin
+      match CCArray.get_safe host_entry.h_addr_list 0 with
+      | Some addr ->
+        let () = Unix.connect socket (Unix.ADDR_INET (addr, port)) in
+        Format.eprintf "Cooltt server connection initialized@.";
+        server := Some socket
+      | None -> Format.eprintf "Error: Could not initialize cooltt server connection.@."
+    end
   with Unix.Unix_error _ ->
     Format.eprintf "Error: Could not initialize cooltt server connection.@."
 

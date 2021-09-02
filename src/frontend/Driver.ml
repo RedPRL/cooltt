@@ -19,7 +19,7 @@ open Monad.Notation (RM)
 type options =
   { as_file : string option;
     debug_mode : bool;
-    server_port : int option }
+    server_info : (string * int) option }
 
 type status = (unit, unit) Result.t
 type continuation = Continue of (status RM.m -> status RM.m) | Quit
@@ -214,12 +214,12 @@ and process_file input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file {as_file; debug_mode; server_port} input =
+let load_file {as_file; debug_mode; server_info} input =
   match load_current_library ~as_file input with
   | Error () -> Error ()
   | Ok lib ->
     Debug.debug_mode debug_mode;
-    Option.iter Server.init server_port;
+    Option.iter (fun (hostname, port) -> Server.init hostname port) server_info;
     let unit_id = assign_unit_id ~as_file input in
     RM.run_exn ST.init (Env.init lib) @@
     RM.with_code_unit lib unit_id @@
