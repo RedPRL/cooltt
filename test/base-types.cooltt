@@ -1,17 +1,13 @@
 import prelude
 
-def unit : type := ext => nat with [#t => 0]
-
-def tt : unit := 0
-
-def unit/eta (x : unit) : path unit tt x :=
+def unit/eta (x : unit) : path unit ⋆ x :=
   _ => x
 
 def empty : type := path nat 0 1
 
 def abort (P : empty -> type) (e : empty) : P e :=
   let myelim : nat -> type := elim [ zero => unit | suc _ => P e ] in
-  coe {i => myelim {e i}} 0 1 tt
+  coe {i => myelim {e i}} 0 1 ⋆
 
 def sum (A B : type) : type :=
   let fam/shifted : nat -> type := elim [ zero => B | suc _ => empty ] in
