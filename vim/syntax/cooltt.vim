@@ -26,7 +26,7 @@ syn keyword coolttKeyw zero suc nat in fst snd elim unfold generalize type dim e
 syn keyword coolttKeyw cof sub ext coe hcom com hfill V vproj with struct sig tt ff #
 
 syn keyword coolttDecl def axiom let import section view export repack
-syn keyword coolttCmd #normalize #print #quit #fail
+syn keyword coolttCmd #normalize #print #quit #fail #viz
 
 syn match   coolttSymb '=>\|\.=\|[.|,*×:;=≔_𝕀𝔽∂∧∨→⇒!]\|->\|⊤\|⊥'
 syn match   coolttSymb '\\/\|/\\'
