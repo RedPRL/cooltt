@@ -14,12 +14,14 @@ type 'a telescope =
   | Done
 
 module Hole : sig
+  val silent_hole : string option -> Chk.tac
   val unleash_hole : string option -> Chk.tac
   val unleash_syn_hole : string option -> Syn.tac
 end
 
 module Probe : sig
   val probe_chk : string option -> Chk.tac -> Chk.tac
+  val probe_boundary : Chk.tac -> Chk.tac -> Chk.tac
   val probe_syn : string option -> Syn.tac -> Syn.tac
 end
 
@@ -60,6 +62,7 @@ module Univ : sig
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
   val signature : (string list * Chk.tac) list -> Chk.tac
+  val patch : Chk.tac -> (string list * Chk.tac) list -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
@@ -99,8 +102,10 @@ end
 
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
-  val intro : (string list * Chk.tac) list -> Chk.tac
+  val intro : (string list -> Chk.tac option) -> Chk.tac
   val proj : Syn.tac -> string list -> Syn.tac
+
+  val find_field_tac : (string list * Chk.tac) list -> string list -> Chk.tac option
 end
 
 module Sub : sig

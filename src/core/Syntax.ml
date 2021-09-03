@@ -5,8 +5,6 @@ module Make (Symbol : Symbol.S) =
 struct
   include SyntaxData.Make (Symbol)
 
-  let debug_mode = false
-
   let to_numeral =
     let rec go acc =
       function
@@ -149,7 +147,7 @@ struct
     let double_arrow = right 1
     let in_ = nonassoc 0
 
-    (** assumes [debug_mode] = [false] *)
+    (** assumes [Debug.is_debug_mode ()] = [false] *)
     let classify_tm : tm -> t =
       function
       | Var _ | Global _ -> atom
@@ -292,12 +290,14 @@ struct
     | Cof (Cof.Eq (r, s)) ->
       Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
     | Cof (Cof.Join []) ->
-      Format.fprintf fmt "#f"
+      Format.fprintf fmt "%a"
+        Uuseg_string.pp_utf_8 "⊥"
     | Cof (Cof.Join phis) ->
       let pp_sep fmt () = Uuseg_string.pp_utf_8 fmt " ∨ " in
       Format.pp_print_list ~pp_sep (pp env P.(surrounded_by cof_join)) fmt phis
     | Cof (Cof.Meet []) ->
-      Format.fprintf fmt "#t"
+      Format.fprintf fmt "%a"
+        Uuseg_string.pp_utf_8 "⊤"
     | Cof (Cof.Meet phis) ->
       let pp_sep fmt () = Uuseg_string.pp_utf_8 fmt " ∧ " in
       Format.pp_print_list ~pp_sep (pp env P.(surrounded_by cof_meet)) fmt phis
@@ -336,18 +336,18 @@ struct
         (pp_atomic env) mot
         (pp env P.isolated) base
         (pp env P.isolated) loop
-    | SubIn tm when debug_mode ->
+    | SubIn tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "sub/in %a" (pp_atomic env) tm
-    | SubOut tm when debug_mode ->
+    | SubOut tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "sub/out %a" (pp_atomic env) tm
-    | ElIn tm when debug_mode ->
+    | ElIn tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "el/in %a" (pp_atomic env) tm
-    | ElOut tm when debug_mode ->
+    | ElOut tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "el/out %a" (pp_atomic env) tm
     | SubIn tm | SubOut tm | ElIn tm | ElOut tm ->
       pp env penv fmt tm
 
-    | CodePi (base, fam) when debug_mode ->
+    | CodePi (base, fam) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[%a %a %a@]"
         Uuseg_string.pp_utf_8 "<∏>"
         (pp_atomic env) base
@@ -365,7 +365,7 @@ struct
         (pp_atomic env) base
         (pp_atomic env) tm
 
-    | CodeSg (base, fam) when debug_mode ->
+    | CodeSg (base, fam) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[%a %a %a@]"
         Uuseg_string.pp_utf_8 "<Σ>"
         (pp_atomic env) base
@@ -390,11 +390,11 @@ struct
         (pp_atomic Pp.Env.emp) phi
         (pp_atomic env) bdry
 
-    | CodeNat when debug_mode ->
+    | CodeNat when Debug.is_debug_mode () ->
       Format.fprintf fmt "`nat"
-    | CodeCircle when debug_mode ->
+    | CodeCircle when Debug.is_debug_mode () ->
       Format.fprintf fmt "`circle"
-    | CodeUniv when debug_mode ->
+    | CodeUniv when Debug.is_debug_mode () ->
       Format.fprintf fmt "`type"
     | CodeNat ->
       Format.fprintf fmt "nat"
@@ -417,7 +417,7 @@ struct
         Uuseg_string.pp_utf_8 x
         (pp env P.isolated) tm
         (pp envx P.(right_of in_)) bdy
-    | Box (r, s, phi, sides, cap) when debug_mode ->
+    | Box (r, s, phi, sides, cap) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[<hv2>box %a %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) s
@@ -426,7 +426,7 @@ struct
         (pp_atomic env) cap
     | Box (_r, _s, _phi, sides, cap) ->
       pp_tuple (pp env P.isolated) fmt [sides; cap]
-    | Cap (r, s, phi, code, box) when debug_mode->
+    | Cap (r, s, phi, code, box) when Debug.is_debug_mode ()->
       Format.fprintf fmt "@[<hv2>cap %a %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) s
@@ -441,7 +441,7 @@ struct
         (pp_atomic env) pcode
         (pp_atomic env) code
         (pp_atomic env) pequiv
-    | VIn (r, equiv, pivot, base) when debug_mode ->
+    | VIn (r, equiv, pivot, base) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[<hv2>vin %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) equiv
@@ -449,7 +449,7 @@ struct
         (pp_atomic env) base
     | VIn (_, _, pivot, base) ->
       pp_tuple (pp env P.isolated) fmt [pivot; base]
-    | VProj (r, pcode, code, pequiv, v) when debug_mode ->
+    | VProj (r, pcode, code, pequiv, v) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[<hv2>vproj %a %a %a %a %a@]"
         (pp_atomic env) r
         (pp_atomic env) pcode
@@ -537,7 +537,7 @@ struct
       Format.fprintf fmt "nat"
     | Circle ->
       Format.fprintf fmt "circle"
-    | El tm when debug_mode ->
+    | El tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "el %a" (pp_atomic env) tm
     | El tm ->
       pp env penv fmt tm
@@ -576,7 +576,7 @@ struct
       Format.fprintf fmt "%a %a"
         Uuseg_string.pp_utf_8 x
         (pp_lambdas envx) tm
-    | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not debug_mode ->
+    | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not @@ Debug.is_debug_mode () ->
       pp_lambdas env fmt tm
     | _ ->
       Format.fprintf fmt "=>@ @[%a@]"
@@ -590,42 +590,82 @@ struct
       pp_binders envx penv fmt tm
     | _ -> pp env penv fmt tm
 
-  let pp_sequent_goal ~lbl env fmt tp  =
-    let lbl = Option.value ~default:"" lbl in
-    match tp with
-    | Sub (tp, Cof (Cof.Join []), _) ->
-      Format.fprintf fmt "?%a : @[<hov>%a@]"
-        Uuseg_string.pp_utf_8 lbl
-        (pp_tp env P.(right_of colon)) tp
-    | Sub (tp, phi, tm) ->
-      let _x, envx = Pp.Env.bind env (Some "_") in
-      Format.fprintf fmt "@[?%a : @[<hv>%a@ [%a => %a]@]"
-        Uuseg_string.pp_utf_8 lbl
-        (pp_tp env P.(left_of juxtaposition)) tp
-        (pp env P.(left_of double_arrow)) phi
-        (pp envx P.(right_of double_arrow)) tm
-    | tp ->
-      Format.fprintf fmt "?%a : @[<hov>%a@]"
-        Uuseg_string.pp_utf_8 lbl
-        (pp_tp env P.(right_of colon)) tp
+  let pp_sequent_boundary env fmt tm =
+    let rec pp_branches env fmt (bdry, cons) =
+      match cons with
+      | CofSplit branches ->
+        let _x, envx = ppenv_bind env `Anon in
+        Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches envx) fmt branches
+      | _ -> pp_cof_split_branch env fmt (bdry, cons)
+    in
+    match tm with
+    | CofSplit branches when not (CCList.is_empty branches) ->
+      Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches env) fmt branches
+    | _ -> pp env P.isolated fmt tm
 
-  let rec pp_sequent_inner ~lbl env ctx fmt tp =
+  let rec pp_in_ctx env ctx pp_goal fmt goal =
     match ctx with
-    | [] ->
-      Format.fprintf fmt "|- @[<hov>%a@]"
-        (pp_sequent_goal ~lbl env)
-        tp
+    | [] -> pp_goal env fmt goal
     | (var, var_tp) :: ctx ->
       let x, envx = ppenv_bind env var in
       Fmt.fprintf fmt "%a : %a@;%a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) var_tp
-        (pp_sequent_inner ~lbl envx ctx) tp
+        (pp_in_ctx envx ctx pp_goal) goal
+
+  let rec get_constraints =
+    function
+    | Sub (tp, Cof (Cof.Join []), _) -> get_constraints tp
+    | Sub (tp, phi, tm) -> `Boundary (tp, phi, tm)
+    | El (CodeExt (0, tp, `Global phi, (Lam (_, tm)))) -> `Boundary (El tp, phi, tm)
+    | tp -> `Unconstrained tp
+
+  let pp_sequent_goal ~lbl env fmt tp  =
+    let lbl = Option.value ~default:"" lbl in
+    match get_constraints tp with
+    | `Boundary (tp, phi, tm) ->
+      let _x, envx = Pp.Env.bind env (Some "_") in
+      Format.fprintf fmt "|- ?%a : @[<hov>%a@]@,@,Boundary:@,%a@,|- @[<v>%a@]"
+        Uuseg_string.pp_utf_8 lbl
+        (pp_tp env P.(right_of colon)) tp
+        (pp env P.(right_of colon))
+        phi
+        (pp_sequent_boundary envx)
+        tm
+    | `Unconstrained tp ->
+      Format.fprintf fmt "|- ?%a : @[<hov>%a@]"
+        Uuseg_string.pp_utf_8 lbl
+        (pp_tp env P.(right_of colon)) tp
 
   let pp_sequent ~lbl ctx : tp Pp.printer =
     fun fmt tp ->
     Format.fprintf fmt "@[<v>%a@]"
-      (pp_sequent_inner ~lbl Pp.Env.emp ctx) tp
+      (pp_in_ctx Pp.Env.emp ctx (pp_sequent_goal ~lbl)) tp
+
+  let pp_boundary_sat fmt =
+    function
+    | `BdrySat -> Format.pp_print_string fmt "satisfied"
+    | `BdryUnsat -> Format.pp_print_string fmt "unsatisfied"
+
+  let pp_partial_sequent_goal bdry_sat env fmt (partial, tp) =
+    match get_constraints tp with
+    | `Boundary (tp, phi, tm) ->
+      let _x, envx = Pp.Env.bind env (Some "_") in
+      Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]@,@,Boundary (%a):@,%a@,|- @[<v>%a@]"
+        (pp env P.(right_of colon)) partial
+        (pp_tp env P.(right_of colon)) tp
+        pp_boundary_sat bdry_sat
+        (pp env P.(right_of colon)) phi
+        (pp_sequent_boundary envx) tm
+    | `Unconstrained tp ->
+      Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]"
+        (pp env P.(right_of colon)) partial
+        (pp_tp env P.(right_of colon)) tp
+
+  let pp_partial_sequent bdry_sat ctx : (t * tp) Pp.printer =
+    fun fmt goal ->
+    Format.fprintf fmt "@[<v>%a@]"
+      (pp_in_ctx Pp.Env.emp ctx (pp_partial_sequent_goal bdry_sat)) goal
 
   let pp env = pp env P.isolated
   let pp_tp env = pp_tp env P.isolated

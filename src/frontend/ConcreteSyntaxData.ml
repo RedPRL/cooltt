@@ -37,12 +37,14 @@ and con_ =
   | Signature of field list
   | Struct of field list
   | Proj of con * string list
+  | Patch of con * Ident.t * field list
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con
   | Snd of con
   | Type
   | Hole of string option * con option
+  | BoundaryHole of con option
   | Underscore
   | Unfold of Ident.t list * con
   | Generalize of Ident.t * con
@@ -97,6 +99,7 @@ type decl =
   | Print of Ident.t node
   | Import of string list * con option
   | NormalizeTerm of con
+  | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
   | Quit
 
 type command =

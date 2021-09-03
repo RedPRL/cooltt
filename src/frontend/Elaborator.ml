@@ -210,6 +210,8 @@ and chk_tm : CS.con -> T.Chk.tac =
   match con.node with
   | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
+  | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
+  | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
   | CS.Unfold (idents, c) ->
     (* TODO: move to a trusted rule *)
     T.Chk.brule @@
@@ -261,7 +263,7 @@ and chk_tm : CS.con -> T.Chk.tac =
 
     | CS.Struct fields ->
       let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
-      R.Signature.intro tacs
+      R.Signature.intro @@ R.Signature.find_field_tac tacs
 
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)
@@ -299,6 +301,10 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Signature fields ->
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
       R.Univ.signature tacs
+
+    | CS.Patch (tp, _ident, patches) ->
+      let tacs = List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      R.Univ.patch (chk_tm tp) tacs
 
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
@@ -341,6 +347,9 @@ and chk_tm : CS.con -> T.Chk.tac =
         RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
         RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
+      | D.Signature _ ->
+        let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
+        RM.ret @@ R.Signature.intro field_tac
       | _ ->
         RM.ret @@ T.Chk.syn @@ syn_tm con
 
@@ -351,6 +360,8 @@ and syn_tm : CS.con -> T.Syn.tac =
     match con.node with
     | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
     | CS.Hole (name, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
+    | CS.BoundaryHole None ->  Refiner.Hole.unleash_syn_hole None
+    | CS.BoundaryHole (Some con) ->  Refiner.Probe.probe_syn None @@ syn_tm con
     | CS.Var id ->
       R.Structural.lookup_var id
     | CS.DeBruijnLevel lvl ->

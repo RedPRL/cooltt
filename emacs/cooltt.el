@@ -12,6 +12,7 @@
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
+
 ;; (at your option) any later version.
 
 ;; This program is distributed in the hope that it will be useful,
@@ -51,6 +52,10 @@
   '((t (:inherit font-lock-keyword-face))) "Face for cooltt's declaration keywords."
   :group 'cooltt)
 
+(defface cooltt-command-keyword-face
+  '((t (:inherit font-lock-preprocessor-face))) "Face for cooltt's command keywords."
+  :group 'cooltt)
+
 (defface cooltt-number-face
   '((t (:inherit font-lock-constant-face))) "Face for cooltt's numbers."
   :group 'cooltt)
@@ -86,6 +91,19 @@
   :tag "Command for cooltt"
   :options '("cooltt"))
 
+(defcustom cooltt-debug nil
+  "Is debug mode enabled for cooltt."
+  :group 'cooltt
+  :type 'boolean
+  :local t
+  :tag "Enable debug mode for cooltt")
+
+(defcustom cooltt-options nil
+  "Additional options to provide to cooltt."
+  :group 'cooltt
+  :type '(repeat string)
+  :tag "Cooltt options")
+
 (defvar cooltt-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?_ "w" table)
@@ -98,24 +116,27 @@
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "let" "normalize" "quit" "import")
+  '("def" "let" "import")
   "Declaration keywords.")
 
+(defconst cooltt-command-keywords
+  '("#fail" "#normalize" "#print" "#quit")
+  "Command keywords.")
 
 (defconst cooltt-expression-keywords
   '("zero" "suc" "nat" "in" "fst" "snd" "elim" "unfold" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill" "sig" "struct")
   "Expression keywords.")
 
 
-
 (defconst cooltt-expression-symbols
-  '("=>" "|" "[" "," "*" "×" ":" "=" "_" "𝕀" "𝔽" "∂" "∧" "∨" "→" "!" "]" "->" "#t" "#f" "\\/" "/\\")
+  '("=>" "|" "[" "," "*" "×" ":" "=" "_" "𝕀" "𝔽" "∂" "∧" "∨" "→" "!" "]" "->" "tt" "⊤" "ff" "⊥" "\\/" "/\\")
   "Expression symbols.")
 
-(defvar cooltt-mode-font-lock-keywords
+(defconst cooltt-mode-font-lock-keywords
   `(
     ;; Declaration keyword
     (,(regexp-opt cooltt-declaration-keywords 'words) 0 'cooltt-declaration-keyword-face)
+    (,(regexp-opt cooltt-command-keywords 'nil) 0 'cooltt-command-keyword-face)
 
     ;; Numbers
     (,(rx word-start (? "-") (+ digit)) 0 'cooltt-number-face)
@@ -132,8 +153,10 @@
        "\\([0-9]+\\)\\.\\([0-9]+\\)" ;; Starting Line/Column
        "-"
        "\\([0-9]+\\)\\.\\([0-9]+\\)" ;; Ending Line/Column
-       " \\(\\[Info\\]\\)?")         ;; Match forward if we see [Info]
-     1 (2 . 4) (3 . 5) (nil . 6)))
+       " "
+       "\\(\\[Warn\\]\\)?"          ;; Match forward if we see [Warn]
+       "\\(\\[Info\\]\\)?")         ;; Match forward if we see [Info]
+     1 (2 . 4) (3 . 5) (6 . 7)))
   "Regexps used for matching cooltt compilation messages.
 See `compilation-error-regexp-alist' for semantics.")
 
@@ -150,6 +173,24 @@ See `compilation-error-regexp-alist' for semantics.")
   "Compute a buffer name for the `cooltt-mode' compilation buffer."
   cooltt--compilation-buffer-name)
 
+(defun cooltt-toggle-debug ()
+  "Toggle debug mode for cooltt."
+  (interactive)
+  (if cooltt-debug
+      (progn
+        (setq cooltt-debug nil)
+        (message "Cooltt Debug Mode Disabled."))
+
+    (setq cooltt-debug t)
+    (message "Cooltt Debug Mode Enabled.")))
+
+(defun cooltt-compile-options ()
+  "Compute the options to provide to cooltt."
+  (let (opts cooltt-options)
+    (when cooltt-debug
+      (push "--debug" opts))
+    opts))
+
 (defun cooltt-compile-buffer ()
   "Load the current file into cooltt."
   (interactive)
@@ -159,7 +200,8 @@ See `compilation-error-regexp-alist' for semantics.")
           (when (buffer-modified-p) (save-buffer))
           (let* ((dir (file-name-directory filename))
                  (file (file-name-nondirectory filename))
-                 (command (concat cooltt-command " load-file " file))
+                 (opts (mapconcat 'identity (cooltt-compile-options) " "))
+                 (command (concat cooltt-command " load-file " file " " opts))
 
                  ;; Emacs compile config stuff - these are special vars
                  (compilation-buffer-name-function
@@ -179,6 +221,7 @@ See `compilation-error-regexp-alist' for semantics.")
 
   ;; Bind mode-specific commands to keys
   (define-key cooltt-mode-map (kbd "C-c C-l") 'cooltt-compile-buffer)
+  (define-key cooltt-mode-map (kbd "C-c C-x C-d") 'cooltt-toggle-debug)
 
   (set (make-local-variable 'completion-at-point-functions)
        '(cooltt-completion-at-point)))

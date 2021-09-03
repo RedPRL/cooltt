@@ -6,16 +6,17 @@ let _ =
   ()
 
 type options =
-  { mode: [`Interactive | `Scripting of [`Stdin | `File of string]];
+  { mode : [`Interactive | `Scripting of [`Stdin | `File of string]];
     as_file : string option;
-    width: int }
+    width : int;
+    debug_mode : bool }
 
-let main {mode; as_file; width} =
+let main {mode; as_file; width; debug_mode} =
   Format.set_margin width;
   match
     match mode with
-    | `Interactive -> Driver.do_repl ~as_file
-    | `Scripting input -> Driver.load_file ~as_file input
+    | `Interactive -> Driver.do_repl ~as_file ~debug_mode
+    | `Scripting input -> Driver.load_file ~as_file ~debug_mode input
   with
   | Ok () -> `Ok ()
   | Error () -> `Error (false, "encountered one or more errors")
@@ -47,6 +48,11 @@ let opt_as_file =
   in
   Arg.(value & opt (some string) None & info ["as-file"] ~doc ~docv:"FILE")
 
+let opt_debug =
+  let doc = "Enable debug mode. This will print out a bunch of information pertaining to the internal operations of cooltt."
+  in
+  Arg.(value & flag & info ["debug"] ~doc)
+
 let myinfo =
   let doc = "elaborate and normalize terms in Cartesian cubical type theory" in
   let err_exit = Term.exit_info ~doc:"on ill-formed types or terms." 1 in
@@ -61,14 +67,14 @@ let parse_mode =
 
 let quote s = "`" ^ s ^ "'"
 
-let consolidate_options mode interactive width input_file as_file : options Term.ret =
+let consolidate_options mode interactive width input_file as_file debug_mode : options Term.ret =
   match Option.map parse_mode mode, interactive, width, input_file with
   | (Some `Scripting | None), false, width, Some input_file ->
-    `Ok {mode = `Scripting input_file; as_file; width;}
+    `Ok {mode = `Scripting input_file; as_file; width; debug_mode}
   | (Some `Scripting | None), false, _, None ->
     `Error (true, "scripting mode expects an input file")
   | Some `Interactive, _, width, None | None, true, width, None ->
-    `Ok {mode = `Interactive; as_file; width}
+    `Ok {mode = `Interactive; as_file; width; debug_mode}
   | Some `Interactive, _, _, Some _ | None, true, _, _ ->
     `Error (true, "interactive mode expects no input files")
   | Some `Scripting, true, _, _ ->
@@ -78,7 +84,7 @@ let consolidate_options mode interactive width input_file as_file : options Term
 
 let () =
   let options : options Term.t =
-    Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file $ opt_as_file))
+    Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file $ opt_as_file $ opt_debug))
   in
   let t = Term.ret @@ Term.(const main $ options) in
   Term.exit @@ Term.eval ~catch:true ~err:Format.std_formatter (t, myinfo)

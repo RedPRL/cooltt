@@ -993,6 +993,13 @@ and whnf_tp_ ~style tp =
   | `Done -> ret tp
   | `Reduce tp -> ret tp
 
+and whnf_con_ ~style con =
+  let open CM in
+  whnf_con ~style con |>>
+  function
+  | `Done -> ret con
+  | `Reduce con -> ret con
+
 and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
   let open CM in
 

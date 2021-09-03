@@ -1,4 +1,6 @@
-FROM alpine:3.14
+ARG BASE_TAG
+
+FROM ${BASE_TAG:-alpine:latest} AS base
 
 WORKDIR "/src/"
 
@@ -22,6 +24,8 @@ RUN \
   apk add --no-cache ocaml ocaml-ocamldoc ocaml-compiler-libs opam make m4 musl-dev gmp-dev g++ python2 git && \
   opam init --disable-sandboxing --disable-completion --no-setup --yes && \
   opam install --deps-only --yes --with-test --with-doc "./"
+
+FROM base AS builder
 
 COPY ["Makefile", "Makefile"]
 COPY ["src", "src"]

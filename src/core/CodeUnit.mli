@@ -1,5 +1,7 @@
 open Basis
 
+module J = Ezjsonm
+
 module CodeUnitID :
 sig
   type t
@@ -10,7 +12,10 @@ sig
 end
 type id = CodeUnitID.t
 
-module Global : Symbol.S
+module Global :
+sig
+  include Symbol.S
+end
 
 module Domain : module type of Domain.Make(Global)
 module Syntax : module type of Syntax.Make(Global)
@@ -26,21 +31,12 @@ module CodeUnit : sig
   (** The name of a given code unit *)
   val id : t -> id
 
-  (** All of the code unit this unit directly imports *)
-  val imports : t -> id list
-
   (** Create a code unit. *)
   val create : id -> t
 
   (** Add a binding to a given code unit. *)
   val add_global : Ident.t -> Domain.tp -> Domain.con option -> t -> (Global.t * t)
 
-  (** Attempt to resolve an identifier a given code unit. *)
-  val resolve_global : Ident.t -> t -> Global.t option
-
   (** Get the binding associated with a symbol. *)
   val get_global : Global.t -> t -> Domain.tp * Domain.con option
-
-  (** Add another code unit as an import. *)
-  val add_import : [< `Print of string option] Yuujinchou.Pattern.t -> t -> t -> t
 end

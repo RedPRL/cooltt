@@ -4,7 +4,7 @@ import prelude
 
 -- pretend we have CCHM Id-types
 def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0 ∨ φ} x} → type)
-  (d : B #t {_ => x})
+  (d : B ⊤ {_ => x})
   (φ : 𝔽) (p : (i : 𝕀) → sub A {i=0 ∨ φ} x)
   : sub {B φ p} φ d
   :=
@@ -69,19 +69,19 @@ def pentagon (A : type)
   special-j A {r 1}
     {pentagonType A p φ q ψ r}
     {special-j A {q 1}
-      {ψ r => pentagonType A p φ q ψ r #t {_ => r 1}}
+      {ψ r => pentagonType A p φ q ψ r ⊤ {_ => r 1}}
       {special-j A {p 1}
-        {φ q => pentagonType A p φ q #t {_ => q 1} #t {_ => q 1}}
+        {φ q => pentagonType A p φ q ⊤ {_ => q 1} ⊤ {_ => q 1}}
         {_ _ => p}
         φ q}
       ψ r}
 
--- get the standard functions by instantiating at #f everywhere
+-- get the standard functions by instantiating at ⊥ everywhere
 
 def trans' (A : type) (p : (i : 𝕀) → A) (q : (i : 𝕀) → sub A {i=0} {p 1})
   : path A {p 0} {q 1}
   :=
-  trans A p #f q
+  trans A p ⊥ q
 
 def assoc' (A : type)
   (p : (i : 𝕀) → A)
@@ -89,7 +89,7 @@ def assoc' (A : type)
   (r : (i : 𝕀) → sub A {i=0} {q 1})
   : path {path A {p 0} {r 1}} {trans' A {trans' A p q} r} {trans' A p {trans' A q r}}
   :=
-  assoc A p #f q #f r
+  assoc A p ⊥ q ⊥ r
 
 def pentagon' (A : type)
   (p : (i : 𝕀) → A)
@@ -110,7 +110,7 @@ def pentagon' (A : type)
         {assoc' A p {trans' A q r} s}
         {j => trans' A p {assoc' A q r s j}}}}
   :=
-  pentagon A p #f q #f r #f s
+  pentagon A p ⊥ q ⊥ r ⊥ s
 
 def test (A : type)
   (p : (i : 𝕀) → A)
@@ -119,4 +119,4 @@ def test (A : type)
   (s : (i : 𝕀) → sub A {i=0} {r 1})
   : (j : 𝕀) → path A {p 0} {r 1}
   :=
-  j => assoc A p #f q #f r j
+  j => assoc A p ⊥ q ⊥ r j

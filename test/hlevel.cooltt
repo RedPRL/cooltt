@@ -1,5 +1,4 @@
-def path (A : type) (a b : A) : type :=
-  ext i => A with [i=0 => a | i=1 => b]
+import prelude
 
 def is-contr (C : type) : type :=
   (c : C) × {(c' : C) → path C c c'}
@@ -30,28 +29,8 @@ def hProp : type := hLevel 1
 def hSet : type := hLevel 2
 def hGroupoid : type := hLevel 3
 
-print hProp
-normalize hProp
-
-def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A :=
-  hfill A 0 {∂ i} {j _ =>
-    [ j=0 ∨ i=1 => p 0
-    | i=0 => p j
-    ]
-  }
-
-def symm (A : type) (p : 𝕀 → A) : path A {p 1} {p 0} :=
-  i => symm/filler A p i 1
-
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j : 𝕀) (i : 𝕀) : A :=
-  hcom A 0 j {∂ i} {j _ =>
-    [ j=0 ∨ i=0 => p i
-    | i=1 => q j
-    ]
-  }
-
-def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
-  trans/filler A p q 1
+#print hProp
+#normalize hProp
 
 def contr-prop (A : type) (A/contr : is-contr A) : is-prop A :=
   a a' => trans A {symm A {{snd A/contr} a}} {{snd A/contr} a'}

@@ -6,11 +6,13 @@ def basic : type :=
     (foo.x : nat)
     (bar : nat → nat)
 
-def basic.inhabit : basic := struct (foo.x : 1) (bar : x => x)
+def basic.inhabit : basic := struct (foo.x : 1) (bar : x => suc x)
 
-print basic
-print basic.inhabit
-normalize basic.inhabit
+#print basic
+#print basic.inhabit
+#normalize basic.inhabit
+#normalize basic.inhabit@foo.x
+#normalize basic.inhabit@bar 1
 
 def basic/ext
   (b0 : basic) (b1 : basic)
@@ -27,7 +29,7 @@ def depend : type :=
     (tp : type)
     (fun : tp → tp)
 
-print depend
+#print depend
 
 -- Make sure dependent paths work
 def depend/ext
@@ -37,6 +39,7 @@ def depend/ext
   (q : path-p {i => p i → p i} {d0 @ fun} {d1 @ fun}) : path depend d0 d1
 :=
 i => struct (tp : p i) (fun : q i)
+
 
 -- Can we inhabit first class sigs?
 def sig/inhabit :

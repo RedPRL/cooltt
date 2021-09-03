@@ -5,6 +5,9 @@
   let locate (start, stop) node =
     {node; info = Some {start; stop}}
 
+  let info_at (start, stop) : info =
+    Some {start; stop}
+
   let name_of_atoms parts = `User parts
 
   let name_of_underscore = `Anon
@@ -31,25 +34,25 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token BANG COLON COLON_EQUALS PIPE COMMA DOT SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
-%token LPR RPR LBR RBR LSQ RSQ
+%token BANG COLON COLON_EQUALS PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS JOIN MEET
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token SIG STRUCT PROJ
+%token SIG STRUCT PROJ AS
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM
+%token QUIT NORMALIZE PRINT DEF AXIOM FAIL
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
 %token V VPROJ CAP
 
-%nonassoc IN RRIGHT_ARROW SEMI
+%nonassoc IN AS RRIGHT_ARROW SEMI
 %nonassoc COLON
 %left PROJ
 %right RIGHT_ARROW TIMES
@@ -127,6 +130,8 @@ decl:
     { Def {name = nm; args = tele; def = Some body; tp} }
   | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Def {name = nm; args = tele; def = None; tp} }
+  | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term
@@ -239,9 +244,10 @@ plain_atomic_term_except_name:
     { TopC }
   | BOTC
     { BotC }
-
   | LSQ t = bracketed RSQ
     { t }
+  | LBANG; t = ioption(term); RBANG
+    { BoundaryHole t }
 
 bracketed:
   | left = term COMMA right = term
@@ -276,6 +282,8 @@ plain_term_except_cof_case:
     { ap_or_atomic (List.concat [List.map term_of_name @@ Option.value ~default:[] spine; [arg1]; args2]) }
   | spine = nonempty_list_left_recursive(name)
     { ap_or_atomic (List.map term_of_name spine) }
+  | t = term; PROJ; lbl = path; spine = list_left_recursive(atomic_term)
+    { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | UNLOCK; t = term; IN; body = term;
     { Unlock (t, body) }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
@@ -306,12 +314,15 @@ plain_term_except_cof_case:
     { Signature tele }
   | STRUCT; tele = list(field);
     { Struct tele }
-  | t = term; PROJ; lbl = path
-    { Proj (t, lbl) }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
     { Sg ([Cell {names = [`Anon]; tp = dom}], cod) }
+  /* So the issue is when we have a cofibration split case, we will have a bunch of pipe separated things
+   We need to ensure that any patches occur in brackets...
+   */
+  | tp = term; AS; n = plain_name; ps = patches
+    { Patch (tp, n, ps) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
   | FST; t = atomic_term
@@ -326,10 +337,8 @@ plain_term_except_cof_case:
     { Cap t }
   | name = HOLE_NAME; SEMI; t = term
     { Hole (name, Some t) }
-
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }
-
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
@@ -352,6 +361,7 @@ cof_case:
     { let name, body = t in term_of_name name, body }
   | phi = located(plain_cof_or_atomic_term_except_name) RRIGHT_ARROW t = term
     { phi, t }
+
 
 pat_lbl:
   | ZERO
@@ -379,6 +389,14 @@ pat_arg:
 field:
   | LPR lbl = path; COLON tp = term; RPR
     { Field {lbl; tp} }
+
+patch:
+  | lbl = path; DOT_EQUALS; tp = term
+    { Field {lbl; tp} }
+
+patches:
+  | LSQ ioption(PIPE) patches = separated_list(PIPE, patch) RSQ
+  { patches }
 
 tele_cell:
   | LPR names = nonempty_list(plain_name); COLON tp = term; RPR

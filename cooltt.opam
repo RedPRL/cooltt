@@ -9,13 +9,14 @@ dev-repo: "git+https://github.com/RedPRL/cooltt.git"
 synopsis: "Experimental implementation of Cartesian cubical type theory"
 license: "Apache-2.0"
 depends: [
+  "dune" {>= "2.0"}
+  "ocaml" {>= "4.10.0"}
+  "ppx_deriving" {>= "4.4.1"}
   "cmdliner" {>= "1.0"}
   "containers" {>= "3.4"}
   "cppo" {build & >= "1.6.7"}
-  "dune" {>= "2.0"}
+  "ezjsonm" {>= "1.2.0"}
   "menhir" {>= "20180703"}
-  "ocaml" {>= "4.10.0"}
-  "ppx_deriving" {>= "4.4.1"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
   "odoc" {with-doc}

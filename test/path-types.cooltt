@@ -5,7 +5,7 @@ def formation : {
   ext i => A i with [i=0 => a | i=1 => b]
 }
 
-normalize formation
+#normalize formation
 
 def path (A : type) (a : A) (b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
@@ -18,7 +18,7 @@ def myrefl : {
 }
 
 
-normalize myrefl
+#normalize myrefl
 
 def funext : {
   (A B : type) (f : (x : A) → B) (g : (x : A) → B)
@@ -29,7 +29,7 @@ def funext : {
   h x i
 }
 
-normalize funext
+#normalize funext
 
 def funextdep : {
   (A : 𝕀 → type) (B : (i : 𝕀) → A i → type)
@@ -52,4 +52,4 @@ def pairext : {
   ]
 }
 
-normalize pairext
+#normalize pairext
