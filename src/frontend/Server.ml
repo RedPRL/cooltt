@@ -41,12 +41,8 @@ let close () =
 let ppenv_bind env ident =
   Pp.Env.bind env @@ Ident.to_string_opt ident
 
-let serialize_label (n : int) (str : string) (axes : (int * float) list) : J.value =
-  let pos = Array.make n (J.float 0.0) in
-  let _ = axes |> List.iter @@ fun (dim, p) ->
-    Array.set pos dim (J.float p)
-  in
-  `O [("position", `A (Array.to_list pos)); ("txt", `String str)]
+let serialize_label (str : string) (pos : (string * float) list) : J.value =
+  `O [("position", `O (List.map (fun (nm, d) -> (nm, J.float d)) pos)); ("txt", `String str)]
 
 let dim_tm : S.t -> float =
   function
@@ -55,7 +51,7 @@ let dim_tm : S.t -> float =
   | _ -> failwith "dim_tm: bad dim"
 
 (* Fetch a list of label positions from a cofibration. *)
-let rec dim_from_cof (dims : (int option) bwd) (cof : S.t) : (int * float) list list =
+let rec dim_from_cof (dims : (string option) bwd) (cof : S.t) : (string * float) list list =
   match cof with
   | S.Cof (Cof.Eq (S.Var v, r)) ->
     let axis = Option.get @@ Bwd.nth dims v in
@@ -66,7 +62,7 @@ let rec dim_from_cof (dims : (int option) bwd) (cof : S.t) : (int * float) list 
   | _ -> failwith "dim_from_cof: bad cof"
 
 (* Create our list of labels from a boundary constraint. *)
-let boundary_labels (num_dims : int) (dims : (int option) bwd) (env : Pp.env) (tm : S.t) : J.value list =
+let boundary_labels (dims : (string option) bwd) (env : Pp.env) (tm : S.t) : J.value list =
   let rec go env dims (bdry, cons) =
     match cons with
     | S.CofSplit branches ->
@@ -75,7 +71,7 @@ let boundary_labels (num_dims : int) (dims : (int option) bwd) (env : Pp.env) (t
     | _ ->
       let (_x, envx) = ppenv_bind env `Anon in
       let lbl = Format.asprintf "%a" (S.pp envx) cons in
-      List.map (serialize_label num_dims lbl) @@ dim_from_cof (Snoc (dims, None)) bdry
+      List.map (serialize_label lbl) @@ dim_from_cof (Snoc (dims, None)) bdry
   in
   match tm with
   | S.CofSplit branches ->
@@ -84,17 +80,17 @@ let boundary_labels (num_dims : int) (dims : (int option) bwd) (env : Pp.env) (t
   | _ -> []
 
 let serialize_boundary (ctx : (Ident.t * S.tp) list) (goal : S.tp) : J.t option =
-  let rec go dim_count dims env =
+  let rec go dims env =
     function
     | [] ->
       begin
         match goal with
         | S.Sub (_, _, bdry) ->
-          let num_dims = Bwd.length @@ Bwd.filter Option.is_some dims in
-          let labels = boundary_labels num_dims dims env bdry in
+          let dim_names = Bwd.to_list @@ Bwd.filter_map Fun.id dims in
+          let labels = boundary_labels dims env bdry in
           let context = Format.asprintf "%a" (S.pp_sequent ~lbl:None ctx) goal in
           let msg = `O [
-              ("dim", J.float @@ Int.to_float num_dims);
+              ("dims", `A (List.map J.string dim_names));
               ("labels", `A labels);
               ("context", `String context)
             ] in
@@ -102,11 +98,11 @@ let serialize_boundary (ctx : (Ident.t * S.tp) list) (goal : S.tp) : J.t option 
         | _ -> None
       end
     | (var, var_tp) :: ctx ->
-      let (_x, envx) = ppenv_bind env var in
+      let (dim_name, envx) = ppenv_bind env var in
       match var_tp with
-      | S.TpDim -> go (dim_count + 1) (Snoc (dims, Some dim_count)) envx ctx
-      | _ -> go dim_count (Snoc (dims, None)) envx ctx
-  in go 0 Emp Pp.Env.emp ctx
+      | S.TpDim -> go (Snoc (dims, Some dim_name)) envx ctx
+      | _ -> go (Snoc (dims, None)) envx ctx
+  in go Emp Pp.Env.emp ctx
 
 let dispatch_goal ctx goal =
   match !server, serialize_boundary ctx goal with
