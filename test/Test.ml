@@ -8,7 +8,7 @@ let execute_file fname =
   if String.equal (Filename.extension fname) ".cooltt" then
     try
       let _ = print_string (header fname) in
-      let opts = { as_file = None; debug_mode = false; server_port = None } in
+      let opts = { as_file = None; debug_mode = false; server_info = None } in
       ignore @@ Driver.load_file opts (`File fname)
     with
       e ->
