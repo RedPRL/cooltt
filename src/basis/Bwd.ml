@@ -36,7 +36,7 @@ struct
     | Emp ->
       failwith "Bwd.nth"
     | Snoc (_, x) when i = 0 -> x
-    | Snoc (xs, _) -> (nth[@tailcall]) xs @@ i - 1
+    | Snoc (xs, _) -> (nth[@tailcall]) xs (i - 1)
 
   let rec mem a xs =
     match xs with
