@@ -109,6 +109,11 @@ module Signature : sig
   val find_field_tac : (Ident.user * Chk.tac) list -> Ident.user -> Chk.tac option
 end
 
+module Data : sig
+  val formation : Ident.t -> (var -> (string list * Tp.tac telescope) list) -> Tp.tac
+  val intro : string list -> Chk.tac list -> Chk.tac
+end
+
 module Sub : sig
   val formation : Tp.tac -> Chk.tac -> (var -> Chk.tac) -> Tp.tac
   val intro : Chk.tac -> Chk.tac

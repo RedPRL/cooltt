@@ -29,6 +29,21 @@ type 'a telescope =
   | Bind of Ident.user * 'a * (T.var -> 'a telescope)
   | Done
 
+module Telescope =
+struct
+  (* FIXME: We should move this elsewhere/generalize? *)
+
+  let tps (tacs : T.Tp.tac telescope) : unit S.telescope RM.m =
+    let rec go tele =
+      function
+      | Bind (nm, tac, tacs) ->
+        let* tp = T.Tp.run tac in
+        let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+        T.abstract ~ident:(nm :> Ident.t) vtp @@ fun var -> go (Snoc (tele, ((nm :> Ident.t), tp))) (tacs var)
+      | Done -> RM.ret @@ S.Telescope.of_bwd tele ()
+    in go Emp tacs
+end
+
 module GlobalUtil : sig
   val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
   val multi_pi : Env.cell list -> S.tp m -> S.tp m
@@ -586,6 +601,46 @@ struct
       let+ tp = proj_tp sign tstruct lbl in
       S.Proj (tstruct, lbl), tp
     | _ -> RM.expected_connective `Signature tp
+end
+
+module Data =
+struct
+  let formation (self : Ident.t) (tacs : T.var -> (string list * T.Tp.tac telescope) list) : T.Tp.tac =
+    T.Tp.rule ~name:"Data.formation" @@
+    let+ ctors =
+      T.abstract ~ident:self D.Univ @@ fun var ->
+      MU.map (MU.second Telescope.tps) (tacs var)
+    in
+    S.Data { self; ctors }
+
+  (* FIXME: Tail Recursion? *)
+  (* FIXME: Should we do something similar to Signature.intro with names? *)
+  let rec ctor_args (tele : unit D.telescope) (tacs : T.Chk.tac list) : S.t list m =
+    match tele, tacs with
+    | D.Bind (_, tp, tele_clo), tac :: tacs ->
+      let* arg = T.Chk.run tac tp in
+      let* varg = RM.lift_ev @@ Sem.eval arg in
+      let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
+      let+ args = ctor_args tele tacs in
+      arg :: args
+    | D.Done (), [] -> RM.ret []
+    | _, _ -> failwith "[FIXME] Data.ctor_args: tac/arg mismatch"
+
+
+  let intro (ctor_nm : string list) (tacs : T.Chk.tac list) : T.Chk.tac =
+    T.Chk.rule ~name:"Data.intro" @@
+    function
+    | (D.Data {ctors; _}) ->
+      begin
+        match List.assoc_opt ~eq:(List.equal String.equal) ctor_nm ctors with
+        | Some tele ->
+          let+ args = ctor_args tele tacs in
+          S.Ctor (ctor_nm, args)
+        | None -> failwith "[FIXME] Data.intro: cannot find constructor"
+
+      end
+    | tp -> failwith "[FIXME] Data.intro: goal mismatch"
+
 end
 
 module Univ =

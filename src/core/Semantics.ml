@@ -42,7 +42,7 @@ let get_local_tp i =
   let* env = EvM.read_local in
   match Bwd.nth env.tpenv i with
   | v -> EvM.ret v
-  | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
+  | exception _ -> EvM.throw @@ NbeFailed "Type variable out of bounds"
 
 
 let tri_test_cof phi =
@@ -482,6 +482,15 @@ and subst_sp : D.dim -> DimProbe.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
   CM.MU.map @@ subst_frm r x
 
+and eval_tele : 'e S.telescope -> 'e D.telescope EvM.m =
+  let open EvM in
+  function
+  | Done e -> ret @@ D.Done e
+  | Bind (nm, tp, tele) ->
+    let+ env = read_local
+    and+ vtp = eval_tp tp in
+    D.Bind (nm, vtp, D.Clo (tele, env))
+
 and eval_sign : S.sign -> D.sign EvM.m =
   let open EvM in
   function
@@ -507,6 +516,10 @@ and eval_tp : S.tp -> D.tp EvM.m =
   | S.Signature sign ->
     let+ vsign = eval_sign sign in
     D.Signature vsign
+  | S.Data {self; ctors} ->
+    (* We bind a variable here to account for 'self' *)
+    let+ vctors = append [D.StableCode `Univ] @@  MU.map (MU.second eval_tele) ctors in
+    D.Data {self; ctors = vctors}
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -1125,6 +1138,12 @@ and inst_sign_clo : D.sign_clo -> D.con -> D.sign CM.m =
   match clo with
   | D.Clo (sign, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_sign sign
+
+and inst_tele_clo : unit D.tele_clo -> D.con -> unit D.telescope CM.m =
+  fun clo x ->
+  match clo with
+  | D.Clo (tele, env) ->
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_tele tele
 
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con ~style con =

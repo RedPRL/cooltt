@@ -38,7 +38,6 @@ let keywords =
     ("sig", SIG);
     ("struct", STRUCT);
     ("data", DATA);
-    ("where", WHERE);
     ("as", AS);
     ("🍪", CIRCLE);
     ("let", LET);

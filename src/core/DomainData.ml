@@ -49,6 +49,11 @@ struct
   and tp_clo = S.tp clo
   and tm_clo = S.t clo
   and sign_clo = S.sign clo
+  and 'e tele_clo = 'e S.telescope clo
+
+  and 'e telescope =
+    | Bind of Ident.t * tp * 'e tele_clo
+    | Done of 'e
 
   (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
   and con =
@@ -108,6 +113,7 @@ struct
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
     | Signature of sign
+    | Data of datatype
     | Nat
     | Circle
     | TpLockedPrf of cof
@@ -115,6 +121,8 @@ struct
   and sign =
     | Field of Ident.user * tp * S.sign clo
     | Empty
+
+  and datatype = { self : Ident.t; ctors : (string list * unit telescope) list }
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =

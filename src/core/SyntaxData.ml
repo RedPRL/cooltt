@@ -1,5 +1,6 @@
 open Basis
 open Cubical
+open Bwd
 
 module Make (Symbol : Symbol.S) =
 struct
@@ -26,6 +27,8 @@ struct
 
     | Struct of (Ident.user * t) list
     | Proj of t * Ident.user
+
+    | Ctor of string list * t list
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -77,12 +80,20 @@ struct
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
     | Signature of sign
+    | Data of datatype
     | Nat
     | Circle
     | TpESub of sub * tp
     | TpLockedPrf of t
 
+  (* TODO: Replace sign with the telescope machinery *)
   and sign = (Ident.user * tp) list
+
+  and 'e telescope =
+    | Bind of Ident.t * tp * 'e telescope
+    | Done of 'e
+
+  and datatype = { self : Ident.t; ctors : (string list * unit telescope) list }
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =
@@ -101,4 +112,11 @@ struct
     | SbP
     (** The projection from a extended context [Γ.A → Γ]. *)
 
+  module Telescope =
+  struct
+    let rec of_bwd (xs : (Ident.t * tp) bwd) (e : 'e) : 'e telescope =
+      match xs with
+      | Emp -> Done e
+      | Snoc (xs, (nm, tp)) -> Bind (nm, tp, of_bwd xs e)
+  end
 end

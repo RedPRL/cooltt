@@ -43,7 +43,7 @@
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT PROJ AS
-%token DATA WHERE
+%token DATA
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM FAIL
@@ -136,8 +136,6 @@ decl:
     { Def {name = nm; args = tele; def = Some body; tp} }
   | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Def {name = nm; args = tele; def = None; tp} }
-  | DATA; nm = plain_name; COLON; tp = term; WHERE; tele = list(field)
-    { Data { name = nm; params = tp; ctors = tele } }
   | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }
   | QUIT
@@ -322,6 +320,8 @@ plain_term_except_cof_case:
     { Signature tele }
   | STRUCT; tele = list(field);
     { Struct tele }
+  | DATA; AS; self = plain_name; ctors = list(ctor);
+    { Data {self; ctors} }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
@@ -399,6 +399,10 @@ pat_arg:
 field:
   | LPR lbl = user; COLON tp = term; RPR
     { Field {lbl; tp} }
+
+ctor:
+  | LPR lbl = path; COLON; args = list(tele_cell); RPR
+    { Ctor {lbl; args} }
 
 patch:
   | lbl = user; DOT_EQUALS; tp = term

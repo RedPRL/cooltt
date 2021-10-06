@@ -199,6 +199,7 @@ struct
       | Pi _ -> arrow
       | Sg _ -> times
       | Signature _ -> juxtaposition
+      | Data _ -> juxtaposition
       | TpESub _ -> substitution
       | TpLockedPrf _ -> juxtaposition
   end
@@ -490,6 +491,19 @@ struct
 
   and pp_sign env fmt (sign : sign) : unit = pp_fields pp_tp env fmt sign
 
+  and pp_telescope env fmt =
+    function
+    | Done () -> ()
+    | Bind (nm, tp, tele) ->
+      let x, envx = ppenv_bind env nm in
+      Format.fprintf fmt "(%a : %a)@ @,%a"
+        Uuseg_string.pp_utf_8 x
+        (pp_tp env P.(right_of colon)) tp
+        (pp_telescope envx) tele
+
+  and pp_ctor env fmt (lbl, args : (string list * unit telescope)) : unit =
+    Format.fprintf fmt "(%a : %a)" Ident.pp (`User lbl) (pp_telescope env) args
+
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->
     function
@@ -515,6 +529,9 @@ struct
         (pp_tp envx P.(right_of times)) fam
     | Signature fields ->
       Format.fprintf fmt "sig %a" (pp_sign env) fields
+    | Data {self; ctors} ->
+      let x, envx = ppenv_bind env self in
+      Format.fprintf fmt "data as %a %a" Uuseg_string.pp_utf_8 x (Format.pp_print_list (pp_ctor envx)) ctors
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

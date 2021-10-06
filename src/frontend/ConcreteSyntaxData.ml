@@ -39,6 +39,7 @@ and con_ =
   | Proj of con * Ident.user
   | Patch of con * field list
   | Total of con * field list
+  | Data of { self : Ident.t; ctors : ctor list }
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con
@@ -89,6 +90,9 @@ and case = pat * con
 and field = Field of { lbl : Ident.user; tp : con }
 [@@deriving show]
 
+(* FIXME: We should use cells rather than fields in the long run, but fields are slightly more convienent *)
+and ctor = Ctor of { lbl : string list; args : cell list }
+
 and pat = Pat of {lbl : string list; args : pat_arg list}
 [@@deriving show]
 
@@ -97,7 +101,6 @@ and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 
 type decl =
   | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
-  | Data of { name : Ident.t; params : con; ctors: field list }
   | Print of Ident.t node
   | Import of string list * con option
   | NormalizeTerm of con
