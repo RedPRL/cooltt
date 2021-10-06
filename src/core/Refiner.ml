@@ -614,7 +614,6 @@ struct
     S.Data { self; ctors }
 
   (* FIXME: Tail Recursion? *)
-  (* FIXME: Should we do something similar to Signature.intro with names? *)
   let rec ctor_args (tele : unit D.telescope) (tacs : T.Chk.tac list) : S.t list m =
     match tele, tacs with
     | D.Bind (_, tp, tele_clo), tac :: tacs ->
@@ -623,8 +622,16 @@ struct
       let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
       let+ args = ctor_args tele tacs in
       arg :: args
+    (* FIXME: Make this better! *)
+    | D.Bind (_, tp, tele_clo), [] ->
+      let* arg = T.Chk.run (Hole.unleash_hole None) tp in
+      let* varg = RM.lift_ev @@ Sem.eval arg in
+      let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
+      let+ args = ctor_args tele [] in
+      arg :: args
     | D.Done (), [] -> RM.ret []
-    | _, _ -> failwith "[FIXME] Data.ctor_args: tac/arg mismatch"
+    | D.Done (), _ -> failwith "[FIXME] Data.ctor_args: Too many args!"
+
 
 
   let intro (ctor_nm : Ident.user) (tacs : T.Chk.tac list) : T.Chk.tac =

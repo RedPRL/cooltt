@@ -149,6 +149,7 @@ struct
       | Ap _ -> juxtaposition
       | Pair _ -> tuple
       | Struct _ -> juxtaposition
+      | Ctor _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
       | Cof (Cof.Eq _) -> cof_eq
@@ -255,6 +256,8 @@ struct
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->
       Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
+    | Ctor (lbl, args) ->
+      Format.fprintf fmt "@[ctor %a [%a]@]" Ident.pp_user lbl (Pp.pp_sep_list ~sep:", " (pp env penv)) args
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches

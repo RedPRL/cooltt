@@ -618,6 +618,9 @@ and eval : S.t -> D.con EvM.m =
     | S.Proj (t, lbl) ->
       let* con = eval t in
       lift_cmp @@ do_proj con lbl
+    | S.Ctor (lbl, args) ->
+      let+ args = MU.map eval args in
+      D.Ctor (lbl, args)
     | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
@@ -824,7 +827,7 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.Ctor _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->

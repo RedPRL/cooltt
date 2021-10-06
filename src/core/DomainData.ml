@@ -74,6 +74,7 @@ struct
     | Loop of dim
     | Pair of con * con
     | Struct of (Ident.user * con) list
+    | Ctor of (Ident.user * con list)
     | SubIn of con
 
     | ElIn of con

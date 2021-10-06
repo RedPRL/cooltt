@@ -322,7 +322,7 @@ plain_term_except_cof_case:
     { Struct tele }
   | DATA; AS; self = plain_name; LSQ; ctors = separated_list(PIPE, ctor); RSQ;
     { Data {self; ctors} }
-  | CTOR; lbl = path; LSQ; args = separated_list(COMMA, term); RSQ;
+  | CTOR; lbl = user; LSQ; args = separated_list(COMMA, term); RSQ;
     { Constructor {lbl; args = args}}
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }

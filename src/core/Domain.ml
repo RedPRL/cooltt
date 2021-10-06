@@ -157,6 +157,8 @@ struct
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
+    | Ctor (lbl, args) ->
+      Format.fprintf fmt "ctor[%a, %a]" Ident.pp_user lbl (Pp.pp_sep_list ~sep:", " pp_con) args
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
@@ -214,6 +216,8 @@ struct
       Format.fprintf fmt "<sg>"
     | Signature sign ->
       Format.fprintf fmt "sig[%a]" pp_sign sign
+    | Data {self; ctors} ->
+      Format.fprintf fmt "data[%a]" Ident.pp self
     | Sub _ ->
       Format.fprintf fmt "<sub>"
     | TpPrf _ ->

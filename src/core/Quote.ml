@@ -108,6 +108,12 @@ let rec quote_con (tp : D.tp) con =
     let+ tfields = quote_fields sign con in
     S.Struct tfields
 
+  | D.Data {self; ctors}, D.Ctor (lbl, args) ->
+    (* FIXME: What if the constructor is missing? *)
+    let arg_tps = List.assoc lbl ctors in
+    let+ qargs = quote_cons arg_tps args in
+    S.Ctor (lbl, qargs)
+
   | D.Sub (tp, _phi, _clo), _ ->
     let+ tout =
       let* out = lift_cmp @@ do_sub_out con in
@@ -280,6 +286,17 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
+and quote_cons (tps : unit D.telescope) (cons : D.con list) : S.t list m =
+  match (tps, cons) with
+  | D.Bind (_, tp, tps_clo), con :: cons ->
+    let* qcon = quote_con tp con in
+    let* tps = lift_cmp @@ inst_tele_clo tps_clo con in
+    let+ qcons = quote_cons tps cons in
+    (qcon :: qcons)
+  | D.Done (), [] -> ret []
+  | _, _ -> failwith "[FIXME] quote_cons: tele/cons mismatch"
+
+
 and quote_fields (sign : D.sign) con : (Ident.user * S.t) list m =
   match sign with
   | D.Field (lbl, tp, sign_clo) ->
@@ -416,6 +433,16 @@ and quote_sign : D.sign -> S.sign m =
     (ident, tfield) :: tfields
   | Empty -> ret []
 
+and quote_tele : unit D.telescope -> unit S.telescope m =
+  function
+  | Bind (ident, cell, clo) ->
+    let* qcell = quote_tp cell in
+    bind_var cell @@ fun var ->
+    let* tele = lift_cmp @@ inst_tele_clo clo var in
+    let+ qtele = quote_tele tele in
+    S.Bind (ident, qcell, qtele)
+  | Done e -> ret @@ S.Done e
+
 and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
@@ -433,6 +460,9 @@ and quote_tp (tp : D.tp) =
   | D.Signature sign ->
     let+ sign = quote_sign sign in
     S.Signature sign
+  | D.Data {self; ctors} ->
+    let+ ctors = MU.map (MU.second quote_tele) ctors in
+    S.Data {self; ctors}
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->
