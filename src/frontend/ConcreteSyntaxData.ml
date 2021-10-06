@@ -40,6 +40,7 @@ and con_ =
   | Patch of con * field list
   | Total of con * field list
   | Data of { self : Ident.t; ctors : ctor list }
+  | Constructor of { lbl : string list; args : con list }
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con

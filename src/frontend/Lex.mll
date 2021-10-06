@@ -38,6 +38,7 @@ let keywords =
     ("sig", SIG);
     ("struct", STRUCT);
     ("data", DATA);
+    ("ctor", CTOR);
     ("as", AS);
     ("🍪", CIRCLE);
     ("let", LET);
