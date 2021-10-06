@@ -91,8 +91,7 @@ and case = pat * con
 and field = Field of { lbl : Ident.user; tp : con }
 [@@deriving show]
 
-(* FIXME: We should use cells rather than fields in the long run, but fields are slightly more convienent *)
-and ctor = Ctor of { lbl : string list; args : cell list }
+and ctor = Ctor of { lbl : Ident.user; args : cell list }
 
 and pat = Pat of {lbl : string list; args : pat_arg list}
 [@@deriving show]

@@ -25,15 +25,15 @@ exception CJHM
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
-type 'a telescope =
-  | Bind of Ident.user * 'a * (T.var -> 'a telescope)
+type ('v, 'a) telescope =
+  | Bind of 'v Ident.some * 'a * (T.var -> ('v, 'a) telescope)
   | Done
 
 module Telescope =
 struct
   (* FIXME: We should move this elsewhere/generalize? *)
 
-  let tps (tacs : T.Tp.tac telescope) : unit S.telescope RM.m =
+  let tps (tacs : ('v, T.Tp.tac) telescope) : unit S.telescope RM.m =
     let rec go tele =
       function
       | Bind (nm, tac, tacs) ->
@@ -539,7 +539,7 @@ end
 
 module Signature =
 struct
-  let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
+  let formation (tacs : (Ident.user, T.Tp.tac) telescope) : T.Tp.tac =
     let rec form_fields tele =
       function
       | Bind (lbl, tac, tacs) ->
@@ -605,7 +605,7 @@ end
 
 module Data =
 struct
-  let formation (self : Ident.t) (tacs : T.var -> (string list * T.Tp.tac telescope) list) : T.Tp.tac =
+  let formation (self : Ident.t) (tacs : T.var -> (Ident.user * (Ident.t, T.Tp.tac) telescope) list) : T.Tp.tac =
     T.Tp.rule ~name:"Data.formation" @@
     let+ ctors =
       T.abstract ~ident:self D.Univ @@ fun var ->
@@ -627,12 +627,12 @@ struct
     | _, _ -> failwith "[FIXME] Data.ctor_args: tac/arg mismatch"
 
 
-  let intro (ctor_nm : string list) (tacs : T.Chk.tac list) : T.Chk.tac =
+  let intro (ctor_nm : Ident.user) (tacs : T.Chk.tac list) : T.Chk.tac =
     T.Chk.rule ~name:"Data.intro" @@
     function
     | (D.Data {ctors; _}) ->
       begin
-        match List.assoc_opt ~eq:(List.equal String.equal) ctor_nm ctors with
+        match List.assoc_opt ~eq:Ident.equal ctor_nm ctors with
         | Some tele ->
           let+ args = ctor_args tele tacs in
           S.Ctor (ctor_nm, args)

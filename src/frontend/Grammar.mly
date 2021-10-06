@@ -403,7 +403,7 @@ field:
     { Field {lbl; tp} }
 
 ctor:
-  | lbl = path; args = list(tele_cell)
+  | lbl = user; args = list(tele_cell)
     { Ctor {lbl; args} }
 
 patch:

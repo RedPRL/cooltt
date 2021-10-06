@@ -9,8 +9,8 @@ open Tactic
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
-type 'a telescope =
-  | Bind of Ident.user * 'a * (var -> 'a telescope)
+type ('v, 'a) telescope =
+  | Bind of 'v Ident.some * 'a * (var -> ('v, 'a) telescope)
   | Done
 
 module Hole : sig
@@ -102,7 +102,7 @@ module Sg : sig
 end
 
 module Signature : sig
-  val formation : Tp.tac telescope -> Tp.tac
+  val formation : (Ident.user, Tp.tac) telescope -> Tp.tac
   val intro : (Ident.user -> Chk.tac option) -> Chk.tac
   val proj : Syn.tac -> Ident.user -> Syn.tac
 
@@ -110,8 +110,8 @@ module Signature : sig
 end
 
 module Data : sig
-  val formation : Ident.t -> (var -> (string list * Tp.tac telescope) list) -> Tp.tac
-  val intro : string list -> Chk.tac list -> Chk.tac
+  val formation : Ident.t -> (var -> (Ident.user * (Ident.t, Tp.tac) telescope) list) -> Tp.tac
+  val intro : Ident.user -> Chk.tac list -> Chk.tac
 end
 
 module Sub : sig

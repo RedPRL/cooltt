@@ -28,7 +28,7 @@ struct
     | Struct of (Ident.user * t) list
     | Proj of t * Ident.user
 
-    | Ctor of string list * t list
+    | Ctor of Ident.user * t list
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -93,7 +93,7 @@ struct
     | Bind of Ident.t * tp * 'e telescope
     | Done of 'e
 
-  and datatype = { self : Ident.t; ctors : (string list * unit telescope) list }
+  and datatype = { self : Ident.t; ctors : (Ident.user * unit telescope) list }
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

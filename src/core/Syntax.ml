@@ -501,8 +501,8 @@ struct
         (pp_tp env P.(right_of colon)) tp
         (pp_telescope envx) tele
 
-  and pp_ctor env fmt (lbl, args : (string list * unit telescope)) : unit =
-    Format.fprintf fmt "(%a : %a)" Ident.pp (`User lbl) (pp_telescope env) args
+  and pp_ctor env fmt (lbl, args : (Ident.user * unit telescope)) : unit =
+    Format.fprintf fmt "(%a : %a)" Ident.pp_user lbl (pp_telescope env) args
 
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->

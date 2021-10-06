@@ -122,7 +122,7 @@ struct
     | Field of Ident.user * tp * S.sign clo
     | Empty
 
-  and datatype = { self : Ident.t; ctors : (string list * unit telescope) list }
+  and datatype = { self : Ident.t; ctors : (Ident.user * unit telescope) list }
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =
