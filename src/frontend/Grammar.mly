@@ -34,7 +34,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token BANG COLON COLON_EQUALS PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token BANG COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS JOIN MEET
 %token TYPE
@@ -56,6 +56,7 @@
 %nonassoc COLON
 %left PROJ
 %right RIGHT_ARROW TIMES
+%nonassoc HASH
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -321,8 +322,10 @@ plain_term_except_cof_case:
   /* So the issue is when we have a cofibration split case, we will have a bunch of pipe separated things
    We need to ensure that any patches occur in brackets...
    */
-  | tp = term; AS; n = plain_name; ps = patches
-    { Patch (tp, n, ps) }
+  | tp = term; AS; ps = patches
+    { Patch (tp, ps) }
+  | tp = term; HASH; ps = patches
+    { Total (tp, ps) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
   | FST; t = atomic_term

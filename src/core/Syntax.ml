@@ -586,8 +586,10 @@ struct
   and pp_binders env penv fmt tm =
     match tm with
     | Lam (nm, tm) ->
-      let _, envx = ppenv_bind env nm in
-      pp_binders envx penv fmt tm
+      let x, envx = ppenv_bind env nm in
+      if Debug.is_debug_mode ()
+      then Format.fprintf fmt "`{%s} =>@ @[%a@]" x (pp_binders envx penv) tm
+      else pp_binders envx penv fmt tm
     | _ -> pp env penv fmt tm
 
   let pp_sequent_boundary env fmt tm =

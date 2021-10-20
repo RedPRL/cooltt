@@ -782,7 +782,7 @@ nat.cooltt:9.11-9.16 [Info]:
   Computed normal form of + 2 3 as 5
 
 --------------------[patch.cooltt]--------------------
-patch.cooltt:5.49-5.50 [Info]:
+patch.cooltt:8.49-8.50 [Info]:
   Emitted hole:
     |- ? : type
     
@@ -791,7 +791,7 @@ patch.cooltt:5.49-5.50 [Info]:
     |- nat
 
 
-patch.cooltt:5.57-5.58 [Info]:
+patch.cooltt:8.57-8.58 [Info]:
   Emitted hole:
     |- ? : nat
     
@@ -800,17 +800,27 @@ patch.cooltt:5.57-5.58 [Info]:
     |- 4
 
 
-patch.cooltt:7.7-7.15 [Info]:
+patch.cooltt:10.7-10.15 [Info]:
   el-patch
   : type
   = sig (A : ext type ⊤ {_x => nat}) (a : ext nat ⊤ {_x => 4}) 
 
-patch.cooltt:8.7-8.20 [Info]:
+patch.cooltt:11.7-11.23 [Info]:
+  el-patch-partial
+  : type
+  = sig (A : ext type ⊤ {_x => nat}) (a : nat) 
+
+patch.cooltt:12.7-12.20 [Info]:
   patch/inhabit
   : el-patch
   = struct (A : nat) (a : 4) 
 
-patch.cooltt:13.7-13.14 [Info]:
+patch.cooltt:15.7-15.20 [Info]:
+  patch-depends
+  : type
+  = sig (A : ext type ⊤ {_x => nat}) (B : ext type ⊤ {_x => nat}) 
+
+patch.cooltt:21.7-21.14 [Info]:
   testing
   : (A : type) → (Z : type) → (B : (_x : A) → type) → (p : (_x : Z) → 
   sig (x : A) (bx : B x) ) → (z : Z) → sig (x : ext A ⊤ {_x => p z @ x}) 
@@ -818,6 +828,114 @@ patch.cooltt:13.7-13.14 [Info]:
                                                                   p z @ bx})
                                        
   = A Z B p z => struct (x : p z @ x) (bx : p z @ bx) 
+
+patch.cooltt:24.79-24.87 [Info]:
+  fail total-space/fail:
+  Head connective mismatch, expected univ but got (_x₁ : nat) → type
+
+patch.cooltt:35.7-35.15 [Info]:
+  category
+  : type
+  = sig (ob : type) (hom : (_x : sig (s : ob) (t : ob) ) → type) 
+    (idn : (x : ob) → sig (s : ext ob ⊤ {_x => x}) (t : ext ob ⊤ {_x => x}) 
+                      (fib : hom {struct (s : x) (t : x) }) )
+    (seq : (f : sig (s : ob) (t : ob) (fib : hom {struct (s : s) (t : t) }) ) → (g : 
+    sig (s : ext ob ⊤ {_x => f @ t}) (t : ob) 
+    (fib : hom {struct (s : f @ t) (t : t) }) ) → sig (s : ext ob ⊤ {
+                                                           _x => f @ s})
+                                                  (t : ext ob ⊤ {_x => g @ t})
+                                                  (fib : hom {struct (s : 
+                                                              f @ s) 
+                                                              (t : g @ t) })
+                                                  )
+    (seqL : (f : sig (s : ob) (t : ob) (fib : hom {struct (s : s) (t : t) }) ) → path {
+    sig (s : ext ob ⊤ {_x => f @ s}) (t : ext ob ⊤ {_x => f @ t}) 
+    (fib : hom {struct (s : f @ s) (t : f @ t) }) } {struct (s : f @ s) 
+                                                     (t : f @ t) 
+                                                     (fib : seq {struct (s : 
+                                                                 f @ s) 
+                                                                 (t : 
+                                                                 f @ s) 
+                                                                 (fib : 
+                                                                 idn {
+                                                                 f @ s} @ fib)
+                                                                 } {struct (s : 
+                                                                    f @ s) 
+                                                                    (t : 
+                                                                    f @ t) 
+                                                                    (fib : 
+                                                                    f @ fib) } @ fib)
+                                                     } {struct (s : f @ s) 
+                                                        (t : f @ t) 
+                                                        (fib : f @ fib) })
+    (seqR : (f : sig (s : ob) (t : ob) (fib : hom {struct (s : s) (t : t) }) ) → path {
+    sig (s : ext ob ⊤ {_x => f @ s}) (t : ext ob ⊤ {_x => f @ t}) 
+    (fib : hom {struct (s : f @ s) (t : f @ t) }) } {struct (s : f @ s) 
+                                                     (t : f @ t) 
+                                                     (fib : seq {struct (s : 
+                                                                 f @ s) 
+                                                                 (t : 
+                                                                 f @ t) 
+                                                                 (fib : 
+                                                                 f @ fib) } {
+                                                            struct (s : 
+                                                            f @ t) 
+                                                            (t : f @ t) 
+                                                            (fib : idn {
+                                                                   f @ t} @ fib)
+                                                            } @ fib)
+                                                     } {struct (s : f @ s) 
+                                                        (t : f @ t) 
+                                                        (fib : f @ fib) })
+    (seqA : (f : sig (s : ob) (t : ob) (fib : hom {struct (s : s) (t : t) }) ) → (g : 
+    sig (s : ext ob ⊤ {_x => f @ t}) (t : ob) 
+    (fib : hom {struct (s : f @ t) (t : t) }) ) → (h : sig (s : ext ob ⊤ {
+                                                                _x => 
+                                                                g @ t})
+                                                       (t : ob) 
+                                                       (fib : hom {struct (s : 
+                                                                   g @ t) 
+                                                                   (t : t) })
+                                                       ) → path {sig (s : 
+                                                                 ext ob ⊤ {
+                                                                 _x => 
+                                                                 f @ s}) 
+                                                                 (t : 
+                                                                 ext ob ⊤ {
+                                                                 _x => 
+                                                                 h @ t}) 
+                                                                 (fib : hom {
+                                                                 struct (s : 
+                                                                 f @ s) 
+                                                                 (t : 
+                                                                 h @ t) }) } {
+    struct (s : f @ s) (t : h @ t) 
+    (fib : seq {struct (s : f @ s) (t : f @ t) (fib : f @ fib) } {struct (s : 
+                                                                  f @ t) 
+                                                                  (t : 
+                                                                  h @ t) 
+                                                                  (fib : 
+                                                                  seq {
+                                                                  struct (s : 
+                                                                  f @ t) 
+                                                                  (t : 
+                                                                  g @ t) 
+                                                                  (fib : 
+                                                                  g @ fib) } {
+                                                                  struct (s : 
+                                                                  g @ t) 
+                                                                  (t : 
+                                                                  h @ t) 
+                                                                  (fib : 
+                                                                  h @ fib) } @ fib)
+                                                                  } @ fib)
+    } {struct (s : f @ s) (t : h @ t) 
+       (fib : seq {struct (s : f @ s) (t : g @ t) 
+                   (fib : seq {struct (s : f @ s) (t : f @ t) (fib : f @ fib) } {
+                          struct (s : f @ t) (t : g @ t) (fib : g @ fib) } @ fib)
+                   } {struct (s : g @ t) (t : h @ t) (fib : h @ fib) } @ fib)
+       })
+    
 
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.11-8.20 [Info]:

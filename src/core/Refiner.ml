@@ -635,25 +635,28 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
-  let quantifiers (tacs : (string list * T.Chk.tac) list) univ : (string list * S.t) list m =
-    let (lbls, tacs) = ListUtil.unzip tacs in
+  let quantifiers (mk_fields : (string list * (D.tp -> S.t m)) list) (univ : D.tp) : (string list * S.t) list m =
+    let (lbls, ks) = List.split mk_fields in
     let idents = List.map (fun lbl -> `User lbl) lbls in
     let rec mk_fams fams vfams =
       function
       | [] -> RM.ret fams
-      | tac :: tacs ->
+      | k :: ks ->
         let* famtp =
           RM.lift_cmp @@
           Sem.splice_tp @@
           Splice.tp univ @@ fun univ ->
           Splice.cons vfams @@ fun args -> Splice.term @@ TB.pis ~idents:idents args @@ fun _ -> univ
         in
-        let* fam = T.Chk.run tac famtp in
+        let* fam = k famtp in
         let* vfam = RM.lift_ev @@ Sem.eval fam in
-        mk_fams (fams @ [fam]) (vfams @ [vfam]) tacs
+        mk_fams (fams @ [fam]) (vfams @ [vfam]) ks
     in
-    let+ fams = mk_fams [] [] tacs in
-    ListUtil.zip lbls fams
+    let+ fams = mk_fams [] [] ks in
+    List.combine lbls fams
+
+  let quote_sign_codes (vsign : (string list * D.con) list) (univ : D.tp) : (string list * S.t) list m =
+    quantifiers (List.map (fun (lbl, vcode) -> (lbl, fun tp -> RM.quote_con tp vcode)) vsign) univ
 
   let pi tac_base tac_fam : T.Chk.tac =
     univ_tac "Univ.pi" @@ fun univ ->
@@ -685,63 +688,116 @@ struct
   *)
   let signature (tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
-    let+ fields = quantifiers tacs univ in
+    let+ fields = quantifiers (List.map (fun (lbl, tac) -> (lbl, T.Chk.run tac)) tacs) univ in
     S.CodeSignature fields
 
   (* [NOTE: Patch Quantifiers]
      As described in [NOTE: Sig Code Quantifiers], the field types of a signature code
      all use lambdas to bind variables from earlier on in the signature. Therefore,
      when we construct the patched versions of the field codes, we need to re-insert
-     the lambdas.*)
-  let rec patch_fields (field_names : string list list) (field_tps : D.con list) (vpatches : D.con list) (ext_codes : S.t list) (sign : (string list * D.con) list) (patch_tacs : (string list * T.Chk.tac) list) (univ : D.tp) : S.t m =
-    match sign, patch_tacs with
-    | (field_name, vfield_tp) :: sign, (patch_name, patch_tac) :: patch_tacs when CCList.equal String.equal field_name patch_name ->
-      (* As the signatures field types are really lambdas (See [NOTE: Sig Code Quantifiers]),
-         we want to apply them to the patch values that we have already computed. *)
-      (* FIXME: This is bad! *)
-      let idents = List.map (fun nm -> `User nm) field_names in
-      let* patchtp =
-        RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.con vfield_tp @@ fun field_tp ->
-        Splice.cons vpatches @@ fun patches -> Splice.term @@ TB.el @@ TB.ap field_tp patches
-      in
-      let* patch = T.Chk.run patch_tac patchtp in
-      let* vpatch = RM.lift_ev @@ Sem.eval patch in
+     the lambdas.
 
-      (* As noted in [NOTE: Patch Quantifiers], we need to re-add the lambda binders to the patched field types.
-         Therefore, we need to construct the type /of the patched field type/ to quote against. *)
-      let* fam_tp =
+     However, the situation is made more complicated by the fact that we only patching
+     _some_ of the values of the signature type. This means that we can't just naively
+     apply the field code to all the previous patch values, as their may not be any patch values
+     for some fields!
+
+     This requires us to run each of the patch tactics at pi types, which then causes
+     the patches to be lambdas. This means that we need to do some fancier application
+     when we construct the final codes. Most notably, we need to make sure to properly
+     eliminate the 'ext' types introduced by previous patches.
+  *)
+  let patch_fields (sign : (string list * D.con) list) (tacs : string list -> T.Chk.tac option) (univ : D.tp) : S.t m =
+    let rec go field_names (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
+      match sign with
+      | (field_name, vfield_tp) :: sign ->
+        let idents = List.map Ident.user field_names in
+        let* (code, elim_conn) =
+          match tacs field_name with
+          | Some tac ->
+            let* patch_tp =
+              RM.lift_cmp @@
+              Sem.splice_tp @@
+              Splice.con vfield_tp @@ fun field_tp ->
+              Splice.cons codes @@ fun codes -> Splice.term @@ TB.pis ~idents codes @@ fun args -> TB.el @@ TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args
+            in
+            let* patch = T.Chk.run tac patch_tp in
+            let* vpatch = RM.lift_ev @@ Sem.eval patch in
+            let+ ext_code =
+              RM.lift_cmp @@
+              Sem.splice_tm @@
+              Splice.con vfield_tp @@ fun field_tp ->
+              Splice.con vpatch @@ fun patch ->
+              Splice.term @@ TB.lams idents @@ fun args -> TB.code_ext 0 (TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args) TB.top @@ TB.lam @@ fun _ -> TB.ap patch args
+            in
+            (ext_code, fun arg -> TB.sub_out @@ TB.el_out arg)
+          | None ->
+            let+ code =
+              RM.lift_cmp @@
+              Sem.splice_tm @@
+              Splice.con vfield_tp @@ fun field_tp ->
+              Splice.term @@ TB.lams idents @@ fun args -> TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args
+            in
+            (code, Fun.id)
+        in
+        go (field_names @ [field_name]) (codes @ [code]) (elim_conns @ [elim_conn]) sign
+      | [] ->
+        let* qsign = quote_sign_codes (List.combine field_names codes) univ in
+        RM.ret @@ S.CodeSignature qsign
+    in go [] [] [] sign
+
+  let patch (sig_tac : T.Chk.tac) (tacs : string list -> T.Chk.tac option) : T.Chk.tac =
+    univ_tac "Univ.patch" @@ fun univ ->
+    let* code = T.Chk.run sig_tac univ in
+    let* vcode = RM.lift_ev @@ Sem.eval code in
+    let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+    let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
+    match whnf_tp with
+    | D.ElStable (`Signature sign) ->
+      patch_fields sign tacs univ
+    | _ ->
+      RM.expected_connective `Signature whnf_tp
+
+  let total (fam_tac : T.Syn.tac) : T.Chk.tac =
+    univ_tac "Univ.total" @@ fun univ ->
+    let* (tm, tp) = T.Syn.run fam_tac in
+    let* vtm = RM.lift_ev @@ Sem.eval tm in
+    match tp with
+    | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
+      (* HACK: Because we are using Weak Tarski Universes, we can't just
+         use the conversion checker to equate 'fam' and 'univ', as
+         'fam' may be 'el code-univ' instead.
+
+         Therefore, we do an explicit check here instead.
+         If we add universe levels, this code should probably be reconsidered. *)
+      let* _ = T.abstract ~ident base @@ fun var ->
+        let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+        match fam with
+        | D.Univ -> RM.ret ()
+        | D.ElStable `Univ -> RM.ret ()
+        | _ -> RM.expected_connective `Univ fam
+      in
+      let (sign_names, vsign_codes) = List.split vsign in
+      let idents = List.map Ident.user sign_names in
+      let* qsign = quote_sign_codes vsign univ in
+      (* See [NOTE: Sig Code Quantifiers]. *)
+      let* fib_tp =
         RM.lift_cmp @@
         Sem.splice_tp @@
         Splice.tp univ @@ fun univ ->
-        Splice.cons field_tps @@ fun args -> Splice.term @@ TB.pis ~idents args @@ fun _ -> univ
+        Splice.cons vsign_codes @@ fun sign_codes ->
+        Splice.term @@ TB.pis ~idents sign_codes @@ fun _ -> univ
       in
-
-      let* ext_code =
+      let* fib =
         RM.lift_cmp @@
         Sem.splice_tm @@
-        Splice.con vfield_tp @@ fun field_tp ->
-        Splice.cons vpatches @@ fun patches ->
-        Splice.con vpatch @@ fun patch -> Splice.term @@ TB.lams idents @@ fun _ -> TB.code_ext 0 (TB.ap field_tp patches) TB.top @@ TB.lam @@ fun _ -> patch
+        Splice.con vtm @@ fun tm ->
+        Splice.term @@ TB.lams idents @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
       in
-      let* qext_code = RM.quote_con fam_tp ext_code in
-      (* FIXME: Bad Asymptotics!! *)
-      patch_fields (field_names @ [field_name]) (field_tps @ [vfield_tp]) (vpatches @ [vpatch]) (ext_codes @ [qext_code]) sign patch_tacs univ
-    | [], [] ->
-      RM.ret @@ S.CodeSignature (List.combine field_names ext_codes)
-    | _ -> failwith "[FIXME] Better Error Handling in Univ.patch_fields"
-
-  let patch (sig_tac : T.Chk.tac) (patch_tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
-    univ_tac "Univ.patch" @@ fun univ ->
-    let* tp = T.Chk.run sig_tac univ in
-    let* vtp = RM.lift_ev @@ Sem.eval tp in
-    let* whnf_vtp = RM.lift_cmp @@ Sem.whnf_con_ ~style:`UnfoldAll vtp in
-    match whnf_vtp with
-    | D.StableCode (`Signature sign) ->
-      patch_fields [] [] [] [] sign patch_tacs univ
-    | _ -> failwith "[FIXME] Better error handling in Univ.patch"
-
+      let+ qfib = RM.quote_con fib_tp fib in
+      S.CodeSignature (qsign @ [["fib"], qfib])
+    | D.Pi (base, _, _) -> RM.expected_connective `Signature base
+    | _ -> RM.expected_connective `Pi tp
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->

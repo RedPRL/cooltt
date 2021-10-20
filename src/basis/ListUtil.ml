@@ -12,6 +12,14 @@ let rec unzip =
     let (xs, ys) = unzip xs in
     (x :: xs, y :: ys)
 
+let zip_with f xs ys =
+  let rec go acc xs ys =
+    match xs, ys with
+    | x :: xs, y :: ys -> go (Snoc (acc, f x y)) xs ys
+    | _, _ -> Bwd.to_list acc
+  in go Emp xs ys
+
+
 let rec map_opt f = function
   | [] -> Some []
   | (x :: xs) ->
