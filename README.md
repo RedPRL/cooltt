@@ -13,12 +13,12 @@ Favonia.
 
 ## building
 
-cooltt has been built with OCaml 4.12.0 with [opam
+cooltt has been built with OCaml 4.13.0 with [opam
 2.0.8](https://opam.ocaml.org/). If you are running an older version of OCaml,
 try executing the following command:
 
 ```
-$ opam switch create 4.12.0
+$ opam switch create 4.13.0
 ```
 
 Once these dependencies are installed cooltt can be built with the following set of commands.
