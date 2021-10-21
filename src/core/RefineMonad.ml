@@ -28,6 +28,13 @@ let resolve id =
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
+let resolve_tp id =
+  let* env = read in
+  match Env.resolve_local_tp id env with
+  | Some ix -> ret @@ `LocalTp ix
+  | None -> ret `Unbound
+
+
 let get_current_unit_id =
   let* env = read in
   ret @@ Env.current_unit_id env

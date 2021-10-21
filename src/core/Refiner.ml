@@ -1173,6 +1173,19 @@ struct
     | `Unbound ->
       RM.refine_err @@ Err.UnboundVariable id
 
+  let lookup_tp_var id : T.Tp.tac =
+    T.Tp.rule ~name:"Structural.lookup_tp_var" @@
+    let* res = RM.resolve_tp id in
+    match res with
+    | `LocalTp ix ->
+      RM.ret @@ S.TpVar ix
+    | `Unbound ->
+      let* (tm, tp) = T.Syn.run (lookup_var id) in
+      let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
+      match whnf_tp with
+      | D.ElStable `Univ -> RM.ret (S.El (S.ElOut tm))
+      | _ -> RM.expected_connective `Univ whnf_tp
+
   let index ix =
     let+ tp = RM.get_local_tp ix in
     S.Var ix, tp

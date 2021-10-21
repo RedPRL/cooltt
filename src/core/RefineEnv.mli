@@ -41,6 +41,7 @@ val set_veil : Veil.t -> t -> t
 
 
 val resolve_local : Ident.t -> t -> int option
+val resolve_local_tp : Ident.t -> t -> int option
 val get_local_tp : int -> t -> D.tp
 val get_local : int -> t -> D.con
 

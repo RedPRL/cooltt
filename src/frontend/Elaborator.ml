@@ -59,6 +59,7 @@ sig
   val cof : tac
   val prf : T.Chk.tac -> tac
   val locked_prf : T.Chk.tac -> tac
+  val tp_var : Ident.t -> tac
 
   val code : T.Chk.tac -> tac
 end =
@@ -142,6 +143,7 @@ struct
   let cof = Tp R.Cof.formation
   let prf tac = Tp (R.Prf.formation tac)
   let locked_prf tac = Tp (R.LockedPrf.formation tac)
+  let tp_var i = Tp (R.Structural.lookup_tp_var i)
   let code tac = Code tac
 end
 
@@ -180,6 +182,8 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Locked cphi ->
     let tac_phi = chk_tm cphi in
     CoolTp.locked_prf tac_phi
+  | CS.Var id ->
+    CoolTp.tp_var id
   | _ -> CoolTp.code @@ chk_tm con
 
 

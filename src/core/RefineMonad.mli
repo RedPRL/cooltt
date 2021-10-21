@@ -18,6 +18,7 @@ val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 val add_global : Ident.t -> D.tp -> D.con option -> Global.t m
 
 val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
+val resolve_tp : Ident.t -> [`LocalTp of int | `Unbound ] m
 val get_global : Global.t -> (D.tp * D.con option) m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m

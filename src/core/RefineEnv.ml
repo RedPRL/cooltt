@@ -23,6 +23,7 @@ struct
 end
 
 type cell = (D.tp * D.con) Cell.t
+type tp_cell = D.tp Cell.t
 
 type t =
   {current_lib : Bantorra.Manager.library;
@@ -32,6 +33,7 @@ type t =
    pp : Pp.env;
    cof_thy : CofThy.Disj.t;
    locals : cell bwd;
+   tp_locals : tp_cell bwd;
    problem : string bwd;
    location : LexingUtil.span option}
 
@@ -45,6 +47,7 @@ let init lib =
    pp = Pp.Env.emp;
    cof_thy = CofThy.Disj.empty;
    locals = Emp;
+   tp_locals = Emp;
    problem = Emp;
    location = None}
 
@@ -86,6 +89,21 @@ let resolve_local (ident : Ident.t) env =
   | i -> Some i
   | exception E -> None
 
+let resolve_local_tp (ident : Ident.t) env =
+  let exception E in
+  let rec go i = function
+    | Emp -> raise E
+    | Snoc (xs, cell) ->
+      begin
+        match ident, Cell.ident cell with
+        | `User parts_x, `User parts_y when List.equal String.equal parts_x parts_y -> i
+        | _ -> go (i + 1) xs
+      end
+  in
+  match go 0 env.tp_locals with
+  | i -> Some i
+  | exception E -> None
+
 let restrict phis env =
   {env with
    cof_thy = CofThy.Disj.assume env.cof_thy phis}
@@ -100,11 +118,12 @@ let append_con ident con tp env =
      | _ -> env.cof_thy}
 
 let sem_env (env : t) : D.env =
-  {tpenv = Emp;
-   conenv =
-     env.locals |> Bwd.map @@ fun cell ->
-     let _, con = Cell.contents cell in
-     con}
+  {  tpenv = env.tp_locals |> Bwd.map Cell.contents;
+     conenv =
+       env.locals |> Bwd.map @@ fun cell ->
+       let _, con = Cell.contents cell in
+       con
+  }
 
 let pp_env env = env.pp
 
