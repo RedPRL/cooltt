@@ -120,7 +120,7 @@
   "Declaration keywords.")
 
 (defconst cooltt-command-keywords
-  '("#fail" "#normalize" "#print" "#quit")
+  '("#fail" "#normalize" "#print" "#quit" "#debug")
   "Command keywords.")
 
 (defconst cooltt-expression-keywords

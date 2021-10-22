@@ -23,6 +23,7 @@ let commands =
       ("#normalize", NORMALIZE);
       ("#print", PRINT);
       ("#quit", QUIT);
+      ("#debug", DEBUG);
     ]
 
 let keywords =

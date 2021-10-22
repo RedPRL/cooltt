@@ -4,6 +4,7 @@ open CodeUnit
 type output_message =
   | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}
   | Definition of {ident : Ident.t; tp : Syntax.tp; tm : Syntax.t option}
+  | Debug of { ident: Ident.t; tp : Domain.tp; con : Domain.con option }
 
 type warning_message = |
 
