@@ -500,6 +500,12 @@ and eval_sign : S.sign -> D.sign EvM.m =
     and+ vfield = eval_tp field in
     D.Field (ident, vfield, D.Clo (fields, env))
 
+and eval_ctor : S.ctor -> D.ctor EvM.m =
+  let open EvM in
+  fun (lbl, tele) ->
+    let+ env = read_local in
+    (lbl, D.Clo (tele, env))
+
 and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
@@ -517,8 +523,7 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ vsign = eval_sign sign in
     D.Signature vsign
   | S.Data {self; ctors} ->
-    (* We bind a variable here to account for 'self' *)
-    let+ vctors = append [D.StableCode `Univ] @@  MU.map (MU.second eval_tele) ctors in
+    let+ vctors = MU.map eval_ctor ctors in
     D.Data {self; ctors = vctors}
   | S.Univ ->
     ret D.Univ
@@ -1147,6 +1152,12 @@ and inst_tele_clo : unit D.tele_clo -> D.con -> unit D.telescope CM.m =
   match clo with
   | D.Clo (tele, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_tele tele
+
+and inst_ctor : D.ctor -> D.tp -> unit D.telescope CM.m =
+  fun (lbl, clo) x ->
+  match clo with
+  | D.Clo (tele, env) ->
+    CM.lift_ev { env with tpenv = Snoc (env.tpenv, x) } @@ eval_tele tele
 
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con ~style con =

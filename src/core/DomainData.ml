@@ -125,7 +125,13 @@ struct
     | Field of Ident.user * tp * S.sign clo
     | Empty
 
-  and datatype = { self : Ident.t; ctors : (Ident.user * unit telescope) list }
+  (* [NOTE: Inductive Datatypes + Self Closures]
+     To handle recursive occurances of an inductive datatype within a constructor,
+     we close over a type variable that stands in for all recursive occurances. Then,
+     when we introduce a constructor, we instantiate the closure with /the type itself/. *)
+  and ctor = Ident.user * unit tele_clo
+
+  and datatype = { self : Ident.t; ctors : ctor list }
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =

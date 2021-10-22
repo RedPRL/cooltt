@@ -90,6 +90,14 @@ struct
   and dump_sign fmt sign =
     Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump_tp tp)) sign
 
+  and dump_tele fmt =
+    function
+    | Bind (id, tp, tele) -> Format.fprintf fmt "[%a : %a] %a" Ident.pp id dump_tp tp dump_tele tele
+    | Done () -> ()
+
+  and dump_ctor fmt (lbl, ctor) =
+    Format.fprintf fmt "[%a : %a]" Ident.pp_user lbl dump_tele ctor
+
   and dump_tp fmt =
     function
     | Univ -> Format.fprintf fmt "univ"
@@ -99,8 +107,9 @@ struct
     | TpCof -> Format.fprintf fmt "tp/cof"
     | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
     | TpCofSplit _ -> Format.fprintf fmt "<tp/cof/split>"
-    | Sub _ -> Format.fprintf fmt "<sub>"
+    | Sub (tp, tphi, tm) -> Format.fprintf fmt "sub[%a, %a, %a]" dump_tp tp dump tphi dump tm
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
+    | Data {self; ctors} -> Format.fprintf fmt "data[%a, %a]" Ident.pp self (Pp.pp_sep_list dump_ctor) ctors
     | Sg _ -> Format.fprintf fmt "<sg>"
     | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
     | Nat -> Format.fprintf fmt "nat"

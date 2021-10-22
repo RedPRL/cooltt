@@ -110,7 +110,7 @@ module Signature : sig
 end
 
 module Data : sig
-  val formation : Ident.t -> (var -> (Ident.user * (Ident.t, Tp.tac) telescope) list) -> Tp.tac
+  val formation : Ident.t -> (tp_var -> (Ident.user * (Ident.t, Tp.tac) telescope) list) -> Tp.tac
   val intro : Ident.user -> Chk.tac list -> Chk.tac
 end
 
