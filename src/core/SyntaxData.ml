@@ -115,8 +115,10 @@ struct
   module Telescope =
   struct
     let rec of_bwd (xs : (Ident.t * tp) bwd) (e : 'e) : 'e telescope =
-      match xs with
-      | Emp -> Done e
-      | Snoc (xs, (nm, tp)) -> Bind (nm, tp, of_bwd xs e)
+      let rec go tele =
+        function
+        | Emp -> tele
+        | Snoc (xs, (nm, tp)) -> go (Bind (nm, tp, tele)) xs
+      in go (Done e) xs
   end
 end
