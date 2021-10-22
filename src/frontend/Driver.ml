@@ -56,6 +56,19 @@ let print_ident (ident : Ident.t CS.node) : command =
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
 
+let debug_ident (ident : Ident.t CS.node) : command =
+  RM.resolve ident.node |>>
+  function
+  | `Global sym ->
+    let* tp, con = RM.get_global sym in
+    let+ () =
+      RM.emit ident.info pp_message @@
+      OutputMessage (Debug {ident = ident.node; tp; con})
+    in
+    Continue Fun.id
+  | _ ->
+    RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
+
 let print_fail (name : Ident.t) (info : CS.info) (res : (D.tp * D.con, exn) result) : command =
   match res with
   | Ok (vtp, vtm) ->
@@ -180,6 +193,8 @@ and execute_decl : CS.decl -> command =
     print_fail name info res
   | CS.Print ident ->
     print_ident ident
+  | CS.Debug ident ->
+    debug_ident ident
   | CS.Import (path, modifier) ->
     let* modifier = Elaborator.modifier modifier in
     import_code_unit path modifier

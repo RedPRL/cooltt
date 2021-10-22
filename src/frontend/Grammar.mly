@@ -46,7 +46,7 @@
 %token DATA CTOR
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM FAIL
+%token QUIT NORMALIZE PRINT DEF AXIOM FAIL DEBUG
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -146,6 +146,8 @@ decl:
     { Import (unitpath, m) }
   | PRINT; name = name
     { Print name }
+  | DEBUG; name = name
+    { Debug name }
 
 sign:
   | EOF

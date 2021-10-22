@@ -4,10 +4,12 @@ open Core
 open CodeUnit
 
 module S = Syntax
+module D = Domain
 
 type output_message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
   | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
+  | Debug of { ident: Ident.t; tp : D.tp; con : D.con option }
 
 type warning_message = |
 
@@ -83,3 +85,16 @@ let pp_message fmt =
       "@[%a : %a@]"
       Ident.pp ident
       (Syntax.pp_tp env) tp
+
+  | OutputMessage (Debug {ident; tp; con = Some con}) ->
+    Format.fprintf fmt
+      "@[<v>%a@ : %a@ = %a@]"
+      Ident.pp ident
+      Domain.pp_tp tp
+      Domain.pp_con con
+
+  | OutputMessage (Debug {ident; tp; con = None}) ->
+    Format.fprintf fmt
+      "@[%a : %a@]"
+      Ident.pp ident
+      Domain.pp_tp tp
