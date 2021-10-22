@@ -608,6 +608,7 @@ struct
   let formation (self : Ident.t) (tacs : T.var -> (Ident.user * (Ident.t, T.Tp.tac) telescope) list) : T.Tp.tac =
     T.Tp.rule ~name:"Data.formation" @@
     let+ ctors =
+      (* Bind the 'self' type variable. See [NOTE: Inductive Datatypes + Self Closures] for more info. *)
       T.abstract ~ident:self D.Univ @@ fun var ->
       MU.map (MU.second Telescope.tps) (tacs var)
     in
@@ -616,14 +617,16 @@ struct
   (* FIXME: Tail Recursion? *)
   let rec ctor_args (tele : unit D.telescope) (tacs : T.Chk.tac list) : S.t list m =
     match tele, tacs with
-    | D.Bind (_, tp, tele_clo), tac :: tacs ->
+    | D.Bind (nm, tp, tele_clo), tac :: tacs ->
+      Debug.print "Introducing Constructor Argument: %a" Ident.pp nm;
       let* arg = T.Chk.run tac tp in
       let* varg = RM.lift_ev @@ Sem.eval arg in
       let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
       let+ args = ctor_args tele tacs in
       arg :: args
     (* FIXME: Make this better! *)
-    | D.Bind (_, tp, tele_clo), [] ->
+    | D.Bind (nm, tp, tele_clo), [] ->
+      Debug.print "Introducing Constructor Argument: %a" Ident.pp nm;
       let* arg = T.Chk.run (Hole.unleash_hole None) tp in
       let* varg = RM.lift_ev @@ Sem.eval arg in
       let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
@@ -637,10 +640,12 @@ struct
   let intro (ctor_nm : Ident.user) (tacs : T.Chk.tac list) : T.Chk.tac =
     T.Chk.rule ~name:"Data.intro" @@
     function
-    | (D.Data {ctors; _}) ->
+    | (D.Data {ctors; _}) as self ->
       begin
         match List.assoc_opt ~eq:Ident.equal ctor_nm ctors with
-        | Some tele ->
+        | Some ctor ->
+          let* self_code = RM.lift_cmp @@ Sem.fold_el self in
+          let* tele = RM.lift_cmp @@ Sem.inst_ctor (ctor_nm, ctor) self_code in
           let+ args = ctor_args tele tacs in
           S.Ctor (ctor_nm, args)
         | None -> failwith "[FIXME] Data.intro: cannot find constructor"

@@ -93,7 +93,9 @@ struct
     | Bind of Ident.t * tp * 'e telescope
     | Done of 'e
 
-  and datatype = { self : Ident.t; ctors : (Ident.user * unit telescope) list }
+  and ctor = Ident.user * unit telescope
+
+  and datatype = { self : Ident.t; ctors : ctor list }
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

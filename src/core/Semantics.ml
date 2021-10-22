@@ -500,6 +500,12 @@ and eval_sign : S.sign -> D.sign EvM.m =
     and+ vfield = eval_tp field in
     D.Field (ident, vfield, D.Clo (fields, env))
 
+and eval_ctor : S.ctor -> D.ctor EvM.m =
+  let open EvM in
+  fun (lbl, tele) ->
+    let+ env = read_local in
+    (lbl, D.Clo (tele, env))
+
 and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
   function
@@ -517,8 +523,7 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ vsign = eval_sign sign in
     D.Signature vsign
   | S.Data {self; ctors} ->
-    (* We bind a variable here to account for 'self' *)
-    let+ vctors = append [D.StableCode `Univ] @@  MU.map (MU.second eval_tele) ctors in
+    let+ vctors = MU.map eval_ctor ctors in
     D.Data {self; ctors = vctors}
   | S.Univ ->
     ret D.Univ
@@ -1148,6 +1153,12 @@ and inst_tele_clo : unit D.tele_clo -> D.con -> unit D.telescope CM.m =
   | D.Clo (tele, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_tele tele
 
+and inst_ctor : D.ctor -> D.con -> unit D.telescope CM.m =
+  fun (lbl, clo) x ->
+  match clo with
+  | D.Clo (tele, env) ->
+    CM.lift_ev { env with conenv = Snoc (env.conenv, x) } @@ eval_tele tele
+
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con ~style con =
   let open CM in
@@ -1504,6 +1515,25 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.ap bdry @@ js @ [TB.prf]
     end
 
+and fold_el : D.tp -> D.con CM.m =
+  let open CM in
+  fun tp ->
+    abort_if_inconsistent (ret D.tm_abort) @@
+    begin
+      match tp with
+      | D.Nat -> ret @@ D.StableCode `Nat
+      | D.Univ -> ret @@ D.StableCode `Univ
+      | D.Data {self; ctors} ->
+        let* ctor_codes = MU.map fold_ctor ctors in
+        ret @@ D.StableCode (`Data (self, ctor_codes))
+      | _ ->
+        Format.eprintf "[FIXME] fold_el: %a" D.pp_tp tp;
+        failwith "[FIXME] Basis.Basis.fold_el: finish implementing"
+    end
+
+(* FIXME: I can do this better... *)
+and fold_ctor : D.ctor -> (Ident.user * (Ident.t * D.con) list) CM.m =
+  fun (lbl, tele_clo) -> __
 
 and dispatch_rigid_coe ~style line =
   let open CM in

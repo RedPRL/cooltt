@@ -108,9 +108,11 @@ let rec quote_con (tp : D.tp) con =
     let+ tfields = quote_fields sign con in
     S.Struct tfields
 
-  | D.Data {self; ctors}, D.Ctor (lbl, args) ->
+  | (D.Data {ctors; _} as self), D.Ctor (lbl, args) ->
     (* FIXME: What if the constructor is missing? *)
-    let arg_tps = List.assoc lbl ctors in
+    let ctor = List.assoc lbl ctors in
+    let* self_code = lift_cmp @@ Sem.fold_el self in
+    let* arg_tps = lift_cmp @@ Sem.inst_ctor (lbl, ctor) self_code in
     let+ qargs = quote_cons arg_tps args in
     S.Ctor (lbl, qargs)
 
@@ -296,7 +298,6 @@ and quote_cons (tps : unit D.telescope) (cons : D.con list) : S.t list m =
   | D.Done (), [] -> ret []
   | _, _ -> failwith "[FIXME] quote_cons: tele/cons mismatch"
 
-
 and quote_fields (sign : D.sign) con : (Ident.user * S.t) list m =
   match sign with
   | D.Field (lbl, tp, sign_clo) ->
@@ -443,6 +444,12 @@ and quote_tele : unit D.telescope -> unit S.telescope m =
     S.Bind (ident, qcell, qtele)
   | Done e -> ret @@ S.Done e
 
+and quote_ctor (ctor : D.ctor) : S.ctor m =
+  bind_var D.Univ @@ fun var ->
+  let* tele = lift_cmp @@ inst_ctor ctor var in
+  let+ qtele = quote_tele tele in
+  (fst ctor, qtele)
+
 and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
@@ -461,7 +468,7 @@ and quote_tp (tp : D.tp) =
     let+ sign = quote_sign sign in
     S.Signature sign
   | D.Data {self; ctors} ->
-    let+ ctors = MU.map (MU.second quote_tele) ctors in
+    let+ ctors = MU.map quote_ctor ctors in
     S.Data {self; ctors}
   | D.Univ ->
     ret S.Univ
