@@ -25,10 +25,9 @@ struct
     if Bwd.mem x env then rename env x 1 else x
 
   let var i env =
-    if i < Bwd.length env then
-      Bwd.nth env i
-    else
-      failwith "Pp printer: tried to resolve bound variable out of range"
+    match Bwd.nth env i with
+    | v -> v
+    | exception _ -> failwith "Pp printer: tried to resolve bound variable out of range"
 
   let proj xs =
     match xs with
