@@ -447,6 +447,9 @@ and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
   match tp with
+  | D.TpVar lvl ->
+    let+ i = quote_tp_var lvl in
+    S.TpVar i
   | D.Nat -> ret S.Nat
   | D.Circle -> ret S.Circle
   | D.Pi (base, ident, fam) ->
@@ -615,6 +618,10 @@ and quote_cof phi =
 
 and quote_var lvl =
   let+ n = read_local in
+  n - (lvl + 1)
+
+and quote_tp_var lvl =
+  let+ n = read_tp_local in
   n - (lvl + 1)
 
 and quote_cut (hd, spine) =
