@@ -21,7 +21,7 @@ struct
 
   (* FIXME: Is this right? *)
   let mk_tp_var lvl =
-    ElCut (Var lvl, [])
+    TpVar lvl
 
   let un_lam con =
     (* y, x |= y(x) *)
@@ -215,7 +215,7 @@ struct
   and pp_tp fmt =
     function
     | Pi (base, ident, fam) ->
-      Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
+      Format.fprintf fmt "pi[%a, %a, %a]" pp_tp base Ident.pp ident pp_tp_clo fam
     | Sg _ ->
       Format.fprintf fmt "<sg>"
     | Signature sign ->
@@ -248,6 +248,8 @@ struct
       Format.fprintf fmt "<split>"
     | TpLockedPrf _ ->
       Format.fprintf fmt "<wrap>"
+    | TpVar lvl ->
+      Format.fprintf fmt "tpvar[%i]" lvl
 
   and pp_stable_code fmt =
     function

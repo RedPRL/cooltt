@@ -33,7 +33,8 @@ struct
     {state : St.t;
      veil : Veil.t;
      cof_thy : CofThy.Alg.t;
-     size : int}
+     size : int;
+     tp_size : int}
 end
 
 module QuL =
@@ -42,7 +43,8 @@ struct
     {state : St.t;
      veil : Veil.t;
      cof_thy : CofThy.Disj.t;
-     size : int}
+     size : int;
+     tp_size : int }
 end
 
 
@@ -210,6 +212,10 @@ struct
     let+ {size; _} = M.read in
     size
 
+  let read_tp_local =
+    let+ {tp_size; _} = M.read in
+    tp_size
+
   let read_veil =
     let+ {veil; _} = M.read in
     veil
@@ -243,6 +249,19 @@ struct
     match tp with
     | D.TpPrf phi -> restrict [phi] @@ m var
     | _ -> m var
+
+  let tp_binder i =
+    M.scope @@ fun local ->
+    {local with tp_size = i + local.tp_size}
+
+  let top_tp_var =
+    let+ n = read_tp_local in
+    D.mk_tp_var @@ n - 1
+
+  let bind_tp_var m =
+    tp_binder 1 @@
+    let* var = top_tp_var in
+    m var
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
@@ -298,7 +317,7 @@ struct
         CofThy.Disj.left_invert
           ~zero:(Ok ()) ~seq:MU.iter
           (Env.cof_thy env) @@ fun cof_thy ->
-        ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} m
+        ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env; tp_size = Env.tp_size env} m
       with
       | Ok () -> Ok (), state
       | Error exn -> Error exn, state
@@ -306,7 +325,7 @@ struct
   let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
     match
-      QuM.run {state; cof_thy = Env.cof_thy env; veil = Env.get_veil env; size = Env.size env} m
+      QuM.run {state; cof_thy = Env.cof_thy env; veil = Env.get_veil env; size = Env.size env; tp_size = Env.tp_size env} m
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state

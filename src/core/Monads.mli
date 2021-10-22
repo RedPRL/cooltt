@@ -73,12 +73,14 @@ module QuM : sig
 
   val read_global : RefineState.t m
   val read_local : int m
+  val read_tp_local : int m
   val read_veil : Veil.t m
 
   val globally : 'a m -> 'a m
 
   val binder : int -> 'a m -> 'a m
   val bind_var : D.tp -> (D.con -> 'a m) -> 'a m
+  val bind_tp_var : (D.tp -> 'a m) -> 'a m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m
 end

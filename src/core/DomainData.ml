@@ -104,6 +104,8 @@ struct
   and tp =
     | Sub of tp * cof * tm_clo
     | Univ
+    | TpVar of int
+    (** De Bruijn level *)
     | ElCut of cut
     | ElStable of con stable_code
     | ElUnstable of con unstable_code
