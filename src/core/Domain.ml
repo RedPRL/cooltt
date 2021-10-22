@@ -19,6 +19,10 @@ struct
   let mk_var tp lvl =
     Cut {tp; cut = Var lvl, []}
 
+  (* FIXME: Is this right? *)
+  let mk_tp_var lvl =
+    ElCut (Var lvl, [])
+
   let un_lam con =
     (* y, x |= y(x) *)
     Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})

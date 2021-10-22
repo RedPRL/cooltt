@@ -19,6 +19,7 @@ type t
 val init : Bantorra.Manager.library -> t
 
 val size : t -> int
+val tp_size : t -> int
 val locals : t -> cell bwd
 val sem_env : t -> D.env
 val pp_env : t -> Pp.env
@@ -35,6 +36,7 @@ val location : t -> LexingUtil.span option
 val set_location : LexingUtil.span option -> t -> t
 
 val append_con : Ident.t -> D.con -> D.tp -> t -> t
+val append_tp : Ident.t -> D.tp -> t -> t
 val restrict : CofThy.cof list -> t -> t
 
 val set_veil : Veil.t -> t -> t
@@ -43,7 +45,7 @@ val set_veil : Veil.t -> t -> t
 val resolve_local : Ident.t -> t -> int option
 val resolve_local_tp : Ident.t -> t -> int option
 val get_local_tp : int -> t -> D.tp
-val get_local : int -> t -> D.con
+val get_local : int -> t -> (D.tp * D.con)
 
 val push_problem : string -> t -> t
 

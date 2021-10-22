@@ -93,6 +93,22 @@ struct
     kont @@ {tp; con}
 end
 
+and TpVar : sig
+  type tac
+
+  val tp : tac -> Tp.tac
+  val abstract : ?ident:Ident.t -> (tac -> 'a RM.m) -> 'a RM.m
+end =
+struct
+  type tac = D.tp
+
+  let tp t = Tp.rule @@ RM.quote_tp t
+
+  let abstract : ?ident:Ident.t -> (tac -> 'a RM.m) -> 'a RM.m =
+    fun ?(ident = `Anon) kont ->
+    RM.abstract_tp ident kont
+end
+
 and Chk : sig
   include Tactic
 
@@ -195,5 +211,7 @@ struct
 end
 
 let abstract = Var.abstract
+let abstract_tp = TpVar.abstract
 
 type var = Var.tac
+type tp_var = TpVar.tac

@@ -64,15 +64,15 @@ let set_location loc env =
 
 let size env = Bwd.length env.locals
 
+let tp_size env = Bwd.length env.tp_locals
+
 let get_local_tp ix env =
-  let cell = Bwd.nth env.locals ix in
-  let tp, _ = Cell.contents cell in
-  tp
+  let cell = Bwd.nth env.tp_locals ix in
+  Cell.contents cell
 
 let get_local ix env =
   let cell = Bwd.nth env.locals ix in
-  let _, con = Cell.contents cell in
-  con
+  Cell.contents cell
 
 let resolve_local (ident : Ident.t) env =
   let exception E in
@@ -112,6 +112,16 @@ let append_con ident con tp env =
   {env with
    pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
    locals = env.locals <>< [{contents = tp, con; ident}];
+   cof_thy =
+     match tp with
+     | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
+     | _ -> env.cof_thy}
+
+let append_tp ident tp env =
+  {env with
+   pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
+   tp_locals = env.tp_locals <>< [{contents = tp; ident}];
+   (* FIXME: is this needed? *)
    cof_thy =
      match tp with
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]

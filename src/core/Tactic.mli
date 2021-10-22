@@ -51,7 +51,6 @@ sig
   val ann : Chk.tac -> Tp.tac -> tac
 end
 
-
 module Var :
 sig
   type tac
@@ -61,6 +60,16 @@ sig
   val syn : tac -> Syn.tac
 end
 
+module TpVar :
+sig
+  type tac
+
+  val tp : tac -> Tp.tac
+  val abstract : ?ident:Ident.t -> (tac -> 'a RM.m) -> 'a RM.m
+end
+
 type var = Var.tac
+type tp_var = TpVar.tac
 
 val abstract : ?ident:Ident.t -> D.tp -> (var -> 'a RM.m) -> 'a RM.m
+val abstract_tp : ?ident:Ident.t -> (tp_var -> 'a RM.m) -> 'a RM.m

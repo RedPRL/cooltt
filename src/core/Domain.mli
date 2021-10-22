@@ -11,6 +11,7 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val dim_to_con : dim -> con
   val cof_to_con : cof -> con
   val mk_var : tp -> int -> con
+  val mk_tp_var : int -> tp
   val push : frm -> cut -> cut
 
   val const_tm_clo : con -> tm_clo

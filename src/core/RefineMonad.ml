@@ -58,7 +58,6 @@ let get_local_tp ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
-
 let get_local ix =
   let* env = read in
   match Env.get_local ix env with
@@ -163,7 +162,16 @@ let abstract nm tp k =
     Env.append_con nm con tp env
   in
   scope rho @@
-  k @<< get_local 0
+  let* (_, con) = get_local 0
+  in k con
+
+let abstract_tp nm k =
+  let rho env =
+    let tp = D.mk_tp_var @@ Env.tp_size env in
+    Env.append_tp nm tp env
+  in
+  scope rho @@
+  k @<< get_local_tp 0
 
 let problem =
   let+ env = read in

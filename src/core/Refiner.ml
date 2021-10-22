@@ -1159,13 +1159,12 @@ end
 module Structural =
 struct
 
-
   let lookup_var id : T.Syn.tac =
     T.Syn.rule ~name:"Structural.lookup_var" @@
     let* res = RM.resolve id in
     match res with
     | `Local ix ->
-      let+ tp = RM.get_local_tp ix in
+      let+ (tp, _) = RM.get_local ix in
       S.Var ix, tp
     | `Global sym ->
       let+ tp, _ = RM.get_global sym in
