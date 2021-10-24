@@ -1,7 +1,7 @@
 " vim-cooltt ftplugin
 " Language:     cooltt
 " Author:       Carlo Angiuli
-" Last Change:  2020 May 18
+" Last Change:  2021 October 24
 
 if (exists("b:did_ftplugin") || !has('job'))
   finish
@@ -9,6 +9,10 @@ endif
 
 if (!exists('g:cooltt_path'))
   let g:cooltt_path = 'cooltt'
+endif
+
+if (!exists('g:coolttviz_path'))
+  let g:coolttviz_path = 'coolttviz-rs'
 endif
 
 command! Cooltt :call CheckBuffer()
@@ -23,6 +27,14 @@ sign define coolttInfo text=» texthl=Identifier
 sign define coolttError text=✗ texthl=Error
 
 let s:regex = '^\[stdin\]:\(\d\+\).\(\d\+\)-\(\d\+\).\(\d\+\) \[\(\a\+\)\]'
+let s:options = ''
+
+if (executable(g:coolttviz_path))
+  if (!exists('s:vizjob') || job_status(s:vizjob) != 'run')
+    let s:vizjob = job_start(g:coolttviz_path)
+    let s:options = ' --server'
+  endif
+endif
 
 " Optional argument: the last line to send to cooltt (default: all).
 function! CheckBuffer(...)
@@ -45,7 +57,7 @@ function! CheckBuffer(...)
   execute 'sign unplace * file=' . l:current
 
   let s:job = job_start(g:cooltt_path .
-    \' - -w ' . s:EditWidth() . ' --as-file ' . expand('%:p'), {
+    \' - -w ' . s:EditWidth() . s:options . ' --as-file ' . expand('%:p'), {
     \'in_io': 'buffer', 'in_buf': bufnr('%'),
     \'in_bot': exists('a:1') ? a:1 : line('$'),
     \'out_cb': 'ParseMessages',
