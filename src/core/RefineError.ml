@@ -39,12 +39,6 @@ let pp_connective fmt =
   | `ElHCom ->
     Format.fprintf fmt "hcom"
 
-let pp_path fmt p =
-  Uuseg_string.pp_utf_8 fmt @@
-  match p with
-  | [] -> "."
-  | _ -> String.concat "." p
-
 let pp fmt =
   function
   | UnboundVariable id ->
@@ -73,9 +67,9 @@ let pp fmt =
       "Expected true cofibration: %a"
       (S.pp ppenv) cof
   | ExpectedField (ppenv, sign, tm, lbl) ->
-    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_sign ppenv) sign pp_path lbl
+    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_sign ppenv) sign Ident.pp_user lbl
   | FieldNameMismatches (expected, actual) ->
-    Fmt.fprintf fmt "Field names mismatch, expected [%a] but got [%a]" (Pp.pp_sep_list pp_path) expected (Pp.pp_sep_list pp_path) actual
+    Fmt.fprintf fmt "Field names mismatch, expected [%a] but got [%a]" (Pp.pp_sep_list Ident.pp_user) expected (Pp.pp_sep_list Ident.pp_user) actual
   | VirtualType ->
     Fmt.fprintf fmt "Virtual type (dim, cof, etc.) cannot appear in this position"
   | HoleNotPermitted (ppenv, tp) ->

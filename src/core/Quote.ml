@@ -280,7 +280,7 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_fields (sign : D.sign) con : (string list * S.t) list m =
+and quote_fields (sign : D.sign) con : (Ident.user * S.t) list m =
   match sign with
   | D.Field (lbl, tp, sign_clo) ->
     let* fcon = lift_cmp @@ do_proj con lbl in
@@ -295,13 +295,13 @@ and quote_stable_field_code univ args (lbl, fam) =
   let rec go vars =
     function
     | [] -> quote_con univ @<< lift_cmp @@ do_aps fam vars
-    | (lbl, arg) :: args ->
+    | (ident, arg) :: args ->
       (* The 'do_aps' here instantiates the argument type families so that we can handle
          the telescopic nature of fields correctly. *)
       let* elarg = lift_cmp @@ CmpM.bind (do_aps arg vars) do_el in
-      quote_lam ~ident:(`User lbl) elarg @@ fun var -> go (vars @ [var]) args
+      quote_lam ~ident elarg @@ fun var -> go (vars @ [var]) args
   in
-  let+ tfam = go [] args in
+  let+ tfam = go [] (args :> (Ident.t * D.con) list) in
   (lbl, tfam)
 
 and quote_stable_code univ =

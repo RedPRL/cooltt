@@ -26,7 +26,7 @@ exception CJHM
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 type 'a telescope =
-  | Bind of string list * 'a * (T.var -> 'a telescope)
+  | Bind of Ident.user * 'a * (T.var -> 'a telescope)
   | Done
 
 module GlobalUtil : sig
@@ -524,27 +524,19 @@ end
 
 module Signature =
 struct
-  let equal_path p1 p2 =
-    List.equal String.equal p1 p2
-
-  let hole_name_of_path =
-    function
-    | [] -> None
-    | p -> Some (String.concat "." p)
-
   let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
     let rec form_fields tele =
       function
-      | Bind (nm, tac, tacs) ->
+      | Bind (lbl, tac, tacs) ->
         let* tp = T.Tp.run tac in
         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(`User nm) vtp @@ fun var -> form_fields (Snoc (tele, (nm, tp))) (tacs var)
+        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
-  let rec find_field_tac (fields : (string list * T.Chk.tac) list) (lbl : string list) : T.Chk.tac option =
+  let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
     match fields with
-    | (lbl', tac) :: _ when equal_path (lbl : string list) lbl'  ->
+    | (lbl', tac) :: _ when Ident.equal lbl lbl'  ->
       Some tac
     | _ :: fields ->
       find_field_tac fields lbl
@@ -552,12 +544,12 @@ struct
       None
 
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : string list -> T.Chk.tac option) : (string list * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
     match sign with
     | D.Field (lbl, tp, sign_clo) ->
       let tac = match tacs lbl with
         | Some tac -> tac
-        | None -> Hole.unleash_hole (hole_name_of_path lbl)
+        | None -> Hole.unleash_hole (Ident.user_to_string_opt lbl)
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
@@ -567,7 +559,7 @@ struct
     | D.Empty ->
       RM.ret []
 
-  let intro (tacs : string list -> T.Chk.tac option) : T.Chk.tac =
+  let intro (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->
@@ -575,10 +567,10 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : string list) : D.tp m =
+  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
     let rec go =
       function
-      | D.Field (flbl, tp, _) when equal_path flbl lbl -> RM.ret tp
+      | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret tp
       | D.Field (flbl, __, clo) ->
         let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
         let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
@@ -635,9 +627,8 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
-  let quantifiers (mk_fields : (string list * (D.tp -> S.t m)) list) (univ : D.tp) : (string list * S.t) list m =
-    let (lbls, ks) = List.split mk_fields in
-    let idents = List.map (fun lbl -> `User lbl) lbls in
+  let quantifiers (mk_fields : ('a Ident.some * (D.tp -> S.t m)) list) (univ : D.tp) : ('a Ident.some * S.t) list m =
+    let (idents, ks) = List.split mk_fields in
     let rec mk_fams fams vfams =
       function
       | [] -> RM.ret fams
@@ -646,16 +637,16 @@ struct
           RM.lift_cmp @@
           Sem.splice_tp @@
           Splice.tp univ @@ fun univ ->
-          Splice.cons vfams @@ fun args -> Splice.term @@ TB.pis ~idents:idents args @@ fun _ -> univ
+          Splice.cons vfams @@ fun args -> Splice.term @@ TB.pis ~idents:(idents :> Ident.t list) args @@ fun _ -> univ
         in
         let* fam = k famtp in
         let* vfam = RM.lift_ev @@ Sem.eval fam in
         mk_fams (fams @ [fam]) (vfams @ [vfam]) ks
     in
     let+ fams = mk_fams [] [] ks in
-    List.combine lbls fams
+    List.combine idents fams
 
-  let quote_sign_codes (vsign : (string list * D.con) list) (univ : D.tp) : (string list * S.t) list m =
+  let quote_sign_codes (vsign : (Ident.user * D.con) list) (univ : D.tp) : (Ident.user * S.t) list m =
     quantifiers (List.map (fun (lbl, vcode) -> (lbl, fun tp -> RM.quote_con tp vcode)) vsign) univ
 
   let pi tac_base tac_fam : T.Chk.tac =
@@ -686,7 +677,7 @@ struct
              (y : x => (arg : x) -> type)
              (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
   *)
-  let signature (tacs : (string list * T.Chk.tac) list) : T.Chk.tac =
+  let signature (tacs : (Ident.user * T.Chk.tac) list) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
     let+ fields = quantifiers (List.map (fun (lbl, tac) -> (lbl, T.Chk.run tac)) tacs) univ in
     S.CodeSignature fields
@@ -707,11 +698,10 @@ struct
      when we construct the final codes. Most notably, we need to make sure to properly
      eliminate the 'ext' types introduced by previous patches.
   *)
-  let patch_fields (sign : (string list * D.con) list) (tacs : string list -> T.Chk.tac option) (univ : D.tp) : S.t m =
-    let rec go field_names (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
+  let patch_fields (sign : (Ident.user * D.con) list) (tacs : Ident.user -> T.Chk.tac option) (univ : D.tp) : S.t m =
+    let rec go (field_names : Ident.user list) (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
       match sign with
       | (field_name, vfield_tp) :: sign ->
-        let idents = List.map Ident.user field_names in
         let* (code, elim_conn) =
           match tacs field_name with
           | Some tac ->
@@ -719,7 +709,7 @@ struct
               RM.lift_cmp @@
               Sem.splice_tp @@
               Splice.con vfield_tp @@ fun field_tp ->
-              Splice.cons codes @@ fun codes -> Splice.term @@ TB.pis ~idents codes @@ fun args -> TB.el @@ TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args
+              Splice.cons codes @@ fun codes -> Splice.term @@ TB.pis ~idents:(field_names :> Ident.t list) codes @@ fun args -> TB.el @@ TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args
             in
             let* patch = T.Chk.run tac patch_tp in
             let* vpatch = RM.lift_ev @@ Sem.eval patch in
@@ -728,7 +718,7 @@ struct
               Sem.splice_tm @@
               Splice.con vfield_tp @@ fun field_tp ->
               Splice.con vpatch @@ fun patch ->
-              Splice.term @@ TB.lams idents @@ fun args -> TB.code_ext 0 (TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args) TB.top @@ TB.lam @@ fun _ -> TB.ap patch args
+              Splice.term @@ TB.lams (field_names :> Ident.t list) @@ fun args -> TB.code_ext 0 (TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args) TB.top @@ TB.lam @@ fun _ -> TB.ap patch args
             in
             (ext_code, fun arg -> TB.sub_out @@ TB.el_out arg)
           | None ->
@@ -736,7 +726,7 @@ struct
               RM.lift_cmp @@
               Sem.splice_tm @@
               Splice.con vfield_tp @@ fun field_tp ->
-              Splice.term @@ TB.lams idents @@ fun args -> TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args
+              Splice.term @@ TB.lams (field_names :> Ident.t list) @@ fun args -> TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args
             in
             (code, Fun.id)
         in
@@ -746,7 +736,7 @@ struct
         RM.ret @@ S.CodeSignature qsign
     in go [] [] [] sign
 
-  let patch (sig_tac : T.Chk.tac) (tacs : string list -> T.Chk.tac option) : T.Chk.tac =
+  let patch (sig_tac : T.Chk.tac) (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
     univ_tac "Univ.patch" @@ fun univ ->
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in
@@ -778,7 +768,6 @@ struct
         | _ -> RM.expected_connective `Univ fam
       in
       let (sign_names, vsign_codes) = List.split vsign in
-      let idents = List.map Ident.user sign_names in
       let* qsign = quote_sign_codes vsign univ in
       (* See [NOTE: Sig Code Quantifiers]. *)
       let* fib_tp =
@@ -786,16 +775,16 @@ struct
         Sem.splice_tp @@
         Splice.tp univ @@ fun univ ->
         Splice.cons vsign_codes @@ fun sign_codes ->
-        Splice.term @@ TB.pis ~idents sign_codes @@ fun _ -> univ
+        Splice.term @@ TB.pis ~idents:(sign_names :> Ident.t list) sign_codes @@ fun _ -> univ
       in
       let* fib =
         RM.lift_cmp @@
         Sem.splice_tm @@
         Splice.con vtm @@ fun tm ->
-        Splice.term @@ TB.lams idents @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
+        Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
       in
       let+ qfib = RM.quote_con fib_tp fib in
-      S.CodeSignature (qsign @ [["fib"], qfib])
+      S.CodeSignature (qsign @ [`User ["fib"], qfib])
     | D.Pi (base, _, _) -> RM.expected_connective `Signature base
     | _ -> RM.expected_connective `Pi tp
 

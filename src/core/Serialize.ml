@@ -42,36 +42,37 @@ let json_to_bwd json_to_el : J.value -> 'a bwd =
 let labeled lbl v = `A (`String lbl :: v)
 
 (* Identitifers *)
-let json_of_path (path : string list) =
-  `A (List.map J.string path)
-
-let json_to_path : J.value -> string list =
+let json_of_user =
   function
-  | `A path -> List.map J.get_string path
+  | `User path -> `A (List.map J.string path)
+
+let json_to_user : J.value -> [> `User of string list] =
+  function
+  | `A path -> `User (List.map J.get_string path)
   | j -> J.parse_error j "json_to_path"
 
 let json_of_ident : Ident.t -> J.value =
   function
   | `Anon -> `String "anon"
-  | `User parts -> `O [("user", json_of_path parts)]
+  | `User _ as u -> `O [("user", json_of_user u)]
   | `Machine str -> `O [("machine", `String str)]
 
 let json_to_ident : J.value -> Ident.t =
   function
   | `String "anon" -> `Anon
-  | `O [("user", parts)] -> `User (json_to_path parts)
+  | `O [("user", parts)] -> json_to_user parts
   | `O [("machine", `String str)] -> `Machine str
   | j -> J.parse_error j "json_to_ident"
 
 let json_of_labeled json_of_el els : J.value =
-  `O (List.map (fun (path, el) -> (String.concat "." path, json_of_el el)) els)
+  `O (List.map (fun (`User path, el) -> (String.concat "." path, json_of_el el)) els)
 
 let json_to_labeled json_to_el =
   function
   | `O j_els -> j_els |> List.map @@ fun (j_path, j_el) ->
     let path = String.split_on_char '.' j_path in
     let tm = json_to_el j_el in
-    (path, tm)
+    (`User path, tm)
   | j -> J.parse_error j "json_to_labeled"
 
 module Cof =
@@ -123,7 +124,7 @@ struct
     | S.Fst tm -> labeled "fst" [json_of_tm tm]
     | S.Snd tm -> labeled "snd" [json_of_tm tm]
     | S.Struct strct -> labeled "struct" [json_of_labeled json_of_tm strct]
-    | S.Proj (tm, path) -> labeled "proj" [json_of_tm tm; json_of_path path]
+    | S.Proj (tm, path) -> labeled "proj" [json_of_tm tm; json_of_user path]
     | S.Coe (fam, src, trg, tm) -> labeled "coe" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm tm]
     | S.HCom (code, src, trg, cof, tm) -> labeled "hcom" [json_of_tm code; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm]
     | S.Com (fam, src, trg, cof, tm) -> labeled "com" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm]
@@ -243,7 +244,7 @@ struct
       S.Struct strct
     | `A [`String "proj"; j_tm; j_path] ->
       let tm = json_to_tm j_tm in
-      let path = json_to_path j_path in
+      let path = json_to_user j_path in
       S.Proj (tm, path)
     | `A [`String "coe"; j_fam; j_src; j_trg; j_tm] ->
       let fam = json_to_tm j_fam in
@@ -503,7 +504,7 @@ struct
   and json_of_sign : D.sign -> J.value =
     function
     | D.Empty -> `String "empty"
-    | D.Field (lbl, tp, clo) -> labeled "field" [json_of_path lbl; json_of_tp tp; json_of_sign_clo clo]
+    | D.Field (lbl, tp, clo) -> labeled "field" [json_of_user lbl; json_of_tp tp; json_of_sign_clo clo]
 
   and json_of_hd : D.hd -> J.value =
     function
@@ -517,7 +518,7 @@ struct
     | D.KAp (tp, con) -> labeled "k_ap" [json_of_tp tp; json_of_con con]
     | D.KFst -> `String "k_fst"
     | D.KSnd -> `String "k_snd"
-    | D.KProj lbl -> labeled "k_proj" [json_of_path lbl]
+    | D.KProj lbl -> labeled "k_proj" [json_of_user lbl]
     | D.KNatElim (mot, z, s) -> labeled "k_nat_elim" [json_of_con mot; json_of_con z; json_of_con s]
     | D.KCircleElim (mot, b, l) -> labeled "k_circle_elim" [json_of_con mot; json_of_con b; json_of_con l]
     | D.KElOut -> `String "k_el_out"
@@ -635,7 +636,7 @@ struct
   and json_to_sign : J.value -> D.sign =
     function
     | `String "empty" -> Empty
-    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (json_to_path j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
+    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (json_to_user j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
     | j -> J.parse_error j "Domain.json_to_sign"
 
   and json_to_hd : J.value -> D.hd =
@@ -651,7 +652,7 @@ struct
     | `A [`String "k_ap"; j_tp; j_con] -> KAp (json_to_tp j_tp, json_to_con j_con)
     | `String "k_fst" -> KFst
     | `String "k_snd" -> KSnd
-    | `A [`String "k_proj"; j_lbl] -> KProj (json_to_path j_lbl)
+    | `A [`String "k_proj"; j_lbl] -> KProj (json_to_user j_lbl)
     | `A [`String "k_nat_elim"; j_mot; j_z; j_s] -> KNatElim (json_to_con j_mot, json_to_con j_z, json_to_con j_s)
     | `A [`String "k_circle_elim"; j_mot; j_b; j_l] -> KCircleElim (json_to_con j_mot, json_to_con j_b, json_to_con j_l)
     | `String "k-el_out" -> KElOut

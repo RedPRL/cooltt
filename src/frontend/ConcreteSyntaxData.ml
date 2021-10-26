@@ -36,7 +36,7 @@ and con_ =
   | Sg of cell list * con
   | Signature of field list
   | Struct of field list
-  | Proj of con * string list
+  | Proj of con * Ident.user
   | Patch of con * field list
   | Total of con * field list
   | Sub of con * con * con
@@ -86,7 +86,7 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and field = Field of { lbl : string list; tp : con }
+and field = Field of { lbl : Ident.user; tp : con }
 [@@deriving show]
 
 and pat = Pat of {lbl : string list; args : pat_arg list}

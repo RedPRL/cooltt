@@ -34,9 +34,9 @@ let rec unfold idents k =
 
 (* Account for the lambda-bound signature field dependencies.
     See [NOTE: Sig Code Quantifiers] for more info. *)
-let bind_sig_tacs (tacs : (string list * T.Chk.tac) list) : (string list * T.Chk.tac) list =
+let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
   let bind_tac lbls (lbl, tac) =
-    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(`User lbl) (fun _ -> tac)) lbls tac in
+    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls tac in
     Snoc (lbls, lbl) , (lbl, tac)
   in
   snd @@ ListUtil.map_accum_left bind_tac Emp tacs
@@ -48,7 +48,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : (string list * tac) list -> tac
+  val signature : (Ident.user * tac) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -109,7 +109,7 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : (string list * tac) list) : tac =
+  let signature (tacs : (Ident.user * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
       let tac = R.Univ.signature (bind_sig_tacs tacs) in
