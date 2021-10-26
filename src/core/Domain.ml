@@ -68,12 +68,6 @@ struct
       (Format.pp_print_list ~pp_sep:sep pp) xs
       right ()
 
-  let pp_path fmt p =
-    Uuseg_string.pp_utf_8 fmt @@
-    match p with
-    | [] -> "."
-    | _ -> String.concat "." p
-
   let rec pp_cut : cut Pp.printer =
     fun fmt ->
     function
@@ -108,7 +102,7 @@ struct
     | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
-    | KProj lbl -> Format.fprintf fmt "proj[%a]" pp_path lbl
+    | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -162,7 +156,7 @@ struct
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" pp_path lbl pp_con tp)) fields
+        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
@@ -209,7 +203,7 @@ struct
 
   and pp_sign fmt =
     function
-    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" pp_path ident pp_tp tp pp_sign_clo clo
+    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp_user ident pp_tp tp pp_sign_clo clo
     | Empty -> Format.fprintf fmt "sig/empty"
 
   and pp_tp fmt =
