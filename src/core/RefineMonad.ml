@@ -15,6 +15,7 @@ open Monad.Notation (Monads.RefineM)
 
 let refine_err err =
   let* env = read in
+  Debug.print "Refiner failed, dumping environment...@;  %a" Env.dump env;
   throw @@ Err.RefineError (err, Env.location env)
 
 let resolve id =

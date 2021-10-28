@@ -45,3 +45,5 @@ val get_local_tp : int -> t -> D.tp
 val get_local : int -> t -> D.con
 
 val push_problem : string -> t -> t
+
+val dump : t Pp.printer

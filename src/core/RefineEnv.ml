@@ -118,3 +118,13 @@ let problem env = env.problem
 let push_problem lbl env =
   {env with
    problem = env.problem #< lbl}
+
+let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
+  function
+  | [] -> ()
+  | (cell :: cells) ->
+    Format.fprintf fmt "%a : %a := @[<hov 2>%a@]@;%a" Ident.pp cell.ident D.pp_tp (fst cell.contents) D.pp_con (snd cell.contents) dump_locals cells
+
+let dump fmt : t -> unit =
+  fun env ->
+  Format.fprintf fmt "Locals: @[<v>%a@]" dump_locals (Bwd.to_list env.locals)
