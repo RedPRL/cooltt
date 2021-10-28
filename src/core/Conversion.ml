@@ -340,8 +340,7 @@ and equate_cut cut0 cut1 =
   equate_spine sp0 sp1
 
 (* Invariant: sp0, sp1 are whnf *)
-and equate_spine sp0 sp1 =
-  let exception Mismatch in
+and equate_spine full_sp0 full_sp1 =
   let rec go sp0 sp1 =
     match sp0, sp1 with
     | [], [] -> ret ()
@@ -349,11 +348,9 @@ and equate_spine sp0 sp1 =
       let* () = equate_frm k0 k1 in
       go sp0 sp1
     | _ ->
-      raise Mismatch
+      conv_err @@ Error.SpineLengthMismatch (full_sp0, full_sp1)
   in
-  try go sp0 sp1 with
-  | Mismatch ->
-    conv_err @@ Error.SpineLengthMismatch (sp0, sp1)
+  go full_sp0 full_sp1
 
 (* Invariant: k0, k1 are whnf *)
 and equate_frm k0 k1 =
