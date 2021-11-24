@@ -5,6 +5,7 @@ module S = Syntax
 module St = RefineState
 module Env = RefineEnv
 module Err = RefineError
+module Msg = RefineMessage
 module Qu = Quote
 module Conv = Conversion
 
@@ -167,3 +168,13 @@ let push_problem lbl =
 
 let update_span loc =
   scope @@ Env.set_location loc
+
+let emit_tp loc tp =
+  match loc with
+  | Some loc ->
+    let* st = get in
+    let* env = read in
+    let+ qtp = quote_tp tp in
+    St.emit_msg (Msg.TypeAt (loc, Env.pp_env env, qtp)) st
+  | None ->
+    ret ()

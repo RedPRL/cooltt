@@ -4,5 +4,5 @@
   (:standard -w -32-38 -warn-error -a+31))
  (preprocess
   (pps ppx_deriving.std))
- (libraries ezjsonm uuseg uuseg.string uutf containers)
+ (libraries ezjsonm uuseg uuseg.string uutf containers threads)
  (public_name cooltt.basis))

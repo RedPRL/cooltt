@@ -1,3 +1,4 @@
+open Basis
 open CodeUnit
 
 module IDMap = Map.Make (CodeUnitID)
@@ -7,12 +8,17 @@ type t = { code_units : CodeUnit.t IDMap.t;
            (** The binding namespace for each code unit. *)
            namespaces : (Global.t Namespace.t) IDMap.t;
            (** The import namespace for each code unit. *)
-           import_namespaces : (Global.t Namespace.t) IDMap.t }
+           import_namespaces : (Global.t Namespace.t) IDMap.t;
+           (** A message queue for emitting events that occured during refinement. *)
+           refiner_info : RefineMessage.t JobQueue.write_t
+         }
 
-let init =
+let init job_queue =
   { code_units = IDMap.empty;
     namespaces = IDMap.empty;
-    import_namespaces = IDMap.empty }
+    import_namespaces = IDMap.empty;
+    refiner_info = job_queue
+  }
 
 let get_unit id st =
   IDMap.find id st.code_units
@@ -57,10 +63,15 @@ let add_import id modifier import_id st =
 let init_unit id st =
   { code_units = IDMap.add id (CodeUnit.create id) st.code_units;
     namespaces = IDMap.add id Namespace.empty st.namespaces;
-    import_namespaces = IDMap.add id Namespace.empty st.import_namespaces }
+    import_namespaces = IDMap.add id Namespace.empty st.import_namespaces;
+    refiner_info = st.refiner_info
+  }
 
 let get_import path st =
   IDMap.find_opt path st.code_units
 
 let is_imported path st =
   IDMap.mem path st.code_units
+
+let emit_msg msg st =
+  JobQueue.enqueue msg st.refiner_info

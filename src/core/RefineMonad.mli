@@ -44,3 +44,5 @@ val with_pp : (Pp.env -> 'a m) -> 'a m
 val expected_connective : RefineError.connective -> D.tp -> 'a m
 val expected_field : D.sign -> S.t -> string list -> 'a m
 val field_names_mismatch : expected:string list list -> actual:string list list -> 'a m
+
+val emit_tp : LexingUtil.span option -> D.tp -> unit m
