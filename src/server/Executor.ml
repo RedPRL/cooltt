@@ -9,6 +9,7 @@ module CS = ConcreteSyntax
 module ST = RefineState
 module Err = RefineError
 module Env = RefineEnv
+module Metadata = RefineMetadata
 module RM = RefineMonad
 open Monad.Notation (RM)
 
@@ -95,7 +96,7 @@ let elab_decl (st : state) (decl : CS.decl) =
     print_ident st ident
   | _ -> Lwt.return st
 
-let elaborate_file (lib : Bantorra.Manager.library) (path : string) : Diagnostic.t list Lwt.t =
+let elaborate_file (lib : Bantorra.Manager.library) (path : string) : (Diagnostic.t list * Metadata.t list) Lwt.t =
   let open LspLwt.Notation in
   let* sign = parse_file path in
   let unit_id = CodeUnitID.file path in
@@ -103,5 +104,5 @@ let elaborate_file (lib : Bantorra.Manager.library) (path : string) : Diagnostic
   let refiner_state = ST.init_unit unit_id @@ ST.init in
   let refiner_env = Env.set_current_unit_id unit_id (Env.init lib) in
   let diagnostics = [] in
-  let* st = Lwt_list.fold_left_s elab_decl { refiner_state; refiner_env; diagnostics } sign in
-  Lwt.return st.diagnostics
+  let+ st = Lwt_list.fold_left_s elab_decl { refiner_state; refiner_env; diagnostics } sign in
+  (st.diagnostics, ST.get_metadata st.refiner_state)

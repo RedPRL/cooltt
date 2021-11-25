@@ -142,9 +142,11 @@ struct
     function
     | Chk (name, tac) ->
       rule ~name @@ fun tp ->
+      let* _ = RM.emit_tp loc tp in
       RM.update_span loc @@ tac tp
     | BChk (name, tac) ->
-      brule ~name @@ fun goal ->
+      brule ~name @@ fun ((tp, cof, bdry) as goal) ->
+      let* _ = RM.emit_tp loc (D.Sub (tp, cof, bdry)) in
       RM.update_span loc @@ tac goal
 
   let syn (tac : Syn.tac) : tac =
@@ -176,7 +178,12 @@ struct
     tac
 
   let update_span loc (name, tac) =
-    (name, RM.update_span loc tac)
+    let tac' =
+      let* (tm, tp) = RM.update_span loc tac in
+      let+ _ = RM.emit_tp loc tp in
+      (tm, tp)
+    in
+    (name, tac')
 
   let ann (tac_tm : Chk.tac) (tac_tp : Tp.tac) : tac =
     rule @@

@@ -20,7 +20,8 @@ type notification = Lsp.Client_notification.t
 type server =
   { lsp_io : LspLwt.io;
     library : Bantorra.Manager.library;
-    mutable should_shutdown : bool
+    mutable should_shutdown : bool;
+    mutable hover_info : string IntervalTree.t
   }
 
 type lsp_error =
@@ -56,23 +57,36 @@ let publish_diagnostics server path (diagnostics : Diagnostic.t list) =
 
 (* Notifications *)
 
+let update_metadata server metadata =
+  let update = 
+    function
+    | RefineMetadata.TypeAt (span, env, tp) ->
+      let info = Format.asprintf "%a" (Syntax.pp_tp env) tp in
+      server.hover_info <- IntervalTree.insert (Pos.of_lex_pos span.start) (Pos.of_lex_pos span.stop) info server.hover_info
+  in List.iter update metadata
+
+let load_file server (uri : DocumentUri.t) =
+  let path = DocumentUri.to_path uri in
+  let* _ = LspLwt.log server.lsp_io ("Loading File " ^ path) in
+  let* (diagnostics, metadata) = Executor.elaborate_file server.library path in
+  let+ _ = publish_diagnostics server path diagnostics in
+  update_metadata server metadata
+
 let handle_notification : server -> string -> notification -> unit Lwt.t =
   fun server mthd ->
   function
   | TextDocumentDidOpen doc ->
-    let path = DocumentUri.to_path @@ doc.textDocument.uri in
-    let* _ = LspLwt.log server.lsp_io ("Loading File " ^ path) in
-    let* diagnostics = Executor.elaborate_file server.library path in
-    publish_diagnostics server path diagnostics
+    load_file server doc.textDocument.uri
   | DidSaveTextDocument doc ->
-    let path = DocumentUri.to_path @@ doc.textDocument.uri in
-    let* _ = LspLwt.log server.lsp_io ("Reloading File " ^ path) in
-    let* diagnostics = Executor.elaborate_file server.library path in
-    publish_diagnostics server path diagnostics
+    load_file server doc.textDocument.uri
   | _ ->
     raise (LspError (UnknownNotification mthd))
 
 (* Requests *)
+
+let hover server (opts : HoverParams.t) =
+  IntervalTree.lookup (Pos.of_lsp_pos opts.position) server.hover_info |> Option.map @@ fun info ->
+  Hover.create ~contents:(`MarkedString { value = info; language = None }) ()
 
 let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
   fun server mthd ->
@@ -81,6 +95,8 @@ let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
     raise (LspError (HandshakeError "Server can only recieve a single initialization request."))
   | Shutdown ->
     Lwt.return ()
+  | TextDocumentHover opts ->
+    Lwt.return @@ hover server opts
   | _ -> raise (LspError (UnknownRequest mthd))
 
 (* Main Event Loop *)
@@ -135,8 +151,13 @@ let server_capabilities =
     in
     `TextDocumentSyncOptions opts
   in
+  let hoverProvider =
+    let opts = HoverOptions.create ()
+    in `HoverOptions opts
+  in
   ServerCapabilities.create
     ~textDocumentSync
+    ~hoverProvider
     ()
 
 let library_manager =
@@ -180,7 +201,11 @@ let initialize lsp_io =
               | Ok (Initialized _) ->
                 let root = get_root init_params in
                 let+ _ = LspLwt.log lsp_io ("Root: " ^ Option.value root ~default:"<no-root>") in
-                { lsp_io; should_shutdown = false; library = initialize_library root }
+                { lsp_io;
+                  should_shutdown = false;
+                  library = initialize_library root;
+                  hover_info = IntervalTree.empty;
+                }
               | _ ->
                 raise (LspError (HandshakeError "Initialization must complete with an initialized notification."))
             end

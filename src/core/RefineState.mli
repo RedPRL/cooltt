@@ -26,3 +26,5 @@ val is_imported : id -> t -> bool
 val init_unit : id -> t -> t
 
 val add_metadata : RefineMetadata.t -> t -> t
+
+val get_metadata  : t -> RefineMetadata.t list

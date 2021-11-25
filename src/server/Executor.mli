@@ -1,3 +1,4 @@
 open Basis
+open Core
 
-val elaborate_file : Bantorra.Manager.library -> string -> Lsp.Types.Diagnostic.t list Lwt.t
+val elaborate_file : Bantorra.Manager.library -> string -> (Lsp.Types.Diagnostic.t list * RefineMetadata.t list) Lwt.t

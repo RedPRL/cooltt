@@ -76,3 +76,6 @@ let is_imported path st =
 
 let add_metadata data st =
   { st with metadata = data :: st.metadata }
+
+let get_metadata st =
+  st.metadata
