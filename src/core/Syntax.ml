@@ -521,6 +521,9 @@ struct
         (pp_tp envx P.(right_of times)) fam
     | Signature fields ->
       Format.fprintf fmt "sig %a" (pp_sign env) fields
+    | Sub (tp, Cof (Cof.Join []), _) ->
+      Format.fprintf fmt "%a"
+        (pp_tp env penv) tp
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"
