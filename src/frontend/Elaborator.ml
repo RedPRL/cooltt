@@ -450,3 +450,12 @@ let rec modifier_ (con : CS.con) =
 
 let modifier con =
   Option.fold ~none:(RM.ret Yuujinchou.Pattern.any) ~some:modifier_ con
+
+(* Helpers *)
+let elaborate_typed_term name (args : CS.cell list) tp tm =
+  RM.push_problem name @@
+  let* tp = RM.push_problem "tp" @@ T.Tp.run @@ chk_tp_in_tele args tp in
+  let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+  let* tm = RM.push_problem "tm" @@ T.Chk.run (chk_tm_in_tele args tm) vtp in
+  let+ vtm = RM.lift_ev @@ Sem.eval tm in
+  vtp, vtm
