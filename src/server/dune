@@ -1,0 +1,8 @@
+(library
+ (name Server)
+ (libraries bantorra cooltt.basis cooltt.cubical cooltt.core cooltt.frontend lsp lwt lwt.unix)
+ (preprocess
+  (pps ppx_deriving.std))
+ (flags
+  (:standard -w -32-37-38 -warn-error -a+31))
+ (public_name cooltt.server))
