@@ -4,7 +4,7 @@ module D = Domain
 
 type t
 
-val init : RefineMessage.t JobQueue.write_t -> t
+val init : t
 
 val get_unit : id -> t -> CodeUnit.t
 
@@ -25,4 +25,4 @@ val is_imported : id -> t -> bool
 (** Create and add a new code unit. *)
 val init_unit : id -> t -> t
 
-val emit_msg : RefineMessage.t -> t -> unit
+val add_metadata : RefineMetadata.t -> t -> t

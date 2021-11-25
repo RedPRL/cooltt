@@ -220,7 +220,7 @@ let load_file {as_file; debug_mode} input =
   | Ok lib ->
     Debug.debug_mode debug_mode;
     let unit_id = assign_unit_id ~as_file input in
-    RM.run_exn (ST.init JobQueue.null) (Env.init lib) @@
+    RM.run_exn ST.init (Env.init lib) @@
     RM.with_code_unit lib unit_id @@
     process_file input
 
@@ -256,6 +256,6 @@ let do_repl {as_file; debug_mode; _} =
     Debug.debug_mode debug_mode;
     let unit_id = assign_unit_id ~as_file `Stdin in
     let ch, lexbuf = Load.prepare_repl () in
-    RM.run_exn (RefineState.init JobQueue.null) (Env.init lib) @@
+    RM.run_exn RefineState.init (Env.init lib) @@
     RM.with_code_unit lib unit_id @@
     repl lib ch lexbuf

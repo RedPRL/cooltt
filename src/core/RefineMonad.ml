@@ -5,7 +5,7 @@ module S = Syntax
 module St = RefineState
 module Env = RefineEnv
 module Err = RefineError
-module Msg = RefineMessage
+module Metadata = RefineMetadata
 module Qu = Quote
 module Conv = Conversion
 
@@ -174,7 +174,7 @@ let emit_tp loc tp =
   | Some loc ->
     let* st = get in
     let* env = read in
-    let+ qtp = quote_tp tp in
-    St.emit_msg (Msg.TypeAt (loc, Env.pp_env env, qtp)) st
+    let* qtp = quote_tp tp in
+    modify (St.add_metadata (Metadata.TypeAt (loc, Env.pp_env env, qtp)))
   | None ->
     ret ()

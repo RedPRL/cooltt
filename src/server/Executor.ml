@@ -7,6 +7,7 @@ open DriverMessage
 
 module CS = ConcreteSyntax
 module ST = RefineState
+module Err = RefineError
 module Env = RefineEnv
 module RM = RefineMonad
 open Monad.Notation (RM)
@@ -81,7 +82,15 @@ let print_ident (st : state) (ident : Ident.t CS.node) =
 let elab_decl (st : state) (decl : CS.decl) =
   match decl with
   | CS.Def { name; args; def = Some def; tp } ->
-    elab_definition st name args tp def
+    begin
+      Lwt.catch (fun () -> elab_definition st name args tp def) @@
+      function
+      | Err.RefineError (e, span) ->
+        let msg = Format.asprintf "%a" Err.pp e in
+        let d = diagnostic DiagnosticSeverity.Error span msg in
+        Lwt.return { st with diagnostics = d :: st.diagnostics }
+      | err -> raise err
+    end
   | CS.Print ident ->
     print_ident st ident
   | _ -> Lwt.return st
@@ -89,11 +98,9 @@ let elab_decl (st : state) (decl : CS.decl) =
 let elaborate_file (lib : Bantorra.Manager.library) (path : string) : Diagnostic.t list Lwt.t =
   let open LspLwt.Notation in
   let* sign = parse_file path in
-  let elab_queue = JobQueue.create () in
-  let worker = JobQueue.worker elab_queue in
   let unit_id = CodeUnitID.file path in
   (* [TODO: Reed M, 24/11/2021] I don't love how the code unit stuff works here, perhaps it's time to rethink? *)
-  let refiner_state = ST.init_unit unit_id @@ ST.init worker in
+  let refiner_state = ST.init_unit unit_id @@ ST.init in
   let refiner_env = Env.set_current_unit_id unit_id (Env.init lib) in
   let diagnostics = [] in
   let* st = Lwt_list.fold_left_s elab_decl { refiner_state; refiner_env; diagnostics } sign in

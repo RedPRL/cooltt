@@ -3,6 +3,7 @@ open CodeUnit
 
 module IDMap = Map.Make (CodeUnitID)
 module D = Domain
+module Metadata = RefineMetadata
 
 type t = { code_units : CodeUnit.t IDMap.t;
            (** The binding namespace for each code unit. *)
@@ -10,14 +11,14 @@ type t = { code_units : CodeUnit.t IDMap.t;
            (** The import namespace for each code unit. *)
            import_namespaces : (Global.t Namespace.t) IDMap.t;
            (** A message queue for emitting events that occured during refinement. *)
-           refiner_info : RefineMessage.t JobQueue.write_t
+           metadata : Metadata.t list
          }
 
-let init job_queue =
+let init =
   { code_units = IDMap.empty;
     namespaces = IDMap.empty;
     import_namespaces = IDMap.empty;
-    refiner_info = job_queue
+    metadata = []
   }
 
 let get_unit id st =
@@ -64,7 +65,7 @@ let init_unit id st =
   { code_units = IDMap.add id (CodeUnit.create id) st.code_units;
     namespaces = IDMap.add id Namespace.empty st.namespaces;
     import_namespaces = IDMap.add id Namespace.empty st.import_namespaces;
-    refiner_info = st.refiner_info
+    metadata = st.metadata
   }
 
 let get_import path st =
@@ -73,5 +74,5 @@ let get_import path st =
 let is_imported path st =
   IDMap.mem path st.code_units
 
-let emit_msg msg st =
-  JobQueue.enqueue msg st.refiner_info
+let add_metadata data st =
+  { st with metadata = data :: st.metadata }
