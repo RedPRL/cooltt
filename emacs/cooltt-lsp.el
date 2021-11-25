@@ -6,7 +6,7 @@
 
 (lsp-register-client
  (make-lsp-client
-  :new-connection (lsp-stdio-connection (list cooltt-command "-i"))
+  :new-connection (lsp-stdio-connection (list cooltt-command "--mode" "server"))
   :major-modes '(cooltt-mode)
   :server-id 'cooltt))
 

@@ -2,7 +2,7 @@
 
 (executables
  (names main)
- (libraries cooltt.frontend cmdliner))
+ (libraries cooltt.frontend cooltt.server cmdliner))
 
 (install
  (section bin)
