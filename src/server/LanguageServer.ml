@@ -19,6 +19,7 @@ type notification = Lsp.Client_notification.t
 
 type server =
   { lsp_io : LspLwt.io;
+    library : Bantorra.Manager.library;
     mutable should_shutdown : bool
   }
 
@@ -42,17 +43,36 @@ let () = Printexc.register_printer @@
 
 open LspLwt.Notation
 
+(* Server Notifications *)
+let broadcast server notif =
+  let msg = Broadcast.to_jsonrpc notif in
+  LspLwt.send server.lsp_io (RPC.Message { msg with id = None })
+
+let publish_diagnostics server path (diagnostics : Diagnostic.t list) =
+  let uri = DocumentUri.of_path path in
+  let params = PublishDiagnosticsParams.create ~uri ~diagnostics () in
+  broadcast server (PublishDiagnostics params)
+
+
 (* Notifications *)
 
-(* Requests *)
 let handle_notification : server -> string -> notification -> unit Lwt.t =
   fun server mthd ->
   function
   | TextDocumentDidOpen doc ->
-    let+ _ = LspLwt.log server.lsp_io "Loading File..." in
-    ()
+    let path = DocumentUri.to_path @@ doc.textDocument.uri in
+    let* _ = LspLwt.log server.lsp_io ("Loading File " ^ path) in
+    let* diagnostics = Executor.elaborate_file server.library path in
+    publish_diagnostics server path diagnostics
+  | DidSaveTextDocument doc ->
+    let path = DocumentUri.to_path @@ doc.textDocument.uri in
+    let* _ = LspLwt.log server.lsp_io ("Reloading File " ^ path) in
+    let* diagnostics = Executor.elaborate_file server.library path in
+    publish_diagnostics server path diagnostics
   | _ ->
     raise (LspError (UnknownNotification mthd))
+
+(* Requests *)
 
 let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
   fun server mthd ->
@@ -89,16 +109,16 @@ let on_message server (msg : rpc_message) =
     LspLwt.send server.lsp_io (RPC.Response resp)
 
 (** Attempt to recieve a request from the client. *)
-let recv_request server =
-  let+ msg = LspLwt.recv server.lsp_io in
+let recv_request lsp_io =
+  let+ msg = LspLwt.recv lsp_io in
   Option.bind msg @@
   function
   | (Jsonrpc.Message ({ id = Some id; _ } as msg)) -> Some { msg with id }
   | _ -> None
 
 (** Attempt to recieve a notification from the client. *)
-let recv_notification server =
-  let+ msg = LspLwt.recv server.lsp_io in
+let recv_notification lsp_io =
+  let+ msg = LspLwt.recv lsp_io in
   Option.bind msg @@
   function
   | (Jsonrpc.Message ({ id = None; _ } as msg)) -> Some { msg with id = () }
@@ -107,29 +127,60 @@ let recv_notification server =
 (* Initialization *)
 
 let server_capabilities =
-  ServerCapabilities.create ()
+  let textDocumentSync =
+    let opts = TextDocumentSyncOptions.create
+        ~change:(TextDocumentSyncKind.None)
+        ~save:(`SaveOptions (SaveOptions.create ~includeText:false ()))
+        ()
+    in
+    `TextDocumentSyncOptions opts
+  in
+  ServerCapabilities.create
+    ~textDocumentSync
+    ()
+
+let library_manager =
+  match Bantorra.Manager.init ~anchor:"cooltt-lib" ~routers:[] with
+  | Ok ans -> ans
+  | Error (`InvalidRouter err) -> raise (LspError (HandshakeError err)) (* this should not happen! *)
+
+let initialize_library root =
+  match
+    match root with
+    | Some path -> Bantorra.Manager.load_library_from_dir library_manager path
+    | None -> Bantorra.Manager.load_library_from_cwd library_manager
+  with
+  | Ok (lib, _) -> lib
+  | Error (`InvalidLibrary err) -> raise (LspError (HandshakeError err))
+
+let get_root (init_params : InitializeParams.t) : string option =
+  match init_params.rootUri with
+  | Some uri -> Some (DocumentUri.to_path uri)
+  | None -> Option.join init_params.rootPath
 
 (** Perform the LSP initialization handshake.
     https://microsoft.github.io/language-server-protocol/specifications/specification-current/#initialize *)
-let initialize server =
-  let* req = recv_request server in
+let initialize lsp_io =
+  let* req = recv_request lsp_io in
   match req with
   | Some req ->
     begin
       match Request.of_jsonrpc req with
-      | Ok (E (Initialize _ as init_req)) ->
-        let* _ = LspLwt.log server.lsp_io "Initializing..." in
+      | Ok (E (Initialize init_params as init_req)) ->
+        let* _ = LspLwt.log lsp_io "Initializing..." in
         let resp = InitializeResult.create ~capabilities:server_capabilities () in
         let json = Request.yojson_of_result init_req resp in
-        let* _ = LspLwt.send server.lsp_io (RPC.Response (RPC.Response.ok req.id json)) in
-        let* notif = recv_notification server in
+        let* _ = LspLwt.send lsp_io (RPC.Response (RPC.Response.ok req.id json)) in
+        let* notif = recv_notification lsp_io in
         begin
           match notif with
           | Some notif ->
             begin
               match Notification.of_jsonrpc notif with
               | Ok (Initialized _) ->
-                Lwt.return ()
+                let root = get_root init_params in
+                let+ _ = LspLwt.log lsp_io ("Root: " ^ Option.value root ~default:"<no-root>") in
+                { lsp_io; should_shutdown = false; library = initialize_library root }
               | _ ->
                 raise (LspError (HandshakeError "Initialization must complete with an initialized notification."))
             end
@@ -149,7 +200,7 @@ let initialize server =
 (** Perform the LSP shutdown sequence.
     See https://microsoft.github.io/language-server-protocol/specifications/specification-current/#exit *)
 let shutdown server =
-  let* notif = recv_notification server in
+  let* notif = recv_notification server.lsp_io in
   match notif with
   | Some notif ->
     begin
@@ -178,14 +229,17 @@ let rec event_loop server =
     let+ _ = LspLwt.log server.lsp_io "Recieved an invalid message. Shutting down..." in
     ()
 
+let print_exn lsp_io exn =
+  let msg = Printexc.to_string exn
+  and stack = Printexc.get_backtrace () in
+  LspLwt.log lsp_io (String.concat "\n" [msg; stack])
+
 let run () =
-  let server = {
-    lsp_io = LspLwt.init ();
-    should_shutdown = false
-  } in
+  let () = Printexc.record_backtrace true in
+  let lsp_io = LspLwt.init () in
   let action =
-    let* _ = initialize server in
+    let* server = initialize lsp_io in
     event_loop server
   in
-  let _ = Lwt_main.run @@ Lwt.catch (fun () -> action) (fun exn -> LspLwt.log server.lsp_io (Printexc.to_string exn)) in
+  let _ = Lwt_main.run @@ Lwt.catch (fun () -> action) (print_exn lsp_io) in
   Ok ()
