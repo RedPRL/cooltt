@@ -18,6 +18,12 @@ end
 
 open Notation
 
+(* Logging *)
+
+(** Log out a message to stderr. *)
+let log (io : io) (msg : string) : unit Lwt.t =
+  LwtIO.fprintl io.logc msg
+
 (** See https://microsoft.github.io/language-server-protocol/specifications/specification-current/#headerPart *)
 module Header = struct
   type t = { content_length : int;
@@ -43,9 +49,15 @@ module Header = struct
      way we can really recover anyways. *)
   type header_error =
     | InvalidHeader of string
-    | InvalidContentLength of int
+    | InvalidContentLength of string
 
   exception HeaderError of header_error
+
+  let () = Printexc.register_printer @@
+    function
+    | HeaderError (InvalidHeader err) -> Some (Format.asprintf "HeaderError: Invalid Header %s" err)
+    | HeaderError (InvalidContentLength n) -> Some (Format.asprintf "HeaderError: Invalid Content Length '%s'" n)
+    | _ -> None
 
   (** Read the header section of an LSP message. *)
   let read (io : io) : t Lwt.t =
@@ -57,23 +69,22 @@ module Header = struct
         match String.split_on_char ~sep:':' @@ String.trim line with
         | [key; value] when is_content_length key ->
           let content_length =
-            match int_of_string_opt value with
+            match int_of_string_opt (String.trim value) with
             | Some n -> n
-            | None -> raise (HeaderError (InvalidHeader line))
+            | None -> raise (HeaderError (InvalidContentLength value))
           in loop { headers with content_length }
         | [key; value] when is_content_type key ->
           let content_type = String.trim value in
           loop { headers with content_type }
         | [_; _] -> loop headers
-        | _ -> raise (HeaderError (InvalidHeader line))
+        | _ ->
+          raise (HeaderError (InvalidHeader line))
     in
     loop empty |> Lwt.map @@ fun headers ->
     if headers.content_length < 0 then
-      raise (HeaderError (InvalidContentLength headers.content_length))
+      raise (HeaderError (InvalidContentLength (string_of_int headers.content_length)))
     else
       headers
-
-  let crlf = "\r\n"
 
   let write (io : io) (headers : t) : unit Lwt.t =
     LwtIO.fprintf io.oc "Content-Type: %s\r\nContent-Length: %d\r\n\r\n" headers.content_type headers.content_length
@@ -119,5 +130,3 @@ let send (io : io) (packet : Jsonrpc.packet) : unit Lwt.t =
   let* _ = LwtIO.write io.oc data in
   LwtIO.flush io.oc
 
-let log (io : io) (msg : string) : unit Lwt.t =
-  LwtIO.fprintf io.logc "[LOG] %s@." msg

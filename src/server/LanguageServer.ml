@@ -31,6 +31,15 @@ type lsp_error =
 
 exception LspError of lsp_error
 
+let () = Printexc.register_printer @@
+  function
+  | LspError (DecodeError err) -> Some (Format.asprintf "Lsp Error: Couldn't decode %s" err)
+  | LspError (HandshakeError err) -> Some (Format.asprintf "Lsp Error: Invalid initialization handshake %s" err)
+  | LspError (ShutdownError err) -> Some (Format.asprintf "Lsp Error: Invalid shutdown sequence %s" err)
+  | LspError (UnknownRequest err) -> Some (Format.asprintf "Lsp Error: Unknown request %s" err)
+  | LspError (UnknownNotification err) -> Some (Format.asprintf "Lsp Error: Unknown notification %s" err)
+  | _ -> None
+
 open LspLwt.Notation
 
 (* Notifications *)
@@ -39,7 +48,11 @@ open LspLwt.Notation
 let handle_notification : server -> string -> notification -> unit Lwt.t =
   fun server mthd ->
   function
-  | _ -> raise (LspError (UnknownNotification mthd))
+  | TextDocumentDidOpen doc ->
+    let+ _ = LspLwt.log server.lsp_io "Loading File..." in
+    ()
+  | _ ->
+    raise (LspError (UnknownNotification mthd))
 
 let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
   fun server mthd ->
@@ -52,12 +65,14 @@ let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
 
 (* Main Event Loop *)
 let on_notification server (notif : rpc_notification) =
+  let* _ = LspLwt.log server.lsp_io notif.method_ in
   match Notification.of_jsonrpc notif with
   | Ok n -> handle_notification server notif.method_ n
   | Error err ->
     raise (LspError (DecodeError err))
 
 let on_request server (req : rpc_request) =
+  let* _ = LspLwt.log server.lsp_io req.method_ in
   match Request.of_jsonrpc req with
   | Ok (E r) ->
     let+ resp = handle_request server req.method_ r in
@@ -106,7 +121,21 @@ let initialize server =
         let* _ = LspLwt.log server.lsp_io "Initializing..." in
         let resp = InitializeResult.create ~capabilities:server_capabilities () in
         let json = Request.yojson_of_result init_req resp in
-        LspLwt.send server.lsp_io (RPC.Response (RPC.Response.ok req.id json))
+        let* _ = LspLwt.send server.lsp_io (RPC.Response (RPC.Response.ok req.id json)) in
+        let* notif = recv_notification server in
+        begin
+          match notif with
+          | Some notif ->
+            begin
+              match Notification.of_jsonrpc notif with
+              | Ok (Initialized _) ->
+                Lwt.return ()
+              | _ ->
+                raise (LspError (HandshakeError "Initialization must complete with an initialized notification."))
+            end
+          | None ->
+            raise (LspError (HandshakeError "Initialization must complete with an initialized notification."))
+        end
       | Ok (E _) ->
         raise (LspError (HandshakeError "Initialization must begin with an initialize request."))
       | Error err ->
@@ -154,7 +183,9 @@ let run () =
     lsp_io = LspLwt.init ();
     should_shutdown = false
   } in
-  let _ = Lwt_main.run @@
+  let action =
     let* _ = initialize server in
     event_loop server
-  in Ok ()
+  in
+  let _ = Lwt_main.run @@ Lwt.catch (fun () -> action) (fun exn -> LspLwt.log server.lsp_io (Printexc.to_string exn)) in
+  Ok ()
