@@ -1,33 +1,48 @@
 type 'a t =
   | Nil
-  | Node of Pos.t * Pos.t * 'a * 'a t * ('a t) * ('a t)
+  | Node of Pos.range * 'a * 'a t * 'a t * 'a t
 
 let empty = Nil
 
 let rec lookup pos =
   function
   | Nil -> None
-  | Node (lo, hi, u, cover, l, r) ->
-    if (pos < lo) then
+  | Node (range, u, l, inner, r) ->
+    if (pos < range.start) then
       lookup pos l
-    else if (hi < pos) then
+    else if (range.stop < pos) then
       lookup pos r
     else
-      match lookup pos cover with
+      match lookup pos inner with
       | Some ui -> Some ui
       | None   -> Some u
 
-let rec insert lo hi u =
+let rec containing (range : Pos.range) =
   function
-  | Nil -> Node (lo, hi, u, Nil, Nil, Nil)
-  | Node (lo', hi', u', cover, l, r) ->
-    if (hi < lo') then
-      Node (lo', hi', u', cover, insert lo hi u l, r)
-    else if (hi' < lo) then
-      Node (lo', hi', u', cover, l, insert lo hi u r)
-    else if (lo <= lo' && hi' <= hi) then
-      Node (lo, hi, u, (Node (lo', hi', u', cover, Nil, Nil)), l, r)
+  | Nil -> []
+  | Node (range', u, l, inner, r) ->
+    if (range.stop < range'.start) then
+      containing range l
+    else if (range'.stop < range.start) then
+      containing range r
+    else if (range.start <= range'.start && range'.stop <= range.stop) then
+      []
     else
-      Node (lo', hi', u', insert lo hi u cover, l, r)
+      u :: containing range inner
 
-let of_list xs = List.fold_left (fun t (lo, hi, u) -> insert lo hi u t) empty xs
+let rec insert (range : Pos.range) u =
+  function
+  | Nil -> Node (range, u, Nil, Nil, Nil)
+  | Node (range', u', l, inner, r) ->
+    if (range.stop < range'.start) then
+      Node (range', u', insert range u l, inner, r)
+    else if (range'.stop < range.start) then
+      Node (range', u', l, inner, insert range u r)
+    else if (range.start <= range'.start && range'.stop <= range.stop) then
+      (* The span we are inserting contains range', so we make a new node, and add range' to the interior. *)
+      Node (range, u, l, (Node (range', u', Nil, inner, Nil)), r)
+    else
+      (* range' contains the span we are trying to insert, so we insert it into the interior. *)
+      Node (range', u', l, insert range u inner, r)
+
+let of_list xs = List.fold_left (fun t (range, u) -> insert range u t) empty xs

@@ -46,3 +46,4 @@ val expected_field : D.sign -> S.t -> string list -> 'a m
 val field_names_mismatch : expected:string list list -> actual:string list list -> 'a m
 
 val emit_tp : LexingUtil.span option -> D.tp -> unit m
+val emit_hole : (Ident.t * S.tp) list -> S.tp -> unit m

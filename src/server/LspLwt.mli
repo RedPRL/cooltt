@@ -10,4 +10,4 @@ end
 
 val recv : io -> Jsonrpc.packet option Lwt.t
 val send : io -> Jsonrpc.packet -> unit Lwt.t
-val log  : io -> string -> unit Lwt.t
+val log  : io -> ('a, unit, string, unit Lwt.t) format4 -> 'a

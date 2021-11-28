@@ -125,7 +125,9 @@ struct
     s, tp
 
   let probe_chk name tac =
-    probe_goal_chk (print_state name) tac
+    (* FIXME: We shouldn't print here, as that would muck up stdout for the Language Server *)
+    (* probe_goal_chk (print_state name) tac *)
+    probe_goal_chk RM.emit_hole tac
 
   let probe_boundary probe tac =
     T.Chk.brule ~name:"probe_boundary" @@ fun (tp, phi, clo) ->

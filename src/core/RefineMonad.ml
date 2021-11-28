@@ -172,9 +172,16 @@ let update_span loc =
 let emit_tp loc tp =
   match loc with
   | Some loc ->
-    let* st = get in
     let* env = read in
     let* qtp = quote_tp tp in
     modify (St.add_metadata (Metadata.TypeAt (loc, Env.pp_env env, qtp)))
   | None ->
     ret ()
+
+let emit_hole ctx tp =
+  let* env = read in
+  match Env.location env with
+  | Some loc -> 
+    let hole = Metadata.Hole { ctx; tp } in
+    modify (St.add_metadata (Metadata.HoleAt (loc, Env.pp_env env, hole)))
+  | None -> ret ()

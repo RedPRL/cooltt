@@ -21,8 +21,8 @@ open Notation
 (* Logging *)
 
 (** Log out a message to stderr. *)
-let log (io : io) (msg : string) : unit Lwt.t =
-  LwtIO.fprintl io.logc msg
+let log (io : io) (msg : ('a, unit, string, unit Lwt.t) format4) : 'a =
+  LwtIO.fprintlf io.logc msg
 
 (** See https://microsoft.github.io/language-server-protocol/specifications/specification-current/#headerPart *)
 module Header = struct

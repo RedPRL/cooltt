@@ -3,12 +3,17 @@ open Frontend
 open Core
 open CodeUnit
 
+module S = Syntax
+module D = Domain
+module Metadata = RefineMetadata
+
 open Lsp.Types
 
 module RPC = Jsonrpc
 module Request = Lsp.Client_request
 module Notification = Lsp.Client_notification
 module Broadcast = Lsp.Server_notification
+module Json = Lsp.Import.Json
 
 type rpc_message = RPC.Id.t option RPC.Message.t
 type rpc_request = RPC.Message.request
@@ -17,11 +22,15 @@ type rpc_notification = RPC.Message.notification
 type 'resp request = 'resp Lsp.Client_request.t
 type notification = Lsp.Client_notification.t
 
+type hole = Hole of { ctx : (Ident.t * S.tp) list; goal : S.tp }
+
 type server =
   { lsp_io : LspLwt.io;
     library : Bantorra.Manager.library;
+    (* FIXME: We should probably thread this through. *)
     mutable should_shutdown : bool;
-    mutable hover_info : string IntervalTree.t
+    mutable hover_info : string IntervalTree.t;
+    mutable holes : Metadata.hole IntervalTree.t
   }
 
 type lsp_error =
@@ -60,14 +69,16 @@ let publish_diagnostics server path (diagnostics : Diagnostic.t list) =
 let update_metadata server metadata =
   let update = 
     function
-    | RefineMetadata.TypeAt (span, env, tp) ->
-      let info = Format.asprintf "%a" (Syntax.pp_tp env) tp in
-      server.hover_info <- IntervalTree.insert (Pos.of_lex_pos span.start) (Pos.of_lex_pos span.stop) info server.hover_info
+    | Metadata.TypeAt (span, pp_env, tp) ->
+      let info = Format.asprintf "%a" (Syntax.pp_tp pp_env) tp in
+      server.hover_info <- IntervalTree.insert (Pos.of_lex_span span) info server.hover_info
+    | Metadata.HoleAt (span, _, hole) ->
+      server.holes <- IntervalTree.insert (Pos.of_lex_span span) hole server.holes
   in List.iter update metadata
 
 let load_file server (uri : DocumentUri.t) =
   let path = DocumentUri.to_path uri in
-  let* _ = LspLwt.log server.lsp_io ("Loading File " ^ path) in
+  let* _ = LspLwt.log server.lsp_io "Loading File: %s" path in
   let* (diagnostics, metadata) = Executor.elaborate_file server.library path in
   let+ _ = publish_diagnostics server path diagnostics in
   update_metadata server metadata
@@ -82,11 +93,40 @@ let handle_notification : server -> string -> notification -> unit Lwt.t =
   | _ ->
     raise (LspError (UnknownNotification mthd))
 
+(* Code Actions/Commands *)
+
+let supported_commands = ["cooltt.visualize"]
+
 (* Requests *)
 
 let hover server (opts : HoverParams.t) =
   IntervalTree.lookup (Pos.of_lsp_pos opts.position) server.hover_info |> Option.map @@ fun info ->
   Hover.create ~contents:(`MarkedString { value = info; language = None }) ()
+
+let codeAction server (opts : CodeActionParams.t) =
+  let holes = IntervalTree.containing (Pos.of_lsp_range opts.range) server.holes in
+  let actions =
+    holes |> List.map @@ fun (Metadata.Hole {ctx; tp}) ->
+    let kind = CodeActionKind.Other "cooltt.hole.visualize" in
+    let command = Command.create
+        ~title:"visualize"
+        ~command:"cooltt.visualize"
+        ~arguments:[]
+        () in
+    let action = CodeAction.create
+        ~title:"visualize hole"
+        ~kind
+        ~command
+        ()
+    in
+    `CodeAction action
+
+  in
+  Lwt.return @@ Some actions
+
+let executeCommand server (opts : ExecuteCommandParams.t) =
+  let+ _ = LspLwt.log server.lsp_io "Execute Command: %s" opts.command in
+  `Null
 
 let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
   fun server mthd ->
@@ -97,18 +137,20 @@ let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
     Lwt.return ()
   | TextDocumentHover opts ->
     Lwt.return @@ hover server opts
+  | CodeAction opts -> codeAction server opts
+  | ExecuteCommand opts -> executeCommand server opts
   | _ -> raise (LspError (UnknownRequest mthd))
 
 (* Main Event Loop *)
 let on_notification server (notif : rpc_notification) =
-  let* _ = LspLwt.log server.lsp_io notif.method_ in
+  let* _ = LspLwt.log server.lsp_io "Notification: %s" notif.method_ in
   match Notification.of_jsonrpc notif with
   | Ok n -> handle_notification server notif.method_ n
   | Error err ->
     raise (LspError (DecodeError err))
 
 let on_request server (req : rpc_request) =
-  let* _ = LspLwt.log server.lsp_io req.method_ in
+  let* _ = LspLwt.log server.lsp_io "Request: %s" req.method_ in
   match Request.of_jsonrpc req with
   | Ok (E r) ->
     let+ resp = handle_request server req.method_ r in
@@ -155,9 +197,18 @@ let server_capabilities =
     let opts = HoverOptions.create ()
     in `HoverOptions opts
   in
+  let codeActionProvider =
+    let opts = CodeActionOptions.create ~codeActionKinds:[CodeActionKind.Other "cooltt.hole.visualize"] () in
+    `CodeActionOptions opts
+  in
+  let executeCommandProvider =
+    ExecuteCommandOptions.create ~commands:supported_commands ()
+  in
   ServerCapabilities.create
     ~textDocumentSync
     ~hoverProvider
+    ~codeActionProvider
+    ~executeCommandProvider
     ()
 
 let library_manager =
@@ -198,13 +249,14 @@ let initialize lsp_io =
           | Some notif ->
             begin
               match Notification.of_jsonrpc notif with
-              | Ok (Initialized _) ->
+              | Ok Initialized ->
                 let root = get_root init_params in
-                let+ _ = LspLwt.log lsp_io ("Root: " ^ Option.value root ~default:"<no-root>") in
+                let+ _ = LspLwt.log lsp_io "Root: %s" (Option.value root ~default:"<no-root>") in
                 { lsp_io;
                   should_shutdown = false;
                   library = initialize_library root;
                   hover_info = IntervalTree.empty;
+                  holes = IntervalTree.empty
                 }
               | _ ->
                 raise (LspError (HandshakeError "Initialization must complete with an initialized notification."))
@@ -257,7 +309,7 @@ let rec event_loop server =
 let print_exn lsp_io exn =
   let msg = Printexc.to_string exn
   and stack = Printexc.get_backtrace () in
-  LspLwt.log lsp_io (String.concat "\n" [msg; stack])
+  LspLwt.log lsp_io "%s\n%s" msg stack
 
 let run () =
   let () = Printexc.record_backtrace true in
