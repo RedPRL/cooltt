@@ -41,16 +41,16 @@ struct
         else if Pos.compare xstop ystart < 0 then
           loop (SegTree.add xk xv tree) stack (y :: l)
         else
-          (let tree =
-             if Pos.compare xstart ystart < 0 then
-               SegTree.add (Pos.cut_span_after ystart xk) xv tree
-             else
-               tree
-           in
-           if Pos.compare xstop ystop > 0 then
-             loop tree (y :: (Pos.cut_span_before ystop xk, xv) :: stack) l
-           else
-             loop tree stack (y :: l))
+          let tree =
+            if Pos.compare xstart ystart < 0 then
+              SegTree.add (Pos.cut_span_after ystart xk) xv tree
+            else
+              tree
+          in
+          if Pos.compare xstop ystop > 0 then
+            loop tree (y :: (Pos.cut_span_before ystop xk, xv) :: stack) l
+          else
+            loop tree stack (y :: l)
     in
     loop SegTree.empty [] l
 
