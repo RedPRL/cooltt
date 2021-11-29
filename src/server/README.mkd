@@ -1,0 +1,16 @@
+# Primitive Language Server for 😎tt
+
+## Setting for `coc.nvim`
+
+```json
+{
+  "languageserver": {
+    "cooltt-lsp": {
+      "command": "opam",
+      "args": ["exec", "--", "cooltt", "--mode", "server"],
+      "rootPatterns": ["cooltt-lib"],
+      "filetypes": ["cooltt"]
+    }
+  }
+}
+```
