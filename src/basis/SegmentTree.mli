@@ -1,8 +1,9 @@
 module type POSITION =
 sig
   include Map.OrderedType
-  val cut_span_after : t -> t * t -> t * t
-  val cut_span_before : t -> t * t -> t * t
+  type range = { start : t; stop: t }
+  val cut_range_after : t -> range -> range
+  val cut_range_before : t -> range -> range
 end
 
 module type S = functor (Pos: POSITION) ->
