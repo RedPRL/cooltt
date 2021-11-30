@@ -96,7 +96,7 @@ let elab_decl (st : state) (decl : CS.decl) =
     print_ident st ident
   | _ -> Lwt.return st
 
-let elaborate_file (lib : Bantorra.Manager.library) (path : string) : (Diagnostic.t list * Metadata.t list) Lwt.t =
+let elaborate_file (lib : Bantorra.Manager.library) (path : string) : (Diagnostic.t list * ST.Metadata.t) Lwt.t =
   let open LspLwt.Notation in
   let* sign = parse_file path in
   let unit_id = CodeUnitID.file path in

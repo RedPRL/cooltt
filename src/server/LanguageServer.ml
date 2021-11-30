@@ -7,7 +7,8 @@ open Cubical
 
 module S = Syntax
 module D = Domain
-module Metadata = RefineMetadata
+module Metadata = RefineState.Metadata
+module RangeTree = SegmentTree.Make(Pos)
 
 open Lsp.Types
 
@@ -24,15 +25,13 @@ type rpc_notification = RPC.Message.notification
 type 'resp request = 'resp Lsp.Client_request.t
 type notification = Lsp.Client_notification.t
 
-type hole = Hole of { ctx : (Ident.t * S.tp) list; goal : S.tp }
-
 type server =
   { lsp_io : LspLwt.io;
     library : Bantorra.Manager.library;
     (* FIXME: We should probably thread this through. *)
-    mutable should_shutdown : bool;
-    mutable hover_info : string IntervalTree.t;
-    mutable holes : Metadata.hole IntervalTree.t
+    should_shutdown : bool;
+    hover_info : string RangeTree.t;
+    holes : RefineState.Metadata.hole RangeTree.t
   }
 
 type lsp_error =
@@ -69,23 +68,26 @@ let publish_diagnostics server path (diagnostics : Diagnostic.t list) =
 (* Notifications *)
 
 let update_metadata server metadata =
-  let update = 
-    function
-    | Metadata.TypeAt (span, pp_env, tp) ->
-      let info = Format.asprintf "%a" (Syntax.pp_tp pp_env) tp in
-      server.hover_info <- IntervalTree.insert (Pos.of_lex_span span) info server.hover_info
-    | Metadata.HoleAt (span, _, hole) ->
-      server.holes <- IntervalTree.insert (Pos.of_lex_span span) hole server.holes
-  in List.iter update metadata
+  let hover_info : string RangeTree.t =
+    Metadata.type_spans metadata
+    |> List.map (fun (span, ppenv, tp) -> (Pos.of_lex_span span, Format.asprintf "%a" (Syntax.pp_tp ppenv) tp))
+    |> RangeTree.of_list
+  in
+  let holes =
+    Metadata.holes metadata
+    |> List.map (fun (span, hole) -> (Pos.of_lex_span span, hole))
+    |> RangeTree.of_list
+  in
+  { server with hover_info; holes }
 
-let load_file server (uri : DocumentUri.t) =
+let load_file server (uri : DocumentUri.t) : server Lwt.t =
   let path = DocumentUri.to_path uri in
   let* _ = LspLwt.log server.lsp_io "Loading File: %s" path in
   let* (diagnostics, metadata) = Executor.elaborate_file server.library path in
   let+ _ = publish_diagnostics server path diagnostics in
   update_metadata server metadata
 
-let handle_notification : server -> string -> notification -> unit Lwt.t =
+let handle_notification : server -> string -> notification -> server Lwt.t =
   fun server mthd ->
   function
   | TextDocumentDidOpen doc ->
@@ -101,34 +103,34 @@ let supported_commands = ["cooltt.visualize"]
 (* Requests *)
 
 let hover server (opts : HoverParams.t) =
-  IntervalTree.lookup (Pos.of_lsp_pos opts.position) server.hover_info |> Option.map @@ fun info ->
+  RangeTree.lookup (Pos.of_lsp_pos opts.position) server.hover_info |> Option.map @@ fun info ->
   Hover.create ~contents:(`MarkedString { value = info; language = None }) ()
 
 let codeAction server (opts : CodeActionParams.t) =
-  let holes = IntervalTree.containing (Pos.of_lsp_range opts.range) server.holes in
+  let holes = RangeTree.containing (Pos.of_lsp_pos opts.range.start) server.holes in
   let actions =
     holes |> List.filter_map @@ fun (Metadata.Hole {ctx; tp}) ->
     Actions.Visualize.create ctx tp
     |> Option.map @@ fun action -> `CodeAction action
 
   in
-  Lwt.return @@ Some actions
+  Lwt.return @@ (Some actions, server)
 
 let executeCommand server (opts : ExecuteCommandParams.t) =
   let* _ = Actions.Visualize.execute opts.arguments in
   let ppargs = Format.asprintf "%a" (Format.pp_print_option (Format.pp_print_list Json.pp)) opts.arguments in
   let+ _ = LspLwt.log server.lsp_io "Execute Command: %s %s" opts.command ppargs in
-  `Null
+  (`Null, server)
 
-let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
+let handle_request : type resp. server -> string -> resp request -> (resp * server) Lwt.t =
   fun server mthd ->
   function
   | Initialize _ ->
     raise (LspError (HandshakeError "Server can only recieve a single initialization request."))
   | Shutdown ->
-    Lwt.return ()
+    Lwt.return ((), { server with should_shutdown = true })
   | TextDocumentHover opts ->
-    Lwt.return @@ hover server opts
+    Lwt.return @@ (hover server opts, server)
   | CodeAction opts -> codeAction server opts
   | ExecuteCommand opts -> executeCommand server opts
   | _ -> raise (LspError (UnknownRequest mthd))
@@ -141,22 +143,23 @@ let on_notification server (notif : rpc_notification) =
   | Error err ->
     raise (LspError (DecodeError err))
 
-let on_request server (req : rpc_request) =
+let on_request server (req : rpc_request) : (RPC.Response.t * server) Lwt.t =
   let* _ = LspLwt.log server.lsp_io "Request: %s" req.method_ in
   match Request.of_jsonrpc req with
   | Ok (E r) ->
-    let+ resp = handle_request server req.method_ r in
+    let+ (resp, server) = handle_request server req.method_ r in
     let json = Request.yojson_of_result r resp in
-    RPC.Response.ok req.id json
+    (RPC.Response.ok req.id json, server)
   | Error err ->
     raise (LspError (DecodeError err))
 
-let on_message server (msg : rpc_message) =
+let on_message server (msg : rpc_message) : server Lwt.t =
   match msg.id with
   | None -> on_notification server { msg with id = () }
   | Some id ->
-    let* resp = on_request server { msg with id } in
-    LspLwt.send server.lsp_io (RPC.Response resp)
+    let* (resp, server) = on_request server { msg with id } in
+    let+ _ = LspLwt.send server.lsp_io (RPC.Response resp) in
+    server
 
 (** Attempt to recieve a request from the client. *)
 let recv_request lsp_io =
@@ -247,8 +250,8 @@ let initialize lsp_io =
                 { lsp_io;
                   should_shutdown = false;
                   library = initialize_library root;
-                  hover_info = IntervalTree.empty;
-                  holes = IntervalTree.empty
+                  hover_info = RangeTree.empty;
+                  holes = RangeTree.empty
                 }
               | _ ->
                 raise (LspError (HandshakeError "Initialization must complete with an initialized notification."))
@@ -293,9 +296,9 @@ let rec event_loop server =
   let* msg = LspLwt.recv server.lsp_io in
   match msg with
   | Some (Jsonrpc.Message msg) ->
-    let* _ = Lwt.catch
+    let* server = Lwt.catch
         (fun () -> on_message server msg)
-        (print_exn server.lsp_io)
+        (fun exn -> Lwt.map (fun _ -> server) (print_exn server.lsp_io exn))
     in
     if server.should_shutdown
     then
