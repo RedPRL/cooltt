@@ -9,8 +9,12 @@ end
 module type S = functor (Pos: POSITION) ->
 sig
   type !+'a t
-  val of_list : (Pos.range * 'a) list -> 'a t
   val lookup : Pos.t -> 'a t -> 'a option
+  val containing : Pos.t -> 'a t -> 'a list
+  val of_list : (Pos.range * 'a) list -> 'a t
+  val empty : 'a t
+
+  val pp : (Format.formatter -> Pos.range -> unit) -> (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a t -> unit
 end
 
 module Make : S = functor (Pos : POSITION) ->
@@ -31,6 +35,10 @@ struct
     | None -> None
     | Some (r, v) ->
       if Pos.compare r.stop pos >= 0 then Some v else None
+
+  let containing pos t =
+    (* FIXME: This is suboptimal *)
+    CCList.of_iter @@ SegTree.values @@ SegTree.filter (fun range _ -> range.start <= pos && pos <= range.stop) t
 
   let of_sorted_list l =
     let rec loop tree stack l =
@@ -58,4 +66,8 @@ struct
 
   let of_list l =
     of_sorted_list (CCList.sort (CCOrd.(>|=) Range.compare fst) l)
+
+  let empty = SegTree.empty
+
+  let pp pp_range pp_elem : Format.formatter -> 'a t -> unit = SegTree.pp pp_range pp_elem
 end
