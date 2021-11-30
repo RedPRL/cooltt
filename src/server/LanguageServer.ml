@@ -1,7 +1,9 @@
 open Basis
+open Bwd
 open Frontend
 open Core
 open CodeUnit
+open Cubical
 
 module S = Syntax
 module D = Domain
@@ -94,7 +96,6 @@ let handle_notification : server -> string -> notification -> unit Lwt.t =
     raise (LspError (UnknownNotification mthd))
 
 (* Code Actions/Commands *)
-
 let supported_commands = ["cooltt.visualize"]
 
 (* Requests *)
@@ -106,26 +107,17 @@ let hover server (opts : HoverParams.t) =
 let codeAction server (opts : CodeActionParams.t) =
   let holes = IntervalTree.containing (Pos.of_lsp_range opts.range) server.holes in
   let actions =
-    holes |> List.map @@ fun (Metadata.Hole {ctx; tp}) ->
-    let kind = CodeActionKind.Other "cooltt.hole.visualize" in
-    let command = Command.create
-        ~title:"visualize"
-        ~command:"cooltt.visualize"
-        ~arguments:[]
-        () in
-    let action = CodeAction.create
-        ~title:"visualize hole"
-        ~kind
-        ~command
-        ()
-    in
-    `CodeAction action
+    holes |> List.filter_map @@ fun (Metadata.Hole {ctx; tp}) ->
+    Actions.Visualize.create ctx tp
+    |> Option.map @@ fun action -> `CodeAction action
 
   in
   Lwt.return @@ Some actions
 
 let executeCommand server (opts : ExecuteCommandParams.t) =
-  let+ _ = LspLwt.log server.lsp_io "Execute Command: %s" opts.command in
+  let* _ = Actions.Visualize.execute opts.arguments in
+  let ppargs = Format.asprintf "%a" (Format.pp_print_option (Format.pp_print_list Json.pp)) opts.arguments in
+  let+ _ = LspLwt.log server.lsp_io "Execute Command: %s %s" opts.command ppargs in
   `Null
 
 let handle_request : type resp. server -> string -> resp request -> resp Lwt.t =
@@ -292,11 +284,19 @@ let shutdown server =
   | None ->
     raise (LspError (ShutdownError "No requests can be recieved after a shutdown request."))
 
+let print_exn lsp_io exn =
+  let msg = Printexc.to_string exn
+  and stack = Printexc.get_backtrace () in
+  LspLwt.log lsp_io "%s\n%s" msg stack
+
 let rec event_loop server =
   let* msg = LspLwt.recv server.lsp_io in
   match msg with
   | Some (Jsonrpc.Message msg) ->
-    let* _ = on_message server msg in
+    let* _ = Lwt.catch
+        (fun () -> on_message server msg)
+        (print_exn server.lsp_io)
+    in
     if server.should_shutdown
     then
       shutdown server
@@ -306,10 +306,6 @@ let rec event_loop server =
     let+ _ = LspLwt.log server.lsp_io "Recieved an invalid message. Shutting down..." in
     ()
 
-let print_exn lsp_io exn =
-  let msg = Printexc.to_string exn
-  and stack = Printexc.get_backtrace () in
-  LspLwt.log lsp_io "%s\n%s" msg stack
 
 let run () =
   let () = Printexc.record_backtrace true in
