@@ -39,3 +39,8 @@ let to_lsp_range (r : range) : Range.t =
 
 let located (span : LexingUtil.span) : Range.t  =
   to_lsp_range @@ of_lex_span span
+
+let pp_range fmt range =
+  Format.fprintf fmt "[%d:%d]-[%d:%d]"
+    range.start.row range.start.col
+    range.stop.row range.stop.col

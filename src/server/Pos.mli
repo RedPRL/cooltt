@@ -13,3 +13,5 @@ val of_lsp_range : Lsp.Types.Range.t -> range
 val to_lsp_range : range -> Lsp.Types.Range.t
 
 val located : LexingUtil.span -> Lsp.Types.Range.t
+
+val pp_range : Format.formatter -> range -> unit
