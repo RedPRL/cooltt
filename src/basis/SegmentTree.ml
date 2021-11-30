@@ -34,7 +34,7 @@ struct
 
   let of_sorted_list l =
     let rec loop tree stack l =
-      match l, stack with
+      match stack, l with
       | _, [] -> SegTree.add_list tree stack
       | [], x :: l -> loop tree [x] l
       | ((xk, xv) as x) :: stack, ((yk, _) as y :: l) ->
