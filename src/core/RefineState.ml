@@ -3,22 +3,40 @@ open CodeUnit
 
 module IDMap = Map.Make (CodeUnitID)
 module D = Domain
-module Metadata = RefineMetadata
+module S = Syntax
+
+module Metadata = struct
+  type hole = Hole of { ctx : (Ident.t * S.tp) list; tp : S.tp }
+
+  type t = { holes : (LexingUtil.span * hole) list;
+             type_spans : (LexingUtil.span * Pp.env * S.tp) list
+           }
+
+  let init : t = { holes = []; type_spans = [] }
+
+  let holes metadata = metadata.holes
+
+  let type_spans metadata = metadata.type_spans
+
+  let add_hole span hole t = { t with holes = (span, hole) :: t.holes }
+
+  let add_type_at span env tp t = { t with type_spans = (span, env, tp) :: t.type_spans }
+end
+
 
 type t = { code_units : CodeUnit.t IDMap.t;
            (** The binding namespace for each code unit. *)
            namespaces : (Global.t Namespace.t) IDMap.t;
            (** The import namespace for each code unit. *)
            import_namespaces : (Global.t Namespace.t) IDMap.t;
-           (** A message queue for emitting events that occured during refinement. *)
-           metadata : Metadata.t list
+           metadata : Metadata.t
          }
 
 let init =
   { code_units = IDMap.empty;
     namespaces = IDMap.empty;
     import_namespaces = IDMap.empty;
-    metadata = []
+    metadata = Metadata.init
   }
 
 let get_unit id st =
@@ -74,8 +92,11 @@ let get_import path st =
 let is_imported path st =
   IDMap.mem path st.code_units
 
-let add_metadata data st =
-  { st with metadata = data :: st.metadata }
+let add_hole span hole st =
+  { st with metadata = Metadata.add_hole span hole st.metadata }
+
+let add_type_at span env tp st =
+  { st with metadata = Metadata.add_type_at span env tp st.metadata }
 
 let get_metadata st =
   st.metadata

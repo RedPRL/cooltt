@@ -1,6 +1,7 @@
 open Basis
 open CodeUnit
 module D = Domain
+module S = Syntax
 
 type t
 
@@ -25,6 +26,16 @@ val is_imported : id -> t -> bool
 (** Create and add a new code unit. *)
 val init_unit : id -> t -> t
 
-val add_metadata : RefineMetadata.t -> t -> t
 
-val get_metadata  : t -> RefineMetadata.t list
+module Metadata : sig
+  type hole = Hole of { ctx : (Ident.t * S.tp) list; tp : S.tp }
+
+  type t
+
+  val holes : t -> (LexingUtil.span * hole) list
+  val type_spans : t -> (LexingUtil.span * Pp.env * S.tp) list
+end
+
+val add_hole : LexingUtil.span -> Metadata.hole -> t -> t
+val add_type_at : LexingUtil.span -> Pp.env -> S.tp -> t -> t
+val get_metadata  : t -> Metadata.t

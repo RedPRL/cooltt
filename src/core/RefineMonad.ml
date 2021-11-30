@@ -174,7 +174,7 @@ let emit_tp loc tp =
   | Some loc ->
     let* env = read in
     let* qtp = quote_tp tp in
-    modify (St.add_metadata (Metadata.TypeAt (loc, Env.pp_env env, qtp)))
+    modify (St.add_type_at loc (Env.pp_env env) qtp)
   | None ->
     ret ()
 
@@ -182,6 +182,6 @@ let emit_hole ctx tp =
   let* env = read in
   match Env.location env with
   | Some loc -> 
-    let hole = Metadata.Hole { ctx; tp } in
-    modify (St.add_metadata (Metadata.HoleAt (loc, Env.pp_env env, hole)))
+    let hole = St.Metadata.Hole { ctx; tp } in
+    modify (St.add_hole loc hole)
   | None -> ret ()
