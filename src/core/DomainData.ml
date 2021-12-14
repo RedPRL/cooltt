@@ -17,11 +17,10 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
-    | `Signature of (Ident.user * 'a) list
+    | `Signature of (Ident.t * 'a) list
     (** First-Class Record types *)
 
-    (* FIXME: do this better *)
-    | `Data of Ident.t * (Ident.user * (Ident.t * 'a) list) list
+    | `Data of Ident.t * ctor list
 
     | `Ext of int * 'a * [`Global of 'a] * 'a
     (** Extension type *)
@@ -37,7 +36,7 @@ struct
     ]
 
   (** A type code whose head constructor is {i not} stable under dimension substitution. *)
-  type 'a unstable_code =
+  and 'a unstable_code =
     [ `HCom of dim * dim * cof * 'a
     (** Formal composite types *)
 
@@ -45,7 +44,7 @@ struct
       (** V types, for univalence *)
     ]
 
-  type env = {tpenv : tp bwd; conenv: con bwd}
+  and env = {tpenv : tp bwd; conenv: con bwd}
 
   (** A {i closure} combines a semantic environment with a syntactic object binding an additional variable. *)
   and 'a clo = Clo of 'a * env
@@ -55,7 +54,7 @@ struct
   and 'e tele_clo = 'e S.telescope clo
 
   and 'e telescope =
-    | Bind of Ident.t * tp * 'e tele_clo
+    | Bind of Ident.t * con * 'e tele_clo
     | Done of 'e
 
   (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
@@ -76,8 +75,8 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
-    | Struct of (Ident.user * con) list
-    | Ctor of (Ident.user * con list)
+    | Struct of (Ident.t * con) list
+    | Ctor of (Ident.t * con list)
     | SubIn of con
 
     | ElIn of con
@@ -123,14 +122,14 @@ struct
     | TpLockedPrf of cof
 
   and sign =
-    | Field of Ident.user * tp * S.sign clo
+    | Field of Ident.t * tp * S.sign clo
     | Empty
 
   (* [NOTE: Inductive Datatypes + Self Closures]
      To handle recursive occurances of an inductive datatype within a constructor,
      we close over a type variable that stands in for all recursive occurances. Then,
      when we introduce a constructor, we instantiate the closure with /the type itself/. *)
-  and ctor = Ident.user * unit tele_clo
+  and ctor = Ident.t * unit tele_clo
 
   and datatype = { self : Ident.t; ctors : ctor list }
 
@@ -153,7 +152,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
-    | KProj of Ident.user
+    | KProj of Ident.t
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

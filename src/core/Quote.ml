@@ -108,10 +108,10 @@ let rec quote_con (tp : D.tp) con =
     let+ tfields = quote_fields sign con in
     S.Struct tfields
 
-  | (D.Data {ctors; _} as self), D.Ctor (lbl, args) ->
-    (* FIXME: What if the constructor is missing? *)
+  | (D.Data {self; ctors}), D.Ctor (lbl, args) ->
+    (* If we've gotten this far, it's safe to assume that the constructor exists. *)
     let ctor = List.assoc lbl ctors in
-    let* self_code = lift_cmp @@ Sem.fold_el self in
+    let self_code = D.StableCode (`Data (self, ctors)) in
     let* arg_tps = lift_cmp @@ Sem.inst_ctor (lbl, ctor) self_code in
     let+ qargs = quote_cons arg_tps args in
     S.Ctor (lbl, qargs)
@@ -290,7 +290,8 @@ let rec quote_con (tp : D.tp) con =
 
 and quote_cons (tps : unit D.telescope) (cons : D.con list) : S.t list m =
   match (tps, cons) with
-  | D.Bind (_, tp, tps_clo), con :: cons ->
+  | D.Bind (_, code, tps_clo), con :: cons ->
+    let* tp = lift_cmp @@ do_el code in
     let* qcon = quote_con tp con in
     let* tps = lift_cmp @@ inst_tele_clo tps_clo con in
     let+ qcons = quote_cons tps cons in
@@ -298,7 +299,7 @@ and quote_cons (tps : unit D.telescope) (cons : D.con list) : S.t list m =
   | D.Done (), [] -> ret []
   | _, _ -> failwith "[FIXME] quote_cons: tele/cons mismatch"
 
-and quote_fields (sign : D.sign) con : (Ident.user * S.t) list m =
+and quote_fields (sign : D.sign) con : (Ident.t * S.t) list m =
   match sign with
   | D.Field (lbl, tp, sign_clo) ->
     let* fcon = lift_cmp @@ do_proj con lbl in
@@ -354,10 +355,15 @@ and quote_stable_code univ =
       lift_cmp @@ do_ap fam var
     in
     S.CodeSg (tbase, tfam)
+
   | `Signature fields ->
     let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
     in
     S.CodeSignature tfields
+
+  | `Data (self, ctors) ->
+    let+ ctors = MU.map quote_ctor ctors in
+    S.CodeData (self, ctors)
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =
@@ -436,12 +442,13 @@ and quote_sign : D.sign -> S.sign m =
 
 and quote_tele : unit D.telescope -> unit S.telescope m =
   function
-  | Bind (ident, cell, clo) ->
-    let* qcell = quote_tp cell in
-    bind_var cell @@ fun var ->
+  | Bind (ident, code, clo) ->
+    let* tp = lift_cmp @@ do_el code in
+    let* qcode = quote_con D.Univ code in
+    bind_var tp @@ fun var ->
     let* tele = lift_cmp @@ inst_tele_clo clo var in
     let+ qtele = quote_tele tele in
-    S.Bind (ident, qcell, qtele)
+    S.Bind (ident, qcode, qtele)
   | Done e -> ret @@ S.Done e
 
 and quote_ctor (ctor : D.ctor) : S.ctor m =

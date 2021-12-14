@@ -102,7 +102,7 @@ struct
     | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
-    | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
+    | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -156,9 +156,9 @@ struct
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
+        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl pp_con tp)) fields
     | Ctor (lbl, args) ->
-      Format.fprintf fmt "ctor[%a, %a]" Ident.pp_user lbl (Pp.pp_sep_list ~sep:", " pp_con) args
+      Format.fprintf fmt "ctor[%a, %a]" Ident.pp lbl (Pp.pp_sep_list ~sep:", " pp_con) args
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
@@ -205,7 +205,7 @@ struct
 
   and pp_sign fmt =
     function
-    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp_user ident pp_tp tp pp_sign_clo clo
+    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp ident pp_tp tp pp_sign_clo clo
     | Empty -> Format.fprintf fmt "sig/empty"
 
   and pp_tp fmt =
@@ -216,7 +216,7 @@ struct
       Format.fprintf fmt "<sg>"
     | Signature sign ->
       Format.fprintf fmt "sig[%a]" pp_sign sign
-    | Data {self; ctors} ->
+    | Data {self; _} ->
       Format.fprintf fmt "data[%a]" Ident.pp self
     | Sub _ ->
       Format.fprintf fmt "<sub>"
@@ -251,6 +251,7 @@ struct
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
     | `Signature _ -> Format.fprintf fmt "<code-sig>"
+    | `Data _ -> Format.fprintf fmt "<code-data>"
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"
     | `Univ -> Format.fprintf fmt "<code-univ>"

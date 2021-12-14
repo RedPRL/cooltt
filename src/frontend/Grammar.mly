@@ -405,7 +405,7 @@ field:
     { Field {lbl; tp} }
 
 ctor:
-  | lbl = user; args = list(tele_cell)
+  | lbl = plain_name; args = list(tele_cell)
     { Ctor {lbl; args} }
 
 patch:

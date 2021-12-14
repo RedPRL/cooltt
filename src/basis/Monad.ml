@@ -108,13 +108,11 @@ struct
     else
       M.ret ()
 
-  let first f (a, b) =
-    let+ c = f a in
-    (c, b)
+  let assoc_map f xs =
+    map (fun (k, v) -> (M.ret k) <&> (f v)) xs
 
-  let second f (a, b) =
-    let+ c = f b in
-    (a, c)
+  let commute_assoc xs =
+    assoc_map Fun.id xs
 
   let map_accum_left_m f xs =
     let rec go acc =

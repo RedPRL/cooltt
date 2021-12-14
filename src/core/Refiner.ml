@@ -25,21 +25,24 @@ exception CJHM
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
-type ('v, 'a) telescope =
-  | Bind of 'v Ident.some * 'a * (T.var -> ('v, 'a) telescope)
+type 'a telescope =
+  | Bind of Ident.t * 'a * (T.var -> 'a telescope)
   | Done
 
 module Telescope =
 struct
-  (* FIXME: We should move this elsewhere/generalize? *)
+  let of_list tacs =
+    List.fold_right (fun (nm, tac) tele -> Bind (nm, tac, fun _ -> tele)) tacs Done
 
-  let tps (tacs : ('v, T.Tp.tac) telescope) : unit S.telescope RM.m =
+  let codes (tacs : T.Chk.tac telescope) : unit S.telescope RM.m =
     let rec go tele =
       function
       | Bind (nm, tac, tacs) ->
-        let* tp = T.Tp.run tac in
-        let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(nm :> Ident.t) vtp @@ fun var -> go (Snoc (tele, ((nm :> Ident.t), tp))) (tacs var)
+        let* code = T.Chk.run tac D.Univ in
+        let* vcode = RM.lift_ev @@ Sem.eval code in
+        let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+        T.abstract ~ident:(nm :> Ident.t) tp @@ fun var ->
+        go (Snoc (tele, ((nm :> Ident.t), code))) (tacs var)
       | Done -> RM.ret @@ S.Telescope.of_bwd tele ()
     in go Emp tacs
 end
@@ -539,7 +542,7 @@ end
 
 module Signature =
 struct
-  let formation (tacs : (Ident.user, T.Tp.tac) telescope) : T.Tp.tac =
+  let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
     let rec form_fields tele =
       function
       | Bind (lbl, tac, tacs) ->
@@ -549,7 +552,7 @@ struct
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
-  let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
+  let rec find_field_tac (fields : (Ident.t * T.Chk.tac) list) (lbl : Ident.t) : T.Chk.tac option =
     match fields with
     | (lbl', tac) :: _ when Ident.equal lbl lbl'  ->
       Some tac
@@ -559,12 +562,12 @@ struct
       None
 
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.t -> T.Chk.tac option) : (Ident.t * S.t) list m =
     match sign with
     | D.Field (lbl, tp, sign_clo) ->
       let tac = match tacs lbl with
         | Some tac -> tac
-        | None -> Hole.unleash_hole (Ident.user_to_string_opt lbl)
+        | None -> Hole.unleash_hole (Ident.to_string_opt lbl)
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
@@ -574,7 +577,7 @@ struct
     | D.Empty ->
       RM.ret []
 
-  let intro (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+  let intro (tacs : Ident.t -> T.Chk.tac option) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->
@@ -582,7 +585,7 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
+  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.t) : D.tp m =
     let rec go =
       function
       | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret tp
@@ -605,28 +608,30 @@ end
 
 module Data =
 struct
-  let formation (self : Ident.t) (tacs : T.var -> (Ident.user * (Ident.t, T.Tp.tac) telescope) list) : T.Tp.tac =
+  let formation (self : Ident.t) (tacs : T.var -> (Ident.t * T.Chk.tac telescope) list) : T.Tp.tac =
     T.Tp.rule ~name:"Data.formation" @@
     let+ ctors =
       (* Bind the 'self' type variable. See [NOTE: Inductive Datatypes + Self Closures] for more info. *)
       T.abstract ~ident:self D.Univ @@ fun var ->
-      MU.map (MU.second Telescope.tps) (tacs var)
+      MU.assoc_map Telescope.codes (tacs var)
     in
     S.Data { self; ctors }
 
   (* FIXME: Tail Recursion? *)
   let rec ctor_args (tele : unit D.telescope) (tacs : T.Chk.tac list) : S.t list m =
     match tele, tacs with
-    | D.Bind (nm, tp, tele_clo), tac :: tacs ->
+    | D.Bind (nm, code, tele_clo), tac :: tacs ->
       Debug.print "Introducing Constructor Argument: %a" Ident.pp nm;
+      let* tp = RM.lift_cmp @@ Sem.do_el code in
       let* arg = T.Chk.run tac tp in
       let* varg = RM.lift_ev @@ Sem.eval arg in
       let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
       let+ args = ctor_args tele tacs in
       arg :: args
     (* FIXME: Make this better! *)
-    | D.Bind (nm, tp, tele_clo), [] ->
+    | D.Bind (nm, code, tele_clo), [] ->
       Debug.print "Introducing Constructor Argument: %a" Ident.pp nm;
+      let* tp = RM.lift_cmp @@ Sem.do_el code in
       let* arg = T.Chk.run (Hole.unleash_hole None) tp in
       let* varg = RM.lift_ev @@ Sem.eval arg in
       let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
@@ -635,18 +640,19 @@ struct
     | D.Done (), [] -> RM.ret []
     | D.Done (), _ -> failwith "[FIXME] Data.ctor_args: Too many args!"
 
-
-
-  let intro (ctor_nm : Ident.user) (tacs : T.Chk.tac list) : T.Chk.tac =
+  let intro (ctor_nm : Ident.t) (tacs : T.Chk.tac list) : T.Chk.tac =
     T.Chk.rule ~name:"Data.intro" @@
     function
-    | (D.Data {ctors; _}) as self ->
+    | (D.Data {self; ctors}) ->
       begin
         match List.assoc_opt ~eq:Ident.equal ctor_nm ctors with
         | Some ctor ->
-          let* self_code = RM.lift_cmp @@ Sem.fold_el self in
+          Debug.print "Instantiating Constructor...@.";
+          let self_code = D.StableCode (`Data (self, ctors))in
           let* tele = RM.lift_cmp @@ Sem.inst_ctor (ctor_nm, ctor) self_code in
+          Debug.print "Elaborating Arguments...@.";
           let+ args = ctor_args tele tacs in
+          Debug.print "Elaborated Arguments...@.";
           S.Ctor (ctor_nm, args)
         | None -> failwith "[FIXME] Data.intro: cannot find constructor"
 
@@ -694,7 +700,7 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
-  let quantifiers (mk_fields : ('a Ident.some * (D.tp -> S.t m)) list) (univ : D.tp) : ('a Ident.some * S.t) list m =
+  let quantifiers (mk_fields : (Ident.t * (D.tp -> S.t m)) list) (univ : D.tp) : (Ident.t * S.t) list m =
     let (idents, ks) = List.split mk_fields in
     let rec mk_fams fams vfams =
       function
@@ -713,7 +719,7 @@ struct
     let+ fams = mk_fams [] [] ks in
     List.combine idents fams
 
-  let quote_sign_codes (vsign : (Ident.user * D.con) list) (univ : D.tp) : (Ident.user * S.t) list m =
+  let quote_sign_codes (vsign : (Ident.t * D.con) list) (univ : D.tp) : (Ident.t * S.t) list m =
     quantifiers (List.map (fun (lbl, vcode) -> (lbl, fun tp -> RM.quote_con tp vcode)) vsign) univ
 
   let pi tac_base tac_fam : T.Chk.tac =
@@ -744,7 +750,7 @@ struct
              (y : x => (arg : x) -> type)
              (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
   *)
-  let signature (tacs : (Ident.user * T.Chk.tac) list) : T.Chk.tac =
+  let signature (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
     let+ fields = quantifiers (List.map (fun (lbl, tac) -> (lbl, T.Chk.run tac)) tacs) univ in
     S.CodeSignature fields
@@ -765,8 +771,8 @@ struct
      when we construct the final codes. Most notably, we need to make sure to properly
      eliminate the 'ext' types introduced by previous patches.
   *)
-  let patch_fields (sign : (Ident.user * D.con) list) (tacs : Ident.user -> T.Chk.tac option) (univ : D.tp) : S.t m =
-    let rec go (field_names : Ident.user list) (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
+  let patch_fields (sign : (Ident.t * D.con) list) (tacs : Ident.t -> T.Chk.tac option) (univ : D.tp) : S.t m =
+    let rec go (field_names : Ident.t list) (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
       match sign with
       | (field_name, vfield_tp) :: sign ->
         let* (code, elim_conn) =
@@ -803,7 +809,7 @@ struct
         RM.ret @@ S.CodeSignature qsign
     in go [] [] [] sign
 
-  let patch (sig_tac : T.Chk.tac) (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+  let patch (sig_tac : T.Chk.tac) (tacs : Ident.t -> T.Chk.tac option) : T.Chk.tac =
     univ_tac "Univ.patch" @@ fun univ ->
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in
@@ -842,18 +848,24 @@ struct
         Sem.splice_tp @@
         Splice.tp univ @@ fun univ ->
         Splice.cons vsign_codes @@ fun sign_codes ->
-        Splice.term @@ TB.pis ~idents:(sign_names :> Ident.t list) sign_codes @@ fun _ -> univ
+        Splice.term @@ TB.pis ~idents:sign_names sign_codes @@ fun _ -> univ
       in
       let* fib =
         RM.lift_cmp @@
         Sem.splice_tm @@
         Splice.con vtm @@ fun tm ->
-        Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
+        Splice.term @@ TB.lams sign_names @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
       in
       let+ qfib = RM.quote_con fib_tp fib in
       S.CodeSignature (qsign @ [`User ["fib"], qfib])
     | D.Pi (base, _, _) -> RM.expected_connective `Signature base
     | _ -> RM.expected_connective `Pi tp
+
+  let data (self : Ident.t) (tacs : (Ident.t * T.Chk.tac telescope) list) : T.Chk.tac =
+    univ_tac "Univ.data" @@ fun univ ->
+    T.abstract ~ident:self D.Univ @@ fun _ ->
+    let+ ctors = MU.assoc_map Telescope.codes tacs in
+    S.CodeData (self, ctors)
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->

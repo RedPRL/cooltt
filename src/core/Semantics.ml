@@ -203,8 +203,11 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
   | D.Struct fields ->
-    let+ fields = MU.map (MU.second (subst_con r x)) fields in
+    let+ fields = MU.assoc_map (subst_con r x) fields in
     D.Struct fields
+  | D.Ctor (lbl, args) ->
+    let+ args = MU.map (subst_con r x) args in
+    D.Ctor (lbl, args)
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
     D.StableCode code
@@ -308,6 +311,12 @@ and subst_sign_clo : D.dim -> DimProbe.t -> D.sign_clo -> D.sign_clo CM.m =
   let+ env = subst_env r x env in
   D.Clo (sign, env)
 
+and subst_tele_clo : D.dim -> DimProbe.t -> unit D.tele_clo -> unit D.tele_clo CM.m =
+  fun r x (Clo (tele, env)) ->
+  let open CM in
+  let+ env = subst_env r x env in
+  D.Clo (tele, env)
+
 and subst_env : D.dim -> DimProbe.t -> D.env -> D.env CM.m =
   fun r x {tpenv; conenv} ->
   let open CM in
@@ -325,6 +334,13 @@ and subst_sign : D.dim -> DimProbe.t -> D.sign -> D.sign CM.m =
     D.Field (ident, tp, clo)
   | D.Empty -> ret D.Empty
 
+and subst_ctor : D.dim -> DimProbe.t -> D.ctor -> D.ctor CM.m =
+  fun r x (lbl, tele_clo) ->
+  let open CM in
+  let+ tele_clo = subst_tele_clo r x tele_clo in
+  (lbl, tele_clo)
+
+
 and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
   fun r x ->
   let open CM in
@@ -340,6 +356,9 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
   | D.Signature sign ->
     let+ sign = subst_sign r x sign in
     D.Signature sign
+  | D.Data {self; ctors} ->
+    let+ ctors = MU.map (subst_ctor r x) ctors in
+    D.Data {self; ctors}
   | D.Sub (base, phi, clo) ->
     let+ base = subst_tp r x base
     and+ phi = subst_cof r x phi
@@ -392,8 +411,11 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     and+ con1 = subst_con r x con1 in
     `Sg (con0, con1)
   | `Signature fields ->
-    let+ fields = MU.map (MU.second (subst_con r x)) fields in
+    let+ fields = MU.assoc_map (subst_con r x) fields in
     `Signature fields
+  | `Data (self, ctors) ->
+    let+ ctors = MU.map (subst_ctor r x) ctors in
+    `Data (self, ctors)
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
@@ -486,10 +508,10 @@ and eval_tele : 'e S.telescope -> 'e D.telescope EvM.m =
   let open EvM in
   function
   | Done e -> ret @@ D.Done e
-  | Bind (nm, tp, tele) ->
+  | Bind (nm, code, tele) ->
     let+ env = read_local
-    and+ vtp = eval_tp tp in
-    D.Bind (nm, vtp, D.Clo (tele, env))
+    and+ code = eval code in
+    D.Bind (nm, code, D.Clo (tele, env))
 
 and eval_sign : S.sign -> D.sign EvM.m =
   let open EvM in
@@ -618,7 +640,7 @@ and eval : S.t -> D.con EvM.m =
       let* con = eval t in
       lift_cmp @@ do_snd con
     | S.Struct fields ->
-      let+ vfields = MU.map (MU.second eval) fields in
+      let+ vfields = MU.assoc_map eval fields in
       D.Struct vfields
     | S.Proj (t, lbl) ->
       let* con = eval t in
@@ -697,6 +719,7 @@ and eval : S.t -> D.con EvM.m =
       let i = Dim.DimProbe sym in
       let* phi = append [D.dim_to_con i] @@ eval_cof tm in
       D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
+
     | S.CofSplit (branches) ->
       let tphis, tms = List.split branches in
       let* phis = MU.map eval_cof tphis in
@@ -721,12 +744,18 @@ and eval : S.t -> D.con EvM.m =
       let+ vbase = eval base
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
+
     | S.CodeSignature fields ->
       let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
         let+ vtp = eval tp in
         (ident, vtp)
       in
       D.StableCode (`Signature vfields)
+
+    | S.CodeData (self, ctors) ->
+      let+ ctors = MU.map eval_ctor ctors in
+      D.StableCode (`Data (self, ctors))
+
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -1154,7 +1183,7 @@ and inst_tele_clo : unit D.tele_clo -> D.con -> unit D.telescope CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_tele tele
 
 and inst_ctor : D.ctor -> D.con -> unit D.telescope CM.m =
-  fun (lbl, clo) x ->
+  fun (_, clo) x ->
   match clo with
   | D.Clo (tele, env) ->
     CM.lift_ev { env with conenv = Snoc (env.conenv, x) } @@ eval_tele tele
@@ -1222,7 +1251,7 @@ and do_snd con : D.con CM.m =
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
 
-and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.user) =
+and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.t) =
   let open CM in
   match sign with
   | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
@@ -1234,7 +1263,7 @@ and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.user) =
   | D.Empty ->
     throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
 
-and do_proj (con : D.con) (lbl : Ident.user) : D.con CM.m =
+and do_proj (con : D.con) (lbl : Ident.t) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl) in
@@ -1504,6 +1533,8 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.cons field_cons @@ fun fields ->
         Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
 
+      | `Data (self, ctors) ->
+        ret @@ D.Data {self; ctors}
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@
         Splice.con phi @@ fun phi ->
@@ -1514,26 +1545,6 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sub (TB.el @@ TB.ap fam js) (TB.ap phi js) @@ fun _ ->
         TB.ap bdry @@ js @ [TB.prf]
     end
-
-and fold_el : D.tp -> D.con CM.m =
-  let open CM in
-  fun tp ->
-    abort_if_inconsistent (ret D.tm_abort) @@
-    begin
-      match tp with
-      | D.Nat -> ret @@ D.StableCode `Nat
-      | D.Univ -> ret @@ D.StableCode `Univ
-      | D.Data {self; ctors} ->
-        let* ctor_codes = MU.map fold_ctor ctors in
-        ret @@ D.StableCode (`Data (self, ctor_codes))
-      | _ ->
-        Format.eprintf "[FIXME] fold_el: %a" D.pp_tp tp;
-        failwith "[FIXME] Basis.Basis.fold_el: finish implementing"
-    end
-
-(* FIXME: I can do this better... *)
-and fold_ctor : D.ctor -> (Ident.user * (Ident.t * D.con) list) CM.m =
-  fun (lbl, tele_clo) -> __
 
 and dispatch_rigid_coe ~style line =
   let open CM in
@@ -1622,6 +1633,8 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
+      | `Data data ->
+        failwith "[FIXME] Basis.Basis.enact_rigid_coe: Coercion for Datatypes is not supported"
       | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1705,6 +1718,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
+      | `Data _ -> failwith "[FIXME] Basis.Basis.enact_rigid_hcom: "
       | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->

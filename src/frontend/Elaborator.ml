@@ -32,14 +32,18 @@ let rec unfold idents k =
       let span = Env.location env in
       RM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
 
-(* Account for the lambda-bound signature field dependencies.
+(* Account for the lambda-bound dependencies.
     See [NOTE: Sig Code Quantifiers] for more info. *)
-let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
+let bind_quantified_tacs (tacs : (Ident.t * T.Chk.tac) list) : (Ident.t * T.Chk.tac) list =
   let bind_tac lbls (lbl, tac) =
     let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls tac in
     Snoc (lbls, lbl) , (lbl, tac)
   in
   snd @@ ListUtil.map_accum_left bind_tac Emp tacs
+
+let expand_cells (to_tac : Ident.t -> CS.con -> 'tac) (cells : CS.cell list) : 'tac list =
+  cells |> List.concat_map @@ fun (CS.Cell cell) ->
+  List.map (fun nm -> to_tac nm cell.tp) cell.names
 
 module CoolTp :
 sig
@@ -48,8 +52,8 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : (Ident.user * tac) list -> tac
-  val data : Ident.t -> (Ident.user * (Ident.t * tac) list) list -> tac
+  val signature : (Ident.t * tac) list -> tac
+  val data : Ident.t -> (Ident.t * (Ident.t * tac) list) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -82,13 +86,13 @@ struct
     | Tp tac -> tac
     | Code tac -> R.El.formation tac
 
-  let as_codes =
+  let as_codes : (Ident.t * tac) list -> (Ident.t * T.Chk.tac) list option =
     ListUtil.map_opt @@
     function
     | (_, Tp _) -> None
     | (lbl, Code tac) -> Some (lbl, tac)
 
-  let as_tp_telescope (tacs : ('v Ident.some * tac) list) : ('v, T.Tp.tac) R.telescope =
+  let as_tp_telescope (tacs : (Ident.t * tac) list) : T.Tp.tac R.telescope =
     List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done
 
   let pi (tac_base : tac) (ident : Ident.t) (tac_fam : tac) : tac =
@@ -113,19 +117,25 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : (Ident.user * tac) list) : tac =
-    match (as_codes tacs) with
+  let signature (tacs : (Ident.t * tac) list) : tac =
+    match as_codes tacs with
     | Some tacs ->
-      let tac = R.Univ.signature (bind_sig_tacs tacs) in
+      let tac = R.Univ.signature (bind_quantified_tacs tacs) in
       Code tac
     | None ->
       let tele = as_tp_telescope tacs in
       let tac = R.Signature.formation tele in
       Tp tac
 
-  let data (self : Ident.t) (tacs : (Ident.user * (Ident.t * tac) list) list) : tac =
-    let ctors = fun _ -> List.map (CCPair.map_snd as_tp_telescope) tacs in
-    Tp (R.Data.formation self ctors)
+  let ctor (nm, tacs) =
+    match as_codes tacs with
+    | Some tacs -> Some (nm, R.Telescope.of_list tacs)
+    | None -> None
+
+  let data (self : Ident.t) (tacs : (Ident.t * (Ident.t * tac) list) list) : tac =
+    match ListUtil.map_opt ctor tacs with
+    | Some ctors -> Tp (R.Data.formation self (fun _ -> ctors))
+    | None -> failwith "[FIXME] Core.CoolTp.data: Must be a code!"
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -165,7 +175,9 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Data {self; ctors} ->
     (* FIXME: This is bad. Think hard about identifiers *)
     (* FIXME: factor out the cell expansion logic *)
-    let ctor (CS.Ctor {lbl; args}) = (lbl, List.concat_map (fun (CS.Cell {names; tp}) -> List.map (fun name -> (name, cool_chk_tp tp)) names) args) in
+    let ctor (CS.Ctor {lbl; args}) =
+      (lbl, expand_cells (fun name tp -> (name, cool_chk_tp tp)) args)
+    in
     CoolTp.data self (List.map ctor ctors)
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -312,16 +324,22 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature fields ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
+      let tacs = bind_quantified_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      let tacs = bind_quantified_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
       R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
 
     | CS.Total (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      let tacs = bind_quantified_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
       R.Univ.patch (R.Univ.total (syn_tm tp)) (R.Signature.find_field_tac tacs)
+
+    | CS.Data {self; ctors} ->
+      let ctor_tac (CS.Ctor {lbl; args}) =
+        (lbl, R.Telescope.of_list @@ expand_cells (fun nm con -> (nm, chk_tm con)) args)
+      in
+      R.Univ.data self @@ List.map ctor_tac ctors
 
     | CS.Constructor {lbl; args} ->
       R.Data.intro lbl (List.map chk_tm args)

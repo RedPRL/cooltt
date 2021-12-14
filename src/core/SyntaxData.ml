@@ -25,10 +25,10 @@ struct
     | Fst of t
     | Snd of t
 
-    | Struct of (Ident.user * t) list
-    | Proj of t * Ident.user
+    | Struct of (Ident.t * t) list
+    | Proj of t * Ident.t
 
-    | Ctor of Ident.user * t list
+    | Ctor of Ident.t * t list
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -56,7 +56,8 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
-    | CodeSignature of (Ident.user * t) list
+    | CodeSignature of (Ident.t * t) list
+    | CodeData of Ident.t * ctor list
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t
@@ -87,13 +88,13 @@ struct
     | TpLockedPrf of t
 
   (* TODO: Replace sign with the telescope machinery *)
-  and sign = (Ident.user * tp) list
+  and sign = (Ident.t * tp) list
 
   and 'e telescope =
-    | Bind of Ident.t * tp * 'e telescope
+    | Bind of Ident.t * t * 'e telescope
     | Done of 'e
 
-  and ctor = Ident.user * unit telescope
+  and ctor = Ident.t * unit telescope
 
   and datatype = { self : Ident.t; ctors : ctor list }
 
@@ -116,7 +117,7 @@ struct
 
   module Telescope =
   struct
-    let rec of_bwd (xs : (Ident.t * tp) bwd) (e : 'e) : 'e telescope =
+    let of_bwd (xs : (Ident.t * t) bwd) (e : 'e) : 'e telescope =
       let rec go tele =
         function
         | Emp -> tele

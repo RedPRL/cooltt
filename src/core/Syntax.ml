@@ -42,8 +42,13 @@ struct
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
+    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp lbl
 
-    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
+    | Ctor (lbl, args) ->
+      Format.fprintf fmt "ctor[%a, %a]"
+        Ident.pp lbl
+        (Pp.pp_sep_list dump) args
+
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -72,8 +77,12 @@ struct
     | CodeSg _ -> Format.fprintf fmt "<sg>"
     | CodeSignature fields ->
       Format.fprintf fmt "sig[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp))
+        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump tp))
         fields
+    | CodeData (self, ctors) ->
+      Format.fprintf fmt "data[%a,%a]"
+        Ident.pp self
+        (Pp.pp_sep_list dump_ctor) ctors
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
@@ -85,18 +94,18 @@ struct
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
   and dump_struct fmt fields =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp)) fields
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump tp)) fields
 
   and dump_sign fmt sign =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump_tp tp)) sign
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump_tp tp)) sign
 
   and dump_tele fmt =
     function
-    | Bind (id, tp, tele) -> Format.fprintf fmt "[%a : %a] %a" Ident.pp id dump_tp tp dump_tele tele
+    | Bind (id, tp, tele) -> Format.fprintf fmt "[%a : %a] %a" Ident.pp id dump tp dump_tele tele
     | Done () -> ()
 
   and dump_ctor fmt (lbl, ctor) =
-    Format.fprintf fmt "[%a : %a]" Ident.pp_user lbl dump_tele ctor
+    Format.fprintf fmt "[%a : %a]" Ident.pp lbl dump_tele ctor
 
   and dump_tp fmt =
     function
@@ -178,6 +187,7 @@ struct
       | CodePi _ -> arrow
       | CodeSg _ -> times
       | CodeSignature _ -> juxtaposition
+      | CodeData _ -> juxtaposition
       | CodeExt _ -> juxtaposition
 
       | Ann _ -> passed
@@ -246,7 +256,7 @@ struct
     | [] -> ()
     | ((lbl, tp) :: fields) ->
       Format.fprintf fmt "(%a : %a)@ @,%a"
-        Ident.pp_user lbl
+        Ident.pp lbl
         (pp_field env P.(right_of colon)) tp
         (pp_fields pp_field env) fields
 
@@ -264,9 +274,9 @@ struct
     | Struct fields ->
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->
-      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
+      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp lbl
     | Ctor (lbl, args) ->
-      Format.fprintf fmt "@[ctor %a [%a]@]" Ident.pp_user lbl (Pp.pp_sep_list ~sep:", " (pp env penv)) args
+      Format.fprintf fmt "@[ctor %a [%a]@]" Ident.pp lbl (Pp.pp_sep_list ~sep:", " (pp env penv)) args
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches
@@ -389,8 +399,16 @@ struct
         Uuseg_string.pp_utf_8 "Σ"
         (pp_atomic env) base
         (pp_atomic env) tm
+
     | CodeSignature fields ->
       Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
+
+    | CodeData (self, ctors) ->
+      let x, envx = ppenv_bind env self in
+      Format.fprintf fmt "@[data as %s [ %a]@]"
+        x
+        (Pp.pp_sep_list ~sep:"| " (pp_ctor envx)) ctors
+
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -510,11 +528,11 @@ struct
       let x, envx = ppenv_bind env nm in
       Format.fprintf fmt "(%a : %a)@ @,%a"
         Uuseg_string.pp_utf_8 x
-        (pp_tp env P.(right_of colon)) tp
+        (pp env P.(right_of colon)) tp
         (pp_telescope envx) tele
 
-  and pp_ctor env fmt (lbl, args : (Ident.user * unit telescope)) : unit =
-    Format.fprintf fmt "(%a : %a)" Ident.pp_user lbl (pp_telescope env) args
+  and pp_ctor env fmt (lbl, args : (Ident.t * unit telescope)) : unit =
+    Format.fprintf fmt "%a %a" Ident.pp lbl (pp_telescope env) args
 
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->

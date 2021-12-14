@@ -67,9 +67,9 @@ let pp fmt =
       "Expected true cofibration: %a"
       (S.pp ppenv) cof
   | ExpectedField (ppenv, sign, tm, lbl) ->
-    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_sign ppenv) sign Ident.pp_user lbl
+    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_sign ppenv) sign Ident.pp lbl
   | FieldNameMismatches (expected, actual) ->
-    Fmt.fprintf fmt "Field names mismatch, expected [%a] but got [%a]" (Pp.pp_sep_list Ident.pp_user) expected (Pp.pp_sep_list Ident.pp_user) actual
+    Fmt.fprintf fmt "Field names mismatch, expected [%a] but got [%a]" (Pp.pp_sep_list Ident.pp) expected (Pp.pp_sep_list Ident.pp) actual
   | VirtualType ->
     Fmt.fprintf fmt "Virtual type (dim, cof, etc.) cannot appear in this position"
   | HoleNotPermitted (ppenv, tp) ->

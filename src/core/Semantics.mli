@@ -34,14 +34,13 @@ val do_ap2 : D.con -> D.con -> D.con -> D.con compute
 val do_aps : D.con -> D.con list -> D.con compute
 val do_fst : D.con -> D.con compute
 val do_snd : D.con -> D.con compute
-val do_proj : D.con -> Ident.user -> D.con compute
+val do_proj : D.con -> Ident.t -> D.con compute
 val do_sub_out : D.con -> D.con compute
 val do_el_out : D.con -> D.con compute
 val do_el : D.con -> D.tp compute
 val do_spine : D.con -> D.frm list -> D.con compute
 
 val unfold_el : D.con D.stable_code -> D.tp compute
-val fold_el : D.tp -> D.con compute
 
 val con_to_dim : D.con -> D.dim compute
 val con_to_cof : D.con -> D.cof compute
