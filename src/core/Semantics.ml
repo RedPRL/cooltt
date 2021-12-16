@@ -648,6 +648,12 @@ and eval : S.t -> D.con EvM.m =
     | S.Ctor (lbl, args) ->
       let+ args = MU.map eval args in
       D.Ctor (lbl, args)
+    | S.Elim {data; mot; cases; scrut} ->
+      let* data = MU.assoc_map eval data
+      and+ mot = eval mot
+      and+ cases = MU.assoc_map eval cases 
+      and+ scrut = eval scrut in
+      lift_cmp @@ do_elim data mot cases scrut
     | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
@@ -1156,6 +1162,18 @@ and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
     Format.eprintf "bad circle-elim: %a@." D.pp_con c;
     CM.throw @@ NbeFailed "Not an element of the circle"
 
+and do_elim (data : (Ident.t * D.con) list) (mot : D.con) (cases : (Ident.t * D.con) list) : D.con -> D.con CM.m =
+  let open CM in
+  let rec rec_elim =
+    function
+    | D.Ctor (lbl, args) ->
+      let* args = desc_recurse rec_elim (List.assoc lbl data) args in
+      do_aps (List.assoc lbl cases) args
+    | _ -> failwith "[FIXME] Basis.Basis.do_elim: handle stuck cases in do_elim"
+  in fun scrut -> 
+    abort_if_inconsistent (ret D.tm_abort) @@
+    rec_elim scrut
+
 and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
   fun clo x ->
   match clo with
@@ -1545,6 +1563,24 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sub (TB.el @@ TB.ap fam js) (TB.ap phi js) @@ fun _ ->
         TB.ap bdry @@ js @ [TB.prf]
     end
+
+and desc_recurse (k : D.con -> D.con CM.m) (con : D.con) (args : D.con list) : D.con list CM.m =
+  let open CM in
+  let rec go =
+    function
+    | D.Nil, [] -> ret []
+    | D.Code (_, _, rest), (arg :: args) ->
+      let+ args = go (rest, args)
+      in arg :: args
+    | D.Rec (_, rest), (arg :: args) ->
+      let+ v = k arg
+      and+ args = go (rest, args) in
+      (v :: arg :: args)
+    | _ -> throw @@ NbeFailed "Argument mismatch in desc_recurse"
+  in
+  match con with
+  | D.Desc desc -> go (desc, args)
+  | _ -> throw @@ NbeFailed "Tried to do recursion on a non-desc argument"
 
 and dispatch_rigid_coe ~style line =
   let open CM in

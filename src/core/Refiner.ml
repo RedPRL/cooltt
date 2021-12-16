@@ -989,6 +989,39 @@ struct
     S.Com (fam, src, trg, cof, tm), vfam_trg
 end
 
+module Desc =
+struct
+  let formation =
+    T.Tp.rule ~name:"Desc.formation" @@
+    RM.ret S.TpDesc
+
+  let desc_tac ~name k =
+    T.Chk.rule ~name @@
+    function
+    | D.TpDesc -> k D.TpDesc
+    | tp -> RM.expected_connective `Desc tp
+
+  let nil : T.Chk.tac =
+    desc_tac ~name:"Desc.nil" @@ fun _ ->
+    RM.ret S.DescNil
+
+  let code ?(ident = `Anon) (tac_code : T.Chk.tac) (tac_desc : T.var -> T.Chk.tac) =
+    desc_tac ~name:"Desc.code" @@ fun desc ->
+    let* code = T.Chk.run tac_code D.Univ in
+    let* vcode = RM.lift_ev @@ Sem.eval code in
+    let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+    let+ desc = T.abstract ~ident tp @@ fun var ->
+      T.Chk.run (tac_desc var) desc in
+    S.DescCode (code, ident, desc)
+
+  let rec_ ?(ident = `Anon) (tac_desc : T.var -> T.Chk.tac) =
+    desc_tac ~name:"Desc.rec" @@ fun desc ->
+    let+ desc = T.abstract ~ident desc @@ fun var ->
+      T.Chk.run (tac_desc var) desc
+    in
+    S.DescRec (ident, desc)
+end
+
 module El =
 struct
   let formation tac =

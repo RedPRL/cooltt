@@ -14,6 +14,7 @@ struct
     | `Nat
     | `Circle
     | `Univ
+    | `Desc
     | `Dim
     | `Cof
     | `Sub

@@ -29,6 +29,7 @@ struct
     | Proj of t * Ident.t
 
     | Ctor of Ident.t * t list
+    | Elim of { data : (Ident.t * t) list; mot : t; cases : (Ident.t * t) list; scrut : t }
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -63,6 +64,10 @@ struct
     | CodeV of t * t * t * t
     | CodeCircle
 
+    | DescNil
+    | DescCode of t * Ident.t * t
+    | DescRec of Ident.t * t
+
     | ESub of sub * t
     (** Explicit substition *)
 
@@ -82,6 +87,7 @@ struct
     | Sg of tp * Ident.t * tp
     | Signature of sign
     | Data of datatype
+    | TpDesc
     | Nat
     | Circle
     | TpESub of sub * tp

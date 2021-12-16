@@ -96,6 +96,8 @@ struct
     | StableCode of con stable_code
     | UnstableCode of con unstable_code
 
+    | Desc of desc
+
     | Box of dim * dim * cof * con * con
     | VIn of dim * con * con * con
 
@@ -117,6 +119,7 @@ struct
     | Sg of tp * Ident.t * tp_clo
     | Signature of sign
     | Data of datatype
+    | TpDesc
     | Nat
     | Circle
     | TpLockedPrf of cof
@@ -124,6 +127,13 @@ struct
   and sign =
     | Field of Ident.t * tp * S.sign clo
     | Empty
+
+  (** Much like codes describe the language of "small" types, desc describes the
+      language of endofunctors that admit fixpoints. *)
+  and desc =
+    | Nil
+    | Code of con stable_code * Ident.t * desc 
+    | Rec of Ident.t * desc
 
   (* [NOTE: Inductive Datatypes + Self Closures]
      To handle recursive occurances of an inductive datatype within a constructor,
