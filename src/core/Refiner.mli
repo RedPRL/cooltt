@@ -68,12 +68,19 @@ module Univ : sig
   val signature : (Ident.t * Chk.tac) list -> Chk.tac
   val patch : Chk.tac -> (Ident.t -> Chk.tac option) -> Chk.tac
   val total : Syn.tac -> Chk.tac
-  val data :  Ident.t -> (Ident.t * Chk.tac telescope) list -> Chk.tac
+  val data :  Ident.t -> (Ident.t * Chk.tac) list -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val hcom : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val com : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
+end
+
+module Desc : sig
+  val formation : Tp.tac
+  val nil : Chk.tac
+  val code : ?ident:Ident.t -> Chk.tac -> (var -> Chk.tac) -> Chk.tac
+  val rec_ : ?ident:Ident.t -> (var -> Chk.tac) -> Chk.tac
 end
 
 module El : sig
@@ -115,7 +122,7 @@ module Signature : sig
 end
 
 module Data : sig
-  val formation : Ident.t -> (var -> (Ident.t * Chk.tac telescope) list) -> Tp.tac
+  val formation : Ident.t -> (Ident.t * Chk.tac) list -> Tp.tac
   val intro : Ident.t -> Chk.tac list -> Chk.tac
 end
 

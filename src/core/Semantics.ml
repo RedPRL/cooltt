@@ -35,7 +35,9 @@ let get_local i =
   let* env = EvM.read_local in
   match Bwd.nth env.conenv i with
   | v -> EvM.ret v
-  | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
+  | exception _ ->
+    Format.eprintf "%a |- %d" D.pp_env env i;
+    EvM.throw @@ NbeFailed "Variable out of bounds"
 
 let get_local_tp i =
   let open EvM in
@@ -164,9 +166,18 @@ and con_to_dim =
     | D.DimProbe x -> ret @@ Dim.DimProbe x
     | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
     | con ->
-      Format.eprintf "bad: %a@." D.pp_con con;
+      Format.eprintf "bad dim: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
 
+and con_to_desc =
+  let open CM in
+  fun con ->
+    whnf_inspect_con ~style:`UnfoldAll con |>>
+    function
+    | D.Desc d -> ret d
+    | con ->
+      Format.eprintf "bad desc: %a@." D.pp_con con;
+      throw @@ NbeFailed "con_to_desc"
 
 and subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x con ->
@@ -211,6 +222,9 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
     D.StableCode code
+  | D.Desc desc ->
+    let+ desc = subst_desc r x desc in
+    D.Desc desc
   | D.ElIn con ->
     let+ con = subst_con r x con in
     D.ElIn con
@@ -334,12 +348,19 @@ and subst_sign : D.dim -> DimProbe.t -> D.sign -> D.sign CM.m =
     D.Field (ident, tp, clo)
   | D.Empty -> ret D.Empty
 
-and subst_ctor : D.dim -> DimProbe.t -> D.ctor -> D.ctor CM.m =
-  fun r x (lbl, tele_clo) ->
+and subst_desc : D.dim -> DimProbe.t -> D.desc -> D.desc CM.m =
+  fun r x ->
   let open CM in
-  let+ tele_clo = subst_tele_clo r x tele_clo in
-  (lbl, tele_clo)
-
+  function
+  | D.Nil ->
+    ret D.Nil
+  | D.Code (code, ident, desc) ->
+    let+ code = subst_con r x code
+    and+ desc = subst_desc r x desc in
+    D.Code (code, ident, desc)
+  | D.Rec (ident, desc) ->
+    let+ desc = subst_desc r x desc in
+    D.Rec (ident, desc)
 
 and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
   fun r x ->
@@ -357,14 +378,14 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     let+ sign = subst_sign r x sign in
     D.Signature sign
   | D.Data {self; ctors} ->
-    let+ ctors = MU.map (subst_ctor r x) ctors in
+    let+ ctors = MU.assoc_map (subst_desc r x) ctors in
     D.Data {self; ctors}
   | D.Sub (base, phi, clo) ->
     let+ base = subst_tp r x base
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Univ | D.TpDesc | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -414,7 +435,7 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ fields = MU.assoc_map (subst_con r x) fields in
     `Signature fields
   | `Data (self, ctors) ->
-    let+ ctors = MU.map (subst_ctor r x) ctors in
+    let+ ctors = MU.assoc_map (subst_desc r x) ctors in
     `Data (self, ctors)
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
@@ -522,11 +543,14 @@ and eval_sign : S.sign -> D.sign EvM.m =
     and+ vfield = eval_tp field in
     D.Field (ident, vfield, D.Clo (fields, env))
 
-and eval_ctor : S.ctor -> D.ctor EvM.m =
-  let open EvM in
-  fun (lbl, tele) ->
-    let+ env = read_local in
-    (lbl, D.Clo (tele, env))
+(* and eval_ctor : S.ctor -> D.ctor EvM.m = *)
+(*   let open EvM in *)
+(*   fun (lbl, tm) -> *)
+(*     let* vtm = eval tm in *)
+(*     match vtm with *)
+(*     | D.Desc desc -> EvM.ret (lbl, desc) *)
+(*     | _ -> throw *)
+(* (lbl, D.Clo (__, env)) *)
 
 and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
@@ -545,8 +569,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ vsign = eval_sign sign in
     D.Signature vsign
   | S.Data {self; ctors} ->
-    let+ vctors = MU.map eval_ctor ctors in
-    D.Data {self; ctors = vctors}
+    let+ vctors = MU.assoc_map eval_desc ctors in
+    D.Data {self; ctors = vctors }
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -557,6 +581,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     and+ tp = eval_tp tp
     and+ phi = eval_cof tphi in
     D.Sub (tp, phi, D.Clo (tm, env))
+  | S.TpDesc -> 
+    ret D.TpDesc
   | S.TpDim  ->
     ret D.TpDim
   | S.TpCof ->
@@ -759,7 +785,7 @@ and eval : S.t -> D.con EvM.m =
       D.StableCode (`Signature vfields)
 
     | S.CodeData (self, ctors) ->
-      let+ ctors = MU.map eval_ctor ctors in
+      let+ ctors = MU.assoc_map eval_desc ctors in
       D.StableCode (`Data (self, ctors))
 
     | S.CodeNat ->
@@ -770,6 +796,18 @@ and eval : S.t -> D.con EvM.m =
 
     | S.CodeUniv ->
       ret @@ D.StableCode `Univ
+
+    | S.DescNil ->
+      ret @@ D.Desc D.Nil
+
+    | S.DescCode (code, ident, desc) ->
+      let* code = eval code in
+      let+ desc = append [code] @@ eval_desc desc in
+      D.Desc (D.Code (code, ident, desc))
+
+    | S.DescRec (ident, desc) ->
+      let+ desc = eval_desc desc in
+      D.Desc (D.Rec (ident, desc))
 
     | S.Box (r, s, phi, sides, cap) ->
       let+ vr = eval_dim r
@@ -863,12 +901,16 @@ and eval_cof tphi =
   let* vphi = eval tphi in
   lift_cmp @@ con_to_cof vphi
 
+and eval_desc tdesc =
+  let open EvM in
+  let* vdesc = eval tdesc in
+  lift_cmp @@ con_to_desc vdesc
 
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.Ctor _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
-  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.Desc _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to ~style @<< push_subst_con r x con
@@ -1199,12 +1241,6 @@ and inst_tele_clo : unit D.tele_clo -> D.con -> unit D.telescope CM.m =
   match clo with
   | D.Clo (tele, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_tele tele
-
-and inst_ctor : D.ctor -> D.con -> unit D.telescope CM.m =
-  fun (_, clo) x ->
-  match clo with
-  | D.Clo (tele, env) ->
-    CM.lift_ev { env with conenv = Snoc (env.conenv, x) } @@ eval_tele tele
 
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con ~style con =
@@ -1563,6 +1599,21 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sub (TB.el @@ TB.ap fam js) (TB.ap phi js) @@ fun _ ->
         TB.ap bdry @@ js @ [TB.prf]
     end
+
+and unfold_desc : D.desc -> D.tp -> D.tp list CM.m =
+  let open CM in
+  fun desc rectp -> 
+    let rec unfold =
+      function
+      | D.Nil -> ret []
+      | D.Code (code, _, desc) ->
+        let* argtp = do_el code in
+        let+ args = unfold desc in
+        argtp :: args
+      | D.Rec (_, desc) ->
+        let+ args = unfold desc in
+        rectp :: args
+    in unfold desc
 
 and desc_recurse (k : D.con -> D.con CM.m) (con : D.con) (args : D.con list) : D.con list CM.m =
   let open CM in

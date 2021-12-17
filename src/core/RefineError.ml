@@ -20,6 +20,8 @@ let pp_connective fmt =
     Format.fprintf fmt "sg"
   | `Signature ->
     Format.fprintf fmt "sig"
+  | `Data ->
+    Format.fprintf fmt "data"
   | `Univ ->
     Format.fprintf fmt "univ"
   | `Desc ->
@@ -70,6 +72,8 @@ let pp fmt =
       (S.pp ppenv) cof
   | ExpectedField (ppenv, sign, tm, lbl) ->
     Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_sign ppenv) sign Ident.pp lbl
+  | ExpectedCtor (ppenv, data, lbl) ->
+    Fmt.fprintf fmt "Expected %a to have a constructor %a" (S.pp_tp ppenv) data Ident.pp lbl
   | FieldNameMismatches (expected, actual) ->
     Fmt.fprintf fmt "Field names mismatch, expected [%a] but got [%a]" (Pp.pp_sep_list Ident.pp) expected (Pp.pp_sep_list Ident.pp) actual
   | VirtualType ->

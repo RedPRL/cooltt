@@ -53,7 +53,7 @@ sig
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
   val signature : (Ident.t * tac) list -> tac
-  val data : Ident.t -> (Ident.t * (Ident.t * tac) list) list -> tac
+  (* val data : Ident.t -> (Ident.t * (Ident.t * tac) list) list -> tac *)
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -127,15 +127,15 @@ struct
       let tac = R.Signature.formation tele in
       Tp tac
 
-  let ctor (nm, tacs) =
-    match as_codes tacs with
-    | Some tacs -> Some (nm, R.Telescope.of_list tacs)
-    | None -> None
+  (* let ctor (nm, tacs) = *)
+  (*   match as_codes tacs with *)
+  (*   | Some tacs -> Some (nm, __) *)
+  (*   | None -> None *)
 
-  let data (self : Ident.t) (tacs : (Ident.t * (Ident.t * tac) list) list) : tac =
-    match ListUtil.map_opt ctor tacs with
-    | Some ctors -> Tp (R.Data.formation self (fun _ -> ctors))
-    | None -> failwith "[FIXME] Core.CoolTp.data: Must be a code!"
+  (* let data (self : Ident.t) (tacs : (Ident.t * (Ident.t * T.Chk.) list) list) : tac = *)
+  (*   match ListUtil.map_opt ctor tacs with *)
+  (*   | Some ctors -> Tp (R.Data.formation self ctors) *)
+  (*   | None -> failwith "[FIXME] Core.CoolTp.data: Must be a code!" *)
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -173,12 +173,14 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
     CoolTp.signature tacs
   | CS.Data {self; ctors} ->
-    (* FIXME: This is bad. Think hard about identifiers *)
-    (* FIXME: factor out the cell expansion logic *)
-    let ctor (CS.Ctor {lbl; args}) =
-      (lbl, expand_cells (fun name tp -> (name, cool_chk_tp tp)) args)
-    in
-    CoolTp.data self (List.map ctor ctors)
+    failwith "[FIXME] Core.Core.cool_chk_tp: data"
+
+  (* (\* FIXME: This is bad. Think hard about identifiers *\) *)
+  (* (\* FIXME: factor out the cell expansion logic *\) *)
+  (* let ctor (CS.Ctor {lbl; args}) = *)
+  (*   (lbl, expand_cells (fun name tp -> (name, cool_chk_tp tp)) args) *)
+  (* in *)
+  (* CoolTp.data self (List.map ctor ctors) *)
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
@@ -337,7 +339,8 @@ and chk_tm : CS.con -> T.Chk.tac =
 
     | CS.Data {self; ctors} ->
       let ctor_tac (CS.Ctor {lbl; args}) =
-        (lbl, R.Telescope.of_list @@ expand_cells (fun nm con -> (nm, chk_tm con)) args)
+        let tac = List.fold_right (fun cell tac -> chk_desc self cell (fun _ -> tac)) args R.Desc.nil in
+        lbl, tac
       in
       R.Univ.data self @@ List.map ctor_tac ctors
 
@@ -469,6 +472,11 @@ and chk_cases cases =
 
 and chk_case (pat, c) =
   pat, chk_tm c
+
+and chk_desc self (CS.Cell cell) k =
+  match cell.tp.node with
+  | CS.Var x when Ident.equal x self -> R.Desc.rec_ k
+  | _ -> R.Desc.code (chk_tm cell.tp) k
 
 let rec modifier_ (con : CS.con) =
   let open Yuujinchou.Pattern in

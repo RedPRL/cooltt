@@ -150,6 +150,11 @@ let expected_field sign con lbl =
 let field_names_mismatch ~expected ~actual =
   refine_err @@ Err.FieldNameMismatches (expected, actual)
 
+let expected_ctor data lbl =
+  with_pp @@ fun ppenv ->
+  let* tdata = quote_tp data in
+  refine_err @@ Err.ExpectedCtor (ppenv, tdata, lbl)
+
 let abstract nm tp k =
   let rho env =
     let con = D.mk_var tp @@ Env.size env in

@@ -132,14 +132,10 @@ struct
       language of endofunctors that admit fixpoints. *)
   and desc =
     | Nil
-    | Code of con stable_code * Ident.t * desc 
+    | Code of con * Ident.t * desc 
     | Rec of Ident.t * desc
 
-  (* [NOTE: Inductive Datatypes + Self Closures]
-     To handle recursive occurances of an inductive datatype within a constructor,
-     we close over a type variable that stands in for all recursive occurances. Then,
-     when we introduce a constructor, we instantiate the closure with /the type itself/. *)
-  and ctor = Ident.t * unit tele_clo
+  and ctor = Ident.t * desc
 
   and datatype = { self : Ident.t; ctors : ctor list }
 

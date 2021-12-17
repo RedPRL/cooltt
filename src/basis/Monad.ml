@@ -61,6 +61,16 @@ struct
       and+ ys = map f xs in
       y :: ys
 
+  let rec map2 f =
+    fun xs ys ->
+    match xs, ys with
+    | [], [] -> M.ret []
+    | (x :: xs), (y :: ys) ->
+      let+ z = f x y
+      and+ zs = map2 f xs ys in
+      z :: zs
+    | _ -> raise (Invalid_argument "map2: argument lists must have same length")
+
   let rec filter_map f =
     function
     | [] -> M.ret []

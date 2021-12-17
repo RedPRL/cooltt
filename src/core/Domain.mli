@@ -44,4 +44,5 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val pp_frame : frm Pp.printer
   val pp_spine : frm list Pp.printer
   val pp_sign : sign Pp.printer
+  val pp_env : env Pp.printer
 end

@@ -548,7 +548,7 @@ struct
       | Bind (lbl, tac, tacs) ->
         let* tp = T.Tp.run tac in
         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
+        T.abstract ~ident:lbl vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
@@ -608,56 +608,47 @@ end
 
 module Data =
 struct
-  let formation (self : Ident.t) (tacs : T.var -> (Ident.t * T.Chk.tac telescope) list) : T.Tp.tac =
+  let formation (self : Ident.t) (tacs : (Ident.t * T.Chk.tac) list) : T.Tp.tac =
     T.Tp.rule ~name:"Data.formation" @@
-    let+ ctors =
-      (* Bind the 'self' type variable. See [NOTE: Inductive Datatypes + Self Closures] for more info. *)
-      T.abstract ~ident:self D.Univ @@ fun var ->
-      MU.assoc_map Telescope.codes (tacs var)
-    in
+    let+ ctors = MU.assoc_map (fun tac -> T.Chk.run tac D.TpDesc) tacs in
     S.Data { self; ctors }
 
-  (* FIXME: Tail Recursion? *)
-  let rec ctor_args (tele : unit D.telescope) (tacs : T.Chk.tac list) : S.t list m =
-    match tele, tacs with
-    | D.Bind (nm, code, tele_clo), tac :: tacs ->
-      Debug.print "Introducing Constructor Argument: %a" Ident.pp nm;
-      let* tp = RM.lift_cmp @@ Sem.do_el code in
-      let* arg = T.Chk.run tac tp in
-      let* varg = RM.lift_ev @@ Sem.eval arg in
-      let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
-      let+ args = ctor_args tele tacs in
-      arg :: args
-    (* FIXME: Make this better! *)
-    | D.Bind (nm, code, tele_clo), [] ->
-      Debug.print "Introducing Constructor Argument: %a" Ident.pp nm;
-      let* tp = RM.lift_cmp @@ Sem.do_el code in
-      let* arg = T.Chk.run (Hole.unleash_hole None) tp in
-      let* varg = RM.lift_ev @@ Sem.eval arg in
-      let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in
-      let+ args = ctor_args tele [] in
-      arg :: args
-    | D.Done (), [] -> RM.ret []
-    | D.Done (), _ -> failwith "[FIXME] Data.ctor_args: Too many args!"
+  (* (\* FIXME: Tail Recursion? *\) *)
+  (* let rec ctor_args (tele : unit D.telescope) (tacs : T.Chk.tac list) : S.t list m = *)
+  (*   match tele, tacs with *)
+  (*   | D.Bind (nm, code, tele_clo), tac :: tacs -> *)
+  (*     Debug.print "Introducing Constructor Argument: %a" Ident.pp nm; *)
+  (*     let* tp = RM.lift_cmp @@ Sem.do_el code in *)
+  (*     let* arg = T.Chk.run tac tp in *)
+  (*     let* varg = RM.lift_ev @@ Sem.eval arg in *)
+  (*     let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in *)
+  (*     let+ args = ctor_args tele tacs in *)
+  (*     arg :: args *)
+  (*   (\* FIXME: Make this better! *\) *)
+  (*   | D.Bind (nm, code, tele_clo), [] -> *)
+  (*     Debug.print "Introducing Constructor Argument: %a" Ident.pp nm; *)
+  (*     let* tp = RM.lift_cmp @@ Sem.do_el code in *)
+  (*     let* arg = T.Chk.run (Hole.unleash_hole None) tp in *)
+  (*     let* varg = RM.lift_ev @@ Sem.eval arg in *)
+  (*     let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo varg in *)
+  (*     let+ args = ctor_args tele [] in *)
+  (*     arg :: args *)
+  (*   | D.Done (), [] -> RM.ret [] *)
+  (*   | D.Done (), _ -> failwith "[FIXME] Data.ctor_args: Too many args!" *)
 
   let intro (ctor_nm : Ident.t) (tacs : T.Chk.tac list) : T.Chk.tac =
     T.Chk.rule ~name:"Data.intro" @@
     function
-    | (D.Data {self; ctors}) ->
+    | (D.Data {self; ctors} as data) ->
       begin
         match List.assoc_opt ~eq:Ident.equal ctor_nm ctors with
-        | Some ctor ->
-          Debug.print "Instantiating Constructor...@.";
-          let self_code = D.StableCode (`Data (self, ctors))in
-          let* tele = RM.lift_cmp @@ Sem.inst_ctor (ctor_nm, ctor) self_code in
-          Debug.print "Elaborating Arguments...@.";
-          let+ args = ctor_args tele tacs in
-          Debug.print "Elaborated Arguments...@.";
+        | Some desc ->
+          let* argtps = RM.lift_cmp @@ Sem.unfold_desc desc data in
+          let+ args = MU.map2 T.Chk.run tacs argtps in
           S.Ctor (ctor_nm, args)
-        | None -> failwith "[FIXME] Data.intro: cannot find constructor"
-
+        | None -> RM.expected_ctor data ctor_nm
       end
-    | tp -> failwith "[FIXME] Data.intro: goal mismatch"
+    | tp -> RM.expected_connective `Data tp
 
 end
 
@@ -861,10 +852,9 @@ struct
     | D.Pi (base, _, _) -> RM.expected_connective `Signature base
     | _ -> RM.expected_connective `Pi tp
 
-  let data (self : Ident.t) (tacs : (Ident.t * T.Chk.tac telescope) list) : T.Chk.tac =
+  let data (self : Ident.t) (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
     univ_tac "Univ.data" @@ fun univ ->
-    T.abstract ~ident:self D.Univ @@ fun _ ->
-    let+ ctors = MU.assoc_map Telescope.codes tacs in
+    let+ ctors = MU.assoc_map (fun tac -> T.Chk.run tac D.TpDesc) tacs in
     S.CodeData (self, ctors)
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =

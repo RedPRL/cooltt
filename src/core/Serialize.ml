@@ -180,7 +180,7 @@ struct
 
   and json_of_ctor : S.ctor -> J.value =
     fun (lbl, args) ->
-      `O [Ident.to_string lbl, json_of_tele args]
+      `O [Ident.to_string lbl, json_of_tm args]
 
   and json_of_tele : unit S.telescope -> J.value =
     fun tele ->
@@ -450,7 +450,7 @@ struct
   and json_to_ctor : J.value -> S.ctor =
     function
     | `O [j_lbl, j_args] ->
-      (json_to_ident (`String j_lbl), json_to_tele j_args)
+      (json_to_ident (`String j_lbl), json_to_tm j_args)
     | j -> J.parse_error j "Syntax.json_to_ctor"
 
   and json_to_tele : J.value -> unit S.telescope =
@@ -557,7 +557,7 @@ struct
 
   and json_of_ctor : D.ctor -> J.value =
     fun (lbl, args) ->
-      `O [Ident.to_string lbl, json_of_tele_clo args]
+      `O [Ident.to_string lbl, failwith "[FIXME] Basis.Domain.json_of_ctor: "]
 
   and json_of_hd : D.hd -> J.value =
     function

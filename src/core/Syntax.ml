@@ -48,6 +48,12 @@ struct
       Format.fprintf fmt "ctor[%a, %a]"
         Ident.pp lbl
         (Pp.pp_sep_list dump) args
+    | Elim {data; mot; cases; scrut} ->
+      Format.fprintf fmt "elim[%a, %a, %a, %a]"
+        (Pp.pp_sep_list dump_ctor) data
+        dump mot
+        (Pp.pp_sep_list dump_case) cases
+        dump scrut
 
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
@@ -88,6 +94,17 @@ struct
     | CodeV _ -> Format.fprintf fmt "<v>"
     | CodeCircle -> Format.fprintf fmt "circle"
 
+    | DescNil -> Format.fprintf fmt "desc-nil"
+    | DescCode (code, ident, desc) ->
+      Format.fprintf fmt "desc-code[%a, %a, %a]"
+        dump code
+        Ident.pp ident
+        dump desc
+    | DescRec (ident, desc) ->
+      Format.fprintf fmt "desc-rec[%a, %a]"
+        Ident.pp ident
+        dump desc
+
     | ESub _ -> Format.fprintf fmt "<esub>"
 
     | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
@@ -105,11 +122,15 @@ struct
     | Done () -> ()
 
   and dump_ctor fmt (lbl, ctor) =
-    Format.fprintf fmt "[%a : %a]" Ident.pp lbl dump_tele ctor
+    Format.fprintf fmt "[%a : %a]" Ident.pp lbl dump ctor
+
+  and dump_case fmt (lbl, case) =
+    Format.fprintf fmt "[%a => %a]" Ident.pp lbl dump case
 
   and dump_tp fmt =
     function
     | Univ -> Format.fprintf fmt "univ"
+    | TpDesc -> Format.fprintf fmt "desc"
     | El t -> Format.fprintf fmt "el[%a]" dump t
     | TpVar i -> Format.fprintf fmt "tp/var[%i]" i
     | TpDim -> Format.fprintf fmt "tp/dim"
@@ -168,6 +189,7 @@ struct
       | Pair _ -> tuple
       | Struct _ -> juxtaposition
       | Ctor _ -> juxtaposition
+      | Elim _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
       | Cof (Cof.Eq _) -> cof_eq
@@ -190,6 +212,10 @@ struct
       | CodeData _ -> juxtaposition
       | CodeExt _ -> juxtaposition
 
+      | DescNil -> atom
+      | DescCode _ -> juxtaposition
+      | DescRec _ -> juxtaposition
+
       | Ann _ -> passed
       | Let _ -> dual juxtaposition in_
 
@@ -210,7 +236,7 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | TpDim | TpCof | Nat | Circle -> atom
+      | Univ | TpDesc | TpDim | TpCof | Nat | Circle -> atom
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -404,10 +430,9 @@ struct
       Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
 
     | CodeData (self, ctors) ->
-      let x, envx = ppenv_bind env self in
-      Format.fprintf fmt "@[data as %s [ %a]@]"
-        x
-        (Pp.pp_sep_list ~sep:"| " (pp_ctor envx)) ctors
+      Format.fprintf fmt "@[data as %a [ %a]@]"
+        Ident.pp self
+        (Pp.pp_sep_list ~sep:"| " (pp_ctor env penv)) ctors
 
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
@@ -427,6 +452,14 @@ struct
       Format.fprintf fmt "circle"
     | CodeUniv ->
       Format.fprintf fmt "type"
+
+    | DescNil -> ()
+    | DescCode (code, ident, desc) ->
+      let x, envx = ppenv_bind env ident in
+      Format.fprintf fmt "(%s : %a) %a" x (pp env penv) code (pp envx penv) desc
+    | DescRec (ident, desc) ->
+      let x, envx = ppenv_bind env ident in
+      Format.fprintf fmt "(%s : *) %a" x (pp envx penv) desc
 
     | Dim0 ->
       Format.fprintf fmt "0"
@@ -531,8 +564,8 @@ struct
         (pp env P.(right_of colon)) tp
         (pp_telescope envx) tele
 
-  and pp_ctor env fmt (lbl, args : (Ident.t * unit telescope)) : unit =
-    Format.fprintf fmt "%a %a" Ident.pp lbl (pp_telescope env) args
+  and pp_ctor env penv fmt (lbl, desc : (Ident.t * t)) : unit =
+    Format.fprintf fmt "%a %a" Ident.pp lbl (pp env penv) desc
 
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->
@@ -561,7 +594,7 @@ struct
       Format.fprintf fmt "sig %a" (pp_sign env) fields
     | Data {self; ctors} ->
       let x, envx = ppenv_bind env self in
-      Format.fprintf fmt "data as %a %a" Uuseg_string.pp_utf_8 x (Format.pp_print_list (pp_ctor envx)) ctors
+      Format.fprintf fmt "data as %a %a" Uuseg_string.pp_utf_8 x (Format.pp_print_list (pp_ctor envx penv)) ctors
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

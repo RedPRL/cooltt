@@ -108,12 +108,11 @@ let rec quote_con (tp : D.tp) con =
     let+ tfields = quote_fields sign con in
     S.Struct tfields
 
-  | (D.Data {self; ctors}), D.Ctor (lbl, args) ->
+  | (D.Data {ctors; _} as data), D.Ctor (lbl, args) ->
     (* If we've gotten this far, it's safe to assume that the constructor exists. *)
-    let ctor = List.assoc lbl ctors in
-    let self_code = D.StableCode (`Data (self, ctors)) in
-    let* arg_tps = lift_cmp @@ Sem.inst_ctor (lbl, ctor) self_code in
-    let+ qargs = quote_cons arg_tps args in
+    let desc = List.assoc lbl ctors in
+    let* argtps = lift_cmp @@ Sem.unfold_desc desc data in
+    let+ qargs = MU.map2 quote_con argtps args in
     S.Ctor (lbl, qargs)
 
   | D.Sub (tp, _phi, _clo), _ ->
@@ -288,17 +287,6 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_cons (tps : unit D.telescope) (cons : D.con list) : S.t list m =
-  match (tps, cons) with
-  | D.Bind (_, code, tps_clo), con :: cons ->
-    let* tp = lift_cmp @@ do_el code in
-    let* qcon = quote_con tp con in
-    let* tps = lift_cmp @@ inst_tele_clo tps_clo con in
-    let+ qcons = quote_cons tps cons in
-    (qcon :: qcons)
-  | D.Done (), [] -> ret []
-  | _, _ -> failwith "[FIXME] quote_cons: tele/cons mismatch"
-
 and quote_fields (sign : D.sign) con : (Ident.t * S.t) list m =
   match sign with
   | D.Field (lbl, tp, sign_clo) ->
@@ -362,7 +350,7 @@ and quote_stable_code univ =
     S.CodeSignature tfields
 
   | `Data (self, ctors) ->
-    let+ ctors = MU.map quote_ctor ctors in
+    let+ ctors = MU.assoc_map quote_desc ctors in
     S.CodeData (self, ctors)
 
   | `Ext (n, code, `Global phi, bdry) ->
@@ -451,12 +439,6 @@ and quote_tele : unit D.telescope -> unit S.telescope m =
     S.Bind (ident, qcode, qtele)
   | Done e -> ret @@ S.Done e
 
-and quote_ctor (ctor : D.ctor) : S.ctor m =
-  bind_var D.Univ @@ fun var ->
-  let* tele = lift_cmp @@ inst_ctor ctor var in
-  let+ qtele = quote_tele tele in
-  (fst ctor, qtele)
-
 and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
@@ -475,10 +457,12 @@ and quote_tp (tp : D.tp) =
     let+ sign = quote_sign sign in
     S.Signature sign
   | D.Data {self; ctors} ->
-    let+ ctors = MU.map quote_ctor ctors in
+    let+ ctors = MU.assoc_map quote_desc ctors in
     S.Data {self; ctors}
   | D.Univ ->
     ret S.Univ
+  | D.TpDesc ->
+    ret S.TpDesc
   | D.ElStable code ->
     let+ tm = quote_stable_code D.Univ code in
     S.El tm
@@ -696,3 +680,15 @@ and quote_frm tm =
     S.Ap (tm, targ)
   | D.KElOut ->
     ret @@ S.ElOut tm
+
+and quote_desc =
+  function
+  | D.Nil ->
+    ret S.DescNil
+  | D.Code (code, ident, desc) ->
+    let+ code = quote_con D.Univ code
+    and+ desc = quote_desc desc in
+    S.DescCode (code, ident, desc)
+  | D.Rec (ident, desc) ->
+    let+ desc = quote_desc desc in
+    S.DescRec (ident, desc)

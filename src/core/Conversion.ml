@@ -96,6 +96,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
   | D.Signature sign1, D.Signature sign2 -> equate_sign sign1 sign2
+  | D.Data data0, D.Data data1 -> equate_ctors D.Univ data0.ctors data1.ctors (Error.ExpectedTypeEq (tp0, tp1))
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in
@@ -106,6 +107,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.Nat, D.Nat
   | D.Circle, D.Circle
   | D.Univ, D.Univ ->
+    ret ()
+  | D.TpDesc, D.TpDesc ->
     ret ()
   | D.ElStable code0, D.ElStable code1 ->
     equate_stable_code D.Univ code0 code1
@@ -179,6 +182,10 @@ and equate_stable_code univ code0 code1 =
 
   | `Signature sign0, `Signature sign1 ->
     equate_sign_code univ sign0 sign1
+
+  | `Data (_, data0) , `Data (_, data1) ->
+    equate_ctors univ data0 data1 (Error.ExpectedConEq (univ, D.StableCode code0, D.StableCode code1))
+
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
 
@@ -198,6 +205,14 @@ and equate_sign_code univ sign0 sign1 =
       go (vfams @ [fam0]) sign0 sign1
     | _, _ -> conv_err @@ ExpectedConEq (univ, D.StableCode (`Signature sign0), D.StableCode (`Signature sign1))
   in go [] sign0 sign1
+
+and equate_ctors univ ctors0 ctors1 err =
+  match ctors0, ctors1 with
+  | (lbl0, desc0) :: ctors0, (lbl1, desc1) :: ctors1 when lbl0 = lbl1 ->
+    let* _ = equate_desc univ desc0 desc1 in
+    equate_ctors univ ctors0 ctors1 err
+  | [], [] -> ret ()
+  | _ -> conv_err err
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
@@ -228,6 +243,10 @@ and equate_con tp con0 con1 =
     equate_con fib snd0 snd1
   | D.Signature sign, _, _ ->
     equate_struct sign con0 con1
+  | D.Data {ctors; _} as data, D.Ctor (lbl0, args0), D.Ctor (lbl1, args1) when lbl0 = lbl1 ->
+    let desc = List.assoc lbl0 ctors in
+    let* argtps = lift_cmp @@ unfold_desc desc data in
+    equate_cons argtps args0 args1 (Error.ExpectedConEq (data, con0, con1))
   | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
@@ -316,6 +335,14 @@ and equate_con tp con0 con1 =
   | _ ->
     Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
     conv_err @@ ExpectedConEq (tp, con0, con1)
+
+and equate_cons tps cons0 cons1 err =
+  match tps, cons0, cons1 with
+  | [], [], [] -> ret ()
+  | (tp :: tps), (con0 :: cons0), (con1 :: cons1) ->
+    let* _ = equate_con tp con0 con1 in
+    equate_cons tps cons0 cons1 err
+  | _,_,_ -> conv_err err
 
 and equate_struct (sign : D.sign) con0 con1 =
   match sign with
@@ -509,6 +536,15 @@ and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   let* tp = lift_cmp @@ do_el code0 in
   equate_con tp con0 con1
 
+and equate_desc univ desc0 desc1 =
+  match desc0, desc1 with
+  | D.Nil, D.Nil -> ret ()
+  | D.Code (code0, _, rest0), D.Code (code1, _, rest1) ->
+    let* _ = equate_con univ code0 code1 in
+    equate_desc univ rest0 rest1
+  | D.Rec (_, rest0), D.Rec (_, rest1) ->
+    equate_desc univ rest0 rest1
+  | _,_ -> conv_err @@ ExpectedConEq (D.TpDesc, D.Desc desc0,  D.Desc desc1)
 
 and equate_cof phi psi =
   let* () = approx_cof phi psi in

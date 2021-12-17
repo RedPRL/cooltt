@@ -100,7 +100,7 @@ struct
     | Bind of Ident.t * t * 'e telescope
     | Done of 'e
 
-  and ctor = Ident.t * unit telescope
+  and ctor = Ident.t * t
 
   and datatype = { self : Ident.t; ctors : ctor list }
 

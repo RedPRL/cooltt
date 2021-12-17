@@ -115,6 +115,13 @@ struct
     fun fmt r ->
     pp_con fmt @@ dim_to_con r
 
+  and pp_env : env Pp.printer =
+    fun fmt ({tpenv; conenv}) ->
+    let sep fmt () = Format.fprintf fmt ", " in
+    Format.fprintf fmt "env[%a ; %a]"
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
+      (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+
   and pp_clo : tm_clo Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (tm, {tpenv; conenv})) ->
