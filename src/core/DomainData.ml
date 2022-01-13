@@ -17,7 +17,7 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
-    | `Signature of (Ident.user * 'a) list
+    | `Signature of (Ident.t * 'a) list
     (** First-Class Record types *)
 
     | `Ext of int * 'a * [`Global of 'a] * 'a
@@ -68,7 +68,29 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
-    | Struct of (Ident.user * con) list
+    | Struct of (Ident.t * con) list
+
+    (** Descriptions. These can be thought of as the types of a simple type theory. *)
+    | DescEnd
+    (** Something of sort [□] *)
+    | DescArg of con * con
+    (** A dependent function type [(x : A) → B x], where [A] comes from the outer type theory. *)
+    | DescRec of con
+    (** A non-dependent function type [□ → B]. *)
+
+    (** Contexts of descriptions. *)
+    | CtxNil
+    | CtxSnoc of con * Ident.t * con
+
+    (** Formal expressions involving elements of a context. We can think of these as embedded terms
+        from the simple type theory of inductive types. *)
+    | TmVar of Ident.t
+    (** A variable from the context [Γ] *)
+    | TmAppArg of con * con * con * con
+    (** Application to a dependent function type [(x : A) → B x], where [A] comes from the outer type theory. *)
+    | TmAppRec of con * con * con
+    (** Application to a function type [□ → B]  *)
+
     | SubIn of con
 
     | ElIn of con
@@ -108,12 +130,15 @@ struct
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
     | Signature of sign
+    | Desc
+    | Ctx
+    | Tm of con * con
     | Nat
     | Circle
     | TpLockedPrf of cof
 
   and sign =
-    | Field of Ident.user * tp * S.sign clo
+    | Field of Ident.t * tp * S.sign clo
     | Empty
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
@@ -135,7 +160,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
-    | KProj of Ident.user
+    | KProj of Ident.t
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

@@ -142,6 +142,13 @@ let expected_connective conn tp =
   let* ttp = quote_tp tp in
   refine_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
 
+let not_found_in_ctx ctx ident =
+  with_pp @@ fun ppenv ->
+  let* qctx = quote_con D.Ctx ctx in
+  refine_err @@ Err.NotFoundInCtx (ppenv, qctx, ident)
+
+
+
 let expected_field sign con lbl =
   with_pp @@ fun ppenv ->
   let* tsign = quote_sign sign in

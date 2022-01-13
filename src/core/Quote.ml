@@ -108,6 +108,60 @@ let rec quote_con (tp : D.tp) con =
     let+ tfields = quote_fields sign con in
     S.Struct tfields
 
+  | _, D.DescEnd ->
+    ret S.DescEnd
+
+  | _, D.DescArg (arg, desc) ->
+    let* famtp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con arg @@ fun arg ->
+      Splice.term @@ TB.pi (TB.el arg) (fun _ -> TB.desc)
+    in
+    let+ arg = quote_con D.Univ arg
+    and+ desc = quote_con famtp desc in
+    S.DescArg (arg, desc)
+
+  | _, D.DescRec desc ->
+    let+ desc = quote_con D.Desc desc in
+    S.DescRec desc
+
+  | _, D.CtxNil ->
+    ret S.CtxNil
+
+  | _, D.CtxSnoc (ctx, ident, desc) ->
+    let+ ctx = quote_con D.Ctx ctx
+    and+ desc = quote_con D.Desc desc in
+    S.CtxSnoc (ctx, ident, desc)
+
+  | _, D.TmVar x ->
+    ret @@ S.TmVar x
+
+  | D.Tm (ctx, _), D.TmAppArg (base, fam, fn, arg) ->
+    let* basetp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con base @@ fun base ->
+      Splice.term @@ TB.el base
+    in
+    let* famtp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con base @@ fun base ->
+      Splice.term @@ TB.pi (TB.el base) (fun _ -> TB.desc)
+    in
+    let+ base = quote_con D.Univ base
+    and+ fam = quote_con famtp fam
+    and+ fn = quote_con (D.Tm (ctx, D.DescArg (base, fam))) fn
+    and+ arg = quote_con basetp arg in
+    S.TmAppArg (base, fam, fn, arg)
+
+  | D.Tm (ctx, _), D.TmAppRec (desc, fn, arg) ->
+    let+ desc = quote_con D.Desc desc
+    and+ fn = quote_con (D.Tm (ctx, D.DescRec desc)) fn
+    and+ arg = quote_con (D.Tm (ctx, D.DescEnd)) arg in
+    S.TmAppRec (desc, fn, arg)
+
   | D.Sub (tp, _phi, _clo), _ ->
     let+ tout =
       let* out = lift_cmp @@ do_sub_out con in
@@ -280,7 +334,7 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_fields (sign : D.sign) con : (Ident.user * S.t) list m =
+and quote_fields (sign : D.sign) con : (Ident.t * S.t) list m =
   match sign with
   | D.Field (lbl, tp, sign_clo) ->
     let* fcon = lift_cmp @@ do_proj con lbl in
@@ -433,6 +487,14 @@ and quote_tp (tp : D.tp) =
   | D.Signature sign ->
     let+ sign = quote_sign sign in
     S.Signature sign
+  | D.Desc ->
+    ret S.Desc
+  | D.Ctx ->
+    ret S.Ctx
+  | D.Tm (ctx, desc) ->
+    let+ ctx = quote_con D.Ctx ctx
+    and+ desc = quote_con D.Desc desc in
+    S .Tm (ctx, desc)
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->

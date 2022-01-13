@@ -43,7 +43,7 @@ struct
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
 
-    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
+    | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp lbl
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -72,7 +72,7 @@ struct
     | CodeSg _ -> Format.fprintf fmt "<sg>"
     | CodeSignature fields ->
       Format.fprintf fmt "sig[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp))
+        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump tp))
         fields
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
@@ -85,10 +85,10 @@ struct
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
   and dump_struct fmt fields =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp)) fields
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump tp)) fields
 
   and dump_sign fmt sign =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump_tp tp)) sign
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump_tp tp)) sign
 
   and dump_tp fmt =
     function
@@ -149,6 +149,14 @@ struct
       | Ap _ -> juxtaposition
       | Pair _ -> tuple
       | Struct _ -> juxtaposition
+      | DescEnd -> atom
+      | DescArg _ -> juxtaposition
+      | DescRec _ -> juxtaposition
+      | CtxNil -> atom
+      | CtxSnoc _ -> juxtaposition
+      | TmVar _ -> juxtaposition
+      | TmAppArg _ -> juxtaposition
+      | TmAppRec _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
       | Cof (Cof.Eq _) -> cof_eq
@@ -190,7 +198,8 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | TpDim | TpCof | Nat | Circle -> atom
+      | Univ | TpDim | TpCof | Nat | Circle | Desc | Ctx -> atom
+      | Tm _ -> juxtaposition
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -235,7 +244,7 @@ struct
     | [] -> ()
     | ((lbl, tp) :: fields) ->
       Format.fprintf fmt "(%a : %a)@ @,%a"
-        Ident.pp_user lbl
+        Ident.pp lbl
         (pp_field env P.(right_of colon)) tp
         (pp_fields pp_field env) fields
 
@@ -253,7 +262,23 @@ struct
     | Struct fields ->
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->
-      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
+      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp lbl
+    | DescEnd ->
+      Format.fprintf fmt "end"
+    | DescArg (arg, desc) ->
+      Format.fprintf fmt "%a -> %a" (pp env penv) arg (pp env penv) desc
+    | DescRec desc ->
+      Format.fprintf fmt "□ -> %a" (pp env penv) desc
+    | CtxNil ->
+      Format.fprintf fmt "∙"
+    | CtxSnoc (rest, ident, desc) ->
+      Format.fprintf fmt "%a ▷ (%a : %a)" (pp env penv) rest Ident.pp ident (pp env penv) desc
+    | TmVar v ->
+      Format.fprintf fmt "%a" Ident.pp v
+    | TmAppArg (_, _, f, a) ->
+      Format.fprintf fmt "%a %a" (pp env penv) f (pp env penv) a
+    | TmAppRec (_, f, a) ->
+      Format.fprintf fmt "%a %a" (pp env penv) f (pp env penv) a
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches
@@ -515,6 +540,14 @@ struct
         (pp_tp envx P.(right_of times)) fam
     | Signature fields ->
       Format.fprintf fmt "sig %a" (pp_sign env) fields
+    | Desc ->
+      Format.fprintf fmt "desc"
+    | Ctx ->
+      Format.fprintf fmt "ctx"
+    | Tm (ctx, DescEnd) ->
+      Format.fprintf fmt "data %a" (pp env P.(right_of juxtaposition)) ctx
+    | Tm (ctx, desc) ->
+      Format.fprintf fmt "tm %a %a" (pp env P.(right_of juxtaposition)) ctx (pp env P.(right_of juxtaposition)) desc
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

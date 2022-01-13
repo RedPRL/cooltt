@@ -96,6 +96,13 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
   | D.Signature sign1, D.Signature sign2 -> equate_sign sign1 sign2
+  | D.Desc, D.Desc ->
+    ret ()
+  | D.Ctx, D.Ctx ->
+    ret ()
+  | D.Tm (ctx0, desc0), D.Tm (ctx1, desc1) ->
+    let* () = equate_con D.Ctx ctx0 ctx1 in
+    equate_con D.Desc desc0 desc1
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in
@@ -228,6 +235,47 @@ and equate_con tp con0 con1 =
     equate_con fib snd0 snd1
   | D.Signature sign, _, _ ->
     equate_struct sign con0 con1
+  | _, D.DescEnd, D.DescEnd ->
+    ret ()
+  | _, D.DescArg (a0, desc0), D.DescArg (a1, desc1) ->
+    let* () = equate_con D.Univ a0 a1 in
+    let* famtp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con a0 @@ fun arg ->
+      Splice.term @@ TB.pi (TB.el arg) (fun _ -> TB.desc)
+    in
+    equate_con famtp desc0 desc1
+  | _, D.DescRec desc0, DescRec desc1 ->
+    equate_con D.Desc desc0 desc1
+  | _, D.CtxNil, D.CtxNil ->
+    ret ()
+  | _, D.CtxSnoc (ctx0, ident0, desc0), D.CtxSnoc (ctx1, ident1, desc1) when Ident.equal ident0 ident1 ->
+    let* () = equate_con D.Ctx ctx0 ctx1 in
+    equate_con D.Desc desc0 desc1
+  | _, D.TmVar x, D.TmVar y when Ident.equal x y ->
+    ret ()
+  | D.Tm (ctx, _), D.TmAppArg (base0, fam0, fn0, arg0), D.TmAppArg (base1, fam1, fn1, arg1) ->
+    let* () = equate_con D.Univ base0 base1 in
+    let* basetp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con base0 @@ fun base0 ->
+      Splice.term @@ TB.el base0
+    in
+    let* famtp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con base0 @@ fun base0 ->
+      Splice.term @@ TB.pi (TB.el base0) (fun _ -> TB.desc)
+    in
+    let* () = equate_con famtp fam0 fam1 in
+    let* () = equate_con (D.Tm (ctx, D.DescArg (base0, fam0))) fn0 fn1 in
+    equate_con basetp arg0 arg1
+  | D.Tm (ctx, _) ,D.TmAppRec (desc0, fn0, arg0), D.TmAppRec (desc1, fn1, arg1) ->
+    let* () = equate_con D.Desc desc0 desc1 in
+    let* () = equate_con (D.Tm (ctx, D.DescRec desc0)) fn0 fn1 in
+    equate_con (D.Tm (ctx, D.DescEnd)) arg0 arg1
   | D.Sub (tp, _phi, _), _, _ ->
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in

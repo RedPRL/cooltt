@@ -10,7 +10,7 @@ open Tactic
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
 type 'a telescope =
-  | Bind of Ident.user * 'a * (var -> 'a telescope)
+  | Bind of Ident.t * 'a * (var -> 'a telescope)
   | Done
 
 module Hole : sig
@@ -54,6 +54,25 @@ module LockedPrf : sig
   val unlock : Syn.tac -> Chk.tac -> Chk.tac
 end
 
+module Desc : sig
+  val formation : Tp.tac
+  val end_ : Chk.tac
+  val arg : Chk.tac -> Chk.tac -> Chk.tac
+  val rec_ : Chk.tac -> Chk.tac
+end
+
+module Ctx : sig
+  val formation : Tp.tac
+  val nil : Chk.tac
+  val snoc : Chk.tac -> Ident.t -> Chk.tac -> Chk.tac
+end
+
+module Tm : sig
+  val formation : Chk.tac -> Chk.tac -> Tp.tac
+  val var : Ident.t -> Chk.tac
+  val app : Syn.tac -> Chk.tac -> Syn.tac
+end
+
 module Univ : sig
   val formation : Tp.tac
   val univ : Chk.tac
@@ -61,8 +80,8 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : (Ident.user * Chk.tac) list -> Chk.tac
-  val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
+  val signature : (Ident.t * Chk.tac) list -> Chk.tac
+  val patch : Chk.tac -> (Ident.t -> Chk.tac option) -> Chk.tac
   val total : Syn.tac -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
@@ -103,10 +122,10 @@ end
 
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
-  val intro : (Ident.user -> Chk.tac option) -> Chk.tac
-  val proj : Syn.tac -> Ident.user -> Syn.tac
+  val intro : (Ident.t -> Chk.tac option) -> Chk.tac
+  val proj : Syn.tac -> Ident.t -> Syn.tac
 
-  val find_field_tac : (Ident.user * Chk.tac) list -> Ident.user -> Chk.tac option
+  val find_field_tac : (Ident.t * Chk.tac) list -> Ident.t -> Chk.tac option
 end
 
 module Sub : sig

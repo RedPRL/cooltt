@@ -24,8 +24,19 @@ struct
     | Fst of t
     | Snd of t
 
-    | Struct of (Ident.user * t) list
-    | Proj of t * Ident.user
+    | Struct of (Ident.t * t) list
+    | Proj of t * Ident.t
+
+    | DescEnd
+    | DescArg of t * t
+    | DescRec of t
+
+    | CtxNil
+    | CtxSnoc of t * Ident.t * t
+
+    | TmVar of Ident.t
+    | TmAppArg of t * t * t * t
+    | TmAppRec of t * t * t
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -53,7 +64,7 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
-    | CodeSignature of (Ident.user * t) list
+    | CodeSignature of (Ident.t * t) list
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t
@@ -77,12 +88,15 @@ struct
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
     | Signature of sign
+    | Desc
+    | Ctx
+    | Tm of t * t
     | Nat
     | Circle
     | TpESub of sub * tp
     | TpLockedPrf of t
 
-  and sign = (Ident.user * tp) list
+  and sign = (Ident.t * tp) list
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

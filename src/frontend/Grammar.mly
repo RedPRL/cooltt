@@ -43,6 +43,7 @@
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT PROJ AS
+%token DATA
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM FAIL
@@ -319,6 +320,8 @@ plain_term_except_cof_case:
     { Signature tele }
   | STRUCT; tele = list(field);
     { Struct tele }
+  | DATA; AS; self = plain_name; LSQ; ctors = separated_list(PIPE, ctor); RSQ;
+    { Data (self, ctors) }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
@@ -382,7 +385,6 @@ pat_lbl:
   | lbl = path
     { lbl }
 
-
 pat:
   | lbl = pat_lbl args = list(pat_arg)
    { Pat {lbl; args} }
@@ -396,6 +398,10 @@ pat_arg:
 field:
   | LPR lbl = user; COLON tp = term; RPR
     { Field {lbl; tp} }
+
+ctor:
+  | lbl = plain_name; args = list(tele_cell)
+    { (lbl, args) }
 
 patch:
   | lbl = user; DOT_EQUALS; tp = term

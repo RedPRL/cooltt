@@ -102,7 +102,7 @@ struct
     | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
-    | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
+    | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -156,7 +156,23 @@ struct
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
+        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl pp_con tp)) fields
+    | DescEnd ->
+      Format.fprintf fmt "desc-end"
+    | DescArg (arg, desc) ->
+      Format.fprintf fmt "desc-arg[%a, %a]" pp_con arg pp_con desc
+    | DescRec desc ->
+      Format.fprintf fmt "desc-rec[%a]" pp_con desc
+    | CtxNil ->
+      Format.fprintf fmt "ctx-nil"
+    | CtxSnoc(ctx, ident, desc) ->
+      Format.fprintf fmt "ctx-snoc[%a, %a, %a]" pp_con ctx Ident.pp ident pp_con desc
+    | TmVar v ->
+      Format.fprintf fmt "tm-var[%a]" Ident.pp v
+    | TmAppArg (base, fam, f, a) ->
+      Format.fprintf fmt "tm-app-arg[%a, %a, %a, %a]" pp_con base pp_con fam pp_con f pp_con a
+    | TmAppRec (desc, f, a) ->
+      Format.fprintf fmt "tm-app-rec[%a, %a, %a]" pp_con desc pp_con f pp_con a
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Cof.Join phis) ->
@@ -203,7 +219,7 @@ struct
 
   and pp_sign fmt =
     function
-    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp_user ident pp_tp tp pp_sign_clo clo
+    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp ident pp_tp tp pp_sign_clo clo
     | Empty -> Format.fprintf fmt "sig/empty"
 
   and pp_tp fmt =
@@ -222,6 +238,12 @@ struct
       Format.fprintf fmt "<cof>"
     | TpDim ->
       Format.fprintf fmt "<dim>"
+    | Desc ->
+      Format.fprintf fmt "<desc>"
+    | Ctx ->
+      Format.fprintf fmt "<ctx>"
+    | Tm (ctx, desc) ->
+      Format.fprintf fmt "tm[%a, %a]" pp_con ctx pp_con desc
     | Univ ->
       Format.fprintf fmt "<univ>"
     | Nat ->

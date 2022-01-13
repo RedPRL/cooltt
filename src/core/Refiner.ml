@@ -26,7 +26,7 @@ exception CJHM
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 type 'a telescope =
-  | Bind of Ident.user * 'a * (T.var -> 'a telescope)
+  | Bind of Ident.t * 'a * (T.var -> 'a telescope)
   | Done
 
 module GlobalUtil : sig
@@ -534,7 +534,7 @@ struct
       | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
-  let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
+  let rec find_field_tac (fields : (Ident.t * T.Chk.tac) list) (lbl : Ident.t) : T.Chk.tac option =
     match fields with
     | (lbl', tac) :: _ when Ident.equal lbl lbl'  ->
       Some tac
@@ -544,12 +544,12 @@ struct
       None
 
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.t -> T.Chk.tac option) : (Ident.t * S.t) list m =
     match sign with
     | D.Field (lbl, tp, sign_clo) ->
       let tac = match tacs lbl with
         | Some tac -> tac
-        | None -> Hole.unleash_hole (Ident.user_to_string_opt lbl)
+        | None -> Hole.unleash_hole (Ident.to_string_opt lbl)
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
@@ -559,7 +559,7 @@ struct
     | D.Empty ->
       RM.ret []
 
-  let intro (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+  let intro (tacs : Ident.t -> T.Chk.tac option) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->
@@ -567,7 +567,7 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
+  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.t) : D.tp m =
     let rec go =
       function
       | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret tp
@@ -586,6 +586,140 @@ struct
       let+ tp = proj_tp sign tstruct lbl in
       S.Proj (tstruct, lbl), tp
     | _ -> RM.expected_connective `Signature tp
+end
+
+module Desc =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.rule ~name:"Desc.formation" @@
+    RM.ret S.Desc
+
+  let desc_tac ~(name:string) (k : D.tp -> S.t RM.m) : T.Chk.tac =
+    T.Chk.rule ~name @@
+    function
+    | D.Desc -> k D.Desc
+    | tp -> RM.expected_connective `Desc tp
+
+  let end_ : T.Chk.tac =
+    desc_tac ~name:"Desc.end" @@ fun _ ->
+    RM.ret S.DescEnd
+
+  let arg (arg_tac : T.Chk.tac) (fam_tac : T.Chk.tac) : T.Chk.tac =
+    desc_tac ~name:"Desc.arg" @@ fun desc ->
+    let* arg = T.Chk.run arg_tac D.Univ in
+    let* varg = RM.lift_ev @@ Sem.eval arg in
+    let* famtp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con varg @@ fun arg ->
+      Splice.tp desc @@ fun desc ->
+      Splice.term @@ TB.pi (TB.el arg) (fun _ -> desc)
+    in
+    let+ fam = T.Chk.run fam_tac famtp in
+    S.DescArg (arg, fam)
+
+  let rec_ (rest_tac : T.Chk.tac) : T.Chk.tac =
+    desc_tac ~name:"Desc.rec" @@ fun desc ->
+    let+ rest = T.Chk.run rest_tac desc in
+    S.DescRec rest
+end
+
+module Ctx =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.rule ~name:"Ctx.formation" @@
+    RM.ret S.Ctx
+
+  let ctx_tac ~(name : string) (k : D.tp -> S.t RM.m) : T.Chk.tac =
+    T.Chk.rule ~name @@
+    function
+    | D.Ctx -> k D.Ctx
+    | tp -> RM.expected_connective `Ctx tp
+
+  let nil : T.Chk.tac =
+    ctx_tac ~name:"Ctx.nil" @@ fun _ ->
+    RM.ret S.CtxNil
+
+  let snoc (rest_tac : T.Chk.tac) (ident : Ident.t) (desc_tac : T.Chk.tac) : T.Chk.tac =
+    ctx_tac ~name:"Ctx.nil" @@ fun ctx ->
+    let* rest = T.Chk.run rest_tac ctx in
+    let+ desc = T.Chk.run desc_tac D.Desc in
+    S.CtxSnoc (rest, ident, desc)
+end
+
+module Tm =
+struct
+  let formation (ctx_tac : T.Chk.tac) (desc_tac : T.Chk.tac) : T.Tp.tac =
+    T.Tp.rule ~name:"Tm.formation" @@ 
+    let+ ctx = T.Chk.run ctx_tac D.Ctx
+    and+ desc = T.Chk.run desc_tac D.Desc in
+    S.Tm (ctx, desc)
+
+  (* [TODO: Reed M, 13/01/2022] This is probably the wrong way to do this
+     We should internalize this to require a proof that A ∈ Γ... *)
+  let var (ident : Ident.t) : T.Chk.tac =
+    T.Chk.rule ~name:"Tm.var" @@
+    function
+    | D.Tm (ctx, desc0) ->
+      begin
+        match Sem.ctx_lookup ctx ident with
+        | Some desc1 ->
+          let+ _ = RM.equate D.Desc desc0 desc1 in
+          S.TmVar ident
+        | None -> RM.not_found_in_ctx ctx ident
+      end
+    | tp -> RM.expected_connective `Tm tp
+
+  (* Do I just make this whole thing chk? *)
+  let app (f_tac : T.Syn.tac) (arg_tac : T.Chk.tac) : T.Syn.tac =
+    T.Syn.rule ~name:"Tm.app_arg" @@
+    let* (ftm, ftp) = T.Syn.run f_tac in
+    match ftp with
+    | D.Tm (ctx, D.DescArg (base, fam)) ->
+      let* qbase = RM.quote_con D.Univ base in
+      let* famtp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con base @@ fun base ->
+        Splice.term @@ TB.pi (TB.el base) (fun _ -> TB.desc)
+      in
+      let* qfam = RM.quote_con famtp fam in
+      let* argtp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con base @@ fun base ->
+        Splice.term @@ TB.el base
+      in
+      let* arg = T.Chk.run arg_tac argtp in
+      let* varg = RM.lift_ev @@ Sem.eval arg in
+      let+ apptp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con ctx @@ fun ctx ->
+        Splice.con fam @@ fun fam ->
+        Splice.con varg @@ fun arg ->
+        Splice.term @@ TB.tm ctx (TB.ap fam [arg])
+      in
+      S.TmAppArg (qbase, qfam, ftm, arg), apptp
+    | D.Tm (ctx, D.DescRec desc) ->
+      let* qdesc = RM.quote_con D.Desc desc in
+      let* argtp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con ctx @@ fun ctx ->
+        Splice.term @@ TB.tm ctx TB.desc_end
+      in
+      let* arg = T.Chk.run arg_tac argtp in
+      let+ apptp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con ctx @@ fun ctx ->
+        Splice.con desc @@ fun desc ->
+        Splice.term @@ TB.tm ctx desc
+      in
+      S.TmAppRec (qdesc, ftm, arg), apptp
+    (* [TODO: Reed M, 13/01/2022] Print a better error when we don't have a DescArg/DescApp index. *)
+    | tp -> RM.expected_connective `Tm tp
 end
 
 module Univ =
@@ -627,7 +761,7 @@ struct
     let+ fam = T.Chk.run tac_fam famtp in
     base, fam
 
-  let quantifiers (mk_fields : ('a Ident.some * (D.tp -> S.t m)) list) (univ : D.tp) : ('a Ident.some * S.t) list m =
+  let quantifiers (mk_fields : (Ident.t * (D.tp -> S.t m)) list) (univ : D.tp) : (Ident.t * S.t) list m =
     let (idents, ks) = List.split mk_fields in
     let rec mk_fams fams vfams =
       function
@@ -646,7 +780,7 @@ struct
     let+ fams = mk_fams [] [] ks in
     List.combine idents fams
 
-  let quote_sign_codes (vsign : (Ident.user * D.con) list) (univ : D.tp) : (Ident.user * S.t) list m =
+  let quote_sign_codes (vsign : (Ident.t * D.con) list) (univ : D.tp) : (Ident.t * S.t) list m =
     quantifiers (List.map (fun (lbl, vcode) -> (lbl, fun tp -> RM.quote_con tp vcode)) vsign) univ
 
   let pi tac_base tac_fam : T.Chk.tac =
@@ -677,7 +811,7 @@ struct
              (y : x => (arg : x) -> type)
              (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
   *)
-  let signature (tacs : (Ident.user * T.Chk.tac) list) : T.Chk.tac =
+  let signature (tacs : (Ident.t * T.Chk.tac) list) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
     let+ fields = quantifiers (List.map (fun (lbl, tac) -> (lbl, T.Chk.run tac)) tacs) univ in
     S.CodeSignature fields
@@ -698,8 +832,8 @@ struct
      when we construct the final codes. Most notably, we need to make sure to properly
      eliminate the 'ext' types introduced by previous patches.
   *)
-  let patch_fields (sign : (Ident.user * D.con) list) (tacs : Ident.user -> T.Chk.tac option) (univ : D.tp) : S.t m =
-    let rec go (field_names : Ident.user list) (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
+  let patch_fields (sign : (Ident.t * D.con) list) (tacs : Ident.t -> T.Chk.tac option) (univ : D.tp) : S.t m =
+    let rec go (field_names : Ident.t list) (codes : D.con list) (elim_conns : (S.t TB.m -> S.t TB.m) list) sign =
       match sign with
       | (field_name, vfield_tp) :: sign ->
         let* (code, elim_conn) =
@@ -736,7 +870,7 @@ struct
         RM.ret @@ S.CodeSignature qsign
     in go [] [] [] sign
 
-  let patch (sig_tac : T.Chk.tac) (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+  let patch (sig_tac : T.Chk.tac) (tacs : Ident.t -> T.Chk.tac option) : T.Chk.tac =
     univ_tac "Univ.patch" @@ fun univ ->
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in

@@ -34,9 +34,9 @@ let rec unfold idents k =
 
 (* Account for the lambda-bound signature field dependencies.
     See [NOTE: Sig Code Quantifiers] for more info. *)
-let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
+let bind_sig_tacs (tacs : (Ident.t * T.Chk.tac) list) : (Ident.t * T.Chk.tac) list =
   let bind_tac lbls (lbl, tac) =
-    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls tac in
+    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:lbl (fun _ -> tac)) lbls tac in
     Snoc (lbls, lbl) , (lbl, tac)
   in
   snd @@ ListUtil.map_accum_left bind_tac Emp tacs
@@ -48,7 +48,8 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : (Ident.user * tac) list -> tac
+  val signature : (Ident.t * tac) list -> tac
+  val data : T.Chk.tac -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -109,7 +110,7 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : (Ident.user * tac) list) : tac =
+  let signature (tacs : (Ident.t * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
       let tac = R.Univ.signature (bind_sig_tacs tacs) in
@@ -118,6 +119,9 @@ struct
       let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
       let tac = R.Signature.formation tele in
       Tp tac
+
+  let data (ctx_tac : T.Chk.tac) : tac =
+    Tp (R.Tm.formation ctx_tac R.Desc.end_)
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -154,6 +158,8 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Signature cells ->
     let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
     CoolTp.signature tacs
+  | CS.Data (self, ctors) ->
+    CoolTp.data (chk_ctx self ctors)
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
@@ -302,6 +308,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
       R.Univ.signature tacs
 
+
     | CS.Patch (tp, patches) ->
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
       R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
@@ -352,6 +359,8 @@ and chk_tm : CS.con -> T.Chk.tac =
       | D.Signature _ ->
         let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
         RM.ret @@ R.Signature.intro field_tac
+      | D.Tm (ctx, _) ->
+        RM.ret @@ chk_data ctx con
       | _ ->
         RM.ret @@ T.Chk.syn @@ syn_tm con
 
@@ -433,6 +442,47 @@ and chk_cases cases =
 
 and chk_case (pat, c) =
   pat, chk_tm c
+
+and chk_desc (self : Ident.t) (cells : CS.cell list) =
+  match cells with
+  | [] -> R.Desc.end_
+  | (CS.Cell cell :: cells) ->
+    match cell.tp.node with
+    | CS.Var id when Ident.equal self id -> R.Desc.rec_ (chk_desc self cells)
+    (* [TODO: Reed M, 13/01/2022]  This is a hack, handle multiple names properly *)
+    | _ -> R.Desc.arg (chk_tm cell.tp) (R.Pi.intro ~ident:(List.hd cell.names) (fun _ -> chk_desc self cells))
+
+and chk_ctx (self : Ident.t) (cells : (Ident.t * CS.cell list) list) =
+  List.fold_left (fun tac (ident, args) -> R.Ctx.snoc tac ident (chk_desc self args)) R.Ctx.nil cells
+
+and chk_data (ctx : D.con) (con : CS.con) =
+  match con.node with
+  | CS.Var x ->
+    begin
+      match Sem.ctx_lookup ctx x with
+      | Some _ -> R.Tm.var x
+      | None -> T.Chk.syn @@ R.Structural.lookup_var x
+    end
+  | CS.Ap (c, cs) -> T.Chk.syn @@ List.fold_left (fun tac con -> R.Tm.app tac (chk_data ctx con)) (syn_data ctx c) cs
+  | _ -> chk_tm con
+
+and syn_data (ctx : D.con) (con : CS.con) =
+  match con.node with
+  | CS.Var x ->
+    begin
+      match Sem.ctx_lookup ctx x with
+      | Some desc ->
+        let tp = T.Tp.rule @@
+          let+ qctx = RM.quote_con D.Ctx ctx
+          and+ qdesc = RM.quote_con D.Desc desc in
+          S.Tm (qctx, qdesc)
+        in
+        T.Syn.ann (R.Tm.var x) tp
+      | None -> R.Structural.lookup_var x
+    end
+  | CS.Ap (c, cs) -> List.fold_left (fun tac con -> R.Tm.app tac (chk_data ctx con)) (syn_data ctx c) cs
+  | _ -> syn_tm con
+
 
 let rec modifier_ (con : CS.con) =
   let open Yuujinchou.Pattern in

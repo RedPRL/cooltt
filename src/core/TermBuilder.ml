@@ -161,6 +161,17 @@ let proj m lbl =
   let+ x = m in
   S.Proj (x, lbl)
 
+let desc =
+  ret S.Desc
+
+let desc_end =
+  ret S.DescEnd
+
+let tm mctx mdesc =
+  let+ ctx = mctx
+  and+ desc = mdesc in
+  S.Tm (ctx, desc)
+
 let tm_abort =
   ret @@ S.tm_abort
 
@@ -242,7 +253,7 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)
 
-let signature (mfields : (Ident.user * (S.t m list -> S.tp m)) list) : _ m =
+let signature (mfields : (Ident.t * (S.t m list -> S.tp m)) list) : _ m =
   let rec scope_fields bound =
     function
     | [] -> ret []

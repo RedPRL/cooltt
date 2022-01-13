@@ -42,5 +42,6 @@ val equate : D.tp -> D.con -> D.con -> unit m
 val with_pp : (Pp.env -> 'a m) -> 'a m
 
 val expected_connective : RefineError.connective -> D.tp -> 'a m
-val expected_field : D.sign -> S.t -> Ident.user -> 'a m
-val field_names_mismatch : expected:Ident.user list -> actual:Ident.user list -> 'a m
+val not_found_in_ctx : D.con -> Ident.t -> 'a m
+val expected_field : D.sign -> S.t -> Ident.t -> 'a m
+val field_names_mismatch : expected:Ident.t list -> actual:Ident.t list -> 'a m

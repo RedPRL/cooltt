@@ -37,6 +37,7 @@ let keywords =
     ("circle", CIRCLE);
     ("sig", SIG);
     ("struct", STRUCT);
+    ("data", DATA);
     ("as", AS);
     ("🍪", CIRCLE);
     ("let", LET);

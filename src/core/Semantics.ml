@@ -176,7 +176,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) | D.DescEnd | D.CtxNil as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -205,6 +205,30 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   | D.Struct fields ->
     let+ fields = MU.map (MU.second (subst_con r x)) fields in
     D.Struct fields
+  | D.DescArg (arg, desc) ->
+    let+ arg = subst_con r x arg
+    and+ desc = subst_con r x desc in
+    D.DescArg (arg, desc)
+  | D.DescRec desc ->
+    let+ desc = subst_con r x desc in
+    D.DescRec desc
+  | CtxSnoc (ctx, ident, desc) ->
+    let+ ctx = subst_con r x ctx
+    and+ desc = subst_con r x desc in
+    D.CtxSnoc (ctx, ident, desc)
+  | D.TmVar x ->
+    ret @@ D.TmVar x
+  | D.TmAppArg (base, fam, fn, arg) ->
+    let+ base = push_subst_con r x base
+    and+ fam = push_subst_con r x fam
+    and+ fn = push_subst_con r x fn
+    and+ arg = push_subst_con r x arg in
+    D.TmAppArg (base, fam, fn, arg)
+  | D.TmAppRec (desc, fn, arg) ->
+    let+ desc = push_subst_con r x desc
+    and+ fn = push_subst_con r x fn
+    and+ arg = push_subst_con r x arg in
+    D.TmAppRec (desc, fn, arg)
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
     D.StableCode code
@@ -345,7 +369,11 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Desc | D.Ctx | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Tm (ctx, desc) ->
+    let+ ctx = subst_con r x ctx
+    and+ desc = subst_con r x desc in
+    D.Tm (ctx, desc)
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -507,6 +535,14 @@ and eval_tp : S.tp -> D.tp EvM.m =
   | S.Signature sign ->
     let+ vsign = eval_sign sign in
     D.Signature vsign
+  | S.Desc ->
+    ret D.Desc
+  | S.Ctx ->
+    ret D.Ctx
+  | S.Tm (ctx, desc) ->
+    let+ ctx = eval ctx
+    and+ desc = eval desc in
+    D.Tm (ctx, desc)
   | S.Univ ->
     ret D.Univ
   | S.El tm ->
@@ -605,6 +641,34 @@ and eval : S.t -> D.con EvM.m =
     | S.Proj (t, lbl) ->
       let* con = eval t in
       lift_cmp @@ do_proj con lbl
+    | S.DescEnd ->
+      ret D.DescEnd
+    | S.DescArg (arg, desc) ->
+      let+ arg = eval arg
+      and+ desc = eval desc in
+      D.DescArg (arg, desc)
+    | S.DescRec desc ->
+      let+ desc = eval desc in
+      D.DescRec desc
+    | S.CtxNil ->
+      ret D.CtxNil
+    | S.CtxSnoc (rest, ident, desc) ->
+      let+ rest = eval rest
+      and+ desc = eval desc in
+      D.CtxSnoc (rest, ident, desc)
+    | S.TmVar v ->
+      ret @@ D.TmVar v
+    | S.TmAppArg (base, fam, fn, arg) ->
+      let+ base = eval base
+      and+ fam = eval fam
+      and+ fn = eval fn
+      and+ arg = eval arg
+      in D.TmAppArg (base, fam, fn, arg)
+    | S.TmAppRec (desc, fn, arg) ->
+      let+ desc = eval desc
+      and+ fn = eval fn
+      and+ arg = eval arg
+      in D.TmAppRec (desc, fn, arg)
     | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
@@ -811,7 +875,9 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _
+  | D.DescEnd | D.DescArg _ | D.DescRec _ | D.CtxNil | D.CtxSnoc _ | D.TmVar _ | D.TmAppArg _ | D.TmAppRec _
+  | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
@@ -1189,7 +1255,7 @@ and do_snd con : D.con CM.m =
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
 
-and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.user) =
+and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.t) =
   let open CM in
   match sign with
   | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
@@ -1201,7 +1267,7 @@ and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.user) =
   | D.Empty ->
     throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
 
-and do_proj (con : D.con) (lbl : Ident.user) : D.con CM.m =
+and do_proj (con : D.con) (lbl : Ident.t) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl) in
@@ -1792,7 +1858,6 @@ and do_spine con =
     let* con' = do_frm con k in
     do_spine con' sp
 
-
 and splice_tm t =
   let env, tm = Splice.compile t in
   CM.lift_ev env @@ eval tm
@@ -1800,3 +1865,9 @@ and splice_tm t =
 and splice_tp t =
   let env, tp = Splice.compile t in
   CM.lift_ev env @@ eval_tp tp
+
+let rec ctx_lookup con ident =
+  match con with
+  | D.CtxSnoc (_, ident', desc) when Ident.equal ident ident' -> Some desc
+  | D.CtxSnoc (rest, _, _) -> ctx_lookup rest ident
+  | _ -> None

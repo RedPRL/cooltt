@@ -42,25 +42,16 @@ let json_to_bwd json_to_el : J.value -> 'a bwd =
 let labeled lbl v = `A (`String lbl :: v)
 
 (* Identitifers *)
-let json_of_user =
-  function
-  | `User path -> `A (List.map J.string path)
-
-let json_to_user : J.value -> [> `User of string list] =
-  function
-  | `A path -> `User (List.map J.get_string path)
-  | j -> J.parse_error j "json_to_path"
-
 let json_of_ident : Ident.t -> J.value =
   function
   | `Anon -> `String "anon"
-  | `User _ as u -> `O [("user", json_of_user u)]
+  | `User path -> `O [("user", `A (List.map J.string path))]
   | `Machine str -> `O [("machine", `String str)]
 
 let json_to_ident : J.value -> Ident.t =
   function
   | `String "anon" -> `Anon
-  | `O [("user", parts)] -> json_to_user parts
+  | `O [("user", `A path)] -> `User (List.map J.get_string path)
   | `O [("machine", `String str)] -> `Machine str
   | j -> J.parse_error j "json_to_ident"
 
@@ -106,53 +97,54 @@ end
 module Syntax =
 struct
 
-  let rec json_of_tm =
-    function
-    | S.Var n -> labeled "var" [json_of_int n]
-    | S.Global sym -> labeled "global" [Global.serialize sym]
-    | S.Let (tm, nm, body) -> labeled "let" [json_of_tm tm; json_of_ident nm; json_of_tm body]
-    | S.Ann (tm, tp) -> labeled "ann" [json_of_tm tm; json_of_tp tp]
-    | S.Zero -> `String "zero"
-    | S.Suc tm -> labeled "suc" [json_of_tm tm]
-    | S.NatElim (mot, zero, suc, scrut) -> labeled "nat_elim" [json_of_tm mot; json_of_tm zero; json_of_tm suc; json_of_tm scrut]
-    | S.Base -> `String "base"
-    | S.Loop tm -> labeled "loop" [json_of_tm tm]
-    | S.CircleElim (mot, base, loop, scrut) -> labeled  "circle_elim" [json_of_tm mot; json_of_tm base; json_of_tm loop; json_of_tm scrut]
-    | S.Lam (nm, body) -> labeled "lam" [json_of_ident nm; json_of_tm body]
-    | S.Ap (tm0, tm1) -> labeled "ap" [json_of_tm tm0; json_of_tm tm1]
-    | S.Pair (tm0, tm1) -> labeled "pair" [json_of_tm tm0; json_of_tm tm1]
-    | S.Fst tm -> labeled "fst" [json_of_tm tm]
-    | S.Snd tm -> labeled "snd" [json_of_tm tm]
-    | S.Struct strct -> labeled "struct" [json_of_labeled json_of_tm strct]
-    | S.Proj (tm, path) -> labeled "proj" [json_of_tm tm; json_of_user path]
-    | S.Coe (fam, src, trg, tm) -> labeled "coe" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm tm]
-    | S.HCom (code, src, trg, cof, tm) -> labeled "hcom" [json_of_tm code; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm]
-    | S.Com (fam, src, trg, cof, tm) -> labeled "com" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm]
-    | S.SubIn tm -> labeled "sub_in" [json_of_tm tm]
-    | S.SubOut tm -> labeled "sub_out" [json_of_tm tm]
-    | S.Dim0 -> `String "dim0"
-    | S.Dim1 -> `String "dim1"
-    | S.Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_tm json_of_tm cof]
-    | S.ForallCof cof -> labeled "forall" [json_of_tm cof]
-    | S.CofSplit branches -> labeled "split" @@ List.map (fun (tphi, tm) -> json_of_pair (json_of_tm tphi) (json_of_tm tm)) branches
-    | S.Prf -> `String "prf"
-    | S.ElIn tm -> labeled "el_in" [json_of_tm tm]
-    | S.ElOut tm -> labeled "el_out" [json_of_tm tm]
-    | S.Box (r, s, phi, sides, cap) -> labeled "box" [json_of_tm r; json_of_tm s; json_of_tm phi; json_of_tm sides; json_of_tm cap]
-    | S.Cap (r, s, phi, code, box) -> labeled "cap" [json_of_tm r; json_of_tm s; json_of_tm phi; json_of_tm code; json_of_tm box]
-    | S.VIn (r, pequiv, pivot, base) -> labeled "v_in" [json_of_tm r; json_of_tm pequiv; json_of_tm pivot; json_of_tm base]
-    | S.VProj (r, pcode, code, pequiv, v) -> labeled "v_proj" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv; json_of_tm v]
-    | S.CodeExt (n, fam, `Global phi, tbdry) -> labeled "code_ext" [json_of_int n; json_of_tm fam; json_of_tm phi; json_of_tm tbdry]
-    | S.CodePi (tbase, tfam) -> labeled "code_pi" [json_of_tm tbase; json_of_tm tfam]
-    | S.CodeSg (tbase, tfam) -> labeled "code_sg" [json_of_tm tbase; json_of_tm tfam]
-    | S.CodeSignature sign -> labeled "code_sign" [json_of_labeled json_of_tm sign]
-    | S.CodeNat -> `String "code_nat"
-    | S.CodeUniv -> `String "code_univ"
-    | S.CodeV (r, pcode, code, pequiv) -> labeled "code_v" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv]
-    | S.CodeCircle -> `String "code_circle"
-    | S.ESub (sb, tm) -> labeled "sub" [json_of_sub sb; json_of_tm tm]
-    | S.LockedPrfIn tm -> labeled "prf_in" [json_of_tm tm]
-    | S.LockedPrfUnlock {tp; cof; prf; bdy} -> labeled "prf_unlock" [json_of_tp tp; json_of_tm cof; json_of_tm prf; json_of_tm bdy]
+  let rec json_of_tm = failwith "[FIXME] json_of_tm.json_of_tm.json_of_tm: "
+
+  (* function *)
+  (* | S.Var n -> labeled "var" [json_of_int n] *)
+  (* | S.Global sym -> labeled "global" [Global.serialize sym] *)
+  (* | S.Let (tm, nm, body) -> labeled "let" [json_of_tm tm; json_of_ident nm; json_of_tm body] *)
+  (* | S.Ann (tm, tp) -> labeled "ann" [json_of_tm tm; json_of_tp tp] *)
+  (* | S.Zero -> `String "zero" *)
+  (* | S.Suc tm -> labeled "suc" [json_of_tm tm] *)
+  (* | S.NatElim (mot, zero, suc, scrut) -> labeled "nat_elim" [json_of_tm mot; json_of_tm zero; json_of_tm suc; json_of_tm scrut] *)
+  (* | S.Base -> `String "base" *)
+  (* | S.Loop tm -> labeled "loop" [json_of_tm tm] *)
+  (* | S.CircleElim (mot, base, loop, scrut) -> labeled  "circle_elim" [json_of_tm mot; json_of_tm base; json_of_tm loop; json_of_tm scrut] *)
+  (* | S.Lam (nm, body) -> labeled "lam" [json_of_ident nm; json_of_tm body] *)
+  (* | S.Ap (tm0, tm1) -> labeled "ap" [json_of_tm tm0; json_of_tm tm1] *)
+  (* | S.Pair (tm0, tm1) -> labeled "pair" [json_of_tm tm0; json_of_tm tm1] *)
+  (* | S.Fst tm -> labeled "fst" [json_of_tm tm] *)
+  (* | S.Snd tm -> labeled "snd" [json_of_tm tm] *)
+  (* | S.Struct strct -> labeled "struct" [json_of_labeled json_of_tm strct] *)
+  (* | S.Proj (tm, path) -> labeled "proj" [json_of_tm tm; json_of_ident path] *)
+  (* | S.Coe (fam, src, trg, tm) -> labeled "coe" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm tm] *)
+  (* | S.HCom (code, src, trg, cof, tm) -> labeled "hcom" [json_of_tm code; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm] *)
+  (* | S.Com (fam, src, trg, cof, tm) -> labeled "com" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm] *)
+  (* | S.SubIn tm -> labeled "sub_in" [json_of_tm tm] *)
+  (* | S.SubOut tm -> labeled "sub_out" [json_of_tm tm] *)
+  (* | S.Dim0 -> `String "dim0" *)
+  (* | S.Dim1 -> `String "dim1" *)
+  (* | S.Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_tm json_of_tm cof] *)
+  (* | S.ForallCof cof -> labeled "forall" [json_of_tm cof] *)
+  (* | S.CofSplit branches -> labeled "split" @@ List.map (fun (tphi, tm) -> json_of_pair (json_of_tm tphi) (json_of_tm tm)) branches *)
+  (* | S.Prf -> `String "prf" *)
+  (* | S.ElIn tm -> labeled "el_in" [json_of_tm tm] *)
+  (* | S.ElOut tm -> labeled "el_out" [json_of_tm tm] *)
+  (* | S.Box (r, s, phi, sides, cap) -> labeled "box" [json_of_tm r; json_of_tm s; json_of_tm phi; json_of_tm sides; json_of_tm cap] *)
+  (* | S.Cap (r, s, phi, code, box) -> labeled "cap" [json_of_tm r; json_of_tm s; json_of_tm phi; json_of_tm code; json_of_tm box] *)
+  (* | S.VIn (r, pequiv, pivot, base) -> labeled "v_in" [json_of_tm r; json_of_tm pequiv; json_of_tm pivot; json_of_tm base] *)
+  (* | S.VProj (r, pcode, code, pequiv, v) -> labeled "v_proj" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv; json_of_tm v] *)
+  (* | S.CodeExt (n, fam, `Global phi, tbdry) -> labeled "code_ext" [json_of_int n; json_of_tm fam; json_of_tm phi; json_of_tm tbdry] *)
+  (* | S.CodePi (tbase, tfam) -> labeled "code_pi" [json_of_tm tbase; json_of_tm tfam] *)
+  (* | S.CodeSg (tbase, tfam) -> labeled "code_sg" [json_of_tm tbase; json_of_tm tfam] *)
+  (* | S.CodeSignature sign -> labeled "code_sign" [json_of_labeled json_of_tm sign] *)
+  (* | S.CodeNat -> `String "code_nat" *)
+  (* | S.CodeUniv -> `String "code_univ" *)
+  (* | S.CodeV (r, pcode, code, pequiv) -> labeled "code_v" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv] *)
+  (* | S.CodeCircle -> `String "code_circle" *)
+  (* | S.ESub (sb, tm) -> labeled "sub" [json_of_sub sb; json_of_tm tm] *)
+  (* | S.LockedPrfIn tm -> labeled "prf_in" [json_of_tm tm] *)
+  (* | S.LockedPrfUnlock {tp; cof; prf; bdy} -> labeled "prf_unlock" [json_of_tp tp; json_of_tm cof; json_of_tm prf; json_of_tm bdy] *)
 
   and json_of_sub : S.sub -> J.value =
     function
@@ -180,8 +172,9 @@ struct
     | S.TpESub (sub, tp) -> labeled "subst" [json_of_sub sub; json_of_tp tp ]
     | S.TpLockedPrf tm -> labeled "locked" [json_of_tm tm]
 
-  and json_of_sign : S.sign -> J.value =
-    fun sign -> json_of_labeled json_of_tp sign
+  and json_of_sign : S.sign -> J.value = failwith "[FIXME] Basis.Syntax.json_of_sign: "
+
+  (* fun sign -> json_of_labeled json_of_tp sign *)
 
   let json_of_ctx ctx : J.value =
     `A (List.map (fun (nm, tp) -> json_of_pair (json_of_ident nm) (json_of_tp tp)) ctx)
@@ -244,7 +237,7 @@ struct
       S.Struct strct
     | `A [`String "proj"; j_tm; j_path] ->
       let tm = json_to_tm j_tm in
-      let path = json_to_user j_path in
+      let path = json_to_ident j_path in
       S.Proj (tm, path)
     | `A [`String "coe"; j_fam; j_src; j_trg; j_tm] ->
       let fam = json_to_tm j_fam in
@@ -431,32 +424,33 @@ end
 
 module Domain =
 struct
-  let rec json_of_con : D.con -> J.value =
-    function
-    | Lam (ident, clo) -> labeled "lam" [json_of_ident ident; json_of_tm_clo clo]
-    | BindSym (dim_probe, con) -> labeled "bind_sym" [DimProbe.serialize dim_probe; json_of_con con]
-    | LetSym (dim, dim_probe, con) -> labeled "let_sym" [json_of_dim dim; DimProbe.serialize dim_probe; json_of_con con]
-    | Cut {tp; cut} -> labeled "cut" [json_of_tp tp; json_of_cut cut]
-    | Zero -> `String "zero"
-    | Suc con -> labeled "suc" [json_of_con con]
-    | Base -> `String "base"
-    | Loop dim -> labeled "loop" [json_of_dim dim]
-    | Pair (con0, con1) -> labeled "pair" [json_of_con con0; json_of_con con1]
-    | Struct fields -> labeled "struct" [json_of_labeled json_of_con fields]
-    | SubIn con -> labeled "sub_in" [json_of_con con]
-    | ElIn con -> labeled "el_in" [json_of_con con]
-    | Dim0 -> `String "dim0"
-    | Dim1 -> `String "dim1"
-    | DimProbe dim_probe -> labeled "dim_probe" [DimProbe.serialize dim_probe]
-    | Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_con json_of_con cof]
-    | Prf -> `String "prf"
-    | FHCom (tag, src, trg, cof, con) -> labeled "fhcom" [json_of_fhcom_tag tag; json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con]
-    | StableCode code -> labeled "stable_code" [json_of_stable_code code]
-    | UnstableCode code -> labeled "unstable_code" [json_of_unstable_code code]
-    | Box (src, trg, cof, sides, cap) -> labeled "box" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con sides; json_of_con cap]
-    | VIn (s, eq, pivot, base) -> labeled "v_in" [json_of_dim s; json_of_con eq; json_of_con pivot; json_of_con base]
-    | Split branches -> labeled "split" (json_of_alist json_of_cof json_of_tm_clo branches)
-    | LockedPrfIn con -> labeled "locked_prf_in" [json_of_con con]
+  let rec json_of_con : D.con -> J.value = failwith "[FIXME] json_of_con.json_of_con.json_of_con: "
+
+  (* function *)
+  (* | Lam (ident, clo) -> labeled "lam" [json_of_ident ident; json_of_tm_clo clo] *)
+  (* | BindSym (dim_probe, con) -> labeled "bind_sym" [DimProbe.serialize dim_probe; json_of_con con] *)
+  (* | LetSym (dim, dim_probe, con) -> labeled "let_sym" [json_of_dim dim; DimProbe.serialize dim_probe; json_of_con con] *)
+  (* | Cut {tp; cut} -> labeled "cut" [json_of_tp tp; json_of_cut cut] *)
+  (* | Zero -> `String "zero" *)
+  (* | Suc con -> labeled "suc" [json_of_con con] *)
+  (* | Base -> `String "base" *)
+  (* | Loop dim -> labeled "loop" [json_of_dim dim] *)
+  (* | Pair (con0, con1) -> labeled "pair" [json_of_con con0; json_of_con con1] *)
+  (* | Struct fields -> labeled "struct" [json_of_labeled json_of_con fields] *)
+  (* | SubIn con -> labeled "sub_in" [json_of_con con] *)
+  (* | ElIn con -> labeled "el_in" [json_of_con con] *)
+  (* | Dim0 -> `String "dim0" *)
+  (* | Dim1 -> `String "dim1" *)
+  (* | DimProbe dim_probe -> labeled "dim_probe" [DimProbe.serialize dim_probe] *)
+  (* | Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_con json_of_con cof] *)
+  (* | Prf -> `String "prf" *)
+  (* | FHCom (tag, src, trg, cof, con) -> labeled "fhcom" [json_of_fhcom_tag tag; json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con] *)
+  (* | StableCode code -> labeled "stable_code" [json_of_stable_code code] *)
+  (* | UnstableCode code -> labeled "unstable_code" [json_of_unstable_code code] *)
+  (* | Box (src, trg, cof, sides, cap) -> labeled "box" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con sides; json_of_con cap] *)
+  (* | VIn (s, eq, pivot, base) -> labeled "v_in" [json_of_dim s; json_of_con eq; json_of_con pivot; json_of_con base] *)
+  (* | Split branches -> labeled "split" (json_of_alist json_of_cof json_of_tm_clo branches) *)
+  (* | LockedPrfIn con -> labeled "locked_prf_in" [json_of_con con] *)
 
   and json_of_tm_clo : D.tm_clo -> J.value =
     function
@@ -501,10 +495,11 @@ struct
     | Circle -> `String "circle"
     | TpLockedPrf cof -> labeled "tp_locked_prf" [json_of_cof cof]
 
-  and json_of_sign : D.sign -> J.value =
-    function
-    | D.Empty -> `String "empty"
-    | D.Field (lbl, tp, clo) -> labeled "field" [json_of_user lbl; json_of_tp tp; json_of_sign_clo clo]
+  and json_of_sign : D.sign -> J.value = failwith "[FIXME] Basis.Domain.json_of_sign: "
+
+  (* function *)
+  (* | D.Empty -> `String "empty" *)
+  (* | D.Field (lbl, tp, clo) -> labeled "field" [json_of_ident lbl; json_of_tp tp; json_of_sign_clo clo] *)
 
   and json_of_hd : D.hd -> J.value =
     function
@@ -518,7 +513,7 @@ struct
     | D.KAp (tp, con) -> labeled "k_ap" [json_of_tp tp; json_of_con con]
     | D.KFst -> `String "k_fst"
     | D.KSnd -> `String "k_snd"
-    | D.KProj lbl -> labeled "k_proj" [json_of_user lbl]
+    | D.KProj lbl -> labeled "k_proj" [json_of_ident lbl]
     | D.KNatElim (mot, z, s) -> labeled "k_nat_elim" [json_of_con mot; json_of_con z; json_of_con s]
     | D.KCircleElim (mot, b, l) -> labeled "k_circle_elim" [json_of_con mot; json_of_con b; json_of_con l]
     | D.KElOut -> `String "k_el_out"
@@ -534,15 +529,16 @@ struct
   and json_of_cut : D.cut -> J.value =
     fun (hd, frm) -> labeled "cut" (json_of_hd hd :: List.map json_of_frm frm)
 
-  and json_of_stable_code : D.con D.stable_code -> J.value =
-    function
-    | `Pi (base, fam) -> labeled "pi" [json_of_con base; json_of_con fam]
-    | `Sg (base, fam) -> labeled "sg" [json_of_con base; json_of_con fam]
-    | `Signature sign -> labeled "signature" [json_of_labeled json_of_con sign]
-    | `Ext (n, code, `Global phi, fam) -> labeled "ext" [json_of_int n; json_of_con code; json_of_con phi; json_of_con fam]
-    | `Nat -> `String "nat"
-    | `Circle -> `String "circle"
-    | `Univ -> `String "univ"
+  and json_of_stable_code : D.con D.stable_code -> J.value = failwith "[FIXME] Basis.Domain.json_of_stable_code: "
+
+  (* function *)
+  (* | `Pi (base, fam) -> labeled "pi" [json_of_con base; json_of_con fam] *)
+  (* | `Sg (base, fam) -> labeled "sg" [json_of_con base; json_of_con fam] *)
+  (* | `Signature sign -> labeled "signature" [json_of_labeled json_of_con sign] *)
+  (* | `Ext (n, code, `Global phi, fam) -> labeled "ext" [json_of_int n; json_of_con code; json_of_con phi; json_of_con fam] *)
+  (* | `Nat -> `String "nat" *)
+  (* | `Circle -> `String "circle" *)
+  (* | `Univ -> `String "univ" *)
 
   and json_of_unstable_code : D.con D.unstable_code -> J.value =
     function
@@ -636,7 +632,7 @@ struct
   and json_to_sign : J.value -> D.sign =
     function
     | `String "empty" -> Empty
-    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (json_to_user j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
+    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (json_to_ident j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
     | j -> J.parse_error j "Domain.json_to_sign"
 
   and json_to_hd : J.value -> D.hd =
@@ -652,7 +648,7 @@ struct
     | `A [`String "k_ap"; j_tp; j_con] -> KAp (json_to_tp j_tp, json_to_con j_con)
     | `String "k_fst" -> KFst
     | `String "k_snd" -> KSnd
-    | `A [`String "k_proj"; j_lbl] -> KProj (json_to_user j_lbl)
+    | `A [`String "k_proj"; j_lbl] -> KProj (json_to_ident j_lbl)
     | `A [`String "k_nat_elim"; j_mot; j_z; j_s] -> KNatElim (json_to_con j_mot, json_to_con j_z, json_to_con j_s)
     | `A [`String "k_circle_elim"; j_mot; j_b; j_l] -> KCircleElim (json_to_con j_mot, json_to_con j_b, json_to_con j_l)
     | `String "k-el_out" -> KElOut
