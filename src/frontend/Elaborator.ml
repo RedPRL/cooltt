@@ -439,13 +439,13 @@ let rec modifier_ (con : CS.con) =
   RM.update_span con.info @@
   match con.node with
   | CS.ModAny -> RM.ret any
-  | CS.ModOnly path -> RM.ret @@ only_subtree path
-  | CS.ModRename (path1, path2) -> RM.ret @@ renaming_subtree path1 path2
+  | CS.ModOnly path -> RM.ret @@ only path
+  | CS.ModRename (path1, path2) -> RM.ret @@ renaming path1 path2
   | CS.ModNone -> RM.ret none
-  | CS.ModExcept path -> RM.ret @@ except_subtree path
+  | CS.ModExcept path -> RM.ret @@ except path
   | CS.ModSeq l -> seq <@> MU.map modifier_ l
   | CS.ModUnion l -> union <@> MU.map modifier_ l
-  | CS.ModInSubtree (p, m) -> in_subtree p <@> modifier_ m
+  | CS.ModInSubtree (p, m) -> in_ p <@> modifier_ m
   | CS.ModPrint lbl -> RM.ret @@ hook @@ `Print lbl
   | _ -> RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
