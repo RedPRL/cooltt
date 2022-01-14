@@ -422,11 +422,15 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
   | `Signature fields ->
     let+ fields = MU.map (MU.second (subst_con r x)) fields in
     `Signature fields
+  | `Tm (ctx, desc) ->
+    let+ ctx = subst_con r x ctx
+    and+ desc = subst_con r x desc in
+    `Tm (ctx, desc)
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (n, code, `Global cof, con)
-  | `Nat | `Circle | `Univ as code ->
+  | `Nat | `Circle | `Univ | `Desc | `Ctx as code ->
     ret code
 
 and subst_cut : D.dim -> DimProbe.t -> D.cut -> D.cut CM.m =
@@ -764,12 +768,25 @@ and eval : S.t -> D.con EvM.m =
       let+ vbase = eval base
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
+
     | S.CodeSignature fields ->
       let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
         let+ vtp = eval tp in
         (ident, vtp)
       in
       D.StableCode (`Signature vfields)
+
+    | S.CodeDesc ->
+      ret @@ D.StableCode `Desc
+
+    | S.CodeCtx ->
+      ret @@ D.StableCode `Ctx
+
+    | S.CodeTm (ctx, desc) ->
+      let+ ctx = eval ctx
+      and+ desc = eval desc in
+      D.StableCode (`Tm (ctx, desc))
+
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -1531,11 +1548,21 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.term @@
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
+
       | `Signature fields ->
         let (lbls, field_cons) = ListUtil.unzip fields in
         splice_tp @@
         Splice.cons field_cons @@ fun fields ->
         Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
+
+      | `Desc ->
+        ret D.Desc
+
+      | `Ctx ->
+        ret D.Ctx
+
+      | `Tm (ctx, desc) ->
+        ret @@ D.Tm (ctx, desc)
 
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@
@@ -1611,7 +1638,7 @@ and enact_rigid_coe line r r' con tag =
   | `Stable (x, code) ->
     begin
       match code with
-      | `Nat | `Circle | `Univ -> ret con
+      | `Nat | `Circle | `Univ | `Desc | `Ctx -> ret con
       | `Pi (basex, famx) ->
         splice_tm @@
         Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
@@ -1636,6 +1663,8 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
+      | `Tm (ctxx, descx) ->
+        failwith "[FIXME] Basis.Basis.enact_rigid_coe: Coercions in terms."
       | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1719,6 +1748,12 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
+      | `Desc ->
+        failwith "[FIXME] Basis.Basis.enact_rigid_hcom: HCom in desc."
+      | `Ctx ->
+        failwith "[FIXME] Basis.Basis.enact_rigid_hcom: HCom in ctx."
+      | `Tm (ctx, desc) ->
+        failwith "[FIXME] Basis.Basis.enact_rigid_hcom: HCom in terms."
       | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->

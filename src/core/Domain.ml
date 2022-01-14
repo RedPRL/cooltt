@@ -269,6 +269,9 @@ struct
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
     | `Signature _ -> Format.fprintf fmt "<code-sig>"
+    | `Desc -> Format.fprintf fmt "<desc>"
+    | `Ctx -> Format.fprintf fmt "<ctx>"
+    | `Tm (ctx, desc) -> Format.fprintf fmt "ctx[%a, %a]" pp_con ctx pp_con desc
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"
     | `Univ -> Format.fprintf fmt "<code-univ>"

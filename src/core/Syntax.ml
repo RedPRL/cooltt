@@ -42,8 +42,19 @@ struct
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
-
     | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp lbl
+
+    | DescEnd -> Format.fprintf fmt "desc/end"
+    | DescArg (base, fam) -> Format.fprintf fmt "desc/arg[%a, %a]" dump base dump fam
+    | DescRec desc -> Format.fprintf fmt "desc/rec[%a]" dump desc
+
+    | CtxNil -> Format.fprintf fmt "ctx/nil"
+    | CtxSnoc (ctx, ident, desc) -> Format.fprintf fmt "ctx/snoc[%a, %a, %a]" dump ctx Ident.pp ident dump desc
+
+    | TmVar x -> Format.fprintf fmt "tm/var[%a]" Ident.pp  x
+    | TmAppArg (base, fam, fn, arg) -> Format.fprintf fmt "tm/app/arg[%a, %a, %a, %a]" dump base dump fam dump fn dump arg
+    | TmAppRec (desc, fn, arg) -> Format.fprintf fmt "tm/app/rec[%a, %a, %a]" dump desc dump fn dump arg
+
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -74,6 +85,9 @@ struct
       Format.fprintf fmt "sig[%a]"
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump tp))
         fields
+    | CodeDesc -> Format.fprintf fmt "desc"
+    | CodeCtx -> Format.fprintf fmt "ctx"
+    | CodeTm (ctx, desc) -> Format.fprintf fmt "tm[%a, %a]" dump ctx dump desc
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
@@ -103,6 +117,9 @@ struct
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
     | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
+    | Desc -> Format.fprintf fmt "tp/desc"
+    | Ctx -> Format.fprintf fmt "tp/ctx"
+    | Tm (ctx, desc) -> Format.fprintf fmt "tp/tm[%a, %a]" dump ctx dump desc
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
@@ -165,7 +182,7 @@ struct
       | Cof (Cof.Meet _) -> cof_meet
       | ForallCof _ -> dual juxtaposition arrow
 
-      | Zero | Base | CodeNat | CodeCircle | CodeUniv | Dim0 | Dim1 | Prf -> atom
+      | Zero | Base | CodeNat | CodeCircle | CodeDesc | CodeCtx | CodeUniv | Dim0 | Dim1 | Prf -> atom
       | Suc _ as tm -> if Option.is_some (to_numeral tm) then atom else juxtaposition
       | HCom _ | Com _ | Coe _
       | Fst _ | Snd _
@@ -176,6 +193,7 @@ struct
       | CodePi _ -> arrow
       | CodeSg _ -> times
       | CodeSignature _ -> juxtaposition
+      | CodeTm _ -> juxtaposition
       | CodeExt _ -> juxtaposition
 
       | Ann _ -> passed
@@ -403,12 +421,27 @@ struct
         (pp_atomic env) tm
     | CodeSignature fields ->
       Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
+    | CodeDesc when Debug.is_debug_mode () ->
+      Format.fprintf fmt "`desc"
+    | CodeDesc ->
+      Format.fprintf fmt "desc"
+    | CodeCtx when Debug.is_debug_mode () ->
+      Format.fprintf fmt "`ctx"
+    | CodeCtx ->
+      Format.fprintf fmt "ctx"
+    | CodeTm (desc, ctx) when Debug.is_debug_mode () ->
+      Format.fprintf fmt "@[<tm> %a %a@]"
+        (pp_atomic env) desc
+        (pp_atomic env) ctx
+    | CodeTm (desc, ctx) ->
+      Format.fprintf fmt "@[tm %a %a@]"
+        (pp_atomic env) desc
+        (pp_atomic env) ctx
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
         (pp_atomic Pp.Env.emp) phi
         (pp_atomic env) bdry
-
     | CodeNat when Debug.is_debug_mode () ->
       Format.fprintf fmt "`nat"
     | CodeCircle when Debug.is_debug_mode () ->

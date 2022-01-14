@@ -390,10 +390,22 @@ and quote_stable_code univ =
       lift_cmp @@ do_ap fam var
     in
     S.CodeSg (tbase, tfam)
+
   | `Signature fields ->
     let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
     in
     S.CodeSignature tfields
+
+  | `Desc ->
+    ret S.CodeDesc
+
+  | `Ctx ->
+    ret S.CodeCtx
+
+  | `Tm (ctx, desc) ->
+    let+ ctx = quote_con D.Ctx ctx
+    and+ desc = quote_con D.Desc desc in
+    S.CodeTm (ctx, desc)
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =

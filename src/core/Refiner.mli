@@ -83,6 +83,7 @@ module Univ : sig
   val signature : (Ident.t * Chk.tac) list -> Chk.tac
   val patch : Chk.tac -> (Ident.t -> Chk.tac option) -> Chk.tac
   val total : Syn.tac -> Chk.tac
+  val tm : Chk.tac -> Chk.tac -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac

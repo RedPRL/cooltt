@@ -38,6 +38,8 @@ struct
     | TmAppArg of t * t * t * t
     | TmAppRec of t * t * t
 
+    | TmElim of t * t * t
+
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
     | Com of t * t * t * t * t
@@ -65,6 +67,9 @@ struct
     | CodePi of t * t
     | CodeSg of t * t
     | CodeSignature of (Ident.t * t) list
+    | CodeDesc
+    | CodeCtx
+    | CodeTm of t * t
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t

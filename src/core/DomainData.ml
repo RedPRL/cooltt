@@ -20,6 +20,15 @@ struct
     | `Signature of (Ident.t * 'a) list
     (** First-Class Record types *)
 
+    | `Desc
+    (** Descriptions *)
+
+    | `Ctx
+    (** Contexts of Descriptions *)
+
+    | `Tm of 'a * 'a
+    (** Terms in the language of inductive types. *)
+
     | `Ext of int * 'a * [`Global of 'a] * 'a
     (** Extension type *)
 

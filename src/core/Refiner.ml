@@ -882,6 +882,7 @@ struct
     | _ ->
       RM.expected_connective `Signature whnf_tp
 
+
   let total (fam_tac : T.Syn.tac) : T.Chk.tac =
     univ_tac "Univ.total" @@ fun univ ->
     let* (tm, tp) = T.Syn.run fam_tac in
@@ -921,6 +922,12 @@ struct
       S.CodeSignature (qsign @ [`User ["fib"], qfib])
     | D.Pi (base, _, _) -> RM.expected_connective `Signature base
     | _ -> RM.expected_connective `Pi tp
+
+  let tm (ctx_tac : T.Chk.tac) (desc_tac : T.Chk.tac) : T.Chk.tac =
+    univ_tac "Univ.tm" @@ fun univ ->
+    let* ctx = T.Chk.run ctx_tac D.Ctx in
+    let+ desc = T.Chk.run desc_tac D.Desc in
+    S.CodeTm (ctx, desc)
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->

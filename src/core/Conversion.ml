@@ -151,7 +151,7 @@ and equate_sign sign0 sign1 =
 
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
-  | `Nat, `Nat | `Circle, `Circle | `Univ, `Univ -> ret ()
+  | `Nat, `Nat | `Circle, `Circle | `Univ, `Univ | `Desc, `Desc | `Ctx, `Ctx -> ret ()
   | `Pi (base0, fam0), `Pi (base1, fam1)
   | `Sg (base0, fam0), `Sg (base1, fam1) ->
     let* _ = equate_con univ base0 base1 in
@@ -186,6 +186,9 @@ and equate_stable_code univ code0 code1 =
 
   | `Signature sign0, `Signature sign1 ->
     equate_sign_code univ sign0 sign1
+  | `Tm (ctx0, desc0), `Tm (ctx1, desc1) ->
+    let* () = equate_con D.Ctx ctx0 ctx1 in
+    equate_con D.Desc desc0 desc1
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
 
