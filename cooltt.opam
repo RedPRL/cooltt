@@ -18,13 +18,12 @@ depends: [
   "menhir" {>= "20180703"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
+  "yuujinchou" {>= "1.0.0"}
   "odoc" {with-doc}
   "bantorra"
-  "yuujinchou"
 ]
 pin-depends: [
   [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
-  [ "yuujinchou.~dev" "git+https://github.com/RedPRL/yuujinchou" ]
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
