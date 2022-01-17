@@ -1,7 +1,7 @@
 OPAM=opam
 EXEC=${OPAM} exec
 DUNE=${EXEC} dune --
-PIN_DEPENDS=bantorra yuujinchou
+PIN_DEPENDS=bantorra
 
 .PHONY: all build clean doc install test snapshot format
 
