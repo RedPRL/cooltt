@@ -120,6 +120,10 @@ atomic_term: t = located(plain_atomic_term) {t}
   | path = separated_nonempty_list_left_recursive(COLON_COLON, ATOM)
     { path }
 
+%inline iocc_path: /* iocc = ioption(COLON_COLON) */
+  | ioption(COLON_COLON) path = path
+    { path }
+
 user:
   | path = path
     { `User path }
@@ -171,21 +175,21 @@ plain_bracketed_modifier:
 plain_modifier:
   | COLON_COLON
     { ModAny }
-  | path = path COLON_COLON m = bracketed_modifier
+  | path = iocc_path COLON_COLON m = bracketed_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW
     { ModRename ([], []) }
-  | path = path RIGHT_ARROW ioption(COLON_COLON)
+  | path = iocc_path RIGHT_ARROW ioption(COLON_COLON)
     { ModRename (path, []) }
-  | ioption(COLON_COLON) RIGHT_ARROW path = path
+  | ioption(COLON_COLON) RIGHT_ARROW path = iocc_path
     { ModRename ([], path) }
-  | path1 = path RIGHT_ARROW path2 = path
+  | path1 = iocc_path RIGHT_ARROW path2 = iocc_path
     { ModRename (path1, path2) }
-  | path = path
+  | path = iocc_path
     { ModOnly path }
   | BANG ioption(COLON_COLON)
     { ModNone }
-  | BANG path = path
+  | BANG path = iocc_path
     { ModExcept path }
   | name = HOLE_NAME
     { ModPrint name }
