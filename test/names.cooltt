@@ -1,5 +1,5 @@
-def x.y : nat := 0
+def x::y : nat := 0
 def x (_ : nat) : nat := 0
-def y : nat := x x.y
-def x.y.z (u.v : nat) : nat := u.v
-#print x.y.z
+def y : nat := x x::y
+def x::y::z (u::v : nat) : nat := u::v
+#print x::y::z
