@@ -1,13 +1,13 @@
 " vim-cooltt syntax
 " Language:     cooltt
 " Author:       Carlo Angiuli, Favonia
-" Last Change:  2020 May 6
+" Last Change:  2022 Jan 17
 
 if exists("b:current_syntax")
   finish
 endif
 
-setlocal iskeyword=a-z,A-Z,48-57,-,',/
+setlocal iskeyword=a-z,A-Z,48-57,-,',/,#
 
 syn sync minlines=50
 syn sync maxlines=1000
@@ -23,12 +23,12 @@ syn region  coolttEncl transparent matchgroup=coolttSymb start="{" end="}" conta
 syn match   coolttHole '?\k*'
 
 syn keyword coolttKeyw locked unlock zero suc nat in fst snd elim unfold generalize type dim
-syn keyword coolttKeyw cof sub ext coe hcom com hfill V vproj with struct sig
+syn keyword coolttKeyw cof sub ext coe hcom com hfill V vproj with struct sig tt ff #
 
 syn keyword coolttDecl def axiom let import
 syn keyword coolttCmd #normalize #print #quit #fail
 
-syn match   coolttSymb '=>\|[|,*×:;=≔_𝕀𝔽∂∧∨→⇒!]\|->\|tt\|ff\|⊤\|⊥'
+syn match   coolttSymb '=>\|\.=\|[.|,*×:;=≔_𝕀𝔽∂∧∨→⇒!]\|->\|⊤\|⊥'
 syn match   coolttSymb '\\/\|/\\'
 
 syn region  coolttComm excludenl start="\k\@1<!--" end="$" contains=coolttTodo
@@ -43,6 +43,7 @@ hi def link coolttTodo Todo
 hi def link coolttHole Special
 hi def link coolttKeyw Identifier
 hi def link coolttDecl Statement
+hi def link coolttCmd Statement
 hi def link coolttSymb Identifier
 hi def link coolttComm Comment
 hi def link coolttBlockComm Comment
