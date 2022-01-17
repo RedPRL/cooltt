@@ -17,7 +17,7 @@ COPY ["cooltt.opam", "cooltt.opam"]
 # ocaml, ocaml-compiler-libs | OCaml
 # opam                       | OPAM
 # make, m4, musl-dev         | Requird by many OPAM packages
-# git                        | Get yuujinchou and bantorra
+# git                        | Get bantorra
 RUN \
   apk add --no-cache opam ocaml ocaml-compiler-libs make m4 musl-dev git && \
   opam init --disable-sandboxing --disable-completion --no-setup --yes && \
