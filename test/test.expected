@@ -669,7 +669,7 @@ import.cooltt:24.7-24.14 [Info]:
 
 --------------------[isos.cooltt]--------------------
 --------------------[names.cooltt]--------------------
-names.cooltt:5.7-5.12 [Info]:
+names.cooltt:5.7-5.14 [Info]:
   x.y.z
   : (u.v : nat) → nat
   = u.v => u.v
@@ -959,19 +959,19 @@ record.cooltt:11.7-11.12 [Info]:
   : type
   = sig (foo.x : nat) (bar : (_x : nat) → nat) 
 
-record.cooltt:12.7-12.20 [Info]:
+record.cooltt:12.7-12.21 [Info]:
   basic.inhabit
   : basic
   = struct (foo.x : 1) (bar : {x => suc x}) 
 
-record.cooltt:13.11-13.24 [Info]:
+record.cooltt:13.11-13.25 [Info]:
   Computed normal form of basic.inhabit as
    struct (foo.x : 1) (bar : {x => suc x}) 
 
-record.cooltt:14.11-14.30 [Info]:
+record.cooltt:14.11-14.32 [Info]:
   Computed normal form of basic.inhabit @ foo.x as 1
 
-record.cooltt:15.11-15.30 [Info]:
+record.cooltt:15.11-15.31 [Info]:
   Computed normal form of {basic.inhabit @ bar} 1 as 2
 
 record.cooltt:32.7-32.13 [Info]:

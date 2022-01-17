@@ -144,6 +144,8 @@ and real_token = parse
     { TIMES }
   | ':'
     { COLON }
+  | "∷" | "::"
+    { COLON_COLON }
   | "∧" | "/\\"
     { MEET }
   | "∨" | "\\/"
@@ -158,8 +160,6 @@ and real_token = parse
     { RIGHT_ARROW }
   | "⇒" | "=>"
     { RRIGHT_ARROW }
-  | "@"
-    { PROJ }
   | '_'
     { UNDERSCORE }
   | "?" hole_atom

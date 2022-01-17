@@ -34,7 +34,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token BANG COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS JOIN MEET
 %token TYPE
@@ -42,7 +42,7 @@
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token SIG STRUCT PROJ AS
+%token SIG STRUCT AS
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM FAIL
@@ -54,7 +54,7 @@
 
 %nonassoc IN AS RRIGHT_ARROW SEMI
 %nonassoc COLON
-%left PROJ
+%left DOT
 %right RIGHT_ARROW TIMES
 %nonassoc HASH
 
@@ -117,7 +117,7 @@ atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
 
 %inline path:
-  | path = separated_nonempty_list_left_recursive(DOT, ATOM)
+  | path = separated_nonempty_list_left_recursive(COLON_COLON, ATOM)
     { path }
 
 user:
@@ -169,21 +169,21 @@ plain_bracketed_modifier:
     { ModUnion list }
 
 plain_modifier:
-  | DOT
+  | COLON_COLON
     { ModAny }
-  | path = path DOT m = bracketed_modifier
+  | path = path COLON_COLON m = bracketed_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW
     { ModRename ([], []) }
-  | path = path RIGHT_ARROW ioption(DOT)
+  | path = path RIGHT_ARROW ioption(COLON_COLON)
     { ModRename (path, []) }
-  | ioption(DOT) RIGHT_ARROW path = path
+  | ioption(COLON_COLON) RIGHT_ARROW path = path
     { ModRename ([], path) }
   | path1 = path RIGHT_ARROW path2 = path
     { ModRename (path1, path2) }
   | path = path
     { ModOnly path }
-  | BANG ioption(DOT)
+  | BANG ioption(COLON_COLON)
     { ModNone }
   | BANG path = path
     { ModExcept path }
@@ -287,7 +287,7 @@ plain_term_except_cof_case:
     { ap_or_atomic (List.concat [List.map term_of_name @@ Option.value ~default:[] spine; [arg1]; args2]) }
   | spine = nonempty_list_left_recursive(name)
     { ap_or_atomic (List.map term_of_name spine) }
-  | t = term; PROJ; lbl = user; spine = list_left_recursive(atomic_term)
+  | t = term; DOT; lbl = user; spine = list_left_recursive(atomic_term)
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | UNLOCK; t = term; IN; body = term;
     { Unlock (t, body) }

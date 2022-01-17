@@ -3,25 +3,25 @@ import prelude
 
 def basic : type :=
   sig
-    (foo.x : nat)
+    (foo::x : nat)
     (bar : nat → nat)
 
-def basic.inhabit : basic := struct (foo.x : 1) (bar : x => suc x)
+def basic::inhabit : basic := struct (foo::x : 1) (bar : x => suc x)
 
 #print basic
-#print basic.inhabit
-#normalize basic.inhabit
-#normalize basic.inhabit@foo.x
-#normalize basic.inhabit@bar 1
+#print basic::inhabit
+#normalize basic::inhabit
+#normalize basic::inhabit.foo::x
+#normalize basic::inhabit.bar 1
 
 def basic/ext
   (b0 : basic) (b1 : basic)
-  (p : path nat {b0 @ foo.x} {b1 @ foo.x})
-  (q : path {nat → nat} {b0 @ bar} {b1 @ bar}) : path basic b0 b1
+  (p : path nat {b0 . foo::x} {b1 . foo::x})
+  (q : path {nat → nat} {b0.bar} {b1.bar}) : path basic b0 b1
 :=
 i =>
 struct
-  (foo.x : p i)
+  (foo::x : p i)
   (bar : q i)
 
 def depend : type :=
@@ -35,8 +35,8 @@ def depend : type :=
 def depend/ext
   (d0 : depend)
   (d1 : depend)
-  (p : path type {d0 @ tp} {d1 @ tp})
-  (q : path-p {i => p i → p i} {d0 @ fun} {d1 @ fun}) : path depend d0 d1
+  (p : path type {d0.tp} {d1.tp})
+  (q : path-p {i => p i → p i} {d0.fun} {d1.fun}) : path depend d0 d1
 :=
 i => struct (tp : p i) (fun : q i)
 
@@ -58,7 +58,7 @@ i => depend
 def sig/ext
   (b0 : sig (foo : nat))
   (b1 : sig (foo : nat))
-  (p : path nat {b0 @ foo} {b1 @ foo})
+  (p : path nat {b0.foo} {b1.foo})
   : path {sig (foo : nat)} b0 b1
 :=
 i => struct (foo : p i)
