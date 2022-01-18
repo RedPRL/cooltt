@@ -447,6 +447,7 @@ let rec modifier_ (con : CS.con) =
   | CS.ModUnion l -> union <@> MU.map modifier_ l
   | CS.ModInSubtree (p, m) -> in_ p <@> modifier_ m
   | CS.ModPrint lbl -> RM.ret @@ hook @@ `Print lbl
+  | CS.ModExpandRoot -> RM.ret @@ hook @@ `ExpandRoot
   | _ -> RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
 let modifier con =

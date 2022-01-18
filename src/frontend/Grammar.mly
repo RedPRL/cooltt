@@ -34,7 +34,7 @@
 %token <string> ATOM
 %token <string option> HOLE_NAME
 %token LOCKED UNLOCK
-%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token BANG COLON COLON_COLON COLON_EQUALS EXPAND HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS JOIN MEET
 %token TYPE
@@ -112,6 +112,7 @@ atomic_in_cof: t = located(plain_atomic_in_cof) {t}
 %inline
 name: t = located(plain_name) {t}
 bracketed_modifier: t = located(plain_bracketed_modifier) {t}
+modifier_expansion: t = located(plain_modifier_expansion) {t}
 modifier: t = located(plain_modifier) {t}
 atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
@@ -172,9 +173,16 @@ plain_bracketed_modifier:
   | LBR list = separated_list(COMMA, modifier) RBR
     { ModUnion list }
 
+plain_modifier_expansion:
+  | EXPAND { ModExpandRoot }
+
 plain_modifier:
   | COLON_COLON
     { ModAny }
+  | ioption(COLON_COLON) m = plain_modifier_expansion
+    { m }
+  | path = iocc_path m = modifier_expansion
+    { ModInSubtree (path, m) }
   | path = iocc_path COLON_COLON m = bracketed_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW

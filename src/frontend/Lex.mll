@@ -146,6 +146,8 @@ and real_token = parse
     { COLON }
   | "∷" | "::"
     { COLON_COLON }
+  | '@'
+    { EXPAND }
   | "∧" | "/\\"
     { MEET }
   | "∨" | "\\/"
@@ -155,7 +157,7 @@ and real_token = parse
   | "≔" | ":="
     { COLON_EQUALS }
   | ".="
-     { DOT_EQUALS }
+    { DOT_EQUALS }
   | "→" | "->"
     { RIGHT_ARROW }
   | "⇒" | "=>"
