@@ -35,8 +35,10 @@ val proj : t m -> Ident.t -> t m
 
 val desc : tp m
 val desc_end : t m
+val desc_rec : t m -> t m
 val tm : t m -> t m -> tp m
 
+val tm_var : Ident.t -> t m
 val tm_ap : t m -> t m -> t m -> t m -> t m
 val tm_rec : t m -> t m -> t m -> t m
 val desc_method : t m -> t m -> t m -> t m -> t m

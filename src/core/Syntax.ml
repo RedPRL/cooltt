@@ -444,7 +444,7 @@ struct
     | CodeCtx ->
       Format.fprintf fmt "ctx"
     | CodeTm (desc, ctx) when Debug.is_debug_mode () ->
-      Format.fprintf fmt "@[<tm> %a %a@]"
+      Format.fprintf fmt "@[tm %a %a@]"
         (pp_atomic env) desc
         (pp_atomic env) ctx
     | CodeTm (desc, ctx) ->

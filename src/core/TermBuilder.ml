@@ -167,10 +167,17 @@ let desc =
 let desc_end =
   ret S.DescEnd
 
+let desc_rec mdesc =
+  let+ desc = mdesc in
+  S.DescRec desc
+
 let tm mctx mdesc =
   let+ ctx = mctx
   and+ desc = mdesc in
   S.Tm (ctx, desc)
+
+let tm_var id =
+  ret @@ S.TmVar id
 
 let tm_ap mbase mfam mf ma =
   let+ base = mbase
