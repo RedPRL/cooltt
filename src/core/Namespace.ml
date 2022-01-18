@@ -17,7 +17,7 @@ let nest pp_a modifier imported ns =
   in
   let hooks cmd ~rev_prefix t =
     match cmd with
-    | (`Print lbl) ->
+    | `Print lbl ->
       let lbl = Option.fold ~none:"?" ~some:(fun lbl -> "?" ^ lbl) lbl in
       Format.printf "@[<v2>Emitted namespace under %a:@,%s = @[{ "
         Ident.pp (`User (List.rev rev_prefix)) lbl;
