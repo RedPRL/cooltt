@@ -172,6 +172,34 @@ let tm mctx mdesc =
   and+ desc = mdesc in
   S.Tm (ctx, desc)
 
+let tm_ap mbase mfam mf ma =
+  let+ base = mbase
+  and+ fam = mfam
+  and+ f = mf
+  and+ a = ma in
+  S.TmAppArg (base, fam, f, a)
+
+let desc_method mmot mctx mdesc mtm =
+  let+ mot = mmot
+  and+ ctx = mctx
+  and+ desc = mdesc
+  and+ tm = mtm in
+  S.DescMethod (mot, ctx, desc, tm)
+
+let tm_rec mdesc mf ma =
+  let+ desc = mdesc
+  and+ f = mf
+  and+ a = ma in
+  S.TmAppRec (desc, f, a)
+
+let data mctx =
+  let+ ctx = mctx in
+  S.Tm (ctx, S.DescEnd)
+
+let code_data mctx =
+  let+ ctx = mctx in
+  S.CodeTm (ctx, S.DescEnd)
+
 let tm_abort =
   ret @@ S.tm_abort
 

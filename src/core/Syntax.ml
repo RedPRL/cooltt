@@ -47,7 +47,13 @@ struct
     | DescEnd -> Format.fprintf fmt "desc/end"
     | DescArg (base, fam) -> Format.fprintf fmt "desc/arg[%a, %a]" dump base dump fam
     | DescRec desc -> Format.fprintf fmt "desc/rec[%a]" dump desc
-
+    | DescMethod (mot, ctx, desc, tm) ->
+      Format.fprintf fmt
+        "desc/method[%a, %a, %a, %a]"
+        dump mot
+        dump ctx
+        dump desc
+        dump tm
     | CtxNil -> Format.fprintf fmt "ctx/nil"
     | CtxSnoc (ctx, ident, desc) -> Format.fprintf fmt "ctx/snoc[%a, %a, %a]" dump ctx Ident.pp ident dump desc
 
@@ -169,6 +175,7 @@ struct
       | DescEnd -> atom
       | DescArg _ -> juxtaposition
       | DescRec _ -> juxtaposition
+      | DescMethod _ -> juxtaposition
       | CtxNil -> atom
       | CtxSnoc _ -> juxtaposition
       | TmVar _ -> juxtaposition
@@ -282,11 +289,18 @@ struct
     | Proj (tm, lbl) ->
       Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp lbl
     | DescEnd ->
-      Format.fprintf fmt "end"
+      Format.fprintf fmt "□"
     | DescArg (arg, desc) ->
       Format.fprintf fmt "%a -> %a" (pp env penv) arg (pp env penv) desc
     | DescRec desc ->
       Format.fprintf fmt "□ -> %a" (pp env penv) desc
+    | DescMethod (mot, ctx,fam, desc) ->
+      Format.fprintf fmt
+        "@[method %a %a %a %a@]"
+        (pp env penv) mot
+        (pp env penv) ctx
+        (pp env penv) fam
+        (pp env penv) desc
     | CtxNil ->
       Format.fprintf fmt "∙"
     | CtxSnoc (rest, ident, desc) ->

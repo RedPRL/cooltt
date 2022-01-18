@@ -43,7 +43,7 @@
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT PROJ AS
-%token DATA
+%token DESC CTX TERM METHOD DATA
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM FAIL
@@ -240,6 +240,10 @@ plain_atomic_term_except_name:
     { Circle }
   | TYPE
     { Type }
+  | DESC
+    { Desc }
+  | CTX
+    { Ctx }
   | name = HOLE_NAME
     { Hole (name, None) }
   | DIM
@@ -320,6 +324,10 @@ plain_term_except_cof_case:
     { Signature tele }
   | STRUCT; tele = list(field);
     { Struct tele }
+  | TERM; ctx = atomic_term; desc = atomic_term
+     { Tm (ctx, desc) }
+  | METHOD; mot = atomic_term; tm = atomic_term
+     { Method (mot, tm) }
   | DATA; AS; self = plain_name; LSQ; ctors = separated_list(PIPE, ctor); RSQ;
     { Data (self, ctors) }
   | dom = term; RIGHT_ARROW; cod = term

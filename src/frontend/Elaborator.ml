@@ -316,6 +316,9 @@ and chk_tm : CS.con -> T.Chk.tac =
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
       R.Univ.patch (R.Univ.total (syn_tm tp)) (R.Signature.find_field_tac tacs)
 
+    | CS.Method (mot, tm) ->
+      R.Tm.elim_method (chk_tm mot) (syn_tm tm)
+
     | CS.Data (self, ctors) ->
       R.Univ.tm (chk_ctx self ctors) R.Desc.end_
 
@@ -364,6 +367,7 @@ and chk_tm : CS.con -> T.Chk.tac =
         let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
         RM.ret @@ R.Signature.intro field_tac
       | D.Tm (ctx, _) ->
+        Debug.print "Elaborating as data...@.";
         RM.ret @@ chk_data ctx con
       | _ ->
         RM.ret @@ T.Chk.syn @@ syn_tm con

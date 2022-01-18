@@ -31,14 +31,14 @@ struct
     | DescArg of t * t
     | DescRec of t
 
+    | DescMethod of t * t * t * t
+
     | CtxNil
     | CtxSnoc of t * Ident.t * t
 
     | TmVar of Ident.t
     | TmAppArg of t * t * t * t
     | TmAppRec of t * t * t
-
-    | TmElim of t * t * t
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t

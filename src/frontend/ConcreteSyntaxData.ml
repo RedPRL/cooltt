@@ -36,10 +36,14 @@ and con_ =
   | Sg of cell list * con
   | Signature of field list
   | Struct of field list
-  | Data of Ident.t * ((Ident.t * cell list) list)
   | Proj of con * Ident.t
   | Patch of con * field list
   | Total of con * field list
+  | Data of Ident.t * ((Ident.t * cell list) list)
+  | Desc
+  | Ctx
+  | Tm of con * con
+  | Method of con * con
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con

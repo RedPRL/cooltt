@@ -71,6 +71,7 @@ module Tm : sig
   val formation : Chk.tac -> Chk.tac -> Tp.tac
   val var : Ident.t -> Chk.tac
   val app : Syn.tac -> Chk.tac -> Syn.tac
+  val elim_method : Chk.tac -> Syn.tac -> Chk.tac
 end
 
 module Univ : sig

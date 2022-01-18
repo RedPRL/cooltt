@@ -170,6 +170,7 @@ struct
     | KFst
     | KSnd
     | KProj of Ident.t
+    | KDescMethod of con * con * con
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

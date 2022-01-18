@@ -37,6 +37,10 @@ let keywords =
     ("circle", CIRCLE);
     ("sig", SIG);
     ("struct", STRUCT);
+    ("desc", DESC);
+    ("ctx", CTX);
+    ("term", TERM);
+    ("method", METHOD);
     ("data", DATA);
     ("as", AS);
     ("🍪", CIRCLE);

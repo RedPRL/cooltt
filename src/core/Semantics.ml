@@ -654,6 +654,12 @@ and eval : S.t -> D.con EvM.m =
     | S.DescRec desc ->
       let+ desc = eval desc in
       D.DescRec desc
+    | S.DescMethod (mot, ctx, desc, tm) ->
+      let* mot = eval mot in
+      let* ctx = eval ctx in
+      let* desc = eval desc in
+      let* tm = eval tm in
+      lift_cmp @@ do_desc_method mot ctx desc tm
     | S.CtxNil ->
       ret D.CtxNil
     | S.CtxSnoc (rest, ident, desc) ->
@@ -1316,7 +1322,6 @@ and do_ap2 f a b =
   let* fa = do_ap f a in
   do_ap fa b
 
-
 and do_ap con arg =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
@@ -1356,6 +1361,42 @@ and do_ap con arg =
       throw @@ NbeFailed "Not a function in do_ap"
   end
 
+and do_desc_method mot ctx desc tm : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  match desc with
+  | D.DescEnd -> do_ap mot tm
+  | D.DescArg (base, fam) ->
+    splice_tm @@
+    Splice.con mot @@ fun mot ->
+    Splice.con ctx @@ fun ctx ->
+    Splice.con base @@ fun base ->
+    Splice.con fam @@ fun fam ->
+    Splice.con tm @@ fun tm ->
+    Splice.term @@
+    TB.code_pi base @@ TB.lam @@ fun x ->
+    TB.desc_method mot ctx (TB.ap fam [x]) (TB.tm_ap base fam tm x)
+  | D.DescRec desc ->
+    splice_tm @@
+    Splice.con mot @@ fun mot ->
+    Splice.con ctx @@ fun ctx ->
+    Splice.con desc @@ fun desc ->
+    Splice.con tm @@ fun tm ->
+    Splice.term @@
+    TB.code_pi (TB.code_data ctx) @@ TB.lam @@ fun x ->
+    TB.code_pi (TB.ap mot [x]) @@ TB.lam @@ fun _ ->
+    TB.desc_method mot ctx desc (TB.tm_rec desc tm x)
+  | D.Cut { cut; _ } ->
+    ret @@ cut_frm ~tp:D.Univ ~cut @@ D.KDescMethod (mot, ctx, tm)
+  | D.Split branches as con ->
+    splice_tm @@
+    Splice.con mot @@ fun mot ->
+    Splice.con ctx @@ fun ctx ->
+    Splice.con tm @@ fun tm ->
+    Splice.Macro.commute_split con (List.map fst branches) @@ fun desc -> TB.desc_method mot ctx desc tm
+  | con ->
+    Format.eprintf "bad desc-method: %a@." D.pp_con con;
+    CM.throw @@ NbeFailed "Not a description"
 
 and do_sub_out con =
   let open CM in
@@ -1881,6 +1922,7 @@ and do_frm con =
   | D.KFst -> do_fst con
   | D.KSnd -> do_snd con
   | D.KProj lbl -> do_proj con lbl
+  | D.KDescMethod (mot, ctx, tm) -> do_desc_method mot ctx con tm
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con
   | D.KElOut -> do_el_out con

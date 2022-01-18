@@ -49,6 +49,11 @@ let pp fmt =
   function
   | UnboundVariable id ->
     Fmt.fprintf fmt "Unbound variable %a" Ident.pp id
+  | NotFoundInCtx (ppenv, ctx, id) ->
+    Format.fprintf fmt
+      "Unbound identifier %a in context @[%a@]."
+      Ident.pp id
+      (S.pp ppenv) ctx
   | ExpectedEqual (ppenv, tp, tm0, tm1, _) ->
     Fmt.fprintf fmt
       "Expected @[<hv>%a =@;%a@;: %a@]"

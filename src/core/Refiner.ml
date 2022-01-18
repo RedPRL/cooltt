@@ -720,6 +720,31 @@ struct
       S.TmAppRec (qdesc, ftm, arg), apptp
     (* [TODO: Reed M, 13/01/2022] Print a better error when we don't have a DescArg/DescApp index. *)
     | tp -> RM.expected_connective `Tm tp
+
+  let elim_method (tac_mot : T.Chk.tac) (tac_tm : T.Syn.tac) : T.Chk.tac =
+    T.Chk.rule ~name:"Tm.elim_method" @@
+    function
+    | D.Univ ->
+      let* (tm, tm_tp) = T.Syn.run tac_tm in
+      begin
+        match tm_tp with
+        | D.Tm (ctx, desc) ->
+          let* mot_tp =
+            RM.lift_cmp @@
+            Sem.splice_tp @@
+            Splice.con ctx @@ fun ctx ->
+            Splice.term @@ TB.pi (TB.data ctx) (fun _ -> TB.univ)
+          in
+          Debug.print "Running Motive Tactic against goal %a@." D.pp_tp mot_tp;
+          let* mot = T.Chk.run tac_mot mot_tp in
+          Debug.print "Quoting Context@.";
+          let* tctx = RM.quote_con D.Ctx ctx in
+          Debug.print "Quoting Description@.";
+          let+ tdesc = RM.quote_con D.Desc desc in
+          S.DescMethod (mot, tctx, tdesc, tm)
+        | _ -> RM.expected_connective `Tm tm_tp
+      end
+    | tp -> RM.expected_connective `Univ tp
 end
 
 module Univ =

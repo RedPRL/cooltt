@@ -37,6 +37,13 @@ val desc : tp m
 val desc_end : t m
 val tm : t m -> t m -> tp m
 
+val tm_ap : t m -> t m -> t m -> t m -> t m
+val tm_rec : t m -> t m -> t m -> t m
+val desc_method : t m -> t m -> t m -> t m -> t m
+
+val data : t m -> tp m
+val code_data : t m -> t m
+
 val zero : t m
 val suc : t m -> t m
 

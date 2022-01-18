@@ -103,6 +103,12 @@ struct
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
     | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp lbl
+    | KDescMethod (mot, ctx, tm) ->
+      Format.fprintf fmt
+        "desc/method[%a, %a, %a]" 
+        pp_con mot
+        pp_con ctx
+        pp_con tm
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
