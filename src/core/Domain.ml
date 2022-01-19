@@ -103,12 +103,11 @@ struct
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
     | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp lbl
-    | KDescMethod (mot, ctx, tm) ->
+    | KDescMethod (ctx, mot) ->
       Format.fprintf fmt
-        "desc/method[%a, %a, %a]" 
-        pp_con mot
+        "desc/method[%a, %a]" 
         pp_con ctx
-        pp_con tm
+        pp_con mot
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -173,6 +172,10 @@ struct
       Format.fprintf fmt "ctx-nil"
     | CtxSnoc(ctx, ident, desc) ->
       Format.fprintf fmt "ctx-snoc[%a, %a, %a]" pp_con ctx Ident.pp ident pp_con desc
+    | ElemHere (ctx, desc) ->
+      Format.fprintf fmt "elem-here[%a, %a]" pp_con ctx pp_con desc
+    | ElemThere (ctx, desc0, desc1, elem) ->
+      Format.fprintf fmt "elem-here[%a, %a, %a, %a]" pp_con ctx pp_con desc0 pp_con desc1 pp_con elem
     | TmVar v ->
       Format.fprintf fmt "tm-var[%a]" Ident.pp v
     | TmAppArg (base, fam, f, a) ->
@@ -248,6 +251,8 @@ struct
       Format.fprintf fmt "<desc>"
     | Ctx ->
       Format.fprintf fmt "<ctx>"
+    | Elem (ctx, desc) ->
+      Format.fprintf fmt "elem[%a, %a]" pp_con ctx pp_con desc
     | Tm (ctx, desc) ->
       Format.fprintf fmt "tm[%a, %a]" pp_con ctx pp_con desc
     | Univ ->
@@ -277,6 +282,7 @@ struct
     | `Signature _ -> Format.fprintf fmt "<code-sig>"
     | `Desc -> Format.fprintf fmt "<desc>"
     | `Ctx -> Format.fprintf fmt "<ctx>"
+    | `Elem (ctx, desc) -> Format.fprintf fmt "elem[%a, %a]" pp_con ctx pp_con desc
     | `Tm (ctx, desc) -> Format.fprintf fmt "ctx[%a, %a]" pp_con ctx pp_con desc
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"

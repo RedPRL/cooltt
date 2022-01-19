@@ -26,6 +26,9 @@ struct
     | `Ctx
     (** Contexts of Descriptions *)
 
+    | `Elem of 'a * 'a
+    (** A proof that [A ∈ Γ] *)
+
     | `Tm of 'a * 'a
     (** Terms in the language of inductive types. *)
 
@@ -91,6 +94,12 @@ struct
     | CtxNil
     | CtxSnoc of con * Ident.t * con
 
+    (** Proofs that [A ∈ Γ] *)
+    | ElemHere of con * con
+    (** [∀ Γ A → A ∈ (Γ, A) ] *)
+    | ElemThere of con * con * con * con
+    (** [∀ Γ A B → A ∈ Γ → A ∈ (Γ, B) ] *)
+
     (** Formal expressions involving elements of a context. We can think of these as embedded terms
         from the simple type theory of inductive types. *)
     | TmVar of Ident.t
@@ -141,6 +150,7 @@ struct
     | Signature of sign
     | Desc
     | Ctx
+    | Elem of con * con
     | Tm of con * con
     | Nat
     | Circle
@@ -170,7 +180,7 @@ struct
     | KFst
     | KSnd
     | KProj of Ident.t
-    | KDescMethod of con * con * con
+    | KDescMethod of con * con
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

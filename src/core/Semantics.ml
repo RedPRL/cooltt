@@ -212,10 +212,20 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   | D.DescRec desc ->
     let+ desc = subst_con r x desc in
     D.DescRec desc
-  | CtxSnoc (ctx, ident, desc) ->
+  | D.CtxSnoc (ctx, ident, desc) ->
     let+ ctx = subst_con r x ctx
     and+ desc = subst_con r x desc in
     D.CtxSnoc (ctx, ident, desc)
+  | D.ElemHere (ctx, desc) ->
+    let+ ctx = subst_con r x ctx
+    and+ desc = subst_con r x desc in
+    D.ElemHere (ctx, desc)
+  | D.ElemThere (ctx, desc0, desc1, elem) ->
+    let+ ctx = subst_con r x ctx
+    and+ desc0 = subst_con r x desc0
+    and+ desc1 = subst_con r x desc1
+    and+ elem = subst_con r x elem in
+    D.ElemThere (ctx, desc0, desc1, elem)
   | D.TmVar x ->
     ret @@ D.TmVar x
   | D.TmAppArg (base, fam, fn, arg) ->
@@ -370,6 +380,10 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
   | D.Desc | D.Ctx | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Elem (ctx, desc) ->
+    let+ ctx = subst_con r x ctx
+    and+ desc = subst_con r x desc in
+    D.Elem (ctx, desc)
   | D.Tm (ctx, desc) ->
     let+ ctx = subst_con r x ctx
     and+ desc = subst_con r x desc in
@@ -422,6 +436,10 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
   | `Signature fields ->
     let+ fields = MU.map (MU.second (subst_con r x)) fields in
     `Signature fields
+  | `Elem (ctx, desc) ->
+    let+ ctx = subst_con r x ctx
+    and+ desc = subst_con r x desc in
+    `Elem (ctx, desc)
   | `Tm (ctx, desc) ->
     let+ ctx = subst_con r x ctx
     and+ desc = subst_con r x desc in
@@ -498,6 +516,10 @@ and subst_frm : D.dim -> DimProbe.t -> D.frm -> D.frm CM.m =
     let+ tp = subst_tp r x tp
     and+ arg = subst_con r x arg in
     D.KAp (tp, arg)
+  | D.KDescMethod (ctx, mot) ->
+    let+ ctx = subst_con r x ctx
+    and+ mot = subst_con r x mot in
+    D.KDescMethod (ctx, mot)
   | D.KNatElim (con0, con1, con2) ->
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1
@@ -543,6 +565,10 @@ and eval_tp : S.tp -> D.tp EvM.m =
     ret D.Desc
   | S.Ctx ->
     ret D.Ctx
+  | S.Elem (ctx, desc) ->
+    let+ ctx = eval ctx
+    and+ desc = eval desc in
+    D.Elem (ctx, desc)
   | S.Tm (ctx, desc) ->
     let+ ctx = eval ctx
     and+ desc = eval desc in
@@ -654,18 +680,27 @@ and eval : S.t -> D.con EvM.m =
     | S.DescRec desc ->
       let+ desc = eval desc in
       D.DescRec desc
-    | S.DescMethod (mot, ctx, desc, tm) ->
-      let* mot = eval mot in
+    | S.DescMethod (ctx, mot, desc) ->
       let* ctx = eval ctx in
+      let* mot = eval mot in
       let* desc = eval desc in
-      let* tm = eval tm in
-      lift_cmp @@ do_desc_method mot ctx desc tm
+      lift_cmp @@ do_desc_method ctx mot desc
     | S.CtxNil ->
       ret D.CtxNil
     | S.CtxSnoc (rest, ident, desc) ->
       let+ rest = eval rest
       and+ desc = eval desc in
       D.CtxSnoc (rest, ident, desc)
+    | S.ElemHere (ctx, desc) ->
+      let+ ctx = eval ctx
+      and+ desc = eval desc in
+      D.ElemHere (ctx, desc)
+    | S.ElemThere (ctx, desc0, desc1, elem) ->
+      let+ ctx = eval ctx
+      and+ desc0 = eval desc0
+      and+ desc1 = eval desc1
+      and+ elem = eval elem in
+      D.ElemThere (ctx, desc0, desc1, elem)
     | S.TmVar v ->
       ret @@ D.TmVar v
     | S.TmAppArg (base, fam, fn, arg) ->
@@ -788,6 +823,11 @@ and eval : S.t -> D.con EvM.m =
     | S.CodeCtx ->
       ret @@ D.StableCode `Ctx
 
+    | S.CodeElem (ctx, desc) ->
+      let+ ctx = eval ctx
+      and+ desc = eval desc in
+      D.StableCode (`Elem (ctx, desc))
+
     | S.CodeTm (ctx, desc) ->
       let+ ctx = eval ctx
       and+ desc = eval desc in
@@ -899,7 +939,9 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _
-  | D.DescEnd | D.DescArg _ | D.DescRec _ | D.CtxNil | D.CtxSnoc _ | D.TmVar _ | D.TmAppArg _ | D.TmAppRec _
+  | D.DescEnd | D.DescArg _ | D.DescRec _ | D.CtxNil | D.CtxSnoc _
+  | D.ElemHere _ | D.ElemThere _
+  | D.TmVar _ | D.TmAppArg _ | D.TmAppRec _
   | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
@@ -1361,39 +1403,40 @@ and do_ap con arg =
       throw @@ NbeFailed "Not a function in do_ap"
   end
 
-and do_desc_method mot ctx desc tm : D.con CM.m =
+and do_desc_method ctx mot desc : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   match desc with
-  | D.DescEnd -> do_ap mot tm
+  | D.DescEnd ->
+    (* NOTE: This has been eta-contracted *)
+    ret mot
   | D.DescArg (base, fam) ->
     splice_tm @@
-    Splice.con mot @@ fun mot ->
     Splice.con ctx @@ fun ctx ->
+    Splice.con mot @@ fun mot ->
     Splice.con base @@ fun base ->
     Splice.con fam @@ fun fam ->
-    Splice.con tm @@ fun tm ->
     Splice.term @@
+    TB.lam @@ fun tm ->
     TB.code_pi base @@ TB.lam @@ fun x ->
-    TB.desc_method mot ctx (TB.ap fam [x]) (TB.tm_ap base fam tm x)
+    TB.desc_method ctx mot (TB.ap fam [x]) (TB.tm_ap base fam tm x)
   | D.DescRec desc ->
     splice_tm @@
-    Splice.con mot @@ fun mot ->
     Splice.con ctx @@ fun ctx ->
+    Splice.con mot @@ fun mot ->
     Splice.con desc @@ fun desc ->
-    Splice.con tm @@ fun tm ->
     Splice.term @@
+    TB.lam @@ fun tm ->
     TB.code_pi (TB.code_data ctx) @@ TB.lam @@ fun x ->
     TB.code_pi (TB.ap mot [x]) @@ TB.lam @@ fun _ ->
-    TB.desc_method mot ctx desc (TB.tm_rec desc tm x)
+    TB.desc_method ctx mot desc (TB.tm_rec desc tm x)
   | D.Cut { cut; _ } ->
-    ret @@ cut_frm ~tp:D.Univ ~cut @@ D.KDescMethod (mot, ctx, tm)
+    ret @@ cut_frm ~tp:D.Univ ~cut @@ D.KDescMethod (ctx, mot)
   | D.Split branches as con ->
     splice_tm @@
     Splice.con mot @@ fun mot ->
     Splice.con ctx @@ fun ctx ->
-    Splice.con tm @@ fun tm ->
-    Splice.Macro.commute_split con (List.map fst branches) @@ fun desc -> TB.desc_method mot ctx desc tm
+    Splice.Macro.commute_split con (List.map fst branches) @@ fun desc -> TB.lam @@ fun tm -> TB.desc_method mot ctx desc tm
   | con ->
     Format.eprintf "bad desc-method: %a@." D.pp_con con;
     CM.throw @@ NbeFailed "Not a description"
@@ -1602,6 +1645,9 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
       | `Ctx ->
         ret D.Ctx
 
+      | `Elem (ctx, desc) ->
+        ret @@ D.Elem (ctx, desc)
+
       | `Tm (ctx, desc) ->
         ret @@ D.Tm (ctx, desc)
 
@@ -1704,6 +1750,8 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
+      | `Elem (ctxx, descx) ->
+        failwith "[FIXME] Basis.Basis.enact_rigid_coe: Coercions in elem."
       | `Tm (ctxx, descx) ->
         failwith "[FIXME] Basis.Basis.enact_rigid_coe: Coercions in terms."
       | `Ext (n, famx, `Global cof, bdryx) ->
@@ -1793,6 +1841,8 @@ and enact_rigid_hcom code r r' phi bdy tag =
         failwith "[FIXME] Basis.Basis.enact_rigid_hcom: HCom in desc."
       | `Ctx ->
         failwith "[FIXME] Basis.Basis.enact_rigid_hcom: HCom in ctx."
+      | `Elem (ctx, desc) ->
+        failwith "[FIXME] Basis.Basis.enact_rigid_hcom: HCom in elem."
       | `Tm (ctx, desc) ->
         failwith "[FIXME] Basis.Basis.enact_rigid_hcom: HCom in terms."
       | `Ext (n, fam, `Global cof, bdry) ->
@@ -1922,7 +1972,7 @@ and do_frm con =
   | D.KFst -> do_fst con
   | D.KSnd -> do_snd con
   | D.KProj lbl -> do_proj con lbl
-  | D.KDescMethod (mot, ctx, tm) -> do_desc_method mot ctx con tm
+  | D.KDescMethod (ctx, mot) -> do_desc_method ctx mot con
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con
   | D.KElOut -> do_el_out con

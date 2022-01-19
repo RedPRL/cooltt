@@ -186,12 +186,12 @@ let tm_ap mbase mfam mf ma =
   and+ a = ma in
   S.TmAppArg (base, fam, f, a)
 
-let desc_method mmot mctx mdesc mtm =
-  let+ mot = mmot
-  and+ ctx = mctx
+let desc_method mctx mmot mdesc mtm =
+  let+ ctx = mctx
+  and+ mot = mmot
   and+ desc = mdesc
   and+ tm = mtm in
-  S.DescMethod (mot, ctx, desc, tm)
+  S.Ap (S.DescMethod (ctx, mot, desc), tm)
 
 let tm_rec mdesc mf ma =
   let+ desc = mdesc

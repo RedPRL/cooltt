@@ -134,6 +134,18 @@ let rec quote_con (tp : D.tp) con =
     and+ desc = quote_con D.Desc desc in
     S.CtxSnoc (ctx, ident, desc)
 
+  | _, D.ElemHere (ctx, desc) ->
+    let+ ctx = quote_con D.Ctx ctx
+    and+ desc = quote_con D.Desc desc in
+    S.ElemHere (ctx, desc)
+
+  | _, D.ElemThere (ctx, desc0, desc1, elem) ->
+    let+ ctx = quote_con D.Ctx ctx
+    and+ desc0 = quote_con D.Desc desc0
+    and+ desc1 = quote_con D.Desc desc1
+    and+ elem = quote_con (D.Elem (ctx, desc0)) elem in
+    S.ElemThere (ctx, desc0, desc1, elem)
+
   | _, D.TmVar x ->
     ret @@ S.TmVar x
 
@@ -402,6 +414,11 @@ and quote_stable_code univ =
   | `Ctx ->
     ret S.CodeCtx
 
+  | `Elem (ctx, desc) ->
+    let+ ctx = quote_con D.Ctx ctx
+    and+ desc = quote_con D.Desc desc in
+    S.CodeElem (ctx, desc)
+
   | `Tm (ctx, desc) ->
     let+ ctx = quote_con D.Ctx ctx
     and+ desc = quote_con D.Desc desc in
@@ -503,10 +520,14 @@ and quote_tp (tp : D.tp) =
     ret S.Desc
   | D.Ctx ->
     ret S.Ctx
+  | D.Elem (ctx, desc) ->
+    let+ ctx = quote_con D.Ctx ctx
+    and+ desc = quote_con D.Desc desc in
+    S.Elem (ctx, desc)
   | D.Tm (ctx, desc) ->
     let+ ctx = quote_con D.Ctx ctx
     and+ desc = quote_con D.Desc desc in
-    S .Tm (ctx, desc)
+    S.Tm (ctx, desc)
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->
@@ -672,8 +693,18 @@ and quote_spine tm =
     let* tm' = quote_frm tm k in
     quote_spine tm' spine
 
-and quote_frm tm =
+and quote_frm hd =
   function
+  | D.KDescMethod (ctx, mot) ->
+    let* tctx = quote_con D.Ctx ctx in
+    let* mot_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con ctx @@ fun ctx ->
+      Splice.term @@ TB.pi (TB.data ctx) @@ fun _ -> TB.univ
+    in
+    let+ tmot = quote_con mot_tp mot in
+    S.DescMethod (tctx, tmot, hd)
   | D.KNatElim (mot, zero_case, suc_case) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
@@ -694,7 +725,7 @@ and quote_frm tm =
       TB.el @@ TB.ap mot [TB.suc x]
     in
     let* tsuc_case = quote_con suc_tp suc_case in
-    ret @@ S.NatElim (tmot, tzero_case, tsuc_case, tm)
+    ret @@ S.NatElim (tmot, tzero_case, tsuc_case, hd)
   | D.KCircleElim (mot, base_case, loop_case) ->
     let* mot_tp =
       lift_cmp @@ Sem.splice_tp @@ Splice.term @@
@@ -714,15 +745,15 @@ and quote_frm tm =
       TB.el @@ TB.ap mot [TB.loop x]
     in
     let* tloop_case = quote_con loop_tp loop_case in
-    ret @@ S.CircleElim (tmot, tbase_case, tloop_case, tm)
+    ret @@ S.CircleElim (tmot, tbase_case, tloop_case, hd)
   | D.KFst ->
-    ret @@ S.Fst tm
+    ret @@ S.Fst hd
   | D.KSnd ->
-    ret @@ S.Snd tm
+    ret @@ S.Snd hd
   | D.KProj lbl ->
-    ret @@ S.Proj (tm, lbl)
+    ret @@ S.Proj (hd, lbl)
   | D.KAp (tp, con) ->
     let+ targ = quote_con tp con in
-    S.Ap (tm, targ)
+    S.Ap (hd, targ)
   | D.KElOut ->
-    ret @@ S.ElOut tm
+    ret @@ S.ElOut hd

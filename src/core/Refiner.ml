@@ -647,6 +647,47 @@ struct
     S.CtxSnoc (rest, ident, desc)
 end
 
+module Elem =
+struct
+  let formation (ctx_tac : T.Chk.tac) (desc_tac : T.Chk.tac) : T.Tp.tac =
+    T.Tp.rule ~name:"Elem.formation" @@
+    let+ ctx = T.Chk.run ctx_tac D.Ctx
+    and+ desc = T.Chk.run desc_tac D.Desc in
+    S.Elem (ctx, desc)
+
+  let here : T.Chk.tac =
+    T.Chk.rule ~name:"Elem.here" @@
+    function
+    | D.Elem (ctx, desc0) ->
+      begin
+        match ctx with
+        | D.CtxSnoc (_, _, desc1) ->
+          let* _ = RM.equate D.Desc desc0 desc1 in
+          let* tctx = RM.quote_con D.Ctx ctx in
+          let+ tdesc = RM.quote_con D.Desc desc0 in
+          S.ElemHere (tctx, tdesc)
+        | _ -> failwith "[FIXME] Containers.Elem.here: Better error handling for index mismatches"
+      end
+    | tp -> RM.expected_connective `Elem tp
+
+  let there (elem_tac : T.Chk.tac) : T.Chk.tac =
+    T.Chk.rule ~name:"Elem.there" @@
+    function
+    | D.Elem (ctx, desc0) ->
+      begin
+        match ctx with
+        | D.CtxSnoc (ctx, _, desc1) ->
+          let* elem = T.Chk.run elem_tac (D.Elem (ctx, desc0)) in
+          let* tctx = RM.quote_con D.Ctx ctx in
+          let* tdesc0 = RM.quote_con D.Desc desc0 in
+          let+ tdesc1 = RM.quote_con D.Desc desc1 in
+          S.ElemThere (tctx, tdesc0, tdesc1, elem)
+        | _ -> failwith "[FIXME] Containers.Elem.there: Better error handling for index mismatches"
+      end
+    | tp -> RM.expected_connective `Elem tp
+
+end
+
 module Tm =
 struct
   let formation (ctx_tac : T.Chk.tac) (desc_tac : T.Chk.tac) : T.Tp.tac =
@@ -741,7 +782,8 @@ struct
           let* tctx = RM.quote_con D.Ctx ctx in
           Debug.print "Quoting Description@.";
           let+ tdesc = RM.quote_con D.Desc desc in
-          S.DescMethod (mot, tctx, tdesc, tm)
+          (* [TODO: Reed M, 18/01/2022] Does this make sense? Or should I expand this out to something with a function type... *)
+          S.Ap (S.DescMethod (mot, tctx, tdesc), tm)
         | _ -> RM.expected_connective `Tm tm_tp
       end
     | tp -> RM.expected_connective `Univ tp
@@ -949,7 +991,7 @@ struct
     | _ -> RM.expected_connective `Pi tp
 
   let tm (ctx_tac : T.Chk.tac) (desc_tac : T.Chk.tac) : T.Chk.tac =
-    univ_tac "Univ.tm" @@ fun univ ->
+    univ_tac "Univ.tm" @@ fun _ ->
     let* ctx = T.Chk.run ctx_tac D.Ctx in
     let+ desc = T.Chk.run desc_tac D.Desc in
     S.CodeTm (ctx, desc)

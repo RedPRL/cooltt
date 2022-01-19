@@ -60,7 +60,8 @@ let check_tm (axioms : (string * S.tp) list) (mtp : D.tp RM.m) : (S.t list -> D.
     (* [TODO: Reed M, 18/01/2022] Register some exception printers instead. *)
     Format.printf "Conversion Failed: %a@." Conversion.Error.pp err;
     false
-  | Error _ -> false
+  | Error _ ->
+    false
 
 module Desc =
 struct
@@ -82,18 +83,39 @@ struct
     List.fold_left (fun sign (lbl, t) -> S.CtxSnoc (sign, `User [lbl], t)) S.CtxNil xs
 end
 
-(** The signature of the 'nat' datatype. *)
+(** Nat Tests *)
 let nat_signature : S.t =
   Signature.of_list [("z", Desc.nary 0); ("s", Desc.nary 1)]
 
-let tree_signature : S.t =
-  Signature.of_list [("leaf", Desc.nary 0); ("node", Desc.nary 2)]
+let nat_method_tp =
+  let* vnat_sig = RM.lift_ev @@ Sem.eval nat_signature in
+  RM.lift_cmp @@
+  Sem.splice_tp @@
+  Splice.con vnat_sig @@ fun nat_sig ->
+  Splice.term @@
+  TB.pi (TB.tm nat_sig (TB.desc_rec TB.desc_end)) @@ fun _ -> TB.univ
+
+let nat_mot =
+  S.Pi (Desc.data nat_signature, `Machine "x", S.Univ)
+
+let nat_zero_method () =
+  let mthd [mot] =
+    RM.lift_ev @@ Sem.eval @@ S.DescMethod (nat_signature, mot, Desc.nary 0)
+  in
+  let expected [mot] =
+    let* vmot = RM.lift_ev @@ Sem.eval mot in
+    RM.lift_cmp @@
+    Sem.splice_tm @@
+    Splice.con vmot @@ fun mot ->
+    Splice.term @@
+    TB.lam @@ fun z ->
+    TB.ap mot [z]
+  in
+  Alcotest.check (check_tm ["mot", nat_mot] nat_method_tp) "method of induction for nat/zero" expected mthd
 
 let nat_suc_method () =
-  let tp = RM.ret D.Univ in
-  let mot = (S.Pi (Desc.data nat_signature, `Machine "x", S.Univ)) in
   let mthd [mot] =
-    RM.lift_ev @@ Sem.eval @@ S.DescMethod (mot, nat_signature, Desc.nary 1, S.TmVar (`User ["s"]))
+    RM.lift_ev @@ Sem.eval @@ S.DescMethod (nat_signature, mot, Desc.nary 1)
   in
   let expected [mot] =
     let* vmot = RM.lift_ev @@ Sem.eval mot in
@@ -103,17 +125,29 @@ let nat_suc_method () =
     Splice.con nat_sig @@ fun nat_sig ->
     Splice.con vmot @@ fun mot ->
     Splice.term @@
-    TB.code_pi (TB.code_data nat_sig) @@ TB.lam @@ fun n ->
+    TB.lam ~ident:(`User ["s"]) @@ fun s ->
+    TB.code_pi (TB.code_data nat_sig) @@ TB.lam ~ident:(`User ["n"]) @@ fun n ->
     TB.code_pi (TB.ap mot [n]) @@ TB.lam @@ fun _ ->
-    TB.ap mot [TB.tm_rec TB.desc_end (TB.tm_var (`User ["s"])) n]
+    TB.ap mot [TB.tm_rec TB.desc_end s n]
   in
-  Alcotest.check (check_tm ["mot", mot] tp) "method of induction for nat/suc" mthd expected
+  Alcotest.check (check_tm ["mot", nat_mot] nat_method_tp) "method of induction for nat/suc" expected mthd
+
+(** Tree Tests *)
+let tree_signature : S.t =
+  Signature.of_list [("leaf", Desc.nary 0); ("node", Desc.nary 2)]
+
+let tree_method_tp =
+  let* vtree_sig = RM.lift_ev @@ Sem.eval tree_signature in
+  RM.lift_cmp @@
+  Sem.splice_tp @@
+  Splice.con vtree_sig @@ fun tree_sig ->
+  Splice.term @@
+  TB.pi (TB.tm tree_sig (TB.desc_rec @@ TB.desc_rec TB.desc_end)) @@ fun _ -> TB.univ
 
 let tree_node_method () =
-  let tp = RM.ret D.Univ in
   let mot = S.Pi (Desc.data tree_signature, `Machine "x", S.Univ) in
   let mthd [mot] =
-    RM.lift_ev @@ Sem.eval @@ S.DescMethod (mot, tree_signature, Desc.nary 2, S.TmVar (`User ["node"]))
+    RM.lift_ev @@ Sem.eval @@ S.DescMethod (tree_signature, mot, Desc.nary 2)
   in
   let expected [mot] =
     let* vmot = RM.lift_ev @@ Sem.eval mot in
@@ -123,19 +157,20 @@ let tree_node_method () =
     Splice.con tree_sig @@ fun tree_sig ->
     Splice.con vmot @@ fun mot ->
     Splice.term @@
+    TB.lam @@ fun node ->
     TB.code_pi (TB.code_data tree_sig) @@ TB.lam @@ fun t0 ->
     TB.code_pi (TB.ap mot [t0]) @@ TB.lam @@ fun _ ->
     TB.code_pi (TB.code_data tree_sig) @@ TB.lam @@ fun t1 ->
     TB.code_pi (TB.ap mot [t1]) @@ TB.lam @@ fun _ ->
-    TB.ap mot [TB.tm_rec TB.desc_end (TB.tm_rec (TB.desc_rec TB.desc_end) (TB.tm_var (`User ["node"])) t0) t1]
+    TB.ap mot [TB.tm_rec TB.desc_end (TB.tm_rec (TB.desc_rec TB.desc_end) node t0) t1]
   in
-  Alcotest.check (check_tm ["mot", mot] tp) "method of induction for tree/node" mthd expected
+  Alcotest.check (check_tm ["mot", mot] tree_method_tp) "method of induction for tree/node" expected mthd
 
 let () =
   let open Alcotest in
-  Debug.debug_mode true;
   run "Inductives" [
     "Methods of Induction", [
+      test_case "nat/zero" `Quick nat_zero_method;
       test_case "nat/suc" `Quick nat_suc_method;
       test_case "tree/node" `Quick tree_node_method;
     ]

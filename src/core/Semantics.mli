@@ -53,3 +53,5 @@ val subst_con : D.dim -> DimProbe.t -> D.con -> D.con compute
 val push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con compute
 
 val ctx_lookup : D.con -> Ident.t -> D.con option
+
+exception NbeFailed of string

@@ -67,6 +67,12 @@ module Ctx : sig
   val snoc : Chk.tac -> Ident.t -> Chk.tac -> Chk.tac
 end
 
+module Elem : sig
+  val formation : Chk.tac -> Chk.tac -> Tp.tac
+  val here : Chk.tac
+  val there : Chk.tac -> Chk.tac
+end
+
 module Tm : sig
   val formation : Chk.tac -> Chk.tac -> Tp.tac
   val var : Ident.t -> Chk.tac

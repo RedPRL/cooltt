@@ -24,6 +24,8 @@ let pp_connective fmt =
     Format.fprintf fmt "desc"
   | `Ctx ->
     Format.fprintf fmt "ctx"
+  | `Elem ->
+    Format.fprintf fmt "elem"
   | `Tm ->
     Format.fprintf fmt "tm"
   | `Univ ->

@@ -31,10 +31,13 @@ struct
     | DescArg of t * t
     | DescRec of t
 
-    | DescMethod of t * t * t * t
+    | DescMethod of t * t * t
 
     | CtxNil
     | CtxSnoc of t * Ident.t * t
+
+    | ElemHere of t * t
+    | ElemThere of t * t * t * t
 
     | TmVar of Ident.t
     | TmAppArg of t * t * t * t
@@ -69,6 +72,7 @@ struct
     | CodeSignature of (Ident.t * t) list
     | CodeDesc
     | CodeCtx
+    | CodeElem of t * t
     | CodeTm of t * t
     | CodeNat
     | CodeUniv
@@ -95,6 +99,7 @@ struct
     | Signature of sign
     | Desc
     | Ctx
+    | Elem of t * t
     | Tm of t * t
     | Nat
     | Circle

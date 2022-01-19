@@ -13,6 +13,7 @@ struct
     | `Signature
     | `Desc
     | `Ctx
+    | `Elem
     | `Tm
     | `Nat
     | `Circle

@@ -47,15 +47,17 @@ struct
     | DescEnd -> Format.fprintf fmt "desc/end"
     | DescArg (base, fam) -> Format.fprintf fmt "desc/arg[%a, %a]" dump base dump fam
     | DescRec desc -> Format.fprintf fmt "desc/rec[%a]" dump desc
-    | DescMethod (mot, ctx, desc, tm) ->
+    | DescMethod (ctx, mot, desc) ->
       Format.fprintf fmt
-        "desc/method[%a, %a, %a, %a]"
-        dump mot
+        "desc/method[%a, %a, %a]"
         dump ctx
+        dump mot
         dump desc
-        dump tm
     | CtxNil -> Format.fprintf fmt "ctx/nil"
     | CtxSnoc (ctx, ident, desc) -> Format.fprintf fmt "ctx/snoc[%a, %a, %a]" dump ctx Ident.pp ident dump desc
+
+    | ElemHere (ctx, desc) -> Format.fprintf fmt "elem/here[%a, %a]" dump ctx dump desc
+    | ElemThere (ctx, desc0, desc1, elem) -> Format.fprintf fmt "elem/there[%a, %a, %a, %a]" dump ctx dump desc0 dump desc1 dump elem
 
     | TmVar x -> Format.fprintf fmt "tm/var[%a]" Ident.pp  x
     | TmAppArg (base, fam, fn, arg) -> Format.fprintf fmt "tm/app/arg[%a, %a, %a, %a]" dump base dump fam dump fn dump arg
@@ -93,6 +95,7 @@ struct
         fields
     | CodeDesc -> Format.fprintf fmt "desc"
     | CodeCtx -> Format.fprintf fmt "ctx"
+    | CodeElem (ctx, desc) -> Format.fprintf fmt "elem[%a, %a]" dump ctx dump desc
     | CodeTm (ctx, desc) -> Format.fprintf fmt "tm[%a, %a]" dump ctx dump desc
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
@@ -125,6 +128,7 @@ struct
     | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
     | Desc -> Format.fprintf fmt "tp/desc"
     | Ctx -> Format.fprintf fmt "tp/ctx"
+    | Elem (ctx, desc) -> Format.fprintf fmt "tp/elem[%a, %a]" dump ctx dump desc
     | Tm (ctx, desc) -> Format.fprintf fmt "tp/tm[%a, %a]" dump ctx dump desc
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
@@ -178,6 +182,8 @@ struct
       | DescMethod _ -> juxtaposition
       | CtxNil -> atom
       | CtxSnoc _ -> juxtaposition
+      | ElemHere _ -> juxtaposition
+      | ElemThere _ -> juxtaposition
       | TmVar _ -> juxtaposition
       | TmAppArg _ -> juxtaposition
       | TmAppRec _ -> juxtaposition
@@ -200,6 +206,7 @@ struct
       | CodePi _ -> arrow
       | CodeSg _ -> times
       | CodeSignature _ -> juxtaposition
+      | CodeElem _ -> juxtaposition
       | CodeTm _ -> juxtaposition
       | CodeExt _ -> juxtaposition
 
@@ -233,6 +240,7 @@ struct
       | Pi _ -> arrow
       | Sg _ -> times
       | Signature _ -> juxtaposition
+      | Elem _ -> juxtaposition
       | TpESub _ -> substitution
       | TpLockedPrf _ -> juxtaposition
   end
@@ -294,17 +302,25 @@ struct
       Format.fprintf fmt "%a -> %a" (pp env penv) arg (pp env penv) desc
     | DescRec desc ->
       Format.fprintf fmt "□ -> %a" (pp env penv) desc
-    | DescMethod (mot, ctx,fam, desc) ->
+    | DescMethod (ctx, mot, desc) ->
       Format.fprintf fmt
-        "@[method %a %a %a %a@]"
-        (pp env penv) mot
+        "@[method %a %a %a@]"
         (pp env penv) ctx
-        (pp env penv) fam
+        (pp env penv) mot
         (pp env penv) desc
     | CtxNil ->
       Format.fprintf fmt "∙"
     | CtxSnoc (rest, ident, desc) ->
       Format.fprintf fmt "%a ▷ (%a : %a)" (pp env penv) rest Ident.pp ident (pp env penv) desc
+    | ElemHere (ctx, desc) ->
+      Format.fprintf fmt "@[here %a %a@]" (pp env penv) ctx (pp env penv) desc
+    | ElemThere (ctx, desc0, desc1, elem) ->
+      Format.fprintf fmt
+        "@[there %a %a %a %a@]"
+        (pp env penv) ctx
+        (pp env penv) desc0
+        (pp env penv) desc1
+        (pp env penv) elem
     | TmVar v ->
       Format.fprintf fmt "%a" Ident.pp v
     | TmAppArg (_, _, f, a) ->
@@ -433,8 +449,10 @@ struct
         Uuseg_string.pp_utf_8 "Σ"
         (pp_atomic env) base
         (pp_atomic env) tm
+
     | CodeSignature fields ->
       Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
+
     | CodeDesc when Debug.is_debug_mode () ->
       Format.fprintf fmt "`desc"
     | CodeDesc ->
@@ -443,14 +461,17 @@ struct
       Format.fprintf fmt "`ctx"
     | CodeCtx ->
       Format.fprintf fmt "ctx"
-    | CodeTm (desc, ctx) when Debug.is_debug_mode () ->
-      Format.fprintf fmt "@[tm %a %a@]"
-        (pp_atomic env) desc
+    | CodeElem (ctx, desc) ->
+      Format.fprintf fmt "@[%a ∋ %a@]"
         (pp_atomic env) ctx
-    | CodeTm (desc, ctx) ->
-      Format.fprintf fmt "@[tm %a %a@]"
         (pp_atomic env) desc
+    | CodeTm (ctx, DescEnd) ->
+      Format.fprintf fmt "@[data %a@]"
         (pp_atomic env) ctx
+    | CodeTm (ctx, desc) ->
+      Format.fprintf fmt "@[tm %a %a@]"
+        (pp_atomic env) ctx
+        (pp_atomic env) desc
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -593,6 +614,10 @@ struct
       Format.fprintf fmt "ctx"
     | Tm (ctx, DescEnd) ->
       Format.fprintf fmt "data %a" (pp env P.(right_of juxtaposition)) ctx
+    | Elem (ctx, desc) ->
+      Format.fprintf fmt "@[%a ∋ %a@]"
+        (pp_atomic env) ctx
+        (pp_atomic env) desc
     | Tm (ctx, desc) ->
       Format.fprintf fmt "tm %a %a" (pp env P.(right_of juxtaposition)) ctx (pp env P.(right_of juxtaposition)) desc
     | Sub (tp, phi, tm) ->
