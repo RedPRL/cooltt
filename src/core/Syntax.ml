@@ -74,6 +74,7 @@ struct
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
+    | CodeTelescope -> Format.fprintf fmt "<tele>"
     | CodeSignature fields ->
       Format.fprintf fmt "sig[%a]"
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp))
@@ -179,6 +180,7 @@ struct
       | SubIn _ | SubOut _ | ElIn _ | ElOut _ -> passed
       | CodePi _ -> arrow
       | CodeSg _ -> times
+      | CodeTelescope -> atom
       | CodeSignature _ -> juxtaposition
       | CodeExt _ -> juxtaposition
 
@@ -408,8 +410,12 @@ struct
         Uuseg_string.pp_utf_8 "Σ"
         (pp_atomic env) base
         (pp_atomic env) tm
+
+    | CodeTelescope ->
+      Format.fprintf fmt "tele"
     | CodeSignature fields ->
       Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
+
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam

@@ -327,6 +327,9 @@ and quote_stable_code univ =
   | `Circle ->
     ret S.CodeCircle
 
+  | `Telescope ->
+    ret S.CodeTelescope
+
   | `Univ ->
     ret S.CodeUniv
 

@@ -406,7 +406,7 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (n, code, `Global cof, con)
-  | `Nat | `Circle | `Univ as code ->
+  | `Nat | `Circle | `Telescope | `Univ as code ->
     ret code
 
 and subst_cut : D.dim -> DimProbe.t -> D.cut -> D.cut CM.m =
@@ -727,12 +727,17 @@ and eval : S.t -> D.con EvM.m =
       let+ vbase = eval base
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
+
+    | S.CodeTelescope ->
+      ret (D.StableCode `Telescope)
+
     | S.CodeSignature fields ->
       let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
         let+ vtp = eval tp in
         (ident, vtp)
       in
       D.StableCode (`Signature vfields)
+
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -1258,6 +1263,33 @@ and do_tele_elim (mot : D.con) (nil : D.con) (cons : D.con) (con : D.con) : D.co
       let+ elfib = do_el fib in
       cut_frm ~tp:elfib ~cut @@
       D.KTeleElim (mot, nil, cons)
+    | D.FHCom (`Telescope, r, s, phi, bdy) ->
+      splice_tm @@
+      Splice.con mot @@ fun mot ->
+      Splice.dim r @@ fun r ->
+      Splice.dim s @@ fun s ->
+      Splice.cof phi @@ fun phi ->
+      Splice.con bdy @@ fun bdy ->
+      Splice.con nil @@ fun nil ->
+      Splice.con cons @@ fun cons ->
+      Splice.term @@
+      let fam =
+        TB.lam @@ fun i ->
+        let fhcom =
+          TB.el_out @@
+          TB.hcom TB.code_tele r i phi @@
+          TB.lam @@ fun j ->
+          TB.lam @@ fun prf ->
+          TB.el_in @@ TB.ap bdy [j; prf]
+        in
+        TB.ap mot [fhcom]
+      in
+      let bdy' =
+        TB.lam @@ fun i ->
+        TB.lam @@ fun prf ->
+        TB.tele_elim mot nil cons @@ TB.ap bdy [i; prf]
+      in
+      TB.com fam r s phi bdy'
     | _ ->
       throw @@ NbeFailed ("couldn't eliminate telescope in do_tele_elim")
   end
@@ -1526,6 +1558,10 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.term @@
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
+
+      | `Telescope ->
+        ret D.Telescope
+
       | `Signature fields ->
         let (lbls, field_cons) = ListUtil.unzip fields in
         splice_tp @@
@@ -1606,7 +1642,7 @@ and enact_rigid_coe line r r' con tag =
   | `Stable (x, code) ->
     begin
       match code with
-      | `Nat | `Circle | `Univ -> ret con
+      | `Nat | `Circle | `Telescope | `Univ -> ret con
       | `Pi (basex, famx) ->
         splice_tm @@
         Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
@@ -1725,7 +1761,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
-      | `Circle | `Nat as tag ->
+      | `Telescope | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@
           Splice.con bdy @@ fun bdy ->

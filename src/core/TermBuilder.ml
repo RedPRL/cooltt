@@ -156,6 +156,9 @@ let snd m =
 let tele =
   ret S.Telescope
 
+let code_tele =
+  ret S.CodeTelescope
+
 let nil =
   ret S.TeleNil
 

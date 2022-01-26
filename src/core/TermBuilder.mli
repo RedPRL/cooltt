@@ -31,6 +31,7 @@ val snd : t m -> t m
 val lams : Ident.t list -> (t m list -> t m) -> t m
 
 val tele : tp m
+val code_tele : t m
 val nil : t m
 val cons : Ident.user -> t m -> t m -> t m
 val tele_elim : t m -> t m -> t m -> t m -> t m

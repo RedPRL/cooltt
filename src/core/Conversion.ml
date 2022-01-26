@@ -145,7 +145,7 @@ and equate_sign sign0 sign1 =
 
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
-  | `Nat, `Nat | `Circle, `Circle | `Univ, `Univ -> ret ()
+  | `Nat, `Nat | `Circle, `Circle | `Telescope, `Telescope | `Univ, `Univ -> ret ()
   | `Pi (base0, fam0), `Pi (base1, fam1)
   | `Sg (base0, fam0), `Sg (base1, fam1) ->
     let* _ = equate_con univ base0 base1 in

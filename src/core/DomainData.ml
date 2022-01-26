@@ -17,6 +17,9 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
+    | `Telescope
+    (** The universe of telescopes *)
+
     | `Signature of (Ident.user * 'a) list
     (** First-Class Record types *)
 
@@ -87,7 +90,7 @@ struct
 
     | Prf
 
-    | FHCom of [`Nat | `Circle] * dim * dim * cof * con
+    | FHCom of [`Telescope | `Nat | `Circle] * dim * dim * cof * con
 
     | StableCode of con stable_code
     | UnstableCode of con unstable_code

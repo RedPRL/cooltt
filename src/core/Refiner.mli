@@ -61,6 +61,7 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
+  val tele : Chk.tac
   val signature : (Ident.user * Chk.tac) list -> Chk.tac
   val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
   val total : Syn.tac -> Chk.tac

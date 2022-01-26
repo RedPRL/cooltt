@@ -689,6 +689,10 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
+  let tele : T.Chk.tac =
+    univ_tac "Univ.tele" @@ fun _ ->
+    RM.ret S.CodeTelescope
+
   (* [NOTE: Sig Code Quantifiers]
      When we are creating a code for a signature, we need to make sure
      that we can depend on the values of previous fields. To achieve this,

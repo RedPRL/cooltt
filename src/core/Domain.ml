@@ -256,6 +256,7 @@ struct
     | `Ext _ -> Format.fprintf fmt "<code-ext>"
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
+    | `Telescope -> Format.fprintf fmt "<code-tele>"
     | `Signature _ -> Format.fprintf fmt "<code-sig>"
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"

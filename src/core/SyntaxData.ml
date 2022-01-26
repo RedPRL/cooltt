@@ -57,6 +57,7 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
+    | CodeTelescope
     | CodeSignature of (Ident.user * t) list
     | CodeNat
     | CodeUniv
