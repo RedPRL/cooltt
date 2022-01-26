@@ -414,6 +414,31 @@ and equate_frm k0 k1 =
       TB.el @@ TB.ap mot [TB.loop x]
     in
     equate_con loop_tp loop_case0 loop_case1
+  | D.KTeleElim (mot0, nil_case0, cons_case0), D.KTeleElim (mot1, nil_case1, cons_case1) ->
+    let* mot_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.term @@
+      TB.pi TB.tele @@ fun _ -> TB.univ
+    in
+    let* () = equate_con mot_tp mot0 mot1 in
+    let* () =
+      let* mot_nil = lift_cmp @@ do_ap mot0 D.TeleNil in
+      let* tp_mot_nil = lift_cmp @@ do_el mot_nil in
+      equate_con tp_mot_nil nil_case0 nil_case1
+    in
+    let* cons_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con mot0 @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.univ @@ fun a ->
+      TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.tele) @@ fun t ->
+      TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el (TB.ap mot [TB.ap t [x]])) @@ fun _ ->
+      (* [TODO: Reed M, 26/01/2022] Rethink identifiers in telescopes! *)
+      TB.el @@ TB.ap mot [TB.cons (`User ["FIXME"]) a t]
+    in
+    equate_con cons_tp cons_case0 cons_case1
   | D.KElOut, D.KElOut ->
     ret ()
   | _ ->

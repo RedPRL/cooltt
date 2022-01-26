@@ -658,6 +658,32 @@ and quote_frm tm =
     in
     let* tloop_case = quote_con loop_tp loop_case in
     ret @@ S.CircleElim (tmot, tbase_case, tloop_case, tm)
+  | D.KTeleElim (mot, nil_case, cons_case) ->
+    let* mot_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.term @@
+      TB.pi TB.tele @@ fun _ -> TB.univ
+    in
+    let* tmot = quote_con mot_tp mot in
+    let* tnil_case =
+      let* mot_nil = lift_cmp @@ do_ap mot D.TeleNil in
+      let* tp_mot_nil = lift_cmp @@ do_el mot_nil in
+      quote_con tp_mot_nil nil_case
+    in
+    let* cons_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con mot @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.univ @@ fun a ->
+      TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.tele) @@ fun t ->
+      TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el (TB.ap mot [TB.ap t [x]])) @@ fun _ ->
+      (* [TODO: Reed M, 26/01/2022] Rethink identifiers in telescopes! *)
+      TB.el @@ TB.ap mot [TB.cons (`User ["FIXME"]) a t]
+    in
+    let+ tcons_case = quote_con cons_tp cons_case in
+    S.TeleElim (tmot, tnil_case, tcons_case, tm)
   | D.KFst ->
     ret @@ S.Fst tm
   | D.KSnd ->

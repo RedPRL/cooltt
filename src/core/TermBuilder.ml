@@ -164,6 +164,13 @@ let cons id mcode mtele =
   and+ tele = mtele in
   S.TeleCons (id, code, tele)
 
+let tele_elim mmot mnil mcons mtele =
+  let+ mot = mmot
+  and+ nil = mnil
+  and+ cons = mcons
+  and+ tele = mtele in
+  S.TeleElim (mot, nil, cons, tele)
+
 let struct_ mfields =
   let+ fields = MU.map (MU.second (fun x -> x)) mfields in
   S.Struct fields

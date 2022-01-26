@@ -105,6 +105,7 @@ struct
     | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
+    | KTeleElim _ -> Format.fprintf fmt "<tele-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
   and pp_cof : cof Pp.printer =

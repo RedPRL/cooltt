@@ -484,6 +484,11 @@ and subst_frm : D.dim -> DimProbe.t -> D.frm -> D.frm CM.m =
     and+ con1 = subst_con r x con1
     and+ con2 = subst_con r x con2 in
     D.KCircleElim (con0, con1, con2)
+  | D.KTeleElim (con0, con1, con2) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1
+    and+ con2 = subst_con r x con2 in
+    D.KTeleElim (con0, con1, con2)
 
 
 and subst_sp : D.dim -> DimProbe.t -> D.frm list -> D.frm list CM.m =
@@ -615,6 +620,12 @@ and eval : S.t -> D.con EvM.m =
       let+ code = eval code
       and+ tele = eval tele in
       D.TeleCons (id, code, tele)
+    | S.TeleElim (mot, nil, cons, tele) ->
+      let* mot = eval mot in
+      let* nil = eval nil in
+      let* cons = eval cons in
+      let* tele = eval tele in
+      lift_cmp @@ do_tele_elim mot nil cons tele
     | S.Struct fields ->
       let+ vfields = MU.map (MU.second eval) fields in
       D.Struct vfields
@@ -1219,6 +1230,38 @@ and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.user) =
   | D.Empty ->
     throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
 
+and do_tele_elim (mot : D.con) (nil : D.con) (cons : D.con) (con : D.con) : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.TeleNil ->
+      ret nil
+    | D.TeleCons (id, code, tele) ->
+      splice_tm @@
+      Splice.con mot @@ fun mot ->
+      Splice.con nil @@ fun nil ->
+      Splice.con cons @@ fun cons ->
+      Splice.con code @@ fun code ->
+      Splice.con tele @@ fun tele ->
+      Splice.term @@
+      TB.ap cons [code; tele; TB.lam ~ident:(id :> Ident.t) @@ fun x -> TB.tele_elim mot nil cons (TB.ap tele [x])]
+    | D.Split branches ->
+      splice_tm @@
+      Splice.con mot @@ fun mot ->
+      Splice.con nil @@ fun nil -> 
+      Splice.con cons @@ fun cons ->
+      Splice.Macro.commute_split con (List.map fst branches) @@ TB.tele_elim mot nil cons
+    | D.Cut { cut;_ } ->
+      let* fib = do_ap mot con in
+      let+ elfib = do_el fib in
+      cut_frm ~tp:elfib ~cut @@
+      D.KTeleElim (mot, nil, cons)
+    | _ ->
+      throw @@ NbeFailed ("couldn't eliminate telescope in do_tele_elim")
+  end
+
 and do_proj (con : D.con) (lbl : Ident.user) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
@@ -1800,6 +1843,7 @@ and do_frm con =
   | D.KProj lbl -> do_proj con lbl
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con
+  | D.KTeleElim (mot, case_nil, case_cons) -> do_tele_elim mot case_nil case_cons con
   | D.KElOut -> do_el_out con
 
 and do_spine con =

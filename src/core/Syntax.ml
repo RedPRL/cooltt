@@ -43,6 +43,7 @@ struct
 
     | TeleNil -> Format.fprintf fmt "tele/nil"
     | TeleCons (x, code, tele) -> Format.fprintf fmt "tele/cons[%a, %a, %a]" Ident.pp_user x dump code dump tele
+    | TeleElim (mot, nil, cons, tele) -> Format.fprintf fmt "tele/elim[%a, %a, %a, %a]" dump mot dump cons dump nil dump tele
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
     | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
@@ -156,6 +157,7 @@ struct
 
       | TeleNil -> atom
       | TeleCons _ -> cons
+      | TeleElim _ -> juxtaposition
 
       | Struct _ -> juxtaposition
       | Proj _ -> proj
@@ -263,11 +265,23 @@ struct
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
     | TeleNil ->
       ()
+    | TeleCons (ident, code, Lam (_, body)) ->
+      let (x, envx) = ppenv_bind env (ident :> Ident.t) in
+      Format.fprintf fmt "(%s : %a)@ @,%a"
+        x
+        (pp env P.(right_of colon)) code
+        (pp envx penv) body
     | TeleCons (x, code, tele) ->
       Format.fprintf fmt "(%a : %a)@ @,%a"
         Ident.pp_user x
         (pp env P.(right_of colon)) code
         (pp env penv) tele
+    | TeleElim (mot, nil, cons, tele) ->
+      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ nil => %a@ | cons => %a@ ]@]@]"
+        (pp_atomic env) tele
+        (pp_atomic env) mot
+        (pp env P.isolated) nil
+        (pp env P.isolated) cons
     | Struct fields ->
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->

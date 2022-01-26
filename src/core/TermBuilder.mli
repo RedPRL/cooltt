@@ -33,6 +33,7 @@ val lams : Ident.t list -> (t m list -> t m) -> t m
 val tele : tp m
 val nil : t m
 val cons : Ident.user -> t m -> t m -> t m
+val tele_elim : t m -> t m -> t m -> t m -> t m
 
 val struct_ : (Ident.user * t m) list -> t m
 val proj : t m -> Ident.user -> t m

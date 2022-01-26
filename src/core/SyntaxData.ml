@@ -26,6 +26,7 @@ struct
 
     | TeleNil
     | TeleCons of Ident.user * t * t
+    | TeleElim of t * t * t * t
 
     | Struct of (Ident.user * t) list
     | Proj of t * Ident.user

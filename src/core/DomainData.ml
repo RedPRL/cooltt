@@ -143,6 +143,7 @@ struct
     | KProj of Ident.user
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
+    | KTeleElim of con * con * con
 
     | KElOut
     (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
