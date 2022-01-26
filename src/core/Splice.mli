@@ -47,3 +47,8 @@ sig
   val unstable_code : D.con D.unstable_code -> bdry
   val unstable_frm : D.cut -> D.unstable_frm -> bdry
 end
+
+module Tele :
+sig
+  val unfold : D.con -> D.con -> S.t t
+end

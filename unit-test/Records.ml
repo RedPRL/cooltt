@@ -63,16 +63,7 @@ let tele_elim_unfold () =
     let* tele = monoid_tele [] in
     RM.lift_cmp @@
     Sem.splice_tm @@
-    Splice.con tele @@ fun tele ->
-    Splice.term @@
-    let cons_case =
-      TB.lam ~ident:(`User ["A"]) @@ fun a ->
-      TB.lam @@ fun _ ->
-      TB.lam ~ident:(`User ["B"]) @@ fun b ->
-      TB.code_pi a @@ TB.lam ~ident:(`User ["a"]) @@ fun ax ->
-      TB.ap b [ax]
-    in
-    TB.tele_elim (TB.lam @@ fun _ -> TB.code_univ) TB.code_univ cons_case tele
+    Splice.Tele.unfold (D.StableCode `Univ) tele
   in
   Alcotest.check (check_tm [] (RM.ret D.Telescope))
     "telescope elimination works"
