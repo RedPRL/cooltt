@@ -156,6 +156,14 @@ let snd m =
 let tele =
   ret S.Telescope
 
+let nil =
+  ret S.TeleNil
+
+let cons id mcode mtele =
+  let+ code = mcode
+  and+ tele = mtele in
+  S.TeleCons (id, code, tele)
+
 let struct_ mfields =
   let+ fields = MU.map (MU.second (fun x -> x)) mfields in
   S.Struct fields
@@ -256,6 +264,9 @@ let signature (mfields : (Ident.user * (S.t m list -> S.tp m)) list) : _ m =
   in
   let+ fields = scope_fields [] mfields in
   S.Signature fields
+
+let code_univ =
+  ret S.CodeUniv
 
 let code_pi mbase mfam : _ m =
   let+ base = mbase

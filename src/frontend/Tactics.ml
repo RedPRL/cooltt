@@ -151,3 +151,10 @@ struct
     | _ ->
       RM.expected_connective `Pi tp
 end
+
+module Pi =
+struct
+  let intros tac_args tac_ret =
+    let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
+    tac_nary_quantifier quant tac_args tac_ret
+end

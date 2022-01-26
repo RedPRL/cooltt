@@ -31,6 +31,8 @@ val snd : t m -> t m
 val lams : Ident.t list -> (t m list -> t m) -> t m
 
 val tele : tp m
+val nil : t m
+val cons : Ident.user -> t m -> t m -> t m
 
 val struct_ : (Ident.user * t m) list -> t m
 val proj : t m -> Ident.user -> t m
@@ -81,6 +83,7 @@ val locked_prf_unlock : tp m -> cof:t m -> prf:t m -> bdy:t m -> t m
 
 val cube : int -> (t m list -> tp m) -> tp m
 
+val code_univ : t m
 val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
 val code_path : t m -> t m -> t m

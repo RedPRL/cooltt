@@ -31,3 +31,7 @@ module Elim : sig
     : case_tac list
     -> Chk.tac
 end
+
+module Pi : sig
+  val intros : (Ident.t * Chk.tac) list -> Chk.tac -> Chk.tac
+end
