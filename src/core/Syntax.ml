@@ -41,9 +41,12 @@ struct
     | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
-    | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
+    | TeleNil -> Format.fprintf fmt "tele/nil"
+    | TeleCons (x, code, tele) -> Format.fprintf fmt "tele/cons[%a, %a, %a]" Ident.pp_user x dump code dump tele
 
+    | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
     | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
+
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -102,6 +105,7 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
+    | Telescope -> Format.fprintf fmt "tp/tele"
     | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
@@ -129,6 +133,7 @@ struct
     let tuple = delimited
     let substitution = right 10
     let juxtaposition = left 9
+    let cons = right 8
     let proj = right 8
     let sub_compose = left 7
     let cof_eq = nonassoc 6
@@ -148,8 +153,13 @@ struct
       | Lam _ -> double_arrow
       | Ap _ -> juxtaposition
       | Pair _ -> tuple
+
+      | TeleNil -> atom
+      | TeleCons _ -> cons
+
       | Struct _ -> juxtaposition
       | Proj _ -> proj
+
       | CofSplit _ -> tuple
       | Cof (Cof.Eq _) -> cof_eq
       | Cof (Cof.Join [] | Cof.Meet []) -> atom
@@ -198,6 +208,7 @@ struct
       | Sub _ -> juxtaposition
       | Pi _ -> arrow
       | Sg _ -> times
+      | Telescope -> atom
       | Signature _ -> juxtaposition
       | TpESub _ -> substitution
       | TpLockedPrf _ -> juxtaposition
@@ -250,6 +261,13 @@ struct
         (pp env P.(left_of juxtaposition)) tm0 (pp_atomic env) tm1
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
+    | TeleNil ->
+      ()
+    | TeleCons (x, code, tele) ->
+      Format.fprintf fmt "(%a : %a)@ @,%a"
+        Ident.pp_user x
+        (pp env P.(right_of colon)) code
+        (pp env penv) tele
     | Struct fields ->
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->
@@ -513,6 +531,8 @@ struct
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx P.(right_of times)) fam
+    | Telescope ->
+      Format.fprintf fmt "tele"
     | Signature fields ->
       Format.fprintf fmt "sig %a" (pp_sign env) fields
     | Sub (tp, phi, tm) ->

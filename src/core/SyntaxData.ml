@@ -24,6 +24,9 @@ struct
     | Fst of t
     | Snd of t
 
+    | TeleNil
+    | TeleCons of Ident.user * t * t
+
     | Struct of (Ident.user * t) list
     | Proj of t * Ident.user
 
@@ -76,6 +79,7 @@ struct
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
+    | Telescope
     | Signature of sign
     | Nat
     | Circle

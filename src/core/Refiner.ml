@@ -521,6 +521,36 @@ struct
       RM.expected_connective `Sg tp
 end
 
+module Telescope =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.rule @@
+    RM.ret S.Telescope
+
+  let nil : T.Chk.tac =
+    T.Chk.rule @@
+    function
+    | D.Telescope ->
+      RM.ret S.TeleNil
+    | tp -> RM.expected_connective `Telescope tp
+
+  (* [TODO: Reed M, 26/01/2022] Boundaries? *)
+  let cons (id : Ident.user) (tac_code : T.Chk.tac) (tac_tele : T.Chk.tac) =
+    T.Chk.rule @@
+    function
+    | (D.Telescope) ->
+      let* code = T.Chk.run tac_code D.Univ in
+      let* vcode = RM.lift_ev @@ Sem.eval code in
+      let* tele_tp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con vcode @@ fun code ->
+        Splice.term @@ TB.pi (TB.el code) (fun _ -> TB.tele)
+      in
+      let+ tele = T.Chk.run tac_tele tele_tp in
+      S.TeleCons (id, code, tele)
+    | tp -> RM.expected_connective `Telescope tp
+end
 
 module Signature =
 struct

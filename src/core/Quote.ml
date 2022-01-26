@@ -104,6 +104,21 @@ let rec quote_con (tp : D.tp) con =
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
 
+  | _, D.TeleNil ->
+    ret S.TeleNil
+
+  | _, D.TeleCons (id, code, tele) ->
+    let* tele_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.term @@
+      TB.pi (TB.el code) (fun _ -> TB.tele)
+    in
+    let+ code = quote_con D.Univ code
+    and+ tele = quote_con tele_tp tele in
+    S.TeleCons (id, code, tele)
+
   | D.Signature sign, _ ->
     let+ tfields = quote_fields sign con in
     S.Struct tfields
@@ -430,6 +445,8 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
+  | D.Telescope ->
+    ret S.Telescope
   | D.Signature sign ->
     let+ sign = quote_sign sign in
     S.Signature sign
