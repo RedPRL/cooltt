@@ -294,7 +294,8 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      failwith "[FIXME] Core.Core.chk_tm: Patching"
+      let tacs = List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      Tactics.Signature.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
 
     | CS.Total (tp, patches) ->
       failwith "[FIXME] Core.Core.chk_tm: Total Space"

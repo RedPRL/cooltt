@@ -9,8 +9,10 @@ module S = Syntax
 module R = Refiner
 module CS = ConcreteSyntax
 module Sem = Semantics
+module TB = TermBuilder
 
 open Monad.Notation (RM)
+module CM = struct include Monads.CmpM include Monad.Notation (Monads.CmpM) module MU = Monad.Util (Monads.CmpM) end
 
 let elab_err err =
   let* env = RM.read in
@@ -157,6 +159,73 @@ struct
   let intros tac_args tac_ret =
     let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
     tac_nary_quantifier quant tac_args tac_ret
+end
+
+module Signature =
+struct
+
+  let rec patch_fields (tele : D.con) (patch_tacs : Ident.user -> T.Chk.tac option) : S.t m =
+    match tele with
+    | D.TeleCons (id, code, lam) ->
+      Debug.print "Doing El for code %a@." D.pp_con code;
+      let* tp = RM.lift_cmp @@ Sem.do_el code in
+      (* NOTE: When we add on an extension type, we need to be careful
+         to insert the requisite elimination forms for the subtype!
+         This is handled by the 'elim_con'. *)
+      let* (patch_code, elim_con) =
+        begin
+          match patch_tacs id with
+          | Some tac ->
+            let* patch = T.Chk.run tac tp in
+            let* vpatch = RM.lift_ev @@ Sem.eval patch in
+            let+ ext_code =
+              RM.lift_cmp @@
+              Sem.splice_tm @@
+              Splice.con code @@ fun code ->
+              Splice.con vpatch @@ fun patch ->
+              Splice.term @@
+              TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
+            in
+            let elim_ext arg =
+              let open CM in
+              RM.lift_cmp @@ Sem.do_sub_out @<< Sem.do_el_out arg
+            in
+            (ext_code, elim_ext)
+          | None ->
+            RM.ret (code, RM.ret)
+        end
+      in
+      let* patch_tp = RM.lift_cmp @@ Sem.do_el patch_code in
+      let* tpatch_code = RM.quote_con D.Univ patch_code in
+      let+ tpatch_lam =
+        RM.abstract (id :> Ident.t) patch_tp @@ fun x ->
+        let* elim_x = elim_con x in
+        let* tele = RM.lift_cmp @@ Sem.do_ap lam elim_x in
+        let+ patched_tele = patch_fields tele patch_tacs in
+        S.Lam ((id :> Ident.t), patched_tele)
+      in
+      S.TeleCons (id, tpatch_code, tpatch_lam)
+    | con ->
+      RM.quote_con D.Telescope con
+
+  let patch (sign_tac : T.Chk.tac) (patch_tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+    T.Chk.rule ~name:"Signature.patch" @@
+    function
+    | D.Univ ->
+      (* [TODO: Reed M, 26/01/2022] Is there a better way to extract the index out of a signature type? *)
+      let* code = T.Chk.run sign_tac D.Univ in
+      let* vcode = RM.lift_ev @@ Sem.eval code in
+      let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+      let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
+      begin
+        match whnf_tp with
+        | D.ElStable (`Signature tele) ->
+          let+ patched_tele = patch_fields tele patch_tacs in
+          S.CodeSignature patched_tele
+        | _ ->
+          RM.expected_connective `Signature whnf_tp
+      end
+    | tp -> RM.expected_connective `Univ tp
 end
 
 module Tele =
