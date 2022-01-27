@@ -158,3 +158,15 @@ struct
     let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
     tac_nary_quantifier quant tac_args tac_ret
 end
+
+module Tele =
+struct
+  let rec of_list tacs =
+    match tacs with
+    | [] ->
+      R.Telescope.nil
+    | (lbl, tac) :: tacs ->
+      R.Telescope.cons lbl tac @@
+      R.Pi.intro ~ident:(lbl :> Ident.t) @@ fun _ ->
+      of_list tacs
+end

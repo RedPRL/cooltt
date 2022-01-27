@@ -263,17 +263,9 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)
 
-let signature (mfields : (Ident.user * (S.t m list -> S.tp m)) list) : _ m =
-  let rec scope_fields bound =
-    function
-    | [] -> ret []
-    | ((ident, mfield) :: mfields) ->
-      let* field = mfield bound in
-      let+ fields = scope @@ fun tm -> scope_fields (bound @ [tm]) mfields in
-      (ident, field) :: fields
-  in
-  let+ fields = scope_fields [] mfields in
-  S.Signature fields
+let signature mtele : _ m =
+  let+ tele = mtele in
+  S.Signature tele
 
 let code_univ =
   ret S.CodeUniv

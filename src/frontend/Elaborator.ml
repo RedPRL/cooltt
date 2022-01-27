@@ -32,15 +32,6 @@ let rec unfold idents k =
       let span = Env.location env in
       RM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
 
-(* Account for the lambda-bound signature field dependencies.
-    See [NOTE: Sig Code Quantifiers] for more info. *)
-let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
-  let bind_tac lbls (lbl, tac) =
-    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls tac in
-    Snoc (lbls, lbl) , (lbl, tac)
-  in
-  snd @@ ListUtil.map_accum_left bind_tac Emp tacs
-
 module CoolTp :
 sig
   include T.Tactic
@@ -112,12 +103,12 @@ struct
   let signature (tacs : (Ident.user * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
-      let tac = R.Univ.signature (bind_sig_tacs tacs) in
+      let tac = R.Univ.signature (Tactics.Tele.of_list tacs) in
       Code tac
     | None ->
-      let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
-      let tac = R.Signature.formation tele in
-      Tp tac
+      failwith "[FIXME] Core.CoolTp.signature: Handle the case when a signature is full of types!"
+  (* let tac = R.Signature.formation (Tactics.Tele.of_list tacs) in *)
+  (* Tp tac *)
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -299,15 +290,15 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature fields ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
+      let tacs = Tactics.Tele.of_list @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
-      R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
+      failwith "[FIXME] Core.Core.chk_tm: Patching"
+
     | CS.Total (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
-      R.Univ.patch (R.Univ.total (syn_tm tp)) (R.Signature.find_field_tac tacs)
+      failwith "[FIXME] Core.Core.chk_tm: Total Space"
+
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
 

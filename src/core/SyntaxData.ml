@@ -58,7 +58,7 @@ struct
     | CodePi of t * t
     | CodeSg of t * t
     | CodeTelescope
-    | CodeSignature of (Ident.user * t) list
+    | CodeSignature of t
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t
@@ -82,13 +82,11 @@ struct
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
     | Telescope
-    | Signature of sign
+    | Signature of t
     | Nat
     | Circle
     | TpESub of sub * tp
     | TpLockedPrf of t
-
-  and sign = (Ident.user * tp) list
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

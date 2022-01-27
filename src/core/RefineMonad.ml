@@ -89,9 +89,6 @@ let quote_con tp con =
 let quote_tp tp =
   lift_qu @@ Qu.quote_tp tp
 
-let quote_sign sign =
-  lift_qu @@ Qu.quote_sign sign
-
 let quote_cut cut =
   lift_qu @@ Qu.quote_cut cut
 
@@ -144,7 +141,7 @@ let expected_connective conn tp =
 
 let expected_field sign con lbl =
   with_pp @@ fun ppenv ->
-  let* tsign = quote_sign sign in
+  let* tsign = quote_con D.Telescope sign in
   refine_err @@ Err.ExpectedField (ppenv, tsign, con, lbl)
 
 let field_names_mismatch ~expected ~actual =

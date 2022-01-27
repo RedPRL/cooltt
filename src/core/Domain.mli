@@ -28,8 +28,6 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val tm_abort : con
   val tp_abort : tp
 
-  val sign_lbls : sign -> Ident.user list
-
   (** {1 Pretty-printers }
 
       These are only for debugging. *)
@@ -43,5 +41,4 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val pp_hd : hd Pp.printer
   val pp_frame : frm Pp.printer
   val pp_spine : frm list Pp.printer
-  val pp_sign : sign Pp.printer
 end

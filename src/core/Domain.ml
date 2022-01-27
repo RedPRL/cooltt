@@ -38,11 +38,6 @@ struct
   let tm_abort = Split []
   let tp_abort = TpSplit []
 
-  let sign_lbls =
-    function
-    | Field (lbl, _, Clo (sign, _)) -> lbl :: (List.map (fun (lbl, _) -> lbl) sign)
-    | Empty -> []
-
   let dim_to_con =
     function
     | Dim.Dim0 -> Dim0
@@ -132,14 +127,6 @@ struct
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
-  and pp_sign_clo : (S.sign clo) Pp.printer =
-    let sep fmt () = Format.fprintf fmt "," in
-    fun fmt (Clo (sign, {tpenv; conenv})) ->
-      Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
-        S.dump_sign sign
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
-
   and pp_con : con Pp.printer =
     fun fmt ->
     function
@@ -208,12 +195,6 @@ struct
     | LockedPrfIn _ ->
       Format.fprintf fmt "<wrap>"
 
-
-  and pp_sign fmt =
-    function
-    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp_user ident pp_tp tp pp_sign_clo clo
-    | Empty -> Format.fprintf fmt "sig/empty"
-
   and pp_tp fmt =
     function
     | Pi (base, ident, fam) ->
@@ -222,8 +203,8 @@ struct
       Format.fprintf fmt "<sg>"
     | Telescope ->
       Format.fprintf fmt "<tele>"
-    | Signature sign ->
-      Format.fprintf fmt "sig[%a]" pp_sign sign
+    | Signature tele ->
+      Format.fprintf fmt "sig[%a]" pp_con tele
     | Sub _ ->
       Format.fprintf fmt "<sub>"
     | TpPrf _ ->

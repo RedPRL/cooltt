@@ -20,7 +20,7 @@ struct
     | `Telescope
     (** The universe of telescopes *)
 
-    | `Signature of (Ident.user * 'a) list
+    | `Signature of 'a
     (** First-Class Record types *)
 
     | `Ext of int * 'a * [`Global of 'a] * 'a
@@ -51,7 +51,6 @@ struct
   and 'a clo = Clo of 'a * env
   and tp_clo = S.tp clo
   and tm_clo = S.t clo
-  and sign_clo = S.sign clo
 
   (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
   and con =
@@ -72,6 +71,7 @@ struct
     | Loop of dim
     | Pair of con * con
 
+    (* [TODO: Reed M, 26/01/2022] Does it make sense to handle these in a similar way to codes? *)
     | TeleNil
     | TeleCons of Ident.user * con * con
 
@@ -115,14 +115,12 @@ struct
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
     | Telescope
-    | Signature of sign
+    (* [TODO: Reed M, 26/01/2022] Should this be something like the stable code situation? *)
+    | Signature of con
     | Nat
     | Circle
     | TpLockedPrf of cof
 
-  and sign =
-    | Field of Ident.user * tp * S.sign clo
-    | Empty
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =

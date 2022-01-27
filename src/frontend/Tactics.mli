@@ -35,3 +35,7 @@ end
 module Pi : sig
   val intros : (Ident.t * Chk.tac) list -> Chk.tac -> Chk.tac
 end
+
+module Tele : sig
+  val of_list : (Ident.user * Chk.tac) list -> Chk.tac
+end
