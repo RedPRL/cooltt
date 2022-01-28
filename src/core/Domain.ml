@@ -101,6 +101,7 @@ struct
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KTeleElim _ -> Format.fprintf fmt "<tele-elim>"
+    | KPush _ -> Format.fprintf fmt "<push>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "el/out"
 
   and pp_cof : cof Pp.printer =

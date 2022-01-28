@@ -141,6 +141,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
+    | KPush of Ident.user * con * con
     | KProj of Ident.user
     | KNatElim of con * con * con
     | KCircleElim of con * con * con

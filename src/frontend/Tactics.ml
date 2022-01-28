@@ -226,6 +226,45 @@ struct
           RM.expected_connective `Signature whnf_tp
       end
     | tp -> RM.expected_connective `Univ tp
+
+  let total (fam_tac : T.Syn.tac) : T.Chk.tac =
+    T.Chk.rule ~name:"Signature.total" @@
+    function
+    | D.Univ ->
+      let* (tm, tp) = T.Syn.run fam_tac in
+      begin
+        match tp with
+        | D.Pi (D.ElStable (`Signature tele) as base, ident, clo) ->
+          (* HACK: Because we are using Weak Tarski Universes, we can't just
+             use the conversion checker to equate 'fam' and 'univ', as
+             'fam' may be 'el code-univ' instead.
+
+             Therefore, we do an explicit check here instead.
+             If we add universe levels, this code should probably be reconsidered. *)
+          let* _ = T.abstract ~ident base @@ fun var ->
+            let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+            match fam with
+            | D.Univ -> RM.ret ()
+            | D.ElStable `Univ -> RM.ret ()
+            | _ -> RM.expected_connective `Univ fam
+          in
+          let* vtm = RM.lift_ev @@ Sem.eval tm in
+          let* vtotal_tele =
+            RM.lift_cmp @@
+            Sem.splice_tm @@
+            Splice.con tele @@ fun tele ->
+            Splice.con vtm @@ fun tm ->
+            Splice.term @@
+            TB.Tele.extend tele (TB.Tele.curry tele TB.code_telescope @@ TB.lam @@ fun str -> TB.cons (`User ["FIXME"]) (TB.ap tm [str]) (TB.lam @@ fun _ -> TB.nil))
+          in
+          let+ total_tele = RM.quote_con D.Telescope vtotal_tele in
+          S.CodeSignature total_tele
+        | D.Pi (base, _, _) -> RM.expected_connective `Signature base
+        | _ -> RM.expected_connective `Pi tp
+      end
+    | tp -> RM.expected_connective `Univ tp
+
+
 end
 
 module Tele =

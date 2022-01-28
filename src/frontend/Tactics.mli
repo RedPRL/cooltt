@@ -38,6 +38,7 @@ end
 
 module Signature : sig
   val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
+  val total : Syn.tac -> Chk.tac
 end
 
 module Tele : sig

@@ -545,7 +545,7 @@ struct
         RM.lift_cmp @@
         Sem.splice_tp @@
         Splice.con vcode @@ fun code ->
-        Splice.term @@ TB.pi (TB.el code) (fun _ -> TB.tele)
+        Splice.term @@ TB.pi (TB.el code) (fun _ -> TB.telescope)
       in
       let+ tele = T.Chk.run tac_tele tele_tp in
       S.TeleCons (id, code, tele)

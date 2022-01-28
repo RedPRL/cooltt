@@ -30,13 +30,14 @@ val snd : t m -> t m
 
 val lams : Ident.t list -> (t m list -> t m) -> t m
 
-val tele : tp m
-val code_tele : t m
+val telescope : tp m
+val code_telescope : t m
 val nil : t m
 val cons : Ident.user -> t m -> t m -> t m
 val tele_elim : t m -> t m -> t m -> t m -> t m
 
 val struct_ : (Ident.user * t m) list -> t m
+val push : Ident.user -> t m -> t m -> t m -> t m
 val proj : t m -> Ident.user -> t m
 
 val zero : t m
@@ -143,6 +144,12 @@ module Kan : sig
     val hcom_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
     val coe_fhcom : fhcom:fhcom_u -> r:t m -> r':t m -> bdy:t m -> t m
   end
+end
+
+module Tele : sig
+  val unfold : t m -> t m -> t m
+  val extend : t m -> t m -> t m
+  val curry : t m -> t m -> t m -> t m
 end
 
 module Test : sig

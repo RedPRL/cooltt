@@ -46,6 +46,7 @@ struct
     | TeleElim (mot, nil, cons, tele) -> Format.fprintf fmt "tele/elim[%a, %a, %a, %a]" dump mot dump cons dump nil dump tele
 
     | Struct tele -> Format.fprintf fmt "struct[%a]" dump_struct tele
+    | Push (lbl, code, field, str) -> Format.fprintf fmt "push[%a, %a, %a, %a]" Ident.pp_user lbl dump code dump field dump str
     | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
 
     | Coe _ -> Format.fprintf fmt "<coe>"
@@ -157,6 +158,7 @@ struct
       | TeleElim _ -> juxtaposition
 
       | Struct _ -> juxtaposition
+      | Push _ -> juxtaposition
       | Proj _ -> proj
 
       | CofSplit _ -> tuple
@@ -282,6 +284,12 @@ struct
         (pp env P.isolated) cons
     | Struct tele ->
       Format.fprintf fmt "@[struct %a@]" (pp_tele pp env) tele
+    | Push (lbl, code, field, str) ->
+      Format.fprintf fmt "@[push %a %a %a %a@]"
+        Ident.pp_user lbl
+        (pp env penv) code
+        (pp env penv) field
+        (pp env penv) str
     | Proj (tm, lbl) ->
       Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
     | CofSplit branches ->

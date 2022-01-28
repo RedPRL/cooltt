@@ -153,10 +153,10 @@ let snd m =
   let+ x = m in
   S.Snd x
 
-let tele =
+let telescope =
   ret S.Telescope
 
-let code_tele =
+let code_telescope =
   ret S.CodeTelescope
 
 let nil =
@@ -177,6 +177,12 @@ let tele_elim mmot mnil mcons mtele =
 let struct_ mfields =
   let+ fields = MU.map (MU.second (fun x -> x)) mfields in
   S.Struct fields
+
+let push lbl mcode mfield mstr =
+  let+ code = mcode
+  and+ field = mfield
+  and+ str = mstr in
+  S.Push (lbl, code, field, str)
 
 let proj m lbl =
   let+ x = m in
@@ -266,6 +272,10 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
 let signature mtele : _ m =
   let+ tele = mtele in
   S.Signature tele
+
+let code_signature mtele : _ m =
+  let+ tele = mtele in
+  S.CodeSignature tele
 
 let code_univ =
   ret S.CodeUniv
@@ -777,6 +787,65 @@ struct
   end
 end
 
+module Tele =
+struct
+
+  (** Unfold a telescope into a pi type. *)
+  let unfold tele code =
+    let nil_case = code in
+    let cons_case =
+      lam ~ident:(`User ["A"]) @@ fun a ->
+      lam @@ fun _ ->
+      lam ~ident:(`User ["B"]) @@ fun b ->
+      code_pi a @@ lam ~ident:(`User ["a"]) @@ fun ax ->
+      ap b [ax]
+    in
+    tele_elim (lam @@ fun _ -> code_univ) nil_case cons_case tele
+
+  let extend tele fam =
+    let mot =
+      lam @@ fun t ->
+      code_pi (unfold t code_telescope) @@ lam @@ fun _ -> code_telescope
+    in
+    let nil_case =
+      lam @@ fun t -> t
+    in
+    let cons_case =
+      lam @@ fun a ->
+      lam @@ fun _ ->
+      lam @@ fun p ->
+      lam @@ fun k ->
+      (* [TODO: Reed M, 26/01/2022] It's somewhat unclear what identifier to use here... *)
+      cons (`User ["FIXME"]) a @@ lam @@ fun z -> ap p [z; ap k [z]]
+    in
+    ap (tele_elim mot nil_case cons_case tele) [fam]
+
+  (* To be able to write this, I need to be able to cons something onto a struct... *)
+  let curry tele code uncurried =
+    let mot =
+      lam @@ fun t ->
+      code_pi (code_pi (code_signature t) @@ lam @@ fun _ -> code) @@ lam @@ fun _ ->
+      unfold t code
+    in
+    let nil_case =
+      lam @@ fun k ->
+      el_in @@
+      ap k [struct_ []]
+    in
+    let cons_case =
+      lam @@ fun code ->
+      lam @@ fun _ ->
+      lam @@ fun c ->
+      lam @@ fun u ->
+      el_in @@
+      lam @@ fun field ->
+      (* [TODO: Reed M, 27/01/2022] It's somewhat unclear what identifier to use here... *)
+      ap c [field; lam @@ fun t_struct -> ap u [push (`User ["FIXME"]) code field t_struct]]
+    in
+    ap (tele_elim mot nil_case cons_case tele) [uncurried]
+end
+
+(* [TODO: Reed M, 26/01/2022] Move this into the unit test suite. *)
 module Test =
 struct
   let closed_form_hcom_v =

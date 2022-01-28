@@ -43,9 +43,7 @@ let tele_elab_monoid () =
     RM.lift_ev @@ Sem.eval tele
   in
   Alcotest.check (check_tm [] (RM.ret D.Telescope))
-    "elaborate the telescope of a monoid"
-    monoid_tele
-    actual
+    "elaborate the telescope of a monoid" monoid_tele actual
 
 (** Test that telescope elimination works as expected. *)
 let tele_elim_unfold () =
@@ -63,12 +61,46 @@ let tele_elim_unfold () =
     let* tele = monoid_tele [] in
     RM.lift_cmp @@
     Sem.splice_tm @@
-    Splice.Tele.unfold (D.StableCode `Univ) tele
+    Splice.con tele @@ fun tele ->
+    Splice.term @@
+    TB.Tele.unfold tele TB.code_univ
   in
   Alcotest.check (check_tm [] (RM.ret D.Telescope))
-    "telescope elimination works"
-    expected
-    actual
+    "telescope elimination works" expected actual
+
+let tele_elim_curry () =
+  let tp =
+    let* tele = monoid_tele [] in
+    RM.lift_cmp @@
+    Sem.splice_tp @@
+    Splice.con tele @@ fun tele ->
+    Splice.term @@
+    TB.el @@ TB.Tele.unfold tele TB.code_univ
+  in
+  let expected [] =
+    RM.lift_cmp @@
+    Sem.splice_tm @@
+    Splice.term @@
+    TB.el_in @@
+    TB.lam ~ident:(`User ["carrier"]) @@ fun carrier -> 
+    TB.el_in @@
+    TB.lam @@ fun _ -> 
+    TB.el_in @@
+    TB.lam @@ fun _ -> 
+    TB.el_in @@
+    carrier
+  in
+  let actual [] =
+    let* tele = monoid_tele [] in
+    RM.lift_cmp @@
+    Sem.splice_tm @@
+    Splice.con tele @@ fun tele ->
+    Splice.term @@
+    TB.Tele.curry tele TB.code_univ (TB.lam @@ fun str -> TB.proj str (`User ["carrier"]))
+  in
+  Alcotest.check (check_tm [] tp)
+    "currying works" expected actual
+
 
 let () =
   let open Alcotest in
@@ -78,6 +110,7 @@ let () =
       test_case "tele/elab/monoid" `Quick tele_elab_monoid
     ];
     "Telescope Elimination", [
-      test_case "tele/elim/unfold" `Quick tele_elim_unfold
+      test_case "tele/elim/unfold" `Quick tele_elim_unfold;
+      test_case "tele/elim/uncurry" `Quick tele_elim_curry
     ]
   ]

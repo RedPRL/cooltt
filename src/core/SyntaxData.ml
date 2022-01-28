@@ -29,6 +29,7 @@ struct
     | TeleElim of t * t * t * t
 
     | Struct of (Ident.user * t) list
+    | Push of Ident.user * t * t * t
     | Proj of t * Ident.user
 
     | Coe of t * t * t * t

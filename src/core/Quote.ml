@@ -113,7 +113,7 @@ let rec quote_con (tp : D.tp) con =
       Sem.splice_tp @@
       Splice.con code @@ fun code ->
       Splice.term @@
-      TB.pi (TB.el code) (fun _ -> TB.tele)
+      TB.pi (TB.el code) (fun _ -> TB.telescope)
     in
     let+ code = quote_con D.Univ code
     and+ tele = quote_con tele_tp tele in
@@ -652,12 +652,17 @@ and quote_frm tm =
     in
     let* tloop_case = quote_con loop_tp loop_case in
     ret @@ S.CircleElim (tmot, tbase_case, tloop_case, tm)
+  | D.KPush (lbl, code, field) ->
+    let* tcode = quote_con D.Univ code in
+    let* tp = lift_cmp @@ Sem.do_el code in
+    let+ tfield = quote_con tp field in
+    S.Push (lbl, tcode, tfield, tm)
   | D.KTeleElim (mot, nil_case, cons_case) ->
     let* mot_tp =
       lift_cmp @@
       Sem.splice_tp @@
       Splice.term @@
-      TB.pi TB.tele @@ fun _ -> TB.univ
+      TB.pi TB.telescope @@ fun _ -> TB.univ
     in
     let* tmot = quote_con mot_tp mot in
     let* tnil_case =
@@ -671,7 +676,7 @@ and quote_frm tm =
       Splice.con mot @@ fun mot ->
       Splice.term @@
       TB.pi TB.univ @@ fun a ->
-      TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.tele) @@ fun t ->
+      TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.telescope) @@ fun t ->
       TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el (TB.ap mot [TB.ap t [x]])) @@ fun _ ->
       (* [TODO: Reed M, 26/01/2022] Rethink identifiers in telescopes! *)
       TB.el @@ TB.ap mot [TB.cons (`User ["FIXME"]) a t]

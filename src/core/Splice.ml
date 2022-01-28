@@ -174,20 +174,4 @@ struct
       term @@ TB.ap bdy [TB.prf]
 end
 
-module Tele =
-struct
-  let unfold code tele =
-    F.con code @@ fun code ->
-    F.con tele @@ fun tele ->
-    let nil_case = code in
-    let cons_case =
-      TB.lam ~ident:(`User ["A"]) @@ fun a ->
-      TB.lam @@ fun _ ->
-      TB.lam ~ident:(`User ["B"]) @@ fun b ->
-      TB.code_pi a @@ TB.lam ~ident:(`User ["a"]) @@ fun ax ->
-      TB.ap b [ax]
-    in
-    term @@ TB.tele_elim (TB.lam @@ fun _ -> TB.code_univ) nil_case cons_case tele
-end
-
 include F

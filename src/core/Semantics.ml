@@ -473,6 +473,10 @@ and subst_frm : D.dim -> DimProbe.t -> D.frm -> D.frm CM.m =
     and+ con1 = subst_con r x con1
     and+ con2 = subst_con r x con2 in
     D.KTeleElim (con0, con1, con2)
+  | D.KPush (lbl, con0, con1) ->
+    let+ con0 = subst_con r x con0
+    and+ con1 = subst_con r x con1 in
+    D.KPush (lbl, con0, con1)
 
 
 and subst_sp : D.dim -> DimProbe.t -> D.frm list -> D.frm list CM.m =
@@ -604,6 +608,11 @@ and eval : S.t -> D.con EvM.m =
     | S.Struct fields ->
       let+ vfields = MU.map (MU.second eval) fields in
       D.Struct vfields
+    | S.Push (lbl, code, field, str) ->
+      let* code = eval code in
+      let* field = eval field in
+      let* str = eval str in
+      lift_cmp @@ do_push lbl code field str
     | S.Proj (t, lbl) ->
       let* con = eval t in
       lift_cmp @@ do_proj con lbl
@@ -1246,7 +1255,7 @@ and do_tele_elim (mot : D.con) (nil : D.con) (cons : D.con) (con : D.con) : D.co
         TB.lam @@ fun i ->
         let fhcom =
           TB.el_out @@
-          TB.hcom TB.code_tele r i phi @@
+          TB.hcom TB.code_telescope r i phi @@
           TB.lam @@ fun j ->
           TB.lam @@ fun prf ->
           TB.el_in @@ TB.ap bdy [j; prf]
@@ -1263,6 +1272,36 @@ and do_tele_elim (mot : D.con) (nil : D.con) (cons : D.con) (con : D.con) : D.co
       throw @@ NbeFailed ("couldn't eliminate telescope in do_tele_elim")
   end
 
+and do_push (lbl : Ident.user) (code : D.con) (field : D.con) (con : D.con) : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis =
+    splice_tm @@
+    Splice.con code @@ fun code ->
+    Splice.con field @@ fun field ->
+    Splice.Macro.commute_split con phis (TB.push lbl code field) in
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.Struct fields -> ret @@ D.Struct ((lbl, field) :: fields)
+    | D.Split branches ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut { tp = D.Signature tele; cut } ->
+      let+ tp =
+        splice_tp @@
+        Splice.con code @@ fun code ->
+        Splice.con tele @@ fun tele ->
+        Splice.term @@
+        (* We need to know the code of the type here! *)
+        TB.signature (TB.cons lbl code (TB.lam @@ fun _ -> tele))
+      in
+      cut_frm ~tp ~cut (D.KPush (lbl, code, field))
+    | _ ->
+      throw @@ NbeFailed ("Couldn't push argument in do_push")
+  end
+
 and do_proj (con : D.con) (lbl : Ident.user) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
@@ -1274,7 +1313,9 @@ and do_proj (con : D.con) (lbl : Ident.user) : D.con CM.m =
       begin
         match List.assoc_opt lbl fields with
         | Some con -> ret con
-        | None -> throw @@ NbeFailed "Couldn't proj argument in do_proj, struct was missing field"
+        | None ->
+          Debug.print "bad do_proj: projecting %a from %a@." Ident.pp_user lbl D.pp_con con;
+          throw @@ NbeFailed "Couldn't proj argument in do_proj, struct was missing field"
       end
     | D.Split branches ->
       splitter con @@ List.map fst branches
@@ -1843,6 +1884,7 @@ and do_frm con =
   | D.KAp (_, con') -> do_ap con con'
   | D.KFst -> do_fst con
   | D.KSnd -> do_snd con
+  | D.KPush (lbl, code, field) -> do_push lbl code field con
   | D.KProj lbl -> do_proj con lbl
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con

@@ -204,7 +204,7 @@ and equate_con tp con0 con1 =
       lift_cmp @@
       Sem.splice_tp @@
       Splice.con code0 @@ fun code ->
-      Splice.term @@ TB.pi (TB.el code) (fun _ -> TB.tele)
+      Splice.term @@ TB.pi (TB.el code) (fun _ -> TB.telescope)
     in
     equate_con tele_tp tele0 tele1
   | D.Signature sign, _, _ ->
@@ -385,12 +385,16 @@ and equate_frm k0 k1 =
       TB.el @@ TB.ap mot [TB.loop x]
     in
     equate_con loop_tp loop_case0 loop_case1
+  | D.KPush (lbl0, code0, field0), D.KPush (lbl1, code1, field1) when Ident.equal lbl0 lbl1 ->
+    let* () = equate_con D.Univ code0 code1 in
+    let* tp = lift_cmp @@ do_el code0 in
+    equate_con tp field0 field1
   | D.KTeleElim (mot0, nil_case0, cons_case0), D.KTeleElim (mot1, nil_case1, cons_case1) ->
     let* mot_tp =
       lift_cmp @@
       Sem.splice_tp @@
       Splice.term @@
-      TB.pi TB.tele @@ fun _ -> TB.univ
+      TB.pi TB.telescope @@ fun _ -> TB.univ
     in
     let* () = equate_con mot_tp mot0 mot1 in
     let* () =
@@ -404,7 +408,7 @@ and equate_frm k0 k1 =
       Splice.con mot0 @@ fun mot ->
       Splice.term @@
       TB.pi TB.univ @@ fun a ->
-      TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.tele) @@ fun t ->
+      TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.telescope) @@ fun t ->
       TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el (TB.ap mot [TB.ap t [x]])) @@ fun _ ->
       (* [TODO: Reed M, 26/01/2022] Rethink identifiers in telescopes! *)
       TB.el @@ TB.ap mot [TB.cons (`User ["FIXME"]) a t]
