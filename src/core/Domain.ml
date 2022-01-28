@@ -131,6 +131,8 @@ struct
   and pp_con : con Pp.printer =
     fun fmt ->
     function
+    | Quoted id ->
+      Format.fprintf fmt "`%a" Ident.pp_user id
     | Cut {cut;tp} ->
       Format.fprintf fmt "cut[%a :: %a]" pp_cut cut pp_tp tp
     | Zero ->
@@ -202,6 +204,8 @@ struct
       Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
     | Sg _ ->
       Format.fprintf fmt "<sg>"
+    | Symbol ->
+      Format.fprintf fmt "<symbol>"
     | Telescope ->
       Format.fprintf fmt "<tele>"
     | Signature tele ->

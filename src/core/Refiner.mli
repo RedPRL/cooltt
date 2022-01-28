@@ -100,6 +100,11 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
+module Symbol : sig
+  val formation : Tp.tac
+  val quote : Ident.user -> Chk.tac
+end
+
 module Telescope : sig
   val formation : Tp.tac
   val nil : Chk.tac

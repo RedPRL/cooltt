@@ -8,6 +8,7 @@ struct
     | Global of Symbol.t
     | Let of t * Ident.t * t
     | Ann of t * tp
+    | Quoted of Ident.user
 
     | Zero
     | Suc of t
@@ -23,6 +24,7 @@ struct
     | Pair of t * t
     | Fst of t
     | Snd of t
+
 
     | TeleNil
     | TeleCons of Ident.user * t * t
@@ -82,6 +84,7 @@ struct
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
+    | Symbol
     | Telescope
     | Signature of t
     | Nat

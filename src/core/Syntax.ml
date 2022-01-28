@@ -25,6 +25,7 @@ struct
     | Global _ -> Format.fprintf fmt "<global>"
     | Let _ -> Format.fprintf fmt "<let>"
     | Ann _ -> Format.fprintf fmt "<ann>"
+    | Quoted u -> Format.fprintf fmt "'%a" Ident.pp_user u
 
     | Zero -> Format.fprintf fmt "zero"
     | Suc tm -> Format.fprintf fmt "suc[%a]" dump tm
@@ -104,6 +105,7 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
+    | Symbol -> Format.fprintf fmt "tp/symbol"
     | Telescope -> Format.fprintf fmt "tp/tele"
     | Signature tele -> Format.fprintf fmt "tp/sig[%a]" dump tele
     | Nat -> Format.fprintf fmt "nat"
@@ -148,7 +150,7 @@ struct
     (** assumes [Debug.is_debug_mode ()] = [false] *)
     let classify_tm : tm -> t =
       function
-      | Var _ | Global _ -> atom
+      | Var _ | Global _ | Quoted _ -> atom
       | Lam _ -> double_arrow
       | Ap _ -> juxtaposition
       | Pair _ -> tuple
@@ -202,7 +204,7 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | TpDim | TpCof | Nat | Circle -> atom
+      | Symbol | Univ | TpDim | TpCof | Nat | Circle -> atom
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -319,6 +321,8 @@ struct
       pp_var env fmt ix
     | Global sym ->
       Symbol.pp fmt sym
+    | Quoted id ->
+      Format.fprintf fmt "`%a" Ident.pp_user id
     | Cof (Cof.Eq (r, s)) ->
       Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
     | Cof (Cof.Join []) ->
@@ -553,6 +557,8 @@ struct
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx P.(right_of times)) fam
+    | Symbol ->
+      Format.fprintf fmt "symbol"
     | Telescope ->
       Format.fprintf fmt "tele"
     | Signature tele ->

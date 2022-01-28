@@ -18,6 +18,8 @@ let pp_connective fmt =
     Format.fprintf fmt "pi"
   | `Sg ->
     Format.fprintf fmt "sg"
+  | `Symbol ->
+    Format.fprintf fmt "symbol"
   | `Telescope ->
     Format.fprintf fmt "tele"
   | `Signature ->

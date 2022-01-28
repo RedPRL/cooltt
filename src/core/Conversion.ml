@@ -182,6 +182,8 @@ and equate_con tp con0 con1 =
   | _, D.Split branches, _
   | _, _, D.Split branches ->
     MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_con tp con0 con1) branches
+  | _, D.Quoted id0, D.Quoted id1 when Ident.equal id0 id1 ->
+    ret ()
   | D.Pi (base, _, fam), _, _ ->
     bind_var_ base @@ fun x ->
     let* fib = lift_cmp @@ inst_tp_clo fam x in

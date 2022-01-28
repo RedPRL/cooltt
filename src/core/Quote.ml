@@ -81,6 +81,9 @@ let rec quote_con (tp : D.tp) con =
           S.Var ix
     end
 
+  | _, D.Quoted id ->
+    ret @@ S.Quoted id
+
   | _, D.Cut {cut = (hd, sp); tp = _} ->
     quote_cut (hd, sp)
 
@@ -439,6 +442,8 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
+  | D.Symbol ->
+    ret S.Symbol
   | D.Telescope ->
     ret S.Telescope
   | D.Signature tele ->

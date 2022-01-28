@@ -521,14 +521,28 @@ struct
       RM.expected_connective `Sg tp
 end
 
+module Symbol =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.rule ~name:"Symbol.formation" @@
+    RM.ret S.Symbol
+
+  let quote id : T.Chk.tac =
+    T.Chk.rule ~name:"Symbol.quote" @@
+    function
+    | D.Symbol -> RM.ret @@ S.Quoted id
+    | tp -> RM.expected_connective `Symbol tp
+
+end
+
 module Telescope =
 struct
   let formation : T.Tp.tac =
-    T.Tp.rule @@
+    T.Tp.rule ~name:"Telescope.formation" @@
     RM.ret S.Telescope
 
   let nil : T.Chk.tac =
-    T.Chk.rule @@
+    T.Chk.rule ~name:"Telescope.nil" @@
     function
     | D.Telescope ->
       RM.ret S.TeleNil
@@ -536,7 +550,7 @@ struct
 
   (* [TODO: Reed M, 26/01/2022] Boundaries? *)
   let cons (id : Ident.user) (tac_code : T.Chk.tac) (tac_tele : T.Chk.tac) =
-    T.Chk.rule @@
+    T.Chk.rule ~name:"Telescope.cons" @@
     function
     | (D.Telescope) ->
       let* code = T.Chk.run tac_code D.Univ in

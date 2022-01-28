@@ -176,7 +176,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Quoted _ | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -327,8 +327,6 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     let+ base = subst_tp r x base
     and+ fam = subst_tp_clo r x fam in
     D.Sg (base, ident, fam)
-  | D.Telescope ->
-    ret D.Telescope
   | D.Signature tele ->
     let+ tele = subst_con r x tele in
     D.Signature tele
@@ -337,7 +335,7 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Symbol | D.Telescope | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -496,6 +494,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
+  | S.Symbol ->
+    ret D.Symbol
   | S.Telescope ->
     ret D.Telescope
   | S.Signature tele ->
@@ -548,6 +548,8 @@ and eval : S.t -> D.con EvM.m =
       append [vdef] @@ eval body
     | S.Ann (term, _) ->
       eval term
+    | S.Quoted id ->
+      ret @@ D.Quoted id
     | S.Zero ->
       ret D.Zero
     | S.Suc t ->
@@ -824,7 +826,7 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base
+  | D.Quoted _ | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base
   | D.Pair _ | D.TeleNil | D.TeleCons _ | D.Struct _
   | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->

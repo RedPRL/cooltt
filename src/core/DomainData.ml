@@ -54,6 +54,9 @@ struct
 
   (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
   and con =
+    | Quoted of Ident.user
+    (** A quoted identifier. *)
+
     | Lam of Ident.t * tm_clo
 
     | BindSym of DimProbe.t * con
@@ -114,8 +117,8 @@ struct
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
+    | Symbol
     | Telescope
-    (* [TODO: Reed M, 26/01/2022] Should this be something like the stable code situation? *)
     | Signature of con
     | Nat
     | Circle

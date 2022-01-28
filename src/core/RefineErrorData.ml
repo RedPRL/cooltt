@@ -10,6 +10,7 @@ struct
   type connective =
     [ `Pi
     | `Sg
+    | `Symbol
     | `Telescope
     | `Signature
     | `Nat
