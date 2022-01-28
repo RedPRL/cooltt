@@ -33,7 +33,8 @@ struct
       (** A code for the universe (antinomous for now). *)
     ]
 
-  (** A type code whose head constructor is {i not} stable under dimension substitution. *)
+  (** A type code which {i may or may not} be stable under dimension substitution. That is,
+      type codes with these constructors may or may not remain in normal forms under substitution. *)
   type 'a unstable_code =
     [ `HCom of dim * dim * cof * 'a
     (** Formal composite types *)
@@ -72,7 +73,7 @@ struct
     | SubIn of con
 
     | ElIn of con
-    (** The introduction form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
+    (** The introduction form for the extension of a {i stable} type code only (see {!constructor:ElStable} and {!constructor:ElUnstable}). *)
 
     | Dim0
     | Dim1
