@@ -65,12 +65,12 @@ let json_to_ident : J.value -> Ident.t =
   | j -> J.parse_error j "json_to_ident"
 
 let json_of_labeled json_of_el els : J.value =
-  `O (List.map (fun (`User path, el) -> (String.concat "." path, json_of_el el)) els)
+  `O (List.map (fun (`User path, el) -> (String.concat "::" path, json_of_el el)) els)
 
 let json_to_labeled json_to_el =
   function
   | `O j_els -> j_els |> List.map @@ fun (j_path, j_el) ->
-    let path = String.split_on_char '.' j_path in
+    let path = CCString.split ~by:"::" j_path in
     let tm = json_to_el j_el in
     (`User path, tm)
   | j -> J.parse_error j "json_to_labeled"

@@ -6,8 +6,8 @@ let user parts = `User parts
 
 let qual_to_string =
   function
-  | [] -> "(root)"
-  | parts -> String.concat "." parts
+  | [] -> "::"
+  | parts -> String.concat "::" parts
 
 let pp_user fmt =
   function
@@ -34,7 +34,7 @@ let to_string_opt =
 let user_to_string_opt =
   function
   | `User [] -> None
-  | `User parts -> Some (String.concat "." parts)
+  | `User parts -> Some (String.concat "::" parts)
 
 let equal i0 i1 =
   match (i0, i1) with
