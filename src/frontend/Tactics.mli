@@ -36,11 +36,12 @@ module Pi : sig
   val intros : (Ident.t * Chk.tac) list -> Chk.tac -> Chk.tac
 end
 
+module Telescope : sig
+  val of_list : (Ident.user * Chk.tac) list -> Chk.tac
+  val extend : Chk.tac -> Chk.tac -> Chk.tac
+end
+
 module Signature : sig
   val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
   val total : Syn.tac -> Chk.tac
-end
-
-module Tele : sig
-  val of_list : (Ident.user * Chk.tac) list -> Chk.tac
 end

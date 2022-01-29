@@ -94,7 +94,7 @@ struct
   and pp_frame : frm Pp.printer =
     fun fmt ->
     function
-    | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
+    | KAp (tp, con) -> Format.fprintf fmt "ap[%a, %a]" pp_tp tp pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
     | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
@@ -147,9 +147,9 @@ struct
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | TeleNil ->
       Format.fprintf fmt "tele/nil"
-    | TeleCons (x, code, tele) ->
+    | TeleCons (qid, code, tele) ->
       Format.fprintf fmt "tele/cons[%a, %a, %a]"
-        Ident.pp_user x
+        pp_con qid
         pp_con code
         pp_con tele
     | Struct fields ->

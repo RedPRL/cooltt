@@ -34,6 +34,11 @@ and con_ =
   | Lam of Ident.t list * con
   | Ap of con * con list
   | Sg of cell list * con
+  | Nil
+  | Cons of con * con * con
+  | Telescope
+  | Row of field list
+  | Extend of con * con
   | Signature of field list
   | Struct of field list
   | Proj of con * Ident.user
@@ -100,6 +105,7 @@ type decl =
   | Print of Ident.t node
   | Import of string list * con option
   | NormalizeTerm of con
+  | DumpTerm of con
   | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
   | Quit
 

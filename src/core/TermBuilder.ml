@@ -153,6 +153,12 @@ let snd m =
   let+ x = m in
   S.Snd x
 
+let symbol =
+  ret S.Symbol
+
+let quoted id =
+  ret @@ S.Quoted id
+
 let telescope =
   ret S.Telescope
 
@@ -162,10 +168,11 @@ let code_telescope =
 let nil =
   ret S.TeleNil
 
-let cons id mcode mtele =
-  let+ code = mcode
+let cons mqid mcode mtele =
+  let+ qid = mqid
+  and+ code = mcode
   and+ tele = mtele in
-  S.TeleCons (id, code, tele)
+  S.TeleCons (qid, code, tele)
 
 let tele_elim mmot mnil mcons mtele =
   let+ mot = mmot
@@ -178,11 +185,12 @@ let struct_ mfields =
   let+ fields = MU.map (MU.second (fun x -> x)) mfields in
   S.Struct fields
 
-let push lbl mcode mfield mstr =
-  let+ code = mcode
+let push mqid mcode mfield mstr =
+  let+ qid = mqid
+  and+ code = mcode
   and+ field = mfield
   and+ str = mstr in
-  S.Push (lbl, code, field, str)
+  S.Push (qid, code, field, str)
 
 let proj m lbl =
   let+ x = m in
@@ -792,57 +800,74 @@ struct
 
   (** Unfold a telescope into a pi type. *)
   let unfold tele code =
-    let nil_case = code in
+    let mot = lam @@ fun _ -> code_univ in
+    let nil_case = el_in code in
     let cons_case =
-      lam ~ident:(`User ["A"]) @@ fun a ->
       lam @@ fun _ ->
-      lam ~ident:(`User ["B"]) @@ fun b ->
+      lam ~ident:(`User ["a"]) @@ fun a ->
+      lam @@ fun _ ->
+      lam ~ident:(`User ["b"]) @@ fun b ->
+      el_in @@
       code_pi a @@ lam ~ident:(`User ["a"]) @@ fun ax ->
+      el_out @@
       ap b [ax]
     in
-    tele_elim (lam @@ fun _ -> code_univ) nil_case cons_case tele
+    el_out @@ tele_elim mot nil_case cons_case tele
 
   let extend tele fam =
+    (* NOTE: unfold : tele → univ → univ *)
     let mot =
       lam @@ fun t ->
       code_pi (unfold t code_telescope) @@ lam @@ fun _ -> code_telescope
     in
     let nil_case =
+      el_in @@
       lam @@ fun t -> t
     in
+    (* Π (qid : symbol) → Π (a : univ) → Π (t : telescope) → `Π (unfold t `telescope) → `telescope *)
     let cons_case =
+      lam @@ fun qid ->
+      (* a : univ *)
       lam @@ fun a ->
+      (* t : telescope *)
       lam @@ fun _ ->
-      lam @@ fun p ->
+      (* c : Π (x : a) → `Π unfold (t x) → `telescope *)
+      lam @@ fun c ->
+      el_in @@
       lam @@ fun k ->
-      (* [TODO: Reed M, 26/01/2022] It's somewhat unclear what identifier to use here... *)
-      cons (`User ["FIXME"]) a @@ lam @@ fun z -> ap p [z; ap k [z]]
+      el_in @@
+      cons qid a @@ lam @@ fun z -> el_out @@ ap (el_out @@ ap c [z]) [ap (el_out k) [z]]
     in
-    ap (tele_elim mot nil_case cons_case tele) [fam]
+    el_out @@ ap (el_out @@ tele_elim mot nil_case cons_case tele) [fam]
 
-  (* To be able to write this, I need to be able to cons something onto a struct... *)
   let curry tele code uncurried =
+    (* NOTE: unfold : tele → univ → univ *)
     let mot =
       lam @@ fun t ->
       code_pi (code_pi (code_signature t) @@ lam @@ fun _ -> code) @@ lam @@ fun _ ->
       unfold t code
     in
     let nil_case =
-      lam @@ fun k ->
       el_in @@
-      ap k [struct_ []]
+      (* k : `Π (k : `Π `sig [] → code) *)
+      lam @@ fun k ->
+      ap (el_out k) [el_in @@ struct_ []]
     in
     let cons_case =
-      lam @@ fun code ->
+      lam @@ fun qid ->
+      (* a : univ *)
+      lam @@ fun a ->
+      (* t : telescope *)
       lam @@ fun _ ->
+      (* c : Π (x : a) → unfold (t x) code →  *)
       lam @@ fun c ->
-      lam @@ fun u ->
       el_in @@
+      (* u :  *)
+      lam @@ fun u ->
       lam @@ fun field ->
-      (* [TODO: Reed M, 27/01/2022] It's somewhat unclear what identifier to use here... *)
-      ap c [field; lam @@ fun t_struct -> ap u [push (`User ["FIXME"]) code field t_struct]]
+      ap (el_out c) [field; lam @@ fun t_struct -> ap (el_out u) [el_in @@ push qid a field t_struct]]
     in
-    ap (tele_elim mot nil_case cons_case tele) [uncurried]
+    ap (el_out @@ tele_elim mot nil_case cons_case tele) [el_in @@ uncurried]
 end
 
 (* [TODO: Reed M, 26/01/2022] Move this into the unit test suite. *)

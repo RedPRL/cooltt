@@ -43,11 +43,11 @@ struct
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
     | TeleNil -> Format.fprintf fmt "tele/nil"
-    | TeleCons (x, code, tele) -> Format.fprintf fmt "tele/cons[%a, %a, %a]" Ident.pp_user x dump code dump tele
-    | TeleElim (mot, nil, cons, tele) -> Format.fprintf fmt "tele/elim[%a, %a, %a, %a]" dump mot dump cons dump nil dump tele
+    | TeleCons (qid, code, tele) -> Format.fprintf fmt "tele/cons[%a, %a, %a]" dump qid dump code dump tele
+    | TeleElim (mot, nil, cons, tele) -> Format.fprintf fmt "tele/elim[%a, %a, %a, %a]" dump mot dump nil dump cons dump tele
 
     | Struct tele -> Format.fprintf fmt "struct[%a]" dump_struct tele
-    | Push (lbl, code, field, str) -> Format.fprintf fmt "push[%a, %a, %a, %a]" Ident.pp_user lbl dump code dump field dump str
+    | Push (qid, code, field, str) -> Format.fprintf fmt "push[%a, %a, %a, %a]" dump qid dump code dump field dump str
     | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
 
     | Coe _ -> Format.fprintf fmt "<coe>"
@@ -267,15 +267,15 @@ struct
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
     | TeleNil ->
       ()
-    | TeleCons (ident, code, Lam (_, body)) ->
+    | TeleCons (Quoted ident, code, Lam (_, body)) ->
       let (x, envx) = ppenv_bind env (ident :> Ident.t) in
       Format.fprintf fmt "(%s : %a)@ @,%a"
         x
         (pp env P.(right_of colon)) code
         (pp envx penv) body
-    | TeleCons (x, code, tele) ->
+    | TeleCons (qid, code, tele) ->
       Format.fprintf fmt "(%a : %a)@ @,%a"
-        Ident.pp_user x
+        (pp env penv) qid
         (pp env P.(right_of colon)) code
         (pp env penv) tele
     | TeleElim (mot, nil, cons, tele) ->
@@ -286,14 +286,14 @@ struct
         (pp env P.isolated) cons
     | Struct tele ->
       Format.fprintf fmt "@[struct %a@]" (pp_tele pp env) tele
-    | Push (lbl, code, field, str) ->
+    | Push (qid, code, field, str) ->
       Format.fprintf fmt "@[push %a %a %a %a@]"
-        Ident.pp_user lbl
+        (pp env penv) qid
         (pp env penv) code
         (pp env penv) field
         (pp env penv) str
     | Proj (tm, lbl) ->
-      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
+      Format.fprintf fmt "@[%a.%a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches

@@ -92,6 +92,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
     let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
+  | D.Symbol, D.Symbol -> ret ()
   | D.Telescope, D.Telescope -> ret ()
   | D.Signature tele0, D.Signature tele1 -> equate_con D.Telescope tele0 tele1
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
@@ -200,7 +201,8 @@ and equate_con tp con0 con1 =
     equate_con fib snd0 snd1
   | _, D.TeleNil, D.TeleNil ->
     ret ()
-  | _, D.TeleCons (id0, code0, tele0), D.TeleCons (id1, code1, tele1) when Ident.equal id0 id1 ->
+  | _, D.TeleCons (id0, code0, tele0), D.TeleCons (id1, code1, tele1) ->
+    let* () = equate_con D.Symbol id0 id1 in
     let* () = equate_con D.Univ code0 code1 in
     let* tele_tp =
       lift_cmp @@
@@ -302,9 +304,10 @@ and equate_con tp con0 con1 =
 
 and equate_struct (tele : D.con) con0 con1 =
   match tele with
-  | D.TeleCons (lbl, code, lam) ->
-    let* field0 = lift_cmp @@ do_proj con0 lbl in
-    let* field1 = lift_cmp @@ do_proj con1 lbl in
+  | D.TeleCons (qid, code, lam) ->
+    let* id = lift_cmp @@ unquote qid in
+    let* field0 = lift_cmp @@ do_proj con0 id in
+    let* field1 = lift_cmp @@ do_proj con1 id in
     let* tp = lift_cmp @@ do_el code in
     let* () = equate_con tp field0 field1 in
     let* tele = lift_cmp @@ do_ap lam field0 in
@@ -387,7 +390,8 @@ and equate_frm k0 k1 =
       TB.el @@ TB.ap mot [TB.loop x]
     in
     equate_con loop_tp loop_case0 loop_case1
-  | D.KPush (lbl0, code0, field0), D.KPush (lbl1, code1, field1) when Ident.equal lbl0 lbl1 ->
+  | D.KPush (qid0, code0, field0), D.KPush (qid1, code1, field1) ->
+    let* () = equate_con D.Symbol qid0 qid1 in
     let* () = equate_con D.Univ code0 code1 in
     let* tp = lift_cmp @@ do_el code0 in
     equate_con tp field0 field1
@@ -409,11 +413,11 @@ and equate_frm k0 k1 =
       Sem.splice_tp @@
       Splice.con mot0 @@ fun mot ->
       Splice.term @@
+      TB.pi TB.symbol @@ fun qid ->
       TB.pi TB.univ @@ fun a ->
       TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.telescope) @@ fun t ->
       TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el (TB.ap mot [TB.ap t [x]])) @@ fun _ ->
-      (* [TODO: Reed M, 26/01/2022] Rethink identifiers in telescopes! *)
-      TB.el @@ TB.ap mot [TB.cons (`User ["FIXME"]) a t]
+      TB.el @@ TB.ap mot [TB.cons qid a t]
     in
     equate_con cons_tp cons_case0 cons_case1
   | D.KElOut, D.KElOut ->

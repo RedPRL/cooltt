@@ -110,17 +110,18 @@ let rec quote_con (tp : D.tp) con =
   | _, D.TeleNil ->
     ret S.TeleNil
 
-  | _, D.TeleCons (id, code, tele) ->
+  | _, D.TeleCons (qid, code, tele) ->
     let* tele_tp =
       lift_cmp @@
       Sem.splice_tp @@
       Splice.con code @@ fun code ->
       Splice.term @@
-      TB.pi (TB.el code) (fun _ -> TB.telescope)
+      TB.pi (TB.el @@ code) (fun _ -> TB.telescope)
     in
-    let+ code = quote_con D.Univ code
-    and+ tele = quote_con tele_tp tele in
-    S.TeleCons (id, code, tele)
+    let* qid = quote_con D.Symbol qid in
+    let* code = quote_con D.Univ code in
+    let+ tele = quote_con tele_tp tele in
+    S.TeleCons (qid, code, tele)
 
   | D.Signature sign, _ ->
     let+ tfields = quote_fields sign con in
@@ -300,13 +301,14 @@ let rec quote_con (tp : D.tp) con =
 
 and quote_fields (tele : D.con) con : (Ident.user * S.t) list m =
   match tele with
-  | D.TeleCons (lbl, code, lam) ->
-    let* fcon = lift_cmp @@ do_proj con lbl in
+  | D.TeleCons (qid, code, lam) ->
+    let* id = lift_cmp @@ unquote qid in
+    let* fcon = lift_cmp @@ do_proj con id in
     let* tp = lift_cmp @@ do_el code in
     let* tele = lift_cmp @@ do_ap lam fcon in
     let* tfield = quote_con tp fcon in
     let+ tfields = quote_fields tele con in
-    (lbl, tfield) :: tfields
+    (id, tfield) :: tfields
   | D.TeleNil -> ret []
   | _ -> failwith "internal error: quote_fields"
 
@@ -657,11 +659,12 @@ and quote_frm tm =
     in
     let* tloop_case = quote_con loop_tp loop_case in
     ret @@ S.CircleElim (tmot, tbase_case, tloop_case, tm)
-  | D.KPush (lbl, code, field) ->
+  | D.KPush (qid, code, field) ->
+    let* tqid = quote_con D.Symbol qid in
     let* tcode = quote_con D.Univ code in
     let* tp = lift_cmp @@ Sem.do_el code in
     let+ tfield = quote_con tp field in
-    S.Push (lbl, tcode, tfield, tm)
+    S.Push (tqid, tcode, tfield, tm)
   | D.KTeleElim (mot, nil_case, cons_case) ->
     let* mot_tp =
       lift_cmp @@
@@ -680,11 +683,11 @@ and quote_frm tm =
       Sem.splice_tp @@
       Splice.con mot @@ fun mot ->
       Splice.term @@
+      TB.pi TB.symbol @@ fun qid ->
       TB.pi TB.univ @@ fun a ->
       TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.telescope) @@ fun t ->
       TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el (TB.ap mot [TB.ap t [x]])) @@ fun _ ->
-      (* [TODO: Reed M, 26/01/2022] Rethink identifiers in telescopes! *)
-      TB.el @@ TB.ap mot [TB.cons (`User ["FIXME"]) a t]
+      TB.el @@ TB.ap mot [TB.cons qid a t]
     in
     let+ tcons_case = quote_con cons_tp cons_case in
     S.TeleElim (tmot, tnil_case, tcons_case, tm)

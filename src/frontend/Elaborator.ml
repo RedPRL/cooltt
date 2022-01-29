@@ -39,6 +39,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
+  val tele : tac
   val signature : (Ident.user * tac) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
@@ -100,15 +101,15 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
+  let tele = Code R.Univ.tele
+
   let signature (tacs : (Ident.user * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
-      let tac = R.Univ.signature (Tactics.Tele.of_list tacs) in
+      let tac = R.Univ.signature (Tactics.Telescope.of_list tacs) in
       Code tac
     | None ->
       failwith "[FIXME] Core.CoolTp.signature: Handle the case when a signature is full of types!"
-  (* let tac = R.Signature.formation (Tactics.Tele.of_list tacs) in *)
-  (* Tp tac *)
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -289,8 +290,23 @@ and chk_tm : CS.con -> T.Chk.tac =
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
+    | CS.Telescope ->
+      R.Univ.tele
+
+    | CS.Nil ->
+      R.Telescope.nil
+
+    | CS.Cons (qid, code, tele) ->
+      R.Telescope.cons (chk_tm qid) (chk_tm code) (chk_tm tele)
+
+    | CS.Row fields ->
+      Tactics.Telescope.of_list @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields
+
+    | CS.Extend (row, fam) ->
+      Tactics.Telescope.extend (chk_tm row) (chk_tm fam)
+
     | CS.Signature fields ->
-      let tacs = Tactics.Tele.of_list @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
+      let tacs = Tactics.Telescope.of_list @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->

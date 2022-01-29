@@ -108,7 +108,8 @@ end
 module Telescope : sig
   val formation : Tp.tac
   val nil : Chk.tac
-  val cons : Ident.user -> Chk.tac -> Chk.tac -> Chk.tac
+  val cons : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
+  val elim : Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac -> Syn.tac
 end
 
 module Signature : sig

@@ -30,14 +30,17 @@ val snd : t m -> t m
 
 val lams : Ident.t list -> (t m list -> t m) -> t m
 
+val symbol : tp m
+val quoted : Ident.user -> t m
+
 val telescope : tp m
 val code_telescope : t m
 val nil : t m
-val cons : Ident.user -> t m -> t m -> t m
+val cons : t m -> t m -> t m -> t m
 val tele_elim : t m -> t m -> t m -> t m -> t m
 
 val struct_ : (Ident.user * t m) list -> t m
-val push : Ident.user -> t m -> t m -> t m -> t m
+val push : t m -> t m -> t m -> t m -> t m
 val proj : t m -> Ident.user -> t m
 
 val zero : t m

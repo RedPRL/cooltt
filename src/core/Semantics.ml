@@ -597,10 +597,11 @@ and eval : S.t -> D.con EvM.m =
       lift_cmp @@ do_snd con
     | S.TeleNil ->
       ret D.TeleNil
-    | S.TeleCons (id, code, tele) ->
-      let+ code = eval code
+    | S.TeleCons (qid, code, tele) ->
+      let+ qid = eval qid
+      and+ code = eval code
       and+ tele = eval tele in
-      D.TeleCons (id, code, tele)
+      D.TeleCons (qid, code, tele)
     | S.TeleElim (mot, nil, cons, tele) ->
       let* mot = eval mot in
       let* nil = eval nil in
@@ -610,11 +611,12 @@ and eval : S.t -> D.con EvM.m =
     | S.Struct fields ->
       let+ vfields = MU.map (MU.second eval) fields in
       D.Struct vfields
-    | S.Push (lbl, code, field, str) ->
+    | S.Push (qid, code, field, str) ->
+      let* qid = eval qid in
       let* code = eval code in
       let* field = eval field in
       let* str = eval str in
-      lift_cmp @@ do_push lbl code field str
+      lift_cmp @@ do_push qid code field str
     | S.Proj (t, lbl) ->
       let* con = eval t in
       lift_cmp @@ do_proj con lbl
@@ -1201,17 +1203,19 @@ and do_snd con : D.con CM.m =
   end
 
 (** We are trying to compute the type of the cute here? *)
-and cut_frm_tele (cut : D.cut) (tele : D.con) (lbl : Ident.user) =
+and cut_frm_tele (cut : D.cut) (tele : D.con) (cut_id : Ident.user) =
   let open CM in
   match tele with
-  | D.TeleCons (flbl, code, _) when Ident.equal flbl lbl ->
-    let+ tp = do_el code in
-    cut_frm ~tp ~cut (D.KProj lbl)
-  | D.TeleCons (flbl, _, lam) ->
-    let* field = cut_frm_tele cut tele flbl in
-    (* NOTE: Recall that we are using lambdas for the "rest" part of a telescope. *)
-    let* tele = do_ap lam field in
-    cut_frm_tele cut tele lbl
+  | D.TeleCons (qid, code, lam) ->
+    let* id = unquote qid in
+    if Ident.equal id cut_id then
+      let+ tp = do_el code in
+      cut_frm ~tp ~cut (D.KProj cut_id)
+    else
+      let* field = cut_frm_tele cut tele id in
+      (* NOTE: Recall that we are using lambdas for the "rest" part of a telescope. *)
+      let* tele = do_ap lam field in
+      cut_frm_tele cut tele cut_id
   | _ ->
     throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
 
@@ -1223,15 +1227,16 @@ and do_tele_elim (mot : D.con) (nil : D.con) (cons : D.con) (con : D.con) : D.co
     function
     | D.TeleNil ->
       ret nil
-    | D.TeleCons (id, code, tele) ->
+    | D.TeleCons (qid, code, tele) ->
       splice_tm @@
       Splice.con mot @@ fun mot ->
       Splice.con nil @@ fun nil ->
       Splice.con cons @@ fun cons ->
+      Splice.con qid @@ fun qid ->
       Splice.con code @@ fun code ->
       Splice.con tele @@ fun tele ->
       Splice.term @@
-      TB.ap cons [code; tele; TB.lam ~ident:(id :> Ident.t) @@ fun x -> TB.tele_elim mot nil cons (TB.ap tele [x])]
+      TB.ap cons [qid; code; tele; TB.lam @@ fun x -> TB.tele_elim mot nil cons (TB.ap tele [x])]
     | D.Split branches ->
       splice_tm @@
       Splice.con mot @@ fun mot ->
@@ -1274,18 +1279,21 @@ and do_tele_elim (mot : D.con) (nil : D.con) (cons : D.con) (con : D.con) : D.co
       throw @@ NbeFailed ("couldn't eliminate telescope in do_tele_elim")
   end
 
-and do_push (lbl : Ident.user) (code : D.con) (field : D.con) (con : D.con) : D.con CM.m =
+and do_push (qid : D.con) (code : D.con) (field : D.con) (con : D.con) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis =
     splice_tm @@
+    Splice.con qid @@ fun qid ->
     Splice.con code @@ fun code ->
     Splice.con field @@ fun field ->
-    Splice.Macro.commute_split con phis (TB.push lbl code field) in
+    Splice.Macro.commute_split con phis (TB.push qid code field) in
   begin
     inspect_con ~style:`UnfoldNone con |>>
     function
-    | D.Struct fields -> ret @@ D.Struct ((lbl, field) :: fields)
+    | D.Struct fields ->
+      let+ id = unquote qid in
+      D.Struct ((id, field) :: fields)
     | D.Split branches ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
@@ -1293,13 +1301,13 @@ and do_push (lbl : Ident.user) (code : D.con) (field : D.con) (con : D.con) : D.
     | D.Cut { tp = D.Signature tele; cut } ->
       let+ tp =
         splice_tp @@
+        Splice.con qid @@ fun qid ->
         Splice.con code @@ fun code ->
         Splice.con tele @@ fun tele ->
         Splice.term @@
-        (* We need to know the code of the type here! *)
-        TB.signature (TB.cons lbl code (TB.lam @@ fun _ -> tele))
+        TB.signature (TB.cons qid code (TB.lam @@ fun _ -> tele))
       in
-      cut_frm ~tp ~cut (D.KPush (lbl, code, field))
+      cut_frm ~tp ~cut (D.KPush (qid, code, field))
     | _ ->
       throw @@ NbeFailed ("Couldn't push argument in do_push")
   end
@@ -1901,6 +1909,13 @@ and do_spine con =
     let* con' = do_frm con k in
     do_spine con' sp
 
+(* NOTE: This should be safe to use in most situations, due to the stratification
+   of Symbols as virtual types *)
+and unquote con =
+  let open  CM in
+  match con with
+  | D.Quoted sym -> ret sym
+  | _ -> throw (NbeFailed "bad unquote")
 
 and splice_tm t =
   let env, tm = Splice.compile t in

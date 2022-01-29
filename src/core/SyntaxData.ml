@@ -27,11 +27,11 @@ struct
 
 
     | TeleNil
-    | TeleCons of Ident.user * t * t
+    | TeleCons of t * t * t
     | TeleElim of t * t * t * t
 
     | Struct of (Ident.user * t) list
-    | Push of Ident.user * t * t * t
+    | Push of t * t * t * t
     | Proj of t * Ident.user
 
     | Coe of t * t * t * t

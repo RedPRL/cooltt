@@ -22,6 +22,7 @@ let commands =
       ("#fail", FAIL);
       ("#normalize", NORMALIZE);
       ("#print", PRINT);
+      ("#dump", DUMP);
       ("#quit", QUIT);
     ]
 
@@ -35,9 +36,14 @@ let keywords =
     ("base", BASE);
     ("loop", LOOP);
     ("circle", CIRCLE);
+    ("nil", NIL);
+    ("cons", CONS);
+    ("tele", TELESCOPE);
+    ("row", ROW);
     ("sig", SIG);
     ("struct", STRUCT);
     ("as", AS);
+    ("extend", EXTEND);
     ("🍪", CIRCLE);
     ("let", LET);
     ("in", IN);

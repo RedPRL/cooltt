@@ -76,7 +76,7 @@ struct
 
     (* [TODO: Reed M, 26/01/2022] Does it make sense to handle these in a similar way to codes? *)
     | TeleNil
-    | TeleCons of Ident.user * con * con
+    | TeleCons of con * con * con
 
     | Struct of (Ident.user * con) list
 
@@ -144,7 +144,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
-    | KPush of Ident.user * con * con
+    | KPush of con * con * con
     | KProj of Ident.user
     | KNatElim of con * con * con
     | KCircleElim of con * con * con

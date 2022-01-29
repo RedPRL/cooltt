@@ -175,6 +175,12 @@ and execute_decl : CS.decl -> command =
     let* tm' = RM.quote_con vtp vtm in
     let+ () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
     Continue Fun.id
+  | CS.DumpTerm term ->
+    RM.veil (Veil.const `Transparent) @@
+    let* tm, _ = Tactic.Syn.run @@ Elaborator.syn_tm term in
+    let+ vtm = RM.lift_ev @@ Sem.eval tm in
+    Debug.print "Dumping Term: %a@." D.pp_con vtm;
+    Continue Fun.id
   | CS.Fail {name; args; def; tp; info} ->
     let* res = RM.trap @@ elaborate_typed_term (Ident.to_string name) args tp def in
     print_fail name info res

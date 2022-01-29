@@ -114,6 +114,33 @@ struct
         | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "loop"
       in
       T.Syn.run @@ R.Circle.elim mot tac_base tac_loop scrut
+    | D.Telescope, mot ->
+      let* tac_nil  =
+        match find_case ["nil"] cases with
+        | Some ([], tac) -> RM.ret tac
+        | Some _ -> elab_err ElabError.MalformedCase
+        | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "nil"
+      in
+      let* tac_cons =
+        match find_case ["cons"] cases with
+        | Some ([`Simple nm_qid; `Simple nm_code; `Simple nm_tele], tac) ->
+          RM.ret @@
+          R.Pi.intro ~ident:nm_qid @@ fun _ ->
+          R.Pi.intro ~ident:nm_code @@ fun _ ->
+          R.Pi.intro ~ident:nm_tele @@ fun _ ->
+          R.Pi.intro @@ fun _ ->
+          tac
+        | Some ([`Simple nm_qid; `Simple nm_code; `Inductive (nm_tele, nm_ih)], tac) ->
+          RM.ret @@
+          R.Pi.intro ~ident:nm_qid @@ fun _ ->
+          R.Pi.intro ~ident:nm_code @@ fun _ ->
+          R.Pi.intro ~ident:nm_tele @@ fun _ ->
+          R.Pi.intro ~ident:nm_ih @@ fun _ ->
+          tac
+        | Some _ -> elab_err ElabError.MalformedCase
+        | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "cons"
+      in
+      T.Syn.run @@ R.Telescope.elim mot tac_nil tac_cons scrut
     | _ ->
       RM.with_pp @@ fun ppenv ->
       let* tp = RM.quote_tp ind_tp in
@@ -161,14 +188,63 @@ struct
     tac_nary_quantifier quant tac_args tac_ret
 end
 
+
+module Telescope =
+struct
+  let rec of_list tacs =
+    match tacs with
+    | [] ->
+      R.Telescope.nil
+    | (lbl, tac) :: tacs ->
+      R.Telescope.cons (R.Symbol.quote lbl) tac @@
+      R.Pi.intro ~ident:(lbl :> Ident.t) @@ fun _ ->
+      of_list tacs
+
+  let extend (tele_tac : T.Chk.tac) (fam_tac : T.Chk.tac) =
+    T.Chk.rule ~name:"Telescope.extend" @@
+    function
+    | D.Telescope ->
+      let* tele = T.Chk.run tele_tac D.Telescope in
+      let* vtele = RM.lift_ev @@ Sem.eval tele in
+      Debug.print "[EXTEND] Constructing Family Type@.";
+      let* fam_tp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con vtele @@ fun tele ->
+        Splice.term @@
+        TB.el @@ TB.Tele.unfold tele TB.code_telescope
+      in
+      (* [TODO: Reed M, 28/01/2022] Insert the correct amount of Pi.intro here *)
+      Debug.print "[EXTEND] Checking Family Type@.";
+      let* fam = T.Chk.run fam_tac fam_tp in
+      Debug.print "[EXTEND] Evaluating Family Type@.";
+      let* vfam = RM.lift_ev @@ Sem.eval fam in
+      Debug.print "[EXTEND] Extending Telescope@.";
+      let* extended_tele = 
+        RM.lift_cmp @@
+        Sem.splice_tm @@
+        Splice.con vtele @@ fun tele ->
+        Splice.con vfam @@ fun fam ->
+        Splice.term @@
+        TB.Tele.extend tele fam
+      in
+      (* [TODO: Reed M, 28/01/2022] We should probably normalize somewhere here! *)
+      Debug.print "[EXTEND] Extended Telescope@.";
+      RM.quote_con D.Telescope extended_tele
+    | tp -> RM.expected_connective `Telescope tp
+end
+
 module Signature =
 struct
 
+
   let rec patch_fields (tele : D.con) (patch_tacs : Ident.user -> T.Chk.tac option) : S.t m =
     match tele with
-    | D.TeleCons (id, code, lam) ->
-      Debug.print "Doing El for code %a@." D.pp_con code;
+    | D.TeleCons (qid, code, lam) ->
+      let* id = RM.lift_cmp @@ Sem.unquote qid in
+      Debug.print "[PATCH] Doing el on field code %a@." D.pp_con code;
       let* tp = RM.lift_cmp @@ Sem.do_el code in
+      Debug.print "[PATCH] Did el on field type %a@." D.pp_tp tp;
       (* NOTE: When we add on an extension type, we need to be careful
          to insert the requisite elimination forms for the subtype!
          This is handled by the 'elim_con'. *)
@@ -196,6 +272,7 @@ struct
         end
       in
       let* patch_tp = RM.lift_cmp @@ Sem.do_el patch_code in
+      let* tqid = RM.quote_con D.Symbol qid in
       let* tpatch_code = RM.quote_con D.Univ patch_code in
       let+ tpatch_lam =
         RM.abstract (id :> Ident.t) patch_tp @@ fun x ->
@@ -204,7 +281,7 @@ struct
         let+ patched_tele = patch_fields tele patch_tacs in
         S.Lam ((id :> Ident.t), patched_tele)
       in
-      S.TeleCons (id, tpatch_code, tpatch_lam)
+      S.TeleCons (tqid, tpatch_code, tpatch_lam)
     | con ->
       RM.quote_con D.Telescope con
 
@@ -215,7 +292,9 @@ struct
       (* [TODO: Reed M, 26/01/2022] Is there a better way to extract the index out of a signature type? *)
       let* code = T.Chk.run sign_tac D.Univ in
       let* vcode = RM.lift_ev @@ Sem.eval code in
+      Debug.print "[PATCH] El on code %a@." D.pp_con vcode;
       let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+      Debug.print "[PATCH] WHNF on type %a@." D.pp_tp tp;
       let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
       begin
         match whnf_tp with
@@ -249,13 +328,19 @@ struct
             | _ -> RM.expected_connective `Univ fam
           in
           let* vtm = RM.lift_ev @@ Sem.eval tm in
+          (* NOTE: The motive for 'TB.curry' must be a code, hence the el_out. *)
           let* vtotal_tele =
             RM.lift_cmp @@
             Sem.splice_tm @@
             Splice.con tele @@ fun tele ->
             Splice.con vtm @@ fun tm ->
             Splice.term @@
-            TB.Tele.extend tele (TB.Tele.curry tele TB.code_telescope @@ TB.lam @@ fun str -> TB.cons (`User ["FIXME"]) (TB.ap tm [str]) (TB.lam @@ fun _ -> TB.nil))
+            let curried =
+              TB.Tele.curry tele TB.code_telescope @@ TB.lam @@ fun str ->
+              TB.cons (TB.quoted (`User ["fibre"])) (TB.el_out @@ TB.ap tm [str]) (TB.lam @@ fun _ -> TB.nil)
+
+            in
+            TB.Tele.extend tele curried
           in
           let+ total_tele = RM.quote_con D.Telescope vtotal_tele in
           S.CodeSignature total_tele
@@ -265,16 +350,4 @@ struct
     | tp -> RM.expected_connective `Univ tp
 
 
-end
-
-module Tele =
-struct
-  let rec of_list tacs =
-    match tacs with
-    | [] ->
-      R.Telescope.nil
-    | (lbl, tac) :: tacs ->
-      R.Telescope.cons lbl tac @@
-      R.Pi.intro ~ident:(lbl :> Ident.t) @@ fun _ ->
-      of_list tacs
 end

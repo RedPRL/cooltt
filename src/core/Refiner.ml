@@ -524,7 +524,7 @@ end
 module Symbol =
 struct
   let formation : T.Tp.tac =
-    T.Tp.rule ~name:"Symbol.formation" @@
+    T.Tp.virtual_rule ~name:"Symbol.formation" @@
     RM.ret S.Symbol
 
   let quote id : T.Chk.tac =
@@ -541,29 +541,71 @@ struct
     T.Tp.rule ~name:"Telescope.formation" @@
     RM.ret S.Telescope
 
+  let assert_tele =
+    function
+    | D.Telescope -> RM.ret ()
+    | tp -> RM.expected_connective `Nat tp
+
   let nil : T.Chk.tac =
     T.Chk.rule ~name:"Telescope.nil" @@
-    function
-    | D.Telescope ->
-      RM.ret S.TeleNil
-    | tp -> RM.expected_connective `Telescope tp
+    fun tp ->
+    let+ () = assert_tele tp in
+    S.TeleNil
 
   (* [TODO: Reed M, 26/01/2022] Boundaries? *)
-  let cons (id : Ident.user) (tac_code : T.Chk.tac) (tac_tele : T.Chk.tac) =
+  let cons (qid_tac : T.Chk.tac) (tac_code : T.Chk.tac) (tac_tele : T.Chk.tac) =
     T.Chk.rule ~name:"Telescope.cons" @@
-    function
-    | (D.Telescope) ->
-      let* code = T.Chk.run tac_code D.Univ in
-      let* vcode = RM.lift_ev @@ Sem.eval code in
-      let* tele_tp =
-        RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.con vcode @@ fun code ->
-        Splice.term @@ TB.pi (TB.el code) (fun _ -> TB.telescope)
+    fun tp ->
+    let* () = assert_tele tp in
+    let* qid = T.Chk.run qid_tac D.Symbol in
+    let* code = T.Chk.run tac_code D.Univ in
+    let* vcode = RM.lift_ev @@ Sem.eval code in
+    let* tele_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con vcode @@ fun code ->
+      Splice.term @@ TB.pi (TB.el code) (fun _ -> TB.telescope)
+    in
+    let+ tele = T.Chk.run tac_tele tele_tp in
+    S.TeleCons (qid, code, tele)
+
+  let elim (mot_tac : T.Chk.tac) (nil_case_tac : T.Chk.tac) (cons_case_tac : T.Chk.tac) (scrut_tac : T.Syn.tac) : T.Syn.tac =
+    T.Syn.rule ~name:"Telescope.elim" @@
+    let* tscrut, teletp = T.Syn.run scrut_tac in
+    let* () = assert_tele teletp in
+    let* tmot =
+      T.Chk.run mot_tac @<<
+      RM.lift_cmp @@ Sem.splice_tp @@
+      Splice.term @@
+      TB.pi TB.telescope @@ fun _ -> TB.univ
+    in
+    let* vmot = RM.lift_ev @@ Sem.eval tmot in
+
+    let* tcase_nil =
+      let* code = RM.lift_cmp @@ Sem.do_ap vmot D.TeleNil in
+      let* tp = RM.lift_cmp @@ Sem.do_el code in
+      T.Chk.run nil_case_tac tp
+    in
+
+    let* tcase_cons =
+      let* cons_tp =
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.con vmot @@ fun mot ->
+        Splice.term @@
+        TB.pi TB.symbol @@ fun qid ->
+        TB.pi TB.univ @@ fun a ->
+        TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.telescope) @@ fun t ->
+        TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el @@ TB.ap mot [TB.ap t [x]]) @@ fun _ ->
+        TB.el @@ TB.ap mot [TB.cons qid a t]
       in
-      let+ tele = T.Chk.run tac_tele tele_tp in
-      S.TeleCons (id, code, tele)
-    | tp -> RM.expected_connective `Telescope tp
+      T.Chk.run cons_case_tac cons_tp
+    in
+    let+ fib_scrut =
+      let* vscrut = RM.lift_ev @@ Sem.eval tscrut in
+      let* code = RM.lift_cmp @@ Sem.do_ap vmot vscrut in
+      RM.lift_cmp @@ Sem.do_el code
+    in
+    S.TeleElim (tmot, tcase_nil, tcase_cons, tscrut), fib_scrut
 end
 
 module Signature =
@@ -584,17 +626,19 @@ struct
 
   let rec intro_fields phi phi_clo (tele : D.con) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
     match tele with
-    | D.TeleCons (lbl, code, lam) ->
-      let tac = match tacs lbl with
+    | D.TeleCons (qid, code, lam) ->
+      (* [TODO: Reed M, 27/01/2022] Fishy? *)
+      let* id = RM.lift_cmp @@ Sem.unquote qid in
+      let tac = match tacs id with
         | Some tac -> tac
-        | None -> Hole.unleash_hole (Ident.user_to_string_opt lbl)
+        | None -> Hole.unleash_hole (Ident.user_to_string_opt id)
       in
       let* tp = RM.lift_cmp @@ Sem.do_el code in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
+      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj id) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
       let* tele = RM.lift_cmp @@ Sem.do_ap lam vfield in
       let+ fields = intro_fields phi phi_clo tele tacs in
-      (lbl, tfield) :: fields
+      (id, tfield) :: fields
     | D.TeleNil ->
       RM.ret []
     | _ -> failwith "[FIXME] Containers.Signature.intro_fields: Handle this case better! This could be a cut!"
@@ -607,16 +651,20 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (tele : D.con) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
+  let proj_tp (tele : D.con) (tstruct : S.t) (proj_id : Ident.user) : D.tp m =
     let rec go =
       function
-      | D.TeleCons (flbl, code, _) when Ident.equal flbl lbl ->
-        RM.lift_cmp @@ Sem.do_el code
-      | D.TeleCons (flbl, __, lam) ->
-        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
-        let* vsign = RM.lift_cmp @@ Sem.do_ap lam vfield in
-        go vsign
-      | _ -> RM.expected_field tele tstruct lbl
+      (* | D.TeleCons (flbl, code, _) when Ident.equal flbl lbl -> *)
+      (*   RM.lift_cmp @@ Sem.do_el code *)
+      | D.TeleCons (qid, code, lam) ->
+        let* id = RM.lift_cmp @@ Sem.unquote qid in
+        if Ident.equal id proj_id then
+          RM.lift_cmp @@ Sem.do_el code
+        else
+          let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, proj_id) in
+          let* vsign = RM.lift_cmp @@ Sem.do_ap lam vfield in
+          go vsign
+      | _ -> RM.expected_field tele tstruct proj_id
     in go tele
 
   let proj tac lbl : T.Syn.tac =

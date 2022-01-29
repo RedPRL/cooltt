@@ -42,10 +42,10 @@
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token SIG STRUCT AS
+%token NIL CONS TELESCOPE ROW SIG STRUCT AS EXTEND
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM FAIL
+%token QUIT NORMALIZE PRINT DEF AXIOM FAIL DUMP
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -145,6 +145,8 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
+  | DUMP; tm = term
+    { DumpTerm tm }
   | unitpath = IMPORT; m = ioption(bracketed_modifier)
     { Import (unitpath, m) }
   | PRINT; name = name
@@ -241,6 +243,10 @@ plain_atomic_term_except_name:
     { Base }
   | CIRCLE
     { Circle }
+  | NIL
+    { Nil }
+  | TELESCOPE
+    { Telescope }
   | TYPE
     { Type }
   | name = HOLE_NAME
@@ -315,14 +321,22 @@ plain_term_except_cof_case:
     { t }
   | ELIM; cases = cases
     { LamElim cases }
+  | ELIM; WITH; mot = atomic_term; cases = cases; scrut = atomic_term
+    { Elim { mot; cases; scrut } }
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
   | SIG; tele = list(field);
     { Signature tele }
+  | CONS; qid = atomic_term; code = atomic_term; tele = atomic_term
+    { Cons (qid, code, tele) }
+  | ROW; tele = list(field);
+    { Row tele }
   | STRUCT; tele = list(field);
     { Struct tele }
+  | row = atomic_term; EXTEND; fam = atomic_term
+    { Extend (row, fam) }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
@@ -383,6 +397,10 @@ pat_lbl:
     { ["base"] }
   | LOOP
     { ["loop"] }
+  | NIL
+    { ["nil"] }
+  | CONS
+    { ["cons"] }
   | lbl = path
     { lbl }
 
