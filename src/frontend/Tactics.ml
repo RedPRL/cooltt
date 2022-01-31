@@ -206,7 +206,6 @@ struct
     | D.Telescope ->
       let* tele = T.Chk.run tele_tac D.Telescope in
       let* vtele = RM.lift_ev @@ Sem.eval tele in
-      Debug.print "[EXTEND] Constructing Family Type@.";
       let* fam_tp =
         RM.lift_cmp @@
         Sem.splice_tp @@
@@ -215,11 +214,8 @@ struct
         TB.el @@ TB.Tele.unfold tele TB.code_telescope
       in
       (* [TODO: Reed M, 28/01/2022] Insert the correct amount of Pi.intro here *)
-      Debug.print "[EXTEND] Checking Family Type@.";
       let* fam = T.Chk.run fam_tac fam_tp in
-      Debug.print "[EXTEND] Evaluating Family Type@.";
       let* vfam = RM.lift_ev @@ Sem.eval fam in
-      Debug.print "[EXTEND] Extending Telescope@.";
       let* extended_tele = 
         RM.lift_cmp @@
         Sem.splice_tm @@
@@ -228,8 +224,6 @@ struct
         Splice.term @@
         TB.Tele.extend tele fam
       in
-      (* [TODO: Reed M, 28/01/2022] We should probably normalize somewhere here! *)
-      Debug.print "[EXTEND] Extended Telescope@.";
       RM.quote_con D.Telescope extended_tele
     | tp -> RM.expected_connective `Telescope tp
 end
@@ -237,14 +231,11 @@ end
 module Signature =
 struct
 
-
   let rec patch_fields (tele : D.con) (patch_tacs : Ident.user -> T.Chk.tac option) : S.t m =
     match tele with
     | D.TeleCons (qid, code, lam) ->
       let* id = RM.lift_cmp @@ Sem.unquote qid in
-      Debug.print "[PATCH] Doing el on field code %a@." D.pp_con code;
       let* tp = RM.lift_cmp @@ Sem.do_el code in
-      Debug.print "[PATCH] Did el on field type %a@." D.pp_tp tp;
       (* NOTE: When we add on an extension type, we need to be careful
          to insert the requisite elimination forms for the subtype!
          This is handled by the 'elim_con'. *)
@@ -292,9 +283,7 @@ struct
       (* [TODO: Reed M, 26/01/2022] Is there a better way to extract the index out of a signature type? *)
       let* code = T.Chk.run sign_tac D.Univ in
       let* vcode = RM.lift_ev @@ Sem.eval code in
-      Debug.print "[PATCH] El on code %a@." D.pp_con vcode;
       let* tp = RM.lift_cmp @@ Sem.do_el vcode in
-      Debug.print "[PATCH] WHNF on type %a@." D.pp_tp tp;
       let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
       begin
         match whnf_tp with
@@ -328,7 +317,6 @@ struct
             | _ -> RM.expected_connective `Univ fam
           in
           let* vtm = RM.lift_ev @@ Sem.eval tm in
-          (* NOTE: The motive for 'TB.curry' must be a code, hence the el_out. *)
           let* vtotal_tele =
             RM.lift_cmp @@
             Sem.splice_tm @@
@@ -336,8 +324,9 @@ struct
             Splice.con vtm @@ fun tm ->
             Splice.term @@
             let curried =
-              TB.Tele.curry tele TB.code_telescope @@ TB.lam @@ fun str ->
-              TB.cons (TB.quoted (`User ["fibre"])) (TB.el_out @@ TB.ap tm [str]) (TB.lam @@ fun _ -> TB.nil)
+              TB.Tele.curry tele TB.code_telescope @@
+              TB.lam @@ fun str ->
+              TB.cons (TB.quoted (`User ["fibre"])) (TB.el_out @@ TB.ap tm [TB.el_in @@ str]) (TB.lam @@ fun _ -> TB.nil)
 
             in
             TB.Tele.extend tele curried

@@ -797,6 +797,17 @@ end
 
 module Tele =
 struct
+  (* [NOTE: Telescope Macros + Weak Tarski Universes]
+     All of the macros below rely heavily on the elimination
+     form for 'tele', and often use somewhat fancy motives.
+     When done naively, this makes calling these macros
+     an extremely error prone process!
+
+     Therefore, we want to ensure that all of the callers of these
+     macros don't need to ensure that they prepare the
+     arguments with the correct "calling convention"
+     (for lack of a better term) by inserting a ton of
+     'el_in' or 'el_out' terms into the macro arguments. *)
 
   (** Unfold a telescope into a pi type. *)
   let unfold tele code =
@@ -841,33 +852,38 @@ struct
     el_out @@ ap (el_out @@ tele_elim mot nil_case cons_case tele) [fam]
 
   let curry tele code uncurried =
-    (* NOTE: unfold : tele → univ → univ *)
     let mot =
       lam @@ fun t ->
+      (* `Π (k : `Π `sig t → code) → unfold t code *)
       code_pi (code_pi (code_signature t) @@ lam @@ fun _ -> code) @@ lam @@ fun _ ->
       unfold t code
     in
     let nil_case =
       el_in @@
-      (* k : `Π (k : `Π `sig [] → code) *)
-      lam @@ fun k ->
-      ap (el_out k) [el_in @@ struct_ []]
+      (* u : `Π (k : `Π `sig [] → code) *)
+      lam @@ fun u ->
+      ap (el_out u) [el_in @@ struct_ []]
     in
     let cons_case =
       lam @@ fun qid ->
       (* a : univ *)
       lam @@ fun a ->
-      (* t : telescope *)
+      (* t : Π a → telescope *)
       lam @@ fun _ ->
-      (* c : Π (x : a) → unfold (t x) code →  *)
+      (* c : Π (x : a) → `Π (k : `Π `sig (t x) → code) → unfold (t x) code *)
       lam @@ fun c ->
       el_in @@
-      (* u :  *)
+      (* u : `Π `sig (cons qid a t) → a *)
       lam @@ fun u ->
-      lam @@ fun field ->
-      ap (el_out c) [field; lam @@ fun t_struct -> ap (el_out u) [el_in @@ push qid a field t_struct]]
+      el_in @@
+      (* x : a *)
+      lam @@ fun x ->
+      (* unfold (t x) code *)
+      ap (el_out @@ ap c [x]) [el_in @@ lam @@ fun t_struct -> ap (el_out u) [el_in @@ push qid a x (el_out @@ t_struct)]]
     in
-    ap (el_out @@ tele_elim mot nil_case cons_case tele) [el_in @@ uncurried]
+    (* See [NOTE: Telescope Macros + Weak Tarski Universes] for the reasoning behind this eta-expansion. *)
+    let el_uncurried = el_in @@ lam @@ fun str -> el_in @@ ap uncurried [el_out str] in
+    ap (el_out @@ tele_elim mot nil_case cons_case tele) [el_uncurried]
 end
 
 (* [TODO: Reed M, 26/01/2022] Move this into the unit test suite. *)

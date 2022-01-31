@@ -654,14 +654,13 @@ struct
   let proj_tp (tele : D.con) (tstruct : S.t) (proj_id : Ident.user) : D.tp m =
     let rec go =
       function
-      (* | D.TeleCons (flbl, code, _) when Ident.equal flbl lbl -> *)
-      (*   RM.lift_cmp @@ Sem.do_el code *)
       | D.TeleCons (qid, code, lam) ->
         let* id = RM.lift_cmp @@ Sem.unquote qid in
         if Ident.equal id proj_id then
           RM.lift_cmp @@ Sem.do_el code
         else
-          let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, proj_id) in
+          let* id = RM.lift_cmp @@ Sem.unquote qid in
+          let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, id) in
           let* vsign = RM.lift_cmp @@ Sem.do_ap lam vfield in
           go vsign
       | _ -> RM.expected_field tele tstruct proj_id
