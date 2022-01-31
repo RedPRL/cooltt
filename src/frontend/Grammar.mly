@@ -45,7 +45,7 @@
 %token NIL CONS TELESCOPE ROW SIG STRUCT AS EXTEND
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM FAIL DUMP
+%token QUIT NORMALIZE PRINT DEF AXIOM FAIL DUMP DEBUG
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -147,6 +147,8 @@ decl:
     { NormalizeTerm tm }
   | DUMP; tm = term
     { DumpTerm tm }
+  | DEBUG; b = flag
+    { Debug b }
   | unitpath = IMPORT; m = ioption(bracketed_modifier)
     { Import (unitpath, m) }
   | PRINT; name = name
@@ -404,7 +406,6 @@ pat_lbl:
   | lbl = path
     { lbl }
 
-
 pat:
   | lbl = pat_lbl args = list(pat_arg)
    { Pat {lbl; args} }
@@ -430,3 +431,9 @@ patches:
 tele_cell:
   | LPR names = nonempty_list(plain_name); COLON tp = term; RPR
     { Cell {names; tp} }
+
+flag:
+  | TOPC
+    { true }
+  | BOTC
+    { false }

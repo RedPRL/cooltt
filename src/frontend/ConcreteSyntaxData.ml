@@ -106,6 +106,7 @@ type decl =
   | Import of string list * con option
   | NormalizeTerm of con
   | DumpTerm of con
+  | Debug of bool
   | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
   | Quit
 

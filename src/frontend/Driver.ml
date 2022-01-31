@@ -178,9 +178,14 @@ and execute_decl : CS.decl -> command =
   | CS.DumpTerm term ->
     RM.veil (Veil.const `Transparent) @@
     let* tm, _ = Tactic.Syn.run @@ Elaborator.syn_tm term in
+    Debug.print "Syntax: %a@." S.dump tm;
     let+ vtm = RM.lift_ev @@ Sem.eval tm in
     Debug.print "Dumping Term: %a@." D.pp_con vtm;
     Continue Fun.id
+  | CS.Debug b ->
+    Debug.debug_mode b;
+    Printexc.record_backtrace b;
+    RM.ret @@ Continue Fun.id
   | CS.Fail {name; args; def; tp; info} ->
     let* res = RM.trap @@ elaborate_typed_term (Ident.to_string name) args tp def in
     print_fail name info res
