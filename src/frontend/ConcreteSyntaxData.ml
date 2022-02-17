@@ -43,6 +43,8 @@ and con_ =
   | Pair of con * con
   | Fst of con
   | Snd of con
+  | Telescope
+  | Row of cell list
   | Type
   | Hole of string option * con option
   | BoundaryHole of con option

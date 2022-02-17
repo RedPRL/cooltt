@@ -35,6 +35,8 @@ let keywords =
     ("base", BASE);
     ("loop", LOOP);
     ("circle", CIRCLE);
+    ("tele", TELESCOPE);
+    ("row", ROW);
     ("sig", SIG);
     ("struct", STRUCT);
     ("as", AS);

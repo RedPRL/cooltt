@@ -48,6 +48,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
+  val telescope : tac
   val signature : (Ident.user * tac) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
@@ -109,6 +110,9 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
+  let telescope : tac =
+    Tp R.Telescope.formation
+
   let signature (tacs : (Ident.user * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
@@ -151,6 +155,8 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Sg (CS.Cell cell :: cells, body) ->
     List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
+  | CS.Telescope ->
+    CoolTp.telescope
   | CS.Signature cells ->
     let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
     CoolTp.signature tacs
@@ -297,6 +303,12 @@ and chk_tm : CS.con -> T.Chk.tac =
       let tacs = cells |> List.concat_map tac in
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
+
+    | CS.Row cells ->
+      let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
+      let tacs = cells |> List.concat_map tac in
+      let quant base (nm, fam) = R.Telescope.cons ~ident:nm base (R.Pi.intro ~ident:nm fam) in
+      Tactics.tac_nary_quantifier quant tacs @@ R.Telescope.nil
 
     | CS.Signature fields ->
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in

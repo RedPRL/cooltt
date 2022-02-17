@@ -101,6 +101,12 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
+module Telescope : sig
+  val formation : Tp.tac
+  val nil : Chk.tac
+  val cons : ?ident:Ident.t -> Chk.tac -> Chk.tac -> Chk.tac
+end
+
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
   val intro : (Ident.user -> Chk.tac option) -> Chk.tac

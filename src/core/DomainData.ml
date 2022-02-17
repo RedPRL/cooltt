@@ -68,7 +68,12 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
+
+    | TeleNil
+    | TeleCons of con * Ident.t * con
+
     | Struct of (Ident.user * con) list
+
     | SubIn of con
 
     | ElIn of con
@@ -107,6 +112,7 @@ struct
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
+    | Telescope
     | Signature of sign
     | Nat
     | Circle

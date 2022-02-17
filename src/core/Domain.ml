@@ -154,6 +154,10 @@ struct
       Format.fprintf fmt "loop[%a]" pp_dim r
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
+    | TeleNil ->
+      Format.fprintf fmt "tele/nil"
+    | TeleCons (base, ident, fam) ->
+      Format.fprintf fmt "tele/cons[%a,%a,%a]" pp_con base Ident.pp ident pp_con fam
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
@@ -228,6 +232,8 @@ struct
       Format.fprintf fmt "<nat>"
     | Circle ->
       Format.fprintf fmt "<circle>"
+    | Telescope ->
+      Format.fprintf fmt "<tele>"
     | ElStable code ->
       Format.fprintf fmt "el[%a]" pp_stable_code code
     | ElCut con ->

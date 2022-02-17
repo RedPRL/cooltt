@@ -202,6 +202,12 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
+  | D.TeleNil ->
+    ret D.TeleNil
+  | D.TeleCons (code, ident, fam) ->
+    let+ code = subst_con r x code
+    and+ fam = subst_con r x fam in
+    D.TeleCons (code, ident, fam)
   | D.Struct fields ->
     let+ fields = MU.map (MU.second (subst_con r x)) fields in
     D.Struct fields
@@ -345,7 +351,7 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Univ | D.Telescope | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -504,6 +510,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
+  | S.Telescope ->
+    ret D.Telescope
   | S.Signature sign ->
     let+ vsign = eval_sign sign in
     D.Signature vsign
@@ -599,6 +607,12 @@ and eval : S.t -> D.con EvM.m =
     | S.Snd t ->
       let* con = eval t in
       lift_cmp @@ do_snd con
+    | S.TeleNil ->
+      ret D.TeleNil
+    | S.TeleCons (base, ident, fam) ->
+      let* base = eval base in
+      let+ fam = eval fam in
+      D.TeleCons (base, ident, fam)
     | S.Struct fields ->
       let+ vfields = MU.map (MU.second eval) fields in
       D.Struct vfields
@@ -812,6 +826,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
+  | D.TeleNil | D.TeleCons _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->

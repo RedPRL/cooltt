@@ -95,6 +95,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
     let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
+  | D.Telescope, D.Telescope ->
+    ret ()
   | D.Signature sign1, D.Signature sign2 -> equate_sign sign1 sign2
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
@@ -226,6 +228,18 @@ and equate_con tp con0 con1 =
     let* snd0 = lift_cmp @@ do_snd con0 in
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
+  | _, D.TeleNil, D.TeleNil ->
+    ret ()
+  | _, D.TeleCons (code0, ident, fam0), D.TeleCons (code1, _, fam1) ->
+    let* _ = equate_con D.Univ code0 code1 in
+    let* fam_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code0 @@ fun base ->
+      Splice.term @@
+      TB.pi ~ident (TB.el base) @@ fun _ -> TB.telescope
+    in
+    equate_con fam_tp fam0 fam1
   | D.Signature sign, _, _ ->
     equate_struct sign con0 con1
   | D.Sub (tp, _phi, _), _, _ ->

@@ -41,6 +41,9 @@ struct
     | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
+    | TeleNil -> Format.fprintf fmt "tele/nil"
+    | TeleCons (base, ident, fam) -> Format.fprintf fmt "tele/nil[%a, %a, %a]" dump base Ident.pp ident dump fam
+
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
 
     | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
@@ -102,6 +105,7 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
+    | Telescope -> Format.fprintf fmt "tp/teles"
     | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
@@ -148,6 +152,8 @@ struct
       | Lam _ -> double_arrow
       | Ap _ -> juxtaposition
       | Pair _ -> tuple
+      | TeleNil -> atom
+      | TeleCons _ -> juxtaposition
       | Struct _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
@@ -190,7 +196,7 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | TpDim | TpCof | Nat | Circle -> atom
+      | Univ | Telescope | TpDim | TpCof | Nat | Circle -> atom
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -239,6 +245,7 @@ struct
         (pp_field env P.(right_of colon)) tp
         (pp_fields pp_field env) fields
 
+
   let rec pp env =
     pp_braced_cond P.classify_tm @@ fun penv fmt ->
     function
@@ -250,6 +257,8 @@ struct
         (pp env P.(left_of juxtaposition)) tm0 (pp_atomic env) tm1
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
+    | TeleNil | TeleCons _ as tele ->
+      Format.fprintf fmt "row @[%a@]" (pp_tele env) tele
     | Struct fields ->
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->
@@ -513,6 +522,8 @@ struct
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx P.(right_of times)) fam
+    | Telescope ->
+      Format.fprintf fmt "tele"
     | Signature fields ->
       Format.fprintf fmt "sig %a" (pp_sign env) fields
     | Sub (tp, phi, tm) ->
@@ -585,6 +596,14 @@ struct
       then Format.fprintf fmt "`{%s} =>@ @[%a@]" x (pp_binders envx penv) tm
       else pp_binders envx penv fmt tm
     | _ -> pp env penv fmt tm
+
+  and pp_tele env fmt =
+    function
+    | TeleNil -> ()
+    | TeleCons (base, ident, (Lam (_, fam))) ->
+      let x, envx = ppenv_bind env ident in
+      Format.fprintf fmt "(%s : %a)@ @,%a" x (pp env P.(right_of colon)) base (pp_tele envx) fam
+    | con ->  Format.fprintf fmt " | %a" (pp env P.(right_of delimited)) con
 
   let pp_sequent_boundary env fmt tm =
     let rec pp_branches env fmt (bdry, cons) =

@@ -521,6 +521,35 @@ struct
       RM.expected_connective `Sg tp
 end
 
+module Telescope =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.rule ~name:"Telescope.formation" @@
+    RM.ret S.Telescope
+
+  let nil : T.Chk.tac =
+    T.Chk.rule ~name:"Telescope.nil" @@
+    function
+    | D.Telescope -> RM.ret S.TeleNil
+    | tp -> RM.expected_connective `Telescope tp
+
+  let cons ?(ident = `Anon) (tac_code : T.Chk.tac) (tac_fam : T.Chk.tac) : T.Chk.tac =
+    T.Chk.rule ~name:"Telescope.cons" @@
+    function
+    | D.Telescope ->
+      let* code = T.Chk.run tac_code D.Univ in
+      let* vcode = RM.lift_ev @@ Sem.eval code in
+      let* fam_tp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con vcode @@ fun code ->
+        Splice.term @@
+        TB.pi ~ident (TB.el code) @@ fun _ -> TB.telescope
+      in
+      let+ fam = T.Chk.run tac_fam fam_tp in
+      S.TeleCons (code, ident, fam)
+    | tp -> RM.expected_connective `Telescope tp
+end
 
 module Signature =
 struct
