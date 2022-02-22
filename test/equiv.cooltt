@@ -1,0 +1,59 @@
+import prelude
+import hlevel
+import isos
+
+
+-- Equivalences.
+def fiber (A : type) (B : type)  (f : A → B) (b : B) : type := (a : A) × path B {f a} b
+
+def is-equiv (A : type) (B : type) (f : A → B) : type := (b : B) → is-contr {fiber A B f b}
+
+def equiv (A : type) (B : type) : type := (f : A → B) × is-equiv A B f
+
+def iso-prop-fiber (A B : type) (I : iso A B)
+                   (b : B)
+		   : is-prop {fiber A B {I.f} b} :=
+  let sq : fiber A B {I.f} b → 𝕀 → 𝕀 → A :=
+    fib j k => hcom A k j {∂ k} {j _ => [
+      | j=k => I.isor {fst fib} k
+      | k=0 => I.g {{snd fib} j}
+      | k=1 => fst fib
+      ]
+    }
+  in
+  fib0 fib1 =>
+  let sq2 : 𝕀 → 𝕀 →  A :=
+    i k => hcom A 0 k {∂ i} {k _ => [
+      | k=0 => I.g b
+      | i=0 => sq fib0 1 k
+      | i=1 => sq fib1 1 k
+      ]
+    }
+  in i => [
+    sq2 i 1,
+    j =>
+    let aux : A :=
+      hcom A j 0 {∂ i ∨ j=1} {k _ => [
+	| i=0 => sq fib0 j k
+	| i=1 => sq fib1 j k
+	| j=1 => sq2 i k
+	| j=k => I.isor {sq2 i 1} j
+        ]
+      }
+    in hcom B 0 1 {∂ i ∨ ∂ j} {k _ => [ 
+	| i=0 => I.isol {{snd fib0} j} k
+	| i=1 => I.isol {{snd fib1} j} k
+	| j=0 => I.isol {I.f {sq2 i 1}} k
+	| j=1 => I.isol b k
+	| k=0 => I.f aux
+        ]
+    }
+  ]
+
+def iso-equiv (A B : type) (I : iso A B) : equiv A B :=
+  [ I.f,
+    b => [
+      [ I.g b  , I.isol b  ],
+      fib => iso-prop-fiber A B I b [ I.g b, I.isol b ] fib
+    ]
+  ]

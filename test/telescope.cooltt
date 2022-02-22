@@ -1,0 +1,25 @@
+import prelude
+import hlevel
+import equiv
+import isos
+
+-- The theory of monoids, expressed as a telescope.
+def monoid/tele : tele :=
+  row (x : type)
+      (mul : x -> x -> x)
+      (e : x)
+      (idl : (a : x) -> path x {mul e a} a)
+      (idr : (a : x) -> path x {mul a e} a)
+      (assoc : (a b c : x) -> path x {mul {mul a b} c} {mul a {mul b c}})
+
+def monoid : type :=
+  expand monoid/tele
+
+def is-record (a : type) : type := (Γ : tele) × {equiv a {expand Γ}}
+
+-- Every type is canonically a single element record.
+def single-record (a : type) : is-record a :=
+  [ row (x : a),
+    iso-equiv a {(x : a) × unit} {iso/symm {(x : a) × unit} a {iso/pair/unit a}}
+  ]
+

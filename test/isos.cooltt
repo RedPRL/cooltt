@@ -1,70 +1,50 @@
 -- "stdlib"
 import prelude
 
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
-  hcom A 0 j {∂ i} {j _ =>
-    [ j=0 ∨ i=0 => p i
-    | i=1 => q j
-    ]
-  }
-
-def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
-  trans/filler A p q 1
-
 -- isomorphisms
 
 def iso (A B : type) : type :=
-    (f : A → B)
-  × (g : B → A)
-  × {(b : B) → path B {f {g b}} b}
-  × {(a : A) → path A {g {f a}} a}
+  sig (f : A → B)
+      (g : B → A)
+      (isol : (b : B) → path B {f {g b}} b)
+      (isor : (a : A) → path A {g {f a}} a)
 
 def iso/refl (A : type) : iso A A :=
-  [     a => a
-  , [   a => a
-    , [ a i => a
-      , a i => a
-  ] ] ]
+  struct (f : a => a)
+         (g : a => a)
+	 (isol : a i => a)
+	 (isor : a i => a)
 
 def iso/symm (A B : type) (I : iso A B) : iso B A :=
-  let f := fst I in
-  let g := fst {snd I} in
-  let α := fst {snd {snd I}} in
-  let β := snd {snd {snd I}} in
-  [ g , [ f , [ β , α ] ] ]
+  struct (f : I.g)
+         (g : I.f)
+	 (isol : I.isor)
+	 (isor : I.isol)
 
 def iso/trans (A B C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
-  let f1 := fst I1 in
-  let g1 := fst {snd I1} in
-  let α1 := fst {snd {snd I1}} in
-  let β1 := snd {snd {snd I1}} in
-  let f2 := fst I2 in
-  let g2 := fst {snd I2} in
-  let α2 := fst {snd {snd I2}} in
-  let β2 := snd {snd {snd I2}} in
-  [a => f2 {f1 a},
-   [c => g1 {g2 c},
-    [c => trans C {j => f2 {α1 {g2 c} j}} {α2 c},
-     a => trans A {j => g1 {β2 {f1 a} j}} {β1 a}]]]
+  struct (f : a => I2.f {I1.f a})
+         (g : c => I1.g {I2.g c})
+	 (isol : c => trans C {j => I2.f {I1.isol {I2.g c} j}} {I2.isol c})
+	 (isor : a => trans A {j => I1.g {I2.isor {I1.f a} j}} {I1.isor a})
 
 -- pair isos
-
 def iso/pair/comm (A B : type) : iso {A × B} {B × A} :=
-  [ab => [snd ab, fst ab],
-   [ba => [snd ba, fst ba],
-    [ba i => ba,
-     ab i => ab]]]
-
+  struct (f : ab => [ snd ab, fst ab ])
+         (g : ba => [ snd ba, fst ba ])
+	 (isol : ba i => ba)
+	 (isor : ab i => ab)
+  
 def iso/pair/assoc (A B C : type) : iso {A × B × C} {{A × B} × C} :=
-  [a_bc => [[fst a_bc, fst {snd a_bc}], snd {snd a_bc}],
-   [ab_c => [fst {fst ab_c}, [snd {fst ab_c}, snd ab_c]],
-    [ab_c i => ab_c, a_bc i => a_bc]]]
+  struct (f : a_bc => [[ fst a_bc, fst {snd a_bc} ], snd {snd a_bc} ])
+         (g : ab_c => [ fst {fst ab_c} , [snd {fst ab_c}, snd ab_c ]])
+	 (isol : ab_c i => ab_c)
+	 (isor : a_bc i => a_bc)
 
 def iso/pair/unit (A : type) : iso {A × unit} A :=
-  [au => fst au,
-   [a => [a, ⋆],
-    [a i => a,
-     au i => au]]]
+  struct (f : au => fst au)
+         (g : a => [a,⋆])
+	 (isol : a i => a)
+	 (isor : au i => au)
 
 -- function isos
 
@@ -75,33 +55,25 @@ def uncurry (A B C : type) : {A → B → C} → {{A × B} → C} :=
   f ab => f {fst ab} {snd ab}
 
 def iso/curry (A B C : type) : iso {A → B → C} {{A × B} → C} :=
-  [uncurry A B C,
-   [curry A B C,
-    [ab_c i => ab_c,
-     a_b_c i => a_b_c]]]
+  struct (f : uncurry A B C)
+         (g : curry A B C)
+	 (isol : ab_c i => ab_c)
+	 (isor : a_b_c i => a_b_c)
 
 def iso/lhs (A B C : type) (I : iso A B) : iso {A → C} {B → C} :=
-  let f := fst I in
-  let g := fst {snd I} in
-  let α := fst {snd {snd I}} in
-  let β := snd {snd {snd I}} in
-  [ac b => ac {g b},
-   [bc a => bc {f a},
-    [bc i b => bc {α b i},
-     ac i a => ac {β a i}]]]
+  struct (f : ac b => ac {I.g b})
+         (g : bc a => bc {I.f a})
+	 (isol : bc i b => bc {I.isol b i})
+	 (isor : ac i a => ac {I.isor a i})
 
-def iso/lhs (A B C : type) (I : iso A B) : iso {C → A} {C → B} :=
-  let f := fst I in
-  let g := fst {snd I} in
-  let α := fst {snd {snd I}} in
-  let β := snd {snd {snd I}} in
-  [ca c => f {ca c},
-   [cb c => g {cb c},
-    [cb i c => α {cb c} i,
-     ca i c => β {ca c} i]]]
+def iso/rhs (A B C : type) (I : iso A B) : iso {C → A} {C → B} :=
+  struct (f : ca c => I.f {ca c})
+         (g : cb c => I.g {cb c})
+	 (isol : cb i c => I.isol {cb c} i)
+	 (isor: ca i c => I.isor {ca c} i)
 
 def iso/flip (A B C : type) : iso {A → B → C} {B → A → C} :=
-  [abc b a => abc a b,
-   [bac a b => bac b a,
-    [bac i => bac,
-     abc i => abc]]]
+  struct (f : abc b a => abc a b)
+         (g : bac a b => bac b a)
+	 (isol : bac i => bac)
+	 (isor : abc i => abc)
