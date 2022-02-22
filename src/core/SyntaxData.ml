@@ -24,8 +24,11 @@ struct
     | Fst of t
     | Snd of t
 
+    | Tt
+
     | TeleNil
     | TeleCons of t * Ident.t * t
+    | Expand of t
 
     | Struct of (Ident.user * t) list
     | Proj of t * Ident.user
@@ -56,6 +59,8 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
+    | CodeUnit
+    | CodeTelescope
     | CodeSignature of (Ident.user * t) list
     | CodeNat
     | CodeUniv
@@ -79,6 +84,7 @@ struct
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
+    | Unit
     | Telescope
     | Signature of sign
     | Nat

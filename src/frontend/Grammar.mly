@@ -42,7 +42,8 @@
 %token LET IN SUB
 %token SUC NAT ZERO UNFOLD GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token TELESCOPE ROW SIG STRUCT AS
+%token TT UNIT
+%token TELESCOPE ROW EXPAND SIG STRUCT AS
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM FAIL
@@ -243,6 +244,10 @@ plain_atomic_term_except_name:
     { Circle }
   | TYPE
     { Type }
+  | TT
+    { Tt }
+  | UNIT
+    { Unit }
   | TELESCOPE 
      { Telescope }
   | name = HOLE_NAME
@@ -323,6 +328,8 @@ plain_term_except_cof_case:
     { Sg (tele, cod) }
   | ROW; tele = list(tele_cell)
     { Row tele }
+  | EXPAND; tm = atomic_term
+    { Expand tm }
   | SIG; tele = list(field);
     { Signature tele }
   | STRUCT; tele = list(field);

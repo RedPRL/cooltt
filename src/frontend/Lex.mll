@@ -35,8 +35,12 @@ let keywords =
     ("base", BASE);
     ("loop", LOOP);
     ("circle", CIRCLE);
+    ("tt", TT);
+    ("⋆", TT);
+    ("unit", UNIT);
     ("tele", TELESCOPE);
     ("row", ROW);
+    ("expand", EXPAND);
     ("sig", SIG);
     ("struct", STRUCT);
     ("as", AS);

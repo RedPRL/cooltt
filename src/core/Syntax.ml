@@ -41,8 +41,11 @@ struct
     | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
+    | Tt -> Format.fprintf fmt "⋆"
+
     | TeleNil -> Format.fprintf fmt "tele/nil"
     | TeleCons (base, ident, fam) -> Format.fprintf fmt "tele/nil[%a, %a, %a]" dump base Ident.pp ident dump fam
+    | Expand tele -> Format.fprintf fmt "expand[%a]" dump tele
 
     | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
 
@@ -73,6 +76,8 @@ struct
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
+    | CodeUnit -> Format.fprintf fmt "<unit>"
+    | CodeTelescope -> Format.fprintf fmt "<tele>"
     | CodeSignature fields ->
       Format.fprintf fmt "sig[%a]"
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp))
@@ -105,6 +110,7 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
+    | Unit -> Format.fprintf fmt "tp/unit"
     | Telescope -> Format.fprintf fmt "tp/teles"
     | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
     | Nat -> Format.fprintf fmt "nat"
@@ -154,6 +160,7 @@ struct
       | Pair _ -> tuple
       | TeleNil -> atom
       | TeleCons _ -> juxtaposition
+      | Expand _ -> juxtaposition
       | Struct _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
@@ -163,7 +170,7 @@ struct
       | Cof (Cof.Meet _) -> cof_meet
       | ForallCof _ -> dual juxtaposition arrow
 
-      | Zero | Base | CodeNat | CodeCircle | CodeUniv | Dim0 | Dim1 | Prf -> atom
+      | Zero | Base | Tt | CodeNat | CodeCircle | CodeUnit | CodeUniv | Dim0 | Dim1 | Prf -> atom
       | Suc _ as tm -> if Option.is_some (to_numeral tm) then atom else juxtaposition
       | HCom _ | Com _ | Coe _
       | Fst _ | Snd _
@@ -173,6 +180,7 @@ struct
       | SubIn _ | SubOut _ | ElIn _ | ElOut _ -> passed
       | CodePi _ -> arrow
       | CodeSg _ -> times
+      | CodeTelescope -> juxtaposition
       | CodeSignature _ -> juxtaposition
       | CodeExt _ -> juxtaposition
 
@@ -196,7 +204,7 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | Telescope | TpDim | TpCof | Nat | Circle -> atom
+      | Univ | Unit | Telescope | TpDim | TpCof | Nat | Circle -> atom
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -257,12 +265,16 @@ struct
         (pp env P.(left_of juxtaposition)) tm0 (pp_atomic env) tm1
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
+    | Tt ->
+      Format.fprintf fmt "⋆"
     | TeleNil | TeleCons _ as tele ->
       Format.fprintf fmt "row @[%a@]" (pp_tele env) tele
+    | Expand tele ->
+      Format.fprintf fmt "@[unfold %a@]" (pp env P.(right_of juxtaposition)) tele
     | Struct fields ->
       Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
     | Proj (tm, lbl) ->
-      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
+      Format.fprintf fmt "@[%a.%a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches
@@ -385,6 +397,10 @@ struct
         Uuseg_string.pp_utf_8 "Σ"
         (pp_atomic env) base
         (pp_atomic env) tm
+    | CodeUnit ->
+      Format.fprintf fmt "unit"
+    | CodeTelescope ->
+      Format.fprintf fmt "tele"
     | CodeSignature fields ->
       Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
@@ -522,6 +538,8 @@ struct
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx P.(right_of times)) fam
+    | Unit ->
+      Format.fprintf fmt "unit"
     | Telescope ->
       Format.fprintf fmt "tele"
     | Signature fields ->

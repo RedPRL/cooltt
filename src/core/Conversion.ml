@@ -107,6 +107,8 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     equate_con tp0 con0 con1
   | D.Nat, D.Nat
   | D.Circle, D.Circle
+  | D.Unit, D.Unit ->
+    ret ()
   | D.Univ, D.Univ ->
     ret ()
   | D.ElStable code0, D.ElStable code1 ->
@@ -146,7 +148,7 @@ and equate_sign sign0 sign1 =
 
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
-  | `Nat, `Nat | `Circle, `Circle | `Univ, `Univ -> ret ()
+  | `Nat, `Nat | `Circle, `Circle | `Unit, `Unit | `Telescope, `Telescope | `Univ, `Univ -> ret ()
   | `Pi (base0, fam0), `Pi (base1, fam1)
   | `Sg (base0, fam0), `Sg (base1, fam1) ->
     let* _ = equate_con univ base0 base1 in
@@ -228,6 +230,8 @@ and equate_con tp con0 con1 =
     let* snd0 = lift_cmp @@ do_snd con0 in
     let* snd1 = lift_cmp @@ do_snd con1 in
     equate_con fib snd0 snd1
+  | D.Unit, _, _ ->
+    ret ()
   | _, D.TeleNil, D.TeleNil ->
     ret ()
   | _, D.TeleCons (code0, ident, fam0), D.TeleCons (code1, _, fam1) ->
@@ -371,6 +375,8 @@ and equate_frm k0 k1 =
   match k0, k1 with
   | D.KFst, D.KFst
   | D.KSnd, D.KSnd ->
+    ret ()
+  | D.KExpand, D.KExpand ->
     ret ()
   | D.KProj lbl0, D.KProj lbl1 when Ident.equal lbl0 lbl1 ->
     ret ()

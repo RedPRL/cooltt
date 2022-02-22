@@ -17,6 +17,11 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
+    | `Unit
+    (** The unit type *)
+
+    | `Telescope
+
     | `Signature of (Ident.user * 'a) list
     (** First-Class Record types *)
 
@@ -69,6 +74,8 @@ struct
     | Loop of dim
     | Pair of con * con
 
+    | Tt
+
     | TeleNil
     | TeleCons of con * Ident.t * con
 
@@ -88,7 +95,7 @@ struct
 
     | Prf
 
-    | FHCom of [`Nat | `Circle] * dim * dim * cof * con
+    | FHCom of [`Nat | `Circle | `Unit | `Telescope] * dim * dim * cof * con
 
     | StableCode of con stable_code
     | UnstableCode of con unstable_code
@@ -112,6 +119,7 @@ struct
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
+    | Unit
     | Telescope
     | Signature of sign
     | Nat
@@ -141,6 +149,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
+    | KExpand
     | KProj of Ident.user
     | KNatElim of con * con * con
     | KCircleElim of con * con * con

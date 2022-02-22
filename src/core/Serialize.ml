@@ -549,10 +549,12 @@ struct
     | `HCom (src, trg, cof, con) -> labeled "hcom" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con]
     | `V (r, pcode, code, pequiv) -> labeled "v" [json_of_dim r; json_of_con pcode; json_of_con code; json_of_con pequiv]
 
-  and json_of_fhcom_tag : [`Nat | `Circle] -> J.value =
+  and json_of_fhcom_tag : [`Nat | `Circle | `Unit | `Telescope] -> J.value =
     function
     | `Nat -> `String "nat"
     | `Circle -> `String "circle"
+    | `Unit -> `String "unit"
+    | `Telescope -> `String "tele"
 
   let rec json_to_con : J.value -> D.con =
     function
@@ -689,10 +691,12 @@ struct
     | `A [`String "v"; j_r; j_pcode; j_code; j_pequiv] -> `V (json_to_dim j_r, json_to_con j_pcode, json_to_con j_code, json_to_con j_pequiv)
     | j -> J.parse_error j "Domain.json_to_unstable_code"
 
-  and json_to_fhcom_tag : J.value -> [ `Nat | `Circle ] =
+  and json_to_fhcom_tag : J.value -> [ `Nat | `Circle | `Unit | `Telescope ] =
     function
     | `String "nat" -> `Nat
     | `String "circle" -> `Circle
+    | `String "unit" -> `Unit
+    | `String "tele" -> `Telescope
     | j -> J.parse_error j "Domain.json_to_fhcom_tag"
 end
 

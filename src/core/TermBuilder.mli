@@ -31,6 +31,7 @@ val snd : t m -> t m
 val lams : Ident.t list -> (t m list -> t m) -> t m
 
 val telescope : tp m
+val expand : t m -> t m
 
 val struct_ : (Ident.user * t m) list -> t m
 val proj : t m -> Ident.user -> t m

@@ -110,8 +110,6 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let telescope : tac =
-    Tp R.Telescope.formation
 
   let signature (tacs : (Ident.user * tac) list) : tac =
     match (as_codes tacs) with
@@ -133,6 +131,8 @@ struct
 
   let nat = Code R.Univ.nat
   let circle = Code R.Univ.circle
+  let unit = Code R.Univ.unit
+  let telescope : tac = Code R.Univ.telescope
   let univ = Code R.Univ.univ
   let dim = Tp R.Dim.formation
   let cof = Tp R.Cof.formation
@@ -304,11 +304,23 @@ and chk_tm : CS.con -> T.Chk.tac =
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
+    | CS.Tt ->
+      R.Unit.intro
+
+    | CS.Unit ->
+      R.Univ.unit
+
+    | CS.Telescope ->
+      R.Univ.telescope
+
     | CS.Row cells ->
       let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
       let tacs = cells |> List.concat_map tac in
       let quant base (nm, fam) = R.Telescope.cons ~ident:nm base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ R.Telescope.nil
+
+    | CS.Expand tele ->
+      R.Telescope.expand (chk_tm tele)
 
     | CS.Signature fields ->
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
@@ -317,9 +329,11 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Patch (tp, patches) ->
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
       R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
+
     | CS.Total (tp, patches) ->
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
       R.Univ.patch (R.Univ.total (syn_tm tp)) (R.Signature.find_field_tac tacs)
+
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
 

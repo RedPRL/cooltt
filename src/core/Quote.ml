@@ -64,6 +64,7 @@ let rec quote_con (tp : D.tp) con =
       | true ->
         ret None
     in
+
     let* tbranches = MU.filter_map quote_branch branches in
     ret @@ S.CofSplit tbranches
 
@@ -103,6 +104,9 @@ let rec quote_con (tp : D.tp) con =
     let+ tfst = quote_con base fst
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
+
+  | _, D.Tt ->
+    ret S.Tt
 
   | _, D.TeleNil ->
     ret S.TeleNil
@@ -327,6 +331,12 @@ and quote_stable_code univ =
   | `Circle ->
     ret S.CodeCircle
 
+  | `Unit ->
+    ret S.CodeUnit
+
+  | `Telescope ->
+    ret S.CodeTelescope
+
   | `Univ ->
     ret S.CodeUniv
 
@@ -445,6 +455,8 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
+  | D.Unit ->
+    ret S.Unit
   | D.Telescope ->
     ret S.Telescope
   | D.Signature sign ->
@@ -662,6 +674,8 @@ and quote_frm tm =
     ret @@ S.Fst tm
   | D.KSnd ->
     ret @@ S.Snd tm
+  | D.KExpand ->
+    ret @@ S.Expand tm
   | D.KProj lbl ->
     ret @@ S.Proj (tm, lbl)
   | D.KAp (tp, con) ->

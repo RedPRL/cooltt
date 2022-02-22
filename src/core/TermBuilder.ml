@@ -156,6 +156,10 @@ let snd m =
 let telescope =
   ret S.Telescope
 
+let expand mtele =
+  let+ tele = mtele in
+  S.Expand tele
+
 let struct_ mfields =
   let+ fields = MU.map (MU.second (fun x -> x)) mfields in
   S.Struct fields

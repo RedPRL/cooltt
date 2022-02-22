@@ -102,6 +102,7 @@ struct
     | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
+    | KExpand -> Format.fprintf fmt "expand"
     | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
@@ -152,6 +153,8 @@ struct
       Format.fprintf fmt "base"
     | Loop r ->
       Format.fprintf fmt "loop[%a]" pp_dim r
+    | Tt ->
+      Format.fprintf fmt "⋆"
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | TeleNil ->
@@ -232,6 +235,8 @@ struct
       Format.fprintf fmt "<nat>"
     | Circle ->
       Format.fprintf fmt "<circle>"
+    | Unit ->
+      Format.fprintf fmt "<unit>"
     | Telescope ->
       Format.fprintf fmt "<tele>"
     | ElStable code ->
@@ -252,6 +257,8 @@ struct
     | `Ext _ -> Format.fprintf fmt "<code-ext>"
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
+    | `Unit -> Format.fprintf fmt "<code-unit>"
+    | `Telescope -> Format.fprintf fmt "<code-tele>"
     | `Signature _ -> Format.fprintf fmt "<code-sig>"
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"

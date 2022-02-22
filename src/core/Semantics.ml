@@ -176,7 +176,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.Tt | D.StableCode (`Nat | `Circle | `Univ | `Unit) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -351,7 +351,7 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Telescope | D.Nat | D.Circle | D.TpDim | D.TpCof as con -> ret con
+  | D.Univ | D.Telescope | D.Nat | D.Circle | D.Unit | D.TpDim | D.TpCof as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -404,7 +404,7 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (n, code, `Global cof, con)
-  | `Nat | `Circle | `Univ as code ->
+  | `Nat | `Circle | `Unit | `Telescope | `Univ as code ->
     ret code
 
 and subst_cut : D.dim -> DimProbe.t -> D.cut -> D.cut CM.m =
@@ -467,7 +467,7 @@ and subst_frm : D.dim -> DimProbe.t -> D.frm -> D.frm CM.m =
   fun r x ->
   let open CM in
   function
-  | D.KFst | D.KSnd | D.KElOut | D.KProj _ as frm -> ret frm
+  | D.KFst | D.KSnd | D.KElOut | D.KExpand | D.KProj _ as frm -> ret frm
   | D.KAp (tp, arg) ->
     let+ tp = subst_tp r x tp
     and+ arg = subst_con r x arg in
@@ -510,6 +510,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     let+ env = read_local
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
+  | S.Unit ->
+    ret D.Unit
   | S.Telescope ->
     ret D.Telescope
   | S.Signature sign ->
@@ -607,12 +609,17 @@ and eval : S.t -> D.con EvM.m =
     | S.Snd t ->
       let* con = eval t in
       lift_cmp @@ do_snd con
+    | S.Tt ->
+      ret D.Tt
     | S.TeleNil ->
       ret D.TeleNil
     | S.TeleCons (base, ident, fam) ->
       let* base = eval base in
       let+ fam = eval fam in
       D.TeleCons (base, ident, fam)
+    | S.Expand tele ->
+      let* tele = eval tele in
+      lift_cmp @@ do_expand tele
     | S.Struct fields ->
       let+ vfields = MU.map (MU.second eval) fields in
       D.Struct vfields
@@ -714,12 +721,20 @@ and eval : S.t -> D.con EvM.m =
       let+ vbase = eval base
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
+
+    | S.CodeUnit ->
+      ret @@ D.StableCode `Unit
+
+    | S.CodeTelescope ->
+      ret @@ D.StableCode `Telescope
+
     | S.CodeSignature fields ->
       let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
         let+ vtp = eval tp in
         (ident, vtp)
       in
       D.StableCode (`Signature vfields)
+
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -826,7 +841,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
-  | D.TeleNil | D.TeleCons _
+  | D.Tt | D.TeleNil | D.TeleCons _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
@@ -1204,6 +1219,31 @@ and do_snd con : D.con CM.m =
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
 
+and do_expand (con : D.con) : D.con CM.m =
+  let open CM in
+  abort_if_inconsistent (ret D.tm_abort) @@
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.expand tm) in
+  (* [TODO: Reed M, 18/02/2022] Handle FHCom inside of a telescope *)
+  begin
+    inspect_con ~style:`UnfoldNone con |>>
+    function
+    | D.TeleNil -> ret @@ D.StableCode (`Unit)
+    | D.TeleCons (base, ident, fam) ->
+      splice_tm @@
+      Splice.con base @@ fun base ->
+      Splice.con fam @@ fun fam ->
+      Splice.term @@
+      TB.code_sg base @@ TB.lam ~ident @@ fun x -> TB.expand (TB.ap fam [x])
+    | D.Split branches ->
+      splitter con @@ List.map fst branches
+    | D.Cut {tp = D.TpSplit branches; _} as con ->
+      splitter con @@ List.map fst branches
+    | D.Cut { tp = D.Telescope; cut } ->
+      ret @@ cut_frm ~tp:D.Univ ~cut D.KExpand
+    | _ ->
+      throw @@ NbeFailed ("Couldn't expand argument in do_expand")
+  end
+
 and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.user) =
   let open CM in
   match sign with
@@ -1462,6 +1502,12 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
       | `Circle ->
         ret D.Circle
 
+      | `Unit ->
+        ret D.Unit
+
+      | `Telescope ->
+        ret D.Telescope
+
       | `Univ ->
         ret D.Univ
 
@@ -1560,7 +1606,7 @@ and enact_rigid_coe line r r' con tag =
   | `Stable (x, code) ->
     begin
       match code with
-      | `Nat | `Circle | `Univ -> ret con
+      | `Nat | `Circle | `Unit | `Telescope | `Univ -> ret con
       | `Pi (basex, famx) ->
         splice_tm @@
         Splice.con (D.BindSym (x, basex)) @@ fun base_line ->
@@ -1679,7 +1725,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
-      | `Circle | `Nat as tag ->
+      | `Circle | `Unit | `Telescope | `Nat as tag ->
         let+ bdy' =
           splice_tm @@
           Splice.con bdy @@ fun bdy ->
@@ -1794,6 +1840,7 @@ and do_frm con =
   | D.KAp (_, con') -> do_ap con con'
   | D.KFst -> do_fst con
   | D.KSnd -> do_snd con
+  | D.KExpand -> do_expand con
   | D.KProj lbl -> do_proj con lbl
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con

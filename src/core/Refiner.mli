@@ -58,6 +58,8 @@ module Univ : sig
   val formation : Tp.tac
   val univ : Chk.tac
   val nat : Chk.tac
+  val unit : Chk.tac
+  val telescope : Chk.tac
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
@@ -101,10 +103,16 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
+module Unit : sig
+  val formation : Tp.tac
+  val intro : Chk.tac
+end
+
 module Telescope : sig
   val formation : Tp.tac
   val nil : Chk.tac
   val cons : ?ident:Ident.t -> Chk.tac -> Chk.tac -> Chk.tac
+  val expand : Chk.tac -> Chk.tac
 end
 
 module Signature : sig

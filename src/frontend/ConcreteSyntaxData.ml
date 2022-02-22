@@ -34,6 +34,9 @@ and con_ =
   | Lam of Ident.t list * con
   | Ap of con * con list
   | Sg of cell list * con
+  | Tt
+  | Unit
+  | Expand of con
   | Signature of field list
   | Struct of field list
   | Proj of con * Ident.user

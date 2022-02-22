@@ -521,6 +521,20 @@ struct
       RM.expected_connective `Sg tp
 end
 
+module Unit =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.rule ~name:"Unit.formation" @@
+    RM.ret S.Unit
+
+  let intro : T.Chk.tac =
+    T.Chk.rule ~name:"Unit.intro" @@
+    function
+    | D.Unit -> RM.ret S.Tt
+    | tp -> RM.expected_connective `Unit tp
+
+end
+
 module Telescope =
 struct
   let formation : T.Tp.tac =
@@ -549,6 +563,14 @@ struct
       let+ fam = T.Chk.run tac_fam fam_tp in
       S.TeleCons (code, ident, fam)
     | tp -> RM.expected_connective `Telescope tp
+
+  let expand (tele_tac : T.Chk.tac) : T.Chk.tac =
+    T.Chk.rule ~name:"Telescope.expand" @@
+    function
+    | D.Univ ->
+      let* tele = T.Chk.run tele_tac D.Telescope in
+      RM.ret @@ S.Expand tele
+    | tp -> RM.expected_connective `Univ tp
 end
 
 module Signature =
@@ -635,6 +657,13 @@ struct
     univ_tac "Univ.univ" @@ fun _ ->
     RM.ret S.CodeUniv
 
+  let unit : T.Chk.tac =
+    univ_tac "Univ.unit" @@ fun _ ->
+    RM.ret S.CodeUnit
+
+  let telescope : T.Chk.tac =
+    univ_tac "Univ.telesopce" @@ fun _ ->
+    RM.ret S.CodeTelescope
 
   let nat : T.Chk.tac =
     univ_tac "Univ.nat" @@ fun _ -> RM.ret S.CodeNat
