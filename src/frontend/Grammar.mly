@@ -113,6 +113,7 @@ atomic_in_cof: t = located(plain_atomic_in_cof) {t}
 name: t = located(plain_name) {t}
 bracketed_modifier: t = located(plain_bracketed_modifier) {t}
 modifier: t = located(plain_modifier) {t}
+atomic_term_except_sq: t = located(plain_atomic_term_except_sq) {t}
 atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
 atomic_term: t = located(plain_atomic_term) {t}
 
@@ -228,7 +229,7 @@ plain_cof_or_term:
   | t = plain_cof_except_term
     { t }
 
-plain_atomic_term_except_name:
+plain_atomic_term_except_sq:
   | LBR t = plain_cof_or_term RBR
     { t }
   | ZERO
@@ -253,10 +254,14 @@ plain_atomic_term_except_name:
     { TopC }
   | BOTC
     { BotC }
-  | LSQ t = bracketed RSQ
-    { t }
   | LBANG; t = ioption(term); RBANG
     { BoundaryHole t }
+
+plain_atomic_term_except_name:
+  | t = plain_atomic_term_except_sq
+    { t }
+  | LSQ t = bracketed RSQ
+    { t }
 
 bracketed:
   | left = term COMMA right = term
@@ -315,6 +320,8 @@ plain_term_except_cof_case:
     { t }
   | ELIM; cases = cases
     { LamElim cases }
+  | ELIM; scrut = atomic_term_except_sq; AS; mot = atomic_term; WITH; cases = cases
+    { Elim { mot; cases; scrut } }
   | tele = nonempty_list(tele_cell); RIGHT_ARROW; cod = term
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
