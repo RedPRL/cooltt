@@ -1,0 +1,18 @@
+import prelude
+
+def equational/trans (a : type) (x y z :  a) (p : path a x y) (q : path a y z) : path a x z :=
+  begin a with
+    x =[ p ]
+    y =[ q ]
+    z
+  end
+
+#print equational/trans
+
+def equational/refl/nat : path nat 4 4 :=
+  begin nat with
+    4 =[]
+    4
+  end
+
+#print equational/refl/nat
