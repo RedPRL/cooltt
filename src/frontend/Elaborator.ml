@@ -340,6 +340,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
       R.Univ.ext n tac_fam tac_cof tac_bdry
 
+
     | _ ->
       Tactics.match_goal @@ fun (tp, _, _) ->
       match tp with
@@ -424,6 +425,20 @@ and syn_tm : CS.con -> T.Syn.tac =
       R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
     | CS.Com (fam, src, trg, cof, tm) ->
       R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+    | CS.Equations {code; start = (lhs, p); eqns} ->
+      let code_tac = chk_tm code in
+      let rec mk_steps : CS.eqns -> T.Syn.tac * T.Chk.tac * T.Chk.tac =
+        function
+        | CS.Equals (x, p, eqns) ->
+          let (q_tac, mid_tac, rhs_tac) = mk_steps eqns in
+          let lhs_tac = chk_tm x in
+          Tactics.Equations.step code_tac lhs_tac mid_tac rhs_tac (chk_tm p) (T.Chk.syn q_tac), lhs_tac, rhs_tac
+        | CS.Qed x ->
+          let x_tac = chk_tm x in
+          (Tactics.Equations.qed code_tac x_tac), x_tac, x_tac
+      in
+      let (q_tac, mid_tac, rhs_tac) = mk_steps eqns in
+      Tactics.Equations.step code_tac (chk_tm lhs) mid_tac rhs_tac (chk_tm p) (T.Chk.syn q_tac)
     | _ ->
       T.Syn.rule @@
       RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
