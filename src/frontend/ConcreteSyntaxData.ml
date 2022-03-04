@@ -52,7 +52,7 @@ and con_ =
   | Elim of {mot : con; cases : case list; scrut : con}
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
-  | Equations of { code : con; start : (con * con); eqns : eqns }
+  | Equations of { code : con; eqns : eqns step }
   | Dim
   | Cof
   | CofEq of con * con
@@ -96,8 +96,12 @@ and pat = Pat of {lbl : string list; args : pat_arg list}
 and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 [@@deriving show]
 
+and 'a step =
+  | Equals of con * con * 'a
+  | Trivial of con * 'a
+
 and eqns =
-  | Equals of con * con * eqns
+  | Step of eqns step
   | Qed of con
 
 type decl =

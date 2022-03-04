@@ -134,6 +134,8 @@ and real_token = parse
     { RBANG }
   | "=["
     { LSQEQUALS }
+  | "=[]"
+    { LRSQEQUALS }
   | '|'
     { PIPE }
   | '#'
