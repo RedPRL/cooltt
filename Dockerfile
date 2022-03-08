@@ -21,6 +21,7 @@ COPY ["cooltt.opam", "cooltt.opam"]
 RUN \
   apk add --no-cache opam ocaml ocaml-compiler-libs make m4 musl-dev git && \
   opam init --disable-sandboxing --disable-completion --no-setup --yes && \
+  opam update && \
   opam install --deps-only --yes --with-test --with-doc "./"
 
 FROM base AS builder
