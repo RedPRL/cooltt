@@ -11,7 +11,7 @@ let add ident sym ns =
 (* XXX No [failwith]! *)
 let nest pp_a modifier imported ns =
   let report_duplicate ~rev_path _old _new =
-    failwith @@ "Duplicate identifiers for " ^ Ident.to_string (`User (List.rev rev_path))
+    Result.error @@ `Duplicate (List.rev rev_path)
   in
   let hooks (`Print lbl) ~rev_prefix t =
     let lbl = Option.fold ~none:"?" ~some:(fun lbl -> "?" ^ lbl) lbl in
@@ -25,11 +25,16 @@ let nest pp_a modifier imported ns =
     Format.printf "@ }@]@]@.@.";
     Result.ok t
   in
-  match Action.run_with_hooks ~hooks ~union:report_duplicate modifier imported with
-  | Ok transformed_imported ->
-    Trie.union report_duplicate ns transformed_imported
+  match
+    Result.bind
+      (Action.run_with_hooks ~hooks ~union:report_duplicate modifier imported)
+      (Trie.Result.union report_duplicate ns)
+  with
+  | Ok merged -> merged
   | Error (`BindingNotFound path) ->
-    failwith @@ "No identifiers with the prefix " ^ Ident.to_string (`User path)
+    failwith @@ "no identifiers with the prefix " ^ Ident.to_string (`User path)
+  | Error (`Duplicate path) ->
+    failwith @@ "duplicate identifiers for " ^ Ident.to_string (`User path)
 
 let find (ident : Ident.t) ns =
   match ident with
