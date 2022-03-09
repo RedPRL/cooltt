@@ -55,9 +55,9 @@ let opt_debug =
 
 let myinfo =
   let doc = "elaborate and normalize terms in Cartesian cubical type theory" in
-  let err_exit = Term.exit_info ~doc:"on ill-formed types or terms." 1 in
-  Term.info "cooltt" ~version:"0.0" ~doc
-    ~exits:(err_exit :: Term.default_exits)
+  let err_exit = Cmd.Exit.info ~doc:"on ill-formed types or terms." 1 in
+  Cmd.info "cooltt" ~version:"0.0" ~doc
+    ~exits:(err_exit :: Cmd.Exit.defaults)
 
 let parse_mode =
   function
@@ -87,4 +87,4 @@ let () =
     Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file $ opt_as_file $ opt_debug))
   in
   let t = Term.ret @@ Term.(const main $ options) in
-  Term.exit @@ Term.eval ~catch:true ~err:Format.std_formatter (t, myinfo)
+  exit (Cmd.eval ~catch:true ~err:Format.std_formatter @@ Cmd.v myinfo t)
