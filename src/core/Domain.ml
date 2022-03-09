@@ -38,11 +38,6 @@ struct
   let tm_abort = Split []
   let tp_abort = TpSplit []
 
-  let sign_lbls =
-    function
-    | Field (lbl, _, Clo (sign, _)) -> lbl :: (List.map (fun (lbl, _) -> lbl) sign)
-    | Empty -> []
-
   let dim_to_con =
     function
     | Dim.Dim0 -> Dim0
@@ -99,13 +94,15 @@ struct
   and pp_frame : frm Pp.printer =
     fun fmt ->
     function
-    | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
+    | KAp (tp, con) -> Format.fprintf fmt "ap[%a, %a]" pp_tp tp pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
     | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
-    | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
+    | KTeleElim _ -> Format.fprintf fmt "<tele-elim>"
+    | KPush _ -> Format.fprintf fmt "<push>"
+    | KElOut -> Uuseg_string.pp_utf_8 fmt "el/out"
 
   and pp_cof : cof Pp.printer =
     fun fmt cof ->
@@ -131,17 +128,11 @@ struct
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
 
-  and pp_sign_clo : (S.sign clo) Pp.printer =
-    let sep fmt () = Format.fprintf fmt "," in
-    fun fmt (Clo (sign, {tpenv; conenv})) ->
-      Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
-        S.dump_sign sign
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
-
   and pp_con : con Pp.printer =
     fun fmt ->
     function
+    | Quoted id ->
+      Format.fprintf fmt "`%a" Ident.pp_user id
     | Cut {cut;tp} ->
       Format.fprintf fmt "cut[%a :: %a]" pp_cut cut pp_tp tp
     | Zero ->
@@ -154,6 +145,13 @@ struct
       Format.fprintf fmt "loop[%a]" pp_dim r
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
+    | TeleNil ->
+      Format.fprintf fmt "tele/nil"
+    | TeleCons (qid, code, tele) ->
+      Format.fprintf fmt "tele/cons[%a, %a, %a]"
+        pp_con qid
+        pp_con code
+        pp_con tele
     | Struct fields ->
       Format.fprintf fmt "struct[%a]"
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
@@ -200,20 +198,18 @@ struct
     | LockedPrfIn _ ->
       Format.fprintf fmt "<wrap>"
 
-
-  and pp_sign fmt =
-    function
-    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp_user ident pp_tp tp pp_sign_clo clo
-    | Empty -> Format.fprintf fmt "sig/empty"
-
   and pp_tp fmt =
     function
     | Pi (base, ident, fam) ->
       Format.fprintf fmt "pi[%a,%a,%a]" pp_tp base Ident.pp ident pp_tp_clo fam
     | Sg _ ->
       Format.fprintf fmt "<sg>"
-    | Signature sign ->
-      Format.fprintf fmt "sig[%a]" pp_sign sign
+    | Symbol ->
+      Format.fprintf fmt "<symbol>"
+    | Telescope ->
+      Format.fprintf fmt "<tele>"
+    | Signature tele ->
+      Format.fprintf fmt "sig[%a]" pp_con tele
     | Sub _ ->
       Format.fprintf fmt "<sub>"
     | TpPrf _ ->
@@ -246,6 +242,7 @@ struct
     | `Ext _ -> Format.fprintf fmt "<code-ext>"
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
+    | `Telescope -> Format.fprintf fmt "<code-tele>"
     | `Signature _ -> Format.fprintf fmt "<code-sig>"
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"

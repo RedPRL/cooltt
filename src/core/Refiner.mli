@@ -61,9 +61,8 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : (Ident.user * Chk.tac) list -> Chk.tac
-  val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
-  val total : Syn.tac -> Chk.tac
+  val tele : Chk.tac
+  val signature : Chk.tac -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
@@ -101,8 +100,20 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
+module Symbol : sig
+  val formation : Tp.tac
+  val quote : Ident.user -> Chk.tac
+end
+
+module Telescope : sig
+  val formation : Tp.tac
+  val nil : Chk.tac
+  val cons : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
+  val elim : Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac -> Syn.tac
+end
+
 module Signature : sig
-  val formation : Tp.tac telescope -> Tp.tac
+  val formation : Chk.tac -> Tp.tac
   val intro : (Ident.user -> Chk.tac option) -> Chk.tac
   val proj : Syn.tac -> Ident.user -> Syn.tac
 

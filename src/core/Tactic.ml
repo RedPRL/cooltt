@@ -75,6 +75,7 @@ module rec Var : sig
   val prf : D.cof -> tac
   val con : tac -> D.con
   val syn : tac -> Syn.tac
+  val chk : tac -> Chk.tac
   val abstract : ?ident:Ident.t -> D.tp -> (tac -> 'a RM.m) -> 'a RM.m
 end =
 struct
@@ -86,6 +87,9 @@ struct
     Syn.rule @@
     let+ tm = RM.quote_con tp con in
     tm, tp
+
+  let chk v =
+    Chk.syn @@ syn v
 
   let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a RM.m) -> 'a RM.m =
     fun ?(ident = `Anon) tp kont ->

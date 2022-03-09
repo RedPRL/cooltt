@@ -59,6 +59,7 @@ sig
   val prf : D.cof -> tac
   val con : tac -> D.con
   val syn : tac -> Syn.tac
+  val chk : tac -> Chk.tac
 end
 
 type var = Var.tac

@@ -153,9 +153,44 @@ let snd m =
   let+ x = m in
   S.Snd x
 
+let symbol =
+  ret S.Symbol
+
+let quoted id =
+  ret @@ S.Quoted id
+
+let telescope =
+  ret S.Telescope
+
+let code_telescope =
+  ret S.CodeTelescope
+
+let nil =
+  ret S.TeleNil
+
+let cons mqid mcode mtele =
+  let+ qid = mqid
+  and+ code = mcode
+  and+ tele = mtele in
+  S.TeleCons (qid, code, tele)
+
+let tele_elim mmot mnil mcons mtele =
+  let+ mot = mmot
+  and+ nil = mnil
+  and+ cons = mcons
+  and+ tele = mtele in
+  S.TeleElim (mot, nil, cons, tele)
+
 let struct_ mfields =
   let+ fields = MU.map (MU.second (fun x -> x)) mfields in
   S.Struct fields
+
+let push mqid mcode mfield mstr =
+  let+ qid = mqid
+  and+ code = mcode
+  and+ field = mfield
+  and+ str = mstr in
+  S.Push (qid, code, field, str)
 
 let proj m lbl =
   let+ x = m in
@@ -242,17 +277,16 @@ let sg ?(ident = `Anon) mbase mfam : _ m =
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)
 
-let signature (mfields : (Ident.user * (S.t m list -> S.tp m)) list) : _ m =
-  let rec scope_fields bound =
-    function
-    | [] -> ret []
-    | ((ident, mfield) :: mfields) ->
-      let* field = mfield bound in
-      let+ fields = scope @@ fun tm -> scope_fields (bound @ [tm]) mfields in
-      (ident, field) :: fields
-  in
-  let+ fields = scope_fields [] mfields in
-  S.Signature fields
+let signature mtele : _ m =
+  let+ tele = mtele in
+  S.Signature tele
+
+let code_signature mtele : _ m =
+  let+ tele = mtele in
+  S.CodeSignature tele
+
+let code_univ =
+  ret S.CodeUniv
 
 let code_pi mbase mfam : _ m =
   let+ base = mbase
@@ -761,6 +795,98 @@ struct
   end
 end
 
+module Tele =
+struct
+  (* [NOTE: Telescope Macros + Weak Tarski Universes]
+     All of the macros below rely heavily on the elimination
+     form for 'tele', and often use somewhat fancy motives.
+     When done naively, this makes calling these macros
+     an extremely error prone process!
+
+     Therefore, we want to ensure that all of the callers of these
+     macros don't need to ensure that they prepare the
+     arguments with the correct "calling convention"
+     (for lack of a better term) by inserting a ton of
+     'el_in' or 'el_out' terms into the macro arguments. *)
+
+  (** Unfold a telescope into a pi type. *)
+  let unfold tele code =
+    let mot = lam @@ fun _ -> code_univ in
+    let nil_case = el_in code in
+    let cons_case =
+      lam @@ fun _ ->
+      lam ~ident:(`User ["a"]) @@ fun a ->
+      lam @@ fun _ ->
+      lam ~ident:(`User ["b"]) @@ fun b ->
+      el_in @@
+      code_pi a @@ lam ~ident:(`User ["a"]) @@ fun ax ->
+      el_out @@
+      ap b [ax]
+    in
+    el_out @@ tele_elim mot nil_case cons_case tele
+
+  let extend tele fam =
+    (* NOTE: unfold : tele → univ → univ *)
+    let mot =
+      lam @@ fun t ->
+      code_pi (unfold t code_telescope) @@ lam @@ fun _ -> code_telescope
+    in
+    let nil_case =
+      el_in @@
+      lam @@ fun t -> t
+    in
+    (* Π (qid : symbol) → Π (a : univ) → Π (t : telescope) → `Π (unfold t `telescope) → `telescope *)
+    let cons_case =
+      lam @@ fun qid ->
+      (* a : univ *)
+      lam @@ fun a ->
+      (* t : telescope *)
+      lam @@ fun _ ->
+      (* c : Π (x : a) → `Π unfold (t x) → `telescope *)
+      lam @@ fun c ->
+      el_in @@
+      lam @@ fun k ->
+      el_in @@
+      cons qid a @@ lam @@ fun z -> el_out @@ ap (el_out @@ ap c [z]) [ap (el_out k) [z]]
+    in
+    el_out @@ ap (el_out @@ tele_elim mot nil_case cons_case tele) [fam]
+
+  let curry tele code uncurried =
+    let mot =
+      lam @@ fun t ->
+      (* `Π (k : `Π `sig t → code) → unfold t code *)
+      code_pi (code_pi (code_signature t) @@ lam @@ fun _ -> code) @@ lam @@ fun _ ->
+      unfold t code
+    in
+    let nil_case =
+      el_in @@
+      (* u : `Π (k : `Π `sig [] → code) *)
+      lam @@ fun u ->
+      ap (el_out u) [el_in @@ struct_ []]
+    in
+    let cons_case =
+      lam @@ fun qid ->
+      (* a : univ *)
+      lam @@ fun a ->
+      (* t : Π a → telescope *)
+      lam @@ fun _ ->
+      (* c : Π (x : a) → `Π (k : `Π `sig (t x) → code) → unfold (t x) code *)
+      lam @@ fun c ->
+      el_in @@
+      (* u : `Π `sig (cons qid a t) → a *)
+      lam @@ fun u ->
+      el_in @@
+      (* x : a *)
+      lam @@ fun x ->
+      (* unfold (t x) code *)
+      ap (el_out @@ ap c [x]) [el_in @@ lam @@ fun t_struct -> ap (el_out u) [el_in @@ push qid a x (el_out @@ t_struct)]]
+    in
+    (* See [NOTE: Telescope Macros + Weak Tarski Universes] for the reasoning behind this eta-expansion. *)
+    let el_uncurried = el_in @@ lam @@ fun str -> el_in @@ ap uncurried [el_out str] in
+    ap (el_out @@ tele_elim mot nil_case cons_case tele) [el_uncurried]
+end
+
+(* [TODO: Reed M, 26/01/2022] Move this into the unit test suite. *)
 module Test =
 struct
   let closed_form_hcom_v =

@@ -25,6 +25,7 @@ struct
     | Global _ -> Format.fprintf fmt "<global>"
     | Let _ -> Format.fprintf fmt "<let>"
     | Ann _ -> Format.fprintf fmt "<ann>"
+    | Quoted u -> Format.fprintf fmt "'%a" Ident.pp_user u
 
     | Zero -> Format.fprintf fmt "zero"
     | Suc tm -> Format.fprintf fmt "suc[%a]" dump tm
@@ -41,9 +42,14 @@ struct
     | Fst tm -> Format.fprintf fmt "fst[%a]" dump tm
     | Snd tm -> Format.fprintf fmt "snd[%a]" dump tm
 
-    | Struct fields -> Format.fprintf fmt "struct[%a]" dump_struct fields
+    | TeleNil -> Format.fprintf fmt "tele/nil"
+    | TeleCons (qid, code, tele) -> Format.fprintf fmt "tele/cons[%a, %a, %a]" dump qid dump code dump tele
+    | TeleElim (mot, nil, cons, tele) -> Format.fprintf fmt "tele/elim[%a, %a, %a, %a]" dump mot dump nil dump cons dump tele
 
+    | Struct tele -> Format.fprintf fmt "struct[%a]" dump_struct tele
+    | Push (qid, code, field, str) -> Format.fprintf fmt "push[%a, %a, %a, %a]" dump qid dump code dump field dump str
     | Proj (tm, lbl) -> Format.fprintf fmt "proj[%a, %a]" dump tm Ident.pp_user lbl
+
     | Coe _ -> Format.fprintf fmt "<coe>"
     | HCom _ -> Format.fprintf fmt "<hcom>"
     | Com _ -> Format.fprintf fmt "<com>"
@@ -70,10 +76,10 @@ struct
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
-    | CodeSignature fields ->
+    | CodeTelescope -> Format.fprintf fmt "<tele>"
+    | CodeSignature tele ->
       Format.fprintf fmt "sig[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp))
-        fields
+        dump tele
     | CodeNat -> Format.fprintf fmt "nat"
     | CodeUniv -> Format.fprintf fmt "univ"
     | CodeV _ -> Format.fprintf fmt "<v>"
@@ -84,11 +90,8 @@ struct
     | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
     | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
 
-  and dump_struct fmt fields =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp)) fields
-
-  and dump_sign fmt sign =
-    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump_tp tp)) sign
+  and dump_struct fmt tele =
+    Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp)) tele
 
   and dump_tp fmt =
     function
@@ -102,7 +105,9 @@ struct
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
-    | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
+    | Symbol -> Format.fprintf fmt "tp/symbol"
+    | Telescope -> Format.fprintf fmt "tp/tele"
+    | Signature tele -> Format.fprintf fmt "tp/sig[%a]" dump tele
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
@@ -129,6 +134,7 @@ struct
     let tuple = delimited
     let substitution = right 10
     let juxtaposition = left 9
+    let cons = right 8
     let proj = right 8
     let sub_compose = left 7
     let cof_eq = nonassoc 6
@@ -144,12 +150,19 @@ struct
     (** assumes [Debug.is_debug_mode ()] = [false] *)
     let classify_tm : tm -> t =
       function
-      | Var _ | Global _ -> atom
+      | Var _ | Global _ | Quoted _ -> atom
       | Lam _ -> double_arrow
       | Ap _ -> juxtaposition
       | Pair _ -> tuple
+
+      | TeleNil -> atom
+      | TeleCons _ -> cons
+      | TeleElim _ -> juxtaposition
+
       | Struct _ -> juxtaposition
+      | Push _ -> juxtaposition
       | Proj _ -> proj
+
       | CofSplit _ -> tuple
       | Cof (Cof.Eq _) -> cof_eq
       | Cof (Cof.Join [] | Cof.Meet []) -> atom
@@ -167,6 +180,7 @@ struct
       | SubIn _ | SubOut _ | ElIn _ | ElOut _ -> passed
       | CodePi _ -> arrow
       | CodeSg _ -> times
+      | CodeTelescope -> atom
       | CodeSignature _ -> juxtaposition
       | CodeExt _ -> juxtaposition
 
@@ -190,7 +204,7 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | TpDim | TpCof | Nat | Circle -> atom
+      | Symbol | Univ | TpDim | TpCof | Nat | Circle -> atom
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -198,6 +212,7 @@ struct
       | Sub _ -> juxtaposition
       | Pi _ -> arrow
       | Sg _ -> times
+      | Telescope -> atom
       | Signature _ -> juxtaposition
       | TpESub _ -> substitution
       | TpLockedPrf _ -> juxtaposition
@@ -230,14 +245,14 @@ struct
   let ppenv_bind env ident =
     Pp.Env.bind env @@ Ident.to_string_opt ident
 
-  let rec pp_fields pp_field env fmt  =
+  let rec pp_tele pp_field env fmt  =
     function
     | [] -> ()
-    | ((lbl, tp) :: fields) ->
+    | ((lbl, tp) :: tele) ->
       Format.fprintf fmt "(%a : %a)@ @,%a"
         Ident.pp_user lbl
         (pp_field env P.(right_of colon)) tp
-        (pp_fields pp_field env) fields
+        (pp_tele pp_field env) tele
 
   let rec pp env =
     pp_braced_cond P.classify_tm @@ fun penv fmt ->
@@ -250,10 +265,35 @@ struct
         (pp env P.(left_of juxtaposition)) tm0 (pp_atomic env) tm1
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
-    | Struct fields ->
-      Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
+    | TeleNil ->
+      ()
+    | TeleCons (Quoted ident, code, Lam (_, body)) ->
+      let (x, envx) = ppenv_bind env (ident :> Ident.t) in
+      Format.fprintf fmt "(%s : %a)@ @,%a"
+        x
+        (pp env P.(right_of colon)) code
+        (pp envx penv) body
+    | TeleCons (qid, code, tele) ->
+      Format.fprintf fmt "(%a : %a)@ @,%a"
+        (pp env penv) qid
+        (pp env P.(right_of colon)) code
+        (pp env penv) tele
+    | TeleElim (mot, nil, cons, tele) ->
+      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ nil => %a@ | cons => %a@ ]@]@]"
+        (pp_atomic env) tele
+        (pp_atomic env) mot
+        (pp env P.isolated) nil
+        (pp env P.isolated) cons
+    | Struct tele ->
+      Format.fprintf fmt "@[struct %a@]" (pp_tele pp env) tele
+    | Push (qid, code, field, str) ->
+      Format.fprintf fmt "@[push %a %a %a %a@]"
+        (pp env penv) qid
+        (pp env penv) code
+        (pp env penv) field
+        (pp env penv) str
     | Proj (tm, lbl) ->
-      Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
+      Format.fprintf fmt "@[%a.%a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches
@@ -281,6 +321,8 @@ struct
       pp_var env fmt ix
     | Global sym ->
       Symbol.pp fmt sym
+    | Quoted id ->
+      Format.fprintf fmt "`%a" Ident.pp_user id
     | Cof (Cof.Eq (r, s)) ->
       Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
     | Cof (Cof.Join []) ->
@@ -376,8 +418,12 @@ struct
         Uuseg_string.pp_utf_8 "Σ"
         (pp_atomic env) base
         (pp_atomic env) tm
-    | CodeSignature fields ->
-      Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
+
+    | CodeTelescope ->
+      Format.fprintf fmt "tele"
+    | CodeSignature tele ->
+      Format.fprintf fmt "@[sig %a@]" (pp env penv) tele
+
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[ext %a %a %a@]"
         (pp_atomic env) fam
@@ -488,8 +534,6 @@ struct
         Uuseg_string.pp_utf_8 "∘"
         (pp_sub env P.(right_of sub_compose)) sb1
 
-  and pp_sign env fmt (sign : sign) : unit = pp_fields pp_tp env fmt sign
-
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->
     function
@@ -513,8 +557,12 @@ struct
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx P.(right_of times)) fam
-    | Signature fields ->
-      Format.fprintf fmt "sig %a" (pp_sign env) fields
+    | Symbol ->
+      Format.fprintf fmt "symbol"
+    | Telescope ->
+      Format.fprintf fmt "tele"
+    | Signature tele ->
+      Format.fprintf fmt "sig %a" (pp env penv) tele
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env `Anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

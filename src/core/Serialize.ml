@@ -145,7 +145,7 @@ struct
     | S.CodeExt (n, fam, `Global phi, tbdry) -> labeled "code_ext" [json_of_int n; json_of_tm fam; json_of_tm phi; json_of_tm tbdry]
     | S.CodePi (tbase, tfam) -> labeled "code_pi" [json_of_tm tbase; json_of_tm tfam]
     | S.CodeSg (tbase, tfam) -> labeled "code_sg" [json_of_tm tbase; json_of_tm tfam]
-    | S.CodeSignature sign -> labeled "code_sign" [json_of_labeled json_of_tm sign]
+    | S.CodeSignature sign -> labeled "code_sign" [json_of_tm sign]
     | S.CodeNat -> `String "code_nat"
     | S.CodeUniv -> `String "code_univ"
     | S.CodeV (r, pcode, code, pequiv) -> labeled "code_v" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv]
@@ -174,14 +174,11 @@ struct
     | S.Sub (tp, tphi, tm) -> labeled "sub" [json_of_tp tp; json_of_tm tphi; json_of_tm tm]
     | S.Pi (base, nm, fib) -> labeled "pi" [json_of_tp base; json_of_ident nm; json_of_tp fib ]
     | S.Sg (base, nm, fib) -> labeled "sg" [json_of_tp base; json_of_ident nm; json_of_tp fib ]
-    | S.Signature sign -> labeled "sign" [json_of_sign sign]
+    | S.Signature sign -> labeled "sign" [json_of_tm sign]
     | S.Nat -> `String "nat"
     | S.Circle -> `String "circle"
     | S.TpESub (sub, tp) -> labeled "subst" [json_of_sub sub; json_of_tp tp ]
     | S.TpLockedPrf tm -> labeled "locked" [json_of_tm tm]
-
-  and json_of_sign : S.sign -> J.value =
-    fun sign -> json_of_labeled json_of_tp sign
 
   let json_of_ctx ctx : J.value =
     `A (List.map (fun (nm, tp) -> json_of_pair (json_of_ident nm) (json_of_tp tp)) ctx)
@@ -332,7 +329,7 @@ struct
       let fam = json_to_tm j_fam in
       S.CodeSg (base, fam)
     | `A [`String "code_sign"; j_sign] ->
-      let sign = json_to_labeled json_to_tm j_sign in
+      let sign = json_to_tm j_sign in
       S.CodeSignature sign
     | `String "code_nat" -> S.CodeNat
     | `String "code_univ" -> S.CodeUniv
@@ -406,7 +403,7 @@ struct
       let fib = json_to_tp j_fib in
       S.Pi (base, nm, fib)
     | `A [`String "sign"; j_sign] ->
-      let sign = json_to_labeled json_to_tp j_sign in
+      let sign = json_to_tm j_sign in
       S.Signature sign
     | `String "nat" -> S.Nat
     | `String "circle" -> S.Nat
@@ -418,9 +415,6 @@ struct
       let tm = json_to_tm j_tm in
       S.TpLockedPrf tm
     | j -> J.parse_error j "Syntax.json_to_tp"
-
-  and json_to_sign : J.value -> S.sign =
-    fun j_sign -> json_to_labeled json_to_tp j_sign
 
   let json_to_ctx : J.value -> (Ident.t * S.tp) list =
     function
@@ -466,10 +460,6 @@ struct
     function
     | Clo (tp, env) -> labeled "clo" [Syntax.json_of_tp tp; json_of_env env]
 
-  and json_of_sign_clo : D.sign_clo -> J.value =
-    function
-    | Clo (sign, env) -> labeled "clo" [Syntax.json_of_sign sign; json_of_env env]
-
   and json_of_env {tpenv; conenv} : J.value =
     `O [("tpenv", json_of_bwd json_of_tp tpenv); ("conenv", json_of_bwd json_of_con conenv)]
 
@@ -496,15 +486,10 @@ struct
     | TpSplit branches -> labeled "tp_split" (json_of_alist json_of_cof json_of_tp_clo branches)
     | Pi (tp, ident, clo) -> labeled "pi" [json_of_tp tp; json_of_ident ident; json_of_tp_clo clo]
     | Sg (tp, ident, clo) -> labeled "sg" [json_of_tp tp; json_of_ident ident; json_of_tp_clo clo]
-    | Signature sign -> labeled "signature" [json_of_sign sign]
+    | Signature sign -> labeled "signature" [json_of_con sign]
     | Nat -> `String "nat"
     | Circle -> `String "circle"
     | TpLockedPrf cof -> labeled "tp_locked_prf" [json_of_cof cof]
-
-  and json_of_sign : D.sign -> J.value =
-    function
-    | D.Empty -> `String "empty"
-    | D.Field (lbl, tp, clo) -> labeled "field" [json_of_user lbl; json_of_tp tp; json_of_sign_clo clo]
 
   and json_of_hd : D.hd -> J.value =
     function
@@ -538,7 +523,7 @@ struct
     function
     | `Pi (base, fam) -> labeled "pi" [json_of_con base; json_of_con fam]
     | `Sg (base, fam) -> labeled "sg" [json_of_con base; json_of_con fam]
-    | `Signature sign -> labeled "signature" [json_of_labeled json_of_con sign]
+    | `Signature sign -> labeled "signature" [json_of_con sign]
     | `Ext (n, code, `Global phi, fam) -> labeled "ext" [json_of_int n; json_of_con code; json_of_con phi; json_of_con fam]
     | `Nat -> `String "nat"
     | `Circle -> `String "circle"
@@ -549,10 +534,11 @@ struct
     | `HCom (src, trg, cof, con) -> labeled "hcom" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con]
     | `V (r, pcode, code, pequiv) -> labeled "v" [json_of_dim r; json_of_con pcode; json_of_con code; json_of_con pequiv]
 
-  and json_of_fhcom_tag : [`Nat | `Circle] -> J.value =
+  and json_of_fhcom_tag : [`Nat | `Circle | `Telescope] -> J.value =
     function
     | `Nat -> `String "nat"
     | `Circle -> `String "circle"
+    | `Telescope -> `String "tele"
 
   let rec json_to_con : J.value -> D.con =
     function
@@ -592,11 +578,6 @@ struct
     | `A [`String "clo"; j_tp; j_env] -> Clo (Syntax.json_to_tp j_tp, json_to_env j_env)
     | j -> J.parse_error j "Domain.json_to_tp_clo"
 
-  and json_to_sign_clo : J.value -> D.sign_clo =
-    function
-    | `A [`String "clo"; j_sign; j_env] -> Clo (Syntax.json_to_sign j_sign, json_to_env j_env)
-    | j -> J.parse_error j "Domain.json_to_tp_clo"
-
   and json_to_env : J.value -> D.env =
     function
     | `O [("tpenv", j_tpenv); ("conenv", j_conenv)] ->
@@ -627,17 +608,11 @@ struct
     | `A (`String "tp_split" :: j_branches) -> TpSplit (json_to_alist json_to_cof json_to_tp_clo j_branches)
     | `A [`String "pi"; j_tp; j_ident; j_clo] -> Pi (json_to_tp j_tp, json_to_ident j_ident, json_to_tp_clo j_clo)
     | `A [`String "sg"; j_tp; j_ident; j_clo] -> Sg (json_to_tp j_tp, json_to_ident j_ident, json_to_tp_clo j_clo)
-    | `A [`String "signature"; j_sign] -> Signature (json_to_sign j_sign)
+    | `A [`String "signature"; j_sign] -> Signature (json_to_con j_sign)
     | `String "nat" -> Nat
     | `String "circle" -> Circle
     | `A [`String "tp_locked_prf"; j_cof] -> TpLockedPrf (json_to_cof j_cof)
     | j -> J.parse_error j "Domain.json_to_tp"
-
-  and json_to_sign : J.value -> D.sign =
-    function
-    | `String "empty" -> Empty
-    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (json_to_user j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
-    | j -> J.parse_error j "Domain.json_to_sign"
 
   and json_to_hd : J.value -> D.hd =
     function
@@ -676,7 +651,7 @@ struct
     function
     | `A [`String "pi"; j_base; j_fam] -> `Pi (json_to_con j_base, json_to_con j_fam)
     | `A [`String "sg"; j_base; j_fam] -> `Sg (json_to_con j_base, json_to_con j_fam)
-    | `A [`String "signature"; j_sign] -> `Signature (json_to_labeled json_to_con j_sign)
+    | `A [`String "signature"; j_sign] -> `Signature (json_to_con j_sign)
     | `A [`String "ext"; j_n; j_code; j_phi; j_fam] -> `Ext (json_to_int j_n, json_to_con j_code, `Global (json_to_con j_phi), json_to_con j_fam)
     | `String "nat" -> `Nat
     | `String "circle" -> `Circle
@@ -689,10 +664,11 @@ struct
     | `A [`String "v"; j_r; j_pcode; j_code; j_pequiv] -> `V (json_to_dim j_r, json_to_con j_pcode, json_to_con j_code, json_to_con j_pequiv)
     | j -> J.parse_error j "Domain.json_to_unstable_code"
 
-  and json_to_fhcom_tag : J.value -> [ `Nat | `Circle ] =
+  and json_to_fhcom_tag : J.value -> [ `Nat | `Circle | `Telescope ] =
     function
     | `String "nat" -> `Nat
     | `String "circle" -> `Circle
+    | `String "tele" -> `Telescope
     | j -> J.parse_error j "Domain.json_to_fhcom_tag"
 end
 

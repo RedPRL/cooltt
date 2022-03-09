@@ -25,7 +25,6 @@ val normalize_cof : D.cof -> D.cof compute
 
 val inst_tp_clo : D.tp_clo -> D.con -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con -> D.con compute
-val inst_sign_clo : D.sign_clo -> D.con -> D.sign compute
 
 val do_ap : D.con -> D.con -> D.con compute
 val do_ap2 : D.con -> D.con -> D.con -> D.con compute
@@ -38,6 +37,7 @@ val do_el_out : D.con -> D.con compute
 val unfold_el : D.con D.stable_code -> D.tp compute
 val do_el : D.con -> D.tp compute
 val do_spine : D.con -> D.frm list -> D.con compute
+val unquote : D.con -> Ident.user compute
 
 val con_to_dim : D.con -> D.dim compute
 val con_to_cof : D.con -> D.cof compute

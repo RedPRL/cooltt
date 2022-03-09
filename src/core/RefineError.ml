@@ -18,6 +18,10 @@ let pp_connective fmt =
     Format.fprintf fmt "pi"
   | `Sg ->
     Format.fprintf fmt "sg"
+  | `Symbol ->
+    Format.fprintf fmt "symbol"
+  | `Telescope ->
+    Format.fprintf fmt "tele"
   | `Signature ->
     Format.fprintf fmt "sig"
   | `Univ ->
@@ -67,7 +71,7 @@ let pp fmt =
       "Expected true cofibration: %a"
       (S.pp ppenv) cof
   | ExpectedField (ppenv, sign, tm, lbl) ->
-    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_sign ppenv) sign Ident.pp_user lbl
+    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp ppenv) sign Ident.pp_user lbl
   | FieldNameMismatches (expected, actual) ->
     Fmt.fprintf fmt "Field names mismatch, expected [%a] but got [%a]" (Pp.pp_sep_list Ident.pp_user) expected (Pp.pp_sep_list Ident.pp_user) actual
   | VirtualType ->

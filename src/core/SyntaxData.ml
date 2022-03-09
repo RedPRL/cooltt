@@ -8,6 +8,7 @@ struct
     | Global of Symbol.t
     | Let of t * Ident.t * t
     | Ann of t * tp
+    | Quoted of Ident.user
 
     | Zero
     | Suc of t
@@ -24,7 +25,13 @@ struct
     | Fst of t
     | Snd of t
 
+
+    | TeleNil
+    | TeleCons of t * t * t
+    | TeleElim of t * t * t * t
+
     | Struct of (Ident.user * t) list
+    | Push of t * t * t * t
     | Proj of t * Ident.user
 
     | Coe of t * t * t * t
@@ -53,7 +60,8 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
-    | CodeSignature of (Ident.user * t) list
+    | CodeTelescope
+    | CodeSignature of t
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t
@@ -76,13 +84,13 @@ struct
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
-    | Signature of sign
+    | Symbol
+    | Telescope
+    | Signature of t
     | Nat
     | Circle
     | TpESub of sub * tp
     | TpLockedPrf of t
-
-  and sign = (Ident.user * tp) list
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

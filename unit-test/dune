@@ -1,0 +1,7 @@
+(tests
+  (names records framework)
+  (libraries cooltt.frontend alcotest)
+   (flags
+    (:standard -w -8))
+  (deps
+    (glob_files ./cooltt-lib)))

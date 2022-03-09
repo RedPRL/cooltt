@@ -32,15 +32,6 @@ let rec unfold idents k =
       let span = Env.location env in
       RM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
 
-(* Account for the lambda-bound signature field dependencies.
-    See [NOTE: Sig Code Quantifiers] for more info. *)
-let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
-  let bind_tac lbls (lbl, tac) =
-    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls tac in
-    Snoc (lbls, lbl) , (lbl, tac)
-  in
-  snd @@ ListUtil.map_accum_left bind_tac Emp tacs
-
 module CoolTp :
 sig
   include T.Tactic
@@ -48,6 +39,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
+  val tele : tac
   val signature : (Ident.user * tac) list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
@@ -109,15 +101,15 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
+  let tele = Code R.Univ.tele
+
   let signature (tacs : (Ident.user * tac) list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
-      let tac = R.Univ.signature (bind_sig_tacs tacs) in
+      let tac = R.Univ.signature (Tactics.Telescope.of_list tacs) in
       Code tac
     | None ->
-      let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
-      let tac = R.Signature.formation tele in
-      Tp tac
+      failwith "[FIXME] Core.CoolTp.signature: Handle the case when a signature is full of types!"
 
   let sub tac_tp tac_phi tac_pel : tac =
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
@@ -298,16 +290,33 @@ and chk_tm : CS.con -> T.Chk.tac =
       let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
+    | CS.Telescope ->
+      R.Univ.tele
+
+    | CS.Nil ->
+      R.Telescope.nil
+
+    | CS.Cons (qid, code, tele) ->
+      R.Telescope.cons (chk_tm qid) (chk_tm code) (chk_tm tele)
+
+    | CS.Row fields ->
+      Tactics.Telescope.of_list @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields
+
+    | CS.Extend (row, fam) ->
+      Tactics.Telescope.extend (chk_tm row) (chk_tm fam)
+
     | CS.Signature fields ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
+      let tacs = Tactics.Telescope.of_list @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
-      R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
+      let tacs = List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      Tactics.Signature.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
+
     | CS.Total (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
-      R.Univ.patch (R.Univ.total (syn_tm tp)) (R.Signature.find_field_tac tacs)
+      let tacs = List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      Tactics.Signature.patch (Tactics.Signature.total (syn_tm tp)) (R.Signature.find_field_tac tacs)
+
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
 

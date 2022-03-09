@@ -81,6 +81,9 @@ let rec quote_con (tp : D.tp) con =
           S.Var ix
     end
 
+  | _, D.Quoted id ->
+    ret @@ S.Quoted id
+
   | _, D.Cut {cut = (hd, sp); tp = _} ->
     quote_cut (hd, sp)
 
@@ -103,6 +106,22 @@ let rec quote_con (tp : D.tp) con =
     let+ tfst = quote_con base fst
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
+
+  | _, D.TeleNil ->
+    ret S.TeleNil
+
+  | _, D.TeleCons (qid, code, tele) ->
+    let* tele_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.term @@
+      TB.pi (TB.el @@ code) (fun _ -> TB.telescope)
+    in
+    let* qid = quote_con D.Symbol qid in
+    let* code = quote_con D.Univ code in
+    let+ tele = quote_con tele_tp tele in
+    S.TeleCons (qid, code, tele)
 
   | D.Signature sign, _ ->
     let+ tfields = quote_fields sign con in
@@ -280,15 +299,18 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_fields (sign : D.sign) con : (Ident.user * S.t) list m =
-  match sign with
-  | D.Field (lbl, tp, sign_clo) ->
-    let* fcon = lift_cmp @@ do_proj con lbl in
-    let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
+and quote_fields (tele : D.con) con : (Ident.user * S.t) list m =
+  match tele with
+  | D.TeleCons (qid, code, lam) ->
+    let* id = lift_cmp @@ unquote qid in
+    let* fcon = lift_cmp @@ do_proj con id in
+    let* tp = lift_cmp @@ do_el code in
+    let* tele = lift_cmp @@ do_ap lam fcon in
     let* tfield = quote_con tp fcon in
-    let+ tfields = quote_fields sign con in
-    (lbl, tfield) :: tfields
-  | D.Empty -> ret []
+    let+ tfields = quote_fields tele con in
+    (id, tfield) :: tfields
+  | D.TeleNil -> ret []
+  | _ -> failwith "internal error: quote_fields"
 
 and quote_stable_field_code univ args (lbl, fam) =
   (* See [NOTE: Sig Code Quantifiers] for more details *)
@@ -311,6 +333,9 @@ and quote_stable_code univ =
 
   | `Circle ->
     ret S.CodeCircle
+
+  | `Telescope ->
+    ret S.CodeTelescope
 
   | `Univ ->
     ret S.CodeUniv
@@ -336,10 +361,9 @@ and quote_stable_code univ =
       lift_cmp @@ do_ap fam var
     in
     S.CodeSg (tbase, tfam)
-  | `Signature fields ->
-    let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
-    in
-    S.CodeSignature tfields
+  | `Signature tele ->
+    let+ tele = quote_con D.Telescope tele in
+    S.CodeSignature tele
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =
@@ -406,16 +430,6 @@ and quote_tp_clo base fam =
   let* tp = lift_cmp @@ inst_tp_clo fam var in
   quote_tp tp
 
-and quote_sign : D.sign -> S.sign m =
-  function
-  | Field (ident, field, clo) ->
-    let* tfield = quote_tp field in
-    bind_var field @@ fun var ->
-    let* fields = lift_cmp @@ inst_sign_clo clo var in
-    let+ tfields = quote_sign fields in
-    (ident, tfield) :: tfields
-  | Empty -> ret []
-
 and quote_tp (tp : D.tp) =
   let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
@@ -430,9 +444,13 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
-  | D.Signature sign ->
-    let+ sign = quote_sign sign in
-    S.Signature sign
+  | D.Symbol ->
+    ret S.Symbol
+  | D.Telescope ->
+    ret S.Telescope
+  | D.Signature tele ->
+    let+ tele = quote_con D.Telescope tele in
+    S.Signature tele
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->
@@ -641,6 +659,38 @@ and quote_frm tm =
     in
     let* tloop_case = quote_con loop_tp loop_case in
     ret @@ S.CircleElim (tmot, tbase_case, tloop_case, tm)
+  | D.KPush (qid, code, field) ->
+    let* tqid = quote_con D.Symbol qid in
+    let* tcode = quote_con D.Univ code in
+    let* tp = lift_cmp @@ Sem.do_el code in
+    let+ tfield = quote_con tp field in
+    S.Push (tqid, tcode, tfield, tm)
+  | D.KTeleElim (mot, nil_case, cons_case) ->
+    let* mot_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.term @@
+      TB.pi TB.telescope @@ fun _ -> TB.univ
+    in
+    let* tmot = quote_con mot_tp mot in
+    let* tnil_case =
+      let* mot_nil = lift_cmp @@ do_ap mot D.TeleNil in
+      let* tp_mot_nil = lift_cmp @@ do_el mot_nil in
+      quote_con tp_mot_nil nil_case
+    in
+    let* cons_tp =
+      lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con mot @@ fun mot ->
+      Splice.term @@
+      TB.pi TB.symbol @@ fun qid ->
+      TB.pi TB.univ @@ fun a ->
+      TB.pi (TB.pi (TB.el a) @@ fun _ -> TB.telescope) @@ fun t ->
+      TB.pi (TB.pi (TB.el a) @@ fun x -> TB.el (TB.ap mot [TB.ap t [x]])) @@ fun _ ->
+      TB.el @@ TB.ap mot [TB.cons qid a t]
+    in
+    let+ tcons_case = quote_con cons_tp cons_case in
+    S.TeleElim (tmot, tnil_case, tcons_case, tm)
   | D.KFst ->
     ret @@ S.Fst tm
   | D.KSnd ->

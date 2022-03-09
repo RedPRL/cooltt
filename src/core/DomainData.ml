@@ -17,7 +17,10 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
-    | `Signature of (Ident.user * 'a) list
+    | `Telescope
+    (** The universe of telescopes *)
+
+    | `Signature of 'a
     (** First-Class Record types *)
 
     | `Ext of int * 'a * [`Global of 'a] * 'a
@@ -49,10 +52,12 @@ struct
   and 'a clo = Clo of 'a * env
   and tp_clo = S.tp clo
   and tm_clo = S.t clo
-  and sign_clo = S.sign clo
 
   (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
   and con =
+    | Quoted of Ident.user
+    (** A quoted identifier. *)
+
     | Lam of Ident.t * tm_clo
 
     | BindSym of DimProbe.t * con
@@ -69,9 +74,14 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
-    | Struct of (Ident.user * con) list
-    | SubIn of con
 
+    (* [TODO: Reed M, 26/01/2022] Does it make sense to handle these in a similar way to codes? *)
+    | TeleNil
+    | TeleCons of con * con * con
+
+    | Struct of (Ident.user * con) list
+
+    | SubIn of con
     | ElIn of con
     (** The introduction form for the extension of a {i stable} type code only (see {!constructor:ElStable} and {!constructor:ElUnstable}). *)
 
@@ -84,7 +94,7 @@ struct
 
     | Prf
 
-    | FHCom of [`Nat | `Circle] * dim * dim * cof * con
+    | FHCom of [`Telescope | `Nat | `Circle] * dim * dim * cof * con
 
     | StableCode of con stable_code
     | UnstableCode of con unstable_code
@@ -108,14 +118,13 @@ struct
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
-    | Signature of sign
+    | Symbol
+    | Telescope
+    | Signature of con
     | Nat
     | Circle
     | TpLockedPrf of cof
 
-  and sign =
-    | Field of Ident.user * tp * S.sign clo
-    | Empty
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =
@@ -136,9 +145,11 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
+    | KPush of con * con * con
     | KProj of Ident.user
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
+    | KTeleElim of con * con * con
 
     | KElOut
     (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
