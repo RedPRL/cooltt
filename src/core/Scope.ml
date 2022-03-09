@@ -1,23 +1,28 @@
-module Y = Yuujinchou
-module YT = Y.Trie
-
-type 'a trie = 'a YT.t
 type 'a t =
-  { view : 'a YT.t
-  ; export : 'a YT.t
+  { view : 'a Namespace.t
+  ; export : 'a Namespace.t
   }
 
-let empty = {view = YT.empty; export = YT.empty}
-let map_view ~f s = {s with view = f s.view}
-let map_export ~f s = {s with export = f s.export}
-let fold ~f s = f ~view:s.view ~export:s.export
-let get_view s = s.view
+let empty = {view = Namespace.empty; export = Namespace.empty}
 let get_export s = s.export
+let find_view id s = Namespace.find id s.view
 
-module Result =
-struct
-  let map_view ~f s =
-    Result.bind (f s.view) @@ fun view -> Result.ok {s with view}
-  let map_export ~f s =
-    Result.bind (f s.export) @@ fun export -> Result.ok {s with export}
-end
+let (let*) = Result.bind
+let (let+) x f = Result.map f x
+
+let transform_view ~shadowing ~pp pattern s =
+  let+ view = Namespace.transform ~shadowing ~pp pattern s.view in {s with view}
+let transform_export ~shadowing ~pp pattern s =
+  let+ export = Namespace.transform ~shadowing ~pp pattern s.export in {s with export}
+let export_view ~shadowing ~pp pattern s =
+  let* view = Namespace.transform ~shadowing ~pp pattern s.view in
+  let+ export = Namespace.union ~shadowing s.export view in
+  {view; export}
+let add ~shadowing id sym s =
+  let* view = Namespace.add ~shadowing id sym s.view in
+  let+ export = Namespace.add ~shadowing id sym s.export in
+  {view; export}
+let incl ~shadowing ns s =
+  let* view = Namespace.union ~shadowing s.view ns in
+  let+ export = Namespace.union ~shadowing s.export ns in
+  {view; export}

@@ -1,15 +1,27 @@
-type +'a trie = 'a Yuujinchou.Trie.t
 type +'a t
 
 val empty : 'a t
-val map_view : f:('a trie -> 'a trie) -> 'a t -> 'a t
-val map_export : f:('a trie -> 'a trie) -> 'a t -> 'a t
-val fold : f:(view:'a trie -> export:'a trie -> 'b) -> 'a t -> 'b
-val get_view : 'a t -> 'a trie
-val get_export : 'a t -> 'a trie
+val get_export : 'a t -> 'a Namespace.t
+val find_view : Ident.t -> 'a t -> 'a option
 
-module Result :
-sig
-  val map_view : f:('a trie -> ('a trie, 'error) result) -> 'a t -> ('a t, 'error) result
-  val map_export : f:('a trie -> ('a trie, 'error) result) -> 'a t -> ('a t, 'error) result
-end
+val transform_view :
+  shadowing:bool ->
+  pp:(Format.formatter -> 'a -> unit) ->
+  'b Namespace.pattern ->
+  'a t -> ('a t, 'error) Namespace.result
+
+val transform_export :
+  shadowing:bool ->
+  pp:(Format.formatter -> 'a -> unit) ->
+  'b Namespace.pattern ->
+  'a t -> ('a t, 'error) Namespace.result
+
+val export_view :
+  shadowing:bool ->
+  pp:(Format.formatter -> 'a -> unit) ->
+  'b Namespace.pattern ->
+  'a t -> ('a t, 'error) Namespace.result
+
+val add : shadowing:bool -> Ident.t -> 'a -> 'a t -> ('a t, 'error) Namespace.result
+
+val incl : shadowing:bool -> 'a Namespace.t -> 'a t -> ('a t, 'error) Namespace.result
