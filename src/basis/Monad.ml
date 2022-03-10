@@ -149,10 +149,10 @@ module type MonadReaderStateResult = sig
   val get : global m
   val set : global -> unit m
   val modify : (global -> global) -> unit m
+  val fork : (global -> global) -> 'a m -> 'a m
 
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a
-  val run_globals_exn : global -> local -> 'a m -> ('a * global)
   val throw : exn -> 'a m
   val trap : 'a m -> ('a, exn) result m
 end
@@ -209,12 +209,13 @@ struct
     | Error exn, st -> Ok (Error exn), st
 
   let read (st, env) = Ok env, st
-
   let scope f m (st, env) = m (st, f env)
+
   let get (st, _) = Ok st, st
   let set st (_, _) = Ok (), st
-
   let modify f (st, _) = Ok (), f st
+  let fork f m (st, env) =
+    let a, _ = m (f st, env) in a, st
 
   let run st env m =
     let a, _ = m (st, env) in
@@ -224,9 +225,4 @@ struct
     match run st env m with
     | Ok a -> a
     | Error exn -> raise exn
-
-  let run_globals_exn st env m =
-    match m (st, env) with
-    | (Ok a, st') -> (a, st')
-    | (Error exn, _) -> raise exn
 end
