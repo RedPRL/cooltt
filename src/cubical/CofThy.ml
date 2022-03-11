@@ -1,3 +1,4 @@
+open ContainersLabels
 open Basis
 open Bwd
 
@@ -46,18 +47,18 @@ let rec dissect_cofibrations : cof list -> branches =
   | cof :: cofs ->
     match cof with
     | Cof.Var v ->
-      List.map (fun (vars, eqs) -> VarSet.add v vars, eqs) @@
-      dissect_cofibrations cofs
+      List.map (dissect_cofibrations cofs)
+        ~f:(fun (vars, eqs) -> VarSet.add v vars, eqs)
     | Cof.Cof cof ->
       match cof with
       | Cof.Meet meet_cofs ->
         dissect_cofibrations @@ meet_cofs @ cofs
       | Cof.Join join_cofs ->
-        join_cofs |> List.concat_map @@ fun join_cof ->
-        dissect_cofibrations @@ join_cof :: cofs
+        List.concat_map join_cofs
+          ~f:(fun join_cof -> dissect_cofibrations @@ join_cof :: cofs)
       | Cof.Eq (r, s) ->
-        List.map (fun (vars, eqs) -> vars, (r, s) :: eqs) @@
-        dissect_cofibrations cofs
+        List.map (dissect_cofibrations cofs)
+          ~f:(fun (vars, eqs) -> vars, (r, s) :: eqs)
 
 module Alg =
 struct
@@ -89,7 +90,7 @@ struct
     testing, {thy with classes}
 
   let test_eqs (thy : t') eqs =
-    List.for_all (test_eq thy) eqs
+    List.for_all ~f:(test_eq thy) eqs
 
   let test_var (thy : t') v =
     VarSet.mem v thy.true_vars
@@ -112,7 +113,7 @@ struct
       | true, _ -> acc
       | false, thy' -> thy',  Snoc (eqs, eq)
     in
-    let thy', eqs = List.fold_left go (thy, Emp) eqs in
+    let thy', eqs = List.fold_left ~f:go ~init:(thy, Emp) eqs in
     match test_eq thy' (Dim0, Dim1) with
     | true -> `Inconsistent
     | false -> `Consistent (thy', Bwd.to_list eqs)
@@ -133,7 +134,7 @@ struct
       | `Inconsistent -> None
       | `Consistent (thy', branch) -> Some (thy', branch)
     in
-    List.filter_map go branches
+    List.filter_map ~f:go branches
 
   (** [drop_useless_branches] drops the branches that could be dropped without
     * affecting the coverages. *)
@@ -144,9 +145,9 @@ struct
       else
         Snoc (acc, (thy', branch))
     in
-    let cached_branches = List.fold_left go_fwd Emp cached_branches in
+    let cached_branches = List.fold_left ~f:go_fwd ~init:Emp cached_branches in
     let go_bwd (thy', branch) acc =
-      if List.exists (fun (_, branch) -> test_branch thy' branch) acc then
+      if List.exists ~f:(fun (_, branch) -> test_branch thy' branch) acc then
         acc
       else
         (thy', branch) :: acc
@@ -163,10 +164,9 @@ struct
       | [] -> []
       | [vars, []] when VarSet.is_empty vars -> [`Consistent thy']
       | dissected_cofs ->
-        begin
-          drop_useless_branches @@
-          reduce_branches thy' dissected_cofs
-        end |> List.map @@ fun (thy', _) -> `Consistent thy'
+        List.map ~f:(fun (thy', _) -> `Consistent thy') @@
+        drop_useless_branches @@
+        reduce_branches thy' dissected_cofs
 
   (** [test] checks whether a cofibration is true within an algebraic theory *)
   let rec test (thy' : alg_thy') : cof -> bool =
@@ -177,9 +177,9 @@ struct
         | Cof.Eq (r, s) ->
           test_eq thy' (r, s)
         | Cof.Join phis ->
-          List.exists (test thy') phis
+          List.exists ~f:(test thy') phis
         | Cof.Meet phis ->
-          List.for_all (test thy') phis
+          List.for_all ~f:(test thy') phis
       end
     | Cof.Var v ->
       test_var thy' v
@@ -224,7 +224,7 @@ struct
       let go vars0 (_, (vars1, _)) = VarSet.inter vars0 vars1 in
       match cached_branches with
       | [] -> VarSet.empty
-      | (_, (vars, _)) :: branches -> List.fold_left go vars branches
+      | (_, (vars, _)) :: branches -> List.fold_left ~f:go ~init:vars branches
     in
     (* The following is an approximation of checking whether some equation is useful.
      * It does not kill every "useless" cofibration. Here is one example:
@@ -242,10 +242,13 @@ struct
      * enough to detect them. One could consider more aggressive approaches if [CofThy]
      * becomes the bottleneck again.
     *)
-    let useful eq = cached_branches |> List.exists @@ fun (thy', _) -> not @@ Alg.test_eq thy' eq in
+    let useful eq =
+      List.exists cached_branches
+        ~f:(fun (thy', _) -> not @@ Alg.test_eq thy' eq)
+    in
     (* revisit all branches and remove all useless ones identified by the simple criterion above. *)
-    cached_branches |> List.map @@ fun (thy', (vars, eqs)) ->
-    thy', (VarSet.diff vars common_vars, List.filter useful eqs)
+    List.map cached_branches
+      ~f:(fun (thy', (vars, eqs)) -> thy', (VarSet.diff vars common_vars, List.filter ~f:useful eqs))
 
   (** [split thy cofs] adds to the theory [thy] the conjunction of a list of cofibrations [cofs]
     * and calculate the branches accordingly. This is similar to [Alg.split] in the spirit but
@@ -255,11 +258,12 @@ struct
     | [] -> []
     | [vars, []] when VarSet.is_empty vars -> thy
     | dissected_cofs ->
-      Alg.drop_useless_branches begin
-        thy |> List.concat_map @@ fun (thy', (vars, eq)) ->
-        Alg.reduce_branches thy' dissected_cofs |> List.map @@ fun (thy', (sub_vars, sub_eqs)) ->
-        thy', (VarSet.union vars sub_vars, eq @ sub_eqs)
-      end
+      Alg.drop_useless_branches @@
+      List.concat_map thy
+        ~f:(fun (thy', (vars, eq)) ->
+            List.map (Alg.reduce_branches thy' dissected_cofs)
+              ~f:(fun (thy', (sub_vars, sub_eqs)) ->
+                  thy', (VarSet.union vars sub_vars, eq @ sub_eqs)))
 
   (** [assume thy cofs] is the same as [split thy cofs] except that it further refactors the
     * branches to optimize future searching. *)
@@ -267,12 +271,12 @@ struct
     refactor_branches @@ split thy cofs
 
   let test_sequent thy cx cof =
-    begin
-      split thy cx |> List.map (fun (thy', _) -> thy')
-    end |> List.for_all @@ fun thy' -> Alg.test thy' cof
+    List.for_all ~f:(fun thy' -> Alg.test thy' cof) @@
+    List.map ~f:(fun (thy', _) -> thy') @@
+    split thy cx
 
   let left_invert ~zero ~seq thy cont =
-    match thy |> List.map @@ fun (thy', _) -> `Consistent thy' with
+    match List.map thy ~f:(fun (thy', _) -> `Consistent thy') with
     | [] -> zero
     | [thy'] -> cont thy'
     | thy's -> seq cont thy's
