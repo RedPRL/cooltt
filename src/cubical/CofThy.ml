@@ -190,7 +190,6 @@ struct
     | [thy] -> cont thy
     | thys -> seq cont thys
 
-  (* "unsafe" because consistency is not checked *)
   let meet2' thy'1 thy'2 =
     let thy' =
       {classes = UF.merge thy'1.classes thy'2.classes;
