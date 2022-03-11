@@ -191,18 +191,20 @@ struct
     | thys -> seq cont thys
 
   (* "unsafe" because consistency is not checked *)
-  let unsafe_meet2' thy'1 thy'2 =
-    {classes = UF.merge thy'1.classes thy'2.classes;
-     true_vars = VarSet.union thy'1.true_vars thy'2.true_vars}
+  let meet2' thy'1 thy'2 =
+    let thy' =
+      {classes = UF.merge thy'1.classes thy'2.classes;
+       true_vars = VarSet.union thy'1.true_vars thy'2.true_vars}
+    in
+    match test_eq thy' (Dim0, Dim1) with
+    | true -> `Inconsistent
+    | false -> `Consistent thy'
 
   let meet2 thy1 thy2 =
     match thy1, thy2 with
     | `Inconsistent, _ | _, `Inconsistent -> `Inconsistent
     | `Consistent thy'1, `Consistent thy'2 ->
-      let thy' = unsafe_meet2' thy'1 thy'2 in
-      match test_eq thy' (Dim0, Dim1) with
-      | true -> `Inconsistent
-      | false -> `Consistent thy'
+      meet2' thy'1 thy'2
 end
 
 module Disj =
@@ -240,14 +242,16 @@ struct
       | [] -> VarSet.empty
       | (_, (vars, _)) :: branches -> List.fold_left ~f:go ~init:vars branches
     in
-    (* The following is an approximation of checking whether some equation is useful.
-     * It does not kill every "useless" cofibration. Here is one example:
+    (* The following is checking whether individual equations are useful (not shared
+     * by all the algebraic theories). It does not kill every "useless" equation where
+     * the uselessness can be only observed after looking at multiple equations.
+     * Here is one example:
      *
      * branch 1: r=0
      * branch 2: r=i, i=0
      *
-     * r=0 will be factored out, but then i=0 should also be removed. Here is a more
-     * complicated example:
+     * r=0 will be factored out, but then i=0 should have also been removed. The code
+     * would not remove i=0. Here is a more complicated example:
      *
      * branch 1: r=i, i=0
      * branch 2: r=j, j=0
@@ -294,4 +298,18 @@ struct
     | [] -> zero
     | [thy'] -> cont thy'
     | thy's -> seq cont thy's
+
+  let meet2 (thy1 : t) (thy2 : t) : t =
+    (* a correct but unoptimized theory *)
+    let draft =
+      List.concat_map thy1
+        ~f:(fun (thy'1, (vars1, eqs1)) ->
+            List.filter_map thy2
+              ~f:(fun (thy'2, (vars2, eqs2)) ->
+                  match Alg.meet2' thy'1 thy'2 with
+                  | `Inconsistent -> None
+                  | `Consistent thy' -> Some (thy', (VarSet.union vars1 vars2, eqs1 @ eqs2))))
+    in
+    (* potentially expensive optimization *)
+    refactor_branches @@ Alg.drop_useless_branches draft
 end

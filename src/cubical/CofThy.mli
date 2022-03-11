@@ -63,4 +63,7 @@ sig
     -> (Alg.t -> 'a)
     (** the continuation *)
     -> 'a
+
+  (** Compute the conjunction of two theories. *)
+  val meet2 : t -> t -> t
 end
