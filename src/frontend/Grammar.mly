@@ -51,7 +51,7 @@
 %token SEMISEMI EOF
 %token TOPC BOTC
 %token V VPROJ CAP
-%token BEGIN END LSQEQUALS LRSQEQUALS
+%token BEGIN EQUATION END LSQEQUALS LRSQEQUALS
 
 %nonassoc IN AS RRIGHT_ARROW SEMI
 %nonassoc COLON
@@ -366,7 +366,7 @@ plain_term_except_cof_case:
     { HFill (tp, src, phi, body) }
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
-  | BEGIN; code = term; WITH; eqns = step; END
+  | EQUATION; code = term; BEGIN; eqns = step; END
     { Equations { code; eqns } }
 
 step:

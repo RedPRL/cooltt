@@ -67,6 +67,7 @@ let keywords =
     ("import",IMPORT []);
     ("begin", BEGIN);
     ("end", END);
+    ("equation", EQUATION);
   ]
 }
 

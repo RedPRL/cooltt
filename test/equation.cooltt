@@ -1,7 +1,7 @@
 import prelude
 
 def equational/trans (a : type) (x y z :  a) (p : path a x y) (q : path a y z) : path a x z :=
-  begin a with
+  equation a begin
     x =[ p ]
     y =[ q ]
     z
@@ -10,7 +10,7 @@ def equational/trans (a : type) (x y z :  a) (p : path a x y) (q : path a y z) :
 #print equational/trans
 
 def equational/refl/nat : path nat 4 4 :=
-  begin nat with
+  equation nat begin
     4 =[]
     4
   end

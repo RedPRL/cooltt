@@ -1,6 +1,5 @@
 open Basis
 open Core
-open Cubical
 open CodeUnit
 
 module RM = RefineMonad
