@@ -65,6 +65,9 @@ let keywords =
     ("cap", CAP);
     ("with", WITH);
     ("import",IMPORT []);
+    ("begin", BEGIN);
+    ("end", END);
+    ("equation", EQUATION);
   ]
 }
 
@@ -130,6 +133,10 @@ and real_token = parse
     { LBANG }
   | "!}"
     { RBANG }
+  | "=["
+    { LSQEQUALS }
+  | "=[]"
+    { LRSQEQUALS }
   | '|'
     { PIPE }
   | '#'

@@ -9,6 +9,7 @@ module S = Syntax
 module R = Refiner
 module CS = ConcreteSyntax
 module Sem = Semantics
+module TB = TermBuilder
 
 open Monad.Notation (RM)
 
@@ -150,4 +151,94 @@ struct
       R.El.elim @@ T.Var.syn x
     | _ ->
       RM.expected_connective `Pi tp
+end
+
+module Equations =
+struct
+
+  let step (code_tac : T.Chk.tac) (lhs_tac : T.Chk.tac) (mid_tac : T.Chk.tac) (rhs_tac : T.Chk.tac)
+      (p_tac : T.Chk.tac) (q_tac : T.Chk.tac) : T.Syn.tac =
+    T.Syn.rule ~name:"Equations.step" @@
+    let* code = RM.eval @<< T.Chk.run code_tac D.Univ in
+    let* tp = RM.lift_cmp @@ Sem.do_el code in
+
+    let* lhs = RM.eval @<< T.Chk.run lhs_tac tp in
+    let* mid = RM.eval @<< T.Chk.run mid_tac tp in
+    let* rhs = RM.eval @<< T.Chk.run rhs_tac tp in
+
+    let* p_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con lhs @@ fun lhs ->
+      Splice.con mid @@ fun mid ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) lhs mid
+    in
+    let* q_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con mid @@ fun mid ->
+      Splice.con rhs @@ fun rhs ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) mid rhs
+    in
+
+    let* p = RM.eval @<< T.Chk.run p_tac p_tp in
+    let* q = RM.eval @<< T.Chk.run q_tac q_tp in
+
+    let* path_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con lhs @@ fun lhs ->
+      Splice.con rhs @@ fun rhs ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) lhs rhs
+    in
+    let* path =
+      RM.lift_cmp @@
+      Sem.splice_tm @@
+      Splice.con code @@ fun code ->
+      Splice.con p @@ fun p ->
+      Splice.con q @@ fun q ->
+      Splice.term @@
+      TB.el_in @@
+      TB.lam @@ fun i ->
+      TB.sub_in @@
+      TB.hcom code TB.dim0 TB.dim1 (TB.boundary i) @@
+      TB.lam @@ fun j ->
+      TB.lam @@ fun _ ->
+      TB.cof_split [
+        TB.join [TB.eq j TB.dim0; TB.eq i TB.dim0], TB.sub_out @@ TB.ap (TB.el_out p) [i];
+        TB.eq i TB.dim1, TB.sub_out @@ TB.ap (TB.el_out q) [j]
+      ]
+    in
+    let+ tpath = RM.quote_con path_tp path in
+    (tpath, path_tp)
+
+  let qed (code_tac : T.Chk.tac) (x_tac : T.Chk.tac) : T.Syn.tac =
+    T.Syn.rule ~name:"Equations.qed" @@
+    let* code = RM.eval @<< T.Chk.run code_tac D.Univ in
+    let* tp = RM.lift_cmp @@ Sem.do_el code in
+    let* x = RM.eval @<< T.Chk.run x_tac tp in
+    let* refl_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con x @@ fun x ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) x x
+    in
+    let* refl =
+      RM.lift_cmp @@
+      Sem.splice_tm @@
+      Splice.con x @@ fun x ->
+      Splice.term @@
+      TB.el_in @@
+      TB.lam @@ fun _ -> TB.sub_in @@ x
+    in
+    let+ trefl = RM.quote_con refl_tp refl in
+    (trefl, refl_tp)
 end

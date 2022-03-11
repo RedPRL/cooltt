@@ -31,3 +31,8 @@ module Elim : sig
     : case_tac list
     -> Chk.tac
 end
+
+module Equations : sig
+  val step : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
+  val qed : Chk.tac -> Chk.tac -> Syn.tac
+end

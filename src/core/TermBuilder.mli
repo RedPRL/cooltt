@@ -82,6 +82,8 @@ val cube : int -> (t m list -> tp m) -> tp m
 val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
 val code_path : t m -> t m -> t m
+(** A specialization of {!val:code_path} that performs a {!val:cof_split}. *)
+val code_path' : t m -> t m -> t m -> t m
 val code_v : t m -> t m -> t m -> t m -> t m
 val code_ext : int -> t m -> t m -> t m -> t m
 val vproj : t m -> t m -> t m -> t m -> t m -> t m

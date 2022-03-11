@@ -5,6 +5,7 @@ module S = Syntax
 module St = RefineState
 module Env = RefineEnv
 module Err = RefineError
+module Sem = Semantics
 module Qu = Quote
 module Conv = Conversion
 
@@ -82,6 +83,12 @@ let get_import path =
 let is_imported path =
   let+ st = get in
   St.is_imported path st
+
+let eval con =
+  lift_ev @@ Sem.eval con
+
+let eval_tp tp =
+  lift_ev @@ Sem.eval_tp tp
 
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con
