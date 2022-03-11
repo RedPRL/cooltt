@@ -28,7 +28,7 @@ val get_local_tp : int -> t -> D.tp
 val get_local : int -> t -> D.con
 val resolve_local : Ident.t -> t -> int option
 
-val cof_thy : t -> CofThy.Disj.t
+val local_cof_thy : t -> CofThy.Disj.t
 val pp_env : t -> Pp.env
 val sem_env : t -> D.env
 val restrict : CofThy.cof list -> t -> t

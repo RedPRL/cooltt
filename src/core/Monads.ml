@@ -281,6 +281,7 @@ struct
   let restrict phis =
     M.scope (Env.restrict phis)
 
+  let cof_thy st env = CofThy.Disj.meet2 (St.get_global_cof_thy st) (Env.local_cof_thy env)
 
   let lift_conv_ (m : unit conversion) : unit m =
     let module MU = Monad.Util (struct
@@ -291,7 +292,7 @@ struct
       match
         CofThy.Disj.left_invert
           ~zero:(Ok ()) ~seq:MU.iter
-          (Env.cof_thy env) @@ fun cof_thy ->
+          (cof_thy state env) @@ fun cof_thy ->
         ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} m
       with
       | Ok () -> Ok (), state
@@ -300,27 +301,27 @@ struct
   let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
     match
-      QuM.run {state; cof_thy = Env.cof_thy env; veil = Env.get_veil env; size = Env.size env} m
+      QuM.run {state; cof_thy = cof_thy state env; veil = Env.get_veil env; size = Env.size env} m
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
   let lift_ev (m : 'a evaluate) : 'a m =
     fun (state, env) ->
-    match EvM.run {state; cof_thy = Env.cof_thy env; env = Env.sem_env env} m with
+    match EvM.run {state; cof_thy = cof_thy state env; env = Env.sem_env env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
   let lift_cmp (m : 'a compute) : 'a m =
     fun (state, env) ->
-    match CmpM.run {state; cof_thy = Env.cof_thy env} m with
+    match CmpM.run {state; cof_thy = cof_thy state env} m with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
 
   let abort_if_inconsistent : 'a m -> 'a m -> 'a m =
     fun abort m ->
     fun (state, env) ->
-    match CofThy.Disj.consistency (Env.cof_thy env) with
+    match CofThy.Disj.consistency (cof_thy state env) with
     | `Consistent -> m (state, env)
     | `Inconsistent -> abort (state, env)
 end

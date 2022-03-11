@@ -94,7 +94,7 @@ let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
     Format.fprintf fmt "%a : %a := @[<hov 2>%a@]@;%a" Ident.pp cell.ident D.pp_tp (fst cell.contents) D.pp_con (snd cell.contents) dump_locals cells
 
 (* cofibrations and others *)
-let cof_thy env = env.cof_thy
+let local_cof_thy env = env.cof_thy
 let pp_env env = env.pp
 let sem_env (env : t) : D.env =
   {tpenv = Emp;
