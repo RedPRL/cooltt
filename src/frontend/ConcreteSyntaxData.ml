@@ -98,14 +98,18 @@ and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 type decl =
   | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
   | Print of Ident.t node
-  | Import of string list * con option
+  | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of con
   | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
   | Quit
+  | Lens of {shadowing : bool; modifier : con}
+  | Export of {shadowing : bool; modifier : con}
+  | Repack of {shadowing : bool; modifier : con}
+  | Section of {shadowing : bool; prefix : string list option; decls : signature; modifier : con option}
+
+and signature = decl list
 
 type command =
   | NoOp
   | EndOfFile
   | Decl of decl
-
-type signature = decl list

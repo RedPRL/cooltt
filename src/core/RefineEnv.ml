@@ -49,6 +49,15 @@ let init =
     problem = Emp;
     location = None }
 
+(* globally *)
+let globally ~global_cof_thy env =
+  { veil = env.veil;
+    locals = Emp;
+    cof_thy = global_cof_thy;
+    pp = Pp.Env.emp;
+    problem = Emp;
+    location = env.location }
+
 (* veil *)
 let get_veil env = env.veil
 let set_veil v env = {env with veil = v}
@@ -84,6 +93,7 @@ let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
   | (cell :: cells) ->
     Format.fprintf fmt "%a : %a := @[<hov 2>%a@]@;%a" Ident.pp cell.ident D.pp_tp (fst cell.contents) D.pp_con (snd cell.contents) dump_locals cells
 
+(* cofibrations and others *)
 let cof_thy env = env.cof_thy
 let pp_env env = env.pp
 let sem_env (env : t) : D.env =
@@ -104,11 +114,13 @@ let append_con ident con tp env =
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
      | _ -> env.cof_thy}
 
+(* problems *)
 let problem env = env.problem
 let push_problem lbl env =
   {env with
    problem = env.problem #< lbl}
 
+(* locations *)
 let location env = env.location
 let set_location loc env =
   match loc with

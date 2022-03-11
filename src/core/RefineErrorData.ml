@@ -36,6 +36,7 @@ struct
     | VirtualType
     | HoleNotPermitted of Pp.env * S.tp
     | BindingNotFound of Ident.t
-    | Shadowing of Ident.t
+    | UnexpectedShadowing of Ident.t
     | CyclicImport of CodeUnitID.t
+    | ErrorsInSection
 end

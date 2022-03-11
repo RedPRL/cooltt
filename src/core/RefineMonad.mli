@@ -16,9 +16,9 @@ val update_span : LexingUtil.span option -> 'a m -> 'a m
 val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 
 val add_global : Ident.t -> D.tp -> D.con option -> Global.t m
-
-val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
 val get_global : Global.t -> (D.tp * D.con option) m
+val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
+
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 
@@ -27,6 +27,11 @@ val with_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
 
 val import : shadowing:bool -> _ Namespace.pattern -> id -> unit m
 val loading_status : CodeUnitID.t -> [ `Loaded | `Loading | `Unloaded ] m
+
+val lens : shadowing:bool -> _ Namespace.pattern -> unit m
+val export : shadowing:bool -> _ Namespace.pattern -> unit m
+val repack : shadowing:bool -> _ Namespace.pattern -> unit m
+val with_section : shadowing:bool -> 'a m -> 'a m
 
 val quote_con : D.tp -> D.con -> S.t m
 val quote_tp : D.tp -> S.tp m

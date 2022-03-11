@@ -60,4 +60,6 @@ sig
     -> (Alg.t -> 'a)
     (** the continuation *)
     -> 'a
+
+  val meet2 : t -> t -> t
 end

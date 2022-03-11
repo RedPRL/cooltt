@@ -263,11 +263,8 @@ struct
   module M = Monad.MonadReaderStateResult (struct type global = St.t type local = Env.t end)
   include M
 
-  let globally m =
-    m |> scope @@ fun env ->
-    Env.set_location (Env.location env) @@
-    Env.set_veil (Env.get_veil env) @@
-    Env.init
+  let globally m (st, env) =
+    scope (Env.globally ~global_cof_thy:(St.get_global_cof_thy st)) m (st, env)
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) -> match lvl with
@@ -279,12 +276,10 @@ struct
         Ok (), st
 
   let veil v =
-    M.scope @@ fun env ->
-    Env.set_veil v env
+    M.scope (Env.set_veil v)
 
   let restrict phis =
-    M.scope @@ fun env ->
-    Env.restrict phis env
+    M.scope (Env.restrict phis)
 
 
   let lift_conv_ (m : unit conversion) : unit m =

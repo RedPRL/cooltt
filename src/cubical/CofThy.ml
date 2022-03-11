@@ -189,6 +189,9 @@ struct
     | [] -> zero
     | [thy] -> cont thy
     | thys -> seq cont thys
+
+  exception PR314
+  let meet2 _ _ = raise PR314
 end
 
 module Disj =
@@ -276,4 +279,7 @@ struct
     | [] -> zero
     | [thy'] -> cont thy'
     | thy's -> seq cont thy's
+
+  exception PR314
+  let meet2 _ _ = raise PR314
 end

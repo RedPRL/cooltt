@@ -32,7 +32,15 @@ let throw_namespace_errors : ('a, 'error) Namespace.result -> 'a m =
   function
   | Result.Ok x -> ret x
   | Result.Error (`BindingNotFound path) -> refine_err @@ BindingNotFound (`User path)
-  | Result.Error (`Shadowing path) -> refine_err @@ Shadowing (`User path)
+  | Result.Error (`Shadowing path) -> refine_err @@ UnexpectedShadowing (`User path)
+
+let with_ ~begin_ ~end_ m =
+  let* st = get in
+  let* () = begin_ st |>> set in
+  let* m in
+  let* st' = get in
+  let* () = end_ ~parent:st ~child:st' |>> set in
+  ret m
 
 let add_global id tp con =
   let* st = get in
@@ -61,14 +69,28 @@ let get_local ix =
 let get_lib = St.get_lib <@> get
 
 let with_unit lib unit_id (action : 'a m) =
-  with_ ~begin_:(St.begin_unit lib unit_id) ~end_:St.end_unit action
+  with_
+    ~begin_:(fun st -> ret @@ St.begin_unit lib unit_id st)
+    ~end_:(fun ~parent ~child -> ret @@ St.end_unit ~parent ~child)
+    action
 
 let import ~shadowing pat unit_id =
-  let* ns = St.get_export unit_id <@> get in
-  let* ns = throw_namespace_errors @@ Namespace.transform ~shadowing ~pp:Global.pp pat ns in
-  set @<< throw_namespace_errors @<< (St.import ~shadowing ns <@> get)
+  set @<< throw_namespace_errors @<< (St.import ~shadowing pat unit_id <@> get)
 
 let loading_status id = St.loading_status id <@> get
+
+let lens ~shadowing pat =
+  set @<< throw_namespace_errors @<< (St.transform_view ~shadowing pat <@> get)
+let repack ~shadowing pat =
+  set @<< throw_namespace_errors @<< (St.transform_export ~shadowing pat <@> get)
+let export ~shadowing pat =
+  set @<< throw_namespace_errors @<< (St.export_view ~shadowing pat <@> get)
+
+let with_section ~shadowing (action : 'a m) =
+  with_
+    ~begin_:(fun st -> ret @@ St.begin_section st)
+    ~end_:(fun ~parent:_ ~child -> throw_namespace_errors @@ St.end_section ~shadowing child)
+    action
 
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con

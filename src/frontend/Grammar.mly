@@ -47,6 +47,7 @@
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM FAIL
 %token <string list> IMPORT
+%token SECTION BEGIN END LENS EXPORT REPACK
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
@@ -145,10 +146,18 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
-  | unitpath = IMPORT; m = ioption(bracketed_modifier)
-    { Import (unitpath, m) }
+  | shadowing = boption(BANG); unitpath = IMPORT; modifier = ioption(bracketed_modifier)
+    { Import {shadowing; unitpath; modifier} }
   | PRINT; name = name
     { Print name }
+  | shadowing = boption(BANG); LENS; modifier = bracketed_modifier
+    { Lens {shadowing; modifier} }
+  | shadowing = boption(BANG); EXPORT; modifier = bracketed_modifier
+    { Export {shadowing; modifier} }
+  | shadowing = boption(BANG); REPACK; modifier = bracketed_modifier
+    { Repack {shadowing; modifier} }
+  | shadowing = boption(BANG); SECTION; prefix = ioption(path); BEGIN; decls = list(decl); END; modifier = ioption(bracketed_modifier)
+    { Section {shadowing; prefix; decls; modifier} }
 
 sign:
   | EOF

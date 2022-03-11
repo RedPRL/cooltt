@@ -25,11 +25,13 @@ let export_view ~shadowing ~pp pattern ss =
   map_current ss ~f:(Scope.export_view ~shadowing ~pp pattern)
 let add ~shadowing id sym ss =
   map_current ss ~f:(Scope.add ~shadowing id sym)
-let fold ~shadowing ss =
-  let (s, ss) = pop ss in
-  map_current ss ~f:(Scope.include_ ~shadowing (Scope.get_export s))
 let import ~shadowing ns ss =
   map_current ss ~f:(Scope.import ~shadowing ns)
+
+let begin_ ss = push Scope.empty ss
+let end_ ~shadowing ss =
+  let (s, ss) = pop ss in
+  map_current ss ~f:(Scope.include_ ~shadowing (Scope.get_export s))
 
 let rec resolve id =
   function

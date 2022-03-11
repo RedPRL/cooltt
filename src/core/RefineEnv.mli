@@ -17,6 +17,7 @@ type cell = (D.tp * D.con) Cell.t
 
 type t
 val init : t
+val globally : global_cof_thy:CofThy.Disj.t -> t -> t
 
 val get_veil : t -> Veil.t
 val set_veil : Veil.t -> t -> t

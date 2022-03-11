@@ -64,7 +64,13 @@ let keywords =
     ("vproj", VPROJ);
     ("cap", CAP);
     ("with", WITH);
-    ("import",IMPORT []);
+    ("import", IMPORT []);
+    ("section", SECTION);
+    ("begin", BEGIN);
+    ("end", END);
+    ("lens", LENS);
+    ("repack", REPACK);
+    ("export", EXPORT);
   ]
 }
 

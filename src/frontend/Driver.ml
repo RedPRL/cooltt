@@ -17,7 +17,7 @@ module RMU = Monad.Util (RM)
 open Monad.Notation (RM)
 
 type status = (unit, unit) Result.t
-type continuation = Continue of (status RM.m -> status RM.m) | Quit
+type continuation = Continue | Quit
 type command = continuation RM.m
 
 (* Refinement Helpers *)
@@ -29,11 +29,6 @@ let elaborate_typed_term name (args : CS.cell list) tp tm =
   let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
   vtp, vtm
-
-let add_global name vtp con : command =
-  let+ _ = RM.add_global name vtp con in
-  let kont = match vtp with | D.TpPrf phi -> RM.restrict [phi] | _ -> Fun.id in
-  Continue kont
 
 let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
@@ -52,7 +47,7 @@ let print_ident (ident : Ident.t CS.node) : command =
       RM.emit ident.info pp_message @@
       OutputMessage (Definition {ident = ident.node; tp; tm})
     in
-    Continue Fun.id
+    Continue
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
 
@@ -70,7 +65,7 @@ let print_fail (name : Ident.t) (info : CS.info) (res : (D.tp * D.con, exn) resu
         (Syntax.pp_tp penv) tp
     in
     let+ () = RM.emit ~lvl:`Error info pp_failure () in
-    Continue Fun.id
+    Continue
   | Error (Err.RefineError (err, info)) ->
     let pp_err_info fmt () =
       Format.fprintf fmt "fail %a:@.  %a"
@@ -78,10 +73,10 @@ let print_fail (name : Ident.t) (info : CS.info) (res : (D.tp * D.con, exn) resu
         RefineError.pp err
     in
     let+ () = RM.emit ~lvl:`Info info pp_err_info () in
-    Continue Fun.id
+    Continue
   | Error exn ->
     let+ () = RM.emit ~lvl:`Error info PpExn.pp exn in
-    Continue Fun.id
+    Continue
 
 let protect m =
   RM.trap m |>> function
@@ -147,7 +142,7 @@ let rec build_code_unit src_path =
 and load_code_unit lib src =
   RM.with_unit lib (CodeUnitID.file src) @@ build_code_unit src
 
-and import_unit path modifier : command =
+and import_unit ~shadowing path modifier : command =
   let* lib = RM.get_lib in
   match resolve_source_path lib path with
   | Error () -> RM.ret Quit
@@ -159,46 +154,73 @@ and import_unit path modifier : command =
       | `Unloaded -> load_code_unit lib src
       | `Loading -> RM.refine_err @@ CyclicImport (CodeUnitID.file src)
     in
-    let+ () = RM.import ~shadowing:false modifier (CodeUnitID.file src) in
-    Continue Fun.id
+    let+ () = RM.import ~shadowing modifier (CodeUnitID.file src) in
+    Continue
 
 and execute_decl : CS.decl -> command =
   function
   | CS.Def {name; args; def = Some def; tp} ->
     Debug.print "Defining %a@." Ident.pp name;
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    add_global name vtp @@ Some vtm
+    let+ _ = RM.add_global name vtp @@ Some vtm in
+    Continue
   | CS.Def {name; args; def = None; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
     let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    add_global name vtp None
+    let* _ = RM.add_global name vtp None in
+    RM.ret Continue
   | CS.NormalizeTerm term ->
     RM.veil (Veil.const `Transparent) @@
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
     let* tm' = RM.quote_con vtp vtm in
-    let+ () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
-    Continue Fun.id
+    let* () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
+    RM.ret Continue
   | CS.Fail {name; args; def; tp; info} ->
     let* res = RM.trap @@ elaborate_typed_term (Ident.to_string name) args tp def in
     print_fail name info res
   | CS.Print ident ->
     print_ident ident
-  | CS.Import (path, modifier) ->
+  | CS.Import {shadowing; unitpath; modifier} ->
     let* modifier = Elaborator.modifier modifier in
-    import_unit path modifier
+    import_unit ~shadowing unitpath modifier
+  | CS.Lens {shadowing; modifier} ->
+    let* modifier = Elaborator.modifier @@ Some modifier in
+    let* () = RM.lens ~shadowing modifier in
+    RM.ret Continue
+  | CS.Export {shadowing; modifier} ->
+    let* modifier = Elaborator.modifier @@ Some modifier in
+    let* () = RM.export ~shadowing modifier in
+    RM.ret Continue
+  | CS.Repack {shadowing; modifier} ->
+    let* modifier = Elaborator.modifier @@ Some modifier in
+    let* () = RM.repack ~shadowing modifier in
+    RM.ret Continue
+  | CS.Section {shadowing; prefix; decls; modifier} ->
+    let* modifier = Elaborator.modifier modifier in
+    RM.with_section ~shadowing begin
+      execute_signature decls |>>
+      function
+      | Ok () ->
+        let* () = RM.repack ~shadowing modifier in
+        (* prefix the exported bindings with prefix *)
+        let prefix = Option.value ~default:[] prefix in
+        let* () = RM.repack ~shadowing Yuujinchou.Pattern.(renaming [] prefix) in
+        RM.ret Continue
+      | Error () -> RM.ret Quit
+    end
   | CS.Quit ->
     RM.ret Quit
 
-and execute_signature ~status sign =
-  match sign with
-  | [] -> RM.ret status
+and execute_signature =
+  function
+  | [] -> RM.ret @@ Ok ()
   | d :: sign ->
     let* res = protect @@ execute_decl d in
     match res with
-    | Ok Continue k ->
-      k @@ execute_signature ~status sign
+    | Ok Continue ->
+      execute_signature sign
     | Ok Quit ->
       RM.ret @@ Ok ()
     | Error () ->
@@ -206,7 +228,7 @@ and execute_signature ~status sign =
 
 and process_file input =
   match Load.load_file input with
-  | Ok sign -> execute_signature ~status:(Ok ()) sign
+  | Ok sign -> execute_signature sign
   | Error (Load.ParseError err) ->
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = ParseError; last_token = err.last_token};
     RM.ret @@ Error ()
@@ -227,7 +249,7 @@ let load_file ~as_file ~debug_mode input =
 let execute_command =
   function
   | CS.Decl decl -> execute_decl decl
-  | CS.NoOp -> RM.ret @@ Continue Fun.id
+  | CS.NoOp -> RM.ret Continue
   | CS.EndOfFile -> RM.ret Quit
 
 let rec repl lib (ch : in_channel) lexbuf =
@@ -241,8 +263,8 @@ let rec repl lib (ch : in_channel) lexbuf =
   | Ok cmd ->
     protect @@ execute_command cmd |>>
     function
-    | Ok (Continue k) ->
-      k @@ repl lib ch lexbuf
+    | Ok Continue ->
+      repl lib ch lexbuf
     | Error _  ->
       repl lib ch lexbuf
     | Ok Quit ->
