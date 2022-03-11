@@ -116,11 +116,11 @@
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "let" "import")
+  '("def" "let" "import" "section")
   "Declaration keywords.")
 
 (defconst cooltt-command-keywords
-  '("#fail" "#normalize" "#print" "#quit")
+  '("#fail" "#normalize" "#print" "#quit" "#lens" "#export" "#repack")
   "Command keywords.")
 
 (defconst cooltt-expression-keywords
