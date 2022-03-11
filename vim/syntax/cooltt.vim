@@ -22,7 +22,7 @@ syn region  coolttEncl transparent matchgroup=coolttSymb start="{" end="}" conta
 
 syn match   coolttHole '?\k*'
 
-syn keyword coolttKeyw locked unlock zero suc nat in fst snd elim unfold generalize type dim
+syn keyword coolttKeyw locked unlock zero suc nat in fst snd elim unfold generalize type dim equation begin end
 syn keyword coolttKeyw cof sub ext coe hcom com hfill V vproj with struct sig tt ff #
 
 syn keyword coolttDecl def axiom let import

@@ -508,6 +508,26 @@ elab.cooltt:42.6-42.12 [Info]:
     |- ?hole1 : path nat x x
 
 
+--------------------[equation.cooltt]--------------------
+equation.cooltt:10.7-10.23 [Info]:
+  equational/trans
+  : (a : type) → (x : a) → (y : a) → (z : a) → (p : path a x y) → (q : path a y z) → path a x z
+  = a x y z p q _x =>
+    hcom a 0 1 {_x = 0 ∨ _x = 1}
+      {_x₁ _x₂ =>
+       [ _x₁ = 0 ∨ _x = 0 => p _x
+       | _x = 1 =>
+         hcom a 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+           {_x₄ _x₅ => [ _x₄ = 0 ∨ _x₁ = 0 => q _x₁ | _x₁ = 1 => z ]}
+       ]}
+
+equation.cooltt:18.7-18.26 [Info]:
+  equational/refl/nat
+  : path nat 4 4
+  = _x =>
+    hcom nat 0 1 {_x = 0 ∨ _x = 1}
+      {_x₁ _x₂ => [ _x₁ = 0 ∨ _x = 0 => 4 | _x = 1 => 4 ]}
+
 --------------------[evan.cooltt]--------------------
 --------------------[groupoid-laws.cooltt]--------------------
 --------------------[hcom-type.cooltt]--------------------

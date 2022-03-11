@@ -33,6 +33,9 @@ val export : shadowing:bool -> _ Namespace.pattern -> unit m
 val repack : shadowing:bool -> _ Namespace.pattern -> unit m
 val with_section : shadowing:bool -> 'a m -> 'a m
 
+val eval : S.t -> D.con m
+val eval_tp : S.tp -> D.tp m
+
 val quote_con : D.tp -> D.con -> S.t m
 val quote_tp : D.tp -> S.tp m
 val quote_cut : D.cut -> S.t m

@@ -5,6 +5,7 @@ module S = Syntax
 module St = RefineState
 module Env = RefineEnv
 module Err = RefineError
+module Sem = Semantics
 module Qu = Quote
 module Conv = Conversion
 
@@ -91,6 +92,12 @@ let with_section ~shadowing (action : 'a m) =
     ~begin_:(fun st -> ret @@ St.begin_section st)
     ~end_:(fun ~parent:_ ~child -> throw_namespace_errors @@ St.end_section ~shadowing child)
     action
+
+let eval con =
+  lift_ev @@ Sem.eval con
+
+let eval_tp tp =
+  lift_ev @@ Sem.eval_tp tp
 
 let quote_con tp con =
   lift_qu @@ Qu.quote_con tp con

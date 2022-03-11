@@ -52,6 +52,7 @@ and con_ =
   | Elim of {mot : con; cases : case list; scrut : con}
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
+  | Equations of { code : con; eqns : eqns step }
   | Dim
   | Cof
   | CofEq of con * con
@@ -95,6 +96,14 @@ and pat = Pat of {lbl : string list; args : pat_arg list}
 and pat_arg = [`Simple of Ident.t | `Inductive of Ident.t * Ident.t]
 [@@deriving show]
 
+and 'a step =
+  | Equals of con * con * 'a
+  | Trivial of con * 'a
+
+and eqns =
+  | Step of eqns step
+  | Qed of con
+
 type decl =
   | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
   | Print of Ident.t node
@@ -108,6 +117,7 @@ type decl =
   | Section of {shadowing : bool; prefix : string list option; decls : signature; modifier : con option}
 
 and signature = decl list
+
 
 type command =
   | NoOp
