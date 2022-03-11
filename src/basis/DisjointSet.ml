@@ -7,6 +7,8 @@ sig
   val test : key -> key -> t -> bool
   val union : key -> key -> t -> t
   val test_and_union : key -> key -> t -> bool * t
+
+  val merge : t -> t -> t
 end
 
 module type MAKER = functor (O : Map.OrderedType) -> S with type key = O.t
@@ -91,4 +93,6 @@ struct
       end
     else
       h
+
+  let merge h1 h2 = T.fold union h2.parent h1
 end
