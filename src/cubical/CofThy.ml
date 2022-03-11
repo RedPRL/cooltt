@@ -3,7 +3,7 @@ open Bwd
 
 type cof = CofThyData.cof
 
-module UF = DisjointSet.Make (struct type t = Dim.t let compare = compare end)
+module UF = DisjointSet.Make (Dim)
 module VarSet = Set.Make (struct type t = CofThyData.var let compare = compare end)
 
 (** A presentation of an algebraic theory over the language of intervals and cofibrations. *)
@@ -25,7 +25,7 @@ type branches = branch list
 type cached_branch = alg_thy' * branch
 type cached_branches = cached_branch list
 
-(** As an optimization, we remember when a theory is consistent or not. *)
+(** As an optimization, we remember whether a theory is consistent or not. *)
 type alg_thy = [ `Consistent of alg_thy' | `Inconsistent ]
 
 (** A disjoint theory is the join of a list of [cached_branch]. We do not need to
