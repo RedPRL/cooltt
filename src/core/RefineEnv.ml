@@ -49,11 +49,10 @@ let init =
     problem = Emp;
     location = None }
 
-(* globally *)
-let globally ~global_cof_thy env =
+let globally env =
   { veil = env.veil;
     locals = Emp;
-    cof_thy = global_cof_thy;
+    cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
     problem = Emp;
     location = env.location }
@@ -108,7 +107,7 @@ let restrict phis env =
 let append_con ident con tp env =
   {env with
    pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
-   locals = env.locals <>< [{contents = tp, con; ident}];
+   locals = env.locals #< (Cell.make ident (tp, con));
    cof_thy =
      match tp with
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]

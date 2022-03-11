@@ -35,10 +35,6 @@ let init lib =
 (* lib *)
 let get_lib st = st.lib
 
-(* unit id *)
-let get_unit_id st = st.unit_id
-let set_unit_id unit_id st = {st with unit_id}
-
 (* scopes *)
 let modify_scopes f st = { st with scopes = f st.scopes }
 let begin_section st = modify_scopes Scopes.begin_ st
@@ -73,9 +69,6 @@ let get_global sym st =
   CodeUnit.get_global sym @@ get_unit (CodeUnit.origin sym) st
 
 let get_global_cof_thy st = st.cof_thy
-
-let get_export unit_id st =
-  IDMap.find unit_id st.exports
 
 let begin_unit lib unit_id st =
   { lib; unit_id;

@@ -264,7 +264,7 @@ struct
   include M
 
   let globally m (st, env) =
-    scope (Env.globally ~global_cof_thy:(St.get_global_cof_thy st)) m (st, env)
+    scope Env.globally m (st, env)
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) -> match lvl with
