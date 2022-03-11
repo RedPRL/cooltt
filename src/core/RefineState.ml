@@ -1,66 +1,89 @@
+open ContainersLabels
 open CodeUnit
 
 module IDMap = Map.Make (CodeUnitID)
 module D = Domain
 
-type t = { code_units : CodeUnit.t IDMap.t;
-           (** The binding namespace for each code unit. *)
-           namespaces : (Global.t Namespace.t) IDMap.t;
-           (** The import namespace for each code unit. *)
-           import_namespaces : (Global.t Namespace.t) IDMap.t }
+type t =
+  {
+    (** current library manager *)
+    lib : Bantorra.Manager.library;
+    (** current unit ID *)
+    unit_id : CodeUnitID.t;
+    (** current nested scopes *)
+    scopes : Global.t Scopes.t;
 
-let init =
-  { code_units = IDMap.empty;
-    namespaces = IDMap.empty;
-    import_namespaces = IDMap.empty }
+    (** all known units (including the ones that are being processed), which keep the data associated with global symbols *)
+    units : CodeUnit.t IDMap.t;
+    (** all namespaces exported by processed units (not including the ones in proccessing) *)
+    exports : Global.t Namespace.t IDMap.t;
+  }
 
-let get_unit id st =
-  IDMap.find id st.code_units
+let init lib =
+  let unit_id = CodeUnitID.top_level in
+  { lib;
+    unit_id;
+    scopes = Scopes.init Scope.empty;
+    units = IDMap.singleton unit_id (CodeUnit.create unit_id);
+    exports = IDMap.empty }
 
-let get_namespace id st =
-  IDMap.find id st.namespaces
+(* lib *)
+let get_lib st = st.lib
 
-let get_imports id st =
-  IDMap.find id st.import_namespaces
+(* unit id *)
+let get_unit_id st = st.unit_id
+let set_unit_id unit_id st = {st with unit_id}
 
-let update_unit id f st = { st with code_units = IDMap.update id (Option.map f) st.code_units }
+(* scopes *)
+let modify_scopes f st = { st with scopes = f st.scopes }
+let push_scope s = modify_scopes (Scopes.push s)
+let modify_scopes f st =
+  let open Result in
+  let+ scopes = f st.scopes in
+  { st with scopes }
+let transform_view ~shadowing pattern =
+  modify_scopes (Scopes.transform_view ~shadowing ~pp:Global.pp pattern)
+let transform_export ~shadowing pattern =
+  modify_scopes (Scopes.transform_export ~shadowing ~pp:Global.pp pattern)
+let export_view ~shadowing pattern =
+  modify_scopes (Scopes.export_view ~shadowing ~pp:Global.pp pattern)
+let import ~shadowing ns = modify_scopes (Scopes.import ~shadowing ns)
+let fold ~shadowing = modify_scopes (Scopes.fold ~shadowing)
+let resolve_global id st = Scopes.resolve id st.scopes
 
-let update_namespace id f st = { st with namespaces = IDMap.update id (Option.map f) st.namespaces }
+(* unit *)
+let get_unit id st = IDMap.find id st.units
 
-let update_imports id f st = { st with import_namespaces = IDMap.update id (Option.map f) st.import_namespaces }
-
-let add_global id ident tp ocon st =
-  let code_unit = get_unit id st in
-  let namespace = get_namespace id st in
-  let (sym, code_unit') = CodeUnit.add_global ident tp ocon code_unit in
-  let namespace' = Namespace.add ident sym namespace in
-  let st' =
-    { st with code_units = IDMap.add id code_unit' st.code_units;
-              namespaces = IDMap.add id namespace' st.namespaces }
-  in
-  (sym, st')
-
-let resolve_global id ident st =
-  match Namespace.find ident (get_namespace id st) with
-  | Some sym -> Some sym
-  | None -> Namespace.find ident (get_imports id st)
+let add_global ident tp ocon st =
+  let open Result in
+  let unit = get_unit st.unit_id st in
+  let (sym, unit) = CodeUnit.add_global ident tp ocon unit in
+  let+ scopes = Scopes.add ~shadowing:true ident sym st.scopes in
+  sym, { st with scopes; units = IDMap.add st.unit_id unit st.units }
 
 let get_global sym st =
-  let unit_name = CodeUnit.origin sym in
-  let code_unit = get_unit unit_name st in
-  CodeUnit.get_global sym code_unit
+  CodeUnit.get_global sym @@ get_unit (CodeUnit.origin sym) st
 
-let add_import id modifier import_id st =
-  let import_ns = get_namespace import_id st in
-  update_imports id (Namespace.nest Global.pp modifier import_ns) st
+let get_export unit_id st =
+  IDMap.find unit_id st.exports
 
-let init_unit id st =
-  { code_units = IDMap.add id (CodeUnit.create id) st.code_units;
-    namespaces = IDMap.add id Namespace.empty st.namespaces;
-    import_namespaces = IDMap.add id Namespace.empty st.import_namespaces }
+let begin_unit lib unit_id st =
+  { lib; unit_id;
+    scopes = Scopes.init Scope.empty;
+    units = IDMap.add unit_id (CodeUnit.create unit_id) st.units;
+    exports = st.exports }
 
-let get_import path st =
-  IDMap.find_opt path st.code_units
+let end_unit ~parent ~child =
+  { lib = parent.lib;
+    unit_id = parent.unit_id;
+    scopes = parent.scopes;
+    units = child.units;
+    exports = IDMap.add child.unit_id (Scopes.export_top child.scopes) child.exports }
 
-let is_imported path st =
-  IDMap.mem path st.code_units
+let loading_status unit_id st =
+  if IDMap.mem unit_id st.exports then
+    `Loaded
+  else if IDMap.mem unit_id st.exports then
+    `Loading
+  else
+    `Unloaded

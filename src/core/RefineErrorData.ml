@@ -35,4 +35,7 @@ struct
     | ExpectedTrue of Pp.env * S.t
     | VirtualType
     | HoleNotPermitted of Pp.env * S.tp
+    | BindingNotFound of Ident.t
+    | Shadowing of Ident.t
+    | CyclicImport of CodeUnitID.t
 end

@@ -267,8 +267,7 @@ struct
     m |> scope @@ fun env ->
     Env.set_location (Env.location env) @@
     Env.set_veil (Env.get_veil env) @@
-    Env.set_current_unit_id (Env.current_unit_id env) @@
-    Env.init (Env.current_lib env)
+    Env.init
 
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) -> match lvl with

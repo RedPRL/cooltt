@@ -59,7 +59,7 @@ module type MonadReaderStateResult = sig
   val get : global m
   val set : global -> unit m
   val modify : (global -> global) -> unit m
-  val fork : (global -> global) -> 'a m -> 'a m
+  val with_ : begin_:(global -> global) -> end_:(parent:global -> child:global -> global) -> 'a m -> 'a m
 
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a

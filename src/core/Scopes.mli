@@ -1,29 +1,30 @@
-open Basis
+type +'a t
 
-type (+'a, 'depth) t
+val init : 'a Scope.t -> 'a t
 
-val empty : ('a, SizedList.zero) t
-
-val push : 'a Scope.t -> ('a, 'depth) t -> ('a, 'depth SizedList.succ) t
+val push : 'a Scope.t -> 'a t -> 'a t
 
 val transform_view :
   shadowing:bool ->
   pp:(Format.formatter -> 'a -> unit) ->
-  'b Namespace.pattern ->
-  ('a, 'depth) t -> (('a, 'depth) t, 'error) Namespace.result
+  _ Namespace.pattern ->
+  'a t -> ('a t, 'error) Namespace.result
 
 val transform_export :
   shadowing:bool ->
   pp:(Format.formatter -> 'a -> unit) ->
-  'b Namespace.pattern ->
-  ('a, 'depth) t -> (('a, 'depth) t, 'error) Namespace.result
+  _ Namespace.pattern ->
+  'a t -> ('a t, 'error) Namespace.result
 
 val export_view :
   shadowing:bool ->
   pp:(Format.formatter -> 'a -> unit) ->
-  'b Namespace.pattern ->
-  ('a, 'depth) t -> (('a, 'depth) t, 'error) Namespace.result
+  _ Namespace.pattern ->
+  'a t -> ('a t, 'error) Namespace.result
 
-val add : shadowing:bool -> Ident.t -> 'a -> ('a, 'depth) t -> (('a, 'depth) t, 'error) Namespace.result
+val add : shadowing:bool -> Ident.t -> 'a -> 'a t -> ('a t, 'error) Namespace.result
+val import : shadowing:bool -> 'a Namespace.t -> 'a t -> ('a t, 'error) Namespace.result
+val fold : shadowing:bool -> 'a t -> ('a t, 'error) Namespace.result
 
-val fold : shadowing:bool -> ('a, 'depth SizedList.succ) t -> (('a, 'depth) t, 'error) Namespace.result
+val resolve : Ident.t -> 'a t -> 'a option
+val export_top : 'a t -> 'a Namespace.t

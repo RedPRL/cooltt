@@ -22,13 +22,11 @@ val get_global : Global.t -> (D.tp * D.con option) m
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
 
-val with_code_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
-val get_current_lib : Bantorra.Manager.library m
-val get_current_unit : CodeUnit.t m
+val get_lib : Bantorra.Manager.library m
+val with_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
 
-val add_import : [< `Print of string option] Yuujinchou.Pattern.t -> id -> unit m
-val get_import : id -> (CodeUnit.t option) m
-val is_imported : id -> bool m
+val import : shadowing:bool -> _ Namespace.pattern -> id -> unit m
+val loading_status : CodeUnitID.t -> [ `Loaded | `Loading | `Unloaded ] m
 
 val quote_con : D.tp -> D.con -> S.t m
 val quote_tp : D.tp -> S.tp m

@@ -145,16 +145,21 @@ let rec build_code_unit src_path =
   RMU.ignore @@ process_file (`File src_path)
 
 and load_code_unit lib src =
-  RM.with_code_unit lib (CodeUnitID.file src) @@ build_code_unit src
+  RM.with_unit lib (CodeUnitID.file src) @@ build_code_unit src
 
-and import_code_unit path modifier : command =
-  let* lib = RM.get_current_lib in
+and import_unit path modifier : command =
+  let* lib = RM.get_lib in
   match resolve_source_path lib path with
   | Error () -> RM.ret Quit
   | Ok (lib, _, src) ->
-    let* unit_loaded = RM.is_imported (CodeUnitID.file src) in
-    let* _ = RMU.guard (not unit_loaded)  (fun () -> load_code_unit lib src) in
-    let+ _ = RM.add_import modifier (CodeUnitID.file src) in
+    let* () =
+      RM.loading_status (CodeUnitID.file src) |>>
+      function
+      | `Loaded -> RM.ret ()
+      | `Unloaded -> load_code_unit lib src
+      | `Loading -> RM.refine_err @@ CyclicImport (CodeUnitID.file src)
+    in
+    let+ () = RM.import ~shadowing:false modifier (CodeUnitID.file src) in
     Continue Fun.id
 
 and execute_decl : CS.decl -> command =
@@ -182,7 +187,7 @@ and execute_decl : CS.decl -> command =
     print_ident ident
   | CS.Import (path, modifier) ->
     let* modifier = Elaborator.modifier modifier in
-    import_code_unit path modifier
+    import_unit path modifier
   | CS.Quit ->
     RM.ret Quit
 
@@ -215,8 +220,8 @@ let load_file ~as_file ~debug_mode input =
   | Ok lib ->
     Debug.debug_mode debug_mode;
     let unit_id = assign_unit_id ~as_file input in
-    RM.run_exn ST.init (Env.init lib) @@
-    RM.with_code_unit lib unit_id @@
+    RM.run_exn (ST.init lib) Env.init @@
+    RM.with_unit lib unit_id @@
     process_file input
 
 let execute_command =
@@ -251,6 +256,6 @@ let do_repl ~as_file ~debug_mode =
     Debug.debug_mode debug_mode;
     let unit_id = assign_unit_id ~as_file `Stdin in
     let ch, lexbuf = Load.prepare_repl () in
-    RM.run_exn RefineState.init (Env.init lib) @@
-    RM.with_code_unit lib unit_id @@
+    RM.run_exn (ST.init lib) Env.init @@
+    RM.with_unit lib unit_id @@
     repl lib ch lexbuf

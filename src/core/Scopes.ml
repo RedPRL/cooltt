@@ -1,17 +1,19 @@
 open Basis
+open Bwd
 
-type ('a, 'depth) t = ('a Scope.t, 'depth SizedList.succ) SizedList.t
+type 'a t = 'a Scope.t bwd
 
-module SL = SizedList
+let init s = Snoc (Emp, s)
 
-let empty = SL.Cons (Scope.empty, SL.Nil)
+let push s ss = Snoc (ss, s)
 
-let push = SL.cons
-
-let pop = SL.uncons
+let pop =
+  function
+  | Emp -> invalid_arg "Scopes.pop"
+  | Snoc (ss, s) -> s, ss
 
 let map_current ~f ss =
-  let (s, ss) = pop ss in
+  let s, ss = pop ss in
   Result.bind (f s) @@ fun s ->
   Result.ok (push s ss)
 
@@ -23,27 +25,20 @@ let export_view ~shadowing ~pp pattern ss =
   map_current ss ~f:(Scope.export_view ~shadowing ~pp pattern)
 let add ~shadowing id sym ss =
   map_current ss ~f:(Scope.add ~shadowing id sym)
-
 let fold ~shadowing ss =
   let (s, ss) = pop ss in
-  map_current ss ~f:(Scope.incl ~shadowing (Scope.get_export s))
+  map_current ss ~f:(Scope.include_ ~shadowing (Scope.get_export s))
+let import ~shadowing ns ss =
+  map_current ss ~f:(Scope.import ~shadowing ns)
 
-
-
-(*
-section begin
-   // blah blah
-
-   view pattern // apply the pattern to the current view. "open m" is simply "view [m -> ]". errors on name conflicts.
-   !view pattern // no errors on name conflicts.
-
-   def .... // this is added to the current view AND the export list
-
-   export pattern // apply the pattern to the current view, and then add those to the exported bindings. errors on name conflicts.
-   !export pattern // no errors on name conflicts.
-
-   reexport pattern // apply the pattern to what's being exported; errors on name conflicts
-   !reexport pattern // no errors on name conflicts.
-
-end [pattern] <-- this is effectively "reexport pattern" at the end.
-*)
+let rec resolve id =
+  function
+  | Emp -> None
+  | Snoc (ss, s) ->
+    match Scope.find_view id s with
+    | Some x -> Some x
+    | None -> resolve id ss
+let export_top =
+  function
+  | Snoc (Emp, s) -> Scope.get_export s
+  | _ -> invalid_arg "Scopes.export_top"

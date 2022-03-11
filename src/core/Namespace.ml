@@ -1,8 +1,10 @@
 open Yuujinchou
 
+type path = Pattern.path
+
 type 'a t = 'a Trie.t
-type 'a pattern = ([< `Print of string option] as 'a) Yuujinchou.Pattern.t
-type ('a, 'error) result = ('a, [> `BindingNotFound of Pattern.path | `Shadowing of Pattern.path ] as 'error) Stdlib.result
+type 'a pattern = ([< `Print of string option] as 'a) Pattern.t
+type ('a, 'error) result = ('a, [> `BindingNotFound of path | `Shadowing of path ] as 'error) Stdlib.result
 
 let empty = Trie.empty
 

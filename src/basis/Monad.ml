@@ -149,7 +149,7 @@ module type MonadReaderStateResult = sig
   val get : global m
   val set : global -> unit m
   val modify : (global -> global) -> unit m
-  val fork : (global -> global) -> 'a m -> 'a m
+  val with_ : begin_:(global -> global) -> end_:(parent:global -> child:global -> global) -> 'a m -> 'a m
 
   val run : global -> local -> 'a m -> ('a, exn) result
   val run_exn : global -> local -> 'a m -> 'a
@@ -214,8 +214,9 @@ struct
   let get (st, _) = Ok st, st
   let set st (_, _) = Ok (), st
   let modify f (st, _) = Ok (), f st
-  let fork f m (st, env) =
-    let a, _ = m (f st, env) in a, st
+  let with_ ~begin_ ~end_ m (st, env) =
+    let a, st' = m (begin_ st, env) in
+    a, end_ ~parent:st ~child:st'
 
   let run st env m =
     let a, _ = m (st, env) in

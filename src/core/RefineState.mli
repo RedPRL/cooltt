@@ -3,23 +3,27 @@ module D = Domain
 
 type t
 
-val init : t
+val init : Bantorra.Manager.library -> t
 
-val get_unit : id -> t -> CodeUnit.t
+val get_lib : t -> Bantorra.Manager.library
 
-val add_global : id -> Ident.t -> D.tp -> D.con option -> t -> Global.t * t
+(* Manipulate of scopes *)
+val push_scope : Global.t Scope.t -> t -> t
+val transform_view : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Namespace.result
+val transform_export : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Namespace.result
+val export_view : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Namespace.result
+val import : shadowing:bool -> Global.t Namespace.t -> t -> (t, 'error) Namespace.result
+val fold : shadowing:bool -> t -> (t, 'error) Namespace.result
+val resolve_global : Ident.t -> t -> Global.t option
 
-val resolve_global : id -> Ident.t -> t -> Global.t option
+val get_export : CodeUnitID.t -> t -> Global.t Namespace.t
 
+val add_global : Ident.t -> D.tp -> D.con option -> t -> (Global.t * t, 'error) Namespace.result
 val get_global : Global.t -> t -> D.tp * D.con option
 
-(** Add a code unit as an import. *)
-val add_import : id -> [< `Print of string option] Yuujinchou.Pattern.t -> id -> t -> t
-
-(** Try to get a code unit from the imports. *)
-val get_import : id -> t -> CodeUnit.t option
-
-val is_imported : id -> t -> bool
-
 (** Create and add a new code unit. *)
-val init_unit : id -> t -> t
+val begin_unit : Bantorra.Manager.library -> id -> t -> t
+val end_unit : parent:t -> child:t -> t
+
+(** Add a code unit as an import. *)
+val loading_status : CodeUnitID.t -> t -> [ `Loaded | `Loading | `Unloaded ]

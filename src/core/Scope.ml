@@ -22,7 +22,10 @@ let add ~shadowing id sym s =
   let* view = Namespace.add ~shadowing id sym s.view in
   let+ export = Namespace.add ~shadowing id sym s.export in
   {view; export}
-let incl ~shadowing ns s =
+let include_ ~shadowing ns s =
   let* view = Namespace.union ~shadowing s.view ns in
   let+ export = Namespace.union ~shadowing s.export ns in
   {view; export}
+let import ~shadowing ns s =
+  let+ view = Namespace.union ~shadowing s.view ns in
+  {s with view}

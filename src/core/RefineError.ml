@@ -76,6 +76,15 @@ let pp fmt =
     Fmt.fprintf fmt
       "Holes of type %a are not permitted"
       (S.pp_tp ppenv) tp
+  | BindingNotFound id ->
+    Fmt.fprintf fmt
+      "No bindings with the prefix %a" Ident.pp id
+  | Shadowing id ->
+    Fmt.fprintf fmt
+      "Unexpected shadowing of %a" Ident.pp id
+  | CyclicImport id ->
+    Fmt.fprintf fmt
+      "Cyclic import of %a" CodeUnitID.pp id
 
 
 exception RefineError of t * LexingUtil.span option
