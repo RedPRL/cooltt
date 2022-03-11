@@ -190,14 +190,19 @@ struct
     | [thy] -> cont thy
     | thys -> seq cont thys
 
-  let meet2' thy'1 thy'2 =
+  (* "unsafe" because consistency is not checked *)
+  let unsafe_meet2' thy'1 thy'2 =
     {classes = UF.merge thy'1.classes thy'2.classes;
      true_vars = VarSet.union thy'1.true_vars thy'2.true_vars}
 
   let meet2 thy1 thy2 =
     match thy1, thy2 with
     | `Inconsistent, _ | _, `Inconsistent -> `Inconsistent
-    | `Consistent thy'1, `Consistent thy'2 -> `Consistent (meet2' thy'1 thy'2)
+    | `Consistent thy'1, `Consistent thy'2 ->
+      let thy' = unsafe_meet2' thy'1 thy'2 in
+      match test_eq thy' (Dim0, Dim1) with
+      | true -> `Inconsistent
+      | false -> `Consistent thy'
 end
 
 module Disj =
