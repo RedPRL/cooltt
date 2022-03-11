@@ -4,6 +4,8 @@ type t =
   | DimVar of int
   | DimProbe of DimProbe.t
 
+let compare = compare
+
 let dump fmt =
   function
   | Dim0 -> Format.fprintf fmt "dim0"
