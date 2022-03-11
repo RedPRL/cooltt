@@ -23,9 +23,6 @@ let commands =
       ("#normalize", NORMALIZE);
       ("#print", PRINT);
       ("#quit", QUIT);
-      ("#lens", LENS);
-      ("#repack", REPACK);
-      ("#export", EXPORT);
     ]
 
 let keywords =
@@ -72,6 +69,9 @@ let keywords =
     ("end", END);
     ("equation", EQUATION);
     ("section", SECTION);
+    ("lens", LENS);
+    ("repack", REPACK);
+    ("export", EXPORT);
   ]
 }
 

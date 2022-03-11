@@ -156,6 +156,8 @@ decl:
     { Lens {shadowing; modifier} }
   | shadowing = boption(BANG); EXPORT; modifier = bracketed_modifier
     { Export {shadowing; modifier} }
+  | shadowing = boption(BANG); EXPORT; path = located(path)
+    { Export {shadowing; modifier = map_node ~f:(fun p -> ModOnly p) path } }
   | shadowing = boption(BANG); REPACK; modifier = bracketed_modifier
     { Repack {shadowing; modifier} }
   | shadowing = boption(BANG); SECTION; prefix = ioption(path); BEGIN; decls = list(decl); END; modifier = ioption(bracketed_modifier)

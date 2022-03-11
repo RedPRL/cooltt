@@ -16,6 +16,7 @@ type 'a node =
 
 [@@deriving show]
 
+let map_node ~f n = {n with node = f n.node}
 
 type cell = Cell of {names : Ident.t list; tp : con}
 and con = con_ node

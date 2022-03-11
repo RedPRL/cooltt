@@ -25,8 +25,8 @@ syn match   coolttHole '?\k*'
 syn keyword coolttKeyw locked unlock zero suc nat in fst snd elim unfold generalize type dim equation begin end
 syn keyword coolttKeyw cof sub ext coe hcom com hfill V vproj with struct sig tt ff #
 
-syn keyword coolttDecl def axiom let import section
-syn keyword coolttCmd #normalize #print #quit #fail #lens #export #repack
+syn keyword coolttDecl def axiom let import section lens export repack
+syn keyword coolttCmd #normalize #print #quit #fail
 
 syn match   coolttSymb '=>\|\.=\|[.|,*×:;=≔_𝕀𝔽∂∧∨→⇒!]\|->\|⊤\|⊥'
 syn match   coolttSymb '\\/\|/\\'
