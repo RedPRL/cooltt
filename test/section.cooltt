@@ -1,10 +1,10 @@
 section sec1 begin
   def x : nat := 10
-  lens [ ?lens ]
+  view [ ?view ]
   repack [ ?repack ]
 end [x -> z]
 
-lens [ ?lens ]
+view [ ?view ]
 repack [ ?repack ]
 
 #normalize sec1::z
@@ -16,17 +16,17 @@ def y : nat := 20
   section b begin
     def x : nat := 40
 
-    lens [ ?lens ]
+    view [ ?view ]
     repack [ ?repack ]
 
     export {y, [y; y -> y2]}
 
-    lens [ ?lens ]
+    view [ ?view ]
     repack [ ?repack ]
 
     repack [ x -> x :: x ]
 
-    lens [ ?lens ]
+    view [ ?view ]
     repack [ ?repack ]
   end [ ! y ]
 end
@@ -34,5 +34,5 @@ end
 #normalize a::x
 #normalize a::b::y2
 
-lens [ ?lens ]
+view [ ?view ]
 repack [ ?repack ]

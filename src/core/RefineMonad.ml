@@ -86,7 +86,7 @@ let import ~shadowing pat unit_id =
 
 let loading_status id = St.loading_status id <@> get
 
-let lens ~shadowing pat =
+let view ~shadowing pat =
   set @<< throw_namespace_errors @<< (St.transform_view ~shadowing pat <@> get)
 let repack ~shadowing pat =
   set @<< throw_namespace_errors @<< (St.transform_export ~shadowing pat <@> get)

@@ -113,7 +113,7 @@ type decl =
   | NormalizeTerm of con
   | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
   | Quit
-  | Lens of {shadowing : bool; modifier : con}
+  | View of {shadowing : bool; modifier : con}
   | Export of {shadowing : bool; modifier : con}
   | Repack of {shadowing : bool; modifier : con}
   | Section of {shadowing : bool; prefix : string list option; decls : signature; modifier : con option}

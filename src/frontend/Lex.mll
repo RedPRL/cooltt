@@ -69,7 +69,7 @@ let keywords =
     ("end", END);
     ("equation", EQUATION);
     ("section", SECTION);
-    ("lens", LENS);
+    ("view", VIEW);
     ("repack", REPACK);
     ("export", EXPORT);
   ]

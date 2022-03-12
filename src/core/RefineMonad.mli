@@ -28,7 +28,7 @@ val with_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
 val import : shadowing:bool -> _ Namespace.pattern -> id -> unit m
 val loading_status : CodeUnitID.t -> [ `Loaded | `Loading | `Unloaded ] m
 
-val lens : shadowing:bool -> _ Namespace.pattern -> unit m
+val view : shadowing:bool -> _ Namespace.pattern -> unit m
 val export : shadowing:bool -> _ Namespace.pattern -> unit m
 val repack : shadowing:bool -> _ Namespace.pattern -> unit m
 val with_section : shadowing:bool -> 'a m -> 'a m

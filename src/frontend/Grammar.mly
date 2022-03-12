@@ -52,7 +52,7 @@
 %token TOPC BOTC
 %token V VPROJ CAP
 %token BEGIN EQUATION END LSQEQUALS LRSQEQUALS
-%token SECTION LENS EXPORT REPACK
+%token SECTION VIEW EXPORT REPACK
 
 %nonassoc IN AS RRIGHT_ARROW SEMI
 %nonassoc COLON
@@ -152,8 +152,8 @@ decl:
     { Import {shadowing; unitpath; modifier} }
   | PRINT; name = name
     { Print name }
-  | shadowing = boption(BANG); LENS; modifier = bracketed_modifier
-    { Lens {shadowing; modifier} }
+  | shadowing = boption(BANG); VIEW; modifier = bracketed_modifier
+    { View {shadowing; modifier} }
   | shadowing = boption(BANG); EXPORT; modifier = bracketed_modifier
     { Export {shadowing; modifier} }
   | shadowing = boption(BANG); EXPORT; path = located(path)

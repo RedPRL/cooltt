@@ -116,7 +116,7 @@
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "let" "import" "section" "lens" "export" "repack")
+  '("def" "let" "import" "section" "view" "export" "repack")
   "Declaration keywords.")
 
 (defconst cooltt-command-keywords

@@ -186,10 +186,10 @@ and execute_decl : CS.decl -> command =
     RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
     let* modifier = Elaborator.modifier modifier in
     import_unit ~shadowing unitpath modifier
-  | CS.Lens {shadowing; modifier} ->
+  | CS.View {shadowing; modifier} ->
     RM.update_span (CS.get_info modifier) @@
     let* modifier = Elaborator.modifier @@ Some modifier in
-    let* () = RM.lens ~shadowing modifier in
+    let* () = RM.view ~shadowing modifier in
     RM.ret Continue
   | CS.Export {shadowing; modifier} ->
     RM.update_span (CS.get_info modifier) @@
