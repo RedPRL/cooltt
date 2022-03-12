@@ -183,26 +183,31 @@ and execute_decl : CS.decl -> command =
   | CS.Print ident ->
     print_ident ident
   | CS.Import {shadowing; unitpath; modifier} ->
+    RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
     let* modifier = Elaborator.modifier modifier in
     import_unit ~shadowing unitpath modifier
   | CS.Lens {shadowing; modifier} ->
+    RM.update_span (CS.get_info modifier) @@
     let* modifier = Elaborator.modifier @@ Some modifier in
     let* () = RM.lens ~shadowing modifier in
     RM.ret Continue
   | CS.Export {shadowing; modifier} ->
+    RM.update_span (CS.get_info modifier) @@
     let* modifier = Elaborator.modifier @@ Some modifier in
     let* () = RM.export ~shadowing modifier in
     RM.ret Continue
   | CS.Repack {shadowing; modifier} ->
+    RM.update_span (CS.get_info modifier) @@
     let* modifier = Elaborator.modifier @@ Some modifier in
     let* () = RM.repack ~shadowing modifier in
     RM.ret Continue
   | CS.Section {shadowing; prefix; decls; modifier} ->
-    let* modifier = Elaborator.modifier modifier in
     RM.with_section ~shadowing begin
       execute_signature decls |>>
       function
       | Ok () ->
+        RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
+        let* modifier = Elaborator.modifier modifier in
         let* () = RM.repack ~shadowing modifier in
         (* prefix the exported bindings with prefix *)
         let prefix = Option.value ~default:[] prefix in
