@@ -17,7 +17,7 @@ import prelude -- comment here
 import prelude /- comment -/{} -- import nothing
 import prelude [ ! ] -- import nothing (the bang removes the entire tree)
 import /- comment -/prelude [ ! :: ] -- import nothing
-import /- comment -/ prelude [?; !] -- import everything, unqualified
+import /- comment -/ prelude [?; !] -- print out all the bindings but then import nothing
 
 def cool-tt : p1::u := p2::q::t
 
