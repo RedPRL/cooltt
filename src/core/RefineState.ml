@@ -60,7 +60,9 @@ let add_global ident tp ocon st =
   let unit = get_unit st.unit_id st in
   let (sym, unit) = CodeUnit.add_global ident tp ocon unit in
   let cof_thy =
-    match tp with | D.TpPrf phi -> Cubical.CofThy.Disj.assume st.cof_thy [phi] | _ -> st.cof_thy
+    match tp with
+    | D.TpPrf phi -> Cubical.CofThy.Disj.assume st.cof_thy [phi]
+    | _ -> st.cof_thy
   in
   let+ scopes = Scopes.add ~shadowing:true ident sym st.scopes in
   sym, { st with cof_thy; scopes; units = IDMap.add st.unit_id unit st.units }
