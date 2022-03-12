@@ -1,38 +1,27 @@
-section sec1 begin
-  def x : nat := 10
-  view [ ?view ]
-  repack [ ?repack ]
-end [x -> z]
-
-view [ ?view ]
-repack [ ?repack ]
-
-#normalize sec1::z
-
-def y : nat := 20
-
-!section a begin
-  def x : nat := 30
-  section b begin
-    def x : nat := 40
-
-    view [ ?view ]
-    repack [ ?repack ]
-
-    export {y, [y; y -> y2]}
-
-    view [ ?view ]
-    repack [ ?repack ]
-
-    repack [ x -> x :: x ]
-
-    view [ ?view ]
-    repack [ ?repack ]
-  end [ ! y ]
+-- section with prefix
+section x1::y1 begin
+  def a1 : nat := 0
 end
+#print x1::y1::a1
 
-#normalize a::x
-#normalize a::b::y2
+-- section without prefix
+section begin
+  def a2 : nat := 10
+end
+#print a2
 
-view [ ?view ]
-repack [ ?repack ]
+-- section with bang for shadowing
+def a3 : nat := 20
+!section begin
+  def a3 : nat := 30
+end
+#print a3
+
+-- section with pattern
+section x4 begin
+  def a4 : nat := 40
+end [ a4 -> b4 ]
+#print x4::b4
+
+-- check all visible bindings
+view [?]

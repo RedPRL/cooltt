@@ -1,0 +1,28 @@
+def a1 : nat := 0
+#print a1
+
+-- rename a to b in what's currently visible
+view [ a1 -> b1 ]
+#print b1
+repack [?] -- check all exported bindings
+
+def m1::a2 : nat := 10
+def m1::a3 : nat := 20
+def m2::a3 : nat := 30
+def m2::a4 : nat := 40
+
+-- open everything under m1 while keeping m1
+view { m1, m1 -> }
+#print a2
+#print a3
+repack [?] -- check all exported bindings
+
+-- move everything under m2 to the root; shadow existing bindings with the bang
+!view [ m2 -> ]
+#print a2
+#print a3
+#print a4
+repack [?] -- check all exported bindings
+
+-- check all visible bindings
+view [?]

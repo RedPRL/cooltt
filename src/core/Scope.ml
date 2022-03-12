@@ -16,9 +16,9 @@ let transform_view ~shadowing ~pp pattern s =
 let transform_export ~shadowing ~pp pattern s =
   let+ export = Namespace.transform ~shadowing ~pp pattern s.export in {s with export}
 let export_view ~shadowing ~pp pattern s =
-  let* view = Namespace.transform ~shadowing ~pp pattern s.view in
-  let+ export = Namespace.union ~shadowing s.export view in
-  {view; export}
+  let* to_export = Namespace.transform ~shadowing ~pp pattern s.view in
+  let+ export = Namespace.union ~shadowing s.export to_export in
+  {s with export}
 let add ~shadowing id sym s =
   let* view = Namespace.add ~shadowing id sym s.view in
   let+ export = Namespace.add ~shadowing id sym s.export in
