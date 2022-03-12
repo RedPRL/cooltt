@@ -208,7 +208,7 @@ and execute_decl : CS.decl -> command =
         let prefix = Option.value ~default:[] prefix in
         let* () = RM.repack ~shadowing Yuujinchou.Pattern.(renaming [] prefix) in
         RM.ret Continue
-      | Error () -> RM.ret Quit
+      | Error () -> RM.refine_err ErrorsInSection
     end
   | CS.Quit ->
     RM.ret Quit

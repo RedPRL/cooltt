@@ -1,8 +1,9 @@
 type +'a t
 
 val empty : 'a t
+val inherit_view : 'a t -> 'a t
 val get_export : 'a t -> 'a Namespace.t
-val find_view : Ident.t -> 'a t -> 'a option
+val resolve : Ident.t -> 'a t -> 'a option
 
 val transform_view :
   shadowing:bool ->

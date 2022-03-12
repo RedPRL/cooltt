@@ -4,8 +4,9 @@ type 'a t =
   }
 
 let empty = {view = Namespace.empty; export = Namespace.empty}
+let inherit_view s = {s with export = Namespace.empty}
 let get_export s = s.export
-let find_view id s = Namespace.find id s.view
+let resolve id s = Namespace.find id s.view
 
 let (let*) = Result.bind
 let (let+) x f = Result.map f x

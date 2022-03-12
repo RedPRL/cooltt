@@ -87,7 +87,7 @@ let pp fmt =
       "Cyclic import of %a" CodeUnitID.pp id
   | RefineErrorData.Data.ErrorsInSection -> (* qualified names to check spellings *)
     Fmt.fprintf fmt
-      "Errors in the section"
+      "Unexpected errors in sections"
 
 
 

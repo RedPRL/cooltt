@@ -37,11 +37,17 @@ let throw_namespace_errors : ('a, 'error) Namespace.result -> 'a m =
 
 let with_ ~begin_ ~end_ m =
   let* st = get in
-  let* () = begin_ st |>> set in
-  let* m in
-  let* st' = get in
-  let* () = end_ ~parent:st ~child:st' |>> set in
-  ret m
+  let* a =
+    trap @@
+    let* () = begin_ st |>> set in
+    let* m in
+    let* st' = get in
+    let* () = end_ ~parent:st ~child:st' |>> set in
+    ret m
+  in
+  match a with
+  | Ok a -> ret a
+  | Error exn -> let* () = set st in throw exn
 
 let add_global id tp con =
   let* st = get in

@@ -999,6 +999,54 @@ record.cooltt:32.7-32.13 [Info]:
   : type
   = sig (tp : type) (fun : (_x : tp) → tp) 
 
+--------------------[section.cooltt]--------------------
+Emitted namespace under :::
+  ?lens = { x => x }
+
+Emitted namespace under :::
+  ?repack = { x => x }
+
+Emitted namespace under :::
+  ?lens = { sec1::z => x }
+
+Emitted namespace under :::
+  ?repack = { sec1::z => x }
+
+section.cooltt:10.11-10.18 [Info]:
+  Computed normal form of x as 10
+
+Emitted namespace under :::
+  ?lens = { sec1::z => x; x => x; y => y }
+
+Emitted namespace under :::
+  ?repack = { x => x }
+
+Emitted namespace under :::
+  ?lens = { y => y; y2 => y }
+
+Emitted namespace under :::
+  ?repack = { x => x; y => y; y2 => y }
+
+Emitted namespace under :::
+  ?lens = { y => y; y2 => y }
+
+Emitted namespace under :::
+  ?repack = { x::x => x; y => y; y2 => y }
+
+section.cooltt:34.11-34.15 [Info]:
+  Computed normal form of x as 30
+
+section.cooltt:35.11-35.19 [Info]:
+  Computed normal form of y as 20
+
+Emitted namespace under :::
+  ?lens = { a::b::x::x => x; a::b::y2 => y; a::x => x; sec1::z => x; y => y }
+
+Emitted namespace under :::
+  ?repack = { a::b::x::x => x; a::b::y2 => y; a::x => x; sec1::z => x; 
+            y => y }
+
+--------------------[section2.cooltt]--------------------
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.11-8.18 [Info]:
   Computed normal form of testing as

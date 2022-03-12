@@ -28,7 +28,9 @@ let add ~shadowing id sym ss =
 let import ~shadowing ns ss =
   map_current ss ~f:(Scope.import ~shadowing ns)
 
-let begin_ ss = push Scope.empty ss
+let begin_ ss =
+  let last, _ = pop ss in
+  push (Scope.inherit_view last) ss
 let end_ ~shadowing ss =
   let (s, ss) = pop ss in
   map_current ss ~f:(Scope.include_ ~shadowing (Scope.get_export s))
@@ -37,7 +39,7 @@ let rec resolve id =
   function
   | Emp -> None
   | Snoc (ss, s) ->
-    match Scope.find_view id s with
+    match Scope.resolve id s with
     | Some x -> Some x
     | None -> resolve id ss
 let export_top =
