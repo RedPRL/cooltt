@@ -2,7 +2,7 @@ type +'a t
 
 val empty : 'a t
 val inherit_view : 'a t -> 'a t
-val get_export : 'a t -> 'a Namespace.t
+val get_export : prefix:Namespace.path option -> 'a t -> 'a Namespace.t
 val resolve : Ident.t -> 'a t -> 'a option
 
 val transform_view :

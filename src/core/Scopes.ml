@@ -31,9 +31,9 @@ let import ~shadowing ns ss =
 let begin_ ss =
   let last, _ = pop ss in
   push (Scope.inherit_view last) ss
-let end_ ~shadowing ss =
+let end_ ~shadowing ~prefix ss =
   let (s, ss) = pop ss in
-  map_current ss ~f:(Scope.include_ ~shadowing (Scope.get_export s))
+  map_current ss ~f:Scope.(include_ ~shadowing @@ get_export ~prefix s)
 
 let rec resolve id =
   function
@@ -44,5 +44,5 @@ let rec resolve id =
     | None -> resolve id ss
 let export_top =
   function
-  | Snoc (Emp, s) -> Scope.get_export s
+  | Snoc (Emp, s) -> Scope.get_export ~prefix:None s
   | _ -> invalid_arg "Scopes.export_top"

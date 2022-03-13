@@ -184,34 +184,31 @@ and execute_decl : CS.decl -> command =
     print_ident ident
   | CS.Import {shadowing; unitpath; modifier} ->
     RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
-    let* modifier = Elaborator.modifier modifier in
+    let* modifier = Option.fold ~none:(RM.ret Yuujinchou.Pattern.any) ~some:Elaborator.modifier modifier in
     import_unit ~shadowing unitpath modifier
   | CS.View {shadowing; modifier} ->
     RM.update_span (CS.get_info modifier) @@
-    let* modifier = Elaborator.modifier @@ Some modifier in
+    let* modifier = Elaborator.modifier modifier in
     let* () = RM.view ~shadowing modifier in
     RM.ret Continue
   | CS.Export {shadowing; modifier} ->
     RM.update_span (CS.get_info modifier) @@
-    let* modifier = Elaborator.modifier @@ Some modifier in
+    let* modifier = Elaborator.modifier modifier in
     let* () = RM.export ~shadowing modifier in
     RM.ret Continue
   | CS.Repack {shadowing; modifier} ->
     RM.update_span (CS.get_info modifier) @@
-    let* modifier = Elaborator.modifier @@ Some modifier in
+    let* modifier = Elaborator.modifier modifier in
     let* () = RM.repack ~shadowing modifier in
     RM.ret Continue
   | CS.Section {shadowing; prefix; decls; modifier} ->
-    RM.with_section ~shadowing begin
+    RM.with_section ~shadowing ~prefix begin
       execute_signature decls |>>
       function
       | Ok () ->
         RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
-        let* modifier = Elaborator.modifier modifier in
+        let* modifier = Option.fold ~none:(RM.ret @@ Yuujinchou.Pattern.seq []) ~some:Elaborator.modifier modifier in
         let* () = RM.repack ~shadowing modifier in
-        (* prefix the exported bindings with prefix *)
-        let prefix = Option.value ~default:[] prefix in
-        let* () = RM.repack ~shadowing Yuujinchou.Pattern.(renaming [] prefix) in
         RM.ret Continue
       | Error () -> RM.refine_err ErrorsInSection
     end

@@ -6,6 +6,8 @@ type ('a, 'error) result = ('a, [> `BindingNotFound of path | `Shadowing of path
 
 val empty : 'a t
 
+val prefix : path -> 'a t -> 'a t
+
 val transform : shadowing:bool -> pp:(Format.formatter -> 'a -> unit) -> _ pattern -> 'a t -> ('a t, 'error) result
 
 val union : shadowing:bool -> 'a t -> 'a t -> ('a t, 'error) result

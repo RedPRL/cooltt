@@ -458,7 +458,7 @@ and chk_cases cases =
 and chk_case (pat, c) =
   pat, chk_tm c
 
-let rec modifier_ (con : CS.con) =
+let rec modifier (con : CS.con) =
   let open Yuujinchou.Pattern in
   RM.update_span con.info @@
   match con.node with
@@ -467,11 +467,8 @@ let rec modifier_ (con : CS.con) =
   | CS.ModRename (path1, path2) -> RM.ret @@ renaming path1 path2
   | CS.ModNone -> RM.ret none
   | CS.ModExcept path -> RM.ret @@ except path
-  | CS.ModSeq l -> seq <@> MU.map modifier_ l
-  | CS.ModUnion l -> union <@> MU.map modifier_ l
-  | CS.ModInSubtree (p, m) -> in_ p <@> modifier_ m
+  | CS.ModSeq l -> seq <@> MU.map modifier l
+  | CS.ModUnion l -> union <@> MU.map modifier l
+  | CS.ModInSubtree (p, m) -> in_ p <@> modifier m
   | CS.ModPrint lbl -> RM.ret @@ hook @@ `Print lbl
   | _ -> RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
-
-let modifier con =
-  Option.fold ~none:(RM.ret Yuujinchou.Pattern.any) ~some:modifier_ con

@@ -93,10 +93,10 @@ let repack ~shadowing pat =
 let export ~shadowing pat =
   set @<< throw_namespace_errors @<< (St.export_view ~shadowing pat <@> get)
 
-let with_section ~shadowing (action : 'a m) =
+let with_section ~shadowing ~prefix (action : 'a m) =
   with_
     ~begin_:(fun st -> ret @@ St.begin_section st)
-    ~end_:(fun ~parent:_ ~child -> throw_namespace_errors @@ St.end_section ~shadowing child)
+    ~end_:(fun ~parent:_ ~child -> throw_namespace_errors @@ St.end_section ~shadowing ~prefix child)
     action
 
 let eval con =

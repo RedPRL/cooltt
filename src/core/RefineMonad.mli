@@ -31,7 +31,7 @@ val loading_status : CodeUnitID.t -> [ `Loaded | `Loading | `Unloaded ] m
 val view : shadowing:bool -> _ Namespace.pattern -> unit m
 val export : shadowing:bool -> _ Namespace.pattern -> unit m
 val repack : shadowing:bool -> _ Namespace.pattern -> unit m
-val with_section : shadowing:bool -> 'a m -> 'a m
+val with_section : shadowing:bool -> prefix:Namespace.path option -> 'a m -> 'a m
 
 val eval : S.t -> D.con m
 val eval_tp : S.tp -> D.tp m

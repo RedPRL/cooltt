@@ -23,5 +23,11 @@ section x4 begin
 end [ a4 -> b4 ]
 #print x4::b4
 
+-- empty sections
+section begin end
+
+-- empty sections
+section x begin end
+
 -- check all visible bindings
 view [?]

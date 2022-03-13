@@ -14,7 +14,7 @@ val export_view : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Name
 val import : shadowing:bool -> _ Namespace.pattern -> CodeUnitID.t -> t -> (t, 'error) Namespace.result
 
 val begin_section : t -> t
-val end_section : shadowing:bool -> t -> (t, 'error) Namespace.result
+val end_section : shadowing:bool -> prefix:Namespace.path option -> t -> (t, 'error) Namespace.result
 
 val add_global : Ident.t -> D.tp -> D.con option -> t -> (Global.t * t, 'error) Namespace.result
 val get_global : Global.t -> t -> D.tp * D.con option

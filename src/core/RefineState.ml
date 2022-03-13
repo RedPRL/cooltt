@@ -49,7 +49,7 @@ let transform_export ~shadowing pattern =
   modify_scopes (Scopes.transform_export ~shadowing ~pp:Global.pp pattern)
 let export_view ~shadowing pattern =
   modify_scopes (Scopes.export_view ~shadowing ~pp:Global.pp pattern)
-let end_section ~shadowing = modify_scopes (Scopes.end_ ~shadowing)
+let end_section ~shadowing ~prefix = modify_scopes (Scopes.end_ ~shadowing ~prefix)
 
 (* unit *)
 let get_unit id st = IDMap.find id st.units

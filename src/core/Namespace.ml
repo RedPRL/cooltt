@@ -8,6 +8,8 @@ type ('a, 'error) result = ('a, [> `BindingNotFound of path | `Shadowing of path
 
 let empty = Trie.empty
 
+let prefix = Trie.prefix
+
 let merge ~shadowing ~rev_path _ x =
   if shadowing
   then Result.ok x

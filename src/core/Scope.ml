@@ -5,7 +5,10 @@ type 'a t =
 
 let empty = {view = Namespace.empty; export = Namespace.empty}
 let inherit_view s = {s with export = Namespace.empty}
-let get_export s = s.export
+let get_export ~prefix s =
+  match prefix with
+  | None -> s.export
+  | Some prefix -> Namespace.prefix prefix s.export
 let resolve id s = Namespace.find id s.view
 
 let (let*) = Result.bind
