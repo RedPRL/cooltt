@@ -3,9 +3,9 @@ import prelude
   ; {:: -> p1, -> p2} -- take the union of two prefix modifiers; u becomes p1::u and p2::u, for example
   ; p2::[⋆ -> q::t] -- rename p2::⋆ to p2::q::t
   ; [[[[[{[]};{[{[[];[]]}]}]]]]] -- no op
-  ; p1::[ ! u ] -- remove p1::u
+  ; p1::!u -- remove p1::u
   ; ! p2::path -- remove p2::path
-  ; p2::[?cool] -- print out the bindings under p2
+  ; p2::?cool -- print out the bindings under p2
   ; ?all -- print all the bindings to be imported
   ]
 import prelude [unit; unit -> p1::u] -- re-introduce p1::u; would err if p1::u is already there
@@ -25,4 +25,4 @@ import prelude [cong; cong -> cool::cong]
 def cool-tt : p1::u := p2::q::t
 #print cool-tt
 
-view [p2::[?]] -- check all visible bindings under p2
+view [p2::?] -- check all visible bindings under p2
