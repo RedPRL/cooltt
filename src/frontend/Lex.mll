@@ -64,10 +64,14 @@ let keywords =
     ("vproj", VPROJ);
     ("cap", CAP);
     ("with", WITH);
-    ("import",IMPORT []);
+    ("import", IMPORT []);
     ("begin", BEGIN);
     ("end", END);
     ("equation", EQUATION);
+    ("section", SECTION);
+    ("view", VIEW);
+    ("repack", REPACK);
+    ("export", EXPORT);
   ]
 }
 

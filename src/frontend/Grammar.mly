@@ -52,6 +52,7 @@
 %token TOPC BOTC
 %token V VPROJ CAP
 %token BEGIN EQUATION END LSQEQUALS LRSQEQUALS
+%token SECTION VIEW EXPORT REPACK
 
 %nonassoc IN AS RRIGHT_ARROW SEMI
 %nonassoc COLON
@@ -147,10 +148,20 @@ decl:
     { Quit }
   | NORMALIZE; tm = term
     { NormalizeTerm tm }
-  | unitpath = IMPORT; m = ioption(bracketed_modifier)
-    { Import (unitpath, m) }
+  | shadowing = boption(BANG); unitpath = IMPORT; modifier = ioption(bracketed_modifier)
+    { Import {shadowing; unitpath; modifier} }
   | PRINT; name = name
     { Print name }
+  | shadowing = boption(BANG); VIEW; modifier = bracketed_modifier
+    { View {shadowing; modifier} }
+  | shadowing = boption(BANG); EXPORT; modifier = bracketed_modifier
+    { Export {shadowing; modifier} }
+  | shadowing = boption(BANG); EXPORT; path = located(path)
+    { Export {shadowing; modifier = map_node ~f:(fun p -> ModOnly p) path } }
+  | shadowing = boption(BANG); REPACK; modifier = bracketed_modifier
+    { Repack {shadowing; modifier} }
+  | shadowing = boption(BANG); SECTION; prefix = ioption(path); BEGIN; decls = list(decl); END; modifier = ioption(bracketed_modifier)
+    { Section {shadowing; prefix; decls; modifier} }
 
 sign:
   | EOF

@@ -25,52 +25,53 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t =
-  {current_lib : Bantorra.Manager.library;
-   current_unit_id : id;
-   resolver : Global.t StringMap.t;
-   veil : Veil.t;
-   pp : Pp.env;
-   cof_thy : CofThy.Disj.t;
-   locals : cell bwd;
-   problem : string bwd;
-   location : LexingUtil.span option}
+  {
+    (* declaration-wide *)
+    veil : Veil.t;
 
+    (* local assumptions *)
+    locals : cell bwd;
+    cof_thy : CofThy.Disj.t;
+    pp : Pp.env;
+
+    (* problems *)
+    problem : string bwd;
+
+    (* location *)
+    location : LexingUtil.span option;
+  }
+
+let init =
+  { veil = Veil.const `Translucent;
+    locals = Emp;
+    cof_thy = CofThy.Disj.empty;
+    pp = Pp.Env.emp;
+    problem = Emp;
+    location = None }
+
+let globally env =
+  { veil = env.veil;
+    locals = Emp;
+    cof_thy = CofThy.Disj.empty;
+    pp = Pp.Env.emp;
+    problem = Emp;
+    location = env.location }
+
+(* veil *)
+let get_veil env = env.veil
+let set_veil v env = {env with veil = v}
+
+(* local assumptions *)
 let locals env = env.locals
-
-let init lib =
-  {current_lib = lib;
-   current_unit_id = CodeUnitID.top_level;
-   resolver = StringMap.empty;
-   veil = Veil.const `Translucent;
-   pp = Pp.Env.emp;
-   cof_thy = CofThy.Disj.empty;
-   locals = Emp;
-   problem = Emp;
-   location = None}
-
-let current_lib env = env.current_lib
-
-let current_unit_id env = env.current_unit_id
-let set_current_unit_id current_unit_id env = {env with current_unit_id}
-
-let location env = env.location
-let set_location loc env =
-  match loc with
-  | Some _ -> {env with location = loc}
-  | _ -> env
-
 let size env = Bwd.length env.locals
-
 let get_local_tp ix env =
   let cell = Bwd.nth env.locals ix in
   let tp, _ = Cell.contents cell in
   tp
-
 let get_local ix env =
   let cell = Bwd.nth env.locals ix in
   let _, con = Cell.contents cell in
   con
-
 let resolve_local (ident : Ident.t) env =
   let exception E in
   let rec go i = function
@@ -85,45 +86,45 @@ let resolve_local (ident : Ident.t) env =
   match go 0 @@ env.locals with
   | i -> Some i
   | exception E -> None
+let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
+  function
+  | [] -> ()
+  | (cell :: cells) ->
+    Format.fprintf fmt "%a : %a := @[<hov 2>%a@]@;%a" Ident.pp cell.ident D.pp_tp (fst cell.contents) D.pp_con (snd cell.contents) dump_locals cells
 
-let restrict phis env =
-  {env with
-   cof_thy = CofThy.Disj.assume env.cof_thy phis}
-
-let append_con ident con tp env =
-  {env with
-   pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
-   locals = env.locals <>< [{contents = tp, con; ident}];
-   cof_thy =
-     match tp with
-     | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
-     | _ -> env.cof_thy}
-
+(* cofibrations and others *)
+let local_cof_thy env = env.cof_thy
+let pp_env env = env.pp
 let sem_env (env : t) : D.env =
   {tpenv = Emp;
    conenv =
      env.locals |> Bwd.map @@ fun cell ->
      let _, con = Cell.contents cell in
      con}
+let restrict phis env =
+  {env with
+   cof_thy = CofThy.Disj.assume env.cof_thy phis}
+let append_con ident con tp env =
+  {env with
+   pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
+   locals = env.locals #< (Cell.make ident (tp, con));
+   cof_thy =
+     match tp with
+     | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
+     | _ -> env.cof_thy}
 
-let pp_env env = env.pp
-
-let cof_thy env = env.cof_thy
-
-let get_veil env = env.veil
-let set_veil v env = {env with veil = v}
-
+(* problems *)
 let problem env = env.problem
-
 let push_problem lbl env =
   {env with
    problem = env.problem #< lbl}
 
-let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
-  function
-  | [] -> ()
-  | (cell :: cells) ->
-    Format.fprintf fmt "%a : %a := @[<hov 2>%a@]@;%a" Ident.pp cell.ident D.pp_tp (fst cell.contents) D.pp_con (snd cell.contents) dump_locals cells
+(* locations *)
+let location env = env.location
+let set_location loc env =
+  match loc with
+  | Some _ -> {env with location = loc}
+  | _ -> env
 
 let dump fmt : t -> unit =
   fun env ->

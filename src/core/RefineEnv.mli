@@ -16,34 +16,28 @@ end
 type cell = (D.tp * D.con) Cell.t
 
 type t
-val init : Bantorra.Manager.library -> t
+val init : t
+val globally : t -> t
 
-val size : t -> int
-val locals : t -> cell bwd
-val sem_env : t -> D.env
-val pp_env : t -> Pp.env
-val cof_thy : t -> CofThy.Disj.t
 val get_veil : t -> Veil.t
-val problem : t -> string bwd
+val set_veil : Veil.t -> t -> t
 
-val current_lib : t -> Bantorra.Manager.library
+val locals : t -> cell bwd
+val size : t -> int
+val get_local_tp : int -> t -> D.tp
+val get_local : int -> t -> D.con
+val resolve_local : Ident.t -> t -> int option
 
-val current_unit_id : t -> id
-val set_current_unit_id : id -> t -> t
+val local_cof_thy : t -> CofThy.Disj.t
+val pp_env : t -> Pp.env
+val sem_env : t -> D.env
+val restrict : CofThy.cof list -> t -> t
+val append_con : Ident.t -> D.con -> D.tp -> t -> t
 
 val location : t -> LexingUtil.span option
 val set_location : LexingUtil.span option -> t -> t
 
-val append_con : Ident.t -> D.con -> D.tp -> t -> t
-val restrict : CofThy.cof list -> t -> t
-
-val set_veil : Veil.t -> t -> t
-
-
-val resolve_local : Ident.t -> t -> int option
-val get_local_tp : int -> t -> D.tp
-val get_local : int -> t -> D.con
-
+val problem : t -> string bwd
 val push_problem : string -> t -> t
 
 val dump : t Pp.printer

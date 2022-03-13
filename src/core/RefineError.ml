@@ -76,6 +76,22 @@ let pp fmt =
     Fmt.fprintf fmt
       "Holes of type %a are not permitted"
       (S.pp_tp ppenv) tp
+  | BindingNotFound (`User []) ->
+    Fmt.fprintf fmt
+      "No bindings"
+  | BindingNotFound id ->
+    Fmt.fprintf fmt
+      "No bindings with the prefix %a" Ident.pp_user id
+  | UnexpectedShadowing id ->
+    Fmt.fprintf fmt
+      "Unexpected shadowing of %a" Ident.pp_user id
+  | CyclicImport id ->
+    Fmt.fprintf fmt
+      "Cyclic import of %a" CodeUnitID.pp id
+  | RefineErrorData.Data.ErrorsInSection -> (* qualified names to check spellings *)
+    Fmt.fprintf fmt
+      "Unexpected errors in sections"
+
 
 
 exception RefineError of t * LexingUtil.span option

@@ -1,0 +1,33 @@
+-- section with prefix
+section x1::y1 begin
+  def a1 : nat := 0
+end
+#print x1::y1::a1
+
+-- section without prefix
+section begin
+  def a2 : nat := 10
+end
+#print a2
+
+-- section with bang for shadowing
+def a3 : nat := 20
+!section begin
+  def a3 : nat := 30
+end
+#print a3
+
+-- section with pattern
+section x4 begin
+  def a4 : nat := 40
+end [ a4 -> b4 ]
+#print x4::b4
+
+-- empty sections
+section begin end
+
+-- empty sections
+section x begin end
+
+-- check all visible bindings
+view [?]

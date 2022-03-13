@@ -1,0 +1,15 @@
+def a1 : nat := 0
+def a2 : nat := 10
+def a3 : nat := 20
+
+repack [?] -- check all exported bindings
+
+-- rename all exported a1 to b1
+repack [ a1 -> b1 ]
+repack [?] -- check all exported bindings
+
+-- rename all exported a2 to a1
+!repack [ a2 -> a1 ]
+repack [?] -- check all exported bindings
+
+view [?] -- check all visible bindings

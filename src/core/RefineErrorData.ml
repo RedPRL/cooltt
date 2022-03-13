@@ -35,4 +35,8 @@ struct
     | ExpectedTrue of Pp.env * S.t
     | VirtualType
     | HoleNotPermitted of Pp.env * S.tp
+    | BindingNotFound of Ident.user
+    | UnexpectedShadowing of Ident.user
+    | CyclicImport of CodeUnitID.t
+    | ErrorsInSection
 end

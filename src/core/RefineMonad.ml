@@ -25,20 +25,35 @@ let resolve id =
   | Some ix -> ret @@ `Local ix
   | None ->
     let* st = get in
-    match St.resolve_global (Env.current_unit_id env) id st with
+    match St.resolve_global id st with
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
-let get_current_unit_id =
-  let* env = read in
-  ret @@ Env.current_unit_id env
+let throw_namespace_errors : ('a, 'error) Namespace.result -> 'a m =
+  function
+  | Result.Ok x -> ret x
+  | Result.Error (`BindingNotFound path) -> refine_err @@ BindingNotFound (`User path)
+  | Result.Error (`Shadowing path) -> refine_err @@ UnexpectedShadowing (`User path)
+
+let with_ ~begin_ ~end_ m =
+  let* st = get in
+  let* a =
+    trap @@
+    let* () = begin_ st |>> set in
+    let* m in
+    let* st' = get in
+    let* () = end_ ~parent:st ~child:st' |>> set in
+    ret m
+  in
+  match a with
+  | Ok a -> ret a
+  | Error exn -> let* () = set st in throw exn
 
 let add_global id tp con =
   let* st = get in
-  let* current_unit_id = get_current_unit_id in
-  let sym, st' = St.add_global current_unit_id id tp con st in
-  let* () = set st' in
-  ret sym
+  let* sym, st' = throw_namespace_errors @@ St.add_global id tp con st in
+  let+ () = set st' in
+  sym
 
 let get_global sym : (D.tp * D.con option) m =
   let* st = get in
@@ -52,37 +67,37 @@ let get_local_tp ix =
   | tp -> ret tp
   | exception exn -> throw exn
 
-
 let get_local ix =
   let* env = read in
   match Env.get_local ix env with
   | tp -> ret tp
   | exception exn -> throw exn
 
-let with_code_unit lib unit_id (action : 'a m) =
-  let* () = modify (St.init_unit unit_id) in
-  scope (fun _ -> Env.set_current_unit_id unit_id (Env.init lib)) action
+let get_lib = St.get_lib <@> get
 
-let get_current_lib =
-  let* env = read in
-  ret @@ Env.current_lib env
+let with_unit lib unit_id (action : 'a m) =
+  with_
+    ~begin_:(fun st -> ret @@ St.begin_unit lib unit_id st)
+    ~end_:(fun ~parent ~child -> ret @@ St.end_unit ~parent ~child)
+    action
 
-let get_current_unit =
-  let* st = get in
-  let* current_unit_id = get_current_unit_id in
-  ret @@ St.get_unit current_unit_id st
+let import ~shadowing pat unit_id =
+  set @<< throw_namespace_errors @<< (St.import ~shadowing pat unit_id <@> get)
 
-let add_import modifier code_unit =
-  let* current_unit_id = get_current_unit_id in
-  modify (St.add_import current_unit_id modifier code_unit)
+let loading_status id = St.loading_status id <@> get
 
-let get_import path =
-  let+ st = get in
-  St.get_import path st
+let view ~shadowing pat =
+  set @<< throw_namespace_errors @<< (St.transform_view ~shadowing pat <@> get)
+let repack ~shadowing pat =
+  set @<< throw_namespace_errors @<< (St.transform_export ~shadowing pat <@> get)
+let export ~shadowing pat =
+  set @<< throw_namespace_errors @<< (St.export_view ~shadowing pat <@> get)
 
-let is_imported path =
-  let+ st = get in
-  St.is_imported path st
+let with_section ~shadowing ~prefix (action : 'a m) =
+  with_
+    ~begin_:(fun st -> ret @@ St.begin_section st)
+    ~end_:(fun ~parent:_ ~child -> throw_namespace_errors @@ St.end_section ~shadowing ~prefix child)
+    action
 
 let eval con =
   lift_ev @@ Sem.eval con
