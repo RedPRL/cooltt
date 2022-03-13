@@ -114,6 +114,7 @@ atomic_in_cof: t = located(plain_atomic_in_cof) {t}
 %inline
 name: t = located(plain_name) {t}
 bracketed_modifier: t = located(plain_bracketed_modifier) {t}
+atomic_modifier: t = located(plain_atomic_modifier) {t}
 modifier: t = located(plain_modifier) {t}
 atomic_term_except_sq: t = located(plain_atomic_term_except_sq) {t}
 atomic_term_except_name: t = located(plain_atomic_term_except_name) {t}
@@ -185,10 +186,19 @@ plain_bracketed_modifier:
   | LBR list = separated_list(COMMA, modifier) RBR
     { ModUnion list }
 
+plain_atomic_modifier:
+  | m = plain_bracketed_modifier { m }
+  | BANG ioption(COLON_COLON)
+    { ModNone }
+  | BANG path = iocc_path
+    { ModExcept path }
+  | name = HOLE_NAME
+    { ModPrint name }
+
 plain_modifier:
   | COLON_COLON
     { ModAny }
-  | path = iocc_path COLON_COLON m = bracketed_modifier
+  | path = iocc_path COLON_COLON m = atomic_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW
     { ModRename ([], []) }
@@ -200,13 +210,7 @@ plain_modifier:
     { ModRename (path1, path2) }
   | path = iocc_path
     { ModOnly path }
-  | BANG ioption(COLON_COLON)
-    { ModNone }
-  | BANG path = iocc_path
-    { ModExcept path }
-  | name = HOLE_NAME
-    { ModPrint name }
-  | m = plain_bracketed_modifier
+  | m = plain_atomic_modifier
     { m }
 
 plain_atomic_in_cof_except_term:
