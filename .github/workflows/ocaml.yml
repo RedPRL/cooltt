@@ -13,7 +13,7 @@ jobs:
         with:
           ocaml-compiler: "4.13"
       - run: opam pin . --with-doc --with-test --yes
-      - run: echo 'opam-build-root='`opam config var cooltt:build` >> $GITHUB_ENV
+      - run: echo 'opam-build-root='`opam var cooltt:build` >> $GITHUB_ENV
         if: ${{ github.ref == 'refs/heads/main' }}
       - uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.ref == 'refs/heads/main' }}
