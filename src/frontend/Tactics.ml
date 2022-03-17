@@ -57,6 +57,33 @@ let rec intro_subtypes : T.Chk.tac -> T.Chk.tac =
   | _ ->
     RM.ret tac
 
+let intro_conversions (tac : T.Syn.tac) : T.Chk.tac = 
+  (* HACK: Because we are using Weak Tarski Universes, we can't just
+    use the conversion checker to equate 'tp` and 'univ', as
+    'tp' may be 'el code-univ' instead.
+
+    Therefore, we do an explicit check here instead.
+    If we add universe levels, this code should probably be reconsidered. *)
+  T.Chk.rule ~name:"intro_conversions" @@ function
+    | D.Univ | D.ElStable `Univ as tp -> 
+      let* tm, tp' = T.Syn.run tac in
+      let* vtm = RM.lift_ev @@ Sem.eval tm in
+      begin
+      match tp' with
+      | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
+        let* tac' = T.abstract ~ident base @@ fun var ->
+          let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+          (* Same HACK *)
+          match fam with
+          | D.Univ 
+          | D.ElStable `Univ -> RM.ret @@ R.Univ.total vsign vtm
+          | _ -> RM.ret @@ T.Chk.syn tac
+        in
+        T.Chk.run tac' tp
+      | _ -> T.Chk.run (T.Chk.syn tac) tp
+      end
+    | tp -> T.Chk.run (T.Chk.syn tac) tp
+
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with
   | [] -> body

@@ -351,7 +351,7 @@ and chk_tm : CS.con -> T.Chk.tac =
         let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
         RM.ret @@ R.Signature.intro field_tac
       | _ ->
-        RM.ret @@ R.Structural.intro_conversions @@ syn_tm con
+        RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 
 and syn_tm : CS.con -> T.Syn.tac =
   function con ->

@@ -1175,34 +1175,6 @@ struct
     let* bdytp = RM.lift_ev @@ EvM.append [D.SubIn vdef] @@ Sem.eval_tp tbdytp in
     RM.ret (S.Let (S.SubIn tdef, ident, tbdy), bdytp)
 
-
-  let intro_conversions (tac : T.Syn.tac) : T.Chk.tac = 
-    (* HACK: Because we are using Weak Tarski Universes, we can't just
-      use the conversion checker to equate 'tp` and 'univ', as
-      'tp' may be 'el code-univ' instead.
-
-      Therefore, we do an explicit check here instead.
-      If we add universe levels, this code should probably be reconsidered. *)
-    T.Chk.rule ~name:"Structural.intro_conversions" @@ function
-      | D.Univ | D.ElStable `Univ as tp -> 
-        let* tm, tp' = T.Syn.run tac in
-        let* vtm = RM.lift_ev @@ Sem.eval tm in
-        begin
-        match tp' with
-        | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
-          let* tac' = T.abstract ~ident base @@ fun var ->
-            let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
-            (* Same HACK *)
-            match fam with
-            | D.Univ 
-            | D.ElStable `Univ -> RM.ret @@ Univ.total vsign vtm
-            | _ -> RM.ret @@ T.Chk.syn tac
-          in
-          T.Chk.run tac' tp
-        | _ -> T.Chk.run (T.Chk.syn tac) tp
-        end
-      | tp -> T.Chk.run (T.Chk.syn tac) tp
-
 end
 
 
