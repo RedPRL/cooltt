@@ -63,7 +63,7 @@ module Univ : sig
   val sg : Chk.tac -> Chk.tac -> Chk.tac
   val signature : (Ident.user * Chk.tac) list -> Chk.tac
   val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
-  val total : Syn.tac -> Chk.tac
+  val total : (Ident.user * CodeUnit.Domain.con) list -> CodeUnit.Domain.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
@@ -145,4 +145,5 @@ module Structural : sig
   val lookup_var : Ident.t -> Syn.tac
   val level : int -> Syn.tac
   val generalize : Ident.t -> Chk.tac -> Chk.tac
+  val intro_conversions : Syn.tac -> Chk.tac
 end

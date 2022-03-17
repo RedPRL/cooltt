@@ -748,45 +748,26 @@ struct
     | _ ->
       RM.expected_connective `Signature whnf_tp
 
-  let total (fam_tac : T.Syn.tac) : T.Chk.tac =
+  let total (vsign : (Ident.user * D.con) list) (vtm : D.con) : T.Chk.tac =
     univ_tac "Univ.total" @@ fun univ ->
-    let* (tm, tp) = T.Syn.run fam_tac in
-    let* vtm = RM.lift_ev @@ Sem.eval tm in
-    match tp with
-    | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
-      (* HACK: Because we are using Weak Tarski Universes, we can't just
-         use the conversion checker to equate 'fam' and 'univ', as
-         'fam' may be 'el code-univ' instead.
-
-         Therefore, we do an explicit check here instead.
-         If we add universe levels, this code should probably be reconsidered. *)
-      let* _ = T.abstract ~ident base @@ fun var ->
-        let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
-        match fam with
-        | D.Univ -> RM.ret ()
-        | D.ElStable `Univ -> RM.ret ()
-        | _ -> RM.expected_connective `Univ fam
-      in
-      let (sign_names, vsign_codes) = List.split vsign in
-      let* qsign = quote_sign_codes vsign univ in
-      (* See [NOTE: Sig Code Quantifiers]. *)
-      let* fib_tp =
-        RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.tp univ @@ fun univ ->
-        Splice.cons vsign_codes @@ fun sign_codes ->
-        Splice.term @@ TB.pis ~idents:(sign_names :> Ident.t list) sign_codes @@ fun _ -> univ
-      in
-      let* fib =
-        RM.lift_cmp @@
-        Sem.splice_tm @@
-        Splice.con vtm @@ fun tm ->
-        Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
-      in
-      let+ qfib = RM.quote_con fib_tp fib in
-      S.CodeSignature (qsign @ [`User ["fib"], qfib])
-    | D.Pi (base, _, _) -> RM.expected_connective `Signature base
-    | _ -> RM.expected_connective `Pi tp
+    let (sign_names, vsign_codes) = List.split vsign in
+    let* qsign = quote_sign_codes vsign univ in
+    (* See [NOTE: Sig Code Quantifiers]. *)
+    let* fib_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.tp univ @@ fun univ ->
+      Splice.cons vsign_codes @@ fun sign_codes ->
+      Splice.term @@ TB.pis ~idents:(sign_names :> Ident.t list) sign_codes @@ fun _ -> univ
+    in
+    let* fib =
+      RM.lift_cmp @@
+      Sem.splice_tm @@
+      Splice.con vtm @@ fun tm ->
+      Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
+    in
+    let+ qfib = RM.quote_con fib_tp fib in
+    S.CodeSignature (qsign @ [`User ["fib"], qfib])
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->
@@ -1193,6 +1174,34 @@ struct
     in
     let* bdytp = RM.lift_ev @@ EvM.append [D.SubIn vdef] @@ Sem.eval_tp tbdytp in
     RM.ret (S.Let (S.SubIn tdef, ident, tbdy), bdytp)
+
+
+  let intro_conversions (tac : T.Syn.tac) : T.Chk.tac = 
+    T.Chk.rule ~name:"Structural.intro_conversions" @@ function
+      | D.Univ | D.ElStable `Univ as tp -> 
+        let* tm, tp' = T.Syn.run tac in
+        let* vtm = RM.lift_ev @@ Sem.eval tm in
+        begin
+        match tp' with
+        | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
+          (* HACK: Because we are using Weak Tarski Universes, we can't just
+            use the conversion checker to equate 'fam' and 'univ', as
+            'fam' may be 'el code-univ' instead.
+
+            Therefore, we do an explicit check here instead.
+            If we add universe levels, this code should probably be reconsidered. *)
+          let* _ = T.abstract ~ident base @@ fun var ->
+            let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+            match fam with
+            | D.Univ -> RM.ret ()
+            | D.ElStable `Univ -> RM.ret ()
+            | _ -> RM.expected_connective `Univ fam
+          in
+          T.Chk.run (Univ.total vsign vtm) tp
+        | _ -> T.Chk.run (T.Chk.syn tac) tp
+        end
+      | tp -> T.Chk.run (T.Chk.syn tac) tp
+
 end
 
 
