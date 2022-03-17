@@ -58,7 +58,7 @@
 %nonassoc COLON
 %left DOT
 %right RIGHT_ARROW TIMES
-%nonassoc AS
+%nonassoc HASH
 
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.command> command
@@ -353,7 +353,7 @@ plain_term_except_cof_case:
   /* So the issue is when we have a cofibration split case, we will have a bunch of pipe separated things
    We need to ensure that any patches occur in brackets...
    */
-  | tp = term; AS; ps = patches
+  | tp = term; HASH; ps = patches
     { Patch (tp, ps) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
