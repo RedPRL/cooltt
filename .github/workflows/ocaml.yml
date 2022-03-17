@@ -1,6 +1,9 @@
 name: Build, test, and doc update
 on:
   push:
+    branches:
+      - main
+  pull_request:
 jobs:
   run:
     runs-on: ubuntu-latest
