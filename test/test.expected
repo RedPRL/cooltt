@@ -876,7 +876,7 @@ patch.cooltt:21.7-21.14 [Info]:
 
 patch.cooltt:24.79-24.82 [Info]:
   fail total-space/fail:
-  Head connective mismatch, expected univ but got (_x₁ : nat) → type
+  Expected type = (_x : sig (A : type) (a : A) ) → (_x₁ : nat) → type
 
 patch.cooltt:35.7-35.15 [Info]:
   category

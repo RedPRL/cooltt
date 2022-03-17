@@ -1190,15 +1190,15 @@ struct
         begin
         match tp' with
         | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
-          let* _ = T.abstract ~ident base @@ fun var ->
+          let* tac' = T.abstract ~ident base @@ fun var ->
             let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
             (* Same HACK *)
             match fam with
-            | D.Univ -> RM.ret ()
-            | D.ElStable `Univ -> RM.ret ()
-            | _ -> RM.expected_connective `Univ fam
+            | D.Univ 
+            | D.ElStable `Univ -> RM.ret @@ Univ.total vsign vtm
+            | _ -> RM.ret @@ T.Chk.syn tac
           in
-          T.Chk.run (Univ.total vsign vtm) tp
+          T.Chk.run tac' tp
         | _ -> T.Chk.run (T.Chk.syn tac) tp
         end
       | tp -> T.Chk.run (T.Chk.syn tac) tp
