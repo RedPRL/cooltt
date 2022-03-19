@@ -1,0 +1,27 @@
+import prelude
+import nat
+
+def monoid : type :=
+    sig (C : type)
+        (op : C -> C -> C)
+        (z : C)
+        (idL : (x : C) -> path C {op z x} x)
+        (idR : (x : C) -> path C {op x z} x)
+        (assoc : (a b c : C) -> path C {op {op a b} c} {op a {op b c}})
+
+def monoid/nat : monoid # [ C .= nat ] := 
+    struct (op : +)
+           (z : 0)
+           (idL : +-left-unit)
+           (idR : +-right-unit)
+           (assoc : +-assoc)
+           
+#print monoid/nat
+
+def monoid/nat/+ : monoid # [ C .= nat | op .= + ] :=
+    struct (z : 0)
+           (idL : +-left-unit)
+           (idR : +-right-unit)
+           (assoc : +-assoc)
+
+#print monoid/nat/+

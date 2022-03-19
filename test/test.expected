@@ -713,6 +713,35 @@ Emitted namespace under p2:
       ; unit/eta => unit/eta }
 
 --------------------[isos.cooltt]--------------------
+--------------------[monoid.cooltt]--------------------
+nat.cooltt:9.11-9.16 [Info]:
+  Computed normal form of + 2 3 as 5
+
+monoid.cooltt:19.7-19.17 [Info]:
+  monoid/nat
+  : sig (C : ext type ⊤ {_x => nat}) (op : (_x : nat) → (_x₁ : nat) → nat) 
+    (z : nat) (idL : (x : nat) → path nat {op z x} x) 
+    (idR : (x : nat) → path nat {op x z} x) 
+    (assoc : (a : nat) → (b : nat) → (c : nat) → path nat {op {op a b} c} {op a {op b c}})
+    
+  = struct (C : nat) (op : {_x _x₁ => + _x _x₁}) (z : 0) 
+    (idL : {_x _x₁ => +-left-unit _x _x₁}) 
+    (idR : {_x _x₁ => +-right-unit _x _x₁}) 
+    (assoc : {_x _x₁ _x₂ _x₃ => +-assoc _x _x₁ _x₂ _x₃}) 
+
+monoid.cooltt:27.7-27.19 [Info]:
+  monoid/nat/+
+  : sig (C : ext type ⊤ {_x => nat}) 
+    (op : ext {(_x : nat) → (_x₁ : nat) → nat} ⊤ {_x _x₁ _x₂ => + _x₁ _x₂}) 
+    (z : nat) (idL : (x : nat) → path nat {+ z x} x) 
+    (idR : (x : nat) → path nat {+ x z} x) 
+    (assoc : (a : nat) → (b : nat) → (c : nat) → path nat {+ {+ a b} c} {+ a {+ b c}})
+    
+  = struct (C : nat) (op : {_x _x₁ => + _x _x₁}) (z : 0) 
+    (idL : {_x _x₁ => +-left-unit _x _x₁}) 
+    (idR : {_x _x₁ => +-right-unit _x _x₁}) 
+    (assoc : {_x _x₁ _x₂ _x₃ => +-assoc _x _x₁ _x₂ _x₃}) 
+
 --------------------[names.cooltt]--------------------
 names.cooltt:5.7-5.14 [Info]:
   x::y::z
@@ -827,7 +856,7 @@ nat.cooltt:9.11-9.16 [Info]:
   Computed normal form of + 2 3 as 5
 
 --------------------[patch.cooltt]--------------------
-patch.cooltt:8.49-8.50 [Info]:
+patch.cooltt:10.49-10.50 [Info]:
   Emitted hole:
     |- ? : type
     
@@ -836,7 +865,7 @@ patch.cooltt:8.49-8.50 [Info]:
     |- nat
 
 
-patch.cooltt:8.57-8.58 [Info]:
+patch.cooltt:10.57-10.58 [Info]:
   Emitted hole:
     |- ? : nat
     
@@ -845,27 +874,37 @@ patch.cooltt:8.57-8.58 [Info]:
     |- 4
 
 
-patch.cooltt:10.7-10.15 [Info]:
+patch.cooltt:12.7-12.15 [Info]:
   el-patch
   : type
   = sig (A : ext type ⊤ {_x => nat}) (a : ext nat ⊤ {_x => 4}) 
 
-patch.cooltt:11.7-11.23 [Info]:
+patch.cooltt:13.7-13.23 [Info]:
   el-patch-partial
   : type
   = sig (A : ext type ⊤ {_x => nat}) (a : nat) 
 
-patch.cooltt:12.7-12.20 [Info]:
+patch.cooltt:14.7-14.20 [Info]:
   patch/inhabit
   : el-patch
   = struct (A : nat) (a : 4) 
 
-patch.cooltt:15.7-15.20 [Info]:
+patch.cooltt:15.7-15.34 [Info]:
+  patch-partial/inhabit/infer
+  : el-patch-partial
+  = struct (A : nat) (a : 4) 
+
+patch.cooltt:16.7-16.26 [Info]:
+  patch/inhabit/infer
+  : el-patch
+  = struct (A : nat) (a : 4) 
+
+patch.cooltt:19.7-19.20 [Info]:
   patch-depends
   : type
   = sig (A : ext type ⊤ {_x => nat}) (B : ext type ⊤ {_x => nat}) 
 
-patch.cooltt:21.7-21.14 [Info]:
+patch.cooltt:25.7-25.14 [Info]:
   testing
   : (A : type) → (Z : type) → (B : (_x : A) → type) → (p : (_x : Z) → 
   sig (x : A) (bx : B x) ) → (z : Z) → sig (x : ext A ⊤ {_x => p z @ x}) 
@@ -874,11 +913,11 @@ patch.cooltt:21.7-21.14 [Info]:
                                        
   = A Z B p z => struct (x : p z @ x) (bx : p z @ bx) 
 
-patch.cooltt:24.79-24.82 [Info]:
+patch.cooltt:28.79-28.82 [Info]:
   fail total-space/fail:
   Expected type = (_x : sig (A : type) (a : A) ) → (_x₁ : nat) → type
 
-patch.cooltt:35.7-35.15 [Info]:
+patch.cooltt:39.7-39.15 [Info]:
   category
   : type
   = sig (ob : type) (hom : (_x : sig (s : ob) (t : ob) ) → type) 
@@ -982,12 +1021,12 @@ patch.cooltt:35.7-35.15 [Info]:
        })
     
 
-patch.cooltt:47.7-47.16 [Info]:
+patch.cooltt:51.7-51.16 [Info]:
   test-auto
   : (fam : (_x : sig (x : nat) ) → type) → type
   = fam => sig (x : nat) (fib : fam {struct (x : x) }) 
 
-patch.cooltt:50.7-50.22 [Info]:
+patch.cooltt:54.7-54.22 [Info]:
   test-auto-patch
   : (fam : (_x : sig (x : nat) ) → type) → type
   = fam => sig (x : ext nat ⊤ {_x => 0}) (fib : fam {struct (x : 0) }) 

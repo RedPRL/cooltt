@@ -65,6 +65,7 @@ module Univ : sig
   val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
   val total : (Ident.user * CodeUnit.Domain.con) list -> CodeUnit.Domain.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
+  val infer_nullary_ext : Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val hcom : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac

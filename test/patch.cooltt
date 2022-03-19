@@ -5,11 +5,15 @@ def el-patch : type := el # [ A .= nat | a .= 4 ]
 def el-patch-partial : type := el # [ A .= nat ]
 
 def patch/inhabit : el-patch := struct (A : nat) (a : 4)
+def patch-partial/inhabit/infer : el-patch-partial := struct (a : 4)
+def patch/inhabit/infer : el-patch := struct
 def patch/inhabit/hole : el-patch := struct (A : ?) (a : ?)
 
 #print el-patch
 #print el-patch-partial
 #print patch/inhabit
+#print patch-partial/inhabit/infer
+#print patch/inhabit/infer
 
 def patch-depends : type := {sig (A : type) (B : type)} # [ A .= nat | B .= A ]
 #print patch-depends
@@ -37,11 +41,11 @@ def category : type :=
 def types : category :=
   struct (ob : type)
          (hom : args => {args.s} -> {args.t})
-         (idn : x => struct (s : x) (t : x) (fib : x => x))
-         (seq : f g => struct (s : f.s) (t : g.t) (fib : x => g.fib {f.fib x}))
+         (idn : x => struct (fib : x => x))
+         (seq : f g => struct (fib : x => g.fib {f.fib x}))
          (seqL : f i => f)
          (seqR : f i => f)
-         (seqA : f g h i => struct (s : f.s) (t : h.t) (fib : x => {h.fib} {{g.fib} {{f.fib} x}}))
+         (seqA : f g h i => struct (fib : x => {h.fib} {{g.fib} {{f.fib} x}}))
 
 def test-auto (fam : sig (x : nat) -> type) : type := fam
 #print test-auto
