@@ -40,7 +40,6 @@ and con_ =
   | Struct of field list
   | Proj of con * Ident.user
   | Patch of con * field list
-  | Total of con * field list
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con

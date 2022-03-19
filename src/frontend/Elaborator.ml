@@ -305,9 +305,6 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Patch (tp, patches) ->
       let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
       R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
-    | CS.Total (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
-      R.Univ.patch (R.Univ.total (syn_tm tp)) (R.Signature.find_field_tac tacs)
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
 
@@ -354,7 +351,7 @@ and chk_tm : CS.con -> T.Chk.tac =
         let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
         RM.ret @@ R.Signature.intro field_tac
       | _ ->
-        RM.ret @@ T.Chk.syn @@ syn_tm con
+        RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 
 and syn_tm : CS.con -> T.Syn.tac =
   function con ->

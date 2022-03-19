@@ -874,9 +874,9 @@ patch.cooltt:21.7-21.14 [Info]:
                                        
   = A Z B p z => struct (x : p z @ x) (bx : p z @ bx) 
 
-patch.cooltt:24.79-24.87 [Info]:
+patch.cooltt:24.79-24.82 [Info]:
   fail total-space/fail:
-  Head connective mismatch, expected univ but got (_x₁ : nat) → type
+  Expected type = (_x : sig (A : type) (a : A) ) → (_x₁ : nat) → type
 
 patch.cooltt:35.7-35.15 [Info]:
   category
@@ -981,6 +981,16 @@ patch.cooltt:35.7-35.15 [Info]:
                    } {struct (s : g @ t) (t : h @ t) (fib : h @ fib) } @ fib)
        })
     
+
+patch.cooltt:47.7-47.16 [Info]:
+  test-auto
+  : (fam : (_x : sig (x : nat) ) → type) → type
+  = fam => sig (x : nat) (fib : fam {struct (x : x) }) 
+
+patch.cooltt:50.7-50.22 [Info]:
+  test-auto-patch
+  : (fam : (_x : sig (x : nat) ) → type) → type
+  = fam => sig (x : ext nat ⊤ {_x => 0}) (fib : fam {struct (x : 0) }) 
 
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.11-8.20 [Info]:
