@@ -730,7 +730,9 @@ struct
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
-      | ElStable (`Ext (0,code ,`Global (Cof (Meet [])),bdry)) -> 
+      | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) -> 
+        let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+        let* () = Cof.assert_true cof in
         let* tp = RM.lift_cmp @@
           Sem.splice_tp @@
           Splice.con code @@ fun code ->
@@ -744,7 +746,7 @@ struct
         in
         let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
         S.ElIn (S.SubIn ttm)
-      | _ -> failwith "Expected nullary extension"
+      | tp -> RM.expected_connective `ElExt tp
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.code_v" @@ fun _univ ->
@@ -868,10 +870,16 @@ struct
   let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
     match sign with
     | D.Field (lbl, tp, sign_clo) ->
-      let tac = match tacs lbl, tp with
-        | Some tac, _ -> tac
-        | None, ElStable (`Ext (0,_ ,`Global (Cof (Meet [])), _)) -> Univ.infer_nullary_ext
-        | None, _ -> Hole.unleash_hole (Ident.user_to_string_opt lbl)
+      let* tac = match tacs lbl, tp with
+        | Some tac, _ -> RM.ret tac
+        | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) -> 
+          let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+          begin
+          RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
+            | true -> RM.ret Univ.infer_nullary_ext
+            | false -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
+          end
+        | None, _ -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in

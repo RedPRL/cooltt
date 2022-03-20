@@ -38,6 +38,8 @@ let pp_connective fmt =
     Format.fprintf fmt "V"
   | `ElHCom ->
     Format.fprintf fmt "hcom"
+  | `ElExt ->
+    Format.fprintf fmt "ext"
 
 let pp fmt =
   function
