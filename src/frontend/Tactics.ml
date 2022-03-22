@@ -82,7 +82,7 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
           | _ -> RM.ret @@ T.Chk.syn tac
         in
         T.Chk.run tac' tp
-      | _ ->  T.Chk.run (T.Chk.syn tac) tp
+      | _ -> T.Chk.run (T.Chk.syn tac) tp
       end
     | tp -> T.Chk.run (T.Chk.syn tac) tp
 
