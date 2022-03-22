@@ -64,7 +64,7 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
 
     Therefore, we do an explicit check here instead.
     If we add universe levels, this code should probably be reconsidered. *)
-    T.Chk.rule ~name:"intro_conversions" @@ function
+  T.Chk.rule ~name:"intro_conversions" @@ function
     | D.Univ | D.ElStable `Univ as tp -> 
       let* tm, tp' = T.Syn.run tac in
       let* vtm = RM.lift_ev @@ Sem.eval tm in
