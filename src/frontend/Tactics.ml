@@ -64,7 +64,8 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
 
     Therefore, we do an explicit check here instead.
     If we add universe levels, this code should probably be reconsidered. *)
-  T.Chk.rule ~name:"intro_conversions" @@ function
+    T.Chk.whnf ~style:`UnfoldAll @@
+    T.Chk.rule ~name:"intro_conversions" @@ function
     | D.Univ | D.ElStable `Univ as tp -> 
       let* tm, tp' = T.Syn.run tac in
       let* vtm = RM.lift_ev @@ Sem.eval tm in
@@ -73,6 +74,7 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
       | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
         let* tac' = T.abstract ~ident base @@ fun var ->
           let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll fam in
           (* Same HACK *)
           match fam with
           | D.Univ 
@@ -80,7 +82,7 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
           | _ -> RM.ret @@ T.Chk.syn tac
         in
         T.Chk.run tac' tp
-      | _ -> T.Chk.run (T.Chk.syn tac) tp
+      | _ ->  T.Chk.run (T.Chk.syn tac) tp
       end
     | tp -> T.Chk.run (T.Chk.syn tac) tp
 
