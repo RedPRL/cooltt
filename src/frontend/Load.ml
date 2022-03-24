@@ -41,4 +41,4 @@ let reset_pos _lexbuf = ()
 
 let load_cmd lexbuf =
   reset_pos lexbuf;
-  parse_with_error Grammar.command lexbuf
+  parse_with_error Grammar.repl_command lexbuf

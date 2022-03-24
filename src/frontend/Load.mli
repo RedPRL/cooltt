@@ -8,4 +8,4 @@ type error =
 val load_file : [`Stdin | `File of string] -> (ConcreteSyntax.signature, error) result
 
 val prepare_repl : unit -> in_channel * Lexing.lexbuf
-val load_cmd : Lexing.lexbuf -> (ConcreteSyntax.command, error) result
+val load_cmd : Lexing.lexbuf -> (ConcreteSyntax.repl_command, error) result
