@@ -122,7 +122,7 @@ let hole_atom = hole_atom_initial hole_atom_subsequent*
 rule token = parse "" { skip_whitespace real_token lexbuf }
 
 and skip_whitespace kont = parse
-  | "--" | "⍝" (* APL *)
+  | "--" | "⍝" (* APL *) | "📝"
     { line_comment (skip_whitespace kont) lexbuf }
   | "/-"
     { block_comment (skip_whitespace kont) lexbuf }
@@ -136,7 +136,7 @@ and skip_whitespace kont = parse
 and real_token = parse
   | number
     { NUMERAL (int_of_string (Lexing.lexeme lexbuf)) }
-  | "⨾" | ";;"
+  | "⨾" | ";;" | "🛑"
     { SEMISEMI }
   | '('
     { LPR }
@@ -168,7 +168,7 @@ and real_token = parse
     { DOT }
   | ";"
     { SEMI }
-  | "×" | '*'
+  | "×" | '*' | "⭐" | "🌟"
     { TIMES }
   | ':'
     { COLON }
