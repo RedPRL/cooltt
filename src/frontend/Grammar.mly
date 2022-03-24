@@ -61,7 +61,7 @@
 %nonassoc HASH
 
 %start <ConcreteSyntax.signature> sign
-%start <ConcreteSyntax.command> command
+%start <ConcreteSyntax.repl_command> repl_command
 %type <Ident.t> plain_name
 %type <con_>
   plain_atomic_in_cof_except_term
@@ -172,7 +172,7 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-command:
+repl_command:
   | EOF
     { EndOfFile }
   | SEMISEMI

@@ -120,7 +120,7 @@ type decl =
 and signature = decl list
 
 
-type command =
+type repl_command =
   | NoOp
   | EndOfFile
   | Decl of decl
