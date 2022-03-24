@@ -1,8 +1,5 @@
 import prelude
 
-def unit/eta (x : unit) : path unit ⋆ x :=
-  _ => x
-
 def empty : type := path nat 0 1
 
 def abort (P : empty -> type) (e : empty) : P e :=

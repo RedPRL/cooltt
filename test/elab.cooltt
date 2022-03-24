@@ -37,6 +37,6 @@ def hole-in-type :
 def path (A : type) (a b : A) : type :=
   ext i => A with [i=0 => a | i=1 => b]
 
-def foo : (x : nat) → (y : nat) × path nat x y :=
+def bar : (x : nat) → (y : nat) × path nat x y :=
   x =>
   [x, ?hole1]

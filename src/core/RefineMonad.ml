@@ -49,9 +49,9 @@ let with_ ~begin_ ~end_ m =
   | Ok a -> ret a
   | Error exn -> let* () = set st in throw exn
 
-let add_global id tp con =
+let add_global ~shadowing id tp con =
   let* st = get in
-  let* sym, st' = throw_namespace_errors @@ St.add_global id tp con st in
+  let* sym, st' = throw_namespace_errors @@ St.add_global ~shadowing id tp con st in
   let+ () = set st' in
   sym
 
