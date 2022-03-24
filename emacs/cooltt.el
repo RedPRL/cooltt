@@ -144,6 +144,9 @@
     ;; Built-in expressions
     (,(regexp-opt cooltt-expression-keywords 'words) 0 'cooltt-expression-keyword-face)
     (,(regexp-opt cooltt-expression-symbols 'nil) 0 'cooltt-expression-symbol-face)
+
+    ;; Comments
+    (,(rx line-start (* space) (or "--" "📝" "⍝") (* not-newline) line-end) 0 'font-lock-comment-face)
     ))
 
 
