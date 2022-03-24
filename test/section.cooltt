@@ -13,7 +13,7 @@ end
 -- section with bang for shadowing
 def a3 : nat := 20
 !section begin
-  def a3 : nat := 30
+  !def a3 : nat := 30
 end
 #print a3
 

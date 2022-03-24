@@ -159,16 +159,16 @@ and import_unit ~shadowing path modifier : command =
 
 and execute_decl : CS.decl -> command =
   function
-  | CS.Def {name; args; def = Some def; tp} ->
+  | CS.Def {shadowing; name; args; def = Some def; tp} ->
     Debug.print "Defining %a@." Ident.pp name;
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let+ _ = RM.add_global name vtp @@ Some vtm in
+    let+ _ = RM.add_global ~shadowing name vtp @@ Some vtm in
     Continue
-  | CS.Def {name; args; def = None; tp} ->
+  | CS.Def {shadowing; name; args; def = None; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
     let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    let* _ = RM.add_global name vtp None in
+    let* _ = RM.add_global ~shadowing name vtp None in
     RM.ret Continue
   | CS.NormalizeTerm term ->
     RM.veil (Veil.const `Transparent) @@

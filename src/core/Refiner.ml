@@ -153,7 +153,7 @@ struct
         | None -> `Anon
         | Some str -> `Machine ("?" ^ str)
       in
-      RM.add_global ident vtp None
+      RM.add_global ~shadowing:true ident vtp None
     in
 
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
@@ -1137,7 +1137,7 @@ struct
         let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
-      let* sym = RM.add_global `Anon global_tp @@ Some def in
+      let* sym = RM.add_global ~shadowing:true `Anon global_tp @@ Some def in
       RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
     in
     RM.quote_cut cut
