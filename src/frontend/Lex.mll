@@ -65,13 +65,24 @@ let keywords =
     ("cap", CAP);
     ("with", WITH);
     ("import", IMPORT []);
+    ("📥", IMPORT []);
     ("begin", BEGIN);
+    ("▶️", BEGIN);
     ("end", END);
+    ("⏹️", END);
     ("equation", EQUATION);
     ("section", SECTION);
+    ("📦", SECTION);
     ("view", VIEW);
+    ("👁️", VIEW);
+    ("👀", VIEW);
+    ("👓", VIEW);
+    ("🕶️", VIEW);
     ("repack", REPACK);
+    ("🎁", REPACK);
+    ("🧧", REPACK);
     ("export", EXPORT);
+    ("📤", EXPORT);
   ]
 }
 
