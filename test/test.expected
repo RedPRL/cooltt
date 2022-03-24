@@ -664,7 +664,53 @@ holes.cooltt:14.7-14.35 [Info]:
        i = 1 => q 1
 
 
-holes.cooltt:18.26-18.30 [Info]:
+holes.cooltt:17.30-17.33 [Info]:
+  Emitted hole:
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- ?h2 : (i₁ : 𝕀) → sub A {i₁ = 0} {?h1 A p q i 1}
+
+
+holes.cooltt:17.7-17.40 [Info]:
+  Emitted hole:
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- {! trans/filler A {?h1 A p q i} {?h2 A p q i} 1 i !} : A
+    
+    Boundary (unsatisfied):
+    i = 0 ∨ i = 1
+    |- i = 0 => p 0
+       i = 1 => q 1
+
+
+holes.cooltt:20.25-20.28 [Info]:
+  Emitted hole:
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- ?h3 : (_x : 𝕀) → A
+
+
+holes.cooltt:20.7-20.40 [Info]:
+  Emitted hole:
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- {! trans/filler A {?h3 A p q i} {?h4 A p q i} 1 i !} : A
+    
+    Boundary (unsatisfied):
+    i = 0 ∨ i = 1
+    |- i = 0 => p 0
+       i = 1 => q 1
+
+
+holes.cooltt:24.26-24.30 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
@@ -673,9 +719,9 @@ holes.cooltt:18.26-18.30 [Info]:
     |- ? : (_x : 𝕀) → (_x₁ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) → A
 
 
-holes.cooltt:18.7-18.30 [Info]:
+holes.cooltt:24.7-24.30 [Info]:
   fail cone-of-silence-hcom:
-  Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+  Expected #18 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
 
 --------------------[import.cooltt]--------------------
 Emitted namespace under p2:

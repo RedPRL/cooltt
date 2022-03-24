@@ -127,6 +127,7 @@ end
 module Hole : sig
   val silent_hole : string option -> T.Chk.tac
   val unleash_hole : string option -> T.Chk.tac
+  val silent_syn_hole : string option -> T.Syn.tac
   val unleash_syn_hole : string option -> T.Syn.tac
 end =
 struct
@@ -169,6 +170,13 @@ struct
     T.Chk.brule ~name:"unleash_hole" @@ fun (tp, phi, clo) ->
     let* cut = make_hole name (tp, phi, clo) in
     RM.quote_cut cut
+
+  let silent_syn_hole name : T.Syn.tac =
+    T.Syn.rule ~name:"silent_syn_hole" @@
+    let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let tp = D.ElCut cut in
+    let+ tm = tp |> T.Chk.run @@ unleash_hole name in
+    tm, tp
 
   let unleash_syn_hole name : T.Syn.tac =
     Probe.probe_syn name @@

@@ -13,7 +13,9 @@ let pp_info fmt =
 type 'a node =
   {node : 'a;
    info : info}
+[@@deriving show]
 
+type hole = {name: string option; silent: bool}
 [@@deriving show]
 
 let map_node ~f n = {n with node = f n.node}
@@ -45,7 +47,7 @@ and con_ =
   | Fst of con
   | Snd of con
   | Type
-  | Hole of string option * con option
+  | Hole of hole * con option
   | BoundaryHole of con option
   | Underscore
   | Unfold of Ident.t list * con
@@ -82,7 +84,7 @@ and con_ =
   | ModSeq of con list
   | ModUnion of con list
   | ModInSubtree of string list * con
-  | ModPrint of string option
+  | ModPrint of hole
 [@@deriving show]
 
 and case = pat * con
