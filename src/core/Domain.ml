@@ -108,8 +108,7 @@ struct
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
   and pp_cof : cof Pp.printer =
-    fun fmt cof ->
-    pp_con fmt @@ cof_to_con cof
+    Cof.dump_cof Dim.dump Format.pp_print_int
 
   and pp_dim : dim Pp.printer =
     fun fmt r ->
@@ -159,12 +158,7 @@ struct
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
-    | Cof (Cof.Join phis) ->
-      Format.fprintf fmt "join[%a]" (Pp.pp_sep_list pp_con) phis
-    | Cof (Cof.Meet phis) ->
-      Format.fprintf fmt "meet[%a]" (Pp.pp_sep_list pp_con) phis
-    | Cof (Cof.Eq (r, s)) ->
-      Format.fprintf fmt "eq[%a,%a]" pp_con r pp_con s
+    | Cof phi -> Cof.pp_cof_f pp_con pp_con fmt phi
     | DimProbe x ->
       Format.fprintf fmt "probe[%a]" DimProbe.pp x
     | Lam (_, clo) ->

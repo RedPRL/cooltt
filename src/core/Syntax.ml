@@ -109,11 +109,7 @@ struct
     | TpLockedPrf _ -> Format.fprintf fmt "<locked>"
 
 
-  and dump_cof fmt =
-    function
-    | Cof.Eq (r1, r2) -> Format.fprintf fmt "eq[%a, %a]" dump r1 dump r2
-    | Cof.Join cofs -> Format.fprintf fmt "join[%a]" (Pp.pp_sep_list dump) cofs
-    | Cof.Meet cofs -> Format.fprintf fmt "meet[%a]" (Pp.pp_sep_list dump) cofs
+  and dump_cof fmt = Cof.dump_cof_f dump dump fmt
 
   and dump_branch fmt (cof, bdy) =
     Format.fprintf fmt "[%a, %a]" dump cof dump bdy
