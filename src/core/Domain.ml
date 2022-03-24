@@ -158,7 +158,7 @@ struct
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
-    | Cof phi -> Cof.dump_cof_f pp_con pp_con fmt phi
+    | Cof phi -> Cof.pp_cof_f pp_con pp_con fmt phi
     | DimProbe x ->
       Format.fprintf fmt "probe[%a]" DimProbe.pp x
     | Lam (_, clo) ->

@@ -37,6 +37,10 @@ val boundary : dim0:'r -> dim1:'r -> 'r -> ('r, 'v) cof
 
 val complexity_cof : ('r, 'a) cof -> int
 
+val pp_cof_f : 'r Basis.Pp.printer -> 'a Basis.Pp.printer -> ('r, 'a) cof_f Basis.Pp.printer
+
+val pp_cof : 'r Basis.Pp.printer -> 'v Basis.Pp.printer -> ('r, 'v) cof Basis.Pp.printer
+
 val dump_cof_f : 'r Basis.Pp.printer -> 'a Basis.Pp.printer -> ('r, 'a) cof_f Basis.Pp.printer
 
 val dump_cof : 'r Basis.Pp.printer -> 'v Basis.Pp.printer -> ('r, 'v) cof Basis.Pp.printer
