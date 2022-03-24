@@ -104,6 +104,14 @@
   :type '(repeat string)
   :tag "Cooltt options")
 
+(defcustom cooltt-comment-style 'dashes
+  "Comment style to use for cooltt."
+  :group 'cooltt
+  :type '(choice (const :tag "Dashes" dashes)
+		 (const :tag "APL" apl)
+		 (const :tag "Emoji" emoji))
+  :tag "Cooltt options")
+
 (defvar cooltt-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?_ "w" table)
@@ -134,6 +142,9 @@
 
 (defconst cooltt-mode-font-lock-keywords
   `(
+    ;; Comments
+    (,(rx line-start (* space) (or "--" "📝" "⍝") (* not-newline) line-end) 0 'font-lock-comment-face)
+
     ;; Declaration keyword
     (,(regexp-opt cooltt-declaration-keywords 'words) 0 'cooltt-declaration-keyword-face)
     (,(regexp-opt cooltt-command-keywords 'nil) 0 'cooltt-command-keyword-face)
@@ -144,6 +155,7 @@
     ;; Built-in expressions
     (,(regexp-opt cooltt-expression-keywords 'words) 0 'cooltt-expression-keyword-face)
     (,(regexp-opt cooltt-expression-symbols 'nil) 0 'cooltt-expression-symbol-face)
+
     ))
 
 
@@ -215,7 +227,12 @@ See `compilation-error-regexp-alist' for semantics.")
   "Major mode for editing cooltt proofs.
 \\{cooltt-mode-map}"
 
-  (set (make-local-variable 'comment-start) "-- ")
+  (set (make-local-variable 'comment-start)
+       (pcase cooltt-comment-style
+	 ('apl "⍝ ")
+	 ('emoji "📝 ")
+	 (_ "-- ")))
+
 
   (setq font-lock-defaults '((cooltt-mode-font-lock-keywords) nil nil))
 

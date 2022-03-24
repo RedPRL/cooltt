@@ -33,6 +33,7 @@ syn match   coolttSymb '\\/\|/\\'
 
 syn region  coolttComm excludenl start="\k\@1<!--" end="$" contains=coolttTodo
 syn region  coolttComm excludenl start="\k\@1<!⍝" end="$" contains=coolttTodo
+syn region  coolttComm excludenl start="\k\@1<!📝" end="$" contains=coolttTodo
 syn region  coolttBlockComm start="\k\@1<!/-" end="-/" nextgroup=coolttKeyw contains=coolttBlockComm,coolttTodo
 syn keyword coolttTodo contained TODO
 
