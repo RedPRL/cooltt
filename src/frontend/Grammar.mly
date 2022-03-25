@@ -138,7 +138,8 @@ plain_name:
   | UNDERSCORE
     { name_of_underscore }
 
-decl:
+decl: t = located(plain_decl) {t}
+plain_decl:
   | shadowing = boption(BANG); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Def {shadowing; name = nm; args = tele; def = Some body; tp} }
   | shadowing = boption(BANG); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
@@ -172,7 +173,8 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-repl_command:
+repl_command: t = located(plain_repl_command) {t}
+plain_repl_command:
   | EOF
     { EndOfFile }
   | SEMISEMI

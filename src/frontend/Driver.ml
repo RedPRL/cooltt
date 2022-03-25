@@ -157,8 +157,9 @@ and import_unit ~shadowing path modifier : command =
     let+ () = RM.import ~shadowing modifier (CodeUnitID.file src) in
     Continue
 
-and execute_decl : CS.decl -> command =
-  function
+and execute_decl (decl : CS.decl) : command =
+  RM.update_span (CS.get_info decl) @@
+  match decl.node with
   | CS.Def {shadowing; name; args; def = Some def; tp} ->
     Debug.print "Defining %a@." Ident.pp name;
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
@@ -248,8 +249,9 @@ let load_file ~as_file ~debug_mode input =
     RM.with_unit lib unit_id @@
     process_file input
 
-let execute_command =
-  function
+let execute_command (cmd : CS.repl_command) =
+  RM.update_span cmd.info @@
+  match cmd.node with
   | CS.Decl decl -> execute_decl decl
   | CS.NoOp -> RM.ret Continue
   | CS.EndOfFile -> RM.ret Quit

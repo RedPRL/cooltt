@@ -105,7 +105,8 @@ and eqns =
   | Step of eqns step
   | Qed of con
 
-type decl =
+type decl = decl_ node
+and decl_ =
   | Def of {shadowing : bool; name : Ident.t; args : cell list; def : con option; tp : con}
   | Print of Ident.t node
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
@@ -120,7 +121,8 @@ type decl =
 and signature = decl list
 
 
-type repl_command =
+type repl_command = repl_command_ node
+and repl_command_ =
   | NoOp
   | EndOfFile
   | Decl of decl
