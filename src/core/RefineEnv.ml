@@ -34,9 +34,6 @@ type t =
     cof_thy : CofThy.Disj.t;
     pp : Pp.env;
 
-    (* problems *)
-    problem : string bwd;
-
     (* location *)
     location : LexingUtil.span option;
   }
@@ -46,7 +43,6 @@ let init =
     locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
-    problem = Emp;
     location = None }
 
 let globally env =
@@ -54,7 +50,6 @@ let globally env =
     locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
-    problem = Emp;
     location = env.location }
 
 (* veil *)
@@ -112,12 +107,6 @@ let append_con ident con tp env =
      match tp with
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
      | _ -> env.cof_thy}
-
-(* problems *)
-let problem env = env.problem
-let push_problem lbl env =
-  {env with
-   problem = env.problem #< lbl}
 
 (* locations *)
 let location env = env.location

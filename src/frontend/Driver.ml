@@ -22,11 +22,10 @@ type command = continuation RM.m
 
 (* Refinement Helpers *)
 
-let elaborate_typed_term name (args : CS.cell list) tp tm =
-  RM.push_problem name @@
-  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
+let elaborate_typed_term _name (args : CS.cell list) tp tm =
+  let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-  let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
+  let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
   vtp, vtm
 

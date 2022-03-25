@@ -180,13 +180,5 @@ let abstract nm tp k =
   scope rho @@
   k @<< get_local 0
 
-let problem =
-  let+ env = read in
-  Env.problem env
-
-let push_problem lbl =
-  scope @@
-  Env.push_problem lbl
-
 let update_span loc =
   scope @@ Env.set_location loc
