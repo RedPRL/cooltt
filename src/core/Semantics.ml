@@ -1291,7 +1291,8 @@ and do_sub_out con =
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
-    | _ ->
+    | con ->
+      Format.eprintf "bad sub_out: %a@." D.pp_con con;
       throw @@ NbeFailed "do_sub_out"
   end
 

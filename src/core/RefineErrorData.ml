@@ -22,6 +22,7 @@ struct
     | `El
     | `ElV
     | `ElHCom
+    | `ElExt
     ]
 
   type t =

@@ -521,73 +521,6 @@ struct
       RM.expected_connective `Sg tp
 end
 
-
-module Signature =
-struct
-  let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
-    let rec form_fields tele =
-      function
-      | Bind (lbl, tac, tacs) ->
-        let* tp = T.Tp.run tac in
-        let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
-      | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
-    in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
-
-  let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
-    match fields with
-    | (lbl', tac) :: _ when Ident.equal lbl lbl'  ->
-      Some tac
-    | _ :: fields ->
-      find_field_tac fields lbl
-    | [] ->
-      None
-
-
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
-    match sign with
-    | D.Field (lbl, tp, sign_clo) ->
-      let tac = match tacs lbl with
-        | Some tac -> tac
-        | None -> Hole.unleash_hole (Ident.user_to_string_opt lbl)
-      in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
-      let* vfield = RM.lift_ev @@ Sem.eval tfield in
-      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
-      let+ tfields = intro_fields phi phi_clo tsign tacs in
-      (lbl, tfield) :: tfields
-    | D.Empty ->
-      RM.ret []
-
-  let intro (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
-    T.Chk.brule ~name:"Signature.intro" @@
-    function
-    | (D.Signature sign, phi, phi_clo) ->
-      let+ fields = intro_fields phi phi_clo sign tacs in
-      S.Struct fields
-    | (tp, _, _) -> RM.expected_connective `Signature tp
-
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
-    let rec go =
-      function
-      | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret tp
-      | D.Field (flbl, __, clo) ->
-        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
-        let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
-        go vsign
-      | D.Empty -> RM.expected_field sign tstruct lbl
-    in go sign
-
-  let proj tac lbl : T.Syn.tac =
-    T.Syn.rule ~name:"Signature.proj" @@
-    let* tstruct, tp = T.Syn.run tac in
-    match tp with
-    | D.Signature sign ->
-      let+ tp = proj_tp sign tstruct lbl in
-      S.Proj (tstruct, lbl), tp
-    | _ -> RM.expected_connective `Signature tp
-end
-
 module Univ =
 struct
   let formation : T.Tp.tac =
@@ -795,6 +728,26 @@ struct
     in
     S.CodeExt (n, tfam, `Global tcof, tbdry)
 
+  let infer_nullary_ext : T.Chk.tac =
+    T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
+      | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) -> 
+        let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+        let* () = Cof.assert_true cof in
+        let* tp = RM.lift_cmp @@
+          Sem.splice_tp @@
+          Splice.con code @@ fun code ->
+          Splice.term @@ TB.el code
+        in
+        let* tm = RM.lift_cmp @@ 
+          Sem.splice_tm @@
+          Splice.con bdry @@ fun bdry ->
+          Splice.term @@ 
+          TB.ap bdry [TB.prf] 
+        in
+        let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
+        S.ElIn (S.SubIn ttm)
+      | tp -> RM.expected_connective `ElExt tp
+
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.code_v" @@ fun _univ ->
     let* r = T.Chk.run tac_dim D.TpDim in
@@ -890,6 +843,81 @@ struct
     and+ vfam_trg = RM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
     S.Com (fam, src, trg, cof, tm), vfam_trg
 end
+
+
+module Signature =
+struct
+  let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
+    let rec form_fields tele =
+      function
+      | Bind (lbl, tac, tacs) ->
+        let* tp = T.Tp.run tac in
+        let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
+      | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
+    in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
+
+  let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
+    match fields with
+    | (lbl', tac) :: _ when Ident.equal lbl lbl'  ->
+      Some tac
+    | _ :: fields ->
+      find_field_tac fields lbl
+    | [] ->
+      None
+
+
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
+    match sign with
+    | D.Field (lbl, tp, sign_clo) ->
+      let* tac = match tacs lbl, tp with
+        | Some tac, _ -> RM.ret tac
+        | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) -> 
+          let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+          begin
+          RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
+            | true -> RM.ret Univ.infer_nullary_ext
+            | false -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
+          end
+        | None, _ -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
+      in
+      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
+      let* vfield = RM.lift_ev @@ Sem.eval tfield in
+      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
+      let+ tfields = intro_fields phi phi_clo tsign tacs in
+      (lbl, tfield) :: tfields
+    | D.Empty ->
+      RM.ret []
+
+  let intro (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+    T.Chk.brule ~name:"Signature.intro" @@
+    function
+    | (D.Signature sign, phi, phi_clo) ->
+      let+ fields = intro_fields phi phi_clo sign tacs in
+      S.Struct fields
+    | (tp, _, _) -> RM.expected_connective `Signature tp
+
+  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
+    let rec go =
+      function
+      | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret tp
+      | D.Field (flbl, __, clo) ->
+        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
+        let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
+        go vsign
+      | D.Empty -> RM.expected_field sign tstruct lbl
+    in go sign
+
+  let proj tac lbl : T.Syn.tac =
+    T.Syn.rule ~name:"Signature.proj" @@
+    let* tstruct, tp = T.Syn.run tac in
+    match tp with
+    | D.Signature sign ->
+      let+ tp = proj_tp sign tstruct lbl in
+      S.Proj (tstruct, lbl), tp
+    | _ -> RM.expected_connective `Signature tp
+end
+
 
 module El =
 struct
