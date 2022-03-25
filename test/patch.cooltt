@@ -52,3 +52,10 @@ def test-auto (fam : sig (x : nat) -> type) : type := fam
 
 def test-auto-patch (fam : sig (x : nat) -> type) : type := fam # [x .= 0]
 #print test-auto-patch
+<<<<<<< HEAD
+=======
+
+def U : type := type
+def test-unfold-total (fam : sig (x : nat) -> U) : U := fam
+#print test-unfold-total
+>>>>>>> main

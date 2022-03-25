@@ -18,7 +18,7 @@ def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0
   in
   com {j => B {φ ∨ j=0} {filler j}} 0 1 {φ} {j _ => d}
 
-def trans (A : type) (p : (i : 𝕀) → A)
+!def trans (A : type) (p : (i : 𝕀) → A)
   : (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
   → sub {path A {p 0} {q 1}} φ p
   :=

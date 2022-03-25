@@ -32,13 +32,17 @@ let keywords =
     ("zero", ZERO);
     ("suc", SUC);
     ("nat", NAT);
+    ("🔢", NAT);
     ("base", BASE);
     ("loop", LOOP);
+    ("➰", LOOP);
     ("circle", CIRCLE);
-    ("sig", SIG);
-    ("struct", STRUCT);
-    ("as", AS);
     ("🍪", CIRCLE);
+    ("sig", SIG);
+    ("✏", SIG);
+    ("struct", STRUCT);
+    ("🍱", STRUCT);
+    ("as", AS);
     ("let", LET);
     ("in", IN);
     ("fst", FST);
@@ -47,7 +51,9 @@ let keywords =
     ("unfold", UNFOLD);
     ("generalize", GENERALIZE);
     ("def", DEF);
+    ("📌", DEF);
     ("axiom", AXIOM);
+    ("🛐", AXIOM);
     ("type", TYPE);
     ("𝕀", DIM);
     ("dim", DIM);
@@ -65,13 +71,24 @@ let keywords =
     ("cap", CAP);
     ("with", WITH);
     ("import", IMPORT []);
+    ("📥", IMPORT []);
     ("begin", BEGIN);
+    ("▶️", BEGIN);
     ("end", END);
+    ("⏹️", END);
     ("equation", EQUATION);
     ("section", SECTION);
+    ("📦", SECTION);
     ("view", VIEW);
+    ("👁️", VIEW);
+    ("👀", VIEW);
+    ("👓", VIEW);
+    ("🕶️", VIEW);
     ("repack", REPACK);
+    ("🎁", REPACK);
+    ("🧧", REPACK);
     ("export", EXPORT);
+    ("📤", EXPORT);
   ]
 }
 
@@ -105,7 +122,7 @@ let hole_atom = hole_atom_initial hole_atom_subsequent*
 rule token = parse "" { skip_whitespace real_token lexbuf }
 
 and skip_whitespace kont = parse
-  | "--" | "⍝" (* APL *)
+  | "--" | "⍝" (* APL *) | "📝"
     { line_comment (skip_whitespace kont) lexbuf }
   | "/-"
     { block_comment (skip_whitespace kont) lexbuf }
@@ -119,7 +136,7 @@ and skip_whitespace kont = parse
 and real_token = parse
   | number
     { NUMERAL (int_of_string (Lexing.lexeme lexbuf)) }
-  | "⨾" | ";;"
+  | "⨾" | ";;" | "🛑"
     { SEMISEMI }
   | '('
     { LPR }
@@ -151,7 +168,7 @@ and real_token = parse
     { DOT }
   | ";"
     { SEMI }
-  | "×" | '*'
+  | "×" | '*' | "⭐" | "🌟"
     { TIMES }
   | ':'
     { COLON }

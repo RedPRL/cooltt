@@ -1,14 +1,14 @@
 -- "stdlib"
 import prelude
 
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
+!def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
   hcom A 0 j {∂ i} {j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
   }
 
-def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+!def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   trans/filler A p q 1
 
 -- isomorphisms
@@ -90,7 +90,7 @@ def iso/lhs (A B C : type) (I : iso A B) : iso {A → C} {B → C} :=
     [bc i b => bc {α b i},
      ac i a => ac {β a i}]]]
 
-def iso/lhs (A B C : type) (I : iso A B) : iso {C → A} {C → B} :=
+def iso/rhs (A B C : type) (I : iso A B) : iso {C → A} {C → B} :=
   let f := fst I in
   let g := fst {snd I} in
   let α := fst {snd {snd I}} in

@@ -73,6 +73,7 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
       | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
         let* tac' = T.abstract ~ident base @@ fun var ->
           let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll fam in
           (* Same HACK *)
           match fam with
           | D.Univ 

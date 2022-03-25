@@ -106,7 +106,7 @@ and eqns =
   | Qed of con
 
 type decl =
-  | Def of {name : Ident.t; args : cell list; def : con option; tp : con}
+  | Def of {shadowing : bool; name : Ident.t; args : cell list; def : con option; tp : con}
   | Print of Ident.t node
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of con
@@ -120,7 +120,7 @@ type decl =
 and signature = decl list
 
 
-type command =
+type repl_command =
   | NoOp
   | EndOfFile
   | Decl of decl

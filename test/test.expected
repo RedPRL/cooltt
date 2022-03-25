@@ -1031,6 +1031,11 @@ patch.cooltt:54.7-54.22 [Info]:
   : (fam : (_x : sig (x : nat) ) → type) → type
   = fam => sig (x : ext nat ⊤ {_x => 0}) (fib : fam {struct (x : 0) }) 
 
+patch.cooltt:54.7-54.24 [Info]:
+  test-unfold-total
+  : (fam : (_x : sig (x : nat) ) → U) → U
+  = fam => sig (x : nat) (fib : fam {struct (x : x) }) 
+
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.11-8.20 [Info]:
   Computed normal form of formation as

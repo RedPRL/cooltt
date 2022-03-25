@@ -61,7 +61,7 @@
 %nonassoc HASH
 
 %start <ConcreteSyntax.signature> sign
-%start <ConcreteSyntax.command> command
+%start <ConcreteSyntax.repl_command> repl_command
 %type <Ident.t> plain_name
 %type <con_>
   plain_atomic_in_cof_except_term
@@ -139,10 +139,10 @@ plain_name:
     { name_of_underscore }
 
 decl:
-  | DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Def {name = nm; args = tele; def = Some body; tp} }
-  | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
-    { Def {name = nm; args = tele; def = None; tp} }
+  | shadowing = boption(BANG); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Def {shadowing; name = nm; args = tele; def = Some body; tp} }
+  | shadowing = boption(BANG); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
+    { Def {shadowing; name = nm; args = tele; def = None; tp} }
   | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }
   | QUIT
@@ -172,7 +172,7 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-command:
+repl_command:
   | EOF
     { EndOfFile }
   | SEMISEMI

@@ -55,7 +55,7 @@ let end_section ~shadowing ~prefix = modify_scopes (Scopes.end_ ~shadowing ~pref
 let get_unit id st = IDMap.find id st.units
 
 let resolve_global id st = Scopes.resolve id st.scopes
-let add_global ident tp ocon st =
+let add_global ~shadowing ident tp ocon st =
   let open Result in
   let unit = get_unit st.unit_id st in
   let (sym, unit) = CodeUnit.add_global ident tp ocon unit in
@@ -64,7 +64,7 @@ let add_global ident tp ocon st =
     | D.TpPrf phi -> Cubical.CofThy.Disj.assume st.cof_thy [phi]
     | _ -> st.cof_thy
   in
-  let+ scopes = Scopes.add ~shadowing:true ident sym st.scopes in
+  let+ scopes = Scopes.add ~shadowing ident sym st.scopes in
   sym, { st with cof_thy; scopes; units = IDMap.add st.unit_id unit st.units }
 
 let get_global sym st =

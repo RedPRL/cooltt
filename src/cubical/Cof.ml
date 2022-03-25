@@ -58,3 +58,7 @@ let rec dump_cof dump_r dump_v fmt =
   function
   | Cof cof -> dump_cof_f dump_r (dump_cof dump_r dump_v) fmt cof
   | Var v -> dump_v fmt v
+
+let pp_cof = dump_cof
+
+let pp_cof_f = dump_cof_f
