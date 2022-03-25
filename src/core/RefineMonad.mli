@@ -7,9 +7,6 @@ open Bwd
 
 include module type of Monads.RefineM
 
-val push_problem : string -> 'a m -> 'a m
-val problem : string bwd m
-
 val refine_err : RefineError.t -> 'a m
 
 val update_span : LexingUtil.span option -> 'a m -> 'a m
