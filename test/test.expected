@@ -530,22 +530,22 @@ equation.cooltt:18.7-18.26 [Info]:
 
 --------------------[evan.cooltt]--------------------
 --------------------[export.cooltt]--------------------
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1; a2 => a2; a3 => a3 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1; a2 => a2; a3 => a3; b1 => a1 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1; a2 => a2; a3 => a3; b1 => a1 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1; a2 => a2; a3 => a2; b1 => a1 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1; a2 => a2; a3 => a3 }
 
 --------------------[groupoid-laws.cooltt]--------------------
@@ -678,24 +678,24 @@ holes.cooltt:18.7-18.30 [Info]:
   Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
 
 --------------------[import.cooltt]--------------------
-Emitted namespace under p2:
-  ?cool = { cong => cong; funext => funext; path-p => path-p; q::t => ⋆
+Emitted namespace under p2
+  ?cool = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
           ; refl => refl; symm => symm; symm/filler => symm/filler
           ; trans => trans; trans/filler => trans/filler; u => unit
           ; unit/eta => unit/eta }
 
-Emitted namespace under :::
-  ?all = { p1::cong => cong; p1::funext => funext; p1::path => path
-         ; p1::path-p => path-p; p1::refl => refl; p1::symm => symm
-         ; p1::symm/filler => symm/filler; p1::trans => trans
-         ; p1::trans/filler => trans/filler; p1::unit/eta => unit/eta
-         ; p1::⋆ => ⋆; p2::cong => cong; p2::funext => funext
-         ; p2::path-p => path-p; p2::q::t => ⋆; p2::refl => refl
-         ; p2::symm => symm; p2::symm/filler => symm/filler
-         ; p2::trans => trans; p2::trans/filler => trans/filler
-         ; p2::u => unit; p2::unit/eta => unit/eta }
+Emitted namespace under ∷
+  ?all = { p1∷cong => cong; p1∷funext => funext; p1∷path => path
+         ; p1∷path-p => path-p; p1∷refl => refl; p1∷symm => symm
+         ; p1∷symm/filler => symm/filler; p1∷trans => trans
+         ; p1∷trans/filler => trans/filler; p1∷unit/eta => unit/eta
+         ; p1∷⋆ => ⋆; p2∷cong => cong; p2∷funext => funext
+         ; p2∷path-p => path-p; p2∷q∷t => ⋆; p2∷refl => refl; p2∷symm => symm
+         ; p2∷symm/filler => symm/filler; p2∷trans => trans
+         ; p2∷trans/filler => trans/filler; p2∷u => unit
+         ; p2∷unit/eta => unit/eta }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { cong => cong; funext => funext; path => path; path-p => path-p
       ; refl => refl; symm => symm; symm/filler => symm/filler
       ; trans => trans; trans/filler => trans/filler; unit => unit
@@ -706,8 +706,8 @@ import.cooltt:26.7-26.14 [Info]:
   : unit
   = 0
 
-Emitted namespace under p2:
-  ? = { cong => cong; funext => funext; path-p => path-p; q::t => ⋆
+Emitted namespace under p2
+  ? = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
       ; refl => refl; symm => symm; symm/filler => symm/filler
       ; trans => trans; trans/filler => trans/filler; u => unit
       ; unit/eta => unit/eta }
@@ -744,9 +744,9 @@ monoid.cooltt:27.7-27.19 [Info]:
 
 --------------------[names.cooltt]--------------------
 names.cooltt:5.7-5.14 [Info]:
-  x::y::z
-  : (u::v : nat) → nat
-  = u::v => u::v
+  x∷y∷z
+  : (u∷v : nat) → nat
+  = u∷v => u∷v
 
 --------------------[nat-path.cooltt]--------------------
 nat.cooltt:9.11-9.16 [Info]:
@@ -1056,22 +1056,22 @@ path-types.cooltt:55.11-55.18 [Info]:
 record.cooltt:11.7-11.12 [Info]:
   basic
   : type
-  = sig (foo::x : nat) (bar : (_x : nat) → nat) 
+  = sig (foo∷x : nat) (bar : (_x : nat) → nat) 
 
 record.cooltt:12.7-12.21 [Info]:
-  basic::inhabit
+  basic∷inhabit
   : basic
-  = struct (foo::x : 1) (bar : {x => suc x}) 
+  = struct (foo∷x : 1) (bar : {x => suc x}) 
 
 record.cooltt:13.11-13.25 [Info]:
-  Computed normal form of basic::inhabit as
-   struct (foo::x : 1) (bar : {x => suc x}) 
+  Computed normal form of basic∷inhabit as
+   struct (foo∷x : 1) (bar : {x => suc x}) 
 
 record.cooltt:14.11-14.32 [Info]:
-  Computed normal form of basic::inhabit @ foo::x as 1
+  Computed normal form of basic∷inhabit @ foo∷x as 1
 
 record.cooltt:15.11-15.31 [Info]:
-  Computed normal form of {basic::inhabit @ bar} 1 as 2
+  Computed normal form of {basic∷inhabit @ bar} 1 as 2
 
 record.cooltt:32.7-32.13 [Info]:
   depend
@@ -1079,21 +1079,21 @@ record.cooltt:32.7-32.13 [Info]:
   = sig (tp : type) (fun : (_x : tp) → tp) 
 
 --------------------[repack.cooltt]--------------------
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1; a2 => a2; a3 => a3 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a2 => a2; a3 => a3; b1 => a1 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a2; a3 => a3; b1 => a1 }
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1; a2 => a2; a3 => a3 }
 
 --------------------[section.cooltt]--------------------
 section.cooltt:5.7-5.17 [Info]:
-  x1::y1::a1
+  x1∷y1∷a1
   : nat
   = 0
 
@@ -1108,12 +1108,12 @@ section.cooltt:18.7-18.9 [Info]:
   = 30
 
 section.cooltt:24.7-24.13 [Info]:
-  x4::b4
+  x4∷b4
   : nat
   = 40
 
-Emitted namespace under :::
-  ? = { a2 => a2; a3 => a3; x1::y1::a1 => a1; x4::b4 => a4 }
+Emitted namespace under ∷
+  ? = { a2 => a2; a3 => a3; x1∷y1∷a1 => a1; x4∷b4 => a4 }
 
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.11-8.18 [Info]:
@@ -1168,7 +1168,7 @@ view.cooltt:6.7-6.9 [Info]:
   : nat
   = 0
 
-Emitted namespace under :::
+Emitted namespace under ∷
   ? = { a1 => a1 }
 
 view.cooltt:16.7-16.9 [Info]:
@@ -1181,9 +1181,9 @@ view.cooltt:17.7-17.9 [Info]:
   : nat
   = 20
 
-Emitted namespace under :::
-  ? = { a1 => a1; m1::a2 => m1::a2; m1::a3 => m1::a3; m2::a3 => m2::a3
-      ; m2::a4 => m2::a4 }
+Emitted namespace under ∷
+  ? = { a1 => a1; m1∷a2 => m1∷a2; m1∷a3 => m1∷a3; m2∷a3 => m2∷a3
+      ; m2∷a4 => m2∷a4 }
 
 view.cooltt:22.7-22.9 [Info]:
   a2
@@ -1200,11 +1200,11 @@ view.cooltt:24.7-24.9 [Info]:
   : nat
   = 40
 
-Emitted namespace under :::
-  ? = { a1 => a1; m1::a2 => m1::a2; m1::a3 => m1::a3; m2::a3 => m2::a3
-      ; m2::a4 => m2::a4 }
+Emitted namespace under ∷
+  ? = { a1 => a1; m1∷a2 => m1∷a2; m1∷a3 => m1∷a3; m2∷a3 => m2∷a3
+      ; m2∷a4 => m2∷a4 }
 
-Emitted namespace under :::
-  ? = { a2 => m1::a2; a3 => m2::a3; a4 => m2::a4; b1 => a1; m1::a2 => m1::a2
-      ; m1::a3 => m1::a3 }
+Emitted namespace under ∷
+  ? = { a2 => m1∷a2; a3 => m2∷a3; a4 => m2∷a4; b1 => a1; m1∷a2 => m1∷a2
+      ; m1∷a3 => m1∷a3 }
 
