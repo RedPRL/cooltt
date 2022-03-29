@@ -1,7 +1,7 @@
 type 'a printer = Format.formatter -> 'a -> unit
 
 open Bwd
-open BwdNotation
+open Bwd.Notation
 
 module Env =
 struct
@@ -19,10 +19,10 @@ struct
   let rec rename xs x i =
     let suffix = nat_to_suffix i in
     let new_x = x ^ suffix in
-    if Bwd.mem new_x xs then (rename [@tailcall]) xs x (i + 1) else new_x
+    if Bwd.mem new_x ~set:xs then (rename [@tailcall]) xs x (i + 1) else new_x
 
   let choose_name (env : t) (x : string) =
-    if Bwd.mem x env then rename env x 1 else x
+    if Bwd.mem x ~set:env then rename env x 1 else x
 
   let var i env =
     if i < Bwd.length env then

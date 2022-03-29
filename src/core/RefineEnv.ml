@@ -2,7 +2,7 @@ open ContainersLabels
 open Basis
 open Cubical
 open Bwd
-open BwdNotation
+open Bwd.Notation
 
 open CodeUnit
 
@@ -93,9 +93,10 @@ let pp_env env = env.pp
 let sem_env (env : t) : D.env =
   {tpenv = Emp;
    conenv =
-     env.locals |> Bwd.map @@ fun cell ->
-     let _, con = Cell.contents cell in
-     con}
+     Bwd.map env.locals
+       ~f:(fun cell ->
+           let _, con = Cell.contents cell in
+           con)}
 let restrict phis env =
   {env with
    cof_thy = CofThy.Disj.assume env.cof_thy phis}

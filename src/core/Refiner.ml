@@ -333,7 +333,7 @@ struct
 
     module State =
     struct
-      open BwdNotation
+      open Bwd.Notation
       type t =
         {disj : D.cof;
          fns : (D.cof * D.con) bwd;

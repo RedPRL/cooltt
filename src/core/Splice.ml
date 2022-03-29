@@ -1,6 +1,6 @@
-open Basis.Bwd
+open Bwd
+open Bwd.Notation
 open Cubical
-open BwdNotation
 
 open CodeUnit
 

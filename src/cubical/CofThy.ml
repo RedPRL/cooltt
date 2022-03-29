@@ -140,7 +140,7 @@ struct
     * affecting the coverages. *)
   let drop_useless_branches cached_branches : cached_branches =
     let go_fwd acc (thy', branch) =
-      if Bwd.exists (fun (_, branch) -> test_branch thy' branch) acc then
+      if Bwd.exists ~f:(fun (_, branch) -> test_branch thy' branch) acc then
         acc
       else
         Snoc (acc, (thy', branch))
@@ -152,7 +152,7 @@ struct
       else
         (thy', branch) :: acc
     in
-    Bwd.fold_right go_bwd cached_branches []
+    Bwd.fold_right ~f:go_bwd cached_branches ~init:[]
 
   (** [split] combines all the optimizers above to split an algebraic theory
     * into multiple ones induced by the input cofibration context. *)
