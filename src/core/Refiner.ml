@@ -730,23 +730,23 @@ struct
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
-      | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) -> 
-        let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-        let* () = Cof.assert_true cof in
-        let* tp = RM.lift_cmp @@
-          Sem.splice_tp @@
-          Splice.con code @@ fun code ->
-          Splice.term @@ TB.el code
-        in
-        let* tm = RM.lift_cmp @@ 
-          Sem.splice_tm @@
-          Splice.con bdry @@ fun bdry ->
-          Splice.term @@ 
-          TB.ap bdry [TB.prf] 
-        in
-        let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
-        S.ElIn (S.SubIn ttm)
-      | tp -> RM.expected_connective `ElExt tp
+    | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
+      let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+      let* () = Cof.assert_true cof in
+      let* tp = RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con code @@ fun code ->
+        Splice.term @@ TB.el code
+      in
+      let* tm = RM.lift_cmp @@
+        Sem.splice_tm @@
+        Splice.con bdry @@ fun bdry ->
+        Splice.term @@
+        TB.ap bdry [TB.prf]
+      in
+      let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
+      S.ElIn (S.SubIn ttm)
+    | tp -> RM.expected_connective `ElExt tp
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.code_v" @@ fun _univ ->
