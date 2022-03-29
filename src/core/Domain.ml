@@ -1,6 +1,7 @@
 include DomainData
 open Basis
 open Cubical
+open Bwd
 
 module Make (Symbol : Symbol.S) =
 struct
@@ -119,24 +120,24 @@ struct
     fun fmt (Clo (tm, {tpenv; conenv})) ->
       Format.fprintf fmt "clo[%a ; [%a ; %a]]"
         S.dump tm
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
   and pp_tp_clo : tp_clo Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (tp, {tpenv; conenv})) ->
       Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
         S.dump_tp tp
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
   and pp_sign_clo : (S.sign clo) Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (sign, {tpenv; conenv})) ->
       Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
         S.dump_sign sign
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
   and pp_con : con Pp.printer =
     fun fmt ->

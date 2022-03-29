@@ -16,7 +16,7 @@ let zip_with f xs ys =
   let rec go acc xs ys =
     match xs, ys with
     | x :: xs, y :: ys -> go (Snoc (acc, f x y)) xs ys
-    | _, _ -> Bwd.to_list acc
+    | _, _ -> BwdLabels.to_list acc
   in go Emp xs ys
 
 
@@ -30,7 +30,7 @@ let rec map_opt f = function
 let map_accum_left (f : 'a -> 'b -> 'a * 'c) (e : 'a) (xs : ' b list) : 'a * 'c list =
   let rec go e ys =
     function
-    | [] -> (e, Bwd.to_list ys)
+    | [] -> (e, BwdLabels.to_list ys)
     | (x :: xs) ->
       let (e, y) = f e x in
       (go[@tailcall]) e (Snoc (ys, y)) xs
