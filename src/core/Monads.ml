@@ -112,7 +112,7 @@ struct
 
   let append cells =
     M.scope @@ fun local ->
-    let open BwdNotation in
+    let open Bwd.Notation in
     {local with env = {local.env with conenv = local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =

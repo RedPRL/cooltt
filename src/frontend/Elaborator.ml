@@ -36,7 +36,7 @@ let rec unfold idents k =
     See [NOTE: Sig Code Quantifiers] for more info. *)
 let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
   let bind_tac lbls (lbl, tac) =
-    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls tac in
+    let tac = Bwd.fold_right ~f:(fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls ~init:tac in
     Snoc (lbls, lbl) , (lbl, tac)
   in
   snd @@ ListUtil.map_accum_left bind_tac Emp tacs
