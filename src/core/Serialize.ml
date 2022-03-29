@@ -32,11 +32,11 @@ let json_to_alist json_to_a json_to_b j_alist : ('a * 'b) list =
   List.map (json_to_pair json_to_a json_to_b) j_alist
 
 let json_of_bwd json_of_el bwd : J.value =
-  `A (Bwd.to_list @@ Bwd.map ~f:json_of_el bwd)
+  `A (BwdLabels.to_list @@ BwdLabels.map ~f:json_of_el bwd)
 
 let json_to_bwd json_to_el : J.value -> 'a bwd =
   function
-  | `A xs -> Bwd.map ~f:json_to_el @@ Bwd.of_list xs
+  | `A xs -> BwdLabels.map ~f:json_to_el @@ BwdLabels.of_list xs
   | j -> J.parse_error j "json_to_bwd"
 
 let labeled lbl v = `A (`String lbl :: v)

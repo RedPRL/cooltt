@@ -75,7 +75,7 @@ struct
     let cells = Env.locals env in
 
     RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
@@ -94,7 +94,7 @@ struct
     let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
 
     RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
 
@@ -146,7 +146,7 @@ struct
 
     RM.globally @@
     let* sym =
-      let* tp = GlobalUtil.multi_pi (Bwd.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
+      let* tp = GlobalUtil.multi_pi (BwdLabels.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
       let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
@@ -333,7 +333,7 @@ struct
 
     module State =
     struct
-      open Bwd.Notation
+      open BwdNotation
       type t =
         {disj : D.cof;
          fns : (D.cof * D.con) bwd;
@@ -360,7 +360,7 @@ struct
         fun state branch ->
           let* bdy =
             let psi' = Cubical.Cof.join [state.disj; psi] in
-            let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list state.fns in
+            let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: BwdLabels.to_list state.fns in
             T.abstract (D.TpPrf branch.cof) @@ fun prf ->
             T.Chk.brun (branch.bdy prf) (tp, psi', D.un_lam psi'_fn)
           in
@@ -372,7 +372,7 @@ struct
         fun state ->
           function
           | [] ->
-            RM.ret @@ S.CofSplit (Bwd.to_list state.acc)
+            RM.ret @@ S.CofSplit (BwdLabels.to_list state.acc)
           | tac :: tacs ->
             let* state = step state tac in
             fold state tacs
@@ -854,7 +854,7 @@ struct
         let* tp = T.Tp.run tac in
         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
         T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
-      | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
+      | Done -> RM.ret @@ S.Signature (BwdLabels.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
   let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
@@ -872,10 +872,10 @@ struct
     | D.Field (lbl, tp, sign_clo) ->
       let* tac = match tacs lbl, tp with
         | Some tac, _ -> RM.ret tac
-        | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) -> 
+        | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
           let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
           begin
-          RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
+            RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
             | true -> RM.ret Univ.infer_nullary_ext
             | false -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
           end
@@ -1152,7 +1152,7 @@ struct
     in
 
     let cells = Env.locals env in
-    let cells_fwd = Bwd.to_list cells in
+    let cells_fwd = BwdLabels.to_list cells in
 
     let* cut =
       RM.globally @@

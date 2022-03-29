@@ -116,7 +116,7 @@ struct
     let thy', eqs = List.fold_left ~f:go ~init:(thy, Emp) eqs in
     match test_eq thy' (Dim0, Dim1) with
     | true -> `Inconsistent
-    | false -> `Consistent (thy', Bwd.to_list eqs)
+    | false -> `Consistent (thy', BwdLabels.to_list eqs)
 
   (** [reduce_branch] detects inconsistency of a branch and takes out redundant
     * cofibration variables and equations. *)
@@ -140,7 +140,7 @@ struct
     * affecting the coverages. *)
   let drop_useless_branches cached_branches : cached_branches =
     let go_fwd acc (thy', branch) =
-      if Bwd.exists ~f:(fun (_, branch) -> test_branch thy' branch) acc then
+      if BwdLabels.exists ~f:(fun (_, branch) -> test_branch thy' branch) acc then
         acc
       else
         Snoc (acc, (thy', branch))
@@ -152,7 +152,7 @@ struct
       else
         (thy', branch) :: acc
     in
-    Bwd.fold_right ~f:go_bwd cached_branches ~init:[]
+    BwdLabels.fold_right ~f:go_bwd cached_branches ~init:[]
 
   (** [split] combines all the optimizers above to split an algebraic theory
     * into multiple ones induced by the input cofibration context. *)

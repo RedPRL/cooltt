@@ -98,7 +98,7 @@ let lam ?(ident = `Anon) mbdy : _ m =
 let lams idents mbdy : _ m =
   let rec go vars =
     function
-    | [] -> mbdy (Bwd.to_list vars)
+    | [] -> mbdy (BwdLabels.to_list vars)
     | (ident :: idents) -> lam ~ident @@ fun var -> go (Snoc (vars, var)) idents
   in go Emp idents
 
@@ -345,7 +345,7 @@ let dim1 = ret S.Dim1
 let cube n mfam : _ m =
   let rec go acc n =
     if n = 0 then
-      mfam @@ Bwd.to_list acc
+      mfam @@ BwdLabels.to_list acc
     else
       pi tp_dim @@ fun i ->
       go (Snoc (acc, i)) (n - 1)
@@ -355,7 +355,7 @@ let cube n mfam : _ m =
 let nlam n mbdy : _ m =
   let rec go acc n =
     if n = 0 then
-      mbdy @@ Bwd.to_list acc
+      mbdy @@ BwdLabels.to_list acc
     else
       lam @@ fun i ->
       go (Snoc (acc, i)) (n - 1)

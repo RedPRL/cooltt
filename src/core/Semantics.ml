@@ -33,14 +33,14 @@ let cut_frm ~tp ~cut frm =
 let get_local i =
   let open EvM in
   let* env = EvM.read_local in
-  match Bwd.nth env.conenv i with
+  match BwdLabels.nth env.conenv i with
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
 let get_local_tp i =
   let open EvM in
   let* env = EvM.read_local in
-  match Bwd.nth env.tpenv i with
+  match BwdLabels.nth env.tpenv i with
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
