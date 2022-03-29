@@ -24,7 +24,6 @@ depends: [
   "bantorra"
 ]
 pin-depends: [
-  [ "bwd.~dev" "git+https://github.com/RedPRL/ocaml-bwd" ]
   [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
 ]
 build: [
