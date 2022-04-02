@@ -15,22 +15,26 @@ let top = Cof (Meet [])
 let eq x y =
   if x = y then top else Cof (Eq (x, y))
 
-let join2 phi psi =
-  match phi, psi with
-  | Cof (Meet []), _ | _, Cof (Meet []) -> Cof (Meet [])
-  | phi, psi ->
+let is_syntactic_bot = function Cof (Join []) -> true | _ -> false
+let is_syntactic_top = function Cof (Meet []) -> true | _ -> false
+
+let join phis =
+  if List.exists is_syntactic_top phis then
+    top
+  else
     let expose = function Cof (Join phis) -> phis | phi -> [phi] in
-    match expose phi @ expose psi with [phi] -> phi | l -> Cof (Join l)
+    match List.concat_map expose phis with
+    | [phi] -> phi
+    | l -> Cof (Join l)
 
-let meet2 phi psi =
-  match phi, psi with
-  | Cof (Join []), _ | _, Cof (Join []) -> Cof (Join [])
-  | phi, psi ->
+let meet phis =
+  if List.exists is_syntactic_bot phis then
+    bot
+  else
     let expose = function Cof (Meet phis) -> phis | phi -> [phi] in
-    match expose phi @ expose psi with [phi] -> phi | l -> Cof (Meet l)
-
-let join l = List.fold_left join2 bot l
-let meet l = List.fold_left meet2 top l
+    match List.concat_map expose phis with
+    | [phi] -> phi
+    | l -> Cof (Meet l)
 
 let boundary ~dim0 ~dim1 r = join [eq r dim0; eq r dim1]
 
