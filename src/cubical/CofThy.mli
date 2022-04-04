@@ -14,9 +14,7 @@ sig
 
   (** Search all branches induced by irreducible joins under additional cofibrations. *)
   val left_invert_under_cofs
-    : zero:'a
-    (** [zero] is the default value for vacuous cases. *)
-    -> seq:((t -> 'a) -> t list -> 'a)
+    : seq:((t -> 'a) -> t list -> 'a)
     (** [seq] is the sequencing operator. *)
     -> t
     (** the theory *)
@@ -54,9 +52,7 @@ sig
 
   (** Search all branches induced by irreducible joins under additional cofibrations. *)
   val left_invert
-    : zero:'a
-    (** [zero] is the default value for vacuous cases. *)
-    -> seq:((Alg.t -> 'a) -> Alg.t list -> 'a)
+    : seq:((Alg.t -> 'a) -> Alg.t list -> 'a)
     (** [seq] is the sequencing operator. *)
     -> t
     (** the theory *)
