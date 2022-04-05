@@ -184,11 +184,8 @@ struct
     | Cof.Var v ->
       test_var thy' v
 
-  let left_invert_under_cofs ~zero ~seq (thy : t) cofs cont =
-    match split thy cofs with
-    | [] -> zero
-    | [thy] -> cont thy
-    | thys -> seq cont thys
+  let left_invert_under_cofs ~seq (thy : t) cofs cont =
+    seq cont @@ split thy cofs
 
   let meet2' thy'1 thy'2 =
     let thy' =
@@ -292,11 +289,8 @@ struct
     List.map ~f:(fun (thy', _) -> thy') @@
     split thy cx
 
-  let left_invert ~zero ~seq thy cont =
-    match List.map thy ~f:(fun (thy', _) -> `Consistent thy') with
-    | [] -> zero
-    | [thy'] -> cont thy'
-    | thy's -> seq cont thy's
+  let left_invert ~seq thy cont =
+    seq cont @@ List.map thy ~f:(fun (thy', _) -> `Consistent thy')
 
   let meet2 (thy1 : t) (thy2 : t) : t =
     (* a correct but unoptimized theory *)

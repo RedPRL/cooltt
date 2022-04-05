@@ -168,8 +168,7 @@ struct
 
   let restrict_ phis m =
     let* {cof_thy; _} = M.read in
-    CofThy.Alg.left_invert_under_cofs
-      ~zero:(M.ret ()) ~seq:MU.iter
+    CofThy.Alg.left_invert_under_cofs ~seq:MU.iter
       cof_thy phis @@ fun thy ->
     replace_env thy m
 
@@ -290,8 +289,7 @@ struct
     in
     fun (state, env) ->
       match
-        CofThy.Disj.left_invert
-          ~zero:(Ok ()) ~seq:MU.iter
+        CofThy.Disj.left_invert ~seq:MU.iter
           (cof_thy state env) @@ fun cof_thy ->
         ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} m
       with
