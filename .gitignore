@@ -96,7 +96,7 @@ Temporary Items
 .apdisk
 
 
-### https://raw.github.com/github/gitignore/fad779220742a6d54ccfc0c1a0e5b3d820253de6/OCaml.gitignore
+### https://raw.githubusercontent.com/github/gitignore/main/OCaml.gitignore
 
 *.annot
 *.cmo
@@ -121,3 +121,9 @@ setup.log
 
 # Merlin configuring file for Vim and Emacs
 .merlin
+
+# Dune generated files
+*.install
+
+# Local OPAM switch
+_opam/
