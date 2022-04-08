@@ -1,6 +1,5 @@
 include DomainData
 open Basis
-open Cubical
 open Bwd
 
 module Make (Symbol : Symbol.S) =
@@ -54,11 +53,12 @@ struct
       DimProbe sym
 
   let rec cof_to_con =
+    let module K = Kado.Syntax in
     function
-    | Cof.Cof (Cof.Eq (r, s)) -> Cof (Cof.Eq (dim_to_con r, dim_to_con s))
-    | Cof.Cof (Cof.Join phis) -> Cof (Cof.Join (List.map cof_to_con phis))
-    | Cof.Cof (Cof.Meet phis) -> Cof (Cof.Meet (List.map cof_to_con phis))
-    | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Cof (S.Cof.Eq (r, s)) -> Cof (K.Eq (dim_to_con r, dim_to_con s))
+    | K.Cof (S.Cof.Join phis) -> Cof (K.Join (List.map cof_to_con phis))
+    | K.Cof (S.Cof.Meet phis) -> Cof (K.Meet (List.map cof_to_con phis))
+    | K.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
 
   let pp_lsq fmt () = Format.fprintf fmt "["
   let pp_rsq fmt () = Format.fprintf fmt "]"
@@ -109,7 +109,8 @@ struct
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
   and pp_cof : cof Pp.printer =
-    Cof.dump_cof Dim.dump Format.pp_print_int
+    fun fmt cof ->
+    pp_con fmt (cof_to_con cof)
 
   and pp_dim : dim Pp.printer =
     fun fmt r ->
@@ -159,7 +160,12 @@ struct
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
-    | Cof phi -> Cof.pp_cof_f pp_con pp_con fmt phi
+    | Cof (Eq (x, y)) ->
+      Format.fprintf fmt "eq[%a,%a]" pp_con x pp_con y
+    | Cof (Join phis) ->
+      Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ",") pp_con) phis
+    | Cof (Meet phis) ->
+      Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ",") pp_con) phis
     | DimProbe x ->
       Format.fprintf fmt "probe[%a]" DimProbe.pp x
     | Lam (_, clo) ->

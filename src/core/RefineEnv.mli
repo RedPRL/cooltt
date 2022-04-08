@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 open Bwd
 
 open CodeUnit

@@ -13,6 +13,10 @@ type t =
   | DimProbe of DimProbe.t
   (** Some dimension variables must be generated to probe underneath a binder. Subject to substitution. *)
 
+val dim0 : t
+val dim1 : t
+
+val equal : t -> t -> bool
 val compare : t -> t -> int
 
 val dump : t Pp.printer
