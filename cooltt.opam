@@ -22,8 +22,10 @@ depends: [
   "yuujinchou" {>= "2.0.0" & < "3"}
   "odoc" {with-doc}
   "bantorra"
+  "kado"
 ]
 pin-depends: [
+  [ "kado.~dev" "git+https://github.com/RedPRL/kado" ]
   [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
 ]
 build: [
