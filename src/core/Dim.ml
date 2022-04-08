@@ -4,7 +4,11 @@ type t =
   | DimVar of int
   | DimProbe of DimProbe.t
 
-let compare = compare
+let equal : t -> t -> bool = (=)
+let compare : t -> t -> int = compare
+
+let dim0 = Dim0
+let dim1 = Dim1
 
 let dump fmt =
   function

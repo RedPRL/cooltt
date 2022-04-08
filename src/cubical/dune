@@ -1,8 +1,0 @@
-(library
- (name Cubical)
- (flags
-  (:standard -w -32-38 -warn-error -a+31))
- (preprocess
-  (pps ppx_deriving.std))
- (libraries containers bwd cooltt.basis)
- (public_name cooltt.cubical))

@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 open Bwd
 
 module Make (Symbol : Symbol.S) =
@@ -7,7 +6,7 @@ struct
   module S = Syntax.Make(Symbol)
 
   type dim = Dim.t
-  type cof = (dim, int) Cof.cof
+  type cof = CofBuilder.cof
 
   (** A type code whose head constructor is stable under dimension substitution. *)
   type 'a stable_code =
@@ -79,7 +78,7 @@ struct
     | Dim1
     | DimProbe of DimProbe.t
 
-    | Cof of (con, con) Cof.cof_f
+    | Cof of (con, con) Kado.Syntax.endo
     (** A mixin of the language of cofibrations (as described in {!module:Cubical.Cof}), with dimensions and indeterminates in {!type:con}. *)
 
     | Prf
@@ -151,4 +150,15 @@ struct
     | KVProj of dim * con * con * con
     | KSubOut of cof * tm_clo
     | KLockedPrfUnlock of tp * cof * con
+
+  module CofBuilder = Kado.Builder.Endo.Make
+      (struct
+        type dim = con
+        type cof = con
+        let dim0 = Dim0
+        let dim1 = Dim1
+        let equal_dim = (=)
+        let cof phi = Cof phi
+        let uncof = function Cof phi -> Some phi | _ -> None
+      end)
 end

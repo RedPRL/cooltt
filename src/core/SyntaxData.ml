@@ -1,8 +1,9 @@
 open Basis
-open Cubical
 
 module Make (Symbol : Symbol.S) =
 struct
+  module Cof = Kado.Syntax.Endo
+
   type t =
     | Var of int
     | Global of Symbol.t
@@ -36,7 +37,7 @@ struct
 
     | Dim0
     | Dim1
-    | Cof of (t, t) Cof.cof_f
+    | Cof of (t, t) Cof.t
     | ForallCof of t
     | CofSplit of (t * t) list
     | Prf
@@ -101,4 +102,14 @@ struct
     | SbP
     (** The projection from a extended context [Γ.A → Γ]. *)
 
+  module CofBuilder = Kado.Builder.Endo.Make
+      (struct
+        type dim = t
+        type cof = t
+        let dim0 = Dim0
+        let dim1 = Dim1
+        let equal_dim = (=)
+        let cof phi = Cof phi
+        let uncof = function Cof phi -> Some phi | _ -> None
+      end)
 end

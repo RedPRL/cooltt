@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 open Monads
 
 open CodeUnit
@@ -52,7 +51,7 @@ let rec quote_con (tp : D.tp) con =
   match tp, con with
   | _, D.Split branches ->
     let quote_branch (phi, clo) =
-      lift_cmp @@ CmpM.test_sequent [phi] Cof.bot |>> function
+      lift_cmp @@ CmpM.test_sequent [phi] CofBuilder.bot |>> function
       | false ->
         let+ tphi = quote_cof phi
         and+ tbdy =
@@ -71,10 +70,10 @@ let rec quote_con (tp : D.tp) con =
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
     begin
-      lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (Dim.DimVar lvl) Dim.Dim0 |>> function
+      lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq0 (Dim.DimVar lvl) |>> function
       | true -> ret S.Dim0
       | false ->
-        lift_cmp @@ CmpM.test_sequent [] @@ Cof.eq (Dim.DimVar lvl) Dim.Dim1 |>> function
+        lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq1 (Dim.DimVar lvl) |>> function
         | true -> ret S.Dim1
         | false ->
           let+ ix = quote_var lvl in
@@ -209,7 +208,7 @@ let rec quote_con (tp : D.tp) con =
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as tp, _ ->
     begin
-      lift_cmp (CmpM.test_sequent [] (Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r)) |>> function
+      lift_cmp (CmpM.test_sequent [] (CofBuilder.boundary r)) |>> function
       | true ->
         let branch phi : (S.t * S.t) m =
           let* tphi = quote_cof phi in
@@ -217,13 +216,13 @@ let rec quote_con (tp : D.tp) con =
           let+ tm = quote_con tp con in
           tphi, tm
         in
-        let phis = [Cof.eq r Dim.Dim0; Cof.eq r Dim.Dim1] in
+        let phis = [CofBuilder.eq0 r; CofBuilder.eq1 r] in
         let+ branches = MU.map branch phis in
         S.CofSplit branches
       | false ->
         let+ tr = quote_dim r
         and+ part =
-          quote_lam ~ident:`Anon (D.TpPrf (Cof.eq r Dim.Dim0)) @@ fun _ ->
+          quote_lam ~ident:`Anon (D.TpPrf (CofBuilder.eq0 r)) @@ fun _ ->
           let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
           let* tp = lift_cmp @@ do_el pcode_fib in
           quote_con tp con
@@ -253,7 +252,7 @@ let rec quote_con (tp : D.tp) con =
       List.flatten <@>
       begin
         branches |> MU.map @@ fun (phi, clo) ->
-        lift_cmp (CmpM.test_sequent [phi] Cof.bot) |>> function
+        lift_cmp (CmpM.test_sequent [phi] CofBuilder.bot) |>> function
         | true ->
           ret []
         | false ->
@@ -373,7 +372,7 @@ and quote_lam ~ident tp mbdy =
 
 and quote_v_data r pcode code pequiv =
   let+ tr = quote_dim r
-  and+ t_pcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode
+  and+ t_pcode = quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), `Anon, D.const_tp_clo D.Univ)) pcode
   and+ tcode = quote_con D.Univ code
   and+ t_pequiv =
     let* tp_pequiv =
@@ -394,7 +393,7 @@ and quote_hcom code r s phi bdy =
     let ident_i = guess_bound_name bdy in
     quote_lam ~ident:ident_i D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    quote_lam ~ident:`Anon (D.TpPrf (Cof.join [Cof.eq r i_dim; phi])) @@ fun prf ->
+    quote_lam ~ident:`Anon (D.TpPrf (CofBuilder.join [CofBuilder.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     let* tp = lift_cmp @@ do_el code in
     quote_con tp body
@@ -537,7 +536,7 @@ and quote_unstable_cut cut ufrm =
     S.Cap (tr, ts, tphi, tcode, tbox)
   | D.KVProj (r, pcode, code, pequiv) ->
     let* tr = quote_dim r in
-    let* tpcode = quote_con (D.Pi (D.TpPrf (Cof.eq r Dim.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+    let* tpcode = quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), `Anon, D.const_tp_clo D.Univ)) pcode in
     let* tcode = quote_con D.Univ code in
     let* t_pequiv =
       let* tp_pequiv =
@@ -563,25 +562,26 @@ and quote_dim d : S.t quote =
   D.dim_to_con d
 
 and quote_cof phi =
+  let module K = Kado.Syntax in
   let rec go =
     function
-    | Cof.Var lvl ->
+    | K.Var lvl ->
       let+ ix = quote_var lvl in
       S.Var ix
-    | Cof.Cof phi ->
+    | K.Cof phi ->
       match phi with
-      | Cof.Eq (r, s) ->
+      | K.Eq (r, s) ->
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
-        S.Cof (Cof.Eq (tr, ts))
-      | Cof.Join phis ->
+        S.CofBuilder.eq tr ts
+      | K.Join phis ->
         let+ tphis = MU.map go phis in
-        S.Cof (Cof.Join tphis)
-      | Cof.Meet phis ->
+        S.CofBuilder.join tphis
+      | K.Meet phis ->
         let+ tphis = MU.map go phis in
-        S.Cof (Cof.Meet tphis)
+        S.CofBuilder.meet tphis
   in
-  go @<< lift_cmp @@ Sem.normalize_cof phi
+  go @<< lift_cmp @@ Sem.simplify_cof phi
 
 and quote_var lvl =
   let+ n = read_local in

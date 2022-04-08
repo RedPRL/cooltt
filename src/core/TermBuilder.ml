@@ -1,14 +1,12 @@
 open Basis
 open Bwd
-open Cubical
-
-open CodeUnit
 
 exception CFHM
 exception CCHM
 exception CJHM
 
-module S = Syntax
+module S = CodeUnit.Syntax
+module CB = S.CofBuilder
 
 module M : sig
   include Monad.S
@@ -267,7 +265,7 @@ let code_sg mbase mfam : _ m =
 let code_path mfam mbdry : _ m =
   let+ fam = mfam
   and+ bdry = mbdry in
-  S.CodeExt (1, fam, `Global (S.Lam (`Anon, S.Cof (Cof.Join [S.Cof (Cof.Eq (S.Var 0, S.Dim0)); S.Cof (Cof.Eq (S.Var 0, S.Dim1))]))), bdry)
+  S.CodeExt (1, fam, `Global (S.Lam (`Anon, CB.boundary (S.Var 0))), bdry)
 
 let code_v mr mpcode mcode mpequiv : _ m=
   let+ r = mr
@@ -317,15 +315,15 @@ let pis ?(idents = []) margs mfam : _ m =
 let eq mr ms =
   let+ r = mr
   and+ s = ms in
-  S.Cof (Cof.Eq (r, s))
+  CB.eq r s
 
 let join mphis =
   let+ phis = MU.commute_list mphis in
-  S.Cof (Cof.Join phis)
+  CB.join phis
 
 let meet mphis =
   let+ phis = MU.commute_list mphis in
-  S.Cof (Cof.Meet phis)
+  CB.meet phis
 
 let top =
   meet []

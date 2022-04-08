@@ -1,6 +1,5 @@
 open Basis
 open Bwd
-open Cubical
 open CodeUnit
 
 module S = Syntax
@@ -77,25 +76,27 @@ let json_to_labeled json_to_el =
 
 module Cof =
 struct
-  let json_of_cof_f (json_of_r : 'r -> J.value) (json_of_a : 'a -> J.value) : ('r, 'a) Cof.cof_f -> J.value =
+  module K = Kado.Syntax
+
+  let json_of_cof_f (json_of_r : 'r -> J.value) (json_of_a : 'a -> J.value) : ('r, 'a) K.endo -> J.value =
     function
     | Eq (r0, r1) -> labeled "eq" [json_of_r r0; json_of_r r1]
     | Join xs -> labeled "join" @@ List.map json_of_a xs
     | Meet xs -> labeled "meet" @@ List.map json_of_a xs
 
-  let rec json_of_cof (json_of_r : 'r -> J.value) (json_of_v : 'v -> J.value) : ('r, 'v) Cof.cof -> J.value =
+  let rec json_of_cof (json_of_r : 'r -> J.value) (json_of_v : 'v -> J.value) : ('r, 'v) K.free -> J.value =
     function
     | Cof cof -> labeled "cof" [json_of_cof_f json_of_r (json_of_cof json_of_r json_of_v) cof]
     | Var v -> labeled "var" [json_of_v v]
 
-  let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_a : J.value -> 'a) : J.value -> ('r, 'a) Cof.cof_f =
+  let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_a : J.value -> 'a) : J.value -> ('r, 'a) K.endo =
     function
     | `A [`String "eq"; r0; r1] -> Eq (json_to_r r0, json_to_r r1)
     | `A (`String "join" :: xs) -> Join (List.map json_to_a xs)
     | `A (`String "meet" :: xs) -> Meet (List.map json_to_a xs)
     | j -> J.parse_error j "Cof.json_to_cof_f"
 
-  let rec json_to_cof (json_to_r : J.value -> 'r) (json_to_v : J.value -> 'v) : J.value -> ('r, 'v) Cof.cof =
+  let rec json_to_cof (json_to_r : J.value -> 'r) (json_to_v : J.value -> 'v) : J.value -> ('r, 'v) K.free =
     function
     | `A [`String "cof"; j_cof_f] -> Cof (json_to_cof_f json_to_r (json_to_cof json_to_r json_to_v) j_cof_f)
     | `A [`String "var"; j_var] -> Var (json_to_v j_var)
