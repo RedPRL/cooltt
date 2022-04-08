@@ -508,6 +508,8 @@ elab.cooltt:42.6-42.12 [Info]:
     |- ?hole1 : path nat x x
 
 
+[Warn]:  There are 3 unsolved holes
+
 --------------------[equation.cooltt]--------------------
 equation.cooltt:10.7-10.23 [Info]:
   equational/trans
@@ -577,6 +579,8 @@ hcom-type.cooltt:17.18-17.19 [Info]:
     |- i = 0 => ?asdf 0 *
        i = 1 => ?asdf 1 *
 
+
+[Warn]:  There are 3 unsolved holes
 
 --------------------[hlevel.cooltt]--------------------
 hlevel.cooltt:32.7-32.12 [Info]:
@@ -676,6 +680,8 @@ holes.cooltt:18.26-18.30 [Info]:
 holes.cooltt:18.7-18.30 [Info]:
   fail cone-of-silence-hcom:
   Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+
+[Warn]:  There are 7 unsolved holes
 
 --------------------[import.cooltt]--------------------
 Emitted namespace under p2:
@@ -1035,6 +1041,8 @@ patch.cooltt:58.7-58.24 [Info]:
   test-unfold-total
   : (fam : (_x : sig (x : nat) ) → U) → U
   = fam => sig (x : nat) (fib : fam {struct (x : x) }) 
+
+[Warn]:  There are 2 unsolved holes
 
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.11-8.20 [Info]:

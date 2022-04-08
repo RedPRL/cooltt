@@ -156,6 +156,8 @@ struct
       RM.add_global ~shadowing:true ident vtp None
     in
 
+    let* () = RM.inc_num_holes in
+
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
