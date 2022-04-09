@@ -8,10 +8,10 @@ struct
   module S = Syntax.Make(Symbol)
 
   let const_tp_clo tp =
-    Clo (S.TpVar 0, {tpenv = Snoc (Emp, tp); conenv = Emp})
+    Clo (S.TpVar 0, {tpenv = 1, Snoc (Emp, tp); conenv = 0, Emp})
 
   let const_tm_clo con =
-    Clo (S.Var 0, {tpenv = Emp; conenv = Snoc (Emp, con)})
+    Clo (S.Var 0, {tpenv = 0, Emp; conenv = 1, Snoc (Emp, con)})
 
   let push frm (hd, sp) =
     hd, sp @ [frm]
@@ -21,19 +21,19 @@ struct
 
   let un_lam con =
     (* y, x |= y(x) *)
-    Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
+    Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = 0, Emp; conenv = 1, Snoc (Emp, con)})
 
   let compose f g =
-    Lam (`Anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
+    Lam (`Anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = 0, Emp; conenv = 2, Snoc (Snoc (Emp, f), g)}))
 
   let apply_to x =
-    Clo (S.Ap (S.Var 0, S.Var 1), {tpenv = Emp; conenv = Snoc (Emp, x)})
+    Clo (S.Ap (S.Var 0, S.Var 1), {tpenv = 0, Emp; conenv = 1, Snoc (Emp, x)})
 
-  let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
-  let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
+  let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = 0, Emp; conenv = 0, Emp}))
+  let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = 0, Emp; conenv = 0, Emp}))
 
-  let proj lbl = Lam (`Anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = Emp; conenv = Emp}))
-  let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
+  let proj lbl = Lam (`Anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = 0, Emp; conenv = 0, Emp}))
+  let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = 0, Emp; conenv = 0, Emp}))
 
   let tm_abort = Split []
   let tp_abort = TpSplit []
@@ -121,24 +121,24 @@ struct
     fun fmt (Clo (tm, {tpenv; conenv})) ->
       Format.fprintf fmt "clo[%a ; [%a ; %a]]"
         S.dump tm
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list (Stdlib.snd tpenv))
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list (Stdlib.snd conenv))
 
   and pp_tp_clo : tp_clo Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (tp, {tpenv; conenv})) ->
       Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
         S.dump_tp tp
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list (Stdlib.snd tpenv))
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list (Stdlib.snd conenv))
 
   and pp_sign_clo : (S.sign clo) Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (sign, {tpenv; conenv})) ->
       Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
         S.dump_sign sign
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list (Stdlib.snd tpenv))
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list (Stdlib.snd conenv))
 
   and pp_con : con Pp.printer =
     fun fmt ->

@@ -42,7 +42,7 @@ struct
       (** V types, for univalence *)
     ]
 
-  type env = {tpenv : tp bwd; conenv: con bwd}
+  type env = {tpenv : int * tp bwd; conenv: int * con bwd}
 
   (** A {i closure} combines a semantic environment with a syntactic object binding an additional variable. *)
   and 'a clo = Clo of 'a * env

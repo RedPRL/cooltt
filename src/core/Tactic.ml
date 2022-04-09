@@ -115,7 +115,7 @@ struct
     | BChk (name, btac) ->
       debug_tactic name;
       fun tp ->
-        let triv = D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp}) in
+        let triv = D.Clo (S.tm_abort, {tpenv = 0, Emp; conenv = 0, Emp}) in
         btac (tp, CofBuilder.bot, triv)
 
   let brun =

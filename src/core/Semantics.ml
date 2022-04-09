@@ -32,14 +32,14 @@ let cut_frm ~tp ~cut frm =
 let get_local i =
   let open EvM in
   let* env = EvM.read_local in
-  match BwdLabels.nth env.conenv i with
+  match BwdLabels.nth (snd env.conenv) i with
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
 let get_local_tp i =
   let open EvM in
   let* env = EvM.read_local in
-  match BwdLabels.nth env.tpenv i with
+  match BwdLabels.nth (snd env.tpenv) i with
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
@@ -288,9 +288,9 @@ and subst_sign_clo : D.dim -> DimProbe.t -> D.sign_clo -> D.sign_clo CM.m =
 and subst_env : D.dim -> DimProbe.t -> D.env -> D.env CM.m =
   fun r x {tpenv; conenv} ->
   let open CM in
-  let+ tpenv = MU.map_bwd (subst_tp r x) tpenv
-  and+ conenv = MU.map_bwd (subst_con r x) conenv in
-  D.{tpenv; conenv}
+  let+ tpenvb = MU.map_bwd (subst_tp r x) (snd tpenv)
+  and+ conenvb = MU.map_bwd (subst_con r x) (snd conenv) in
+  D.{tpenv = Stdlib.fst tpenv, tpenvb; conenv = Stdlib.fst conenv, conenvb}
 
 and subst_sign : D.dim -> DimProbe.t -> D.sign -> D.sign CM.m =
   fun r x ->
@@ -1088,21 +1088,21 @@ and inst_tp_clo : D.tp_clo -> D.con -> D.tp CM.m =
   fun clo x ->
   match clo with
   | Clo (bdy, env) ->
-    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
+    CM.lift_ev {env with conenv = fst env.conenv + 1, Snoc (snd env.conenv, x)} @@
     eval_tp bdy
 
 and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
   fun clo x ->
   match clo with
   | D.Clo (bdy, env) ->
-    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
+    CM.lift_ev {env with conenv = fst env.conenv + 1, Snoc (snd env.conenv, x)} @@
     eval bdy
 
 and inst_sign_clo : D.sign_clo -> D.con -> D.sign CM.m =
   fun clo x ->
   match clo with
   | D.Clo (sign, env) ->
-    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_sign sign
+    CM.lift_ev {env with conenv = fst env.conenv + 1, Snoc (snd env.conenv, x)} @@ eval_sign sign
 
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con ~style con =

@@ -11,8 +11,8 @@ type 'a t = D.env -> 'a TB.m * D.env
 
 let foreign con k : _ t =
   fun env ->
-  let env' = {env with conenv = env.conenv <>< [con]} in
-  let var = TB.lvl @@ BwdLabels.length env.conenv in
+  let env' = {env with conenv = fst env.conenv + 1, snd env.conenv <>< [con]} in
+  let var = TB.lvl @@ fst env.conenv in
   k var env'
 
 let foreign_cof phi = foreign @@ D.cof_to_con phi
@@ -21,8 +21,8 @@ let foreign_clo clo = foreign @@ D.Lam (`Anon, clo)
 
 let foreign_tp tp k : _ t =
   fun env ->
-  let env' = {env with tpenv = env.tpenv <>< [tp]} in
-  let var = TB.tplvl @@ BwdLabels.length env.tpenv in
+  let env' = {env with tpenv = fst env.tpenv + 1, snd env.tpenv <>< [tp]} in
+  let var = TB.tplvl @@ fst env.tpenv in
   k var env'
 
 let foreign_list (cons : D.con list) k : _ t =
@@ -37,9 +37,9 @@ let foreign_list (cons : D.con list) k : _ t =
   go cons k
 
 let compile (t : 'a t) : D.env * 'a  =
-  let m, env = t {tpenv = Emp; conenv = Emp} in
-  let tplen = BwdLabels.length env.tpenv in
-  let conlen = BwdLabels.length env.conenv in
+  let m, env = t {tpenv = 0, Emp; conenv = 0, Emp} in
+  let tplen = fst env.tpenv in
+  let conlen = fst env.conenv in
   env, TB.run ~tplen ~conlen m
 
 let term (m : 'a TB.m) : 'a t =

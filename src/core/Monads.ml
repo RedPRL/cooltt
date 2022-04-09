@@ -101,18 +101,18 @@ struct
   let drop_con (k : 'a m) : 'a m =
     let* {env; _} = M.read in
     match env.conenv with
-    | Snoc (conenv, _) ->
-      M.scope (fun local -> {local with env = {local.env with conenv}}) k
-    | Emp ->
+    | l, Snoc (conenv, _) ->
+      M.scope (fun local -> {local with env = {local.env with conenv = l-1, conenv}}) k
+    | _, Emp ->
       M.throw Drop
 
   let drop_all_cons (k : 'a m) : 'a m =
-    M.scope (fun local -> {local with env = {local.env with conenv = Emp}}) k
+    M.scope (fun local -> {local with env = {local.env with conenv = 0, Emp}}) k
 
   let append cells =
     M.scope @@ fun local ->
     let open BwdNotation in
-    {local with env = {local.env with conenv = local.env.conenv <>< cells}}
+    {local with env = {local.env with conenv = fst local.env.conenv + List.length cells, snd local.env.conenv <>< cells}}
 
   let lift_cmp (m : 'a compute) : 'a M.m =
     fun {state; cof_thy; _} ->

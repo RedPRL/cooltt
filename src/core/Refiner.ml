@@ -173,7 +173,7 @@ struct
   let unleash_syn_hole name : T.Syn.tac =
     Probe.probe_syn name @@
     T.Syn.rule ~name:"unleash_syn_hole" @@
-    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = 0, Emp; conenv = 0, Emp})) in
     let tp = D.ElCut cut in
     let+ tm = tp |> T.Chk.run @@ unleash_hole name in
     tm, tp

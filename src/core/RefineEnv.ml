@@ -29,7 +29,7 @@ type t =
     veil : Veil.t;
 
     (* local assumptions *)
-    locals : cell bwd;
+    locals : int * cell bwd;
     cof_thy : CofThy.Disj.t;
     pp : Pp.env;
 
@@ -39,14 +39,14 @@ type t =
 
 let init =
   { veil = Veil.const `Translucent;
-    locals = Emp;
+    locals = 0, Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
     location = None }
 
 let globally env =
   { veil = env.veil;
-    locals = Emp;
+    locals = 0, Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
     location = env.location }
@@ -56,14 +56,14 @@ let get_veil env = env.veil
 let set_veil v env = {env with veil = v}
 
 (* local assumptions *)
-let locals env = env.locals
-let size env = BwdLabels.length env.locals
+let locals env = snd env.locals
+let size env = fst env.locals
 let get_local_tp ix env =
-  let cell = BwdLabels.nth env.locals ix in
+  let cell = BwdLabels.nth (snd env.locals) ix in
   let tp, _ = Cell.contents cell in
   tp
 let get_local ix env =
-  let cell = BwdLabels.nth env.locals ix in
+  let cell = BwdLabels.nth (snd env.locals) ix in
   let _, con = Cell.contents cell in
   con
 let resolve_local (ident : Ident.t) env =
@@ -77,7 +77,7 @@ let resolve_local (ident : Ident.t) env =
         | _ -> go (i + 1) xs
       end
   in
-  match go 0 @@ env.locals with
+  match go 0 @@ snd env.locals with
   | i -> Some i
   | exception E -> None
 let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
@@ -90,9 +90,10 @@ let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
 let local_cof_thy env = env.cof_thy
 let pp_env env = env.pp
 let sem_env (env : t) : D.env =
-  {tpenv = Emp;
+  {tpenv = 0, Emp;
    conenv =
-     BwdLabels.map env.locals
+     fst env.locals,
+     BwdLabels.map (snd env.locals)
        ~f:(fun cell ->
            let _, con = Cell.contents cell in
            con)}
@@ -102,7 +103,7 @@ let restrict phis env =
 let append_con ident con tp env =
   {env with
    pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
-   locals = env.locals #< (Cell.make ident (tp, con));
+   locals = fst env.locals + 1, (snd env.locals) #< (Cell.make ident (tp, con));
    cof_thy =
      match tp with
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
@@ -117,4 +118,4 @@ let set_location loc env =
 
 let dump fmt : t -> unit =
   fun env ->
-  Format.fprintf fmt "Locals: @[<v>%a@]" dump_locals (BwdLabels.to_list env.locals)
+  Format.fprintf fmt "Locals: @[<v>%a@]" dump_locals (BwdLabels.to_list (snd env.locals))

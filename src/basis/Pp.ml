@@ -5,9 +5,9 @@ open BwdNotation
 
 module Env =
 struct
-  type t = string bwd
+  type t = int * string bwd
 
-  let emp = Emp
+  let emp = 0, Emp
 
   let nat_to_suffix n =
     let formatted = string_of_int n in
@@ -22,18 +22,18 @@ struct
     if BwdLabels.mem new_x ~set:xs then (rename [@tailcall]) xs x (i + 1) else new_x
 
   let choose_name (env : t) (x : string) =
-    if BwdLabels.mem x ~set:env then rename env x 1 else x
+    if BwdLabels.mem x ~set:(snd env) then rename (snd env) x 1 else x
 
   let var i env =
-    if i < BwdLabels.length env then
-      BwdLabels.nth env i
+    if i < fst env then
+      BwdLabels.nth (snd env) i
     else
       failwith "Pp printer: tried to resolve bound variable out of range"
 
   let proj xs =
     match xs with
-    | Emp -> failwith "ppenv/proj"
-    | Snoc (xs, _) -> xs
+    | _, Emp -> failwith "ppenv/proj"
+    | n, Snoc (xs, _) -> n-1, xs
 
   let bind (env : t) (nm : string option) : string * t =
     let x =
@@ -41,7 +41,7 @@ struct
       | None -> choose_name env "_x"
       | Some x -> choose_name env x
     in
-    x, env #< x
+    x, (fst env + 1, ((snd env) #< x))
 
   let rec bindn (env : t) (nms : string option list) : string list * t =
     match nms with
@@ -53,7 +53,7 @@ struct
       (x :: xs), env''
 
   let names (env : t) : string list =
-    env <>> []
+    snd env <>> []
 end
 
 let pp_sep_list ?(sep = ", ") pp_elem fmt xs =

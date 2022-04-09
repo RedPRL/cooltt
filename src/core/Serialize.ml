@@ -472,7 +472,7 @@ struct
     | Clo (sign, env) -> labeled "clo" [Syntax.json_of_sign sign; json_of_env env]
 
   and json_of_env {tpenv; conenv} : J.value =
-    `O [("tpenv", json_of_bwd json_of_tp tpenv); ("conenv", json_of_bwd json_of_con conenv)]
+    `O [("tpenv", json_of_bwd json_of_tp (snd tpenv)); ("conenv", json_of_bwd json_of_con (snd conenv))]
 
   and json_of_cof (cof : D.cof) : J.value =
     Cof.json_of_cof json_of_dim json_of_int cof
@@ -601,7 +601,10 @@ struct
   and json_to_env : J.value -> D.env =
     function
     | `O [("tpenv", j_tpenv); ("conenv", j_conenv)] ->
-      { tpenv = json_to_bwd json_to_tp j_tpenv; conenv = json_to_bwd json_to_con j_conenv }
+      let tpenv = json_to_bwd json_to_tp j_tpenv
+      and conenv = json_to_bwd json_to_con j_conenv
+      in
+      { tpenv = BwdLabels.length tpenv, tpenv; conenv = BwdLabels.length conenv, conenv }
     | j -> J.parse_error j "Domain.json_to_env"
 
   and json_to_cof : J.value -> D.cof =
