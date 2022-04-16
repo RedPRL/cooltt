@@ -347,43 +347,16 @@ and chk_tm : CS.con -> T.Chk.tac =
         RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
         RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
-      | D.Signature _sign ->
+      | D.Signature _ ->
         let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
         RM.ret @@ R.Signature.intro field_tac
-        (* let open RefineMonad in
-        begin
-        Tactics.is_total sign |>> function
-          | `TotalSome tp -> failwith ""
-          | `NotTotal -> 
-            let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
-            RM.ret @@ R.Signature.intro field_tac
-          | `TotalAll _tp -> failwith "impossible"
-        end *)
       | _ ->
         RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 
-
-(* 
-
-Checking against `TotalAll => insert_implicit
-  if synth to comparse, normal
-
-Checking against `TotalSome => write down a record
-  if synth to compare, do NOT insert .fib
-
-Checking ainst `NotTotal => write down a record
-  if synth to compare, normal
-
-Synthing =>
-  if project, do NOT insert .fib
-  else if `TotalAll | `TotalSome, insert .fib
-
-*)
-
-and syn_tm : CS.con -> T.Syn.tac =
-  function con ->
+and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
+  fun ?(elim_total = true) con ->
     T.Syn.update_span con.info @@
-    Tactics.elim_implicit_connectives @@
+    (if elim_total then Tactics.elim_implicit_connectives_and_total else Tactics.elim_implicit_connectives) @@
     match con.node with
     | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
     | CS.Hole (name, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
@@ -409,7 +382,7 @@ and syn_tm : CS.con -> T.Syn.tac =
     | CS.Snd t ->
       R.Sg.pi2 @@ syn_tm t
     | CS.Proj (t, ident) ->
-      R.Signature.proj (syn_tm t) ident
+      R.Signature.proj (syn_tm ~elim_total:false t) ident
     | CS.VProj t ->
       R.ElV.elim @@ syn_tm t
     | CS.Cap t ->

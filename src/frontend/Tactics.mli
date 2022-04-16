@@ -16,6 +16,7 @@ val is_total_code : (Ident.user * D.con) list -> [`TotalAll of D.tp | `TotalSome
 val intro_subtypes : Chk.tac -> Chk.tac
 val intro_implicit_connectives : Chk.tac -> Chk.tac
 val elim_implicit_connectives : Syn.tac -> Syn.tac
+val elim_implicit_connectives_and_total : Syn.tac -> Syn.tac
 val intro_conversions : Syn.tac -> Chk.tac
 
 val tac_nary_quantifier : ('a, 'b) R.quantifier -> (Ident.t * 'a) list -> 'b -> 'b

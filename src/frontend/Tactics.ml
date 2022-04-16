@@ -61,26 +61,27 @@ let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
   (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
   | D.ElStable _ ->
     T.Syn.run @@ elim_implicit_connectives @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
+  | _ ->
+    RM.ret (tm, tp)
+
+let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
+  fun tac ->
+  T.Syn.rule @@
+  let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
+  match tp with
+  | D.Sub _ ->
+    T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
+  (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
+  | D.ElStable _ ->
+    T.Syn.run @@ elim_implicit_connectives_and_total @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
   | D.Signature sign ->
     begin
     is_total sign |>> function
-      | `TotalAll _ | `TotalSome _ -> T.Syn.run @@ elim_implicit_connectives @@ R.Signature.proj (T.Syn.rule @@ RM.ret (tm,tp)) (`User ["fib"])
+      | `TotalAll _ | `TotalSome _ -> T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Signature.proj (T.Syn.rule @@ RM.ret (tm,tp)) (`User ["fib"])
       | `NotTotal -> RM.ret (tm,tp)
     end
   | _ ->
     RM.ret (tm, tp)
-
-(* let elim_total : T.Syn.tac -> T.Syn.tac =
-  fun tac ->
-  T.Syn.rule @@ 
-  let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
-  match tp with
-    | D.Signature sign -> 
-      begin
-      is_total sign |>> function
-        | _ -> failwith ""
-      end
-    | _ -> t *)
 
 let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   fun tac ->
@@ -93,7 +94,7 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   | D.Signature sign, _, _ ->
     begin
     is_total sign |>> function
-      | `TotalAll _tp -> RM.ret @@ R.Signature.intro (function `User ["fib"] -> Some (intro_implicit_connectives tac) | _ -> None) 
+      | `TotalAll _ -> RM.ret @@ R.Signature.intro (function `User ["fib"] -> Some (intro_implicit_connectives tac) | _ -> None) 
       | _ -> RM.ret tac
     end
   | _ ->
