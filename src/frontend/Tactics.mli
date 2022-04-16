@@ -10,8 +10,8 @@ module R := Refiner
 
 open Tactic
 
-val is_total : D.sign -> [`TotalAll of D.tp | `TotalSome of D.tp | `NotTotal] RM.m
-val is_total_code : (Ident.user * D.con) list -> [`TotalAll of D.tp | `TotalSome of D.tp | `NotTotal] RM.m
+val is_total : D.sign -> [`TotalAll | `TotalSome | `NotTotal] RM.m
+val is_total_code : (Ident.user * D.con) list -> [`TotalAll | `TotalSome | `NotTotal] RM.m
 
 val intro_subtypes : Chk.tac -> Chk.tac
 val intro_implicit_connectives : Chk.tac -> Chk.tac

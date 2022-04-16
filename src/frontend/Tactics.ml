@@ -16,7 +16,7 @@ open Monad.Notation (RM)
 
 let is_total (sign : D.sign) = 
   let rec go acc = function
-    | D.Field (`User ["fib"],tp,D.Clo ([],_)) -> RM.ret @@ acc tp
+    | D.Field (`User ["fib"],_,D.Clo ([],_)) -> RM.ret @@ acc
     | D.Field (lbl,(D.ElStable (`Ext (0,_,`Global (Cof cof),_)) as tp),sign_clo) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       RM.abstract (lbl :> Ident.t) tp @@ fun v ->
@@ -24,15 +24,15 @@ let is_total (sign : D.sign) =
         begin
           RM.lift_cmp @@ Monads.CmpM.test_sequent [] cof |>> function
             | true -> go acc sign
-            | false -> go (fun x -> `TotalSome x) sign
+            | false -> go `TotalSome sign
         end
     | D.Field (lbl,tp,sign_clo) -> 
       RM.abstract (lbl :> Ident.t) tp @@ fun v ->
         let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo v in
-        go (fun x -> `TotalSome x) sign
+        go `TotalSome sign
     | D.Empty -> RM.ret `NotTotal
   in
-  go (fun x -> `TotalAll x) sign 
+  go `TotalAll sign 
 
 let is_total_code (code : (Ident.user * D.con) list) =
   let* sign = RM.lift_cmp @@ Sem.unfold_el (`Signature code) in
@@ -77,7 +77,7 @@ let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
   | D.Signature sign ->
     begin
     is_total sign |>> function
-      | `TotalAll _ | `TotalSome _ -> T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Signature.proj (T.Syn.rule @@ RM.ret (tm,tp)) (`User ["fib"])
+      | `TotalAll | `TotalSome -> T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Signature.proj (T.Syn.rule @@ RM.ret (tm,tp)) (`User ["fib"])
       | `NotTotal -> RM.ret (tm,tp)
     end
   | _ ->
@@ -94,7 +94,7 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   | D.Signature sign, _, _ ->
     begin
     is_total sign |>> function
-      | `TotalAll _ -> RM.ret @@ R.Signature.intro (function `User ["fib"] -> Some (intro_implicit_connectives tac) | _ -> None) 
+      | `TotalAll -> RM.ret @@ R.Signature.intro (function `User ["fib"] -> Some (intro_implicit_connectives tac) | _ -> None) 
       | _ -> RM.ret tac
     end
   | _ ->
