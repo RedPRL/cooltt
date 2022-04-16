@@ -1021,17 +1021,17 @@ patch.cooltt:39.7-39.15 [Info]:
        })
     
 
-patch.cooltt:51.7-51.16 [Info]:
+patch.cooltt:52.7-52.16 [Info]:
   test-auto
   : (fam : (_x : sig (x : nat) ) → type) → type
   = fam => sig (x : nat) (fib : fam {struct (x : x) }) 
 
-patch.cooltt:54.7-54.22 [Info]:
+patch.cooltt:55.7-55.22 [Info]:
   test-auto-patch
   : (fam : (_x : sig (x : nat) ) → type) → type
   = fam => sig (x : ext nat ⊤ {_x => 0}) (fib : fam {struct (x : 0) }) 
 
-patch.cooltt:58.7-58.24 [Info]:
+patch.cooltt:59.7-59.24 [Info]:
   test-unfold-total
   : (fam : (_x : sig (x : nat) ) → U) → U
   = fam => sig (x : nat) (fib : fam {struct (x : x) }) 
