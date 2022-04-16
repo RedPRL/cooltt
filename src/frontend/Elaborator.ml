@@ -347,11 +347,38 @@ and chk_tm : CS.con -> T.Chk.tac =
         RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
         RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
-      | D.Signature _ ->
+      | D.Signature _sign ->
         let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
         RM.ret @@ R.Signature.intro field_tac
+        (* let open RefineMonad in
+        begin
+        Tactics.is_total sign |>> function
+          | `TotalSome tp -> failwith ""
+          | `NotTotal -> 
+            let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
+            RM.ret @@ R.Signature.intro field_tac
+          | `TotalAll _tp -> failwith "impossible"
+        end *)
       | _ ->
         RM.ret @@ Tactics.intro_conversions @@ syn_tm con
+
+
+(* 
+
+Checking against `TotalAll => insert_implicit
+  if synth to comparse, normal
+
+Checking against `TotalSome => write down a record
+  if synth to compare, do NOT insert .fib
+
+Checking ainst `NotTotal => write down a record
+  if synth to compare, normal
+
+Synthing =>
+  if project, do NOT insert .fib
+  else if `TotalAll | `TotalSome, insert .fib
+
+*)
 
 and syn_tm : CS.con -> T.Syn.tac =
   function con ->
