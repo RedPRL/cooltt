@@ -33,13 +33,7 @@ let is_total (sign : D.sign) =
     | D.Empty -> RM.ret `NotTotal
   in
   go `TotalAll sign 
-
-let is_total_code (code : (Ident.user * D.con) list) =
-  let* sign = RM.lift_cmp @@ Sem.unfold_el (`Signature code) in
-  match sign with
-    | D.Signature sign -> is_total sign
-    | _ -> failwith "impossible"
-
+  
 let elab_err err =
   let* env = RM.read in
   RM.throw @@ ElabError.ElabError (err, RefineEnv.location env)
