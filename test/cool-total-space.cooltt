@@ -1,0 +1,6 @@
+
+def test1 (fam : sig (x : nat) -> type) (fib : fam {struct (x : 0)}): fam # [x .= 0] :=
+    fib
+
+def test2 (fam : sig (x : nat) -> type) (a : fam # [x .= 0]) : fam # [x .= 0] := 
+    a
