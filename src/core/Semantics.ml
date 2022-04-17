@@ -43,69 +43,6 @@ let get_local_tp i =
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
-
-let simplify_cof phi =
-  let open CM in
-  let+ thy = read_cof_thy in
-  CofThy.Disj.simplify_cof thy phi
-
-module FaceLattice :
-sig
-  (** An atomic formula *)
-  type atom = [`CofEq of D.dim * D.dim]
-
-  (** A generator for a lattice homomorphism *)
-  type gen = atom -> D.cof CM.m
-
-  (** Extend a generator to a lattice homomorphism *)
-  val extend : gen -> D.cof -> D.cof CM.m
-
-  (** Quantifier elimination *)
-  val forall : DimProbe.t -> D.cof -> D.cof CM.m
-end =
-struct
-  open CM
-  module K = Kado.Syntax
-
-  type atom = [`CofEq of D.dim * D.dim]
-  type gen = atom -> D.cof CM.m
-
-  let extend gen =
-    let rec loop =
-      function
-      | K.Var _ as phi -> ret phi
-      | K.Cof phi ->
-        match phi with
-        | K.Join psis ->
-          let+ psis = MU.map loop psis in
-          K.Free.join psis
-        | K.Meet psis ->
-          let+ psis = MU.map loop psis in
-          K.Free.join psis
-        | K.Eq (r, s) ->
-          gen @@ `CofEq (r, s)
-    in
-    loop
-
-  let forall sym =
-    let i = Dim.DimProbe sym in
-    extend @@
-    function
-    | `CofEq (r, s) ->
-      test_sequent [] (K.Free.eq r s) |>>
-      function
-      | true -> ret K.Free.top
-      | false ->
-        test_sequent [] (K.Free.eq i r) |>>
-        function
-        | true -> ret K.Free.bot
-        | false ->
-          test_sequent [] (K.Free.eq i s) |>>
-          function
-          | true -> ret K.Free.bot
-          | false -> ret @@ K.Free.eq r s
-end
-
 let rec cof_con_to_cof : (D.con, D.con) Kado.Syntax.endo -> D.cof CM.m =
   let open CM in
   let module K = Kado.Syntax in
@@ -1473,7 +1410,7 @@ and dispatch_rigid_coe ~style line =
     | D.Split branches ->
       let* phis =
         branches |> MU.map @@ fun (phix, _) ->
-        FaceLattice.forall x phix
+        forall_cof (DimProbe x, phix)
       in
       ret @@ `Reduce (`Split phis)
     | D.Cut _ ->

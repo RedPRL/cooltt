@@ -581,7 +581,7 @@ and quote_cof phi =
         let+ tphis = MU.map go phis in
         S.CofBuilder.meet tphis
   in
-  go @<< lift_cmp @@ Sem.simplify_cof phi
+  go @<< lift_cmp @@ CmpM.simplify_cof phi
 
 and quote_var lvl =
   let+ n = read_local in
