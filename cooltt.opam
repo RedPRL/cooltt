@@ -26,7 +26,7 @@ depends: [
 ]
 pin-depends: [
   [ "kado.~dev" "git+https://github.com/RedPRL/kado" ]
-  [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
+  [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra#cooltt" ]
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]
