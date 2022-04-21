@@ -65,6 +65,14 @@ struct
     let+ {cof_thy; _} = M.read in
     CofThy.Disj.test_sequent cof_thy cx phi
 
+  let simplify_cof phi =
+    let+ {cof_thy; _} = M.read in
+    CofThy.Disj.simplify_cof cof_thy phi
+
+  let forall_cof (sym, phi) =
+    let+ {cof_thy; _} = M.read in
+    CofThy.Disj.forall_cof cof_thy (sym, phi)
+
   let restore_cof_thy cof_thy =
     M.scope @@ fun local ->
     {local with cof_thy}

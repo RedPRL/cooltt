@@ -20,8 +20,6 @@ val whnf_tp : style:whnf_style -> D.tp -> D.tp whnf compute
 val whnf_tp_ : style:whnf_style -> D.tp -> D.tp compute
 val whnf_con_ : style:whnf_style -> D.con -> D.con compute
 
-val simplify_cof : D.cof -> D.cof compute
-
 val inst_tp_clo : D.tp_clo -> D.con -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con -> D.con compute
 val inst_sign_clo : D.sign_clo -> D.con -> D.sign compute
