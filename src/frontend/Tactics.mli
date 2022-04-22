@@ -17,7 +17,7 @@ open Tactic
 *)
 val is_total : D.sign -> [`TotalAll | `TotalSome | `NotTotal] RM.m
 
-val intro_subtypes : Chk.tac -> Chk.tac
+val intro_subtypes_and_total : Chk.tac -> Chk.tac
 val intro_implicit_connectives : Chk.tac -> Chk.tac
 val elim_implicit_connectives : Syn.tac -> Syn.tac
 val elim_implicit_connectives_and_total : Syn.tac -> Syn.tac

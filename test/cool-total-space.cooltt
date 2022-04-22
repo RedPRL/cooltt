@@ -31,3 +31,5 @@ def no-insert-fib-record : sig (fam : sig (x : nat) -> type) (test : fam -> nat)
     struct (fam : _ => sig (y : nat))
            (test : total => total.fib.y)
 #print no-insert-fib-record
+
+def test-hole (fam : sig (x : nat) -> type) : fam # [x .= 0] := ?

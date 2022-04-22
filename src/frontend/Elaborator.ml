@@ -206,7 +206,7 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.update_span con.info @@
-  Tactics.intro_subtypes @@
+  Tactics.intro_subtypes_and_total @@
   match con.node with
   | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con

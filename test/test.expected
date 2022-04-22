@@ -527,6 +527,12 @@ cool-total-space.cooltt:33.7-33.27 [Info]:
   = struct (fam : {_x => sig (y : nat) }) 
     (test : {total => {total @ fib} @ y}) 
 
+cool-total-space.cooltt:35.64-35.65 [Info]:
+  Emitted hole:
+    fam : (_x : sig (x : nat) ) → type
+    |- ? : fam {struct (x : 0) }
+
+
 --------------------[elab.cooltt]--------------------
 elab.cooltt:7.11-7.24 [Info]:
   Computed normal form of boundary-test as

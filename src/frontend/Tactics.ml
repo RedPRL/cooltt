@@ -94,12 +94,23 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   | _ ->
     RM.ret tac
 
-let rec intro_subtypes : T.Chk.tac -> T.Chk.tac =
+let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
   fun tac ->
   T.Chk.whnf ~style:`UnfoldNone @@
   match_goal @@ function
   | D.Sub _, _, _ ->
-    RM.ret @@ R.Sub.intro @@ intro_subtypes tac
+    RM.ret @@ R.Sub.intro @@ intro_subtypes_and_total tac
+  | ElStable (`Signature sign_code), _, _ ->
+    begin
+      RM.lift_cmp @@ Sem.unfold_el (`Signature sign_code) |>> function
+      | D.Signature sign ->
+        begin
+          is_total sign |>> function
+          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro (function `User ["fib"] -> Some (intro_subtypes_and_total tac) | _ -> None)
+          | _ -> RM.ret tac
+        end
+      | _ -> failwith "impossible"
+    end
   | _ ->
     RM.ret tac
 
