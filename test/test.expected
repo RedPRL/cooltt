@@ -477,6 +477,56 @@ com.cooltt:89.11-89.20 [Info]:
    hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
 
 --------------------[cool-total-space.cooltt]--------------------
+cool-total-space.cooltt:6.7-6.20 [Info]:
+  fully-patched
+  : (fam : (_x : sig (x : nat) ) → type) → (fib : fam {struct (x : 0) }) → 
+  sig (x : ext nat ⊤ {_x => 0}) (fib : fam {struct (x : 0) }) 
+  = fam fib => struct (x : 0) (fib : fib) 
+
+cool-total-space.cooltt:10.7-10.24 [Info]:
+  not-fully-patched
+  : (fam : (_x : sig (x : nat) ) → type) → (fib : fam {struct (x : 0) }) → 
+  sig (x : nat) (fib : fam {struct (x : x) }) 
+  = fam fib => struct (x : 0) (fib : fib) 
+
+cool-total-space.cooltt:14.7-14.20 [Info]:
+  no-insert-fib
+  : (fam : (_x : sig (x : nat) ) → type) → (total : sig (x : nat) 
+                                                    (fib : fam {struct (x : x)
+                                                                })
+                                                    ) → nat
+  = fam total => total @ x
+
+cool-total-space.cooltt:18.7-18.23 [Info]:
+  insert-fib-plain
+  : (fam : (_x : sig (x : nat) ) → type) → (total : sig (x : nat) 
+                                                    (fib : fam {struct (x : x)
+                                                                })
+                                                    ) → fam {struct (x : 
+                                                             total @ x) }
+  = fam total => total @ fib
+
+cool-total-space.cooltt:23.7-23.20 [Info]:
+  insert-fib-pi
+  : sig (fam : (_x : sig (x : nat) ) → type) 
+    (test : (_x : sig (x : nat) (fib : fam {struct (x : x) }) ) → nat) 
+  = struct (fam : {_x => (_x₁ : nat) → nat}) 
+    (test : {total => {total @ fib} 0}) 
+
+cool-total-space.cooltt:28.7-28.20 [Info]:
+  insert-fib-sg
+  : sig (fam : (_x : sig (x : nat) ) → type) 
+    (test : (_x : sig (x : nat) (fib : fam {struct (x : x) }) ) → nat) 
+  = struct (fam : {_x => (_x₁ : nat) × nat}) 
+    (test : {total => fst {total @ fib}}) 
+
+cool-total-space.cooltt:33.7-33.27 [Info]:
+  no-insert-fib-record
+  : sig (fam : (_x : sig (x : nat) ) → type) 
+    (test : (_x : sig (x : nat) (fib : fam {struct (x : x) }) ) → nat) 
+  = struct (fam : {_x => sig (y : nat) }) 
+    (test : {total => {total @ fib} @ y}) 
+
 --------------------[elab.cooltt]--------------------
 elab.cooltt:7.11-7.24 [Info]:
   Computed normal form of boundary-test as
