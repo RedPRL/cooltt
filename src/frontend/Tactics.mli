@@ -11,9 +11,9 @@ module R := Refiner
 open Tactic
 
 (** Determines whether a signature is:
-   `TotalAll : A total space created by the `total` tactic, where all fields but `fib` are patched
-   `TotalSome : A total space created by the `total` tactic, where at least one non-`fib` field is *not* patched
-   `NotTotal : Not a total space created by the `total` tactic
+    `TotalAll : A total space created by the `total` tactic, where all fields but `fib` are patched
+    `TotalSome : A total space created by the `total` tactic, where at least one non-`fib` field is *not* patched
+    `NotTotal : Not a total space created by the `total` tactic
 *)
 val is_total : D.sign -> [`TotalAll | `TotalSome | `NotTotal] RM.m
 
