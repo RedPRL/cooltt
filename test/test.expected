@@ -476,6 +476,7 @@ com.cooltt:89.11-89.20 [Info]:
    A r r' φ p =>
    hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
 
+--------------------[cool-total-space.cooltt]--------------------
 --------------------[elab.cooltt]--------------------
 elab.cooltt:7.11-7.24 [Info]:
   Computed normal form of boundary-test as

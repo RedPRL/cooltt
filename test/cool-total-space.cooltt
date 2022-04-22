@@ -1,0 +1,25 @@
+
+
+
+def fully-patched (fam : sig (x : nat) -> type) (fib : fam {struct (x : 0)}) : fam # [x .= 0] :=
+    fib
+
+def not-fully-patched (fam : sig (x : nat) -> type) (fib : fam {struct (x : 0)}) : fam := 
+    struct (x : 0) (fib : fib)
+
+def no-insert-fib (fam : sig (x : nat) -> type) (total : fam) : nat :=
+    total.x
+
+def insert-fib-plain (fam : sig (x : nat) -> type) (total : fam) : fam {struct (x : total.x)} := total
+
+def insert-fib-pi : sig (fam : sig (x : nat) -> type) (test : fam -> nat) :=
+    struct (fam : _ => nat -> nat)
+           (test : total => total 0)
+
+def insert-fib-sg : sig (fam : sig (x : nat) -> type) (test : fam -> nat) :=
+    struct (fam : _ => nat * nat)
+           (test : total => fst total)
+
+def no-insert-fib-record : sig (fam : sig (x : nat) -> type) (test : fam -> nat) :=
+    struct (fam : _ => sig (y : nat))
+           (test : total => total.fib.y)
