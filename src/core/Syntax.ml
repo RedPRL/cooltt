@@ -484,8 +484,16 @@ struct
         Uuseg_string.pp_utf_8 "∘"
         (pp_sub env P.(right_of sub_compose)) sb1
 
-  and pp_sign env fmt (sign : sign) : unit = pp_fields pp_tp env fmt sign
-
+  and pp_sign env fmt : sign -> unit = 
+    function
+    | [] -> ()
+    | ((lbl, tp) :: fields) ->
+      let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in
+      Format.fprintf fmt "(%s : %a)@ @,%a"
+        lbl
+        (pp_tp env P.(right_of colon)) tp
+        (pp_sign envlbl) fields  
+  
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->
     function
