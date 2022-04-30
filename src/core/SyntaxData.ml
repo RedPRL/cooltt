@@ -42,9 +42,6 @@ struct
     | CofSplit of (t * t) list
     | Prf
 
-    | ElIn of t
-    | ElOut of t
-
     | Box of t * t * t * t * t
     | Cap of t * t * t * t * t
 

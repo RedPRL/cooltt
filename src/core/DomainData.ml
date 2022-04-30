@@ -70,10 +70,7 @@ struct
     | Pair of con * con
     | Struct of (Ident.user * con) list
     | SubIn of con
-
-    | ElIn of con
-    (** The introduction form for the extension of a {i stable} type code only (see {!constructor:ElStable} and {!constructor:ElUnstable}). *)
-
+    
     | Dim0
     | Dim1
     | DimProbe of DimProbe.t
@@ -138,10 +135,6 @@ struct
     | KProj of Ident.user
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
-
-    | KElOut
-    (** The elimination form for the extension of a {i stable} type code only (see {!constructor:ElStable}). *)
-
 
   (** An {i unstable} frame is a {i dimension substitution-unstable} elimination form with a hole in place of its principal argument. *)
   and unstable_frm =

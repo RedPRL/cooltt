@@ -64,10 +64,6 @@ module MU = Monad.Util (M)
 
 type 'a b = S.t m -> 'a m
 
-let el_in m : _ m =
-  let+ tm = m in
-  S.ElIn tm
-
 let tp_locked_prf mphi : _ m =
   let+ phi = mphi in
   S.TpLockedPrf phi
@@ -82,11 +78,6 @@ let locked_prf_unlock mtp ~cof ~prf ~bdy =
   and+ prf = prf
   and+ bdy = bdy in
   S.LockedPrfUnlock {tp; cof; prf; bdy}
-
-
-let el_out m : _ m =
-  let+ tm = m in
-  S.ElOut tm
 
 let lam ?(ident = `Anon) mbdy : _ m =
   scope @@ fun var ->
@@ -424,22 +415,22 @@ struct
   let code_equiv code_a code_b =
     code_sg (code_pi code_a @@ lam @@ fun _ -> code_b) @@ lam @@ fun f ->
     code_pi code_b @@ lam @@ fun y ->
-    code_is_contr @@ code_fiber code_a code_b (el_out f) y
+    code_is_contr @@ code_fiber code_a code_b f y
 
   let equiv_fwd equiv =
-    el_out @@ fst @@ el_out equiv
+    fst equiv
 
   (* CJHM CCHM names *)
   let equiv_fiber_contr equiv y =
-    ap (el_out @@ snd @@ el_out equiv) [y]
+    ap (snd equiv) [y]
 
   (* CJHM CCHM names *)
   let equiv_inv equiv y =
-    fst @@ el_out @@ equiv_fiber_contr equiv y
+    fst @@ equiv_fiber_contr equiv y
 
   (* CJHM CCHM names *)
   let equiv_inv_path equiv y p =
-    ap (el_out @@ snd @@ el_out @@ equiv_fiber_contr equiv y) [p]
+    ap (snd @@ equiv_fiber_contr equiv y) [p]
 end
 
 module Kan =
@@ -448,29 +439,26 @@ struct
   type hcom = r:S.t m -> r':S.t m -> phi:S.t m -> bdy:S.t m -> S.t m
 
   let coe_pi ~base_line ~fam_line ~r ~r' ~bdy : _ m =
-    el_in @@
     lam @@ fun arg ->
     let_ (lam @@ fun i -> coe base_line r' i arg) @@ fun coe_base_line ->
     let fib_line = lam @@ fun i -> ap fam_line [i; ap coe_base_line [i]] in
     coe fib_line r r' @@
-    ap (el_out bdy) [ap coe_base_line [r]]
+    ap bdy [ap coe_base_line [r]]
 
   let hcom_pi ~fam ~r ~r' ~phi ~bdy : _ m =
-    el_in @@
     lam @@ fun arg ->
     let tfib = ap fam [arg] in
     hcom tfib r r' phi @@
     lam @@ fun i ->
     lam @@ fun prf ->
-    ap (el_out (ap bdy [i; prf])) [arg]
+    ap (ap bdy [i; prf]) [arg]
 
   let coe_sg ~base_line ~fam_line ~r ~r' ~bdy : _ m =
-    let fst_line = lam @@ fun i -> coe base_line r i @@ fst @@ el_out bdy in
+    let fst_line = lam @@ fun i -> coe base_line r i @@ fst @@ bdy in
     let fib_line = lam @@ fun i -> ap fam_line [i; ap fst_line [i]] in
-    el_in @@
     pair
       (ap fst_line [r'])
-      (coe fib_line r r' @@ snd @@ el_out bdy)
+      (coe fib_line r r' @@ snd @@ bdy)
 
   let hcom_sg ~base ~fam ~r ~r' ~phi ~bdy : _ m =
     let p0_line =
@@ -478,7 +466,7 @@ struct
       hcom base r i phi @@
       lam @@ fun j ->
       lam @@ fun prf ->
-      fst @@ el_out @@ ap bdy [j; prf]
+      fst @@ ap bdy [j; prf]
     in
     let p0 = ap p0_line [r'] in
     let fib_line =
@@ -489,19 +477,18 @@ struct
       com fib_line r r' phi @@
       lam @@ fun i ->
       lam @@ fun prf ->
-      snd @@ el_out @@ ap bdy [i; prf]
+      snd @@ ap bdy [i; prf]
     in
-    el_in @@
     pair p0 p1
 
   let coe_sign ~field_lines ~r ~r' ~bdy : _ m =
     let mk_line bound_lines (lbl, fam_line) =
       let fib_line = lam @@ fun i -> ap fam_line (i :: List.map (fun (_, line) -> ap line [i]) bound_lines) in
-      let line = lam @@ fun i -> coe fib_line r i @@ proj (el_out bdy) lbl in
+      let line = lam @@ fun i -> coe fib_line r i @@ proj bdy lbl in
       bound_lines @ [(lbl, line)]
     in
     let field_coe_lines = List.fold_left mk_line [] field_lines in
-    el_in @@ struct_ @@ List.map (fun (lbl, fam_line) -> lbl, ap fam_line [r']) field_coe_lines
+    struct_ @@ List.map (fun (lbl, fam_line) -> lbl, ap fam_line [r']) field_coe_lines
 
   let hcom_sign ~fields ~r ~r' ~phi ~bdy : _ m =
     let mk_line bound_lines (lbl, fam) =
@@ -528,10 +515,9 @@ struct
           proj (ap bdy [j; prf]) lbl
         in List.fold_left mk_line [(lbl, p0_line)] fields
     in
-    el_in @@ struct_ @@ List.map (fun (lbl, p_line) -> lbl, ap p_line [r']) lines
+    struct_ @@ List.map (fun (lbl, p_line) -> lbl, ap p_line [r']) lines
 
   let coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
-    el_in @@
     nlam n @@ fun js ->
     sub_in @@
     let_ (ap cof js) @@ fun cof_js ->
@@ -540,10 +526,9 @@ struct
     lam @@ fun _ ->
     cof_split
       [cof_js, ap bdry_line @@ i :: js @ [prf]
-      ; eq i r, sub_out @@ ap (el_out bdy) js]
+      ; eq i r, sub_out @@ ap bdy js]
 
   let hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
-    el_in @@
     nlam n @@ fun js ->
     sub_in @@
     let_ (ap cof js) @@ fun cof_js ->
@@ -553,7 +538,7 @@ struct
     lam @@ fun _p ->
     cof_split
       [ cof_js, ap bdry @@ js @ [prf]
-      ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k; prf])) js
+      ; join [phi; eq k r], sub_out @@ ap (ap bdy [k; prf]) js
       ]
 
   module V :
@@ -618,19 +603,19 @@ struct
               (coe (lam code_) r i (ap f_tilde [r; prf; bdy]))
           in
           lam @@ fun _ ->
-          coe line r r' @@ el_in @@ lam @@ fun _ -> sub_in @@ ap f_tilde [r; prf; bdy]
+          coe line r r' @@ lam @@ fun _ -> sub_in @@ ap f_tilde [r; prf; bdy]
         end
       @@ fun r_tilde ->
       let_ ~ident:(`Machine "S")
         begin
           lam @@ fun _ ->
           Equiv.equiv_inv_path (ap (pequiv_ r') [prf]) o_tilde @@ (* "q_tilde" *)
-          el_in @@ cof_split
+          cof_split
             [forall (fun i -> eq (s_ i) dim0), pair
                (coe (lam @@ fun j -> ap (pcode_ j) [prf]) r r' bdy)
                (ap r_tilde [prf]);
              eq r r', pair bdy
-               (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy)]
+               (lam @@ fun _ -> sub_in @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy)]
         end
       @@ fun s_tilde ->
       let_ ~ident:(`Machine "T")
@@ -641,7 +626,7 @@ struct
           lam @@ fun _ ->
           cof_split
             [eq j dim0, Equiv.equiv_inv (ap (pequiv_ r') [prf]) o_tilde; (* "p_tilde" *)
-             join [forall (fun i -> eq (s_ i) dim0); eq r r'], sub_out @@ ap (el_out @@ ap s_tilde [prf]) [j]]
+             join [forall (fun i -> eq (s_ i) dim0); eq r r'], sub_out @@ ap (ap s_tilde [prf]) [j]]
         end
       @@ fun t_tilde ->
       let_ ~ident:(`Machine "U")
@@ -651,10 +636,10 @@ struct
           lam @@ fun _ ->
           cof_split
             [join [eq k dim1; eq r r'], o_tilde;
-             eq (s_ r') dim0, sub_out @@ ap (el_out @@ snd @@ el_out @@ ap t_tilde [prf]) [k]]
+             eq (s_ r') dim0, sub_out @@ ap (snd @@ ap t_tilde [prf]) [k]]
         end
       @@ fun u_tilde ->
-      vin (s_ r') (pequiv_ r') (lam @@ fun _ -> fst @@ el_out @@ ap t_tilde [prf]) u_tilde
+      vin (s_ r') (pequiv_ r') (lam @@ fun _ -> fst @@ ap t_tilde [prf]) u_tilde
   end
 
   module FHCom :

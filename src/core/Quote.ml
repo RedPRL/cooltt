@@ -115,12 +115,8 @@ let rec quote_con (tp : D.tp) con =
     S.SubIn tout
 
   | D.ElStable code, _ ->
-    let+ tout =
-      let* unfolded = lift_cmp @@ unfold_el code in
-      let* out = lift_cmp @@ do_el_out con in
-      quote_con unfolded out
-    in
-    S.ElIn tout
+    let* unfolded = lift_cmp @@ unfold_el code in
+    quote_con unfolded con
 
   | _, D.Zero ->
     ret S.Zero
@@ -160,10 +156,9 @@ let rec quote_con (tp : D.tp) con =
       Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
+      TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom (D.StableCode `Nat) r s phi bdy' in
-    S.ElOut tm
+    quote_hcom (D.StableCode `Nat) r s phi bdy'
 
   | _univ, D.UnstableCode (`V (r, pcode, code, pequiv)) ->
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
@@ -176,10 +171,9 @@ let rec quote_con (tp : D.tp) con =
       Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
+      TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom (D.StableCode `Univ) r s phi bdy' in
-    S.ElOut tm
+    quote_hcom (D.StableCode `Univ) r s phi bdy'
 
   | D.Circle, D.FHCom (`Circle, r, s, phi, bdy) ->
     let* bdy' =
@@ -187,10 +181,9 @@ let rec quote_con (tp : D.tp) con =
       Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
+      TB.ap bdy [i; prf]
     in
-    let+ tm = quote_hcom (D.StableCode `Circle) r s phi bdy' in
-    S.ElOut tm
+    quote_hcom (D.StableCode `Circle) r s phi bdy'
 
   | D.ElUnstable (`HCom (r,s,phi,bdy)), _ ->
     let+ tr = quote_dim r
@@ -650,5 +643,3 @@ and quote_frm tm =
   | D.KAp (tp, con) ->
     let+ targ = quote_con tp con in
     S.Ap (tm, targ)
-  | D.KElOut ->
-    ret @@ S.ElOut tm

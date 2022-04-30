@@ -653,7 +653,7 @@ struct
               Splice.con vpatch @@ fun patch ->
               Splice.term @@ TB.lams (field_names :> Ident.t list) @@ fun args -> TB.code_ext 0 (TB.ap field_tp @@ ListUtil.zip_with (@@) elim_conns args) TB.top @@ TB.lam @@ fun _ -> TB.ap patch args
             in
-            (ext_code, fun arg -> TB.sub_out @@ TB.el_out arg)
+            (ext_code, TB.sub_out)
           | None ->
             let+ code =
               RM.lift_cmp @@
@@ -697,7 +697,7 @@ struct
       RM.lift_cmp @@
       Sem.splice_tm @@
       Splice.con vtm @@ fun tm ->
-      Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
+      Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.ap tm [TB.struct_ @@ List.combine sign_names args]
     in
     let+ qfib = RM.quote_con fib_tp fib in
     S.CodeSignature (qsign @ [`User ["fib"], qfib])
@@ -745,7 +745,7 @@ struct
         TB.ap bdry [TB.prf]
       in
       let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
-      S.ElIn (S.SubIn ttm)
+      S.SubIn ttm
     | tp -> RM.expected_connective `ElExt tp
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
@@ -936,14 +936,14 @@ struct
   let intro tac =
     T.Chk.brule ~name:"El.intro" @@ fun (tp, phi, clo) ->
     let* unfolded = dest_el tp in
-    let+ tm = T.Chk.brun tac (unfolded, phi, D.un_lam @@ D.compose D.el_out @@ D.Lam (`Anon, clo)) in
-    S.ElIn tm
+    T.Chk.brun tac (unfolded, phi, D.un_lam @@ D.Lam (`Anon, clo))
 
   let elim tac =
     T.Syn.rule ~name:"El.elim" @@
     let* tm, tp = T.Syn.run tac in
     let+ unfolded = dest_el tp in
-    S.ElOut tm, unfolded
+    tm, unfolded
+
 end
 
 
@@ -1214,7 +1214,7 @@ struct
 
   let assert_nat =
     function
-    | D.Nat -> RM.ret ()
+    | D.Nat | D.ElStable `Nat -> RM.ret ()
     | tp -> RM.expected_connective `Nat tp
 
   let rec int_to_term =
@@ -1282,7 +1282,7 @@ struct
 
   let assert_circle =
     function
-    | D.Circle -> RM.ret ()
+    | D.Circle | D.ElStable `Circle -> RM.ret ()
     | tp -> RM.expected_connective `Circle tp
 
   let base =

@@ -137,8 +137,6 @@ struct
     | S.ForallCof cof -> labeled "forall" [json_of_tm cof]
     | S.CofSplit branches -> labeled "split" @@ List.map (fun (tphi, tm) -> json_of_pair (json_of_tm tphi) (json_of_tm tm)) branches
     | S.Prf -> `String "prf"
-    | S.ElIn tm -> labeled "el_in" [json_of_tm tm]
-    | S.ElOut tm -> labeled "el_out" [json_of_tm tm]
     | S.Box (r, s, phi, sides, cap) -> labeled "box" [json_of_tm r; json_of_tm s; json_of_tm phi; json_of_tm sides; json_of_tm cap]
     | S.Cap (r, s, phi, code, box) -> labeled "cap" [json_of_tm r; json_of_tm s; json_of_tm phi; json_of_tm code; json_of_tm box]
     | S.VIn (r, pequiv, pivot, base) -> labeled "v_in" [json_of_tm r; json_of_tm pequiv; json_of_tm pivot; json_of_tm base]
@@ -285,12 +283,6 @@ struct
       let branches = List.map (json_to_pair json_to_tm json_to_tm) j_branches in
       S.CofSplit branches
     | `String "prf" -> S.Prf
-    | `A [`String "el_in"; j_tm] ->
-      let tm = json_to_tm j_tm in
-      S.ElIn tm
-    | `A [`String "el_out"; j_tm] ->
-      let tm = json_to_tm j_tm in
-      S.ElOut tm
     | `A [`String "box"; j_r; j_s; j_phi; j_sides; j_cap] ->
       let r = json_to_tm j_r in
       let s = json_to_tm j_s in
@@ -445,7 +437,6 @@ struct
     | Pair (con0, con1) -> labeled "pair" [json_of_con con0; json_of_con con1]
     | Struct fields -> labeled "struct" [json_of_labeled json_of_con fields]
     | SubIn con -> labeled "sub_in" [json_of_con con]
-    | ElIn con -> labeled "el_in" [json_of_con con]
     | Dim0 -> `String "dim0"
     | Dim1 -> `String "dim1"
     | DimProbe dim_probe -> labeled "dim_probe" [DimProbe.serialize dim_probe]
@@ -522,7 +513,6 @@ struct
     | D.KProj lbl -> labeled "k_proj" [json_of_user lbl]
     | D.KNatElim (mot, z, s) -> labeled "k_nat_elim" [json_of_con mot; json_of_con z; json_of_con s]
     | D.KCircleElim (mot, b, l) -> labeled "k_circle_elim" [json_of_con mot; json_of_con b; json_of_con l]
-    | D.KElOut -> `String "k_el_out"
 
   and json_of_unstable_frm : D.unstable_frm -> J.value =
     function
@@ -568,7 +558,6 @@ struct
     | `A [`String "pair"; j_con0; j_con1] -> Pair (json_to_con j_con0, json_to_con j_con1)
     | `A [`String "struct"; j_fields] -> Struct (json_to_labeled json_to_con j_fields)
     | `A [`String "sub_in"; j_con] -> SubIn (json_to_con j_con)
-    | `A [`String "el_in"; j_con] -> ElIn (json_to_con j_con)
     | `String "dim0" -> Dim0
     | `String "dim1" -> Dim1
     | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
@@ -656,7 +645,6 @@ struct
     | `A [`String "k_proj"; j_lbl] -> KProj (json_to_user j_lbl)
     | `A [`String "k_nat_elim"; j_mot; j_z; j_s] -> KNatElim (json_to_con j_mot, json_to_con j_z, json_to_con j_s)
     | `A [`String "k_circle_elim"; j_mot; j_b; j_l] -> KCircleElim (json_to_con j_mot, json_to_con j_b, json_to_con j_l)
-    | `String "k-el_out" -> KElOut
     | j -> J.parse_error j "Domain.json_to_frm"
 
   and json_to_unstable_frm : J.value -> D.unstable_frm =

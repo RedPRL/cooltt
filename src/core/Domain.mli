@@ -23,7 +23,6 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val fst : con
   val snd : con
   val proj : Ident.user -> con
-  val el_out : con
 
   val tm_abort : con
   val tp_abort : tp

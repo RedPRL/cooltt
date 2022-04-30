@@ -33,8 +33,6 @@ struct
   let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
   let proj lbl = Lam (`Anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = Emp; conenv = Emp}))
-  let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
-
   let tm_abort = Split []
   let tp_abort = TpSplit []
 
@@ -106,7 +104,6 @@ struct
     | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
-    | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
   and pp_cof : cof Pp.printer =
     fun fmt cof ->
@@ -174,8 +171,6 @@ struct
       Format.fprintf fmt "dim0"
     | Dim1 ->
       Format.fprintf fmt "dim1"
-    | ElIn con ->
-      Format.fprintf fmt "el/in[%a]" pp_con con
     | StableCode `Nat ->
       Format.fprintf fmt "nat/code"
     | StableCode `Circle ->

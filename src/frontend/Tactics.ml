@@ -166,7 +166,7 @@ struct
     let* tscrut, ind_tp = T.Syn.run scrut in
     let scrut = T.Syn.rule @@ RM.ret (tscrut, ind_tp) (* only makes sense because because I know 'scrut' won't be used under some binder *) in
     match ind_tp, mot with
-    | D.Nat, mot ->
+    | (D.Nat | D.ElStable `Nat) , mot ->
       let* tac_zero : T.Chk.tac =
         match find_case ["zero"] cases with
         | Some ([], tac) -> RM.ret tac
@@ -183,7 +183,7 @@ struct
         | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "suc"
       in
       T.Syn.run @@ R.Nat.elim mot tac_zero tac_suc scrut
-    | D.Circle, mot ->
+    | (D.Circle | D.ElStable `Circle), mot ->
       let* tac_base : T.Chk.tac =
         match find_case ["base"] cases with
         | Some ([], tac) -> RM.ret tac
@@ -221,7 +221,7 @@ struct
       let mot_tac : T.Chk.tac =
         R.Pi.intro @@ fun var -> (* of inductive type *)
         T.Chk.brule @@ fun _goal ->
-        let* fib = RM.lift_cmp @@ Sem.inst_tp_clo fam @@ D.ElIn (T.Var.con var) in
+        let* fib = RM.lift_cmp @@ Sem.inst_tp_clo fam @@ T.Var.con var in
         let* tfib = RM.quote_tp fib in
         match tfib with
         | S.El code ->
@@ -233,7 +233,7 @@ struct
       R.Pi.intro @@ fun x ->
       T.Chk.syn @@
       elim mot_tac cases @@
-      R.El.elim @@ T.Var.syn x
+      T.Var.syn x
     | _ ->
       RM.expected_connective `Pi tp
 end
@@ -289,15 +289,14 @@ struct
       Splice.con p @@ fun p ->
       Splice.con q @@ fun q ->
       Splice.term @@
-      TB.el_in @@
       TB.lam @@ fun i ->
       TB.sub_in @@
       TB.hcom code TB.dim0 TB.dim1 (TB.boundary i) @@
       TB.lam @@ fun j ->
       TB.lam @@ fun _ ->
       TB.cof_split [
-        TB.join [TB.eq j TB.dim0; TB.eq i TB.dim0], TB.sub_out @@ TB.ap (TB.el_out p) [i];
-        TB.eq i TB.dim1, TB.sub_out @@ TB.ap (TB.el_out q) [j]
+        TB.join [TB.eq j TB.dim0; TB.eq i TB.dim0], TB.sub_out @@ TB.ap p [i];
+        TB.eq i TB.dim1, TB.sub_out @@ TB.ap q [j]
       ]
     in
     let+ tpath = RM.quote_con path_tp path in
@@ -321,7 +320,6 @@ struct
       Sem.splice_tm @@
       Splice.con x @@ fun x ->
       Splice.term @@
-      TB.el_in @@
       TB.lam @@ fun _ -> TB.sub_in @@ x
     in
     let+ trefl = RM.quote_con refl_tp refl in

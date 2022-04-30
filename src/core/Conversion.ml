@@ -106,8 +106,12 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.Circle, D.Circle
   | D.Univ, D.Univ ->
     ret ()
-  | D.ElStable code0, D.ElStable code1 ->
-    equate_stable_code D.Univ code0 code1
+  | D.ElStable code0, _ ->
+    let* tp0 = ConvM.lift_cmp @@ Sem.unfold_el code0 in
+    equate_tp tp0 tp1
+  | _, D.ElStable code1 ->
+    let* tp1 = ConvM.lift_cmp @@ Sem.unfold_el code1 in
+    equate_tp tp0 tp1
   | D.ElCut cut0, D.ElCut cut1 ->
     equate_cut cut0 cut1
   | D.ElUnstable (`HCom (r0, s0, phi0, bdy0)), D.ElUnstable (`HCom (r1, s1, phi1, bdy1)) ->
@@ -232,10 +236,8 @@ and equate_con tp con0 con1 =
     let* out1 = lift_cmp @@ do_sub_out con1 in
     equate_con tp out0 out1
   | D.ElStable code, _, _ ->
-    let* out0 = lift_cmp @@ do_el_out con0 in
-    let* out1 = lift_cmp @@ do_el_out con1 in
     let* tp = lift_cmp @@ unfold_el code in
-    equate_con tp out0 out1
+    equate_con tp con0 con1
   | _, D.Zero, D.Zero ->
     ret ()
   | _, D.Suc con0, D.Suc con1 ->
@@ -260,7 +262,7 @@ and equate_con tp con0 con1 =
       Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
+      TB.ap bdy [i; prf]
     in
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
@@ -271,7 +273,7 @@ and equate_con tp con0 con1 =
       Splice.con bdy @@ fun bdy ->
       Splice.term @@
       TB.lam @@ fun i -> TB.lam @@ fun prf ->
-      TB.el_in @@ TB.ap bdy [i; prf]
+      TB.ap bdy [i; prf]
     in
     let* bdy0' = fix_body bdy0 in
     let* bdy1' = fix_body bdy1 in
@@ -401,8 +403,6 @@ and equate_frm k0 k1 =
       TB.el @@ TB.ap mot [TB.loop x]
     in
     equate_con loop_tp loop_case0 loop_case1
-  | D.KElOut, D.KElOut ->
-    ret ()
   | _ ->
     conv_err @@ ExpectedFrmEq (k0, k1)
 

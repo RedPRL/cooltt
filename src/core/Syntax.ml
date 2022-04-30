@@ -58,9 +58,6 @@ struct
     | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (Pp.pp_sep_list dump_branch) branches
     | Prf -> Format.fprintf fmt "prf"
 
-    | ElIn tm -> Format.fprintf fmt "el/in[%a]" dump tm
-    | ElOut tm -> Format.fprintf fmt "el/out[%a]" dump tm
-
     | Box _ -> Format.fprintf fmt "<box>"
     | Cap _ -> Format.fprintf fmt "<cap>"
 
@@ -160,7 +157,7 @@ struct
       | NatElim _ | Loop _
       | CircleElim _ -> juxtaposition
 
-      | SubIn _ | SubOut _ | ElIn _ | ElOut _ -> passed
+      | SubIn _ | SubOut _ -> passed
       | CodePi _ -> arrow
       | CodeSg _ -> times
       | CodeSignature _ -> juxtaposition
@@ -330,11 +327,7 @@ struct
       Format.fprintf fmt "sub/in %a" (pp_atomic env) tm
     | SubOut tm when Debug.is_debug_mode () ->
       Format.fprintf fmt "sub/out %a" (pp_atomic env) tm
-    | ElIn tm when Debug.is_debug_mode () ->
-      Format.fprintf fmt "el/in %a" (pp_atomic env) tm
-    | ElOut tm when Debug.is_debug_mode () ->
-      Format.fprintf fmt "el/out %a" (pp_atomic env) tm
-    | SubIn tm | SubOut tm | ElIn tm | ElOut tm ->
+    | SubIn tm | SubOut tm ->
       pp env penv fmt tm
 
     | CodePi (base, fam) when Debug.is_debug_mode () ->
@@ -566,7 +559,7 @@ struct
       Format.fprintf fmt "%a %a"
         Uuseg_string.pp_utf_8 x
         (pp_lambdas envx) tm
-    | (SubIn tm | SubOut tm | ElIn tm | ElOut tm) when not @@ Debug.is_debug_mode () ->
+    | (SubIn tm | SubOut tm) when not @@ Debug.is_debug_mode () ->
       pp_lambdas env fmt tm
     | _ ->
       Format.fprintf fmt "=>@ @[%a@]"
