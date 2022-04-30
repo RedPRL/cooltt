@@ -107,10 +107,10 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.Univ, D.Univ ->
     ret ()
   | D.ElStable code0, _ ->
-    let* tp0 = ConvM.lift_cmp @@ Sem.unfold_el code0 in
+    let* tp0 = lift_cmp @@ Sem.unfold_el code0 in
     equate_tp tp0 tp1
   | _, D.ElStable code1 ->
-    let* tp1 = ConvM.lift_cmp @@ Sem.unfold_el code1 in
+    let* tp1 = lift_cmp @@ Sem.unfold_el code1 in
     equate_tp tp0 tp1
   | D.ElCut cut0, D.ElCut cut1 ->
     equate_cut cut0 cut1
