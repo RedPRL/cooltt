@@ -115,14 +115,8 @@ let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
     RM.ret tac
 
 let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
-  (* HACK: Because we are using Weak Tarski Universes, we can't just
-     use the conversion checker to equate 'tp` and 'univ', as
-     'tp' may be 'el code-univ' instead.
-
-     Therefore, we do an explicit check here instead.
-     If we add universe levels, this code should probably be reconsidered. *)
   T.Chk.rule ~name:"intro_conversions" @@ function
-  | D.Univ | D.ElStable `Univ as tp ->
+  | D.Univ as tp ->
     let* tm, tp' = T.Syn.run tac in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
     begin
@@ -130,12 +124,10 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
       | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
         let* tac' = T.abstract ~ident base @@ fun var ->
           let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
-          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll fam in
-          (* Same HACK *)
-          match fam with
-          | D.Univ
-          | D.ElStable `Univ -> RM.ret @@ R.Univ.total vsign vtm
-          | _ -> RM.ret @@ T.Chk.syn tac
+          let* conv = RM.trap @@ RM.lift_conv_ @@ Conversion.equate_tp fam D.Univ in
+          match conv with
+          | Ok () -> RM.ret @@ R.Univ.total vsign vtm
+          | Error _ -> RM.ret @@ T.Chk.syn tac
         in
         T.Chk.run tac' tp
       | _ -> T.Chk.run (T.Chk.syn tac) tp
