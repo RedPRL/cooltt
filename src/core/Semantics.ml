@@ -51,6 +51,10 @@ let rec cof_con_to_cof : (D.con, D.con) Kado.Syntax.endo -> D.cof CM.m =
     let+ r = con_to_dim r
     and+ s = con_to_dim s in
     CofBuilder.eq r s
+  | K.Lt (r, s) ->
+    let+ r = con_to_dim r
+    and+ s = con_to_dim s in
+    CofBuilder.lt r s
   | K.Join phis ->
     let+ phis = MU.map con_to_cof phis in
     CofBuilder.join phis
@@ -138,6 +142,10 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     let+ s = subst_con r x s
     and+ s' = subst_con r x s' in
     D.Cof (K.Eq (s, s'))
+  | D.Cof (K.Lt (s, s')) ->
+    let+ s = subst_con r x s
+    and+ s' = subst_con r x s' in
+    D.Cof (K.Lt (s, s'))
   | D.FHCom (tag, s, s', phi, bdy) ->
     let+ s = subst_dim r x s
     and+ s' = subst_dim r x s'
@@ -579,6 +587,10 @@ and eval : S.t -> D.con EvM.m =
           let+ r = eval tr
           and+ s = eval ts in
           D.CofBuilder.eq r s
+        | K.Lt (tr, ts) ->
+          let+ r = eval tr
+          and+ s = eval ts in
+          D.CofBuilder.lt r s
         | K.Join tphis ->
           let+ phis = MU.map eval tphis in
           D.CofBuilder.join phis
