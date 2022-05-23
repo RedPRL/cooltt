@@ -4,9 +4,12 @@ open Bwd
 module Make (Symbol : Symbol.S) =
 struct
   module S = Syntax.Make(Symbol)
+  module CofVar = CofVar.Make(Symbol)
+  module Cof = CofBuilder.Make(Symbol)
 
   type dim = Dim.t
-  type cof = CofBuilder.cof
+  type cof_var = CofVar.t
+  type cof = Cof.cof
 
   (** A type code whose head constructor is stable under dimension substitution. *)
   type 'a stable_code =

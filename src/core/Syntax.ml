@@ -1,4 +1,3 @@
-open Kado
 open Basis
 
 module Make (Symbol : Symbol.S) =

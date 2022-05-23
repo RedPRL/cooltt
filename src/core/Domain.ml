@@ -58,7 +58,8 @@ struct
     | K.Cof (S.Cof.Eq (r, s)) -> Cof (K.Eq (dim_to_con r, dim_to_con s))
     | K.Cof (S.Cof.Join phis) -> Cof (K.Join (List.map cof_to_con phis))
     | K.Cof (S.Cof.Meet phis) -> Cof (K.Meet (List.map cof_to_con phis))
-    | K.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Var (CofVar.Local lvl) -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Var (CofVar.Axiom sym) -> Cut {tp = TpCof; cut = Global sym, []}
 
   let pp_lsq fmt () = Format.fprintf fmt "["
   let pp_rsq fmt () = Format.fprintf fmt "]"

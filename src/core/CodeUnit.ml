@@ -49,6 +49,9 @@ end
 
 module Domain = Domain.Make (Global)
 module Syntax = Syntax.Make (Global)
+module CofVar = CofVar.Make (Global)
+module CofBuilder = CofBuilder.Make (Global)
+module CofThy = CofThy.Make (Global)
 
 module CodeUnit =
 struct

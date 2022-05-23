@@ -565,9 +565,11 @@ and quote_cof phi =
   let module K = Kado.Syntax in
   let rec go =
     function
-    | K.Var lvl ->
+    | K.Var (CofVar.Local lvl) ->
       let+ ix = quote_var lvl in
       S.Var ix
+    | K.Var (CofVar.Axiom sym) ->
+      ret @@ S.Global sym
     | K.Cof phi ->
       match phi with
       | K.Eq (r, s) ->

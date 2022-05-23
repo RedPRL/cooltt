@@ -1,4 +1,3 @@
-open Basis
 open Bwd
 open CodeUnit
 
@@ -474,8 +473,13 @@ struct
   and json_of_env {tpenv; conenv} : J.value =
     `O [("tpenv", json_of_bwd json_of_tp tpenv); ("conenv", json_of_bwd json_of_con conenv)]
 
+  and json_of_cof_var : D.cof_var -> J.value  = 
+    function
+    | CofVar.Local lvl -> labeled "local" [json_of_int lvl]
+    | CofVar.Axiom sym -> labeled "axiom" [Global.serialize sym]
+
   and json_of_cof (cof : D.cof) : J.value =
-    Cof.json_of_cof json_of_dim json_of_int cof
+    Cof.json_of_cof json_of_dim json_of_cof_var cof
 
   and json_of_dim : D.dim -> J.value =
     function
@@ -604,8 +608,15 @@ struct
       { tpenv = json_to_bwd json_to_tp j_tpenv; conenv = json_to_bwd json_to_con j_conenv }
     | j -> J.parse_error j "Domain.json_to_env"
 
+  and json_to_cof_var : J.value -> D.cof_var =
+    function
+    | `A [`String "local"; j_lvl] -> CofVar.Local (json_to_int j_lvl)
+    | `A [`String "axiom"; j_sym] -> CofVar.Axiom (Global.deserialize j_sym)
+    | j -> J.parse_error j "Domain.json_to_cof_var"
+
+
   and json_to_cof : J.value -> D.cof =
-    fun j_cof -> Cof.json_to_cof json_to_dim json_to_int j_cof
+    fun j_cof -> Cof.json_to_cof json_to_dim json_to_cof_var j_cof
 
   and json_to_dim : J.value -> D.dim =
     function
