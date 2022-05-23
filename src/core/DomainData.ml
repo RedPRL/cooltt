@@ -5,6 +5,7 @@ module Make (Symbol : Symbol.S) =
 struct
   module S = Syntax.Make(Symbol)
   module CofVar = CofVar.Make(Symbol)
+  module Dim = Dim.Make(Symbol)
   module Cof = CofBuilder.Make(Symbol)
 
   type dim = Dim.t

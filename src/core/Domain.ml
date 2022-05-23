@@ -47,8 +47,10 @@ struct
     function
     | Dim.Dim0 -> Dim0
     | Dim.Dim1 -> Dim1
-    | Dim.DimVar lvl ->
+    | Dim.DimVar (CofVar.Local lvl) ->
       Cut {tp = TpDim; cut = Var lvl, []}
+    | Dim.DimVar (CofVar.Axiom sym) ->
+      Cut {tp = TpDim; cut = Global sym, []}
     | Dim.DimProbe sym ->
       DimProbe sym
 

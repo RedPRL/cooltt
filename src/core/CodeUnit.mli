@@ -20,6 +20,7 @@ end
 module Domain : module type of Domain.Make(Global)
 module Syntax : module type of Syntax.Make(Global)
 module CofVar : module type of CofVar.Make(Global)
+module Dim : module type of Dim.Make(Global)
 module CofBuilder : module type of CofBuilder.Make(Global)
 module CofThy : module type of CofThy.Make(Global)
 

@@ -485,7 +485,7 @@ struct
     function
     | Dim0 -> `String "dim0"
     | Dim1 -> `String "dim1"
-    | DimVar n -> labeled "dim_var" [json_of_int n]
+    | DimVar n -> labeled "dim_var" [json_of_cof_var n]
     | DimProbe dim_probe -> labeled "dim_probe" [DimProbe.serialize dim_probe]
 
   and json_of_tp : D.tp -> J.value =
@@ -622,7 +622,7 @@ struct
     function
     | `String "dim0" -> Dim0
     | `String "dim1" -> Dim1
-    | `A [`String "dim_var"; j_n] -> DimVar (json_to_int j_n)
+    | `A [`String "dim_var"; j_n] -> DimVar (json_to_cof_var j_n)
     | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
     | j -> J.parse_error j "Domain.json_to_dim"
 

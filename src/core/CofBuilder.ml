@@ -3,6 +3,7 @@ open Basis
 module Make (Symbol : Symbol.S) =
 struct
   module CofVar = CofVar.Make(Symbol)
+  module Dim = Dim.Make(Symbol)
 
   include Kado.Builder.Free.Make
       (struct

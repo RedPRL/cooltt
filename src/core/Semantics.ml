@@ -76,7 +76,8 @@ and con_to_dim =
     | D.Dim0 -> ret Dim.Dim0
     | D.Dim1 -> ret Dim.Dim1
     | D.DimProbe x -> ret @@ Dim.DimProbe x
-    | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
+    | D.Cut {cut = D.Var l, []; _} -> ret @@ Dim.DimVar (CofVar.Local l)
+    | D.Cut {cut = D.Global sym, []; _} -> ret @@ Dim.DimVar (CofVar.Axiom sym)
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"

@@ -70,10 +70,10 @@ let rec quote_con (tp : D.tp) con =
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
     begin
-      lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq0 (Dim.DimVar lvl) |>> function
+      lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq0 (Dim.var lvl) |>> function
       | true -> ret S.Dim0
       | false ->
-        lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq1 (Dim.DimVar lvl) |>> function
+        lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq1 (Dim.var lvl) |>> function
         | true -> ret S.Dim1
         | false ->
           let+ ix = quote_var lvl in
