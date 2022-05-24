@@ -34,6 +34,14 @@ axiom test-globals/path : ext i => nat with [i=0 => 1 | i=1 => 2]
 axiom ψ/i : 𝕀
 axiom ψ/j : 𝕀
 
-axiom ψ/proof : locked {ψ/i = ψ/j}
+def ψ : 𝔽 := {ψ/i = ψ/j}
+axiom ψ/proof : locked ψ
 
 #print ψ/proof
+
+axiom ψ/single (A : type) (x : A) : sub type ψ {ext => A with [⊤ => x]}
+
+def ψ/test : unlock ψ/proof in ψ/single nat 4 :=
+  unlock ψ/proof in 4
+
+#print ψ/test
