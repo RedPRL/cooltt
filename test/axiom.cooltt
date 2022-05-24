@@ -30,3 +30,10 @@ axiom test-globals/path : ext i => nat with [i=0 => 1 | i=1 => 2]
 
 #normalize test-globals/path i0
 #normalize test-globals/path i1
+
+axiom ψ/i : 𝕀
+axiom ψ/j : 𝕀
+
+axiom ψ/proof : locked {ψ/i = ψ/j}
+
+#print ψ/proof
