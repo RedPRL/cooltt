@@ -10,10 +10,11 @@ axiom.cooltt:18.7-18.12 [Info]:
   : unlock u/path : φ/path in
     _x =>
     ext {i =>
-         ext {i₁ => nat} {i => i = 0 ∨ i = 1} {i₁ _x₁ =>
-                                               [ i₁ = 0 => 3 | i₁ = 1 => 3 ]}} {
-    i => i = 0 ∨ i = 1} {i _x₁ =>
-                         [ i = 0 => _x₃ => test _x₃ | i = 1 => _x₃ => 3 ]}
+         ext {i₁ => nat} {i => i <= 0 ∨ 1 <= i} {i₁ _x₁ =>
+                                                 [ i₁ <= 0 => 3
+                                                 | 1 <= i₁ => 3
+                                                 ]}} {i => i <= 0 ∨ 1 <= i} {
+    i _x₁ => [ i <= 0 => _x₃ => test _x₃ | 1 <= i => _x₃ => 3 ]}
   = unlock u/path : φ/path in _x _x₁ _x₂ => 3
 
 axiom.cooltt:31.11-31.31 [Info]:
@@ -23,47 +24,47 @@ axiom.cooltt:32.11-32.31 [Info]:
   Computed normal form of test-globals/path i1 as 2
 
 axiom.cooltt:40.7-40.15 [Info]:
-  ψ/proof : locked {ψ/i = ψ/j}
+  ψ/proof : locked {ψ/i <= ψ/j ∧ ψ/j <= ψ/i}
 
 axiom.cooltt:47.7-47.14 [Info]:
   ψ/test
-  : unlock ψ/proof : ψ/i = ψ/j in _x => ext nat ⊤ {_x₁ => 4}
-  = unlock ψ/proof : ψ/i = ψ/j in _x => 4
+  : unlock ψ/proof : ψ/i <= ψ/j ∧ ψ/j <= ψ/i in _x => ext nat ⊤ {_x₁ => 4}
+  = unlock ψ/proof : ψ/i <= ψ/j ∧ ψ/j <= ψ/i in _x => 4
 
 --------------------[base-types.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.20 [Info]:
   Computed normal form of loopn 5 as
    i =>
-   hcom circle 0 1 {i = 0 ∨ i = 1}
+   hcom circle 0 1 {i <= 0 ∨ 1 <= i}
      {_x _x₁ =>
-      [ _x = 0 =>
-        hcom circle 0 1 {i = 0 ∨ i = 1}
+      [ _x <= 0 =>
+        hcom circle 0 1 {i <= 0 ∨ 1 <= i}
           {_x₃ _x₄ =>
-           [ _x₃ = 0 =>
-             hcom circle 0 1 {i = 0 ∨ i = 1}
+           [ _x₃ <= 0 =>
+             hcom circle 0 1 {i <= 0 ∨ 1 <= i}
                {_x₆ _x₇ =>
-                [ _x₆ = 0 =>
-                  hcom circle 0 1 {i = 0 ∨ i = 1}
+                [ _x₆ <= 0 =>
+                  hcom circle 0 1 {i <= 0 ∨ 1 <= i}
                     {_x₉ _x₁₀ =>
-                     [ _x₉ = 0 =>
-                       hcom circle 0 1 {i = 0 ∨ i = 1}
+                     [ _x₉ <= 0 =>
+                       hcom circle 0 1 {i <= 0 ∨ 1 <= i}
                          {_x₁₂ _x₁₃ =>
-                          [ _x₁₂ = 0 => base
-                          | i = 0 => base
-                          | i = 1 => loop _x₁₂
+                          [ _x₁₂ <= 0 => base
+                          | i <= 0 => base
+                          | 1 <= i => loop _x₁₂
                           ]}
-                     | i = 0 => base
-                     | i = 1 => loop _x₉
+                     | i <= 0 => base
+                     | 1 <= i => loop _x₉
                      ]}
-                | i = 0 => base
-                | i = 1 => loop _x₆
+                | i <= 0 => base
+                | 1 <= i => loop _x₆
                 ]}
-           | i = 0 => base
-           | i = 1 => loop _x₃
+           | i <= 0 => base
+           | 1 <= i => loop _x₃
            ]}
-      | i = 0 => base
-      | i = 1 => loop _x
+      | i <= 0 => base
+      | 1 <= i => loop _x
       ]}
 
 --------------------[com.cooltt]--------------------
@@ -88,11 +89,11 @@ com.cooltt:44.11-44.20 [Info]:
 com.cooltt:64.11-64.20 [Info]:
   Computed normal form of coe/pathd as
    A r r' a b m _x =>
-   hcom {A r' _x} r r' {_x = 0 ∨ _x = 1}
+   hcom {A r' _x} r r' {_x <= 0 ∨ 1 <= _x}
      {_x₁ _x₂ =>
       coe {_x₃ => A _x₃ _x} _x₁ r'
-        [ _x = 0 ∨ _x = 1 => [ _x = 0 => a _x₁ | _x = 1 => b _x₁ ]
-        | _x₁ = r => m _x
+        [ _x <= 0 ∨ 1 <= _x => [ _x <= 0 => a _x₁ | 1 <= _x => b _x₁ ]
+        | _x₁ <= r ∧ r <= _x₁ => m _x
         ]}
 
 com.cooltt:80.11-80.19 [Info]:
@@ -164,7 +165,7 @@ cool-total-space.cooltt:35.64-35.65 [Info]:
 --------------------[elab.cooltt]--------------------
 elab.cooltt:7.11-7.24 [Info]:
   Computed normal form of boundary-test as
-   i _x => [ i = 1 => 5 | i = 0 => 19 ]
+   i _x => [ 1 <= i => 5 | i <= 0 => 19 ]
 
 elab.cooltt:18.11-18.23 [Info]:
   Computed normal form of pi-code-test as (x : nat) → nat
@@ -198,20 +199,20 @@ equation.cooltt:10.7-10.23 [Info]:
   equational/trans
   : (a : type) → (x : a) → (y : a) → (z : a) → (p : path a x y) → (q : path a y z) → path a x z
   = a x y z p q _x =>
-    hcom a 0 1 {_x = 0 ∨ _x = 1}
+    hcom a 0 1 {_x <= 0 ∨ 1 <= _x}
       {_x₁ _x₂ =>
-       [ _x₁ = 0 ∨ _x = 0 => p _x
-       | _x = 1 =>
-         hcom a 0 1 {_x₁ = 0 ∨ _x₁ = 1}
-           {_x₄ _x₅ => [ _x₄ = 0 ∨ _x₁ = 0 => q _x₁ | _x₁ = 1 => z ]}
+       [ _x₁ <= 0 ∨ _x <= 0 => p _x
+       | 1 <= _x =>
+         hcom a 0 1 {_x₁ <= 0 ∨ 1 <= _x₁}
+           {_x₄ _x₅ => [ _x₄ <= 0 ∨ _x₁ <= 0 => q _x₁ | 1 <= _x₁ => z ]}
        ]}
 
 equation.cooltt:18.7-18.26 [Info]:
   equational/refl/nat
   : path nat 4 4
   = _x =>
-    hcom nat 0 1 {_x = 0 ∨ _x = 1}
-      {_x₁ _x₂ => [ _x₁ = 0 ∨ _x = 0 => 4 | _x = 1 => 4 ]}
+    hcom nat 0 1 {_x <= 0 ∨ 1 <= _x}
+      {_x₁ _x₂ => [ _x₁ <= 0 ∨ _x <= 0 => 4 | 1 <= _x => 4 ]}
 
 --------------------[evan.cooltt]--------------------
 --------------------[export.cooltt]--------------------
@@ -238,17 +239,17 @@ Emitted namespace under ∷
 hcom-type.cooltt:17.8-17.13 [Info]:
   Emitted hole:
     i : 𝕀
-    _x : [ i = 0 ∨ i = 1 ]
+    _x : [ i <= 0 ∨ 1 <= i ]
     |- ?asdf : nat
 
 
 hcom-type.cooltt:17.16-17.17 [Info]:
   Emitted hole:
     i : 𝕀
-    |- ? : (_x : [ i = 0 ]) → nat
+    |- ? : (_x : [ i <= 0 ]) → nat
     
     Boundary:
-    i = 0 ∨ i = 1
+    i <= 0 ∨ 1 <= i
     |- _x => ?asdf 0 *
 
 
@@ -258,9 +259,9 @@ hcom-type.cooltt:17.18-17.19 [Info]:
     |- ? : nat
     
     Boundary:
-    i = 0 ∨ i = 0 ∨ i = 1
-    |- i = 0 => ?asdf 0 *
-       i = 1 => ?asdf 1 *
+    i <= 0 ∨ i <= 0 ∨ 1 <= i
+    |- i <= 0 => ?asdf 0 *
+       1 <= i => ?asdf 1 *
 
 
 --------------------[hlevel.cooltt]--------------------
@@ -271,29 +272,29 @@ hlevel.cooltt:32.7-32.12 [Info]:
 
 hlevel.cooltt:33.11-33.16 [Info]:
   Computed normal form of hProp as
-   (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
-                                     i _x => [ i = 0 => c | i = 1 => c' ]}
+   (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i <= 0 ∨ 1 <= i} {
+                                     i _x => [ i <= 0 => c | 1 <= i => c' ]}
 
 --------------------[holes.cooltt]--------------------
 holes.cooltt:5.7-5.13 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    q : (i : 𝕀) → sub A {i <= 0} {p 1}
     i : 𝕀
     |- ? : A
     
     Boundary:
-    i = 0 ∨ i = 1
-    |- i = 0 => p 0
-       i = 1 => q 1
+    i <= 0 ∨ 1 <= i
+    |- i <= 0 => p 0
+       1 <= i => q 1
 
 
 holes.cooltt:8.25-8.26 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    q : (i : 𝕀) → sub A {i <= 0} {p 1}
     i : 𝕀
     |- ? : (_x : 𝕀) → A
 
@@ -302,65 +303,65 @@ holes.cooltt:8.27-8.28 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    q : (i : 𝕀) → sub A {i <= 0} {p 1}
     i : 𝕀
-    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 A p q i 1}
+    |- ? : (i₁ : 𝕀) → sub A {i₁ <= 0} {#2 A p q i 1}
 
 
 holes.cooltt:8.7-8.35 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    q : (i : 𝕀) → sub A {i <= 0} {p 1}
     i : 𝕀
     |- {! trans/filler A {#2 A p q i} {#3 A p q i} 1 i !} : A
     
     Boundary (unsatisfied):
-    i = 0 ∨ i = 1
-    |- i = 0 => p 0
-       i = 1 => q 1
+    i <= 0 ∨ 1 <= i
+    |- i <= 0 => p 0
+       1 <= i => q 1
 
 
 holes.cooltt:11.7-11.35 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    q : (i : 𝕀) → sub A {i <= 0} {p 1}
     i : 𝕀
     |- {! trans/filler A {_x => p _x} {_x => q _x} 0 i !} : A
     
     Boundary (unsatisfied):
-    i = 0 ∨ i = 1
-    |- i = 0 => p 0
-       i = 1 => q 1
+    i <= 0 ∨ 1 <= i
+    |- i <= 0 => p 0
+       1 <= i => q 1
 
 
 holes.cooltt:14.7-14.35 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    q : (i : 𝕀) → sub A {i <= 0} {p 1}
     i : 𝕀
     |- {! trans/filler A {_x => p _x} {_x => q _x} 1 i !} : A
     
     Boundary (satisfied):
-    i = 0 ∨ i = 1
-    |- i = 0 => p 0
-       i = 1 => q 1
+    i <= 0 ∨ 1 <= i
+    |- i <= 0 => p 0
+       1 <= i => q 1
 
 
 holes.cooltt:18.26-18.30 [Info]:
   Emitted hole:
     A : type
     p : (_x : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    q : (i : 𝕀) → sub A {i <= 0} {p 1}
     i : 𝕀
-    |- ? : (_x : 𝕀) → (_x₁ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) → A
+    |- ? : (_x : 𝕀) → (_x₁ : [ _x <= 0 ∨ i <= 0 ∨ 1 <= i ]) → A
 
 
 holes.cooltt:18.7-18.30 [Info]:
   fail cone-of-silence-hcom:
-  Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+  Expected #10 A p q i 1 * = [ i <= 0 => p 0 | 1 <= i => q 1 ] : A
 
 --------------------[import.cooltt]--------------------
 Emitted namespace under p2
@@ -396,6 +397,12 @@ Emitted namespace under p2
       ; refl => refl; symm => symm; symm/filler => symm/filler
       ; trans => trans; trans/filler => trans/filler; u => unit
       ; unit/eta => unit/eta }
+
+--------------------[inequality.cooltt]--------------------
+inequality.cooltt:11.7-11.10 [Info]:
+  bar
+  : ext nat ⊤ {_x => 0}
+  = 0
 
 --------------------[isos.cooltt]--------------------
 --------------------[monoid.cooltt]--------------------
@@ -442,17 +449,17 @@ nat-path.cooltt:15.11-15.12 [Info]:
    A p C d =>
    coe {i =>
         C {_x =>
-           hcom A 0 _x {i = 0 ∨ i = 1}
-             {k _x₁ => [ k = 0 ∨ i = 0 => p 0 | i = 1 => p k ]}}} 0 1
+           hcom A 0 _x {i <= 0 ∨ 1 <= i}
+             {k _x₁ => [ k <= 0 ∨ i <= 0 => p 0 | 1 <= i => p k ]}}} 0 1
      d
 
 nat-path.cooltt:56.11-56.18 [Info]:
   Computed normal form of +-assoc as
    _x =>
    elim _x @ {_x₁ =>
-              (y : nat) → (z : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
+              (y : nat) → (z : nat) → ext {i => nat} {i => i <= 0 ∨ 1 <= i} {
                                       i _x₂ =>
-                                      [ i = 0 =>
+                                      [ i <= 0 =>
                                         elim {elim _x₁ @ {_x₄ =>
                                                           (_x₅ : nat) → nat}
                                                 [ zero => n => n
@@ -463,7 +470,7 @@ nat-path.cooltt:56.11-56.18 [Info]:
                                           [ zero => n => n
                                           | suc => _x₄ ih n => suc {ih n}
                                           ] z
-                                      | i = 1 =>
+                                      | 1 <= i =>
                                         elim _x₁ @ {_x₄ => (_x₅ : nat) → nat}
                                           [ zero => n => n
                                           | suc => _x₄ ih n => suc {ih n}
@@ -485,46 +492,46 @@ nat-path.cooltt:56.11-56.18 [Info]:
 nat-path.cooltt:58.11-58.26 [Info]:
   Computed normal form of trans-left-unit as
    A p k i =>
-   hcom A 0 1 {k = 0 ∨ i = 0 ∨ i = 1}
+   hcom A 0 1 {k <= 0 ∨ i <= 0 ∨ 1 <= i}
      {j _x =>
-      [ j = 0 ∨ i = 0 => p 0
-      | i = 1 => p j
-      | k = 0 =>
-        hcom A 0 1 {i = 0 ∨ i = 1 ∨ j = 0 ∨ j = 1}
+      [ j <= 0 ∨ i <= 0 => p 0
+      | 1 <= i => p j
+      | k <= 0 =>
+        hcom A 0 1 {i <= 0 ∨ 1 <= i ∨ j <= 0 ∨ 1 <= j}
           {l _x₂ =>
-           [ l = 0 ∨ i = 0 ∨ j = 1 =>
-             hcom A 0 i {l = 0 ∨ l = 1}
-               {j₁ _x₄ => [ j₁ = 0 ∨ l = 0 => p 0 | l = 1 => p j₁ ]}
-           | i = 1 ∨ j = 0 =>
-             hcom A 0 j {l = 0 ∨ l = 1}
-               {j₁ _x₄ => [ j₁ = 0 ∨ l = 0 => p 0 | l = 1 => p j₁ ]}
+           [ l <= 0 ∨ i <= 0 ∨ 1 <= j =>
+             hcom A 0 i {l <= 0 ∨ 1 <= l}
+               {j₁ _x₄ => [ j₁ <= 0 ∨ l <= 0 => p 0 | 1 <= l => p j₁ ]}
+           | 1 <= i ∨ j <= 0 =>
+             hcom A 0 j {l <= 0 ∨ 1 <= l}
+               {j₁ _x₄ => [ j₁ <= 0 ∨ l <= 0 => p 0 | 1 <= l => p j₁ ]}
            ]}
       ]}
 
 nat-path.cooltt:59.11-59.27 [Info]:
   Computed normal form of trans-right-unit as
    A p _x _x₁ =>
-   hcom A 0 _x {_x₁ = 0 ∨ _x₁ = 1}
-     {j _x₂ => [ j = 0 ∨ _x₁ = 0 => p _x₁ | _x₁ = 1 => p 1 ]}
+   hcom A 0 _x {_x₁ <= 0 ∨ 1 <= _x₁}
+     {j _x₂ => [ j <= 0 ∨ _x₁ <= 0 => p _x₁ | 1 <= _x₁ => p 1 ]}
 
 nat-path.cooltt:60.11-60.26 [Info]:
   Computed normal form of trans-symm-refl as
    A p k i =>
-   hcom A 0 1 {k = 0 ∨ i = 0 ∨ i = 1}
+   hcom A 0 1 {k <= 0 ∨ i <= 0 ∨ 1 <= i}
      {j _x =>
-      hcom A 0 i {j = 0 ∨ j = 1}
-        {j₁ _x₁ => [ j₁ = 0 ∨ j = 1 => p 0 | j = 0 => p j₁ ]}}
+      hcom A 0 i {j <= 0 ∨ 1 <= j}
+        {j₁ _x₁ => [ j₁ <= 0 ∨ 1 <= j => p 0 | j <= 0 => p j₁ ]}}
 
 nat-path.cooltt:82.11-82.15 [Info]:
   Computed normal form of test as
    p i =>
-   hcom nat 0 1 {i = 0 ∨ i = 1}
+   hcom nat 0 1 {i <= 0 ∨ 1 <= i}
      {_x _x₁ =>
-      [ _x = 0 ∨ i = 1 =>
+      [ _x <= 0 ∨ 1 <= i =>
         elim {p 0} @ {_x₃ => nat} [ zero => 0
                                   | suc => _x₃ _x₄ => 0
                                   ]
-      | i = 0 =>
+      | i <= 0 =>
         elim {p _x} @ {_x₃ => nat} [ zero => 0
                                    | suc => _x₃ _x₄ => 0
                                    ]
@@ -533,8 +540,8 @@ nat-path.cooltt:82.11-82.15 [Info]:
 nat-path.cooltt:84.11-84.16 [Info]:
   Computed normal form of test2 as
    i =>
-   hcom nat 0 1 {i = 0 ∨ i = 1}
-     {_x _x₁ => [ _x = 0 ∨ i = 1 => 0 | i = 0 => 0 ]}
+   hcom nat 0 1 {i <= 0 ∨ 1 <= i}
+     {_x _x₁ => [ _x <= 0 ∨ 1 <= i => 0 | i <= 0 => 0 ]}
 
 --------------------[nat.cooltt]--------------------
 nat.cooltt:9.11-9.16 [Info]:
@@ -725,7 +732,8 @@ patch.cooltt:59.7-59.24 [Info]:
 path-types.cooltt:8.11-8.20 [Info]:
   Computed normal form of formation as
    A a b =>
-   ext {i => A i} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => a | i = 1 => b ]}
+   ext {i => A i} {i => i <= 0 ∨ 1 <= i} {i _x =>
+                                          [ i <= 0 => a | 1 <= i => b ]}
 
 path-types.cooltt:21.11-21.17 [Info]:
   Computed normal form of myrefl as A a i => a
@@ -814,13 +822,19 @@ v.cooltt:13.11-13.17 [Info]:
                     , x =>
                       [ [ x , _x₁ => x ]
                       , p i =>
-                        [ hcom A 1 0 {i = 0 ∨ i = 1}
+                        [ hcom A 1 0 {i <= 0 ∨ 1 <= i}
                             {k _x₁ =>
-                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+                             [ 1 <= k => x
+                             | 1 <= i => snd p k
+                             | i <= 0 => x
+                             ]}
                         , _x₁ =>
-                          hcom A 1 _x₁ {i = 0 ∨ i = 1}
+                          hcom A 1 _x₁ {i <= 0 ∨ 1 <= i}
                             {k _x₂ =>
-                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+                             [ 1 <= k => x
+                             | 1 <= i => snd p k
+                             | i <= 0 => x
+                             ]}
                         ]
                       ]
                     ]}
@@ -831,12 +845,12 @@ v.cooltt:21.11-21.15 [Info]:
 v.cooltt:22.11-22.16 [Info]:
   Computed normal form of cool2 as
    A a i =>
-   hcom A 0 1 {i = 0}
+   hcom A 0 1 {i <= 0}
      {_x _x₁ =>
-      [ _x = 0 => coe {_x₃ => A} i 0 a
-      | i = 0 =>
-        hcom A 1 0 {_x = 0 ∨ _x = 1}
-          {k _x₃ => [ k = 1 => a | _x = 1 => a | _x = 0 => a ]}
+      [ _x <= 0 => coe {_x₃ => A} i 0 a
+      | i <= 0 =>
+        hcom A 1 0 {_x <= 0 ∨ 1 <= _x}
+          {k _x₃ => [ 1 <= k => a | 1 <= _x => a | _x <= 0 => a ]}
       ]}
 
 v.cooltt:28.11-28.16 [Info]:
