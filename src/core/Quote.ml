@@ -572,14 +572,10 @@ and quote_cof phi =
       ret @@ S.Global sym
     | K.Cof phi ->
       match phi with
-      | K.Eq (r, s) ->
+      | K.Le (r, s) ->
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
-        S.CofBuilder.eq tr ts
-      | K.Lt (r, s) ->
-        let+ tr = quote_dim r
-        and+ ts = quote_dim s in
-        S.CofBuilder.lt tr ts  
+        S.CofBuilder.le tr ts  
       | K.Join phis ->
         let+ tphis = MU.map go phis in
         S.CofBuilder.join tphis

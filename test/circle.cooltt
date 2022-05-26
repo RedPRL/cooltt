@@ -17,4 +17,4 @@ def loopn : nat -> Ω1s1 :=
     }
   ]
 
-#normalize {loopn 5}
+#normalize {loopn 45}

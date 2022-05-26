@@ -221,7 +221,7 @@ plain_atomic_in_cof_except_term:
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
   | r = atomic_term LESS_THAN s = atomic_term
-    { CofLt (r, s) }
+    { CofLe (r, s) }
 
 
 plain_atomic_in_cof:
