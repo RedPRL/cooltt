@@ -39,4 +39,5 @@ struct
     | UnexpectedShadowing of Ident.user
     | CyclicImport of CodeUnitID.t
     | ErrorsInSection
+    | UnsolvedHoles of int
 end

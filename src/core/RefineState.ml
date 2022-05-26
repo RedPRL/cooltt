@@ -12,6 +12,8 @@ type t =
     unit_id : CodeUnitID.t;
     (** current nested scopes *)
     scopes : Global.t Scopes.t;
+    (** numbers of holes in the current unit *)
+    num_holes : int;
 
     (** global cofibration theory *)
     cof_thy : CofThy.Disj.t;
@@ -27,6 +29,7 @@ let init lib =
   { lib;
     unit_id;
     scopes = Scopes.init Scope.empty;
+    num_holes = 0;
     cof_thy = CofThy.Disj.empty;
     units = IDMap.singleton unit_id (CodeUnit.create unit_id);
     exports = IDMap.empty;
@@ -34,6 +37,10 @@ let init lib =
 
 (* lib *)
 let get_lib st = st.lib
+
+(* num_holes *)
+let get_num_holes st = st.num_holes
+let inc_num_holes st = {st with num_holes = st.num_holes + 1}
 
 (* scopes *)
 let modify_scopes f st = { st with scopes = f st.scopes }
@@ -75,6 +82,7 @@ let get_global_cof_thy st = st.cof_thy
 let begin_unit lib unit_id st =
   { lib; unit_id;
     scopes = Scopes.init Scope.empty;
+    num_holes = 0;
     cof_thy = CofThy.Disj.empty;
     units = IDMap.add unit_id (CodeUnit.create unit_id) st.units;
     exports = st.exports;
@@ -83,6 +91,7 @@ let begin_unit lib unit_id st =
 let end_unit ~parent ~child =
   { lib = parent.lib;
     unit_id = parent.unit_id;
+    num_holes = parent.num_holes;
     scopes = parent.scopes;
     cof_thy = parent.cof_thy;
     units = child.units;
