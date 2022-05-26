@@ -533,6 +533,8 @@ cool-total-space.cooltt:35.64-35.65 [Info]:
     |- ? : fam {struct (x : 0) }
 
 
+[Warn]:  There is 1 unsolved hole
+
 --------------------[elab.cooltt]--------------------
 elab.cooltt:7.11-7.24 [Info]:
   Computed normal form of boundary-test as
