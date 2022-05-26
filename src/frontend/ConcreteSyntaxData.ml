@@ -57,6 +57,7 @@ and con_ =
   | Dim
   | Cof
   | CofEq of con * con
+  | CofLe of con * con
   | Join of con list
   | Meet of con list
   | CofBoundary of con

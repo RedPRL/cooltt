@@ -311,6 +311,9 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.CofEq (c0, c1) ->
       R.Cof.eq (chk_tm c0) (chk_tm c1)
 
+    | CS.CofLe (c0, c1) -> 
+      R.Cof.le (chk_tm c0) (chk_tm c1)
+
     | CS.Join cs ->
       R.Cof.join (List.map chk_tm cs)
 

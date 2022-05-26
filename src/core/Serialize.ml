@@ -79,7 +79,7 @@ struct
 
   let json_of_cof_f (json_of_r : 'r -> J.value) (json_of_a : 'a -> J.value) : ('r, 'a) K.endo -> J.value =
     function
-    | Eq (r0, r1) -> labeled "eq" [json_of_r r0; json_of_r r1]
+    | Le (r0, r1) -> labeled "le" [json_of_r r0; json_of_r r1]
     | Join xs -> labeled "join" @@ List.map json_of_a xs
     | Meet xs -> labeled "meet" @@ List.map json_of_a xs
 
@@ -90,7 +90,7 @@ struct
 
   let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_a : J.value -> 'a) : J.value -> ('r, 'a) K.endo =
     function
-    | `A [`String "eq"; r0; r1] -> Eq (json_to_r r0, json_to_r r1)
+    | `A [`String "le"; r0; r1] -> Le (json_to_r r0, json_to_r r1)
     | `A (`String "join" :: xs) -> Join (List.map json_to_a xs)
     | `A (`String "meet" :: xs) -> Meet (List.map json_to_a xs)
     | j -> J.parse_error j "Cof.json_to_cof_f"
@@ -473,7 +473,7 @@ struct
   and json_of_env {tpenv; conenv} : J.value =
     `O [("tpenv", json_of_bwd json_of_tp tpenv); ("conenv", json_of_bwd json_of_con conenv)]
 
-  and json_of_cof_var : D.cof_var -> J.value  = 
+  and json_of_cof_var : D.cof_var -> J.value  =
     function
     | CofVar.Local lvl -> labeled "local" [json_of_int lvl]
     | CofVar.Axiom sym -> labeled "axiom" [Global.serialize sym]

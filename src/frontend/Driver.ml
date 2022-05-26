@@ -238,7 +238,7 @@ and process_file input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file ~as_file ~debug_mode input =
+let load_file ~as_file ~debug_mode input : status =
   match load_current_library ~as_file input with
   | Error () -> Error ()
   | Ok lib ->
@@ -274,7 +274,7 @@ let rec repl lib (ch : in_channel) lexbuf =
       close_in ch;
       RM.ret @@ Ok ()
 
-let do_repl ~as_file ~debug_mode =
+let do_repl ~as_file ~debug_mode : status =
   match load_current_library ~as_file `Stdin with
   | Error () -> Error ()
   | Ok lib ->

@@ -275,6 +275,17 @@ struct
     | tp ->
       expected_cof tp
 
+  let le tac0 tac1 =
+    T.Chk.rule ~name:"Cof.le" @@
+    function
+    | D.TpCof ->
+      let+ r0 = T.Chk.run tac0 D.TpDim
+      and+ r1 = T.Chk.run tac1 D.TpDim in
+      S.CofBuilder.le r0 r1
+    | tp ->
+      expected_cof tp
+
+
   let join tacs =
     T.Chk.rule ~name:"Cof.join" @@
     function
