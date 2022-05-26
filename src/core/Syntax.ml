@@ -276,6 +276,10 @@ struct
       pp_var env fmt ix
     | Global sym ->
       Symbol.pp fmt sym
+    | Cof (Cof.Le (Dim1, s)) ->
+      Format.fprintf fmt "%a = 1" (pp env P.(left_of cof_le)) s
+    | Cof (Cof.Le (r, Dim0)) ->
+      Format.fprintf fmt "%a = 0" (pp env P.(left_of cof_le)) r
     | Cof (Cof.Le (r, s)) ->
       Format.fprintf fmt "%a <= %a" (pp env P.(left_of cof_le)) r (pp env P.(right_of cof_le)) s
     | Cof (Cof.Join []) ->
