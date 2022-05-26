@@ -56,6 +56,7 @@ struct
     let module K = Kado.Syntax in
     function
     | K.Cof (S.Cof.Eq (r, s)) -> Cof (K.Eq (dim_to_con r, dim_to_con s))
+    | K.Cof (S.Cof.Lt (r, s)) -> Cof (K.Lt (dim_to_con r, dim_to_con s))
     | K.Cof (S.Cof.Join phis) -> Cof (K.Join (List.map cof_to_con phis))
     | K.Cof (S.Cof.Meet phis) -> Cof (K.Meet (List.map cof_to_con phis))
     | K.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
@@ -162,6 +163,8 @@ struct
       Format.fprintf fmt "*"
     | Cof (Eq (x, y)) ->
       Format.fprintf fmt "eq[%a,%a]" pp_con x pp_con y
+    | Cof (Lt (x, y)) ->
+      Format.fprintf fmt "lt[%a,%a]" pp_con x pp_con y
     | Cof (Join phis) ->
       Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ",") pp_con) phis
     | Cof (Meet phis) ->
