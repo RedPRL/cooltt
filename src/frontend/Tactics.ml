@@ -17,6 +17,8 @@ open Monad.Notation (RM)
 let is_total (sign : D.sign) =
   let rec go acc = function
     | D.Field (`User ["fib"],_,D.Clo ([],_)) -> RM.ret @@ acc
+
+    (* TODO: Let's avoid this kind of matching; maybe a good first step is even to make each field come equipped uniformly with a partial element. I favor that... *)
     | D.Field (lbl,(D.ElStable (`Ext (0,_,`Global (Cof cof),_)) as tp),sign_clo) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       RM.abstract (lbl :> Ident.t) tp @@ fun v ->
