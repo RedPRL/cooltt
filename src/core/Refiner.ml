@@ -709,6 +709,7 @@ struct
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
+      (* TODO: another place to avoid this kind of matching *)
     | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       let* () = Cof.assert_true cof in
