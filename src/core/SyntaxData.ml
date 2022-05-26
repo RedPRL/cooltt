@@ -63,9 +63,6 @@ struct
     | ESub of sub * t
     (** Explicit substition *)
 
-    | LockedPrfIn of t
-    | LockedPrfUnlock of {tp : tp; cof : t; prf : t; bdy : t}
-
   and tp =
     | Univ
     | El of t
@@ -81,7 +78,6 @@ struct
     | Nat
     | Circle
     | TpESub of sub * tp
-    | TpLockedPrf of t
 
   and sign = (Ident.user * tp) list
 

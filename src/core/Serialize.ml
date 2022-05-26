@@ -151,8 +151,6 @@ struct
     | S.CodeV (r, pcode, code, pequiv) -> labeled "code_v" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv]
     | S.CodeCircle -> `String "code_circle"
     | S.ESub (sb, tm) -> labeled "sub" [json_of_sub sb; json_of_tm tm]
-    | S.LockedPrfIn tm -> labeled "prf_in" [json_of_tm tm]
-    | S.LockedPrfUnlock {tp; cof; prf; bdy} -> labeled "prf_unlock" [json_of_tp tp; json_of_tm cof; json_of_tm prf; json_of_tm bdy]
 
   and json_of_sub : S.sub -> J.value =
     function
@@ -178,7 +176,6 @@ struct
     | S.Nat -> `String "nat"
     | S.Circle -> `String "circle"
     | S.TpESub (sub, tp) -> labeled "subst" [json_of_sub sub; json_of_tp tp ]
-    | S.TpLockedPrf tm -> labeled "locked" [json_of_tm tm]
 
   and json_of_sign : S.sign -> J.value =
     fun sign -> json_of_labeled json_of_tp sign
@@ -347,15 +344,6 @@ struct
       let sub = json_to_sub j_sb in
       let tm = json_to_tm j_tm in
       S.ESub (sub, tm)
-    | `A [`String "prf_in"; j_tm] ->
-      let tm = json_to_tm j_tm in
-      S.LockedPrfIn tm
-    | `A [`String "prf_unlock"; j_tp; j_cof; j_prf; j_body] ->
-      let tp = json_to_tp j_tp in
-      let cof = json_to_tm j_cof in
-      let prf = json_to_tm j_prf in
-      let bdy = json_to_tm j_body in
-      S.LockedPrfUnlock {tp; cof; prf; bdy}
     | j -> J.parse_error j "Syntax.json_to_tm"
 
   and json_to_sub : J.value -> S.sub =
@@ -414,9 +402,6 @@ struct
       let sub = json_to_sub j_sub in
       let tp = json_to_tp j_tp in
       S.TpESub (sub, tp)
-    | `A [`String "locked"; j_tm] ->
-      let tm = json_to_tm j_tm in
-      S.TpLockedPrf tm
     | j -> J.parse_error j "Syntax.json_to_tp"
 
   and json_to_sign : J.value -> S.sign =
@@ -456,7 +441,6 @@ struct
     | Box (src, trg, cof, sides, cap) -> labeled "box" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con sides; json_of_con cap]
     | VIn (s, eq, pivot, base) -> labeled "v_in" [json_of_dim s; json_of_con eq; json_of_con pivot; json_of_con base]
     | Split branches -> labeled "split" (json_of_alist json_of_cof json_of_tm_clo branches)
-    | LockedPrfIn con -> labeled "locked_prf_in" [json_of_con con]
 
   and json_of_tm_clo : D.tm_clo -> J.value =
     function
@@ -504,7 +488,6 @@ struct
     | Signature sign -> labeled "signature" [json_of_sign sign]
     | Nat -> `String "nat"
     | Circle -> `String "circle"
-    | TpLockedPrf cof -> labeled "tp_locked_prf" [json_of_cof cof]
 
   and json_of_sign : D.sign -> J.value =
     function
@@ -534,7 +517,6 @@ struct
     | D.KCap (src, trg, cof, con) -> labeled "k_cap" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con]
     | D.KVProj (r, pcode, code, pequiv) -> labeled "k_vproj" [json_of_dim r; json_of_con pcode; json_of_con code; json_of_con pequiv]
     | D.KSubOut (cof, clo) -> labeled "k_sub_out" [json_of_cof cof; json_of_tm_clo clo]
-    | D.KLockedPrfUnlock (tp, cof, con) -> labeled "k_locked_prf_unlock" [json_of_tp tp; json_of_cof cof; json_of_con con]
 
   and json_of_cut : D.cut -> J.value =
     fun (hd, frm) -> labeled "cut" (json_of_hd hd :: List.map json_of_frm frm)
@@ -584,7 +566,6 @@ struct
     | `A [`String "box"; j_src; j_trg; j_cof; j_sides; j_cap] -> Box (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_sides, json_to_con j_cap)
     | `A [`String "v_in"; j_s; j_eq; j_pivot; j_base] -> VIn (json_to_dim j_s, json_to_con j_eq, json_to_con j_pivot, json_to_con j_base)
     | `A (`String "split" :: j_branches) -> Split (json_to_alist json_to_cof json_to_tm_clo j_branches)
-    | `A [`String "locked_prf_in"; j_con] -> LockedPrfIn (json_to_con j_con)
     | j -> J.parse_error j "Domain.json_to_con"
 
   and json_to_tm_clo : J.value -> D.tm_clo =
@@ -642,7 +623,6 @@ struct
     | `A [`String "signature"; j_sign] -> Signature (json_to_sign j_sign)
     | `String "nat" -> Nat
     | `String "circle" -> Circle
-    | `A [`String "tp_locked_prf"; j_cof] -> TpLockedPrf (json_to_cof j_cof)
     | j -> J.parse_error j "Domain.json_to_tp"
 
   and json_to_sign : J.value -> D.sign =
@@ -676,7 +656,6 @@ struct
     | `A [`String "k_cap"; j_src; j_trg; j_cof; j_con] -> KCap (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
     | `A [`String "k_vproj"; j_r; j_pcode; j_code; j_pequiv] -> KVProj (json_to_dim j_r, json_to_con j_pcode, json_to_con j_code, json_to_con j_pequiv)
     | `A [`String "k_sub_out"; j_cof; j_clo] -> KSubOut (json_to_cof j_cof, json_to_tm_clo j_clo)
-    | `A [`String "k_locked_prf_unlock"; j_tp; j_cof; j_con] -> KLockedPrfUnlock (json_to_tp j_tp, json_to_cof j_cof, json_to_con j_con)
     | j -> J.parse_error j "Domain.json_to_unstable_frm"
 
   and json_to_cut : J.value -> D.cut =

@@ -85,8 +85,6 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
-  | D.TpLockedPrf phi0, D.TpLockedPrf phi1 ->
-    equate_cof phi0 phi1
   | D.Pi (base0, _, fam0), D.Pi (base1, _, fam1)
   | D.Sg (base0, _, fam0), D.Sg (base1, _, fam1) ->
     let* () = equate_tp base0 base1 in
@@ -300,18 +298,6 @@ and equate_con tp con0 con1 =
     let* tp_proj = lift_cmp @@ do_el code in
     equate_con tp_proj proj0 proj1
 
-  | D.TpLockedPrf _, D.LockedPrfIn _, D.LockedPrfIn _->
-    ret ()
-
-  | D.TpLockedPrf phi, _, _ ->
-    begin
-      CmpM.test_sequent [] phi |> lift_cmp |>> function
-      | false ->
-        conv_err @@ ExpectedSequentTrue ([], phi)
-      | true ->
-        ret ()
-    end
-
   | _ ->
     Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
     conv_err @@ ExpectedConEq (tp, con0, con1)
@@ -472,12 +458,6 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
   | D.KVProj (r0, pcode0, code0, pequiv0), D.KVProj (r1, pcode1, code1, pequiv1) ->
     let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
     equate_cut cut0 cut1
-  | D.KLockedPrfUnlock (tp0, phi0, bdy0), D.KLockedPrfUnlock (tp1, phi1, bdy1) ->
-    let* () = equate_cut cut0 cut1 in
-    let* () = equate_tp tp0 tp1 in
-    let* () = equate_cof phi0 phi1 in
-    let bdy_tp = D.Pi (D.TpPrf phi0, `Anon, D.const_tp_clo tp0) in
-    equate_con bdy_tp bdy0 bdy1
   | _ ->
     conv_err @@ HeadMismatch (D.UnstableCut (cut0, ufrm0), D.UnstableCut (cut1, ufrm1))
 

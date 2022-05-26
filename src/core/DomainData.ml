@@ -97,8 +97,6 @@ struct
 
     | Split of (cof * tm_clo) list
 
-    | LockedPrfIn of con
-
   and tp =
     | Sub of tp * cof * tm_clo
     | Univ
@@ -114,7 +112,6 @@ struct
     | Signature of sign
     | Nat
     | Circle
-    | TpLockedPrf of cof
 
   and sign =
     | Field of Ident.user * tp * S.sign clo
@@ -153,7 +150,6 @@ struct
     | KCap of dim * dim * cof * con
     | KVProj of dim * con * con * con
     | KSubOut of cof * tm_clo
-    | KLockedPrfUnlock of tp * cof * con
 
   module CofBuilder = Kado.Builder.Endo.Make
       (struct
