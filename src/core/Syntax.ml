@@ -147,8 +147,7 @@ struct
       | Struct _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
-      | Cof (Cof.Lt _) -> cof_lt
-      | Cof (Cof.Eq _) -> cof_eq
+      | Cof (Cof.Le _) -> cof_lt
       | Cof (Cof.Join [] | Cof.Meet []) -> atom
       | Cof (Cof.Join _) -> cof_join
       | Cof (Cof.Meet _) -> cof_meet
@@ -278,9 +277,7 @@ struct
       pp_var env fmt ix
     | Global sym ->
       Symbol.pp fmt sym
-    | Cof (Cof.Eq (r, s)) ->
-      Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
-    | Cof (Cof.Lt (r, s)) ->
+    | Cof (Cof.Le (r, s)) ->
       Format.fprintf fmt "%a <= %a" (pp env P.(left_of cof_lt)) r (pp env P.(right_of cof_eq)) s  
     | Cof (Cof.Join []) ->
       Format.fprintf fmt "%a"

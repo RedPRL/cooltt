@@ -25,7 +25,7 @@ depends: [
   "kado"
 ]
 pin-depends: [
-  [ "kado.~dev" "git+https://github.com/RedPRL/kado#inequality" ]
+  [ "kado.~dev" "git+https://github.com/RedPRL/kado#inequality-plus" ]
   [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra#cooltt" ]
 ]
 build: [

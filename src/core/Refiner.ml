@@ -281,7 +281,7 @@ struct
     | D.TpCof ->
       let+ r0 = T.Chk.run tac0 D.TpDim
       and+ r1 = T.Chk.run tac1 D.TpDim in
-      S.CofBuilder.lt r0 r1
+      S.CofBuilder.le r0 r1
     | tp ->
       expected_cof tp
 
