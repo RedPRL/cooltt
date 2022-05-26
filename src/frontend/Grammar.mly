@@ -36,7 +36,7 @@
 %token LOCKED UNLOCK
 %token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
-%token EQUALS JOIN MEET
+%token EQUALS LESS_THAN JOIN MEET
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
@@ -220,6 +220,9 @@ plain_atomic_in_cof_except_term:
     { CofBoundary t }
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
+  | r = atomic_term LESS_THAN s = atomic_term
+    { CofLt (r, s) }
+
 
 plain_atomic_in_cof:
   | t = plain_atomic_term
