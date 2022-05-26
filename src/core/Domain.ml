@@ -47,8 +47,10 @@ struct
     function
     | Dim.Dim0 -> Dim0
     | Dim.Dim1 -> Dim1
-    | Dim.DimVar lvl ->
+    | Dim.DimVar (CofVar.Local lvl) ->
       Cut {tp = TpDim; cut = Var lvl, []}
+    | Dim.DimVar (CofVar.Axiom sym) ->
+      Cut {tp = TpDim; cut = Global sym, []}
     | Dim.DimProbe sym ->
       DimProbe sym
 
@@ -59,7 +61,8 @@ struct
     | K.Cof (S.Cof.Lt (r, s)) -> Cof (K.Lt (dim_to_con r, dim_to_con s))
     | K.Cof (S.Cof.Join phis) -> Cof (K.Join (List.map cof_to_con phis))
     | K.Cof (S.Cof.Meet phis) -> Cof (K.Meet (List.map cof_to_con phis))
-    | K.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Var (CofVar.Local lvl) -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Var (CofVar.Axiom sym) -> Cut {tp = TpCof; cut = Global sym, []}
 
   let pp_lsq fmt () = Format.fprintf fmt "["
   let pp_rsq fmt () = Format.fprintf fmt "]"
