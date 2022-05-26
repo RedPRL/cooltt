@@ -11,7 +11,7 @@ struct
 
   let nat_to_suffix n =
     let formatted = string_of_int n in
-    let lookup : int -> string = List.nth ["₀";"₁";"₂";"₃";"₄";"₅";"₆";"₇";"₈";"₉"] in
+    let lookup : int -> string = Array.get [|"₀";"₁";"₂";"₃";"₄";"₅";"₆";"₇";"₈";"₉"|] in
     String.concat "" @@
     List.init (String.length formatted) @@
     fun n -> lookup (Char.code (String.get formatted n) - Char.code '0')

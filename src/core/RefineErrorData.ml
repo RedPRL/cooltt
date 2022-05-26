@@ -18,7 +18,6 @@ struct
     | `Cof
     | `Sub
     | `Prf
-    | `LockedPrf
     | `El
     | `ElV
     | `ElHCom
@@ -40,4 +39,5 @@ struct
     | UnexpectedShadowing of Ident.user
     | CyclicImport of CodeUnitID.t
     | ErrorsInSection
+    | UnsolvedHoles of int
 end

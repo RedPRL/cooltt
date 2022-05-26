@@ -35,6 +35,7 @@ end
 module Cof : sig
   val formation : Tp.tac
   val eq : Chk.tac -> Chk.tac -> Chk.tac
+  val le : Chk.tac -> Chk.tac -> Chk.tac
   val join : Chk.tac list -> Chk.tac
   val meet : Chk.tac list -> Chk.tac
   val boundary : Chk.tac -> Chk.tac
@@ -46,12 +47,6 @@ end
 module Prf : sig
   val formation : Chk.tac -> Tp.tac
   val intro : Chk.tac
-end
-
-module LockedPrf : sig
-  val formation : Chk.tac -> Tp.tac
-  val intro : Chk.tac
-  val unlock : Syn.tac -> Chk.tac -> Chk.tac
 end
 
 module Univ : sig

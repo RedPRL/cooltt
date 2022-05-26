@@ -156,6 +156,8 @@ struct
       RM.add_global ~shadowing:true ident vtp None
     in
 
+    let* () = RM.inc_num_holes in
+
     let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
@@ -274,6 +276,17 @@ struct
       S.CofBuilder.eq r0 r1
     | tp ->
       expected_cof tp
+
+  let le tac0 tac1 =
+    T.Chk.rule ~name:"Cof.le" @@
+    function
+    | D.TpCof ->
+      let+ r0 = T.Chk.run tac0 D.TpDim
+      and+ r1 = T.Chk.run tac1 D.TpDim in
+      S.CofBuilder.le r0 r1
+    | tp ->
+      expected_cof tp
+
 
   let join tacs =
     T.Chk.rule ~name:"Cof.join" @@
@@ -400,40 +413,6 @@ struct
       S.Prf
     | tp, _, _ ->
       RM.expected_connective `Prf tp
-end
-
-module LockedPrf =
-struct
-  let formation tac_phi =
-    T.Tp.rule ~name:"LockedPrf.formation" @@
-    let+ phi = T.Chk.run tac_phi D.TpCof in
-    S.TpLockedPrf phi
-
-  let intro =
-    T.Chk.rule ~name:"LockedProf.intro" @@
-    function
-    | D.TpLockedPrf phi ->
-      let+ () = Cof.assert_true phi in
-      S.LockedPrfIn S.Prf
-    | tp ->
-      RM.expected_connective `LockedPrf tp
-
-  let unlock prf bdy =
-    T.Chk.rule ~name:"LockedPrf.unlock" @@
-    function
-    | D.TpPrf _ ->
-      RM.refine_err Err.VirtualType
-    | tp ->
-      let* prf, lock_tp = T.Syn.run prf in
-      match lock_tp with
-      | D.TpLockedPrf phi ->
-        let bdy_tp = D.Pi (D.TpPrf phi, `Anon, D.const_tp_clo tp) in
-        let* bdy = T.Chk.run bdy bdy_tp in
-        let* cof = RM.quote_cof phi in
-        let* tp = RM.quote_tp tp in
-        RM.ret @@ S.LockedPrfUnlock {tp; cof; prf; bdy}
-      | lock_tp ->
-        RM.expected_connective `LockedPrf lock_tp
 end
 
 module Pi =

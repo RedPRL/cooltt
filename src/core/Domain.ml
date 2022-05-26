@@ -47,18 +47,21 @@ struct
     function
     | Dim.Dim0 -> Dim0
     | Dim.Dim1 -> Dim1
-    | Dim.DimVar lvl ->
+    | Dim.DimVar (CofVar.Local lvl) ->
       Cut {tp = TpDim; cut = Var lvl, []}
+    | Dim.DimVar (CofVar.Axiom sym) ->
+      Cut {tp = TpDim; cut = Global sym, []}
     | Dim.DimProbe sym ->
       DimProbe sym
 
   let rec cof_to_con =
     let module K = Kado.Syntax in
     function
-    | K.Cof (S.Cof.Eq (r, s)) -> Cof (K.Eq (dim_to_con r, dim_to_con s))
+    | K.Cof (S.Cof.Le (r, s)) -> Cof (K.Le (dim_to_con r, dim_to_con s))
     | K.Cof (S.Cof.Join phis) -> Cof (K.Join (List.map cof_to_con phis))
     | K.Cof (S.Cof.Meet phis) -> Cof (K.Meet (List.map cof_to_con phis))
-    | K.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Var (CofVar.Local lvl) -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Var (CofVar.Axiom sym) -> Cut {tp = TpCof; cut = Global sym, []}
 
   let pp_lsq fmt () = Format.fprintf fmt "["
   let pp_rsq fmt () = Format.fprintf fmt "]"
@@ -160,8 +163,8 @@ struct
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
-    | Cof (Eq (x, y)) ->
-      Format.fprintf fmt "eq[%a,%a]" pp_con x pp_con y
+    | Cof (Le (x, y)) ->
+      Format.fprintf fmt "le[%a,%a]" pp_con x pp_con y
     | Cof (Join phis) ->
       Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ",") pp_con) phis
     | Cof (Meet phis) ->
@@ -198,9 +201,6 @@ struct
         pp_split_branch
         fmt
         branches
-    | LockedPrfIn _ ->
-      Format.fprintf fmt "<wrap>"
-
 
   and pp_sign fmt =
     function
@@ -239,8 +239,6 @@ struct
       Format.fprintf fmt "<V>"
     | TpSplit _ ->
       Format.fprintf fmt "<split>"
-    | TpLockedPrf _ ->
-      Format.fprintf fmt "<wrap>"
 
   and pp_stable_code fmt =
     function

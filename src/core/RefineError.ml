@@ -30,8 +30,6 @@ let pp_connective fmt =
     Format.fprintf fmt "sub"
   | `Prf ->
     Format.fprintf fmt "prf"
-  | `LockedPrf ->
-    Format.fprintf fmt "locked"
   | `El ->
     Format.fprintf fmt "el"
   | `ElV ->
@@ -93,6 +91,12 @@ let pp fmt =
   | RefineErrorData.Data.ErrorsInSection -> (* qualified names to check spellings *)
     Fmt.fprintf fmt
       "Unexpected errors in sections"
+  | UnsolvedHoles 1 ->
+    Fmt.fprintf fmt
+      "There is 1 unsolved hole"
+  | UnsolvedHoles n ->
+    Fmt.fprintf fmt
+      "There are %i unsolved holes" n
 
 
 

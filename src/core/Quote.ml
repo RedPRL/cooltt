@@ -70,10 +70,10 @@ let rec quote_con (tp : D.tp) con =
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
     begin
-      lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq0 (Dim.DimVar lvl) |>> function
+      lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq0 (Dim.var lvl) |>> function
       | true -> ret S.Dim0
       | false ->
-        lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq1 (Dim.DimVar lvl) |>> function
+        lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.eq1 (Dim.var lvl) |>> function
         | true -> ret S.Dim1
         | false ->
           let+ ix = quote_var lvl in
@@ -270,10 +270,6 @@ let rec quote_con (tp : D.tp) con =
         and+ tms = MU.map branch_body phis in
         S.CofSplit (List.combine tphis tms)
     end
-
-  | D.TpLockedPrf phi, D.LockedPrfIn prf ->
-    let+ prf = quote_con (D.TpPrf phi) prf in
-    S.LockedPrfIn prf
 
   | _ ->
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
@@ -486,9 +482,6 @@ and quote_tp (tp : D.tp) =
     let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
     and+ tps = MU.map branch_body branches in
     S.TpCofSplit (List.combine tphis tps)
-  | D.TpLockedPrf phi ->
-    let+ tphi = quote_cof phi in
-    S.TpLockedPrf tphi
 
 and quote_hd =
   function
@@ -547,15 +540,6 @@ and quote_unstable_cut cut ufrm =
     in
     let+ tv = quote_cut cut in
     S.VProj (tr, tpcode, tcode, t_pequiv, tv)
-  | D.KLockedPrfUnlock (tp, phi, bdy) ->
-    let+ tp = quote_tp tp
-    and+ prf = quote_cut cut
-    and+ cof = quote_cof phi
-    and+ bdy =
-      let bdy_tp = D.Pi (D.TpPrf phi, `Anon, D.const_tp_clo tp) in
-      quote_con bdy_tp bdy
-    in
-    S.LockedPrfUnlock {tp; cof; prf; bdy}
 
 and quote_dim d : S.t quote =
   quote_con D.TpDim @@
@@ -565,15 +549,17 @@ and quote_cof phi =
   let module K = Kado.Syntax in
   let rec go =
     function
-    | K.Var lvl ->
+    | K.Var (CofVar.Local lvl) ->
       let+ ix = quote_var lvl in
       S.Var ix
+    | K.Var (CofVar.Axiom sym) ->
+      ret @@ S.Global sym
     | K.Cof phi ->
       match phi with
-      | K.Eq (r, s) ->
+      | K.Le (r, s) ->
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
-        S.CofBuilder.eq tr ts
+        S.CofBuilder.le tr ts  
       | K.Join phis ->
         let+ tphis = MU.map go phis in
         S.CofBuilder.join tphis
@@ -581,7 +567,7 @@ and quote_cof phi =
         let+ tphis = MU.map go phis in
         S.CofBuilder.meet tphis
   in
-  go @<< lift_cmp @@ Sem.simplify_cof phi
+  go @<< lift_cmp @@ CmpM.simplify_cof phi
 
 and quote_var lvl =
   let+ n = read_local in

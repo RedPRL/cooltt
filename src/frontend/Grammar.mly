@@ -33,10 +33,9 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token LOCKED UNLOCK
 %token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
-%token EQUALS JOIN MEET
+%token EQUALS LESS_THAN JOIN MEET
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
@@ -220,6 +219,9 @@ plain_atomic_in_cof_except_term:
     { CofBoundary t }
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
+  | r = atomic_term LESS_THAN s = atomic_term
+    { CofLe (r, s) }
+
 
 plain_atomic_in_cof:
   | t = plain_atomic_term
@@ -316,8 +318,6 @@ plain_term_except_cof_case:
     { ap_or_atomic (List.map term_of_name spine) }
   | t = term; DOT; lbl = user; spine = list_left_recursive(atomic_term)
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
-  | UNLOCK; t = term; IN; body = term;
-    { Unlock (t, body) }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
   | GENERALIZE; name = plain_name; IN; body = term;
@@ -328,8 +328,6 @@ plain_term_except_cof_case:
     { Let (def, name, body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }
-  | LOCKED; phi = atomic_term
-    { Locked phi }
   | SUC; t = atomic_term
     { Suc t }
   | LOOP; t = atomic_term

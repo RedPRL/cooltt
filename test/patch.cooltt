@@ -41,11 +41,12 @@ def category : type :=
 def types : category :=
   struct (ob : type)
          (hom : args => {args.s} -> {args.t})
-         (idn : x => struct (fib : x => x))
-         (seq : f g => struct (fib : x => g.fib {f.fib x}))
+         (idn : x z => z)
+         (seq : f g x => g {f x})
          (seqL : f i => f)
          (seqR : f i => f)
-         (seqA : f g h i => struct (fib : x => {h.fib} {{g.fib} {{f.fib} x}}))
+         (seqA : f g h i x => h {g {f x}})
+
 
 def test-auto (fam : sig (x : nat) -> type) : type := fam
 #print test-auto
