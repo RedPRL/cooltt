@@ -3,7 +3,6 @@ module D = Domain
 module S = Syntax
 
 open Basis
-open Bwd
 
 include module type of Monads.RefineM
 

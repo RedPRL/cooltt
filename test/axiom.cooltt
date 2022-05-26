@@ -1,0 +1,47 @@
+axiom φ/path : 𝔽
+axiom u/path : locked φ/path
+axiom path (A : type) (x : A) (y : A)
+  : sub type φ/path {ext i => A with [i=0 => x | i=1 => y]}
+
+#normalize path
+
+def test : path nat 3 3 :=
+  unlock u/path in
+  i => 3
+
+#normalize test
+
+def test2 : unlock u/path in path {path nat 3 3} test {_ => 3} :=
+  unlock u/path in
+  _ _ => 3
+
+#print test2
+
+
+axiom foo : 𝕀
+
+def test3 : sub nat {foo=0} 34 :=
+  34
+
+def i0 : 𝕀 := 0
+def i1 : 𝕀 := 1
+
+axiom test-globals/path : ext i => nat with [i=0 => 1 | i=1 => 2]
+
+#normalize test-globals/path i0
+#normalize test-globals/path i1
+
+axiom ψ/i : 𝕀
+axiom ψ/j : 𝕀
+
+def ψ : 𝔽 := {ψ/i = ψ/j}
+axiom ψ/proof : locked ψ
+
+#print ψ/proof
+
+axiom ψ/single (A : type) (x : A) : sub type ψ {ext => A with [⊤ => x]}
+
+def ψ/test : unlock ψ/proof in ψ/single nat 4 :=
+  unlock ψ/proof in 4
+
+#print ψ/test

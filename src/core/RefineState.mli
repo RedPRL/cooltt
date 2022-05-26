@@ -22,7 +22,7 @@ val end_section : shadowing:bool -> prefix:Namespace.path option -> t -> (t, 'er
 val add_global : shadowing:bool -> Ident.t -> D.tp -> D.con option -> t -> (Global.t * t, 'error) Namespace.result
 val get_global : Global.t -> t -> D.tp * D.con option
 val resolve_global : Ident.t -> t -> Global.t option
-val get_global_cof_thy : t -> Cubical.CofThy.Disj.t
+val get_global_cof_thy : t -> CofThy.Disj.t
 
 (** Create and add a new code unit. *)
 val begin_unit : Bantorra.Manager.library -> id -> t -> t

@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 
 module Make (Symbol : Symbol.S) =
 struct
@@ -109,7 +108,7 @@ struct
     | TpLockedPrf _ -> Format.fprintf fmt "<locked>"
 
 
-  and dump_cof fmt = Cof.dump_cof_f dump dump fmt
+  and dump_cof fmt = Cof.dump dump dump fmt
 
   and dump_branch fmt (cof, bdy) =
     Format.fprintf fmt "[%a, %a]" dump cof dump bdy
@@ -127,7 +126,7 @@ struct
     let juxtaposition = left 9
     let proj = right 8
     let sub_compose = left 7
-    let cof_eq = nonassoc 6
+    let cof_le = nonassoc 6
     let cof_meet = nonassoc 5
     let cof_join = nonassoc 5
     let sub_comma = left 4
@@ -147,7 +146,7 @@ struct
       | Struct _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
-      | Cof (Cof.Eq _) -> cof_eq
+      | Cof (Cof.Le _) -> cof_le
       | Cof (Cof.Join [] | Cof.Meet []) -> atom
       | Cof (Cof.Join _) -> cof_join
       | Cof (Cof.Meet _) -> cof_meet
@@ -277,8 +276,12 @@ struct
       pp_var env fmt ix
     | Global sym ->
       Symbol.pp fmt sym
-    | Cof (Cof.Eq (r, s)) ->
-      Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
+    | Cof (Cof.Le (Dim1, s)) ->
+      Format.fprintf fmt "%a = 1" (pp env P.(left_of cof_le)) s
+    | Cof (Cof.Le (r, Dim0)) ->
+      Format.fprintf fmt "%a = 0" (pp env P.(left_of cof_le)) r
+    | Cof (Cof.Le (r, s)) ->
+      Format.fprintf fmt "%a %a %a" (pp env P.(left_of cof_le)) r Uuseg_string.pp_utf_8 "≤" (pp env P.(right_of cof_le)) s
     | Cof (Cof.Join []) ->
       Format.fprintf fmt "%a"
         Uuseg_string.pp_utf_8 "⊥"

@@ -1,6 +1,4 @@
-open Basis
 open Bwd
-open Cubical
 open CodeUnit
 
 module S = Syntax
@@ -32,11 +30,11 @@ let json_to_alist json_to_a json_to_b j_alist : ('a * 'b) list =
   List.map (json_to_pair json_to_a json_to_b) j_alist
 
 let json_of_bwd json_of_el bwd : J.value =
-  `A (Bwd.to_list @@ Bwd.map json_of_el bwd)
+  `A (BwdLabels.to_list @@ BwdLabels.map ~f:json_of_el bwd)
 
 let json_to_bwd json_to_el : J.value -> 'a bwd =
   function
-  | `A xs -> Bwd.map json_to_el @@ Bwd.from_list xs
+  | `A xs -> BwdLabels.map ~f:json_to_el @@ BwdLabels.of_list xs
   | j -> J.parse_error j "json_to_bwd"
 
 let labeled lbl v = `A (`String lbl :: v)
@@ -77,25 +75,27 @@ let json_to_labeled json_to_el =
 
 module Cof =
 struct
-  let json_of_cof_f (json_of_r : 'r -> J.value) (json_of_a : 'a -> J.value) : ('r, 'a) Cof.cof_f -> J.value =
+  module K = Kado.Syntax
+
+  let json_of_cof_f (json_of_r : 'r -> J.value) (json_of_a : 'a -> J.value) : ('r, 'a) K.endo -> J.value =
     function
-    | Eq (r0, r1) -> labeled "eq" [json_of_r r0; json_of_r r1]
+    | Le (r0, r1) -> labeled "le" [json_of_r r0; json_of_r r1]
     | Join xs -> labeled "join" @@ List.map json_of_a xs
     | Meet xs -> labeled "meet" @@ List.map json_of_a xs
 
-  let rec json_of_cof (json_of_r : 'r -> J.value) (json_of_v : 'v -> J.value) : ('r, 'v) Cof.cof -> J.value =
+  let rec json_of_cof (json_of_r : 'r -> J.value) (json_of_v : 'v -> J.value) : ('r, 'v) K.free -> J.value =
     function
     | Cof cof -> labeled "cof" [json_of_cof_f json_of_r (json_of_cof json_of_r json_of_v) cof]
     | Var v -> labeled "var" [json_of_v v]
 
-  let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_a : J.value -> 'a) : J.value -> ('r, 'a) Cof.cof_f =
+  let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_a : J.value -> 'a) : J.value -> ('r, 'a) K.endo =
     function
-    | `A [`String "eq"; r0; r1] -> Eq (json_to_r r0, json_to_r r1)
+    | `A [`String "le"; r0; r1] -> Le (json_to_r r0, json_to_r r1)
     | `A (`String "join" :: xs) -> Join (List.map json_to_a xs)
     | `A (`String "meet" :: xs) -> Meet (List.map json_to_a xs)
     | j -> J.parse_error j "Cof.json_to_cof_f"
 
-  let rec json_to_cof (json_to_r : J.value -> 'r) (json_to_v : J.value -> 'v) : J.value -> ('r, 'v) Cof.cof =
+  let rec json_to_cof (json_to_r : J.value -> 'r) (json_to_v : J.value -> 'v) : J.value -> ('r, 'v) K.free =
     function
     | `A [`String "cof"; j_cof_f] -> Cof (json_to_cof_f json_to_r (json_to_cof json_to_r json_to_v) j_cof_f)
     | `A [`String "var"; j_var] -> Var (json_to_v j_var)
@@ -473,14 +473,19 @@ struct
   and json_of_env {tpenv; conenv} : J.value =
     `O [("tpenv", json_of_bwd json_of_tp tpenv); ("conenv", json_of_bwd json_of_con conenv)]
 
+  and json_of_cof_var : D.cof_var -> J.value  =
+    function
+    | CofVar.Local lvl -> labeled "local" [json_of_int lvl]
+    | CofVar.Axiom sym -> labeled "axiom" [Global.serialize sym]
+
   and json_of_cof (cof : D.cof) : J.value =
-    Cof.json_of_cof json_of_dim json_of_int cof
+    Cof.json_of_cof json_of_dim json_of_cof_var cof
 
   and json_of_dim : D.dim -> J.value =
     function
     | Dim0 -> `String "dim0"
     | Dim1 -> `String "dim1"
-    | DimVar n -> labeled "dim_var" [json_of_int n]
+    | DimVar n -> labeled "dim_var" [json_of_cof_var n]
     | DimProbe dim_probe -> labeled "dim_probe" [DimProbe.serialize dim_probe]
 
   and json_of_tp : D.tp -> J.value =
@@ -603,14 +608,21 @@ struct
       { tpenv = json_to_bwd json_to_tp j_tpenv; conenv = json_to_bwd json_to_con j_conenv }
     | j -> J.parse_error j "Domain.json_to_env"
 
+  and json_to_cof_var : J.value -> D.cof_var =
+    function
+    | `A [`String "local"; j_lvl] -> CofVar.Local (json_to_int j_lvl)
+    | `A [`String "axiom"; j_sym] -> CofVar.Axiom (Global.deserialize j_sym)
+    | j -> J.parse_error j "Domain.json_to_cof_var"
+
+
   and json_to_cof : J.value -> D.cof =
-    fun j_cof -> Cof.json_to_cof json_to_dim json_to_int j_cof
+    fun j_cof -> Cof.json_to_cof json_to_dim json_to_cof_var j_cof
 
   and json_to_dim : J.value -> D.dim =
     function
     | `String "dim0" -> Dim0
     | `String "dim1" -> Dim1
-    | `A [`String "dim_var"; j_n] -> DimVar (json_to_int j_n)
+    | `A [`String "dim_var"; j_n] -> DimVar (json_to_cof_var j_n)
     | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
     | j -> J.parse_error j "Domain.json_to_dim"
 

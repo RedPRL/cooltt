@@ -16,12 +16,12 @@ type t =
     num_holes : int;
 
     (** global cofibration theory *)
-    cof_thy : Cubical.CofThy.Disj.t;
+    cof_thy : CofThy.Disj.t;
 
     (** all known units (including the ones that are being processed), which keep the data associated with global symbols *)
     units : CodeUnit.t IDMap.t;
     (** all global cofibrations and namespaces exported by processed units (not including the ones in proccessing) *)
-    exports : (Global.t Namespace.t * Cubical.CofThy.Disj.t) IDMap.t;
+    exports : (Global.t Namespace.t * CofThy.Disj.t) IDMap.t;
   }
 
 let init lib =
@@ -30,7 +30,7 @@ let init lib =
     unit_id;
     scopes = Scopes.init Scope.empty;
     num_holes = 0;
-    cof_thy = Cubical.CofThy.Disj.empty;
+    cof_thy = CofThy.Disj.empty;
     units = IDMap.singleton unit_id (CodeUnit.create unit_id);
     exports = IDMap.empty;
   }
@@ -68,7 +68,7 @@ let add_global ~shadowing ident tp ocon st =
   let (sym, unit) = CodeUnit.add_global ident tp ocon unit in
   let cof_thy =
     match tp with
-    | D.TpPrf phi -> Cubical.CofThy.Disj.assume st.cof_thy [phi]
+    | D.TpPrf phi -> CofThy.Disj.assume st.cof_thy [phi]
     | _ -> st.cof_thy
   in
   let+ scopes = Scopes.add ~shadowing ident sym st.scopes in
@@ -83,7 +83,7 @@ let begin_unit lib unit_id st =
   { lib; unit_id;
     scopes = Scopes.init Scope.empty;
     num_holes = 0;
-    cof_thy = Cubical.CofThy.Disj.empty;
+    cof_thy = CofThy.Disj.empty;
     units = IDMap.add unit_id (CodeUnit.create unit_id) st.units;
     exports = st.exports;
   }
@@ -102,7 +102,7 @@ let import ~shadowing pat unit_id st =
   let open Result in
   let ns, cof_thy = IDMap.find unit_id st.exports in
   let* ns = Namespace.transform ~shadowing ~pp:Global.pp pat ns in
-  let cof_thy = Cubical.CofThy.Disj.meet2 st.cof_thy cof_thy in
+  let cof_thy = CofThy.Disj.meet2 st.cof_thy cof_thy in
   let+ scopes = Scopes.import ~shadowing ns st.scopes in
   { st with scopes; cof_thy }
 

@@ -1,6 +1,6 @@
 include DomainData
 open Basis
-open Cubical
+open Bwd
 
 module Make (Symbol : Symbol.S) =
 struct
@@ -47,17 +47,21 @@ struct
     function
     | Dim.Dim0 -> Dim0
     | Dim.Dim1 -> Dim1
-    | Dim.DimVar lvl ->
+    | Dim.DimVar (CofVar.Local lvl) ->
       Cut {tp = TpDim; cut = Var lvl, []}
+    | Dim.DimVar (CofVar.Axiom sym) ->
+      Cut {tp = TpDim; cut = Global sym, []}
     | Dim.DimProbe sym ->
       DimProbe sym
 
   let rec cof_to_con =
+    let module K = Kado.Syntax in
     function
-    | Cof.Cof (Cof.Eq (r, s)) -> Cof (Cof.Eq (dim_to_con r, dim_to_con s))
-    | Cof.Cof (Cof.Join phis) -> Cof (Cof.Join (List.map cof_to_con phis))
-    | Cof.Cof (Cof.Meet phis) -> Cof (Cof.Meet (List.map cof_to_con phis))
-    | Cof.Var lvl -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Cof (S.Cof.Le (r, s)) -> Cof (K.Le (dim_to_con r, dim_to_con s))
+    | K.Cof (S.Cof.Join phis) -> Cof (K.Join (List.map cof_to_con phis))
+    | K.Cof (S.Cof.Meet phis) -> Cof (K.Meet (List.map cof_to_con phis))
+    | K.Var (CofVar.Local lvl) -> Cut {tp = TpCof; cut = Var lvl, []}
+    | K.Var (CofVar.Axiom sym) -> Cut {tp = TpCof; cut = Global sym, []}
 
   let pp_lsq fmt () = Format.fprintf fmt "["
   let pp_rsq fmt () = Format.fprintf fmt "]"
@@ -108,7 +112,8 @@ struct
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
 
   and pp_cof : cof Pp.printer =
-    Cof.dump_cof Dim.dump Format.pp_print_int
+    fun fmt cof ->
+    pp_con fmt (cof_to_con cof)
 
   and pp_dim : dim Pp.printer =
     fun fmt r ->
@@ -119,24 +124,24 @@ struct
     fun fmt (Clo (tm, {tpenv; conenv})) ->
       Format.fprintf fmt "clo[%a ; [%a ; %a]]"
         S.dump tm
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
   and pp_tp_clo : tp_clo Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (tp, {tpenv; conenv})) ->
       Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
         S.dump_tp tp
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
   and pp_sign_clo : (S.sign clo) Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (sign, {tpenv; conenv})) ->
       Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
         S.dump_sign sign
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (Bwd.Bwd.to_list tpenv)
-        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (Bwd.Bwd.to_list conenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
   and pp_con : con Pp.printer =
     fun fmt ->
@@ -158,7 +163,12 @@ struct
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
     | Prf ->
       Format.fprintf fmt "*"
-    | Cof phi -> Cof.pp_cof_f pp_con pp_con fmt phi
+    | Cof (Le (x, y)) ->
+      Format.fprintf fmt "le[%a,%a]" pp_con x pp_con y
+    | Cof (Join phis) ->
+      Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ",") pp_con) phis
+    | Cof (Meet phis) ->
+      Format.fprintf fmt "meet[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ",") pp_con) phis
     | DimProbe x ->
       Format.fprintf fmt "probe[%a]" DimProbe.pp x
     | Lam (_, clo) ->

@@ -1,5 +1,4 @@
-open Basis.Bwd
-open Cubical
+open Bwd
 open BwdNotation
 
 open CodeUnit
@@ -13,7 +12,7 @@ type 'a t = D.env -> 'a TB.m * D.env
 let foreign con k : _ t =
   fun env ->
   let env' = {env with conenv = env.conenv <>< [con]} in
-  let var = TB.lvl @@ Bwd.length env.conenv in
+  let var = TB.lvl @@ BwdLabels.length env.conenv in
   k var env'
 
 let foreign_cof phi = foreign @@ D.cof_to_con phi
@@ -23,7 +22,7 @@ let foreign_clo clo = foreign @@ D.Lam (`Anon, clo)
 let foreign_tp tp k : _ t =
   fun env ->
   let env' = {env with tpenv = env.tpenv <>< [tp]} in
-  let var = TB.tplvl @@ Bwd.length env.tpenv in
+  let var = TB.tplvl @@ BwdLabels.length env.tpenv in
   k var env'
 
 let foreign_list (cons : D.con list) k : _ t =
@@ -39,8 +38,8 @@ let foreign_list (cons : D.con list) k : _ t =
 
 let compile (t : 'a t) : D.env * 'a  =
   let m, env = t {tpenv = Emp; conenv = Emp} in
-  let tplen = Bwd.length env.tpenv in
-  let conlen = Bwd.length env.conenv in
+  let tplen = BwdLabels.length env.tpenv in
+  let conlen = BwdLabels.length env.conenv in
   env, TB.run ~tplen ~conlen m
 
 let term (m : 'a TB.m) : 'a t =
@@ -76,8 +75,10 @@ end
 
 module Bdry =
 struct
+  module CB = CofBuilder
+
   let cap ~r ~r' ~phi ~code ~box =
-    Cof.join [Cof.eq r r'; phi],
+    CB.join [CB.eq r r'; phi],
     F.dim r @@ fun r ->
     F.dim r' @@ fun r' ->
     F.cof phi @@ fun phi ->
@@ -89,7 +90,7 @@ struct
        phi, TB.coe code r' r box]
 
   let vproj ~r ~pcode ~code ~pequiv ~v =
-    Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r,
+    CB.boundary r,
     F.dim r @@ fun r ->
     F.con pcode @@ fun _pcode ->
     F.con code @@ fun _code ->
@@ -101,7 +102,7 @@ struct
        TB.eq r TB.dim1, v]
 
   let vin ~r ~pivot ~base =
-    Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r,
+    CB.boundary r,
     F.dim r @@ fun r ->
     F.con pivot @@ fun pivot ->
     F.con base @@ fun base ->
@@ -111,7 +112,7 @@ struct
        TB.eq r TB.dim1, base]
 
   let box ~r ~r' ~phi ~sides ~cap =
-    Cof.join [Cof.eq r r'; phi],
+    CB.join [CB.eq r r'; phi],
     F.dim r @@ fun r ->
     F.dim r' @@ fun r' ->
     F.cof phi @@ fun phi ->
@@ -123,7 +124,7 @@ struct
        phi, TB.ap sides [TB.prf]]
 
   let hcom ~r ~r' ~phi ~bdy =
-    Cof.join [Cof.eq r r'; phi],
+    CB.join [CB.eq r r'; phi],
     F.dim r' @@ fun r' ->
     F.con bdy @@ fun bdy ->
     term @@ TB.ap bdy [r'; TB.prf]
@@ -131,18 +132,18 @@ struct
   let com = hcom
 
   let coe ~r ~r' ~bdy =
-    Cof.eq r r',
+    CB.eq r r',
     F.con bdy term
 
   let unstable_code =
     function
     | `HCom (r, s, phi, bdy) ->
-      Cof.join [Cof.eq r s; phi],
+      CB.join [CB.eq r s; phi],
       F.dim s @@ fun s ->
       F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [s; TB.prf]
     | `V (r, pcode, code, _) ->
-      Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r,
+      CB.boundary r,
       F.dim r @@ fun r ->
       F.con pcode @@ fun pcode ->
       F.con code @@ fun code ->
@@ -154,7 +155,7 @@ struct
   let unstable_frm cut ufrm =
     match ufrm with
     | D.KHCom (r, s, phi, bdy) ->
-      Cof.join [Cof.eq r s; phi],
+      CB.join [CB.eq r s; phi],
       F.dim s @@ fun s ->
       F.con bdy @@ fun bdy ->
       term @@ TB.ap bdy [s; TB.prf]

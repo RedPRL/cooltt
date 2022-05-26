@@ -35,6 +35,7 @@ end
 module Cof : sig
   val formation : Tp.tac
   val eq : Chk.tac -> Chk.tac -> Chk.tac
+  val le : Chk.tac -> Chk.tac -> Chk.tac
   val join : Chk.tac list -> Chk.tac
   val meet : Chk.tac list -> Chk.tac
   val boundary : Chk.tac -> Chk.tac

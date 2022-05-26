@@ -36,7 +36,7 @@ let rec unfold idents k =
     See [NOTE: Sig Code Quantifiers] for more info. *)
 let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
   let bind_tac lbls (lbl, tac) =
-    let tac = Bwd.fold_right (fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls tac in
+    let tac = BwdLabels.fold_right ~f:(fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls ~init:tac in
     Snoc (lbls, lbl) , (lbl, tac)
   in
   snd @@ ListUtil.map_accum_left bind_tac Emp tacs
@@ -206,7 +206,7 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.update_span con.info @@
-  Tactics.intro_subtypes @@
+  Tactics.intro_subtypes_and_total @@
   match con.node with
   | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
@@ -311,6 +311,9 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.CofEq (c0, c1) ->
       R.Cof.eq (chk_tm c0) (chk_tm c1)
 
+    | CS.CofLe (c0, c1) -> 
+      R.Cof.le (chk_tm c0) (chk_tm c1)
+
     | CS.Join cs ->
       R.Cof.join (List.map chk_tm cs)
 
@@ -353,101 +356,101 @@ and chk_tm : CS.con -> T.Chk.tac =
       | _ ->
         RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 
-and syn_tm : CS.con -> T.Syn.tac =
-  function con ->
-    T.Syn.update_span con.info @@
-    Tactics.elim_implicit_connectives @@
-    match con.node with
-    | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
-    | CS.Hole (name, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
-    | CS.BoundaryHole None ->  Refiner.Hole.unleash_syn_hole None
-    | CS.BoundaryHole (Some con) ->  Refiner.Probe.probe_syn None @@ syn_tm con
-    | CS.Var id ->
-      R.Structural.lookup_var id
-    | CS.DeBruijnLevel lvl ->
-      R.Structural.level lvl
-    | CS.Ap (t, []) ->
-      syn_tm t
-    | CS.Ap (t, ts) ->
-      let rec go acc ts =
-        match ts with
-        | [] -> Tactics.elim_implicit_connectives acc
-        | t :: ts ->
-          let tac = R.Pi.apply (Tactics.elim_implicit_connectives acc) t in
-          go tac ts
-      in
-      go (syn_tm t) @@ List.map chk_tm ts
-    | CS.Fst t ->
-      R.Sg.pi1 @@ syn_tm t
-    | CS.Snd t ->
-      R.Sg.pi2 @@ syn_tm t
-    | CS.Proj (t, ident) ->
-      R.Signature.proj (syn_tm t) ident
-    | CS.VProj t ->
-      R.ElV.elim @@ syn_tm t
-    | CS.Cap t ->
-      R.ElHCom.elim @@ syn_tm t
-    | CS.Elim {mot; cases; scrut} ->
-      Tactics.Elim.elim
-        (chk_tm mot)
-        (chk_cases cases)
-        (syn_tm scrut)
-    | CS.Rec {mot; cases; scrut} ->
-      let mot_tac = chk_tm mot in
-      R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
-      Tactics.Elim.elim
-        (R.Pi.intro @@ fun _ -> T.Chk.syn @@ R.Sub.elim @@ T.Var.syn tp)
-        (chk_cases cases)
-        (syn_tm scrut)
+and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
+  fun ?(elim_total = true) con ->
+  T.Syn.update_span con.info @@
+  (if elim_total then Tactics.elim_implicit_connectives_and_total else Tactics.elim_implicit_connectives) @@
+  match con.node with
+  | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
+  | CS.Hole (name, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
+  | CS.BoundaryHole None ->  Refiner.Hole.unleash_syn_hole None
+  | CS.BoundaryHole (Some con) ->  Refiner.Probe.probe_syn None @@ syn_tm con
+  | CS.Var id ->
+    R.Structural.lookup_var id
+  | CS.DeBruijnLevel lvl ->
+    R.Structural.level lvl
+  | CS.Ap (t, []) ->
+    syn_tm t
+  | CS.Ap (t, ts) ->
+    let rec go acc ts =
+      match ts with
+      | [] -> Tactics.elim_implicit_connectives acc
+      | t :: ts ->
+        let tac = R.Pi.apply (Tactics.elim_implicit_connectives acc) t in
+        go tac ts
+    in
+    go (syn_tm t) @@ List.map chk_tm ts
+  | CS.Fst t ->
+    R.Sg.pi1 @@ syn_tm t
+  | CS.Snd t ->
+    R.Sg.pi2 @@ syn_tm t
+  | CS.Proj (t, ident) ->
+    R.Signature.proj (syn_tm ~elim_total:false t) ident
+  | CS.VProj t ->
+    R.ElV.elim @@ syn_tm t
+  | CS.Cap t ->
+    R.ElHCom.elim @@ syn_tm t
+  | CS.Elim {mot; cases; scrut} ->
+    Tactics.Elim.elim
+      (chk_tm mot)
+      (chk_cases cases)
+      (syn_tm scrut)
+  | CS.Rec {mot; cases; scrut} ->
+    let mot_tac = chk_tm mot in
+    R.Structural.let_syn (T.Syn.ann mot_tac R.Univ.formation) @@ fun tp ->
+    Tactics.Elim.elim
+      (R.Pi.intro @@ fun _ -> T.Chk.syn @@ R.Sub.elim @@ T.Var.syn tp)
+      (chk_cases cases)
+      (syn_tm scrut)
 
-    | CS.Ann {term; tp} ->
-      T.Syn.ann (chk_tm term) (chk_tp tp)
-    | CS.Unfold (idents, c) ->
-      (* TODO: move to a primitive rule *)
-      T.Syn.rule @@ unfold idents @@ T.Syn.run @@ syn_tm c
-    | CS.Coe (tp, src, trg, body) ->
-      R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
-    | CS.HCom (tp, src, trg, cof, tm) ->
-      R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
-    | CS.HFill (code, src, cof, tm) ->
-      let code_tac = chk_tm code in
-      let tac =
-        R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
-        Tactics.intro_implicit_connectives @@
-        T.Chk.syn @@
-        Tactics.elim_implicit_connectives @@
-        R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
-      in
-      T.Syn.ann tac @@
-      R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
-    | CS.Com (fam, src, trg, cof, tm) ->
-      R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
-    | CS.Equations {code; eqns} ->
-      let open Tactics.Equations in
-      let code_tac = chk_tm code in
-      let rec mk_steps : CS.eqns CS.step -> T.Syn.tac * T.Chk.tac * T.Chk.tac =
-        function
-        | Equals (lhs, p, eqns) ->
-          let q_tac, mid_tac, rhs_tac = mk_eqns eqns in
-          let lhs_tac = chk_tm lhs in
-          step code_tac lhs_tac mid_tac rhs_tac (chk_tm p) (T.Chk.syn q_tac), lhs_tac, rhs_tac
-        | Trivial (lhs, eqns) ->
-          let q_tac, mid_tac, rhs_tac = mk_eqns eqns in
-          let lhs_tac = chk_tm lhs in
-          step code_tac lhs_tac mid_tac rhs_tac (T.Chk.syn @@ qed code_tac lhs_tac) (T.Chk.syn q_tac), lhs_tac, rhs_tac
-      and mk_eqns : CS.eqns -> T.Syn.tac * T.Chk.tac * T.Chk.tac =
-        function
-        | Step s ->
-          mk_steps s
-        | Qed x ->
-          let x_tac = chk_tm x in
-          qed code_tac x_tac, x_tac, x_tac
-      in
-      let (tac, _, _ ) = mk_steps eqns in
-      tac
-    | _ ->
-      T.Syn.rule @@
-      RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
+  | CS.Ann {term; tp} ->
+    T.Syn.ann (chk_tm term) (chk_tp tp)
+  | CS.Unfold (idents, c) ->
+    (* TODO: move to a primitive rule *)
+    T.Syn.rule @@ unfold idents @@ T.Syn.run @@ syn_tm c
+  | CS.Coe (tp, src, trg, body) ->
+    R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
+  | CS.HCom (tp, src, trg, cof, tm) ->
+    R.Univ.hcom (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+  | CS.HFill (code, src, cof, tm) ->
+    let code_tac = chk_tm code in
+    let tac =
+      R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
+      Tactics.intro_implicit_connectives @@
+      T.Chk.syn @@
+      Tactics.elim_implicit_connectives @@
+      R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
+    in
+    T.Syn.ann tac @@
+    R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
+  | CS.Com (fam, src, trg, cof, tm) ->
+    R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
+  | CS.Equations {code; eqns} ->
+    let open Tactics.Equations in
+    let code_tac = chk_tm code in
+    let rec mk_steps : CS.eqns CS.step -> T.Syn.tac * T.Chk.tac * T.Chk.tac =
+      function
+      | Equals (lhs, p, eqns) ->
+        let q_tac, mid_tac, rhs_tac = mk_eqns eqns in
+        let lhs_tac = chk_tm lhs in
+        step code_tac lhs_tac mid_tac rhs_tac (chk_tm p) (T.Chk.syn q_tac), lhs_tac, rhs_tac
+      | Trivial (lhs, eqns) ->
+        let q_tac, mid_tac, rhs_tac = mk_eqns eqns in
+        let lhs_tac = chk_tm lhs in
+        step code_tac lhs_tac mid_tac rhs_tac (T.Chk.syn @@ qed code_tac lhs_tac) (T.Chk.syn q_tac), lhs_tac, rhs_tac
+    and mk_eqns : CS.eqns -> T.Syn.tac * T.Chk.tac * T.Chk.tac =
+      function
+      | Step s ->
+        mk_steps s
+      | Qed x ->
+        let x_tac = chk_tm x in
+        qed code_tac x_tac, x_tac, x_tac
+    in
+    let (tac, _, _ ) = mk_steps eqns in
+    tac
+  | _ ->
+    T.Syn.rule @@
+    RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
 and chk_cases cases =
   List.map chk_case cases

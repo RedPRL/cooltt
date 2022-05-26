@@ -180,6 +180,8 @@ and real_token = parse
     { JOIN }
   | "="
     { EQUALS }
+  | "<=" | "≤"
+    { LESS_THAN }
   | "≔" | ":="
     { COLON_EQUALS }
   | ".="

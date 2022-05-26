@@ -75,7 +75,7 @@ struct
     let cells = Env.locals env in
 
     RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
@@ -94,7 +94,7 @@ struct
     let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
 
     RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
 
@@ -146,7 +146,7 @@ struct
 
     RM.globally @@
     let* sym =
-      let* tp = GlobalUtil.multi_pi (Bwd.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
+      let* tp = GlobalUtil.multi_pi (BwdLabels.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
       let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
@@ -175,7 +175,7 @@ struct
   let unleash_syn_hole name : T.Syn.tac =
     Probe.probe_syn name @@
     T.Syn.rule ~name:"unleash_syn_hole" @@
-    let* cut = make_hole name @@ (D.Univ, Cubical.Cof.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
     let tp = D.ElCut cut in
     let+ tm = tp |> T.Chk.run @@ unleash_hole name in
     tm, tp
@@ -200,7 +200,7 @@ struct
     T.Chk.brule ~name:"Sub.intro" @@
     function
     | D.Sub (tp_a, phi_a, clo_a), phi_sub, clo_sub ->
-      let phi = Cubical.Cof.join [phi_a; phi_sub] in
+      let phi = CofBuilder.join [phi_a; phi_sub] in
       let* partial =
         RM.lift_cmp @@ Sem.splice_tm @@
         Splice.cof phi_a @@ fun phi_a ->
@@ -273,16 +273,27 @@ struct
     | D.TpCof ->
       let+ r0 = T.Chk.run tac0 D.TpDim
       and+ r1 = T.Chk.run tac1 D.TpDim in
-      S.Cof (Cubical.Cof.Eq (r0, r1))
+      S.CofBuilder.eq r0 r1
     | tp ->
       expected_cof tp
+
+  let le tac0 tac1 =
+    T.Chk.rule ~name:"Cof.le" @@
+    function
+    | D.TpCof ->
+      let+ r0 = T.Chk.run tac0 D.TpDim
+      and+ r1 = T.Chk.run tac1 D.TpDim in
+      S.CofBuilder.le r0 r1
+    | tp ->
+      expected_cof tp
+
 
   let join tacs =
     T.Chk.rule ~name:"Cof.join" @@
     function
     | D.TpCof ->
       let+ phis = MU.map (fun t -> T.Chk.run t D.TpCof) tacs in
-      S.Cof (Cubical.Cof.Join phis)
+      S.CofBuilder.join phis
     | tp ->
       expected_cof tp
 
@@ -291,7 +302,7 @@ struct
     function
     | D.TpCof ->
       let+ phis = MU.map (fun t -> T.Chk.run t D.TpCof) tacs in
-      S.Cof (Cubical.Cof.Meet phis)
+      S.CofBuilder.meet phis
     | tp ->
       expected_cof tp
 
@@ -317,12 +328,12 @@ struct
 
     let rec gather_branches (branches : branch_tac list) : (D.cof * branch_tac' list) m =
       match branches with
-      | [] -> RM.ret (Cubical.Cof.bot, [])
+      | [] -> RM.ret (CofBuilder.bot, [])
       | branch :: branches ->
         let* tphi = T.Chk.run branch.cof D.TpCof in
         let* vphi = RM.lift_ev @@ Sem.eval_cof tphi in
         let+ psi, tacs = gather_branches branches in
-        Cubical.Cof.join [vphi; psi], {cof = vphi; tcof = tphi; bdy = branch.bdy} :: tacs
+        CofBuilder.join [vphi; psi], {cof = vphi; tcof = tphi; bdy = branch.bdy} :: tacs
 
 
     let splice_split branches =
@@ -342,13 +353,13 @@ struct
          acc : (S.t * S.t) bwd}
 
       let init : t =
-        {disj = Cubical.Cof.bot;
+        {disj = CofBuilder.bot;
          fns = Emp;
          acc = Emp}
 
       let append : t -> branch -> t =
         fun state branch ->
-        {disj = Cubical.Cof.join [state.disj; branch.cof];
+        {disj = CofBuilder.join [state.disj; branch.cof];
          fns = state.fns #< (branch.cof, branch.fn);
          acc = state.acc #< (branch.tcof, branch.bdy)}
     end
@@ -361,8 +372,8 @@ struct
       let step : State.t -> branch_tac' -> State.t m =
         fun state branch ->
           let* bdy =
-            let psi' = Cubical.Cof.join [state.disj; psi] in
-            let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: Bwd.to_list state.fns in
+            let psi' = CofBuilder.join [state.disj; psi] in
+            let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: BwdLabels.to_list state.fns in
             T.abstract (D.TpPrf branch.cof) @@ fun prf ->
             T.Chk.brun (branch.bdy prf) (tp, psi', D.un_lam psi'_fn)
           in
@@ -374,7 +385,7 @@ struct
         fun state ->
           function
           | [] ->
-            RM.ret @@ S.CofSplit (Bwd.to_list state.acc)
+            RM.ret @@ S.CofSplit (BwdLabels.to_list state.acc)
           | tac :: tacs ->
             let* state = step state tac in
             fold state tacs
@@ -732,23 +743,23 @@ struct
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
-      | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) -> 
-        let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-        let* () = Cof.assert_true cof in
-        let* tp = RM.lift_cmp @@
-          Sem.splice_tp @@
-          Splice.con code @@ fun code ->
-          Splice.term @@ TB.el code
-        in
-        let* tm = RM.lift_cmp @@ 
-          Sem.splice_tm @@
-          Splice.con bdry @@ fun bdry ->
-          Splice.term @@ 
-          TB.ap bdry [TB.prf] 
-        in
-        let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
-        S.ElIn (S.SubIn ttm)
-      | tp -> RM.expected_connective `ElExt tp
+    | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
+      let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+      let* () = Cof.assert_true cof in
+      let* tp = RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con code @@ fun code ->
+        Splice.term @@ TB.el code
+      in
+      let* tm = RM.lift_cmp @@
+        Sem.splice_tm @@
+        Splice.con bdry @@ fun bdry ->
+        Splice.term @@
+        TB.ap bdry [TB.prf]
+      in
+      let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
+      S.ElIn (S.SubIn ttm)
+    | tp -> RM.expected_connective `ElExt tp
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.code_v" @@ fun _univ ->
@@ -758,7 +769,7 @@ struct
       RM.lift_cmp @@ Sem.con_to_dim vr_con
     in
     let* pcode =
-      let tp_pcode = D.Pi (D.TpPrf (Cubical.Cof.eq vr Cubical.Dim.Dim0), `Anon, D.const_tp_clo D.Univ) in
+      let tp_pcode = D.Pi (D.TpPrf (CofBuilder.eq0 vr), `Anon, D.const_tp_clo D.Univ) in
       T.Chk.run tac_pcode tp_pcode
     in
     let* code = T.Chk.run tac_code D.Univ in
@@ -856,7 +867,7 @@ struct
         let* tp = T.Tp.run tac in
         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
         T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
-      | Done -> RM.ret @@ S.Signature (Bwd.to_list tele)
+      | Done -> RM.ret @@ S.Signature (BwdLabels.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
   let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
@@ -874,10 +885,10 @@ struct
     | D.Field (lbl, tp, sign_clo) ->
       let* tac = match tacs lbl, tp with
         | Some tac, _ -> RM.ret tac
-        | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) -> 
+        | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
           let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
           begin
-          RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
+            RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
             | true -> RM.ret Univ.infer_nullary_ext
             | false -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
           end
@@ -992,7 +1003,7 @@ struct
             [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
              phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
         in
-        T.Chk.brun tac_tot (tp, Cubical.Cof.join [Cubical.Cof.eq r Cubical.Dim.Dim0; phi], D.un_lam bdry_fn)
+        T.Chk.brun tac_tot (tp, CofBuilder.join [CofBuilder.eq0 r; phi], D.un_lam bdry_fn)
       in
       let* tr = RM.quote_dim r in
       let+ t_pequiv =
@@ -1012,7 +1023,7 @@ struct
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
       let* tr = RM.quote_dim r in
-      let* tpcode = RM.quote_con (D.Pi (D.TpPrf (Cubical.Cof.eq r Cubical.Dim.Dim0), `Anon, D.const_tp_clo D.Univ)) pcode in
+      let* tpcode = RM.quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), `Anon, D.const_tp_clo D.Univ)) pcode in
       let* tcode = RM.quote_con D.Univ code in
       let* t_pequiv =
         let* tp_pequiv =
@@ -1075,7 +1086,7 @@ struct
             [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
              phi, TB.coe (TB.lam ~ident:(`Machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
-        T.Chk.brun tac_cap (tp_cap, Cubical.Cof.join [phi; psi], D.un_lam bdry_fn)
+        T.Chk.brun tac_cap (tp_cap, CofBuilder.join [phi; psi], D.un_lam bdry_fn)
       and+ tr = RM.quote_dim r
       and+ tr' = RM.quote_dim r'
       and+ tphi = RM.quote_cof phi in
@@ -1154,7 +1165,7 @@ struct
     in
 
     let cells = Env.locals env in
-    let cells_fwd = Bwd.to_list cells in
+    let cells_fwd = BwdLabels.to_list cells in
 
     let* cut =
       RM.globally @@
@@ -1183,7 +1194,7 @@ struct
         RM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
         Splice.term @@ TB.lam @@ fun _ -> vdef
       in
-      T.abstract ~ident (D.Sub (tp_def, Cubical.Cof.top, D.un_lam const_vdef)) @@ fun var ->
+      T.abstract ~ident (D.Sub (tp_def, CofBuilder.top, D.un_lam const_vdef)) @@ fun var ->
       T.Chk.brun (tac_bdy var) goal
     in
     RM.ret @@ S.Let (S.SubIn tdef, ident, tbdy)
@@ -1197,7 +1208,7 @@ struct
         RM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
         Splice.term @@ TB.lam @@ fun _ -> vdef
       in
-      T.abstract ~ident (D.Sub (tp_def, Cubical.Cof.top, D.un_lam const_vdef)) @@ fun var ->
+      T.abstract ~ident (D.Sub (tp_def, CofBuilder.top, D.un_lam const_vdef)) @@ fun var ->
       let* tbdy, bdytp = T.Syn.run @@ tac_bdy var in
       let* tbdytp = RM.quote_tp bdytp in
       RM.ret (tbdy, tbdytp)

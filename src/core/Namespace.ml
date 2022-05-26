@@ -18,7 +18,7 @@ let merge ~shadowing ~rev_path _ x =
 let transform ~shadowing ~pp pat ns =
   let hooks (`Print lbl) ~rev_prefix t =
     let lbl = Option.fold ~none:"?" ~some:(fun lbl -> "?" ^ lbl) lbl in
-    Format.printf "@[<v2>Emitted namespace under %a:@,%s = @[{ "
+    Format.printf "@[<v2>Emitted namespace under %a@,%s = @[{ "
       Ident.pp (`User (List.rev rev_prefix)) lbl;
     let first = ref true in (* XXX NON-functional programming! *)
     Trie.iteri (fun ~rev_path sym ->

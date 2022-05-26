@@ -1,4 +1,3 @@
-open Basis
 open Bwd
 
 type 'a t = 'a Scope.t bwd
