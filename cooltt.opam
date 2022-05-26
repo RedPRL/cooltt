@@ -12,6 +12,8 @@ depends: [
   "dune" {>= "2.0"}
   "ocaml" {>= "4.10.0"}
   "ppx_deriving" {>= "4.4.1"}
+  "bantorra" {>= "0.1" & < "0.2"}
+  "bwd" {>= "1.2"}
   "cmdliner" {>= "1.1"}
   "containers" {>= "3.4"}
   "ezjsonm" {>= "1.2.0"}
@@ -20,10 +22,11 @@ depends: [
   "uutf" {>= "1.0.2"}
   "yuujinchou" {>= "2.0.0" & < "3"}
   "odoc" {with-doc}
-  "bantorra"
+  "kado"
 ]
 pin-depends: [
-  [ "bantorra.~dev" "git+https://github.com/RedPRL/bantorra" ]
+  [ "kado.~dev" "git+https://github.com/RedPRL/kado" ]
+  [ "bantorra.0.1.0" "git+https://github.com/RedPRL/bantorra#0.1.0" ]
 ]
 build: [
   ["dune" "build" "-p" name "-j" jobs]

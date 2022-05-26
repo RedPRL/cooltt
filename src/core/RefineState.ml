@@ -12,14 +12,16 @@ type t =
     unit_id : CodeUnitID.t;
     (** current nested scopes *)
     scopes : Global.t Scopes.t;
+    (** numbers of holes in the current unit *)
+    num_holes : int;
 
     (** global cofibration theory *)
-    cof_thy : Cubical.CofThy.Disj.t;
+    cof_thy : CofThy.Disj.t;
 
     (** all known units (including the ones that are being processed), which keep the data associated with global symbols *)
     units : CodeUnit.t IDMap.t;
     (** all global cofibrations and namespaces exported by processed units (not including the ones in proccessing) *)
-    exports : (Global.t Namespace.t * Cubical.CofThy.Disj.t) IDMap.t;
+    exports : (Global.t Namespace.t * CofThy.Disj.t) IDMap.t;
   }
 
 let init lib =
@@ -27,13 +29,18 @@ let init lib =
   { lib;
     unit_id;
     scopes = Scopes.init Scope.empty;
-    cof_thy = Cubical.CofThy.Disj.empty;
+    num_holes = 0;
+    cof_thy = CofThy.Disj.empty;
     units = IDMap.singleton unit_id (CodeUnit.create unit_id);
     exports = IDMap.empty;
   }
 
 (* lib *)
 let get_lib st = st.lib
+
+(* num_holes *)
+let get_num_holes st = st.num_holes
+let inc_num_holes st = {st with num_holes = st.num_holes + 1}
 
 (* scopes *)
 let modify_scopes f st = { st with scopes = f st.scopes }
@@ -61,7 +68,7 @@ let add_global ~shadowing ident tp ocon st =
   let (sym, unit) = CodeUnit.add_global ident tp ocon unit in
   let cof_thy =
     match tp with
-    | D.TpPrf phi -> Cubical.CofThy.Disj.assume st.cof_thy [phi]
+    | D.TpPrf phi -> CofThy.Disj.assume st.cof_thy [phi]
     | _ -> st.cof_thy
   in
   let+ scopes = Scopes.add ~shadowing ident sym st.scopes in
@@ -75,7 +82,8 @@ let get_global_cof_thy st = st.cof_thy
 let begin_unit lib unit_id st =
   { lib; unit_id;
     scopes = Scopes.init Scope.empty;
-    cof_thy = Cubical.CofThy.Disj.empty;
+    num_holes = 0;
+    cof_thy = CofThy.Disj.empty;
     units = IDMap.add unit_id (CodeUnit.create unit_id) st.units;
     exports = st.exports;
   }
@@ -83,6 +91,7 @@ let begin_unit lib unit_id st =
 let end_unit ~parent ~child =
   { lib = parent.lib;
     unit_id = parent.unit_id;
+    num_holes = parent.num_holes;
     scopes = parent.scopes;
     cof_thy = parent.cof_thy;
     units = child.units;
@@ -93,7 +102,7 @@ let import ~shadowing pat unit_id st =
   let open Result in
   let ns, cof_thy = IDMap.find unit_id st.exports in
   let* ns = Namespace.transform ~shadowing ~pp:Global.pp pat ns in
-  let cof_thy = Cubical.CofThy.Disj.meet2 st.cof_thy cof_thy in
+  let cof_thy = CofThy.Disj.meet2 st.cof_thy cof_thy in
   let+ scopes = Scopes.import ~shadowing ns st.scopes in
   { st with scopes; cof_thy }
 

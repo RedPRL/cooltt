@@ -29,6 +29,12 @@ let resolve id =
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
+let get_num_holes =
+  let+ st = get in
+  St.get_num_holes st
+let inc_num_holes =
+  modify St.inc_num_holes
+
 let throw_namespace_errors : ('a, 'error) Namespace.result -> 'a m =
   function
   | Result.Ok x -> ret x
@@ -79,7 +85,14 @@ let with_unit lib unit_id (action : 'a m) =
   with_
     ~begin_:(fun st -> ret @@ St.begin_unit lib unit_id st)
     ~end_:(fun ~parent ~child -> ret @@ St.end_unit ~parent ~child)
-    action
+    (let* ans = action in
+     let* () =
+       let* num_holes = get_num_holes in
+       if num_holes > 0 then
+         emit ~lvl:`Warn None Err.pp @@ UnsolvedHoles num_holes
+       else
+         ret ()
+     in ret ans)
 
 let import ~shadowing pat unit_id =
   set @<< throw_namespace_errors @<< (St.import ~shadowing pat unit_id <@> get)
@@ -179,14 +192,6 @@ let abstract nm tp k =
   in
   scope rho @@
   k @<< get_local 0
-
-let problem =
-  let+ env = read in
-  Env.problem env
-
-let push_problem lbl =
-  scope @@
-  Env.push_problem lbl
 
 let update_span loc =
   scope @@ Env.set_location loc

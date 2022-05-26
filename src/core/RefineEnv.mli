@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 open Bwd
 
 open CodeUnit
@@ -36,8 +35,5 @@ val append_con : Ident.t -> D.con -> D.tp -> t -> t
 
 val location : t -> LexingUtil.span option
 val set_location : LexingUtil.span option -> t -> t
-
-val problem : t -> string bwd
-val push_problem : string -> t -> t
 
 val dump : t Pp.printer

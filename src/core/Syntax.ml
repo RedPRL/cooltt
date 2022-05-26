@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 
 module Make (Symbol : Symbol.S) =
 struct
@@ -81,9 +80,6 @@ struct
 
     | ESub _ -> Format.fprintf fmt "<esub>"
 
-    | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
-    | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
-
   and dump_struct fmt fields =
     Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp)) fields
 
@@ -106,10 +102,9 @@ struct
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
-    | TpLockedPrf _ -> Format.fprintf fmt "<locked>"
 
 
-  and dump_cof fmt = Cof.dump_cof_f dump dump fmt
+  and dump_cof fmt = Cof.dump dump dump fmt
 
   and dump_branch fmt (cof, bdy) =
     Format.fprintf fmt "[%a, %a]" dump cof dump bdy
@@ -127,7 +122,7 @@ struct
     let juxtaposition = left 9
     let proj = right 8
     let sub_compose = left 7
-    let cof_eq = nonassoc 6
+    let cof_le = nonassoc 6
     let cof_meet = nonassoc 5
     let cof_join = nonassoc 5
     let sub_comma = left 4
@@ -147,7 +142,7 @@ struct
       | Struct _ -> juxtaposition
       | Proj _ -> proj
       | CofSplit _ -> tuple
-      | Cof (Cof.Eq _) -> cof_eq
+      | Cof (Cof.Le _) -> cof_le
       | Cof (Cof.Join [] | Cof.Meet []) -> atom
       | Cof (Cof.Join _) -> cof_join
       | Cof (Cof.Meet _) -> cof_meet
@@ -175,8 +170,6 @@ struct
       | VIn _ -> tuple
       | VProj _ -> juxtaposition
       | ESub _ -> juxtaposition
-      | LockedPrfIn _ -> juxtaposition
-      | LockedPrfUnlock _ -> delimited
 
     let classify_sub : sub -> t =
       function
@@ -196,7 +189,6 @@ struct
       | Sg _ -> times
       | Signature _ -> juxtaposition
       | TpESub _ -> substitution
-      | TpLockedPrf _ -> juxtaposition
   end
 
   let pp_var env fmt ix =
@@ -277,8 +269,12 @@ struct
       pp_var env fmt ix
     | Global sym ->
       Symbol.pp fmt sym
-    | Cof (Cof.Eq (r, s)) ->
-      Format.fprintf fmt "%a = %a" (pp env P.(left_of cof_eq)) r (pp env P.(right_of cof_eq)) s
+    | Cof (Cof.Le (Dim1, s)) ->
+      Format.fprintf fmt "%a = 1" (pp env P.(left_of cof_le)) s
+    | Cof (Cof.Le (r, Dim0)) ->
+      Format.fprintf fmt "%a = 0" (pp env P.(left_of cof_le)) r
+    | Cof (Cof.Le (r, s)) ->
+      Format.fprintf fmt "%a %a %a" (pp env P.(left_of cof_le)) r Uuseg_string.pp_utf_8 "≤" (pp env P.(right_of cof_le)) s
     | Cof (Cof.Join []) ->
       Format.fprintf fmt "%a"
         Uuseg_string.pp_utf_8 "⊥"
@@ -455,16 +451,6 @@ struct
         (pp_sub env P.isolated) sub
         (pp env P.(right_of substitution)) tm
 
-    | LockedPrfIn prf ->
-      Format.fprintf fmt "@[<hv2>lock %a@]"
-        (pp_atomic env) prf
-
-    | LockedPrfUnlock {cof; prf; bdy; _} ->
-      Format.fprintf fmt "@[unlock %a : %a in@ %a@]"
-        (pp env P.(left_of colon)) prf
-        (pp env P.(right_of colon)) cof
-        (pp env P.(right_of in_)) bdy
-
   and pp_sub env =
     pp_braced_cond P.classify_sub @@ fun _ fmt ->
     function
@@ -484,8 +470,16 @@ struct
         Uuseg_string.pp_utf_8 "∘"
         (pp_sub env P.(right_of sub_compose)) sb1
 
-  and pp_sign env fmt (sign : sign) : unit = pp_fields pp_tp env fmt sign
-
+  and pp_sign env fmt : sign -> unit = 
+    function
+    | [] -> ()
+    | ((lbl, tp) :: fields) ->
+      let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in
+      Format.fprintf fmt "(%s : %a)@ @,%a"
+        lbl
+        (pp_tp env P.(right_of colon)) tp
+        (pp_sign envlbl) fields  
+  
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->
     function
@@ -539,9 +533,6 @@ struct
       Format.fprintf fmt "[%a]%a"
         (pp_sub env P.isolated) sub
         (pp_tp env P.(right_of substitution)) tp
-    | TpLockedPrf phi ->
-      Format.fprintf fmt "locked %a"
-        (pp_atomic env) phi
 
   and pp_cof_split_branch env fmt (phi, tm) =
     let _x, envx = ppenv_bind env `Anon in

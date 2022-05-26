@@ -33,10 +33,9 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <ConcreteSyntax.hole> HOLE
-%token LOCKED UNLOCK
 %token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
-%token EQUALS JOIN MEET
+%token EQUALS LESS_THAN JOIN MEET
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
@@ -61,7 +60,7 @@
 %nonassoc HASH
 
 %start <ConcreteSyntax.signature> sign
-%start <ConcreteSyntax.command> command
+%start <ConcreteSyntax.repl_command> repl_command
 %type <Ident.t> plain_name
 %type <con_>
   plain_atomic_in_cof_except_term
@@ -138,7 +137,8 @@ plain_name:
   | UNDERSCORE
     { name_of_underscore }
 
-decl:
+decl: t = located(plain_decl) {t}
+plain_decl:
   | shadowing = boption(BANG); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Def {shadowing; name = nm; args = tele; def = Some body; tp} }
   | shadowing = boption(BANG); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
@@ -172,7 +172,8 @@ sign:
   | d = decl; s = sign
     { d :: s }
 
-command:
+repl_command: t = located(plain_repl_command) {t}
+plain_repl_command:
   | EOF
     { EndOfFile }
   | SEMISEMI
@@ -218,6 +219,9 @@ plain_atomic_in_cof_except_term:
     { CofBoundary t }
   | r = atomic_term EQUALS s = atomic_term
     { CofEq (r, s) }
+  | r = atomic_term LESS_THAN s = atomic_term
+    { CofLe (r, s) }
+
 
 plain_atomic_in_cof:
   | t = plain_atomic_term
@@ -314,8 +318,6 @@ plain_term_except_cof_case:
     { ap_or_atomic (List.map term_of_name spine) }
   | t = term; DOT; lbl = user; spine = list_left_recursive(atomic_term)
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
-  | UNLOCK; t = term; IN; body = term;
-    { Unlock (t, body) }
   | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
     { Unfold (names, body) }
   | GENERALIZE; name = plain_name; IN; body = term;
@@ -326,8 +328,6 @@ plain_term_except_cof_case:
     { Let (def, name, body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }
-  | LOCKED; phi = atomic_term
-    { Locked phi }
   | SUC; t = atomic_term
     { Suc t }
   | LOOP; t = atomic_term

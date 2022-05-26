@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 open CodeUnit
 
 module S = Syntax
@@ -117,7 +116,7 @@ struct
       debug_tactic name;
       fun tp ->
         let triv = D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp}) in
-        btac (tp, Cof.bot, triv)
+        btac (tp, CofBuilder.bot, triv)
 
   let brun =
     function

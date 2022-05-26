@@ -3,12 +3,8 @@ module D = Domain
 module S = Syntax
 
 open Basis
-open Bwd
 
 include module type of Monads.RefineM
-
-val push_problem : string -> 'a m -> 'a m
-val problem : string bwd m
 
 val refine_err : RefineError.t -> 'a m
 
@@ -18,6 +14,8 @@ val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 val add_global : shadowing:bool -> Ident.t -> D.tp -> D.con option -> Global.t m
 val get_global : Global.t -> (D.tp * D.con option) m
 val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
+
+val inc_num_holes : unit m
 
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m

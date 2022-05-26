@@ -9,7 +9,6 @@ exception CJHM
 exception CCHM
 
 open Basis
-open Cubical
 open Monads
 
 
@@ -31,7 +30,7 @@ struct
     | ExpectedDimEq (r,s) ->
       Format.fprintf fmt "Expected %a = %a : dim" D.pp_dim r D.pp_dim s
     | ExpectedSequentTrue (phis, psi) ->
-      Format.fprintf fmt "Expected @[%a |- @[%a@]@] true" D.pp_cof (Cof.meet phis) D.pp_cof psi
+      Format.fprintf fmt "Expected @[%a |- @[%a@]@] true" D.pp_cof (CofBuilder.meet phis) D.pp_cof psi
     | ExpectedTypeEq (tp0, tp1) ->
       Format.fprintf fmt "Expected %a = %a type" D.pp_tp tp0 D.pp_tp tp1
     | ExpectedConEq (tp, con0, con1) ->
@@ -63,7 +62,7 @@ let equal_path p1 p2 =
   List.equal String.equal p1 p2
 
 let equate_dim r s =
-  CmpM.test_sequent [] (Cof.eq r s) |> lift_cmp |>> function
+  CmpM.test_sequent [] (CofBuilder.eq r s) |> lift_cmp |>> function
   | true ->
     ret ()
   | false ->
@@ -85,8 +84,6 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_tp tp0 tp1) branches
   | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
-    equate_cof phi0 phi1
-  | D.TpLockedPrf phi0, D.TpLockedPrf phi1 ->
     equate_cof phi0 phi1
   | D.Pi (base0, _, fam0), D.Pi (base1, _, fam1)
   | D.Sg (base0, _, fam0), D.Sg (base1, _, fam1) ->
@@ -248,7 +245,7 @@ and equate_con tp con0 con1 =
   | D.TpDim, _, _ ->
     let* r0 = lift_cmp @@ con_to_dim con0 in
     let* r1 = lift_cmp @@ con_to_dim con1 in
-    approx_cof Cof.top @@ Cof.eq r0 r1
+    approx_cof [] @@ CofBuilder.eq r0 r1
   | D.TpCof, _, _ ->
     let* phi0 = lift_cmp @@ con_to_cof con0 in
     let* phi1 = lift_cmp @@ con_to_cof con1 in
@@ -295,23 +292,11 @@ and equate_con tp con0 con1 =
     equate_con hcom_tp con0 con1
 
   | D.ElUnstable (`V (r, pcode, code, pequiv)) as v_tp, _, _ ->
-    let* () = ConvM.restrict_ [Cof.eq r Dim.Dim0] @@ equate_con v_tp con0 con1 in
+    let* () = ConvM.restrict_ [CofBuilder.eq0 r] @@ equate_con v_tp con0 con1 in
     let* proj0 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con0 in
     let* proj1 = lift_cmp @@ Sem.do_rigid_vproj r pcode code pequiv con1 in
     let* tp_proj = lift_cmp @@ do_el code in
     equate_con tp_proj proj0 proj1
-
-  | D.TpLockedPrf _, D.LockedPrfIn _, D.LockedPrfIn _->
-    ret ()
-
-  | D.TpLockedPrf phi, _, _ ->
-    begin
-      CmpM.test_sequent [] phi |> lift_cmp |>> function
-      | false ->
-        conv_err @@ ExpectedSequentTrue ([], phi)
-      | true ->
-        ret ()
-    end
 
   | _ ->
     Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
@@ -473,19 +458,13 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
   | D.KVProj (r0, pcode0, code0, pequiv0), D.KVProj (r1, pcode1, code1, pequiv1) ->
     let* () = equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) in
     equate_cut cut0 cut1
-  | D.KLockedPrfUnlock (tp0, phi0, bdy0), D.KLockedPrfUnlock (tp1, phi1, bdy1) ->
-    let* () = equate_cut cut0 cut1 in
-    let* () = equate_tp tp0 tp1 in
-    let* () = equate_cof phi0 phi1 in
-    let bdy_tp = D.Pi (D.TpPrf phi0, `Anon, D.const_tp_clo tp0) in
-    equate_con bdy_tp bdy0 bdy1
   | _ ->
     conv_err @@ HeadMismatch (D.UnstableCut (cut0, ufrm0), D.UnstableCut (cut1, ufrm1))
 
 and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   let* () = equate_dim r0 r1 in
   let* () =
-    let pcode_tp = D.Pi (D.TpPrf (Cof.eq r0 Dim.Dim0), `Anon, D.const_tp_clo D.Univ) in
+    let pcode_tp = D.Pi (D.TpPrf (CofBuilder.eq0 r0), `Anon, D.const_tp_clo D.Univ) in
     equate_con pcode_tp pcode0 pcode1
   in
   let* () = equate_con D.Univ code0 code1 in
@@ -503,7 +482,7 @@ and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
   let* () = equate_cof phi0 phi1 in
   bind_var_ D.TpDim @@ fun i ->
   let* i_dim = lift_cmp @@ con_to_dim i in
-  bind_var_ (D.TpPrf (Cof.join [Cof.eq i_dim r0; phi0])) @@ fun prf ->
+  bind_var_ (D.TpPrf (CofBuilder.join [CofBuilder.eq i_dim r0; phi0])) @@ fun prf ->
   let* con0 = lift_cmp @@ do_ap2 bdy0 i prf in
   let* con1 = lift_cmp @@ do_ap2 bdy1 i prf in
   let* tp = lift_cmp @@ do_el code0 in
@@ -511,12 +490,12 @@ and equate_hcom (code0, r0, s0, phi0, bdy0) (code1, r1, s1, phi1, bdy1) =
 
 
 and equate_cof phi psi =
-  let* () = approx_cof phi psi in
-  approx_cof psi phi
+  let* () = approx_cof [phi] psi in
+  approx_cof [psi] phi
 
-and approx_cof phi psi =
-  CmpM.test_sequent [phi] psi |> lift_cmp |>> function
+and approx_cof phis psi =
+  CmpM.test_sequent phis psi |> lift_cmp |>> function
   | false ->
-    conv_err @@ ExpectedSequentTrue ([phi], psi)
+    conv_err @@ ExpectedSequentTrue (phis, psi)
   | true ->
     ret ()

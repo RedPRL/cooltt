@@ -22,11 +22,10 @@ type command = continuation RM.m
 
 (* Refinement Helpers *)
 
-let elaborate_typed_term name (args : CS.cell list) tp tm =
-  RM.push_problem name @@
-  let* tp = RM.push_problem "tp" @@ Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
+let elaborate_typed_term _name (args : CS.cell list) tp tm =
+  let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-  let* tm = RM.push_problem "tm" @@ Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
+  let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
   vtp, vtm
 
@@ -157,8 +156,9 @@ and import_unit ~shadowing path modifier : command =
     let+ () = RM.import ~shadowing modifier (CodeUnitID.file src) in
     Continue
 
-and execute_decl : CS.decl -> command =
-  function
+and execute_decl (decl : CS.decl) : command =
+  RM.update_span (CS.get_info decl) @@
+  match decl.node with
   | CS.Def {shadowing; name; args; def = Some def; tp} ->
     Debug.print "Defining %a@." Ident.pp name;
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
@@ -166,7 +166,7 @@ and execute_decl : CS.decl -> command =
     Continue
   | CS.Def {shadowing; name; args; def = None; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
-    let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
+    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     let* _ = RM.add_global ~shadowing name vtp None in
     RM.ret Continue
@@ -238,7 +238,7 @@ and process_file input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file ~as_file ~debug_mode input =
+let load_file ~as_file ~debug_mode input : status =
   match load_current_library ~as_file input with
   | Error () -> Error ()
   | Ok lib ->
@@ -248,8 +248,9 @@ let load_file ~as_file ~debug_mode input =
     RM.with_unit lib unit_id @@
     process_file input
 
-let execute_command =
-  function
+let execute_command (cmd : CS.repl_command) =
+  RM.update_span cmd.info @@
+  match cmd.node with
   | CS.Decl decl -> execute_decl decl
   | CS.NoOp -> RM.ret Continue
   | CS.EndOfFile -> RM.ret Quit
@@ -273,7 +274,7 @@ let rec repl lib (ch : in_channel) lexbuf =
       close_in ch;
       RM.ret @@ Ok ()
 
-let do_repl ~as_file ~debug_mode =
+let do_repl ~as_file ~debug_mode : status =
   match load_current_library ~as_file `Stdin with
   | Error () -> Error ()
   | Ok lib ->

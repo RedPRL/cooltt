@@ -18,10 +18,10 @@ struct
     | `Cof
     | `Sub
     | `Prf
-    | `LockedPrf
     | `El
     | `ElV
     | `ElHCom
+    | `ElExt
     ]
 
   type t =
@@ -39,4 +39,5 @@ struct
     | UnexpectedShadowing of Ident.user
     | CyclicImport of CodeUnitID.t
     | ErrorsInSection
+    | UnsolvedHoles of int
 end

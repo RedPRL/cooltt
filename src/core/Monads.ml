@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 open Bwd
 
 open CodeUnit
@@ -65,6 +64,14 @@ struct
   let test_sequent cx phi =
     let+ {cof_thy; _} = M.read in
     CofThy.Disj.test_sequent cof_thy cx phi
+
+  let simplify_cof phi =
+    let+ {cof_thy; _} = M.read in
+    CofThy.Disj.simplify_cof cof_thy phi
+
+  let forall_cof (sym, phi) =
+    let+ {cof_thy; _} = M.read in
+    CofThy.Disj.forall_cof cof_thy (sym, phi)
 
   let restore_cof_thy cof_thy =
     M.scope @@ fun local ->
@@ -168,10 +175,9 @@ struct
 
   let restrict_ phis m =
     let* {cof_thy; _} = M.read in
-    CofThy.Alg.left_invert_under_cofs
-      ~zero:(M.ret ()) ~seq:MU.iter
-      cof_thy phis @@ fun thy ->
-    replace_env thy m
+    MU.iter
+      (fun thy -> replace_env thy m)
+      (CofThy.Alg.split cof_thy phis)
 
   let top_var tp =
     let+ n = read_local in
@@ -290,10 +296,9 @@ struct
     in
     fun (state, env) ->
       match
-        CofThy.Disj.left_invert
-          ~zero:(Ok ()) ~seq:MU.iter
-          (cof_thy state env) @@ fun cof_thy ->
-        ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} m
+        MU.iter
+          (fun cof_thy -> ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} m)
+          (CofThy.Disj.decompose @@ cof_thy state env)
       with
       | Ok () -> Ok (), state
       | Error exn -> Error exn, state

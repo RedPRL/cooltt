@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 open Bwd
 
 open CodeUnit
@@ -33,117 +32,31 @@ let cut_frm ~tp ~cut frm =
 let get_local i =
   let open EvM in
   let* env = EvM.read_local in
-  match Bwd.nth env.conenv i with
+  match BwdLabels.nth env.conenv i with
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
 let get_local_tp i =
   let open EvM in
   let* env = EvM.read_local in
-  match Bwd.nth env.tpenv i with
+  match BwdLabels.nth env.tpenv i with
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
-
-let tri_test_cof phi =
+let rec cof_con_to_cof : (D.con, D.con) Kado.Syntax.endo -> D.cof CM.m =
   let open CM in
-  test_sequent [] phi |>>
+  let module K = Kado.Syntax in
   function
-  | true -> CM.ret `True
-  | false ->
-    test_sequent [phi] Cof.bot |>>
-    function
-    | true -> ret `False
-    | false -> ret `Indet
-
-let rec normalize_cof phi =
-  let open CM in
-  match phi with
-  | Cof.Cof (Cof.Eq _) | Cof.Var _ ->
-    begin
-      tri_test_cof phi |>>
-      function
-      | `True -> ret Cof.top
-      | `False -> ret Cof.bot
-      | `Indet -> ret phi
-    end
-  | Cof.Cof (Cof.Join phis) ->
-    let+ phis = MU.map normalize_cof phis in
-    Cof.join phis
-  | Cof.Cof (Cof.Meet phis) ->
-    let+ phis = MU.map normalize_cof phis in
-    Cof.meet phis
-
-
-module FaceLattice :
-sig
-  (** An atomic formula *)
-  type atom = [`CofEq of D.dim * D.dim]
-
-  (** A generator for a lattice homomorphism *)
-  type gen = atom -> D.cof CM.m
-
-  (** Extend a generator to a lattice homomorphism *)
-  val extend : gen -> D.cof -> D.cof CM.m
-
-  (** Quantifier elimination *)
-  val forall : DimProbe.t -> D.cof -> D.cof CM.m
-end =
-struct
-  open CM
-
-  type atom = [`CofEq of D.dim * D.dim]
-  type gen = atom -> D.cof CM.m
-
-  let extend gen =
-    let rec loop =
-      function
-      | Cof.Var _ as phi -> ret phi
-      | Cof.Cof phi ->
-        match phi with
-        | Cof.Join psis ->
-          let+ psis = MU.map loop psis in
-          Cof.Cof (Cof.Join psis)
-        | Cof.Meet psis ->
-          let+ psis = MU.map loop psis in
-          Cof.Cof (Cof.Meet psis)
-        | Cof.Eq (r, s) ->
-          gen @@ `CofEq (r, s)
-    in
-    loop
-
-  let forall sym =
-    let i = Dim.DimProbe sym in
-    extend @@
-    function
-    | `CofEq (r, s) ->
-      test_sequent [] (Cof.eq r s) |>>
-      function
-      | true -> ret Cof.top
-      | false ->
-        test_sequent [] (Cof.eq i r) |>>
-        function
-        | true -> ret Cof.bot
-        | false ->
-          test_sequent [] (Cof.eq i s) |>>
-          function
-          | true -> ret Cof.bot
-          | false -> ret @@ Cof.eq r s
-end
-
-let rec cof_con_to_cof : (D.con, D.con) Cof.cof_f -> D.cof CM.m =
-  let open CM in
-  function
-  | Cof.Eq (r, s) ->
+  | K.Le (r, s) ->
     let+ r = con_to_dim r
     and+ s = con_to_dim s in
-    Cof.eq r s
-  | Cof.Join phis ->
+    CofBuilder.le r s
+  | K.Join phis ->
     let+ phis = MU.map con_to_cof phis in
-    Cof.join phis
-  | Cof.Meet phis ->
+    CofBuilder.join phis
+  | K.Meet phis ->
     let+ phis = MU.map con_to_cof phis in
-    Cof.meet phis
+    CofBuilder.meet phis
 
 and con_to_cof =
   let open CM in
@@ -151,7 +64,8 @@ and con_to_cof =
     whnf_inspect_con ~style:`UnfoldAll con |>>
     function
     | D.Cof cof -> cof_con_to_cof cof
-    | D.Cut {cut = D.Var l, []; _} -> ret @@ Cof.var l
+    | D.Cut {cut = D.Var l, []; _} -> ret @@ CofBuilder.var (CofVar.Local l)
+    | D.Cut {cut = D.Global sym, []; _} -> ret @@ CofBuilder.var (CofVar.Axiom sym)
     | _ -> throw @@ NbeFailed "con_to_cof"
 
 and con_to_dim =
@@ -162,7 +76,8 @@ and con_to_dim =
     | D.Dim0 -> ret Dim.Dim0
     | D.Dim1 -> ret Dim.Dim1
     | D.DimProbe x -> ret @@ Dim.DimProbe x
-    | D.Cut {cut = Var l, []; _} -> ret @@ Dim.DimVar l
+    | D.Cut {cut = D.Var l, []; _} -> ret @@ Dim.DimVar (CofVar.Local l)
+    | D.Cut {cut = D.Global sym, []; _} -> ret @@ Dim.DimVar (CofVar.Axiom sym)
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
@@ -175,6 +90,7 @@ and subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
 and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x ->
   let open CM in
+  let module K = Kado.Syntax in
   function
   | D.Dim0 | D.Dim1 | D.Prf | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
   | D.LetSym (s, y, con) ->
@@ -190,7 +106,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     D.Lam (ident, clo)
   | BindSym (y, con) ->
     begin
-      test_sequent [] (Cof.eq (Dim.DimProbe x) (Dim.DimProbe y)) |>>
+      test_sequent [] (CofBuilder.eq (Dim.DimProbe x) (Dim.DimProbe y)) |>>
       function
       | true ->
         ret @@ D.BindSym (y, con)
@@ -214,16 +130,16 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   | D.SubIn con ->
     let+ con = subst_con r x con in
     D.SubIn con
-  | D.Cof (Cof.Join phis) ->
+  | D.Cof (K.Join phis) ->
     let+ phis = MU.map (subst_con r x) phis in
-    D.Cof (Cof.Join phis)
-  | D.Cof (Cof.Meet phis) ->
+    D.Cof (K.Join phis)
+  | D.Cof (K.Meet phis) ->
     let+ phis = MU.map (subst_con r x) phis in
-    D.Cof (Cof.Meet phis)
-  | D.Cof (Cof.Eq (s, s')) ->
+    D.Cof (K.Meet phis)
+  | D.Cof (K.Le (s, s')) ->
     let+ s = subst_con r x s
     and+ s' = subst_con r x s' in
-    D.Cof (Cof.Eq (s, s'))
+    D.Cof (K.Le (s, s'))
   | D.FHCom (tag, s, s', phi, bdy) ->
     let+ s = subst_dim r x s
     and+ s' = subst_dim r x s'
@@ -257,7 +173,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     D.VIn (s, equiv, pivot, base)
   | D.DimProbe y as con ->
     begin
-      test_sequent [] (Cof.eq (Dim.DimProbe x) (Dim.DimProbe y)) |>>
+      test_sequent [] (CofBuilder.eq (Dim.DimProbe x) (Dim.DimProbe y)) |>>
       function
       | true ->
         ret @@ D.dim_to_con r
@@ -276,9 +192,6 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     in
     let+ branches = MU.map go_branch branches in
     D.Split branches
-  | D.LockedPrfIn prf ->
-    let+ prf = subst_con r x prf in
-    D.LockedPrfIn prf
 
 and subst_dim : D.dim -> DimProbe.t -> D.dim -> D.dim CM.m =
   fun r x s ->
@@ -375,9 +288,6 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     in
     let+ branches = MU.map subst_branch branches in
     D.TpSplit branches
-  | D.TpLockedPrf phi ->
-    let+ phi = subst_cof r x phi in
-    D.TpLockedPrf phi
 
 and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.stable_code CM.m =
   fun r x ->
@@ -450,12 +360,6 @@ and subst_unstable_frm : D.dim -> DimProbe.t -> D.unstable_frm -> D.unstable_frm
     let+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.KSubOut (phi, clo)
-  | D.KLockedPrfUnlock (tp, phi, con) ->
-    let+ tp = subst_tp r x tp
-    and+ phi = subst_cof r x phi
-    and+ con = subst_con r x con in
-    D.KLockedPrfUnlock (tp, phi, con)
-
 
 and subst_frm : D.dim -> DimProbe.t -> D.frm -> D.frm CM.m =
   fun r x ->
@@ -534,12 +438,10 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.TpSplit (List.combine phis pclos)
   | S.TpESub (sb, tp) ->
     eval_sub sb @@ eval_tp tp
-  | S.TpLockedPrf phi ->
-    let+ phi = eval_cof phi in
-    D.TpLockedPrf phi
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
+  let module K = Kado.Syntax in
   fun tm ->
     match tm with
     | S.Var i ->
@@ -570,7 +472,7 @@ and eval : S.t -> D.con EvM.m =
     | S.Loop tr ->
       let* r = eval_dim tr in
       begin
-        CM.test_sequent [] (Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r) |> lift_cmp |>> function
+        CM.test_sequent [] (CofBuilder.boundary r) |> lift_cmp |>> function
         | true ->
           ret D.Base
         | false ->
@@ -660,22 +562,22 @@ and eval : S.t -> D.con EvM.m =
     | S.Cof cof_f ->
       begin
         match cof_f with
-        | Cof.Eq (tr, ts) ->
+        | K.Le (tr, ts) ->
           let+ r = eval tr
           and+ s = eval ts in
-          D.Cof (Cof.Eq (r, s))
-        | Cof.Join tphis ->
+          D.CofBuilder.le r s
+        | K.Join tphis ->
           let+ phis = MU.map eval tphis in
-          D.Cof (Cof.Join phis)
-        | Cof.Meet tphis ->
+          D.CofBuilder.join phis
+        | K.Meet tphis ->
           let+ phis = MU.map eval tphis in
-          D.Cof (Cof.Meet phis)
+          D.CofBuilder.meet phis
       end
     | S.ForallCof tm ->
       let sym = DimProbe.fresh () in
       let i = Dim.DimProbe sym in
-      let* phi = append [D.dim_to_con i] @@ eval_cof tm in
-      D.cof_to_con <@> lift_cmp @@ FaceLattice.forall sym phi
+      let+ phi = append [D.dim_to_con i] @@ eval_cof tm in
+      D.cof_to_con @@ CofBuilder.forall (i, phi)
     | S.CofSplit (branches) ->
       let tphis, tms = List.split branches in
       let* phis = MU.map eval_cof tphis in
@@ -771,17 +673,6 @@ and eval : S.t -> D.con EvM.m =
     | S.ESub (sb, tm) ->
       eval_sub sb @@ eval tm
 
-    | S.LockedPrfIn prf ->
-      let+ prf = eval prf in
-      D.LockedPrfIn prf
-
-    | S.LockedPrfUnlock {tp; cof; prf; bdy} ->
-      let* tp = eval_tp tp in
-      let* cof = eval_cof cof in
-      let* prf = eval prf in
-      let* bdy = eval bdy in
-      lift_cmp @@ do_prf_unlock tp cof prf bdy
-
 and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
   let open EvM in
@@ -811,7 +702,7 @@ and eval_cof tphi =
 and whnf_con ~style : D.con -> D.con whnf CM.m =
   let open CM in
   function
-  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _ | D.LockedPrfIn _
+  | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
@@ -828,7 +719,7 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
     whnf_boundary ~style @@ Splice.Bdry.vin ~r ~pivot ~base
   | D.Loop r ->
     begin
-      test_sequent [] (Cof.boundary ~dim0:Dim.Dim0 ~dim1:Dim.Dim1 r) |>>
+      test_sequent [] (CofBuilder.boundary r) |>>
       function
       | true -> ret (`Reduce D.Base)
       | false -> ret `Done
@@ -901,7 +792,7 @@ and whnf_hd ~style hd =
   | D.Var _ -> ret `Done
   | D.Coe (abs, r, s, con) ->
     begin
-      test_sequent [] (Cof.eq r s) |>> function
+      test_sequent [] (CofBuilder.eq r s) |>> function
       | true -> reduce_to ~style con
       | false ->
         begin
@@ -937,8 +828,6 @@ and do_rigid_unstable_frm ~style con ufrm =
     do_rigid_vproj r pcode code pequiv con
   | D.KSubOut _ ->
     do_sub_out con
-  | D.KLockedPrfUnlock (tp, phi, bdy) ->
-    do_prf_unlock tp phi con bdy
 
 and whnf_cut ~style : D.cut -> D.con whnf CM.m =
   let open CM in
@@ -1291,34 +1180,9 @@ and do_sub_out con =
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
-    | _ ->
+    | con ->
+      Format.eprintf "bad sub_out: %a@." D.pp_con con;
       throw @@ NbeFailed "do_sub_out"
-  end
-
-and do_prf_unlock tp phi con bdy =
-  let open CM in
-  abort_if_inconsistent (ret D.tm_abort) @@
-  let splitter con phis =
-    splice_tm @@
-    Splice.con bdy @@ fun bdy ->
-    Splice.cof phi @@ fun phi ->
-    Splice.tp tp @@ fun tp ->
-    Splice.Macro.commute_split con phis @@ fun prf ->
-    TB.locked_prf_unlock tp ~cof:phi ~prf ~bdy
-  in
-  begin
-    inspect_con ~style:`UnfoldNone con |>>
-    function
-    | D.LockedPrfIn con ->
-      do_ap bdy con
-    | D.Cut {tp = D.TpLockedPrf phi; cut} ->
-      ret @@ D.Cut {tp; cut = D.UnstableCut (cut, D.KLockedPrfUnlock (tp, phi, bdy)), []}
-    | D.Split branches as con ->
-      splitter con @@ List.map fst branches
-    | D.Cut {tp = D.TpSplit branches; _} as con ->
-      splitter con @@ List.map fst branches
-    | _ ->
-      throw @@ NbeFailed "do_prf_unlock"
   end
 
 
@@ -1494,7 +1358,7 @@ and dispatch_rigid_coe ~style line =
     | D.Split branches ->
       let* phis =
         branches |> MU.map @@ fun (phix, _) ->
-        FaceLattice.forall x phix
+        forall_cof (DimProbe x, phix)
       in
       ret @@ `Reduce (`Split phis)
     | D.Cut _ ->

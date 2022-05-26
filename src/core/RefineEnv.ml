@@ -1,6 +1,5 @@
 open ContainersLabels
 open Basis
-open Cubical
 open Bwd
 open BwdNotation
 
@@ -34,9 +33,6 @@ type t =
     cof_thy : CofThy.Disj.t;
     pp : Pp.env;
 
-    (* problems *)
-    problem : string bwd;
-
     (* location *)
     location : LexingUtil.span option;
   }
@@ -46,7 +42,6 @@ let init =
     locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
-    problem = Emp;
     location = None }
 
 let globally env =
@@ -54,7 +49,6 @@ let globally env =
     locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
-    problem = Emp;
     location = env.location }
 
 (* veil *)
@@ -63,13 +57,13 @@ let set_veil v env = {env with veil = v}
 
 (* local assumptions *)
 let locals env = env.locals
-let size env = Bwd.length env.locals
+let size env = BwdLabels.length env.locals
 let get_local_tp ix env =
-  let cell = Bwd.nth env.locals ix in
+  let cell = BwdLabels.nth env.locals ix in
   let tp, _ = Cell.contents cell in
   tp
 let get_local ix env =
-  let cell = Bwd.nth env.locals ix in
+  let cell = BwdLabels.nth env.locals ix in
   let _, con = Cell.contents cell in
   con
 let resolve_local (ident : Ident.t) env =
@@ -98,9 +92,10 @@ let pp_env env = env.pp
 let sem_env (env : t) : D.env =
   {tpenv = Emp;
    conenv =
-     env.locals |> Bwd.map @@ fun cell ->
-     let _, con = Cell.contents cell in
-     con}
+     BwdLabels.map env.locals
+       ~f:(fun cell ->
+           let _, con = Cell.contents cell in
+           con)}
 let restrict phis env =
   {env with
    cof_thy = CofThy.Disj.assume env.cof_thy phis}
@@ -113,12 +108,6 @@ let append_con ident con tp env =
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
      | _ -> env.cof_thy}
 
-(* problems *)
-let problem env = env.problem
-let push_problem lbl env =
-  {env with
-   problem = env.problem #< lbl}
-
 (* locations *)
 let location env = env.location
 let set_location loc env =
@@ -128,4 +117,4 @@ let set_location loc env =
 
 let dump fmt : t -> unit =
   fun env ->
-  Format.fprintf fmt "Locals: @[<v>%a@]" dump_locals (Bwd.to_list env.locals)
+  Format.fprintf fmt "Locals: @[<v>%a@]" dump_locals (BwdLabels.to_list env.locals)
