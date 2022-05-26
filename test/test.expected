@@ -23,12 +23,12 @@ axiom.cooltt:32.11-32.31 [Info]:
   Computed normal form of test-globals/path i1 as 2
 
 axiom.cooltt:40.7-40.15 [Info]:
-  ψ/proof : locked {ψ/i <= ψ/j ∧ ψ/j <= ψ/i}
+  ψ/proof : locked {ψ/i ≤ ψ/j ∧ ψ/j ≤ ψ/i}
 
 axiom.cooltt:47.7-47.14 [Info]:
   ψ/test
-  : unlock ψ/proof : ψ/i <= ψ/j ∧ ψ/j <= ψ/i in _x => ext nat ⊤ {_x₁ => 4}
-  = unlock ψ/proof : ψ/i <= ψ/j ∧ ψ/j <= ψ/i in _x => 4
+  : unlock ψ/proof : ψ/i ≤ ψ/j ∧ ψ/j ≤ ψ/i in _x => ext nat ⊤ {_x₁ => 4}
+  = unlock ψ/proof : ψ/i ≤ ψ/j ∧ ψ/j ≤ ψ/i in _x => 4
 
 --------------------[base-types.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
@@ -496,7 +496,7 @@ com.cooltt:64.11-64.20 [Info]:
      {_x₁ _x₂ =>
       coe {_x₃ => A _x₃ _x} _x₁ r'
         [ _x = 0 ∨ _x = 1 => [ _x = 0 => a _x₁ | _x = 1 => b _x₁ ]
-        | _x₁ <= r ∧ r <= _x₁ => m _x
+        | _x₁ ≤ r ∧ r ≤ _x₁ => m _x
         ]}
 
 com.cooltt:80.11-80.19 [Info]:
