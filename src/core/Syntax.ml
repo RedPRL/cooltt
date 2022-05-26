@@ -80,9 +80,6 @@ struct
 
     | ESub _ -> Format.fprintf fmt "<esub>"
 
-    | LockedPrfIn _ -> Format.fprintf fmt "<locked/in>"
-    | LockedPrfUnlock _ -> Format.fprintf fmt "<locked/unlock>"
-
   and dump_struct fmt fields =
     Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp)) fields
 
@@ -105,7 +102,6 @@ struct
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
-    | TpLockedPrf _ -> Format.fprintf fmt "<locked>"
 
 
   and dump_cof fmt = Cof.dump dump dump fmt
@@ -174,8 +170,6 @@ struct
       | VIn _ -> tuple
       | VProj _ -> juxtaposition
       | ESub _ -> juxtaposition
-      | LockedPrfIn _ -> juxtaposition
-      | LockedPrfUnlock _ -> delimited
 
     let classify_sub : sub -> t =
       function
@@ -195,7 +189,6 @@ struct
       | Sg _ -> times
       | Signature _ -> juxtaposition
       | TpESub _ -> substitution
-      | TpLockedPrf _ -> juxtaposition
   end
 
   let pp_var env fmt ix =
@@ -458,16 +451,6 @@ struct
         (pp_sub env P.isolated) sub
         (pp env P.(right_of substitution)) tm
 
-    | LockedPrfIn prf ->
-      Format.fprintf fmt "@[<hv2>lock %a@]"
-        (pp_atomic env) prf
-
-    | LockedPrfUnlock {cof; prf; bdy; _} ->
-      Format.fprintf fmt "@[unlock %a : %a in@ %a@]"
-        (pp env P.(left_of colon)) prf
-        (pp env P.(right_of colon)) cof
-        (pp env P.(right_of in_)) bdy
-
   and pp_sub env =
     pp_braced_cond P.classify_sub @@ fun _ fmt ->
     function
@@ -542,9 +525,6 @@ struct
       Format.fprintf fmt "[%a]%a"
         (pp_sub env P.isolated) sub
         (pp_tp env P.(right_of substitution)) tp
-    | TpLockedPrf phi ->
-      Format.fprintf fmt "locked %a"
-        (pp_atomic env) phi
 
   and pp_cof_split_branch env fmt (phi, tm) =
     let _x, envx = ppenv_bind env `Anon in

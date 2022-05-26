@@ -57,7 +57,6 @@ sig
   val dim : tac
   val cof : tac
   val prf : T.Chk.tac -> tac
-  val locked_prf : T.Chk.tac -> tac
 
   val code : T.Chk.tac -> tac
 end =
@@ -133,7 +132,6 @@ struct
   let dim = Tp R.Dim.formation
   let cof = Tp R.Cof.formation
   let prf tac = Tp (R.Prf.formation tac)
-  let locked_prf tac = Tp (R.LockedPrf.formation tac)
   let code tac = Code tac
 end
 
@@ -164,9 +162,6 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
     let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
     CoolTp.ext n tac_fam tac_cof tac_bdry
-  | CS.Locked cphi ->
-    let tac_phi = chk_tm cphi in
-    CoolTp.locked_prf tac_phi
   | _ -> CoolTp.code @@ chk_tm con
 
 
@@ -223,10 +218,6 @@ and chk_tm : CS.con -> T.Chk.tac =
 
   | CS.Lam ([], body) ->
     chk_tm body
-
-  | CS.Unlock (prf, bdy) ->
-    R.LockedPrf.unlock (syn_tm prf) @@
-    R.Pi.intro @@ fun _ -> chk_tm bdy
 
   | _ ->
     Tactics.intro_implicit_connectives @@

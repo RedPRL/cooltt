@@ -201,9 +201,6 @@ struct
         pp_split_branch
         fmt
         branches
-    | LockedPrfIn _ ->
-      Format.fprintf fmt "<wrap>"
-
 
   and pp_sign fmt =
     function
@@ -242,8 +239,6 @@ struct
       Format.fprintf fmt "<V>"
     | TpSplit _ ->
       Format.fprintf fmt "<split>"
-    | TpLockedPrf _ ->
-      Format.fprintf fmt "<wrap>"
 
   and pp_stable_code fmt =
     function

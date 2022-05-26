@@ -73,10 +73,6 @@ val el : t m -> tp m
 
 val pis: ?idents:Ident.t list -> t m list -> (t m list -> tp m) -> tp m
 
-val tp_locked_prf : t m -> tp m
-val locked_prf_in : t m -> t m
-val locked_prf_unlock : tp m -> cof:t m -> prf:t m -> bdy:t m -> t m
-
 val cube : int -> (t m list -> tp m) -> tp m
 
 val code_pi : t m -> t m -> t m

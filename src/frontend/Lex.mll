@@ -27,8 +27,6 @@ let commands =
 
 let keywords =
   make_table 0 [
-    ("locked", LOCKED);
-    ("unlock", UNLOCK);
     ("zero", ZERO);
     ("suc", SUC);
     ("nat", NAT);
