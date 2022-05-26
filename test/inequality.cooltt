@@ -1,0 +1,11 @@
+axiom i : 𝕀
+axiom j : 𝕀
+axiom k : 𝕀
+
+axiom ij : [i <= j]
+axiom jk : [j <= k]
+
+axiom foo : ext => nat with [j <= k => zero ]
+def bar : ext => nat with [0=0 => zero] := foo
+
+#print bar
