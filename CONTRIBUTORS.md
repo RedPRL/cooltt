@@ -15,7 +15,7 @@ Ian Voysey
 
 Here is the list of materials whose copyright was not assigned to **The RedPRL Development Team.**
 
-- Before we imposed the the CLA (see [Copyright Assignment](CONTRIBUTING.md)), Jt Gleason (`@EntropyFails`) made a [pull request](https://github.com/RedPRL/cooltt/pull/166) that improves error message printing and the PR was merged. According to the GitHub’s term of service, Jt Cleason implicitly agreed that the contribution can be licensed under the same license cooltt uses, which is Apache 2.0.
+- Before we imposed the the CLA (see [Copyright Assignment](CONTRIBUTING.md)), Jt Gleason (`@EntropyFails`) made a [pull request](https://github.com/RedPRL/cooltt/pull/166) that improves error messages and the PR was merged. According to the GitHub’s term of service, Jt Cleason implicitly agreed that the contribution can be licensed under the same license cooltt used, which was Apache 2.0.
 
 ## History and Original License
 
