@@ -1,5 +1,4 @@
 open Basis
-open Cubical
 
 module Make (Symbol : Symbol.S) =
 struct
@@ -109,7 +108,7 @@ struct
     | TpLockedPrf _ -> Format.fprintf fmt "<locked>"
 
 
-  and dump_cof fmt = Cof.dump_cof_f dump dump fmt
+  and dump_cof fmt = Cof.dump dump dump fmt
 
   and dump_branch fmt (cof, bdy) =
     Format.fprintf fmt "[%a, %a]" dump cof dump bdy

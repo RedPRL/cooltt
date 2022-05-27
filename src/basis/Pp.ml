@@ -11,7 +11,7 @@ struct
 
   let nat_to_suffix n =
     let formatted = string_of_int n in
-    let lookup : int -> string = List.nth ["₀";"₁";"₂";"₃";"₄";"₅";"₆";"₇";"₈";"₉"] in
+    let lookup : int -> string = Array.get [|"₀";"₁";"₂";"₃";"₄";"₅";"₆";"₇";"₈";"₉"|] in
     String.concat "" @@
     List.init (String.length formatted) @@
     fun n -> lookup (Char.code (String.get formatted n) - Char.code '0')
@@ -19,16 +19,15 @@ struct
   let rec rename xs x i =
     let suffix = nat_to_suffix i in
     let new_x = x ^ suffix in
-    if Bwd.mem new_x xs then (rename [@tailcall]) xs x (i + 1) else new_x
+    if BwdLabels.mem new_x ~set:xs then (rename [@tailcall]) xs x (i + 1) else new_x
 
   let choose_name (env : t) (x : string) =
-    if Bwd.mem x env then rename env x 1 else x
+    if BwdLabels.mem x ~set:env then rename env x 1 else x
 
   let var i env =
-    if i < Bwd.length env then
-      Bwd.nth env i
-    else
-      failwith "Pp printer: tried to resolve bound variable out of range"
+    match BwdLabels.nth_opt env i with
+    | Some v -> v
+    | None -> failwith "Pp printer: tried to resolve bound variable out of range"
 
   let proj xs =
     match xs with

@@ -1,14 +1,12 @@
 open Basis
 open Bwd
-open Cubical
-
-open CodeUnit
 
 exception CFHM
 exception CCHM
 exception CJHM
 
-module S = Syntax
+module S = CodeUnit.Syntax
+module CB = S.CofBuilder
 
 module M : sig
   include Monad.S
@@ -98,7 +96,7 @@ let lam ?(ident = `Anon) mbdy : _ m =
 let lams idents mbdy : _ m =
   let rec go vars =
     function
-    | [] -> mbdy (Bwd.to_list vars)
+    | [] -> mbdy (BwdLabels.to_list vars)
     | (ident :: idents) -> lam ~ident @@ fun var -> go (Snoc (vars, var)) idents
   in go Emp idents
 
@@ -267,7 +265,7 @@ let code_sg mbase mfam : _ m =
 let code_path mfam mbdry : _ m =
   let+ fam = mfam
   and+ bdry = mbdry in
-  S.CodeExt (1, fam, `Global (S.Lam (`Anon, S.Cof (Cof.Join [S.Cof (Cof.Eq (S.Var 0, S.Dim0)); S.Cof (Cof.Eq (S.Var 0, S.Dim1))]))), bdry)
+  S.CodeExt (1, fam, `Global (S.Lam (`Anon, CB.boundary (S.Var 0))), bdry)
 
 let code_v mr mpcode mcode mpequiv : _ m=
   let+ r = mr
@@ -317,15 +315,15 @@ let pis ?(idents = []) margs mfam : _ m =
 let eq mr ms =
   let+ r = mr
   and+ s = ms in
-  S.Cof (Cof.Eq (r, s))
+  CB.eq r s
 
 let join mphis =
   let+ phis = MU.commute_list mphis in
-  S.Cof (Cof.Join phis)
+  CB.join phis
 
 let meet mphis =
   let+ phis = MU.commute_list mphis in
-  S.Cof (Cof.Meet phis)
+  CB.meet phis
 
 let top =
   meet []
@@ -345,7 +343,7 @@ let dim1 = ret S.Dim1
 let cube n mfam : _ m =
   let rec go acc n =
     if n = 0 then
-      mfam @@ Bwd.to_list acc
+      mfam @@ BwdLabels.to_list acc
     else
       pi tp_dim @@ fun i ->
       go (Snoc (acc, i)) (n - 1)
@@ -355,7 +353,7 @@ let cube n mfam : _ m =
 let nlam n mbdy : _ m =
   let rec go acc n =
     if n = 0 then
-      mbdy @@ Bwd.to_list acc
+      mbdy @@ BwdLabels.to_list acc
     else
       lam @@ fun i ->
       go (Snoc (acc, i)) (n - 1)

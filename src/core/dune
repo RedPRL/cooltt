@@ -1,6 +1,6 @@
 (library
  (name Core)
- (libraries bantorra cooltt.basis cooltt.cubical ezjsonm yuujinchou)
+ (libraries kado bantorra cooltt.basis ezjsonm yuujinchou bwd)
  (preprocess
   (pps ppx_deriving.std))
  (flags

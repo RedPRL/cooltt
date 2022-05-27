@@ -13,6 +13,27 @@ module TB = TermBuilder
 
 open Monad.Notation (RM)
 
+
+let is_total (sign : D.sign) =
+  let rec go acc = function
+    | D.Field (`User ["fib"],_,D.Clo ([],_)) -> RM.ret @@ acc
+    | D.Field (lbl,(D.ElStable (`Ext (0,_,`Global (Cof cof),_)) as tp),sign_clo) ->
+      let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+      RM.abstract (lbl :> Ident.t) tp @@ fun v ->
+      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo v in
+      begin
+        RM.lift_cmp @@ Monads.CmpM.test_sequent [] cof |>> function
+        | true -> go acc sign
+        | false -> go `TotalSome sign
+      end
+    | D.Field (lbl,tp,sign_clo) ->
+      RM.abstract (lbl :> Ident.t) tp @@ fun v ->
+      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo v in
+      go `TotalSome sign
+    | D.Empty -> RM.ret `NotTotal
+  in
+  go `TotalAll sign
+
 let elab_err err =
   let* env = RM.read in
   RM.throw @@ ElabError.ElabError (err, RefineEnv.location env)
@@ -37,6 +58,25 @@ let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
   | _ ->
     RM.ret (tm, tp)
 
+let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
+  fun tac ->
+  T.Syn.rule @@
+  let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
+  match tp with
+  | D.Sub _ ->
+    T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
+  (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
+  | D.ElStable _ ->
+    T.Syn.run @@ elim_implicit_connectives_and_total @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
+  | D.Signature sign ->
+    begin
+      is_total sign |>> function
+      | `TotalAll | `TotalSome -> T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Signature.proj (T.Syn.rule @@ RM.ret (tm,tp)) (`User ["fib"])
+      | `NotTotal -> RM.ret (tm,tp)
+    end
+  | _ ->
+    RM.ret (tm, tp)
+
 let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   fun tac ->
   T.Chk.whnf ~style:`UnfoldAll @@
@@ -45,30 +85,47 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
     RM.ret @@ R.Sub.intro @@ intro_implicit_connectives tac
   | D.ElStable _, _, _ ->
     RM.ret @@ R.El.intro @@ intro_implicit_connectives tac
+  | D.Signature sign, _, _ ->
+    begin
+      is_total sign |>> function
+      | `TotalAll -> RM.ret @@ R.Signature.intro (function `User ["fib"] -> Some (intro_implicit_connectives tac) | _ -> None)
+      | _ -> RM.ret tac
+    end
   | _ ->
     RM.ret tac
 
-let rec intro_subtypes : T.Chk.tac -> T.Chk.tac =
+let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
   fun tac ->
   T.Chk.whnf ~style:`UnfoldNone @@
   match_goal @@ function
   | D.Sub _, _, _ ->
-    RM.ret @@ R.Sub.intro @@ intro_subtypes tac
+    RM.ret @@ R.Sub.intro @@ intro_subtypes_and_total tac
+  | ElStable (`Signature sign_code), _, _ ->
+    begin
+      RM.lift_cmp @@ Sem.unfold_el (`Signature sign_code) |>> function
+      | D.Signature sign ->
+        begin
+          is_total sign |>> function
+          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro (function `User ["fib"] -> Some (intro_subtypes_and_total tac) | _ -> None)
+          | _ -> RM.ret tac
+        end
+      | _ -> failwith "impossible"
+    end
   | _ ->
     RM.ret tac
 
-let intro_conversions (tac : T.Syn.tac) : T.Chk.tac = 
+let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
   (* HACK: Because we are using Weak Tarski Universes, we can't just
-    use the conversion checker to equate 'tp` and 'univ', as
-    'tp' may be 'el code-univ' instead.
+     use the conversion checker to equate 'tp` and 'univ', as
+     'tp' may be 'el code-univ' instead.
 
-    Therefore, we do an explicit check here instead.
-    If we add universe levels, this code should probably be reconsidered. *)
+     Therefore, we do an explicit check here instead.
+     If we add universe levels, this code should probably be reconsidered. *)
   T.Chk.rule ~name:"intro_conversions" @@ function
-    | D.Univ | D.ElStable `Univ as tp -> 
-      let* tm, tp' = T.Syn.run tac in
-      let* vtm = RM.lift_ev @@ Sem.eval tm in
-      begin
+  | D.Univ | D.ElStable `Univ as tp ->
+    let* tm, tp' = T.Syn.run tac in
+    let* vtm = RM.lift_ev @@ Sem.eval tm in
+    begin
       match tp' with
       | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
         let* tac' = T.abstract ~ident base @@ fun var ->
@@ -76,14 +133,14 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
           let* fam = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll fam in
           (* Same HACK *)
           match fam with
-          | D.Univ 
+          | D.Univ
           | D.ElStable `Univ -> RM.ret @@ R.Univ.total vsign vtm
           | _ -> RM.ret @@ T.Chk.syn tac
         in
         T.Chk.run tac' tp
       | _ -> T.Chk.run (T.Chk.syn tac) tp
-      end
-    | tp -> T.Chk.run (T.Chk.syn tac) tp
+    end
+  | tp -> T.Chk.run (T.Chk.syn tac) tp
 
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with
