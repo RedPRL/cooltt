@@ -1,9 +1,10 @@
 open Basis
 open Bwd
 
+module K = Kado.Syntax
+
 open Core
 open CodeUnit
-open Cubical
 
 module S = Syntax
 
@@ -53,12 +54,12 @@ let dim_tm : S.t -> float =
 (* Fetch a list of label positions from a cofibration. *)
 let rec dim_from_cof (dims : (string option) bwd) (cof : S.t) : (string * float) list list =
   match cof with
-  | S.Cof (Cof.Eq (S.Var v, r)) ->
+  | S.Cof (K.Le (S.Var v, r)) ->
     let axis = Option.get @@ Bwd.nth dims v in
     let d = dim_tm r in
     [[(axis, d)]]
-  | S.Cof (Cof.Join cofs) -> List.concat_map (dim_from_cof dims) cofs
-  | S.Cof (Cof.Meet cofs) -> [List.concat @@ List.concat_map (dim_from_cof dims) cofs]
+  | S.Cof (K.Join cofs) -> List.concat_map (dim_from_cof dims) cofs
+  | S.Cof (K.Meet cofs) -> [List.concat @@ List.concat_map (dim_from_cof dims) cofs]
   | _ -> failwith "dim_from_cof: bad cof"
 
 (* Create our list of labels from a boundary constraint. *)
