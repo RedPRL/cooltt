@@ -54,13 +54,15 @@ let dim_tm : S.t -> float =
 (* Fetch a list of label positions from a cofibration. *)
 let rec dim_from_cof (dims : (string option) bwd) (cof : S.t) : (string * float) list list =
   match cof with
-  | S.Cof (K.Le (S.Var v, r)) ->
+  | S.Cof (K.Le (S.Var v, r))
+  | S.Cof (K.Le (r, S.Var v)) ->
     let axis = Option.get @@ BwdLabels.nth dims v in
     let d = dim_tm r in
     [[(axis, d)]]
   | S.Cof (K.Join cofs) -> List.concat_map (dim_from_cof dims) cofs
   | S.Cof (K.Meet cofs) -> [List.concat @@ List.concat_map (dim_from_cof dims) cofs]
-  | _ -> failwith "dim_from_cof: bad cof"
+  | cof ->
+    failwith @@ Format.asprintf "dim_from_cof: bad cof '%a'" S.dump cof
 
 (* Create our list of labels from a boundary constraint. *)
 let boundary_labels (dims : (string option) bwd) (env : Pp.env) (tm : S.t) : J.value list =
