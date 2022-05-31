@@ -243,7 +243,7 @@ and process_file input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file {as_file; debug_mode; server_port} input : status =
+let load_file {as_file; debug_mode; server_info} input : status =
   match load_current_library ~as_file input with
   | Error () -> Error ()
   | Ok lib ->
