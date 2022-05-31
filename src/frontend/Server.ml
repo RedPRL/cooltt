@@ -55,7 +55,7 @@ let dim_tm : S.t -> float =
 let rec dim_from_cof (dims : (string option) bwd) (cof : S.t) : (string * float) list list =
   match cof with
   | S.Cof (K.Le (S.Var v, r)) ->
-    let axis = Option.get @@ Bwd.nth dims v in
+    let axis = Option.get @@ BwdLabels.nth dims v in
     let d = dim_tm r in
     [[(axis, d)]]
   | S.Cof (K.Join cofs) -> List.concat_map (dim_from_cof dims) cofs
@@ -87,7 +87,7 @@ let serialize_boundary (ctx : (Ident.t * S.tp) list) (goal : S.tp) : J.t option 
       begin
         match goal with
         | S.Sub (_, _, bdry) ->
-          let dim_names = Bwd.to_list @@ Bwd.filter_map Fun.id dims in
+          let dim_names = BwdLabels.to_list @@ BwdLabels.filter_map ~f:Fun.id dims in
           let labels = boundary_labels dims env bdry in
           let context = Format.asprintf "%a" (S.pp_sequent ~lbl:None ctx) goal in
           let msg = `O [

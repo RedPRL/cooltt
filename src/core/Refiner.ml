@@ -106,7 +106,7 @@ struct
       let* env = RM.read in
       let cells = Env.locals env in
       RM.globally @@
-      let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+      let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
       k ctx stp
     in
     s
@@ -119,7 +119,7 @@ struct
       let* env = RM.read in
       let cells = Env.locals env in
       RM.globally @@
-      let* ctx = GlobalUtil.destruct_cells @@ Bwd.to_list cells in
+      let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
       k ctx stp
     in
     s, tp
