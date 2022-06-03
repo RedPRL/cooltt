@@ -7,7 +7,7 @@ module S = Syntax
 
 type output_message =
   | NormalizedTerm of {orig : S.t; nf : S.t}
-  | Definition of {ident : Ident.t; tp : S.tp; tm : S.t option}
+  | Definition of {ident : Ident.t; tp : S.tp}
 
 type warning_message = |
 
@@ -69,15 +69,7 @@ let pp_message fmt =
       (Syntax.pp env) orig
       (Syntax.pp env) nf
 
-  | OutputMessage (Definition {ident; tp; tm = Some tm}) ->
-    let env = Pp.Env.emp in
-    Format.fprintf fmt
-      "@[<v>%a@ : %a@ = %a@]"
-      Ident.pp ident
-      (Syntax.pp_tp env) tp
-      (Syntax.pp env) tm
-
-  | OutputMessage (Definition {ident; tp; tm = None}) ->
+  | OutputMessage (Definition {ident; tp}) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
       "@[%a : %a@]"

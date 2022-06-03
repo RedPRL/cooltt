@@ -60,7 +60,7 @@ struct
     { (* The name of the code unit.  *)
       id : id;
       (* All the top-level bindings for this code unit. *)
-      symbol_table :  (Domain.tp * Domain.con option) Vector.vector }
+      symbol_table :  Domain.tp Vector.vector }
 
   let origin (sym : Global.t) = sym.origin
 
@@ -70,9 +70,9 @@ struct
     { id = id;
       symbol_table = Vector.create () }
 
-  let add_global ident tp ocon code_unit =
+  let add_global ident tp code_unit =
     let index = Vector.length code_unit.symbol_table in
-    let _ = Vector.push code_unit.symbol_table (tp, ocon) in
+    let _ = Vector.push code_unit.symbol_table tp in
     let sym = { Global.origin = code_unit.id; index = index; name = Ident.to_string_opt ident } in
     (sym, code_unit)
 

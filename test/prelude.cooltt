@@ -2,6 +2,7 @@
 def path (A : type) (x y : A) : type :=
   ext i => A with [i=0 => x | i=1 => y]
 
+
 def path-p (A : 𝕀 → type) (x : A 0) (y : A 1) : type :=
   ext i => A i with [i=0 => x | i=1 => y]
 
@@ -40,3 +41,4 @@ def ⋆ : unit := 0
 
 def unit/eta (x : unit) : path unit ⋆ x :=
   _ => x
+

@@ -55,16 +55,16 @@ let with_ ~begin_ ~end_ m =
   | Ok a -> ret a
   | Error exn -> let* () = set st in throw exn
 
-let add_global ~shadowing id tp con =
+let add_global ~shadowing id tp =
   let* st = get in
-  let* sym, st' = throw_namespace_errors @@ St.add_global ~shadowing id tp con st in
+  let* sym, st' = throw_namespace_errors @@ St.add_global ~shadowing id tp st in
   let+ () = set st' in
   sym
 
-let get_global sym : (D.tp * D.con option) m =
+let get_global sym : D.tp m =
   let* st = get in
   match St.get_global sym st with
-  | tp, con -> ret (tp, con)
+  | tp -> ret tp
   | exception exn -> throw exn
 
 let get_local_tp ix =

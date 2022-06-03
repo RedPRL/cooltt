@@ -39,8 +39,8 @@ module CodeUnit : sig
   val create : id -> t
 
   (** Add a binding to a given code unit. *)
-  val add_global : Ident.t -> Domain.tp -> Domain.con option -> t -> (Global.t * t)
+  val add_global : Ident.t -> Domain.tp -> t -> (Global.t * t)
 
   (** Get the binding associated with a symbol. *)
-  val get_global : Global.t -> t -> Domain.tp * Domain.con option
+  val get_global : Global.t -> t -> Domain.tp
 end

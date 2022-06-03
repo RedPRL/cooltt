@@ -153,7 +153,7 @@ struct
         | None -> `Anon
         | Some str -> `Machine ("?" ^ str)
       in
-      RM.add_global ~shadowing:true ident vtp None
+      RM.add_global ~shadowing:true ident vtp
     in
 
     let* () = RM.inc_num_holes in
@@ -1094,7 +1094,7 @@ struct
       let+ tp = RM.get_local_tp ix in
       S.Var ix, tp
     | `Global sym ->
-      let+ tp, _ = RM.get_global sym in
+      let+ tp = RM.get_global sym in
       S.Global sym, tp
     | `Unbound ->
       RM.refine_err @@ Err.UnboundVariable id
@@ -1144,11 +1144,18 @@ struct
         let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
-      let* sym = RM.add_global ~shadowing:true `Anon global_tp @@ Some def in
+      let* tp_sub = 
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.tp global_tp @@ fun vtp ->
+        Splice.con def @@ fun vtm -> 
+        Splice.term @@ 
+        TB.sub vtp TB.top @@ fun _ -> vtm 
+      in
+      let* sym = RM.add_global ~shadowing:true `Anon tp_sub in
       RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
     in
-    RM.quote_cut cut
-
+    let+ tcut = RM.quote_cut cut in 
+    S.SubOut tcut
 
 
   let let_ ?(ident = `Anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Chk.tac) : T.Chk.tac =

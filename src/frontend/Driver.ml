@@ -10,6 +10,7 @@ module Env = RefineEnv
 module Err = RefineError
 module Sem = Semantics
 module Qu = Quote
+module TB = TermBuilder
 
 module RM = RefineMonad
 module ST = RefineState
@@ -33,18 +34,11 @@ let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
   function
   | `Global sym ->
-    let* vtp, con = RM.get_global sym in
+    let* vtp = RM.get_global sym in
     let* tp = RM.quote_tp vtp in
-    let* tm =
-      match con with
-      | None -> RM.ret None
-      | Some con ->
-        let* tm = RM.quote_con vtp con in
-        RM.ret @@ Some tm
-    in
     let+ () =
       RM.emit ident.info pp_message @@
-      OutputMessage (Definition {ident = ident.node; tp; tm})
+      OutputMessage (Definition {ident = ident.node; tp})
     in
     Continue
   | _ ->
@@ -162,13 +156,20 @@ and execute_decl (decl : CS.decl) : command =
   | CS.Def {shadowing; name; args; def = Some def; tp} ->
     Debug.print "Defining %a@." Ident.pp name;
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let+ _ = RM.add_global ~shadowing name vtp @@ Some vtm in
+    let* vtp_sub = 
+      RM.lift_cmp @@ Sem.splice_tp @@
+      Splice.tp vtp @@ fun vtp ->
+      Splice.con vtm @@ fun vtm -> 
+      Splice.term @@ 
+      TB.sub vtp TB.top @@ fun _ -> vtm 
+    in 
+    let+ _ = RM.add_global ~shadowing name vtp_sub in
     Continue
   | CS.Def {shadowing; name; args; def = None; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
     let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    let* _ = RM.add_global ~shadowing name vtp None in
+    let* _ = RM.add_global ~shadowing name vtp in
     RM.ret Continue
   | CS.NormalizeTerm term ->
     RM.veil `Transparent @@

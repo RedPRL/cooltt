@@ -215,8 +215,8 @@ struct
       Format.fprintf fmt "<sg>"
     | Signature sign ->
       Format.fprintf fmt "sig[%a]" pp_sign sign
-    | Sub _ ->
-      Format.fprintf fmt "<sub>"
+    | Sub (tp, cof, clo) ->
+      Format.fprintf fmt "sub[%a, %a, %a]" pp_tp tp pp_cof cof pp_clo clo
     | TpPrf _ ->
       Format.fprintf fmt "<prf>"
     | TpCof ->
