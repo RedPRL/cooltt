@@ -153,24 +153,55 @@ and import_unit ~shadowing path modifier : command =
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
-  | CS.Def {shadowing; name; args; def = Some def; tp} ->
+  | CS.Def {abstract; shadowing; name; args; def = Some def; tp} ->
     Debug.print "Defining %a@." Ident.pp name;
+
+    (* Create the unfolding token for the type component *)
+    let* unf_tp_dim = 
+      if abstract then 
+        (* TODO: need to be able to look these up later *)
+        let* var = RM.add_global ~shadowing:false `Anon D.TpDim in 
+        RM.lift_ev @@ Sem.eval @@ S.Global var
+      else 
+        RM.ret D.Dim1
+    in 
+
+    (* Create the unfolding token for the term component *)
+    let* unf_tm_dim = 
+      if abstract then 
+        (* TODO: need to be able to look these up later *)
+        let* var = RM.add_global ~shadowing:false `Anon D.TpDim in 
+        RM.lift_ev @@ Sem.eval @@ S.Global var
+      else 
+        RM.ret D.Dim1
+    in 
+
+    (* TODO: incorporate the unfolding tokens: we want to elaborate each of these as a partial element *)
     let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let* vtp_sub = 
+
+    (* Unfolding the term needs to unfold the type *)
+    let* _ =
+      let* inequality = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_tm_dim unf_tp_dim in 
+      RM.add_global ~shadowing:false `Anon @@ D.TpPrf inequality
+    in
+
+    let* vtp_sub =
       RM.lift_cmp @@ Sem.splice_tp @@
       Splice.tp vtp @@ fun vtp ->
       Splice.con vtm @@ fun vtm -> 
-      Splice.term @@ 
-      TB.sub vtp TB.top @@ fun _ -> vtm 
-    in 
+      Splice.con unf_tm_dim @@ fun unf_tm_tm ->
+      Splice.term @@ TB.sub vtp (TB.eq unf_tm_tm TB.dim1) @@ fun _ -> vtm 
+    in
     let+ _ = RM.add_global ~shadowing name vtp_sub in
     Continue
-  | CS.Def {shadowing; name; args; def = None; tp} ->
+
+  | CS.Def {abstract = _; shadowing; name; args; def = None; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
     let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     let* _ = RM.add_global ~shadowing name vtp in
     RM.ret Continue
+
   | CS.NormalizeTerm term ->
     RM.veil `Transparent @@
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
