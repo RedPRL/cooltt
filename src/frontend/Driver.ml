@@ -160,7 +160,7 @@ and execute_decl (decl : CS.decl) : command =
     let* unf_tp_dim = 
       if abstract then 
         (* TODO: need to be able to look these up later *)
-        let* var = RM.add_global ~shadowing:false `Anon D.TpDim in 
+        let* var = RM.add_global ~shadowing:false (`Machine "unf_tp") D.TpDim in 
         RM.lift_ev @@ Sem.eval @@ S.Global var
       else 
         RM.ret D.Dim1
@@ -170,14 +170,14 @@ and execute_decl (decl : CS.decl) : command =
     let* unf_tm_dim = 
       if abstract then 
         (* TODO: need to be able to look these up later *)
-        let* var = RM.add_global ~shadowing:false `Anon D.TpDim in 
+        let* var = RM.add_global ~shadowing:false (`Machine "unf_tm") D.TpDim in 
         RM.lift_ev @@ Sem.eval @@ S.Global var
       else 
         RM.ret D.Dim1
     in 
 
-    (* TODO: incorporate the unfolding tokens: we want to elaborate each of these as a partial element *)
-    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
+    (* TODO: incorporate the unfolding tokens, i.e. look at tp.deps and def.deps *)
+    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp.body def.body in
 
     (* Unfolding the term needs to unfold the type *)
     let* _ =
@@ -197,7 +197,8 @@ and execute_decl (decl : CS.decl) : command =
 
   | CS.Axiom {shadowing; name; args; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
-    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+    (* TODO: look at tp.deps *)
+    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp.body in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     let* _ = RM.add_global ~shadowing name vtp in
     RM.ret Continue

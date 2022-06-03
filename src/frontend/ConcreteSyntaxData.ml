@@ -105,8 +105,8 @@ and eqns =
 
 type decl = decl_ node
 and decl_ =
-  | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con; tp : con}
-  | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con}
+  | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con with_deps; tp : con with_deps}
+  | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con with_deps}
   | Print of Ident.t node
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of con
@@ -119,6 +119,7 @@ and decl_ =
 
 and signature = decl list
 
+and 'a with_deps = {body : 'a; deps : Ident.t list}
 
 type repl_command = repl_command_ node
 and repl_command_ =
