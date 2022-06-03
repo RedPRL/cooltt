@@ -8,7 +8,7 @@ import hlevel
 -/
 
 /-
-  opaque def + : nat → nat → nat :=
+  abstract def + : nat → nat → nat :=
     elim [
     | zero => n => n
     | suc {_ => ih} => n => suc {ih n}
@@ -27,7 +27,7 @@ axiom + : sub {nat → nat → nat} {+∷unf=1} {+∷def _}
 #normalize +
 
 /-
-  opaque def +R : (x : nat) → path nat {+ x 0} x :=
+  abstract def +R : (x : nat) → path nat {+ x 0} x :=
     unfolding + in
     elim [
     | zero =>
@@ -61,9 +61,9 @@ def +R-unfolded (_ : [+R∷unf=1]) : (x : nat) → path nat {+ x 0} x := +R
 
 /-
 
-  opaque def two : nat := 2
+  abstract def two : nat := 2
 
-  opaque def foo : unfolding two in (p : path nat 2 two) → path {path nat 2 two} p {_ => 2} :=
+  abstract def foo : unfolding two in (p : path nat 2 two) → path {path nat 2 two} p {_ => 2} :=
     p =>
     nat∷is-set 2 2 p {_ => 2}
 -/
