@@ -44,7 +44,7 @@
 %token SIG STRUCT AS
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM FAIL
+%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -141,6 +141,8 @@ decl: t = located(plain_decl) {t}
 plain_decl:
   | shadowing = boption(BANG); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Def {abstract = false; shadowing; name = nm; args = tele; def = body; tp} }
+  | ABSTRACT; shadowing = boption(BANG); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Def {abstract = true; shadowing; name = nm; args = tele; def = body; tp} }
   | shadowing = boption(BANG); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Axiom {shadowing; name = nm; args = tele; tp} }
   | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term

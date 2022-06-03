@@ -48,6 +48,7 @@ let keywords =
     ("elim", ELIM);
     ("generalize", GENERALIZE);
     ("def", DEF);
+    ("abstract", ABSTRACT);
     ("📌", DEF);
     ("axiom", AXIOM);
     ("🛐", AXIOM);
