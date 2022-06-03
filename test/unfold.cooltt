@@ -27,7 +27,8 @@ axiom + : sub {nat → nat → nat} {+∷unf=1} {+∷def _}
 #normalize +
 
 /-
-  opaque def +R : (x : nat) → path nat {+ x 0} x unfolding + :=
+  opaque def +R : (x : nat) → path nat {+ x 0} x :=
+    unfolding + in
     elim [
     | zero =>
       _ => 0
@@ -58,6 +59,15 @@ def +R-unfolded (_ : [+R∷unf=1]) : (x : nat) → path nat {+ x 0} x := +R
 
 -- next we demonstrate unfolding in the *types* of declarations
 
+/-
+
+  opaque def two : nat := 2
+
+  opaque def foo : unfolding two in (p : path nat 2 two) → path {path nat 2 two} p {_ => 2} :=
+    p =>
+    nat∷is-set 2 2 p {_ => 2}
+-/
+
 axiom two∷unf : 𝕀
 axiom two : sub nat {two∷unf=1} {2}
 
@@ -77,3 +87,11 @@ def foo∷def (_ : [foo∷unf∷tm=1]) : foo∷tp _ :=
   p =>
   nat∷is-set 2 2 p {_ => 2}
 
+
+/-
+
+ The idea is currently that the type part and the term part of a declaration
+ can be preceeded by a single "unfolding" clause each. Whatever is unfolded in
+ the type is by necessity also unfolded in the term.
+
+-/
