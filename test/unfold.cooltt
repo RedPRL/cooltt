@@ -1,0 +1,29 @@
+import prelude
+
+/-
+  In this file, we demonstrate some examples of low-level declarations that a
+  high-level interface for conditional opacity and unfolding could be
+  elaborated to.
+-/
+
+axiom +/unf : 𝕀
+def +/def (_ : [+/unf=1]) : nat → nat → nat :=
+  elim [
+  | zero => n => n
+  | suc {_ => ih} => n => suc {ih n}
+  ]
+
+axiom + : sub {nat → nat → nat} {+/unf=1} {+/def _}
+
+axiom +R/unf : 𝕀
+axiom +R/unf/+ : [+R/unf ≤ +/unf]
+
+def +R/def (_ : [+R/unf=1]) : (x : nat) → path nat {+ x 0} x :=
+  elim [
+  | zero =>
+    _ => 0
+  | suc {y => ih} =>
+    i => suc {ih i}
+  ]
+
+axiom +/R : sub {(x : nat) → path nat {+ x 0} x} {+R/unf=1} {+R/def _}
