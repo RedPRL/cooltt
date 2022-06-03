@@ -140,9 +140,9 @@ plain_name:
 decl: t = located(plain_decl) {t}
 plain_decl:
   | shadowing = boption(BANG); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Def {abstract = false; shadowing; name = nm; args = tele; def = Some body; tp} }
+    { Def {abstract = false; shadowing; name = nm; args = tele; def = body; tp} }
   | shadowing = boption(BANG); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
-    { Def {abstract = false; shadowing; name = nm; args = tele; def = None; tp} }
+    { Axiom {shadowing; name = nm; args = tele; tp} }
   | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }
   | QUIT

@@ -153,7 +153,7 @@ and import_unit ~shadowing path modifier : command =
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
-  | CS.Def {abstract; shadowing; name; args; def = Some def; tp} ->
+  | CS.Def {abstract; shadowing; name; args; def; tp} ->
     Debug.print "Defining %a@." Ident.pp name;
 
     (* Create the unfolding token for the type component *)
@@ -195,7 +195,7 @@ and execute_decl (decl : CS.decl) : command =
     let+ _ = RM.add_global ~shadowing name vtp_sub in
     Continue
 
-  | CS.Def {abstract = _; shadowing; name; args; def = None; tp} ->
+  | CS.Axiom {shadowing; name; args; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
     let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
