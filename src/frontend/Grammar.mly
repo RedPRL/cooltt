@@ -39,7 +39,7 @@
 %token TYPE
 %token TIMES FST SND
 %token LET IN SUB
-%token SUC NAT ZERO UNFOLD GENERALIZE WITH
+%token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT AS
 %token EXT
@@ -318,8 +318,6 @@ plain_term_except_cof_case:
     { ap_or_atomic (List.map term_of_name spine) }
   | t = term; DOT; lbl = user; spine = list_left_recursive(atomic_term)
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
-  | UNFOLD; names = nonempty_list(plain_name); IN; body = term;
-    { Unfold (names, body) }
   | GENERALIZE; name = plain_name; IN; body = term;
     { Generalize (name, body) }
   | LET; name = plain_name; COLON; tp = term; COLON_EQUALS; def = term; IN; body = term

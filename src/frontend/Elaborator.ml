@@ -17,21 +17,6 @@ module Sem = Semantics
 open Monad.Notation (RM)
 module MU = Monad.Util (RM)
 
-let rec unfold idents k =
-  match idents with
-  | [] -> k
-  | ident :: idents ->
-    let* res = RM.resolve ident in
-    match res with
-    | `Global sym ->
-      let* env = RM.read in
-      let veil = Veil.unfold [sym] @@ Env.get_veil env in
-      RM.veil veil @@ unfold idents k
-    | _ ->
-      let* env = RM.read in
-      let span = Env.location env in
-      RM.throw @@ Err.RefineError (Err.UnboundVariable ident, span)
-
 (* Account for the lambda-bound signature field dependencies.
     See [NOTE: Sig Code Quantifiers] for more info. *)
 let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
@@ -207,11 +192,6 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
   | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
   | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
-  | CS.Unfold (idents, c) ->
-    (* TODO: move to a trusted rule *)
-    T.Chk.brule @@
-    fun goal ->
-    unfold idents @@ T.Chk.brun (chk_tm c) goal
 
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
@@ -396,9 +376,6 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
 
   | CS.Ann {term; tp} ->
     T.Syn.ann (chk_tm term) (chk_tp tp)
-  | CS.Unfold (idents, c) ->
-    (* TODO: move to a primitive rule *)
-    T.Syn.rule @@ unfold idents @@ T.Syn.run @@ syn_tm c
   | CS.Coe (tp, src, trg, body) ->
     R.Univ.coe (chk_tm tp) (chk_tm src) (chk_tm trg) (chk_tm body)
   | CS.HCom (tp, src, trg, cof, tm) ->

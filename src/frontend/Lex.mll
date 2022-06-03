@@ -46,7 +46,6 @@ let keywords =
     ("fst", FST);
     ("snd", SND);
     ("elim", ELIM);
-    ("unfold", UNFOLD);
     ("generalize", GENERALIZE);
     ("def", DEF);
     ("📌", DEF);

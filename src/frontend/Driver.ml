@@ -171,7 +171,7 @@ and execute_decl (decl : CS.decl) : command =
     let* _ = RM.add_global ~shadowing name vtp None in
     RM.ret Continue
   | CS.NormalizeTerm term ->
-    RM.veil (Veil.const `Transparent) @@
+    RM.veil `Transparent @@
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
     let* tm' = RM.quote_con vtp vtm in

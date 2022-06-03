@@ -38,7 +38,7 @@ type t =
   }
 
 let init =
-  { veil = Veil.const `Translucent;
+  { veil = `Translucent;
     locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
