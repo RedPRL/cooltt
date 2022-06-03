@@ -65,6 +65,8 @@ struct
   type t =
     { (* The name of the code unit.  *)
       id : id;
+      unfolder : t option;
+      requirements : t list;
       (* All the top-level bindings for this code unit. *)
       symbol_table :  Domain.tp Vector.vector }
 
@@ -74,6 +76,8 @@ struct
 
   let create id =
     { id = id;
+      unfolder = None; 
+      requirements = [];
       symbol_table = Vector.create () }
 
   let add_global ~guarded ident tp code_unit =
