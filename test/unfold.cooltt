@@ -6,6 +6,14 @@ import prelude
   elaborated to.
 -/
 
+/-
+  opaque def + : nat → nat → nat :=
+    elim [
+    | zero => n => n
+    | suc {_ => ih} => n => suc {ih n}
+    ]
+-/
+
 axiom +/unf : 𝕀
 def +/def (_ : [+/unf=1]) : nat → nat → nat :=
   elim [
@@ -14,6 +22,18 @@ def +/def (_ : [+/unf=1]) : nat → nat → nat :=
   ]
 
 axiom + : sub {nat → nat → nat} {+/unf=1} {+/def _}
+
+
+
+/-
+  opaque def +R : (x : nat) → path nat {+ x 0} x unfolding + :=
+    elim [
+    | zero =>
+      _ => 0
+    | suc {y => ih} =>
+      i => suc {ih i}
+    ]
+-/
 
 axiom +R/unf : 𝕀
 axiom +R/unf/+ : [+R/unf ≤ +/unf]
