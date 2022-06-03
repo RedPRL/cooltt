@@ -23,7 +23,7 @@ def +/def (_ : [+/unf=1]) : nat → nat → nat :=
 
 axiom + : sub {nat → nat → nat} {+/unf=1} {+/def _}
 
-
+#normalize +
 
 /-
   opaque def +R : (x : nat) → path nat {+ x 0} x unfolding + :=
@@ -47,3 +47,5 @@ def +R/def (_ : [+R/unf=1]) : (x : nat) → path nat {+ x 0} x :=
   ]
 
 axiom +/R : sub {(x : nat) → path nat {+ x 0} x} {+R/unf=1} {+R/def _}
+
+#normalize +/R
