@@ -15,6 +15,11 @@ type id = CodeUnitID.t
 module Global :
 sig
   include Symbol.S
+
+  (* TODO: add the "requirements" and the "unfolder" to the Global.t state *)
+
+  (* Indicates whether a global definition denotes a partial element that should be automatically forced by the refiner; this is used by the "abstract" declarations mechanism. *)
+  val is_guarded : t -> bool
 end
 
 module Domain : module type of Domain.Make(Global)
@@ -39,7 +44,7 @@ module CodeUnit : sig
   val create : id -> t
 
   (** Add a binding to a given code unit. *)
-  val add_global : Ident.t -> Domain.tp -> t -> (Global.t * t)
+  val add_global : guarded:bool -> Ident.t -> Domain.tp -> t -> (Global.t * t)
 
   (** Get the binding associated with a symbol. *)
   val get_global : Global.t -> t -> Domain.tp

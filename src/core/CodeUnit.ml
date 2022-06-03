@@ -17,8 +17,12 @@ struct
   type t =
     { origin : CodeUnitID.t;
       index : int;
-      name : string option }
+      name : string option;
+      guarded : bool }
   [@@deriving show]
+
+  let is_guarded s =
+    s.guarded
 
   let compare s1 s2 =
     Int.compare s1.index s2.index
@@ -36,12 +40,14 @@ struct
   let serialize sym =
     `O [("origin", J.option J.string @@ sym.origin);
         ("index", `String (Int.to_string sym.index));
+        ("guarded", `Bool sym.guarded);
         ("name", J.option J.string @@ sym.name) ]
 
   let deserialize : J.value -> t =
     function
-    | `O [("origin", j_origin); ("index", j_index); ("name", j_name)] ->
+    | `O [("origin", j_origin); ("index", j_index); ("guarded", j_guarded); ("name", j_name)] ->
       { origin = J.get_option J.get_string j_origin;
+        guarded = J.get_bool j_guarded;
         index = int_of_string @@ J.get_string j_index;
         name = J.get_option J.get_string j_name }
     | j -> J.parse_error j "Global.deserialize"
@@ -70,10 +76,10 @@ struct
     { id = id;
       symbol_table = Vector.create () }
 
-  let add_global ident tp code_unit =
+  let add_global ~guarded ident tp code_unit =
     let index = Vector.length code_unit.symbol_table in
     let _ = Vector.push code_unit.symbol_table tp in
-    let sym = { Global.origin = code_unit.id; index = index; name = Ident.to_string_opt ident } in
+    let sym = { Global.origin = code_unit.id; guarded; index; name = Ident.to_string_opt ident } in
     (sym, code_unit)
 
   let get_global (sym : Global.t) code_unit =

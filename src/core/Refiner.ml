@@ -153,7 +153,7 @@ struct
         | None -> `Anon
         | Some str -> `Machine ("?" ^ str)
       in
-      RM.add_global ~shadowing:true ident vtp
+      RM.add_global ~guarded:false ~shadowing:true ident vtp
     in
 
     let* () = RM.inc_num_holes in
@@ -1085,7 +1085,6 @@ end
 module Structural =
 struct
 
-
   let lookup_var id : T.Syn.tac =
     T.Syn.rule ~name:"Structural.lookup_var" @@
     let* res = RM.resolve id in
@@ -1093,6 +1092,19 @@ struct
     | `Local ix ->
       let+ tp = RM.get_local_tp ix in
       S.Var ix, tp
+    | `Global sym when Global.is_guarded sym ->
+      let* tp = RM.get_global sym in
+      begin 
+        match tp with 
+        | D.Pi (D.TpPrf _ as prf_tp, _, _) ->
+          let+ prf = T.Chk.run Prf.intro prf_tp in
+          S.Ap (S.Global sym, prf), tp
+        | _ -> 
+          RM.with_pp @@ fun ppenv ->
+          let* tp = RM.quote_tp tp in 
+          (* TODO: a better error message. *)
+          RM.refine_err @@ Err.ExpectedConnective (`Pi, ppenv, tp)
+      end
     | `Global sym ->
       let+ tp = RM.get_global sym in
       S.Global sym, tp
@@ -1151,7 +1163,7 @@ struct
         Splice.term @@ 
         TB.sub vtp TB.top @@ fun _ -> vtm 
       in
-      let* sym = RM.add_global ~shadowing:true `Anon tp_sub in
+      let* sym = RM.add_global ~guarded:false ~shadowing:true `Anon tp_sub in
       RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
     in
     let+ tcut = RM.quote_cut cut in 

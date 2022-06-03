@@ -23,8 +23,8 @@ type command = continuation RM.m
 
 (* Refinement Helpers *)
 
-let elaborate_typed_term _name (args : CS.cell list) tp tm =
-  let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+let elaborate_typed_term _name (args : CS.cell list) (tp : CS.con) (tm : CS.con) =
+  let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in 
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
   let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
@@ -153,54 +153,44 @@ and import_unit ~shadowing path modifier : command =
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
-  | CS.Def {abstract; shadowing; name; args; def; tp} ->
+  | CS.Def {abstract; shadowing; name; args; def; tp; requiring = _; unfolding = _} ->
     Debug.print "Defining %a@." Ident.pp name;
 
-    (* Create the unfolding token for the type component *)
-    let* unf_tp_dim = 
-      if abstract then 
-        (* TODO: need to be able to look these up later *)
-        let* var = RM.add_global ~shadowing:false (`Machine "unf_tp") D.TpDim in 
-        RM.lift_ev @@ Sem.eval @@ S.Global var
-      else 
-        RM.ret D.Dim1
-    in 
-
     (* Create the unfolding token for the term component *)
-    let* unf_tm_dim = 
+    let* unf_dim = 
       if abstract then 
         (* TODO: need to be able to look these up later *)
-        let* var = RM.add_global ~shadowing:false (`Machine "unf_tm") D.TpDim in 
+        let* var = RM.add_global ~guarded:false ~shadowing:false (`Machine "unf_tm") D.TpDim in 
         RM.lift_ev @@ Sem.eval @@ S.Global var
       else 
         RM.ret D.Dim1
     in 
 
-    (* TODO: incorporate the unfolding tokens, i.e. look at tp.deps and def.deps *)
-    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp.body def.body in
-
-    (* Unfolding the term needs to unfold the type *)
-    let* _ =
-      let* inequality = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_tm_dim unf_tp_dim in 
-      RM.add_global ~shadowing:false `Anon @@ D.TpPrf inequality
-    in
+    (* TODO: incorporate the unfolding tokens, i.e. look at requiring and unfolding *)
+    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
 
     let* vtp_sub =
       RM.lift_cmp @@ Sem.splice_tp @@
       Splice.tp vtp @@ fun vtp ->
       Splice.con vtm @@ fun vtm -> 
-      Splice.con unf_tm_dim @@ fun unf_tm_tm ->
-      Splice.term @@ TB.sub vtp (TB.eq unf_tm_tm TB.dim1) @@ fun _ -> vtm 
+      Splice.con unf_dim @@ fun unf_dim ->
+      Splice.term @@ TB.sub vtp (TB.eq unf_dim TB.dim1) @@ fun _ -> vtm 
     in
-    let+ _ = RM.add_global ~shadowing name vtp_sub in
+
+    (* TODO: Make it guarded *)
+    let+ _ = RM.add_global ~guarded:false ~shadowing name vtp_sub in
     Continue
 
-  | CS.Axiom {shadowing; name; args; tp} ->
+  | CS.Axiom {shadowing; name; args; tp; requiring} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
     (* TODO: look at tp.deps *)
-    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp.body in
+    let* tp = 
+      let runner = match requiring with [] -> Tactic.Tp.run_virtual | _ -> Tactic.Tp.run in 
+      runner @@ Elaborator.chk_tp_in_tele args tp 
+    in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    let* _ = RM.add_global ~shadowing name vtp in
+    (* TODO: make it guarded? *)
+    let* _ = RM.add_global ~guarded:false ~shadowing name vtp in
     RM.ret Continue
 
   | CS.NormalizeTerm term ->
