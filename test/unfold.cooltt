@@ -46,6 +46,10 @@ def +R/def (_ : [+R/unf=1]) : (x : nat) → path nat {+ x 0} x :=
     i => suc {ih i}
   ]
 
-axiom +/R : sub {(x : nat) → path nat {+ x 0} x} {+R/unf=1} {+R/def _}
+axiom +R : sub {(x : nat) → path nat {+ x 0} x} {+R/unf=1} {+R/def _}
 
-#normalize +/R
+#normalize +
+
+
+def +R-unfolded (_ : [+R/unf=1]) : (x : nat) → path nat {+ x 0} x := +R
+#normalize +R-unfolded
