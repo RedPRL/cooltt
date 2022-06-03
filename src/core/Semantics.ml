@@ -764,15 +764,13 @@ and plug_into ~style sp con =
   | `Done -> ret @@ `Reduce res
   | `Reduce res -> ret @@ `Reduce res
 
-and should_unfold_symbol style sym =
+and should_unfold_symbol style _sym = (* TODO: get rid of argument *)
   match style with
   | `UnfoldNone ->
     false
   | `UnfoldAll -> true
-  | `Veil veil ->
-    match Veil.policy sym veil with
-    | `Transparent -> true
-    | `Translucent -> false
+  | `Veil `Transparent -> true 
+  | `Veil `Translucent -> false
 
 and whnf_hd ~style hd =
   let open CM in

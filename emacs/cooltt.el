@@ -132,7 +132,7 @@
   "Command keywords.")
 
 (defconst cooltt-expression-keywords
-  '("zero" "suc" "nat" "in" "fst" "snd" "elim" "unfold" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill" "sig" "struct" "equation" "begin" "end")
+  '("zero" "suc" "nat" "in" "fst" "snd" "elim" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill" "sig" "struct" "equation" "begin" "end")
   "Expression keywords.")
 
 
