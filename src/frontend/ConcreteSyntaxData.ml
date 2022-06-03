@@ -72,8 +72,6 @@ and con_ =
   | V of con * con * con * con
   | VProj of con
   | Cap of con
-  | Locked of con
-  | Unlock of con * con
   | ModAny
   | ModOnly of string list
   | ModRename of string list * string list
