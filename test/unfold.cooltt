@@ -1,4 +1,5 @@
 import prelude
+import hlevel
 
 /-
   In this file, we demonstrate some examples of low-level declarations that a
@@ -14,14 +15,14 @@ import prelude
     ]
 -/
 
-axiom +/unf : 𝕀
-def +/def (_ : [+/unf=1]) : nat → nat → nat :=
+axiom +∷unf : 𝕀
+def +∷def (_ : [+∷unf=1]) : nat → nat → nat :=
   elim [
   | zero => n => n
   | suc {_ => ih} => n => suc {ih n}
   ]
 
-axiom + : sub {nat → nat → nat} {+/unf=1} {+/def _}
+axiom + : sub {nat → nat → nat} {+∷unf=1} {+∷def _}
 
 #normalize +
 
@@ -35,10 +36,10 @@ axiom + : sub {nat → nat → nat} {+/unf=1} {+/def _}
     ]
 -/
 
-axiom +R/unf : 𝕀
-axiom +R/unf/+ : [+R/unf ≤ +/unf]
+axiom +R∷unf : 𝕀
+axiom +R∷unf∷+ : [+R∷unf ≤ +∷unf]
 
-def +R/def (_ : [+R/unf=1]) : (x : nat) → path nat {+ x 0} x :=
+def +R∷def (_ : [+R∷unf=1]) : (x : nat) → path nat {+ x 0} x :=
   elim [
   | zero =>
     _ => 0
@@ -46,10 +47,33 @@ def +R/def (_ : [+R/unf=1]) : (x : nat) → path nat {+ x 0} x :=
     i => suc {ih i}
   ]
 
-axiom +R : sub {(x : nat) → path nat {+ x 0} x} {+R/unf=1} {+R/def _}
+axiom +R : sub {(x : nat) → path nat {+ x 0} x} {+R∷unf=1} {+R∷def _}
 
 #normalize +
 
 
-def +R-unfolded (_ : [+R/unf=1]) : (x : nat) → path nat {+ x 0} x := +R
+def +R-unfolded (_ : [+R∷unf=1]) : (x : nat) → path nat {+ x 0} x := +R
 #normalize +R-unfolded
+
+
+-- next we demonstrate unfolding in the *types* of declarations
+
+axiom two∷unf : 𝕀
+axiom two : sub nat {two∷unf=1} {2}
+
+axiom foo∷unf∷tm : 𝕀
+
+axiom foo∷unf∷tp : 𝕀
+axiom foo∷unf∷tp∷two : [foo∷unf∷tp ≤ two∷unf]
+axiom foo∷unf∷tm∷tp : [foo∷unf∷tm ≤ foo∷unf∷tp]
+
+def foo∷tp (_ : [foo∷unf∷tp=1]) : type :=
+  (p : path nat 2 two)
+  → path {path nat 2 two} p {_ => 2}
+
+axiom nat∷is-set : is-set nat
+
+def foo∷def (_ : [foo∷unf∷tm=1]) : foo∷tp _ :=
+  p =>
+  nat∷is-set 2 2 p {_ => 2}
+
