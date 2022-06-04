@@ -18,9 +18,6 @@ sig
 
   (** The global variable representing the 'unfolding dimension' of a global variable. *)
   val unfolder : t -> t option
-
-  (* Indicates whether a global definition denotes a partial element that should be automatically forced by the refiner. *)
-  val is_guarded : t -> bool
 end
 
 module Domain : module type of Domain.Make(Global)
@@ -45,7 +42,7 @@ module CodeUnit : sig
   val create : id -> t
 
   (** Add a binding to a given code unit. *)
-  val add_global : unfolder:Global.t option -> guarded:bool -> Ident.t -> Domain.tp -> t -> (Global.t * t)
+  val add_global : unfolder:Global.t option -> Ident.t -> Domain.tp -> t -> (Global.t * t)
 
   (** Get the binding associated with a symbol. *)
   val get_global : Global.t -> t -> Domain.tp

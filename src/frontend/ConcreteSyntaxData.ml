@@ -106,8 +106,8 @@ and eqns =
 
 type decl = decl_ node
 and decl_ =
-  | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con; tp : con; requiring : Ident.t list; unfolding : Ident.t list}
-  | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con; requiring : Ident.t list}
+  | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con; tp : con; unfolding : Ident.t list}
+  | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con}
   | Print of Ident.t node
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of con

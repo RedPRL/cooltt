@@ -73,14 +73,13 @@ def +A : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
   ]
 
 
-/- next we demonstrate unfolding in the *types* of declarations,
-   which we call "requiring"
+/- next we demonstrate unfolding in the *types* of declarations
 -/
 
 axiom nat∷is-set : is-set nat
 
-require +
-def foo (p : path nat {+ 0 0} 0) : path {path nat {+ 0 0} 0} p {_ => 0} :=
+def foo (p : path nat {+ 0 0} 0) : unfold + in path {path nat {+ 0 0} 0} p {_ => 0} :=
+  unfold + in
   nat∷is-set 0 0 p {_ => 0}
 
 -- A simple example for Daniel G.

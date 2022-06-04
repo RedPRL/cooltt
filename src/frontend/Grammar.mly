@@ -46,7 +46,7 @@
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL 
 
-%token REQUIRE UNFOLD
+%token UNFOLD
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -139,10 +139,6 @@ plain_name:
   | UNDERSCORE
     { name_of_underscore }
 
-require_spec:
-  | REQUIRE list = separated_list(COMMA, plain_name)
-    { list }
-
 unfold_spec:
   | UNFOLD list = separated_list(COMMA, plain_name)
     { list }
@@ -150,12 +146,12 @@ unfold_spec:
 decl: t = located(plain_decl) {t}
 plain_decl:
   (* TODO: I am getting stupid shift/reduce conflicts when I try to incorporate the boption(BANG) for shadowing *)
-  | require_spec = option(require_spec); unfold_spec = option(unfold_spec); abstract = boption(ABSTRACT); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Def {abstract; shadowing = false; name = nm; args = tele; def = body; tp; requiring = Option.value require_spec ~default:[]; unfolding = Option.value unfold_spec ~default:[]} }
+  | unfold_spec = option(unfold_spec); abstract = boption(ABSTRACT); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Def {abstract; shadowing = false; name = nm; args = tele; def = body; tp; unfolding = Option.value unfold_spec ~default:[]} }
 
 
-  | require_spec = option(require_spec); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
-    { Axiom {shadowing = false; name = nm; args = tele; tp; requiring = Option.value require_spec ~default:[]} }
+  | AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
+    { Axiom {shadowing = false; name = nm; args = tele; tp} }
 
   | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }

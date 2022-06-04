@@ -154,7 +154,7 @@ struct
         | None -> Ident.anon
         | Some str -> Ident.machine @@ "?" ^ str
       in
-      RM.add_global ~unfolder:None ~guarded:false ~shadowing:true ident vtp
+      RM.add_global ~unfolder:None ~shadowing:true ident vtp
     in
 
     let* () = RM.inc_num_holes in
@@ -1093,21 +1093,6 @@ struct
     | `Local ix ->
       let+ tp = RM.get_local_tp ix in
       S.Var ix, tp
-    | `Global sym when Global.is_guarded sym ->
-      let* tp = RM.get_global sym in
-      begin
-        match tp with
-        | D.Pi (D.TpPrf _ as prf_tp, _, tp_clo) ->
-          let* prf = T.Chk.run Prf.intro prf_tp in
-          let* vprf = RM.eval prf in
-          let* tp = RM.lift_cmp @@ Sem.inst_tp_clo tp_clo vprf in
-          RM.ret (S.Ap (S.Global sym, prf), tp)
-        | _ ->
-          RM.with_pp @@ fun ppenv ->
-          let* tp = RM.quote_tp tp in
-          (* TODO: a better error message. *)
-          RM.refine_err @@ Err.ExpectedConnective (`Pi, ppenv, tp)
-      end
     | `Global sym ->
       let+ tp = RM.get_global sym in
       S.Global sym, tp
@@ -1171,7 +1156,7 @@ struct
         Splice.cof unfolding_cof @@ fun cof ->
         Splice.term @@ TB.sub vtp cof @@ fun prf -> TB.ap vtm [prf]
       in
-      let* sym = RM.add_global ~unfolder:None ~guarded:false ~shadowing:true (Ident.blocked unfoldings) tp_sub in
+      let* sym = RM.add_global ~unfolder:None ~shadowing:true (Ident.blocked unfoldings) tp_sub in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unfolding_cof, D.const_tm_clo vdef)) in
       RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
     in
@@ -1220,7 +1205,7 @@ struct
         Splice.term @@
         TB.sub vtp TB.top @@ fun _ -> vtm
       in
-      let* sym = RM.add_global ~unfolder:None ~guarded:false ~shadowing:true Ident.anon tp_sub in
+      let* sym = RM.add_global ~unfolder:None ~shadowing:true Ident.anon tp_sub in
       let top = Kado.Syntax.Free.top in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
       RM.ret @@ GlobalUtil.multi_ap cells (hd, [])

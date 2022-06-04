@@ -1,23 +1,19 @@
 --------------------[abstract.cooltt]--------------------
 hlevel.cooltt:32.7-32.12 [Info]:
-  hProp : (_x : [ ⊤ ]) → sub type ⊤
-                         {(A : type) × (c : A) → (c' : A) → ext {i => A} {
-                                                            i =>
-                                                            i = 0 ∨ i = 1} {
-                                                            i _x₂ =>
-                                                            [ i = 0 => c
-                                                            | i = 1 => c'
-                                                            ]}}
+  hProp : sub type ⊤
+          {(A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
+                                             i _x₁ =>
+                                             [ i = 0 => c | i = 1 => c' ]}}
 
 hlevel.cooltt:33.11-33.16 [Info]:
-  Computed normal form of hProp * as
+  Computed normal form of hProp as
    (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
                                      i _x => [ i = 0 => c | i = 1 => c' ]}
 
 --------------------[base-types.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.21 [Info]:
-  Computed normal form of loopn * 45 as
+  Computed normal form of loopn 45 as
    i =>
    hcom circle 0 1 {i = 0 ∨ i = 1}
      {_x _x₁ =>
@@ -456,25 +452,25 @@ circle.cooltt:20.11-20.21 [Info]:
 
 --------------------[com.cooltt]--------------------
 com.cooltt:21.11-21.20 [Info]:
-  Computed normal form of mycom/fun * as
+  Computed normal form of mycom/fun as
    A B com/A com/B r φ p i x =>
    com/B r φ {j _x => p j * {com/A i ⊥ {_x₁ _x₂ => x} j}} i
 
 com.cooltt:34.11-34.17 [Info]:
-  Computed normal form of coe/pi * as
+  Computed normal form of coe/pi as
    A B r r' f _x =>
    coe {_x₁ => B _x₁ {coe {_x₂ => A _x₂} r' _x₁ _x}} r r'
      {f {coe {_x₁ => A _x₁} r' r _x}}
 
 com.cooltt:44.11-44.20 [Info]:
-  Computed normal form of coe/sigma * as
+  Computed normal form of coe/sigma as
    A B r r' p =>
    [ coe {_x => A _x} r r' {fst p}
    , coe {_x => B _x {coe {_x₁ => A _x₁} r _x {fst p}}} r r' {snd p}
    ]
 
 com.cooltt:64.11-64.20 [Info]:
-  Computed normal form of coe/pathd * as
+  Computed normal form of coe/pathd as
    A r r' a b m _x =>
    hcom {A r' _x} r r' {_x = 0 ∨ _x = 1}
      {_x₁ _x₂ =>
@@ -484,79 +480,65 @@ com.cooltt:64.11-64.20 [Info]:
         ]}
 
 com.cooltt:80.11-80.19 [Info]:
-  Computed normal form of hcom/fun * as
+  Computed normal form of hcom/fun as
    A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ _x₂ _x}
 
 com.cooltt:89.11-89.20 [Info]:
-  Computed normal form of com/intro * as
+  Computed normal form of com/intro as
    A r r' φ p =>
    hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
 
 --------------------[cool-total-space.cooltt]--------------------
 cool-total-space.cooltt:6.7-6.20 [Info]:
-  fully-patched : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → (fib : fam {
-                                 struct (x : 0) }) → sig (x : ext nat ⊤ {
-                                                              _x₁ => 
-                                                              0})
-                                                     (fib : fam {struct (x : 0)
-                                                                 })
-                                                     } ⊤
-                                 {fam fib => struct (x : 0) (fib : fib) }
+  fully-patched : sub {(fam : (_x : sig (x : nat) ) → type) → (fib : fam {
+                  struct (x : 0) }) → sig (x : ext nat ⊤ {_x => 0}) 
+                                      (fib : fam {struct (x : 0) }) } ⊤
+                  {fam fib => struct (x : 0) (fib : fib) }
 
 cool-total-space.cooltt:10.7-10.24 [Info]:
-  not-fully-patched : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → (fib : fam {
-                                     struct (x : 0) }) → sig (x : nat) 
-                                                         (fib : fam {
-                                                         struct (x : x) }) } ⊤
-                                     {fam fib => struct (x : 0) (fib : fib) }
+  not-fully-patched : sub {(fam : (_x : sig (x : nat) ) → type) → (fib : fam {
+                      struct (x : 0) }) → sig (x : nat) 
+                                          (fib : fam {struct (x : x) }) } ⊤
+                      {fam fib => struct (x : 0) (fib : fib) }
 
 cool-total-space.cooltt:14.7-14.20 [Info]:
-  no-insert-fib : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → (total : 
-                                 sig (x : nat) (fib : fam {struct (x : x) }) ) → nat} ⊤
-                                 {fam total => total @ x}
+  no-insert-fib : sub {(fam : (_x : sig (x : nat) ) → type) → (total : 
+                  sig (x : nat) (fib : fam {struct (x : x) }) ) → nat} ⊤
+                  {fam total => total @ x}
 
 cool-total-space.cooltt:18.7-18.23 [Info]:
-  insert-fib-plain : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → (total : 
-                                    sig (x : nat) 
-                                    (fib : fam {struct (x : x) }) ) → fam {
-                                    struct (x : total @ x) }} ⊤
-                                    {fam total => total @ fib}
+  insert-fib-plain : sub {(fam : (_x : sig (x : nat) ) → type) → (total : 
+                     sig (x : nat) (fib : fam {struct (x : x) }) ) → fam {
+                     struct (x : total @ x) }} ⊤ {fam total => total @ fib}
 
 cool-total-space.cooltt:23.7-23.20 [Info]:
-  insert-fib-pi : (_x : [ ⊤ ]) → sub {sig (fam : (_x₁ : sig (x : nat) ) → type)
-                                      (test : (_x₁ : sig (x : nat) 
-                                                     (fib : fam {struct (x : x)
-                                                                 })
-                                                     ) → nat)
-                                      } ⊤
-                                 {struct (fam : {_x₂ => (_x₃ : nat) → nat}) 
-                                  (test : {total => {total @ fib} 0}) }
+  insert-fib-pi : sub {sig (fam : (_x : sig (x : nat) ) → type) 
+                       (test : (_x : sig (x : nat) 
+                                     (fib : fam {struct (x : x) }) ) → nat)
+                       } ⊤
+                  {struct (fam : {_x₁ => (_x₂ : nat) → nat}) 
+                   (test : {total => {total @ fib} 0}) }
 
 cool-total-space.cooltt:28.7-28.20 [Info]:
-  insert-fib-sg : (_x : [ ⊤ ]) → sub {sig (fam : (_x₁ : sig (x : nat) ) → type)
-                                      (test : (_x₁ : sig (x : nat) 
-                                                     (fib : fam {struct (x : x)
-                                                                 })
-                                                     ) → nat)
-                                      } ⊤
-                                 {struct (fam : {_x₂ => (_x₃ : nat) × nat}) 
-                                  (test : {total => fst {total @ fib}}) }
+  insert-fib-sg : sub {sig (fam : (_x : sig (x : nat) ) → type) 
+                       (test : (_x : sig (x : nat) 
+                                     (fib : fam {struct (x : x) }) ) → nat)
+                       } ⊤
+                  {struct (fam : {_x₁ => (_x₂ : nat) × nat}) 
+                   (test : {total => fst {total @ fib}}) }
 
 cool-total-space.cooltt:33.7-33.27 [Info]:
-  no-insert-fib-record : (_x : [ ⊤ ]) → sub {sig (fam : (_x₁ : sig (x : nat) ) → type)
-                                             (test : (_x₁ : sig (x : nat) 
-                                                            (fib : fam {
-                                                            struct (x : x) }) ) → nat)
-                                             } ⊤
-                                        {struct (fam : {_x₂ => sig (y : nat) })
-                                         (test : {total => {total @ fib} @ y})
-                                         }
+  no-insert-fib-record : sub {sig (fam : (_x : sig (x : nat) ) → type) 
+                              (test : (_x : sig (x : nat) 
+                                            (fib : fam {struct (x : x) }) ) → nat)
+                              } ⊤
+                         {struct (fam : {_x₁ => sig (y : nat) }) 
+                          (test : {total => {total @ fib} @ y}) }
 
 cool-total-space.cooltt:35.64-35.65 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
-    fam : (_x₂ : sig (x : nat) ) → type
+    fam : (_x₁ : sig (x : nat) ) → type
     |- ? : fam {struct (x : 0) }
 
 
@@ -564,18 +546,17 @@ cool-total-space.cooltt:35.64-35.65 [Info]:
 
 --------------------[elab.cooltt]--------------------
 elab.cooltt:7.11-7.24 [Info]:
-  Computed normal form of boundary-test * as
+  Computed normal form of boundary-test as
    i _x => [ i = 1 => 5 | i = 0 => 19 ]
 
 elab.cooltt:18.11-18.23 [Info]:
-  Computed normal form of pi-code-test * as (x : nat) → nat
+  Computed normal form of pi-code-test as (x : nat) → nat
 
 elab.cooltt:28.11-28.21 [Info]:
-  Computed normal form of simple-let * as A a => a
+  Computed normal form of simple-let as A a => a
 
 elab.cooltt:33.6-33.13 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
     x : nat
     y : nat
     z : nat
@@ -585,18 +566,16 @@ elab.cooltt:33.6-33.13 [Info]:
 elab.cooltt:35.9-35.16 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     y : nat
     z : nat
-    |- ?tmhole : (z₁ : nat) → ?tyhole _x y z z₁
+    |- ?tmhole : (z₁ : nat) → ?tyhole y z z₁
 
 
 elab.cooltt:42.6-42.12 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     x : nat
-    |- ?hole1 : ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₂ =>
+    |- ?hole1 : ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ =>
                                                      [ i = 0 => x
                                                      | i = 1 => x
                                                      ]}
@@ -606,36 +585,48 @@ elab.cooltt:42.6-42.12 [Info]:
 
 --------------------[equation.cooltt]--------------------
 equation.cooltt:10.7-10.23 [Info]:
-  equational/trans : (_x : [ ⊤ ]) → sub {(a : type) → (x : a) → (y : a) → (z : a) → (p : 
-                                    ext {i => a} {i => i = 0 ∨ i = 1} {
-                                    i _x₁ => [ i = 0 => x | i = 1 => y ]}) → (q : 
-                                    ext {i => a} {i => i = 0 ∨ i = 1} {
-                                    i _x₁ => [ i = 0 => y | i = 1 => z ]}) → 
-                                    ext {i => a} {i => i = 0 ∨ i = 1} {
-                                    i _x₁ => [ i = 0 => x | i = 1 => z ]}} ⊤
-                                    {a x y z p q _x₂ =>
-                                     hcom a 0 1 {_x₂ = 0 ∨ _x₂ = 1}
-                                       {_x₃ _x₄ =>
-                                        [ _x₃ = 0 ∨ _x₂ = 0 => p _x₂
-                                        | _x₂ = 1 =>
-                                          hcom a 0 1 {_x₃ = 0 ∨ _x₃ = 1}
-                                            {_x₆ _x₇ =>
-                                             [ _x₆ = 0 ∨ _x₃ = 0 => q _x₃
-                                             | _x₃ = 1 => z
-                                             ]}
-                                        ]}}
+  equational/trans : sub {(a : type) → (x : a) → (y : a) → (z : a) → (p : 
+                     ext {i => a} {i => i = 0 ∨ i = 1} {i _x =>
+                                                        [ i = 0 => x
+                                                        | i = 1 => y
+                                                        ]}) → (q : ext {
+                                                                   i => 
+                                                                   a} {
+                                                                   i =>
+                                                                   i = 0 ∨ i = 1} {
+                                                                   i _x =>
+                                                                   [ 
+                                                                   i = 0 =>
+                                                                   y
+                                                                   | 
+                                                                   i = 1 =>
+                                                                   z
+                                                                   ]}) → 
+                     ext {i => a} {i => i = 0 ∨ i = 1} {i _x =>
+                                                        [ i = 0 => x
+                                                        | i = 1 => z
+                                                        ]}} ⊤
+                     {a x y z p q _x₁ =>
+                      hcom a 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+                        {_x₂ _x₃ =>
+                         [ _x₂ = 0 ∨ _x₁ = 0 => p _x₁
+                         | _x₁ = 1 =>
+                           hcom a 0 1 {_x₂ = 0 ∨ _x₂ = 1}
+                             {_x₅ _x₆ =>
+                              [ _x₅ = 0 ∨ _x₂ = 0 => q _x₂ | _x₂ = 1 => z ]}
+                         ]}}
 
 equation.cooltt:18.7-18.26 [Info]:
-  equational/refl/nat : (_x : [ ⊤ ]) → sub {ext {i => nat} {i =>
-                                                            i = 0 ∨ i = 1} {
-                                            i _x₁ =>
-                                            [ i = 0 => 4 | i = 1 => 4 ]}} ⊤
-                                       {_x₂ =>
-                                        hcom nat 0 1 {_x₂ = 0 ∨ _x₂ = 1}
-                                          {_x₃ _x₄ =>
-                                           [ _x₃ = 0 ∨ _x₂ = 0 => 4
-                                           | _x₂ = 1 => 4
-                                           ]}}
+  equational/refl/nat : sub {ext {i => nat} {i => i = 0 ∨ i = 1} {i _x =>
+                                                                  [ i = 0 =>
+                                                                    4
+                                                                  | i = 1 =>
+                                                                    4
+                                                                  ]}} ⊤
+                        {_x₁ =>
+                         hcom nat 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+                           {_x₂ _x₃ =>
+                            [ _x₂ = 0 ∨ _x₁ = 0 => 4 | _x₁ = 1 => 4 ]}}
 
 --------------------[evan.cooltt]--------------------
 --------------------[export.cooltt]--------------------
@@ -662,52 +653,45 @@ Emitted namespace under ∷
 hcom-type.cooltt:17.8-17.13 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     i : 𝕀
-    _x₂ : [ i = 0 ∨ i = 1 ]
+    _x₁ : [ i = 0 ∨ i = 1 ]
     |- ?asdf : nat
 
 
 hcom-type.cooltt:17.16-17.17 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     i : 𝕀
-    |- ? : (_x₂ : [ i = 0 ]) → nat
+    |- ? : (_x₁ : [ i = 0 ]) → nat
     
     Boundary:
     i = 0 ∨ i = 1
-    |- _x₂ => ?asdf _x _x₁ 0 *
+    |- _x₁ => ?asdf _x 0 *
 
 
 hcom-type.cooltt:17.18-17.19 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     i : 𝕀
     |- ? : nat
     
     Boundary:
     i = 0 ∨ i = 0 ∨ i = 1
-    |- i = 0 => ?asdf _x _x₁ 0 *
-       i = 1 => ?asdf _x _x₁ 1 *
+    |- i = 0 => ?asdf _x 0 *
+       i = 1 => ?asdf _x 1 *
 
 
 [Warn]:  There are 3 unsolved holes
 
 --------------------[hlevel.cooltt]--------------------
 hlevel.cooltt:32.7-32.12 [Info]:
-  hProp : (_x : [ ⊤ ]) → sub type ⊤
-                         {(A : type) × (c : A) → (c' : A) → ext {i => A} {
-                                                            i =>
-                                                            i = 0 ∨ i = 1} {
-                                                            i _x₂ =>
-                                                            [ i = 0 => c
-                                                            | i = 1 => c'
-                                                            ]}}
+  hProp : sub type ⊤
+          {(A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
+                                             i _x₁ =>
+                                             [ i = 0 => c | i = 1 => c' ]}}
 
 hlevel.cooltt:33.11-33.16 [Info]:
-  Computed normal form of hProp * as
+  Computed normal form of hProp as
    (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
                                      i _x => [ i = 0 => c | i = 1 => c' ]}
 
@@ -715,9 +699,8 @@ hlevel.cooltt:33.11-33.16 [Info]:
 holes.cooltt:5.7-5.13 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     A : type
-    p : (_x₂ : 𝕀) → A
+    p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
     |- ? : A
@@ -731,35 +714,31 @@ holes.cooltt:5.7-5.13 [Info]:
 holes.cooltt:8.25-8.26 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     A : type
-    p : (_x₂ : 𝕀) → A
+    p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (_x₂ : 𝕀) → A
+    |- ? : (_x₁ : 𝕀) → A
 
 
 holes.cooltt:8.27-8.28 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     A : type
-    p : (_x₂ : 𝕀) → A
+    p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 _x _x₁ A p q i 1}
+    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 _x A p q i 1}
 
 
 holes.cooltt:8.7-8.35 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     A : type
-    p : (_x₂ : 𝕀) → A
+    p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler * A {#2 _x _x₁ A p q i} {#3 _x _x₁ A p q i} 1 i !} : 
-    A
+    |- {! trans/filler A {#2 _x A p q i} {#3 _x A p q i} 1 i !} : A
     
     Boundary (unsatisfied):
     i = 0 ∨ i = 1
@@ -770,12 +749,11 @@ holes.cooltt:8.7-8.35 [Info]:
 holes.cooltt:11.7-11.35 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     A : type
-    p : (_x₂ : 𝕀) → A
+    p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler * A {_x₂ => p _x₂} {_x₂ => q _x₂} 0 i !} : A
+    |- {! trans/filler A {_x₁ => p _x₁} {_x₁ => q _x₁} 0 i !} : A
     
     Boundary (unsatisfied):
     i = 0 ∨ i = 1
@@ -786,12 +764,11 @@ holes.cooltt:11.7-11.35 [Info]:
 holes.cooltt:14.7-14.35 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     A : type
-    p : (_x₂ : 𝕀) → A
+    p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler * A {_x₂ => p _x₂} {_x₂ => q _x₂} 1 i !} : A
+    |- {! trans/filler A {_x₁ => p _x₁} {_x₁ => q _x₁} 1 i !} : A
     
     Boundary (satisfied):
     i = 0 ∨ i = 1
@@ -839,7 +816,7 @@ Emitted namespace under ∷
       ; unit/eta => unit/eta; ⋆ => ⋆ }
 
 import.cooltt:26.7-26.14 [Info]:
-  cool-tt : (_x : [ ⊤ ]) → sub {ext nat ⊤ {_x₁ => 0}} ⊤ 0
+  cool-tt : sub {ext nat ⊤ {_x => 0}} ⊤ 0
 
 Emitted namespace under p2
   ? = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
@@ -849,123 +826,117 @@ Emitted namespace under p2
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
-  bar : (_x : [ ⊤ ]) → sub {ext nat ⊤ {_x₁ => 0}} ⊤ 0
+  bar : sub {ext nat ⊤ {_x => 0}} ⊤ 0
 
 --------------------[isos.cooltt]--------------------
 --------------------[monoid.cooltt]--------------------
 nat.cooltt:10.11-10.16 [Info]:
-  Computed normal form of + * 2 3 as + * 2 3
+  Computed normal form of + 2 3 as + 2 3
 
 monoid.cooltt:19.7-19.17 [Info]:
-  monoid/nat : (_x : [ ⊤ ]) → sub {sig (C : ext type ⊤ {_x₁ => nat}) 
-                                   (op : (_x₁ : nat) → (_x₂ : nat) → nat) 
-                                   (z : nat) 
-                                   (idL : (x : nat) → ext {i => nat} {
-                                                      i => i = 0 ∨ i = 1} {
-                                                      i _x₁ =>
-                                                      [ i = 0 => op z x
-                                                      | i = 1 => x
-                                                      ]})
-                                   (idR : (x : nat) → ext {i => nat} {
-                                                      i => i = 0 ∨ i = 1} {
-                                                      i _x₁ =>
-                                                      [ i = 0 => op x z
-                                                      | i = 1 => x
-                                                      ]})
-                                   (assoc : (a : nat) → (b : nat) → (c : nat) → 
-                                   ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                   i _x₁ =>
-                                   [ i = 0 => op {op a b} c
-                                   | i = 1 => op a {op b c}
-                                   ]}) } ⊤
-                              {struct (C : nat) 
-                               (op : {_x₂ _x₃ => + * _x₂ _x₃}) (z : 0) 
-                               (idL : {_x₂ _x₃ => +-left-unit * _x₂ _x₃}) 
-                               (idR : {_x₂ _x₃ => +-right-unit * _x₂ _x₃}) 
-                               (assoc : {_x₂ _x₃ _x₄ _x₅ =>
-                                         +-assoc * _x₂ _x₃ _x₄ _x₅})
-                               }
+  monoid/nat : sub {sig (C : ext type ⊤ {_x => nat}) 
+                    (op : (_x : nat) → (_x₁ : nat) → nat) (z : nat) 
+                    (idL : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
+                                       i _x =>
+                                       [ i = 0 => op z x | i = 1 => x ]})
+                    (idR : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
+                                       i _x =>
+                                       [ i = 0 => op x z | i = 1 => x ]})
+                    (assoc : (a : nat) → (b : nat) → (c : nat) → ext {
+                                                                 i => 
+                                                                 nat} {
+                                                                 i =>
+                                                                 i = 0 ∨ i = 1} {
+                                                                 i _x =>
+                                                                 [ i = 0 =>
+                                                                   op {op a b} c
+                                                                 | i = 1 =>
+                                                                   op a {op b c}
+                                                                 ]})
+                    } ⊤
+               {struct (C : nat) (op : {_x₁ _x₂ => + _x₁ _x₂}) (z : 0) 
+                (idL : {_x₁ _x₂ => +-left-unit _x₁ _x₂}) 
+                (idR : {_x₁ _x₂ => +-right-unit _x₁ _x₂}) 
+                (assoc : {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}) }
 
 monoid.cooltt:27.7-27.19 [Info]:
-  monoid/nat/+ : (_x : [ ⊤ ]) → sub {sig (C : ext type ⊤ {_x₁ => nat}) 
-                                     (op : ext {(_x₁ : nat) → (_x₂ : nat) → nat} ⊤ {
-                                           _x₁ _x₂ _x₃ => + * _x₂ _x₃})
-                                     (z : nat) 
-                                     (idL : (x : nat) → ext {i => nat} {
-                                                        i => i = 0 ∨ i = 1} {
-                                                        i _x₁ =>
-                                                        [ i = 0 => + * z x
-                                                        | i = 1 => x
-                                                        ]})
-                                     (idR : (x : nat) → ext {i => nat} {
-                                                        i => i = 0 ∨ i = 1} {
-                                                        i _x₁ =>
-                                                        [ i = 0 => + * x z
-                                                        | i = 1 => x
-                                                        ]})
-                                     (assoc : (a : nat) → (b : nat) → (c : nat) → 
-                                     ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                     i _x₁ =>
-                                     [ i = 0 => + * {+ * a b} c
-                                     | i = 1 => + * a {+ * b c}
-                                     ]}) } ⊤
-                                {struct (C : nat) 
-                                 (op : {_x₂ _x₃ => + * _x₂ _x₃}) (z : 0) 
-                                 (idL : {_x₂ _x₃ => +-left-unit * _x₂ _x₃}) 
-                                 (idR : {_x₂ _x₃ => +-right-unit * _x₂ _x₃}) 
-                                 (assoc : {_x₂ _x₃ _x₄ _x₅ =>
-                                           +-assoc * _x₂ _x₃ _x₄ _x₅})
-                                 }
+  monoid/nat/+ : sub {sig (C : ext type ⊤ {_x => nat}) 
+                      (op : ext {(_x : nat) → (_x₁ : nat) → nat} ⊤ {_x _x₁ _x₂ =>
+                                                                    + _x₁ _x₂})
+                      (z : nat) 
+                      (idL : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
+                                         i _x =>
+                                         [ i = 0 => + z x | i = 1 => x ]})
+                      (idR : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
+                                         i _x =>
+                                         [ i = 0 => + x z | i = 1 => x ]})
+                      (assoc : (a : nat) → (b : nat) → (c : nat) → ext {
+                                                                   i => 
+                                                                   nat} {
+                                                                   i =>
+                                                                   i = 0 ∨ i = 1} {
+                                                                   i _x =>
+                                                                   [ 
+                                                                   i = 0 =>
+                                                                   + {+ a b} c
+                                                                   | 
+                                                                   i = 1 =>
+                                                                   + a {+ b c}
+                                                                   ]})
+                      } ⊤
+                 {struct (C : nat) (op : {_x₁ _x₂ => + _x₁ _x₂}) (z : 0) 
+                  (idL : {_x₁ _x₂ => +-left-unit _x₁ _x₂}) 
+                  (idR : {_x₁ _x₂ => +-right-unit _x₁ _x₂}) 
+                  (assoc : {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}) }
 
 --------------------[names.cooltt]--------------------
 names.cooltt:5.7-5.14 [Info]:
-  x∷y∷z : (_x : [ ⊤ ]) → sub {(u∷v : nat) → nat} ⊤ {u∷v => u∷v}
+  x∷y∷z : sub {(u∷v : nat) → nat} ⊤ {u∷v => u∷v}
 
 --------------------[nat-path.cooltt]--------------------
 nat.cooltt:10.11-10.16 [Info]:
-  Computed normal form of + * 2 3 as + * 2 3
+  Computed normal form of + 2 3 as + 2 3
 
 nat-path.cooltt:16.11-16.12 [Info]:
-  Computed normal form of J * as J *
+  Computed normal form of J as J
 
 nat-path.cooltt:57.11-57.18 [Info]:
-  Computed normal form of +-assoc * as +-assoc *
+  Computed normal form of +-assoc as +-assoc
 
 nat-path.cooltt:59.11-59.26 [Info]:
-  Computed normal form of trans-left-unit * as trans-left-unit *
+  Computed normal form of trans-left-unit as trans-left-unit
 
 nat-path.cooltt:60.11-60.27 [Info]:
-  Computed normal form of trans-right-unit * as A p => blocked[trans] * * A p
+  Computed normal form of trans-right-unit as A p => blocked[trans] * A p
 
 nat-path.cooltt:61.11-61.26 [Info]:
-  Computed normal form of trans-symm-refl * as
-   A p k i => blocked[trans,symm] * * A p k i
+  Computed normal form of trans-symm-refl as
+   A p k i => blocked[trans,symm] * A p k i
 
 nat-path.cooltt:83.11-83.15 [Info]:
-  Computed normal form of test * as
+  Computed normal form of test as
    p i =>
-   elim {symm * nat {_x => p _x} i} @ {_x => nat}
+   elim {symm nat {_x => p _x} i} @ {_x => nat}
      [ zero => 0
      | suc => _x _x₁ => 0
      ]
 
 nat-path.cooltt:85.11-85.16 [Info]:
-  Computed normal form of test2 * as
+  Computed normal form of test2 as
    i =>
-   elim {symm * nat {_x => 0} i} @ {_x => nat}
+   elim {symm nat {_x => 0} i} @ {_x => nat}
      [ zero => 0
      | suc => _x _x₁ => 0
      ]
 
 --------------------[nat.cooltt]--------------------
 nat.cooltt:10.11-10.16 [Info]:
-  Computed normal form of + * 2 3 as + * 2 3
+  Computed normal form of + 2 3 as + 2 3
 
 --------------------[patch.cooltt]--------------------
 patch.cooltt:10.49-10.50 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     |- ? : type
     
     Boundary:
@@ -976,7 +947,6 @@ patch.cooltt:10.49-10.50 [Info]:
 patch.cooltt:10.57-10.58 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
-    _x₁ : [ ⊤ ]
     |- ? : nat
     
     Boundary:
@@ -985,279 +955,191 @@ patch.cooltt:10.57-10.58 [Info]:
 
 
 patch.cooltt:12.7-12.15 [Info]:
-  el-patch : (_x : [ ⊤ ]) → sub type ⊤
-                            {sig (A : ext type ⊤ {_x₂ => nat}) 
-                             (a : ext nat ⊤ {_x₂ => 4}) }
+  el-patch : sub type ⊤
+             {sig (A : ext type ⊤ {_x₁ => nat}) (a : ext nat ⊤ {_x₁ => 4}) }
 
 patch.cooltt:13.7-13.23 [Info]:
-  el-patch-partial : (_x : [ ⊤ ]) → sub type ⊤
-                                    {sig (A : ext type ⊤ {_x₂ => nat}) 
-                                     (a : nat) }
+  el-patch-partial : sub type ⊤
+                     {sig (A : ext type ⊤ {_x₁ => nat}) (a : nat) }
 
 patch.cooltt:14.7-14.20 [Info]:
-  patch/inhabit : (_x : [ ⊤ ]) → sub {sig (A : ext type ⊤ {_x₁ => nat}) 
-                                      (a : ext nat ⊤ {_x₁ => 4}) } ⊤
-                                 {struct (A : nat) (a : 4) }
+  patch/inhabit : sub {sig (A : ext type ⊤ {_x => nat}) 
+                       (a : ext nat ⊤ {_x => 4}) } ⊤
+                  {struct (A : nat) (a : 4) }
 
 patch.cooltt:15.7-15.34 [Info]:
-  patch-partial/inhabit/infer : (_x : [ ⊤ ]) → sub {sig (A : ext type ⊤ {
-                                                             _x₁ => nat})
-                                                    (a : nat) } ⊤
-                                               {struct (A : nat) (a : 4) }
+  patch-partial/inhabit/infer : sub {sig (A : ext type ⊤ {_x => nat}) 
+                                     (a : nat) } ⊤
+                                {struct (A : nat) (a : 4) }
 
 patch.cooltt:16.7-16.26 [Info]:
-  patch/inhabit/infer : (_x : [ ⊤ ]) → sub {sig (A : ext type ⊤ {_x₁ => nat}) 
-                                            (a : ext nat ⊤ {_x₁ => 4}) } ⊤
-                                       {struct (A : nat) (a : 4) }
+  patch/inhabit/infer : sub {sig (A : ext type ⊤ {_x => nat}) 
+                             (a : ext nat ⊤ {_x => 4}) } ⊤
+                        {struct (A : nat) (a : 4) }
 
 patch.cooltt:19.7-19.20 [Info]:
-  patch-depends : (_x : [ ⊤ ]) → sub type ⊤
-                                 {sig (A : ext type ⊤ {_x₂ => nat}) 
-                                  (B : ext type ⊤ {_x₂ => nat}) }
+  patch-depends : sub type ⊤
+                  {sig (A : ext type ⊤ {_x₁ => nat}) 
+                   (B : ext type ⊤ {_x₁ => nat}) }
 
 patch.cooltt:25.7-25.14 [Info]:
-  testing : (_x : [ ⊤ ]) → sub {(A : type) → (Z : type) → (B : (_x₁ : A) → type) → (p : (_x₁ : Z) → 
-                           sig (x : A) (bx : B x) ) → (z : Z) → sig (x : 
-                                                                ext A ⊤ {
-                                                                _x₁ =>
-                                                                p z @ x}) 
-                                                                (bx : 
-                                                                ext {B {
-                                                                p z @ x}} ⊤ {
-                                                                _x₁ =>
-                                                                p z @ bx}) } ⊤
-                           {A Z B p z => struct (x : p z @ x) (bx : p z @ bx) }
+  testing : sub {(A : type) → (Z : type) → (B : (_x : A) → type) → (p : (_x : Z) → 
+            sig (x : A) (bx : B x) ) → (z : Z) → sig (x : ext A ⊤ {_x =>
+                                                                   p z @ x})
+                                                 (bx : ext {B {p z @ x}} ⊤ {
+                                                       _x => p z @ bx})
+                                                 } ⊤
+            {A Z B p z => struct (x : p z @ x) (bx : p z @ bx) }
 
 patch.cooltt:28.79-28.82 [Info]:
   fail total-space/fail:
   Expected type = (_x : sig (A : type) (a : A) ) → (_x₁ : nat) → type
 
 patch.cooltt:39.7-39.15 [Info]:
-  category : (_x : [ ⊤ ]) → sub type ⊤
-                            {sig (ob : type) 
-                             (hom : (_x₂ : sig (s : ob) (t : ob) ) → type) 
-                             (idn : (x : ob) → sig (s : ext ob ⊤ {_x₂ => x}) 
-                                               (t : ext ob ⊤ {_x₂ => x}) 
-                                               (fib : hom {struct (s : x) 
-                                                           (t : x) })
-                                               )
-                             (seq : (f : sig (s : ob) (t : ob) 
-                                         (fib : hom {struct (s : s) (t : t) })
-                                         ) → (g : sig (s : ext ob ⊤ {
-                                                           _x₂ => f @ t})
-                                                  (t : ob) 
-                                                  (fib : hom {struct (s : 
-                                                              f @ t) (t : t) })
-                                                  ) → sig (s : ext ob ⊤ {
-                                                               _x₂ => 
-                                                               f @ s})
-                                                      (t : ext ob ⊤ {
-                                                           _x₂ => g @ t})
-                                                      (fib : hom {struct (s : 
-                                                                  f @ s) 
-                                                                  (t : 
-                                                                  g @ t) })
-                                                      )
-                             (seqL : (f : sig (s : ob) (t : ob) 
-                                          (fib : hom {struct (s : s) (t : t) })
-                                          ) → ext {i =>
-                                                   sig (s : ext ob ⊤ {
-                                                            _x₂ => f @ s})
-                                                   (t : ext ob ⊤ {_x₂ =>
-                                                                  f @ t})
-                                                   (fib : hom {struct (s : 
-                                                               f @ s) 
-                                                               (t : f @ t) })
-                                                   } {i => i = 0 ∨ i = 1} {
-                                              i _x₂ =>
-                                              [ i = 0 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) 
-                                                (fib : seq {struct (s : 
-                                                            f @ s) 
-                                                            (t : f @ s) 
-                                                            (fib : idn {
-                                                                   f @ s} @ fib)
-                                                            } {struct (s : 
-                                                               f @ s) 
-                                                               (t : f @ t) 
-                                                               (fib : 
-                                                               f @ fib) } @ fib)
-                                                
-                                              | i = 1 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) (fib : f @ fib) 
-                                              ]})
-                             (seqR : (f : sig (s : ob) (t : ob) 
-                                          (fib : hom {struct (s : s) (t : t) })
-                                          ) → ext {i =>
-                                                   sig (s : ext ob ⊤ {
-                                                            _x₂ => f @ s})
-                                                   (t : ext ob ⊤ {_x₂ =>
-                                                                  f @ t})
-                                                   (fib : hom {struct (s : 
-                                                               f @ s) 
-                                                               (t : f @ t) })
-                                                   } {i => i = 0 ∨ i = 1} {
-                                              i _x₂ =>
-                                              [ i = 0 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) 
-                                                (fib : seq {struct (s : 
-                                                            f @ s) 
-                                                            (t : f @ t) 
-                                                            (fib : f @ fib) } {
-                                                       struct (s : f @ t) 
-                                                       (t : f @ t) 
-                                                       (fib : idn {f @ t} @ fib)
-                                                       } @ fib)
-                                                
-                                              | i = 1 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) (fib : f @ fib) 
-                                              ]})
-                             (seqA : (f : sig (s : ob) (t : ob) 
-                                          (fib : hom {struct (s : s) (t : t) })
-                                          ) → (g : sig (s : ext ob ⊤ {
-                                                            _x₂ => f @ t})
-                                                   (t : ob) 
-                                                   (fib : hom {struct (s : 
-                                                               f @ t) (t : t) })
-                                                   ) → (h : sig (s : 
+  category : sub type ⊤
+             {sig (ob : type) (hom : (_x₁ : sig (s : ob) (t : ob) ) → type) 
+              (idn : (x : ob) → sig (s : ext ob ⊤ {_x₁ => x}) 
+                                (t : ext ob ⊤ {_x₁ => x}) 
+                                (fib : hom {struct (s : x) (t : x) }) )
+              (seq : (f : sig (s : ob) (t : ob) 
+                          (fib : hom {struct (s : s) (t : t) }) ) → (g : 
+              sig (s : ext ob ⊤ {_x₁ => f @ t}) (t : ob) 
+              (fib : hom {struct (s : f @ t) (t : t) }) ) → sig (s : 
                                                             ext ob ⊤ {
-                                                            _x₂ => g @ t}) 
-                                                            (t : ob) 
+                                                            _x₁ => f @ s}) 
+                                                            (t : ext ob ⊤ {
+                                                                 _x₁ => 
+                                                                 g @ t})
                                                             (fib : hom {
                                                             struct (s : 
-                                                            g @ t) (t : t) }) ) → 
-                             ext {i =>
-                                  sig (s : ext ob ⊤ {_x₂ => f @ s}) 
-                                  (t : ext ob ⊤ {_x₂ => h @ t}) 
-                                  (fib : hom {struct (s : f @ s) (t : h @ t) })
-                                  } {i => i = 0 ∨ i = 1} {i _x₂ =>
-                                                          [ i = 0 =>
-                                                            struct (s : 
                                                             f @ s) 
-                                                            (t : h @ t) 
-                                                            (fib : seq {
-                                                                   struct (s : 
-                                                                   f @ s) 
-                                                                   (t : 
-                                                                   f @ t) 
-                                                                   (fib : 
-                                                                   f @ fib) } {
-                                                                   struct (s : 
-                                                                   f @ t) 
-                                                                   (t : 
-                                                                   h @ t) 
-                                                                   (fib : 
-                                                                   seq {
-                                                                   struct (s : 
-                                                                   f @ t) 
-                                                                   (t : 
-                                                                   g @ t) 
-                                                                   (fib : 
-                                                                   g @ fib) } {
-                                                                   struct (s : 
-                                                                   g @ t) 
-                                                                   (t : 
-                                                                   h @ t) 
-                                                                   (fib : 
-                                                                   h @ fib) } @ fib)
-                                                                   } @ fib)
-                                                            
-                                                          | i = 1 =>
-                                                            struct (s : 
-                                                            f @ s) 
-                                                            (t : h @ t) 
-                                                            (fib : seq {
-                                                                   struct (s : 
-                                                                   f @ s) 
-                                                                   (t : 
-                                                                   g @ t) 
-                                                                   (fib : 
-                                                                   seq {
-                                                                   struct (s : 
-                                                                   f @ s) 
-                                                                   (t : 
-                                                                   f @ t) 
-                                                                   (fib : 
-                                                                   f @ fib) } {
-                                                                   struct (s : 
-                                                                   f @ t) 
-                                                                   (t : 
-                                                                   g @ t) 
-                                                                   (fib : 
-                                                                   g @ fib) } @ fib)
-                                                                   } {
-                                                                   struct (s : 
-                                                                   g @ t) 
-                                                                   (t : 
-                                                                   h @ t) 
-                                                                   (fib : 
-                                                                   h @ fib) } @ fib)
-                                                            
-                                                          ]})
-                             }
+                                                            (t : g @ t) }) )
+              (seqL : (f : sig (s : ob) (t : ob) 
+                           (fib : hom {struct (s : s) (t : t) }) ) → 
+              ext {i =>
+                   sig (s : ext ob ⊤ {_x₁ => f @ s}) 
+                   (t : ext ob ⊤ {_x₁ => f @ t}) 
+                   (fib : hom {struct (s : f @ s) (t : f @ t) }) } {i =>
+                                                                    i = 0 ∨ i = 1} {
+              i _x₁ =>
+              [ i = 0 =>
+                struct (s : f @ s) (t : f @ t) 
+                (fib : seq {struct (s : f @ s) (t : f @ s) 
+                            (fib : idn {f @ s} @ fib) } {struct (s : 
+                                                         f @ s) (t : 
+                                                         f @ t) 
+                                                         (fib : f @ fib) } @ fib)
+                
+              | i = 1 => struct (s : f @ s) (t : f @ t) (fib : f @ fib) 
+              ]}) 
+              (seqR : (f : sig (s : ob) (t : ob) 
+                           (fib : hom {struct (s : s) (t : t) }) ) → 
+              ext {i =>
+                   sig (s : ext ob ⊤ {_x₁ => f @ s}) 
+                   (t : ext ob ⊤ {_x₁ => f @ t}) 
+                   (fib : hom {struct (s : f @ s) (t : f @ t) }) } {i =>
+                                                                    i = 0 ∨ i = 1} {
+              i _x₁ =>
+              [ i = 0 =>
+                struct (s : f @ s) (t : f @ t) 
+                (fib : seq {struct (s : f @ s) (t : f @ t) (fib : f @ fib) } {
+                       struct (s : f @ t) (t : f @ t) 
+                       (fib : idn {f @ t} @ fib) } @ fib)
+                
+              | i = 1 => struct (s : f @ s) (t : f @ t) (fib : f @ fib) 
+              ]}) 
+              (seqA : (f : sig (s : ob) (t : ob) 
+                           (fib : hom {struct (s : s) (t : t) }) ) → (g : 
+              sig (s : ext ob ⊤ {_x₁ => f @ t}) (t : ob) 
+              (fib : hom {struct (s : f @ t) (t : t) }) ) → (h : sig (s : 
+                                                                 ext ob ⊤ {
+                                                                 _x₁ => 
+                                                                 g @ t}) 
+                                                                 (t : ob) 
+                                                                 (fib : hom {
+                                                                 struct (s : 
+                                                                 g @ t) 
+                                                                 (t : t) }) ) → 
+              ext {i =>
+                   sig (s : ext ob ⊤ {_x₁ => f @ s}) 
+                   (t : ext ob ⊤ {_x₁ => h @ t}) 
+                   (fib : hom {struct (s : f @ s) (t : h @ t) }) } {i =>
+                                                                    i = 0 ∨ i = 1} {
+              i _x₁ =>
+              [ i = 0 =>
+                struct (s : f @ s) (t : h @ t) 
+                (fib : seq {struct (s : f @ s) (t : f @ t) (fib : f @ fib) } {
+                       struct (s : f @ t) (t : h @ t) 
+                       (fib : seq {struct (s : f @ t) (t : g @ t) 
+                                   (fib : g @ fib) } {struct (s : g @ t) 
+                                                      (t : h @ t) 
+                                                      (fib : h @ fib) } @ fib)
+                       } @ fib)
+                
+              | i = 1 =>
+                struct (s : f @ s) (t : h @ t) 
+                (fib : seq {struct (s : f @ s) (t : g @ t) 
+                            (fib : seq {struct (s : f @ s) (t : f @ t) 
+                                        (fib : f @ fib) } {struct (s : 
+                                                           f @ t) (t : 
+                                                           g @ t) 
+                                                           (fib : g @ fib) } @ fib)
+                            } {struct (s : g @ t) (t : h @ t) (fib : h @ fib) } @ fib)
+                
+              ]}) }
 
 patch.cooltt:52.7-52.16 [Info]:
-  test-auto : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → type} ⊤
-                             {fam =>
-                              sig (x : nat) (fib : fam {struct (x : x) }) }
+  test-auto : sub {(fam : (_x : sig (x : nat) ) → type) → type} ⊤
+              {fam => sig (x : nat) (fib : fam {struct (x : x) }) }
 
 patch.cooltt:55.7-55.22 [Info]:
-  test-auto-patch : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → type} ⊤
-                                   {fam =>
-                                    sig (x : ext nat ⊤ {_x₂ => 0}) 
-                                    (fib : fam {struct (x : 0) }) }
+  test-auto-patch : sub {(fam : (_x : sig (x : nat) ) → type) → type} ⊤
+                    {fam =>
+                     sig (x : ext nat ⊤ {_x₁ => 0}) 
+                     (fib : fam {struct (x : 0) }) }
 
 patch.cooltt:59.7-59.24 [Info]:
-  test-unfold-total : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → type} ⊤
-                                     {fam =>
-                                      sig (x : nat) 
-                                      (fib : fam {struct (x : x) }) }
+  test-unfold-total : sub {(fam : (_x : sig (x : nat) ) → type) → type} ⊤
+                      {fam => sig (x : nat) (fib : fam {struct (x : x) }) }
 
 [Warn]:  There are 2 unsolved holes
 
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.11-8.20 [Info]:
-  Computed normal form of formation * as
+  Computed normal form of formation as
    A a b =>
    ext {i => A i} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => a | i = 1 => b ]}
 
 path-types.cooltt:21.11-21.17 [Info]:
-  Computed normal form of myrefl * as A a i => a
+  Computed normal form of myrefl as A a i => a
 
 path-types.cooltt:32.11-32.17 [Info]:
-  Computed normal form of funext * as A B f g h i x => h x i
+  Computed normal form of funext as A B f g h i x => h x i
 
 path-types.cooltt:55.11-55.18 [Info]:
-  Computed normal form of pairext * as A B p q h i => [ fst h i , snd h i ]
+  Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
 
 --------------------[prelude.cooltt]--------------------
 --------------------[record.cooltt]--------------------
 record.cooltt:11.7-11.12 [Info]:
-  basic : (_x : [ ⊤ ]) → sub type ⊤
-                         {sig (foo∷x : nat) (bar : (_x₂ : nat) → nat) }
+  basic : sub type ⊤ {sig (foo∷x : nat) (bar : (_x₁ : nat) → nat) }
 
 record.cooltt:12.7-12.21 [Info]:
-  basic∷inhabit : (_x : [ ⊤ ]) → sub {sig (foo∷x : nat) 
-                                      (bar : (_x₁ : nat) → nat) } ⊤
-                                 {struct (foo∷x : 1) (bar : {x => suc x}) }
+  basic∷inhabit : sub {sig (foo∷x : nat) (bar : (_x : nat) → nat) } ⊤
+                  {struct (foo∷x : 1) (bar : {x => suc x}) }
 
 record.cooltt:13.11-13.25 [Info]:
-  Computed normal form of basic∷inhabit * as
+  Computed normal form of basic∷inhabit as
    struct (foo∷x : 1) (bar : {x => suc x}) 
 
 record.cooltt:14.11-14.32 [Info]:
-  Computed normal form of basic∷inhabit * @ foo∷x as 1
+  Computed normal form of basic∷inhabit @ foo∷x as 1
 
 record.cooltt:15.11-15.31 [Info]:
-  Computed normal form of {basic∷inhabit * @ bar} 1 as 2
+  Computed normal form of {basic∷inhabit @ bar} 1 as 2
 
 record.cooltt:32.7-32.13 [Info]:
-  depend : (_x : [ ⊤ ]) → sub type ⊤
-                          {sig (tp : type) (fun : (_x₂ : tp) → tp) }
+  depend : sub type ⊤ {sig (tp : type) (fun : (_x₁ : tp) → tp) }
 
 --------------------[repack.cooltt]--------------------
 Emitted namespace under ∷
@@ -1274,25 +1156,25 @@ Emitted namespace under ∷
 
 --------------------[section.cooltt]--------------------
 section.cooltt:5.7-5.17 [Info]:
-  x1∷y1∷a1 : (_x : [ ⊤ ]) → sub nat ⊤ 0
+  x1∷y1∷a1 : sub nat ⊤ 0
 
 section.cooltt:11.7-11.9 [Info]:
-  a2 : (_x : [ ⊤ ]) → sub nat ⊤ 10
+  a2 : sub nat ⊤ 10
 
 section.cooltt:28.7-28.13 [Info]:
-  x4∷b4 : (_x : [ ⊤ ]) → sub nat ⊤ 40
+  x4∷b4 : sub nat ⊤ 40
 
 Emitted namespace under ∷
   ? = { a2 => a2; x1∷y1∷a1 => a1; x4∷b4 => a4 }
 
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.11-8.18 [Info]:
-  Computed normal form of testing * as
+  Computed normal form of testing as
    _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
 --------------------[v.cooltt]--------------------
 v.cooltt:13.11-13.17 [Info]:
-  Computed normal form of v-test * as
+  Computed normal form of v-test as
    r A =>
    V r {_x => A} A {_x =>
                     [ x => x
@@ -1311,10 +1193,10 @@ v.cooltt:13.11-13.17 [Info]:
                     ]}
 
 v.cooltt:21.11-21.15 [Info]:
-  Computed normal form of cool * as A a => coe {_x => A} 0 1 a
+  Computed normal form of cool as A a => coe {_x => A} 0 1 a
 
 v.cooltt:22.11-22.16 [Info]:
-  Computed normal form of cool2 * as
+  Computed normal form of cool2 as
    A a i =>
    hcom A 0 1 {i = 0}
      {_x _x₁ =>
@@ -1325,36 +1207,36 @@ v.cooltt:22.11-22.16 [Info]:
       ]}
 
 v.cooltt:28.11-28.16 [Info]:
-  Computed normal form of cool3 * as A a i => a
+  Computed normal form of cool3 as A a i => a
 
 --------------------[view.cooltt]--------------------
 view.cooltt:2.7-2.9 [Info]:
-  a1 : (_x : [ ⊤ ]) → sub nat ⊤ 0
+  a1 : sub nat ⊤ 0
 
 view.cooltt:6.7-6.9 [Info]:
-  b1 : (_x : [ ⊤ ]) → sub nat ⊤ 0
+  b1 : sub nat ⊤ 0
 
 Emitted namespace under ∷
   ? = { a1 => a1 }
 
 view.cooltt:16.7-16.9 [Info]:
-  a2 : (_x : [ ⊤ ]) → sub nat ⊤ 10
+  a2 : sub nat ⊤ 10
 
 view.cooltt:17.7-17.9 [Info]:
-  a3 : (_x : [ ⊤ ]) → sub nat ⊤ 20
+  a3 : sub nat ⊤ 20
 
 Emitted namespace under ∷
   ? = { a1 => a1; m1∷a2 => m1∷a2; m1∷a3 => m1∷a3; m2∷a3 => m2∷a3
       ; m2∷a4 => m2∷a4 }
 
 view.cooltt:22.7-22.9 [Info]:
-  a2 : (_x : [ ⊤ ]) → sub nat ⊤ 10
+  a2 : sub nat ⊤ 10
 
 view.cooltt:23.7-23.9 [Info]:
-  a3 : (_x : [ ⊤ ]) → sub nat ⊤ 30
+  a3 : sub nat ⊤ 30
 
 view.cooltt:24.7-24.9 [Info]:
-  a4 : (_x : [ ⊤ ]) → sub nat ⊤ 40
+  a4 : sub nat ⊤ 40
 
 Emitted namespace under ∷
   ? = { a1 => a1; m1∷a2 => m1∷a2; m1∷a3 => m1∷a3; m2∷a3 => m2∷a3
