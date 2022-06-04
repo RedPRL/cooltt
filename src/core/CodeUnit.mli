@@ -20,6 +20,7 @@ sig
   val unfolder : t -> t option
 
   (** A list of global variables representing the 'unfolding dimensions' that the type of a global variable depends on. *)
+  (* TODO: this might not be needed *)
   val requirements : t -> t list option
 
   (* Indicates whether a global definition denotes a partial element that should be automatically forced by the refiner; this is used by the "abstract" declarations mechanism. This is true if and only if [requirements] is [Some]. *)
