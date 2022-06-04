@@ -1,4 +1,5 @@
 import prelude
+import hlevel
 
 
 abstract
@@ -46,3 +47,14 @@ def +A : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
       + {suc x} {+ y z}
     end
   ]
+
+
+/- next we demonstrate unfolding in the *types* of declarations,
+   which we call "requiring"
+-/
+
+axiom nat∷is-set : is-set nat
+
+require [+] in
+def foo (p : path nat {+ 0 0} 0) : path {path nat {+ 0 0} 0} p {_ => 0} :=
+  nat∷is-set 0 0 p {_ => 0}
