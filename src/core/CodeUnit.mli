@@ -20,9 +20,9 @@ sig
   val unfolder : t -> t option
 
   (** A list of global variables representing the 'unfolding dimensions' that the type of a global variable depends on. *)
-  val requirements : t -> t list
+  val requirements : t -> t list option
 
-  (* Indicates whether a global definition denotes a partial element that should be automatically forced by the refiner; this is used by the "abstract" declarations mechanism. This is true if and only if [requirements] is non-empty. *)
+  (* Indicates whether a global definition denotes a partial element that should be automatically forced by the refiner; this is used by the "abstract" declarations mechanism. This is true if and only if [requirements] is [Some]. *)
   val is_guarded : t -> bool
 end
 
@@ -48,7 +48,7 @@ module CodeUnit : sig
   val create : id -> t
 
   (** Add a binding to a given code unit. *)
-  val add_global : unfolder:Global.t option -> requirements:Global.t list -> Ident.t -> Domain.tp -> t -> (Global.t * t)
+  val add_global : unfolder:Global.t option -> requirements:Global.t list option -> Ident.t -> Domain.tp -> t -> (Global.t * t)
 
   (** Get the binding associated with a symbol. *)
   val get_global : Global.t -> t -> Domain.tp

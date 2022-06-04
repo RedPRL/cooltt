@@ -13,6 +13,7 @@ module Qu = Quote
 module TB = TermBuilder
 
 module RM = RefineMonad
+module R = Refiner
 module ST = RefineState
 module RMU = Monad.Util (RM)
 open Monad.Notation (RM)
@@ -153,37 +154,87 @@ and import_unit ~shadowing path modifier : command =
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
-  | CS.Def {abstract; shadowing; name; args; def; tp; requiring = _; unfolding = _} ->
+  | CS.Def {abstract; shadowing; name; args; def; tp; requiring; unfolding = _} ->
     Debug.print "Defining %a@." Ident.pp name;
 
     (* Unleash the unfolding dimension for the term component *)
-    let* unf_dim_var =  
+    let* unf_dim_sym =  
       match abstract with 
       | false -> RM.ret None 
       | true ->
-        let+ var = RM.add_global ~unfolder:None ~requirements:[] ~shadowing:false (`Machine "unf_tm") D.TpDim in 
+        let+ var = RM.add_global ~unfolder:None ~requirements:None ~shadowing:false (`Machine "unf_tm") D.TpDim in 
         Some var 
     in 
 
     let* unf_dim =
-      match unf_dim_var with 
+      match unf_dim_sym with 
       | None -> RM.ret D.Dim1 
-      | Some var -> RM.lift_ev @@ Sem.eval @@ S.Global var
+      | Some var -> RM.eval @@ S.Global var
     in 
 
-    (* TODO: incorporate the unfolding tokens, i.e. look at requiring and unfolding *)
-    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-
-    let* vtp_sub =
-      RM.lift_cmp @@ Sem.splice_tp @@
-      Splice.tp vtp @@ fun vtp ->
-      Splice.con vtm @@ fun vtm -> 
-      Splice.con unf_dim @@ fun unf_dim ->
-      Splice.term @@ TB.sub vtp (TB.eq unf_dim TB.dim1) @@ fun _ -> vtm 
+    let module RMU = Monad.Util (RM) in 
+    let* requirement_syms =
+      let* st = RM.get in 
+      let resolve_global (i : Ident.t CS.node) = 
+        match ST.resolve_global i.node st with
+        | Some sym -> RM.ret @@ sym
+        | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
+      in
+      RMU.map resolve_global requiring
     in
 
-    (* TODO: Make it guarded *)
-    let+ _ = RM.add_global ~unfolder:None ~requirements:[] ~shadowing name vtp_sub in
+    let* requirement_dims = 
+      requirement_syms |> RMU.map @@ fun sym -> 
+      RM.eval @@ S.Global sym
+    in
+
+    let* _ = 
+      requirement_dims |> RMU.iter @@ fun dim ->
+      let* cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_dim dim in 
+      RMU.ignore @@
+      RM.add_global ~unfolder:None ~requirements:None ~shadowing:false `Anon @@ D.TpPrf cof
+    in
+
+    let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in 
+
+    let* requirement_cof =
+      RM.lift_cmp @@
+      Sem.con_to_cof @@ 
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) requirement_dims
+    in
+
+    let* ttp_body =
+      Tactic.abstract (D.TpPrf requirement_cof) @@ fun _ ->
+      Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
+    in 
+
+    let* treq_cof = RM.quote_cof requirement_cof in 
+
+    let* abstract_vtp = 
+      let* vsub =
+        RM.abstract `Anon (D.TpPrf requirement_cof) @@ fun _ -> 
+        let* tunf_cof = RM.quote_cof unf_cof in 
+        let* vtp_body = RM.eval_tp ttp_body in 
+        let* bdy = 
+          Tactic.abstract (D.TpPrf unf_cof) @@ fun _ ->
+          let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args def) vtp_body in 
+          RM.ret @@ S.Sub (ttp_body, tunf_cof, tm)
+        in 
+        RM.ret @@
+        S.Pi (S.TpPrf treq_cof, `Anon, bdy)
+      in
+      RM.eval_tp vsub
+    in 
+
+    let+ _ =
+      RM.add_global 
+        ~unfolder:unf_dim_sym 
+        ~requirements:(Some requirement_syms)
+        ~shadowing 
+        name
+        abstract_vtp 
+    in
     Continue
 
   | CS.Axiom {shadowing; name; args; tp; requiring} ->
@@ -195,7 +246,7 @@ and execute_decl (decl : CS.decl) : command =
     in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     (* TODO: make it guarded? *)
-    let* _ = RM.add_global ~unfolder:None ~requirements:[] ~shadowing name vtp in
+    let* _ = RM.add_global ~unfolder:None ~requirements:None ~shadowing name vtp in
     RM.ret Continue
 
   | CS.NormalizeTerm term ->

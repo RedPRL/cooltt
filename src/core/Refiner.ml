@@ -153,7 +153,7 @@ struct
         | None -> `Anon
         | Some str -> `Machine ("?" ^ str)
       in
-      RM.add_global ~unfolder:None ~requirements:[] ~shadowing:true ident vtp
+      RM.add_global ~unfolder:None ~requirements:None ~shadowing:true ident vtp
     in
 
     let* () = RM.inc_num_holes in
@@ -1096,9 +1096,11 @@ struct
       let* tp = RM.get_global sym in
       begin 
         match tp with 
-        | D.Pi (D.TpPrf _ as prf_tp, _, _) ->
-          let+ prf = T.Chk.run Prf.intro prf_tp in
-          S.Ap (S.Global sym, prf), tp
+        | D.Pi (D.TpPrf _ as prf_tp, _, tp_clo) ->
+          let* prf = T.Chk.run Prf.intro prf_tp in
+          let* vprf = RM.eval prf in 
+          let* tp = RM.lift_cmp @@ Sem.inst_tp_clo tp_clo vprf in 
+          RM.ret (S.Ap (S.Global sym, prf), tp)
         | _ -> 
           RM.with_pp @@ fun ppenv ->
           let* tp = RM.quote_tp tp in 
@@ -1163,7 +1165,7 @@ struct
         Splice.term @@ 
         TB.sub vtp TB.top @@ fun _ -> vtm 
       in
-      let* sym = RM.add_global ~unfolder:None ~requirements:[] ~shadowing:true `Anon tp_sub in
+      let* sym = RM.add_global ~unfolder:None ~requirements:None ~shadowing:true `Anon tp_sub in
       RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
     in
     let+ tcut = RM.quote_cut cut in 

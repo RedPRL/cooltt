@@ -19,12 +19,12 @@ struct
       index : int;
       name : string option;
       unfolder : t option;
-      requirements : t list}
+      requirements : t list option}
   [@@deriving show]
 
   let is_guarded s =
     match s.requirements with 
-    | [] -> false 
+    | None -> false 
     | _ -> true
 
   let unfolder s = 
@@ -50,7 +50,7 @@ struct
     `O [("origin", J.option J.string @@ sym.origin);
         ("index", `String (Int.to_string sym.index));
         ("unfolder", J.option serialize sym.unfolder);
-        ("requirements", J.list serialize sym.requirements);
+        ("requirements", J.option (J.list serialize) sym.requirements);
         ("name", J.option J.string @@ sym.name) ]
 
   let rec deserialize : J.value -> t =
@@ -58,7 +58,7 @@ struct
     | `O [("origin", j_origin); ("index", j_index); ("unfolder", j_unfolder); ("requirements", j_requirements); ("name", j_name)] ->
       { origin = J.get_option J.get_string j_origin;
         unfolder = J.get_option deserialize j_unfolder;
-        requirements = J.get_list deserialize j_requirements;
+        requirements = J.get_option (J.get_list deserialize) j_requirements;
         index = int_of_string @@ J.get_string j_index;
         name = J.get_option J.get_string j_name }
     | j -> J.parse_error j "Global.deserialize"
