@@ -172,7 +172,6 @@ and execute_decl (decl : CS.decl) : command =
       | Some var -> RM.eval @@ S.Global var
     in 
 
-    let module RMU = Monad.Util (RM) in 
     let* requirement_syms =
       let* st = RM.get in 
       let resolve_global (i : Ident.t CS.node) = 
@@ -239,14 +238,45 @@ and execute_decl (decl : CS.decl) : command =
 
   | CS.Axiom {shadowing; name; args; tp; requiring} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
-    (* TODO: look at tp.deps *)
-    let* tp = 
-      let runner = match requiring with [] -> Tactic.Tp.run_virtual | _ -> Tactic.Tp.run in 
-      runner @@ Elaborator.chk_tp_in_tele args tp 
+
+    let* requirement_syms =
+      let* st = RM.get in 
+      let resolve_global (i : Ident.t CS.node) = 
+        match ST.resolve_global i.node st with
+        | Some sym -> RM.ret @@ sym
+        | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
+      in
+      RMU.map resolve_global requiring
     in
+
+    let* requirement_dims = 
+      requirement_syms |> RMU.map @@ fun sym -> 
+      RM.eval @@ S.Global sym
+    in
+
+    let* requirement_cof =
+      RM.lift_cmp @@
+      Sem.con_to_cof @@ 
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) requirement_dims
+    in
+
+    let* tp, requirements = 
+      match requiring with 
+      | [] -> 
+        let+ tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in 
+        tp, None
+      | _ ->
+        let+ treqcof = RM.quote_cof requirement_cof 
+        and+ bdy = 
+          RM.abstract `Anon (D.TpPrf requirement_cof) @@ fun _ -> 
+          Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp 
+        in
+        S.Pi (S.TpPrf treqcof, `Anon, bdy), Some requirement_syms
+    in
+
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    (* TODO: make it guarded? *)
-    let* _ = RM.add_global ~unfolder:None ~requirements:None ~shadowing name vtp in
+    let* _ = RM.add_global ~unfolder:None ~requirements ~shadowing name vtp in
     RM.ret Continue
 
   | CS.NormalizeTerm term ->
