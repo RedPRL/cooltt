@@ -156,14 +156,19 @@ and execute_decl (decl : CS.decl) : command =
   | CS.Def {abstract; shadowing; name; args; def; tp; requiring = _; unfolding = _} ->
     Debug.print "Defining %a@." Ident.pp name;
 
-    (* Create the unfolding token for the term component *)
-    let* unf_dim = 
-      if abstract then 
-        (* TODO: need to be able to look these up later *)
-        let* var = RM.add_global ~unfolder:None ~requirements:[] ~shadowing:false (`Machine "unf_tm") D.TpDim in 
-        RM.lift_ev @@ Sem.eval @@ S.Global var
-      else 
-        RM.ret D.Dim1
+    (* Unleash the unfolding dimension for the term component *)
+    let* unf_dim_var =  
+      match abstract with 
+      | false -> RM.ret None 
+      | true ->
+        let+ var = RM.add_global ~unfolder:None ~requirements:[] ~shadowing:false (`Machine "unf_tm") D.TpDim in 
+        Some var 
+    in 
+
+    let* unf_dim =
+      match unf_dim_var with 
+      | None -> RM.ret D.Dim1 
+      | Some var -> RM.lift_ev @@ Sem.eval @@ S.Global var
     in 
 
     (* TODO: incorporate the unfolding tokens, i.e. look at requiring and unfolding *)
