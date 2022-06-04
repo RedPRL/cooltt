@@ -176,10 +176,10 @@ and execute_decl (decl : CS.decl) : command =
       let* st = RM.get in 
       let resolve_global (i : Ident.t CS.node) = 
         match ST.resolve_global i.node st with
-        | Some sym -> RM.ret @@ sym
+        | Some sym -> RM.ret @@ Global.unfolder sym
         | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
       in
-      RMU.map resolve_global requiring
+      RMU.filter_map resolve_global requiring
     in
 
     let* requirement_dims = 
@@ -243,13 +243,13 @@ and execute_decl (decl : CS.decl) : command =
       let* st = RM.get in 
       let resolve_global (i : Ident.t CS.node) = 
         match ST.resolve_global i.node st with
-        | Some sym -> RM.ret @@ sym
+        | Some sym -> RM.ret @@ Global.unfolder sym
         | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
       in
-      RMU.map resolve_global requiring
+      RMU.filter_map resolve_global requiring
     in
 
-    let* requirement_dims = 
+    let* requirement_dims =
       requirement_syms |> RMU.map @@ fun sym -> 
       RM.eval @@ S.Global sym
     in
