@@ -10,13 +10,13 @@
 
   let name_of_atoms parts = `User parts
 
-  let name_of_underscore = `Anon
+  let name_of_underscore = Ident.anon
 
   let plain_term_of_name =
     function
     | `User a -> Var (`User a)
     | `Anon -> Underscore
-    | `Machine _ -> failwith "Impossible Internal Error"
+    | `Unfolder _ | `Blocked _ | `Machine _ -> failwith "Impossible Internal Error"
 
   let term_of_name {node; info} =
     {node = plain_term_of_name node; info}

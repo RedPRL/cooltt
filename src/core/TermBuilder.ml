@@ -72,7 +72,7 @@ let el_out m : _ m =
   let+ tm = m in
   S.ElOut tm
 
-let lam ?(ident = `Anon) mbdy : _ m =
+let lam ?(ident = Ident.anon) mbdy : _ m =
   scope @@ fun var ->
   let+ bdy = mbdy var in
   S.Lam (ident, bdy)
@@ -117,7 +117,7 @@ let com mline mr ms mphi mbdy =
   S.Com (line, r, s, phi, bdy)
 
 
-let let_ ?(ident = `Anon) m k : _ m =
+let let_ ?(ident = Ident.anon) m k : _ m =
   let+ t = m
   and+ bdy = scope k in
   S.Let (t, ident, bdy)
@@ -214,12 +214,12 @@ let loop m =
   let+ x = m in
   S.Loop x
 
-let pi ?(ident = `Anon) mbase mfam : _ m =
+let pi ?(ident = Ident.anon) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
   S.Pi (base, ident, fam)
 
-let sg ?(ident = `Anon) mbase mfam : _ m =
+let sg ?(ident = Ident.anon) mbase mfam : _ m =
   let+ base = mbase
   and+ fam = scope mfam in
   S.Sg (base, ident, fam)
@@ -249,7 +249,7 @@ let code_sg mbase mfam : _ m =
 let code_path mfam mbdry : _ m =
   let+ fam = mfam
   and+ bdry = mbdry in
-  S.CodeExt (1, fam, `Global (S.Lam (`Anon, CB.boundary (S.Var 0))), bdry)
+  S.CodeExt (1, fam, `Global (S.Lam (Ident.anon, CB.boundary (S.Var 0))), bdry)
 
 let code_v mr mpcode mcode mpequiv : _ m=
   let+ r = mr
@@ -550,17 +550,17 @@ struct
     type vcode = {r : S.t m; pcode : S.t m; code : S.t m; pequiv : S.t m}
 
     let hcom_v ~(v : vcode) ~(r : S.t m) ~(r' : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
-      let_ ~ident:(`Machine "O")
+      let_ ~ident:(Ident.machine "O")
         begin
-          lam ~ident:(`Machine "X") @@ fun x ->
-          lam ~ident:(`Machine "N") @@ fun n ->
-          lam ~ident:(`Machine "i") @@ fun i ->
+          lam ~ident:(Ident.machine "X") @@ fun x ->
+          lam ~ident:(Ident.machine "N") @@ fun n ->
+          lam ~ident:(Ident.machine "i") @@ fun i ->
           hcom x r i phi n
         end
       @@ fun o_tilde ->
-      let_ ~ident:(`Machine "P")
+      let_ ~ident:(Ident.machine "P")
         begin
-          lam ~ident:(`Machine "i") @@ fun i ->
+          lam ~ident:(Ident.machine "i") @@ fun i ->
           lam @@ fun _ ->
           cof_split
             [join [eq i r; phi], vproj v.r v.pcode v.code v.pequiv @@ ap bdy [i; prf];
@@ -576,27 +576,27 @@ struct
       let pcode_ x = ap v.pcode [x] in
       let code_ x = ap v.code [x] in
       let pequiv_ x = ap v.pequiv [x] in
-      let_ ~ident:(`Machine "F")
+      let_ ~ident:(Ident.machine "F")
         begin
-          lam ~ident:(`Machine "i") @@ fun i ->
+          lam ~ident:(Ident.machine "i") @@ fun i ->
           lam @@ fun _ ->
           Equiv.equiv_fwd @@ ap (pequiv_ i) [prf]
         end
       @@ fun f_tilde ->
-      let_ ~ident:(`Machine "O")
+      let_ ~ident:(Ident.machine "O")
         begin
           coe (lam code_) r r' @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy
         end
       @@ fun o_tilde ->
-      let_ ~ident:(`Machine "Fiber'")
+      let_ ~ident:(Ident.machine "Fiber'")
         begin
           lam @@ fun _ ->
           Equiv.code_fiber (ap (pcode_ r') [prf]) (code_ r') (ap f_tilde [r'; prf]) o_tilde
         end
       @@ fun fibercode ->
-      let_ ~ident:(`Machine "R")
+      let_ ~ident:(Ident.machine "R")
         begin
-          let line = lam ~ident:(`Machine "i") @@ fun i ->
+          let line = lam ~ident:(Ident.machine "i") @@ fun i ->
             code_path' (lam @@ fun _ -> code_ i)
               (ap f_tilde [i; prf; coe (lam @@ fun j -> ap (pcode_ j) [prf]) r i bdy])
               (coe (lam code_) r i (ap f_tilde [r; prf; bdy]))
@@ -605,7 +605,7 @@ struct
           coe line r r' @@ el_in @@ lam @@ fun _ -> sub_in @@ ap f_tilde [r; prf; bdy]
         end
       @@ fun r_tilde ->
-      let_ ~ident:(`Machine "S")
+      let_ ~ident:(Ident.machine "S")
         begin
           lam @@ fun _ ->
           Equiv.equiv_inv_path (ap (pequiv_ r') [prf]) o_tilde @@ (* "q_tilde" *)
@@ -617,21 +617,21 @@ struct
                (el_in @@ lam @@ fun _ -> sub_in @@ vproj (s_ r) (pcode_ r) (code_ r) (pequiv_ r) bdy)]
         end
       @@ fun s_tilde ->
-      let_ ~ident:(`Machine "T")
+      let_ ~ident:(Ident.machine "T")
         begin
           lam @@ fun _ ->
           hcom (ap fibercode [prf]) dim0 dim1 (join [forall (fun i -> eq (s_ i) dim0); eq r r']) @@
-          lam ~ident:(`Machine "j") @@ fun j ->
+          lam ~ident:(Ident.machine "j") @@ fun j ->
           lam @@ fun _ ->
           cof_split
             [eq j dim0, Equiv.equiv_inv (ap (pequiv_ r') [prf]) o_tilde; (* "p_tilde" *)
              join [forall (fun i -> eq (s_ i) dim0); eq r r'], sub_out @@ ap (el_out @@ ap s_tilde [prf]) [j]]
         end
       @@ fun t_tilde ->
-      let_ ~ident:(`Machine "U")
+      let_ ~ident:(Ident.machine "U")
         begin
           hcom (code_ r') dim1 (s_ r') (join [eq r r'; eq (s_ r') dim0]) @@
-          lam ~ident:(`Machine "k") @@ fun k ->
+          lam ~ident:(Ident.machine "k") @@ fun k ->
           lam @@ fun _ ->
           cof_split
             [join [eq k dim1; eq r r'], o_tilde;
@@ -651,27 +651,27 @@ struct
     type fhcom_u = {r : S.t m; r' : S.t m; phi : S.t m; bdy : S.t m}
 
     let hcom_fhcom ~(fhcom : fhcom_u) ~(r : S.t m) ~(r' : S.t m) ~(phi : S.t m) ~(bdy : S.t m) : S.t m =
-      let_ ~ident:(`Machine "O")
+      let_ ~ident:(Ident.machine "O")
         begin
-          lam ~ident:(`Machine "i") @@ fun i ->
+          lam ~ident:(Ident.machine "i") @@ fun i ->
           lam @@ fun _ ->
           cap fhcom.r fhcom.r' fhcom.phi fhcom.bdy @@ ap bdy [i; prf]
         end
       @@ fun o_tilde ->
-      let_ ~ident:(`Machine "P")
+      let_ ~ident:(Ident.machine "P")
         begin
-          lam ~ident:(`Machine "i") @@ fun i ->
+          lam ~ident:(Ident.machine "i") @@ fun i ->
           lam @@ fun _ ->
           hcom (ap fhcom.bdy [fhcom.r'; prf]) r i phi bdy
         end
       @@ fun p_tilde ->
       box fhcom.r fhcom.r' fhcom.phi (lam @@ fun _ -> ap p_tilde [r'; prf]) @@
       hcom (ap fhcom.bdy [fhcom.r; prf]) r r' (join [phi; fhcom.phi; eq fhcom.r fhcom.r']) @@
-      lam ~ident:(`Machine "i") @@ fun i ->
+      lam ~ident:(Ident.machine "i") @@ fun i ->
       lam @@ fun _ ->
       cof_split
         [join [eq i r; phi], ap o_tilde [i; prf];
-         fhcom.phi, coe (lam ~ident:(`Machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]);
+         fhcom.phi, coe (lam ~ident:(Ident.machine "j") @@ fun j -> ap fhcom.bdy [j; prf]) fhcom.r' fhcom.r (ap p_tilde [i; prf]);
          eq fhcom.r fhcom.r', ap p_tilde [i; prf]]
 
     (* [fhcom] below is an fhcom of binders; so you need to write [ap fhcom.r [r]] etc. *)
@@ -680,52 +680,52 @@ struct
       let s'_ x = ap fhcom.r' [x] in
       let phi_ x = ap fhcom.phi [x] in
       let code_ x = ap fhcom.bdy [x] in
-      let_ ~ident:(`Machine "N")
+      let_ ~ident:(Ident.machine "N")
         begin
-          lam ~ident:(`Machine "i") @@ fun i ->
-          lam ~ident:(`Machine "j") @@ fun j ->
+          lam ~ident:(Ident.machine "i") @@ fun i ->
+          lam ~ident:(Ident.machine "j") @@ fun j ->
           lam @@ fun _ ->
-          coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ i) [k; prf]) (s'_ i) j @@
-          coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s'_ k; prf]) r i bdy
+          coe (lam ~ident:(Ident.machine "k") @@ fun k -> ap (code_ i) [k; prf]) (s'_ i) j @@
+          coe (lam ~ident:(Ident.machine "k") @@ fun k -> ap (code_ k) [s'_ k; prf]) r i bdy
         end
       @@ fun n_tilde ->
-      let_ ~ident:(`Machine "O")
+      let_ ~ident:(Ident.machine "O")
         begin
-          lam ~ident:(`Machine "j") @@ fun j ->
+          lam ~ident:(Ident.machine "j") @@ fun j ->
           hcom (ap (code_ r) [s_ r; prf]) (s'_ r) j (phi_ r) @@
-          lam ~ident:(`Machine "k") @@ fun k ->
+          lam ~ident:(Ident.machine "k") @@ fun k ->
           lam @@ fun _ ->
           cof_split
             [eq k (s'_ r), cap (s_ r) (s'_ r) (phi_ r) (code_ r) bdy;
              phi_ r,
-             coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) k (s_ r) @@
-             coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r) [l; prf]) (s'_ r) k bdy]
+             coe (lam ~ident:(Ident.machine "l") @@ fun l -> ap (code_ r) [l; prf]) k (s_ r) @@
+             coe (lam ~ident:(Ident.machine "l") @@ fun l -> ap (code_ r) [l; prf]) (s'_ r) k bdy]
         end
       @@ fun o_tilde ->
-      let_ ~ident:(`Machine "P")
+      let_ ~ident:(Ident.machine "P")
         begin
-          let line = lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s_ k; prf] in
+          let line = lam ~ident:(Ident.machine "k") @@ fun k -> ap (code_ k) [s_ k; prf] in
           let cof = join [forall phi_; forall (fun i -> eq (s_ i) (s'_ i))] in
           com line r r' cof @@
-          lam ~ident:(`Machine "i") @@ fun i ->
+          lam ~ident:(Ident.machine "i") @@ fun i ->
           lam @@ fun _ ->
           cof_split
             [eq i r, ap o_tilde [s_ r];
              forall phi_, ap n_tilde [i; s_ i; prf];
-             forall (fun i -> eq (s_ i) (s'_ i)), coe (lam ~ident:(`Machine "k") @@ fun k -> ap (code_ k) [s_ k; prf]) r i bdy]
+             forall (fun i -> eq (s_ i) (s'_ i)), coe (lam ~ident:(Ident.machine "k") @@ fun k -> ap (code_ k) [s_ k; prf]) r i bdy]
         end
       @@ fun p_tilde ->
-      let_ ~ident:(`Machine "Q")
+      let_ ~ident:(Ident.machine "Q")
         begin
-          lam ~ident:(`Machine "j") @@ fun j ->
+          lam ~ident:(Ident.machine "j") @@ fun j ->
           lam @@ fun _ ->
-          let line = lam ~ident:(`Machine "k") @@ fun k -> ap (code_ r') [k; prf] in
+          let line = lam ~ident:(Ident.machine "k") @@ fun k -> ap (code_ r') [k; prf] in
           com line (s_ r') j (join [eq r r'; forall phi_]) @@
-          lam ~ident:(`Machine "k") @@ fun k ->
+          lam ~ident:(Ident.machine "k") @@ fun k ->
           lam @@ fun _ ->
           cof_split
             [eq k (s_ r'), p_tilde;
-             eq r r', coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) (s'_ r') k bdy;
+             eq r r', coe (lam ~ident:(Ident.machine "l") @@ fun l -> ap (code_ r') [l; prf]) (s'_ r') k bdy;
              forall phi_, ap n_tilde [r'; k; prf]]
         end
       @@ fun q_tilde ->
@@ -737,7 +737,7 @@ struct
           lam @@ fun _ ->
           cof_split
             [eq j (s_ r'), p_tilde;
-             phi_ r', coe (lam ~ident:(`Machine "l") @@ fun l -> ap (code_ r') [l; prf]) j (s_ r') (ap q_tilde [j; prf]);
+             phi_ r', coe (lam ~ident:(Ident.machine "l") @@ fun l -> ap (code_ r') [l; prf]) j (s_ r') (ap q_tilde [j; prf]);
              eq r r', ap o_tilde [j]]
         end
   end
@@ -746,45 +746,45 @@ end
 module Test =
 struct
   let closed_form_hcom_v =
-    lam ~ident:(`Machine "s") @@ fun v_r ->
-    lam ~ident:(`Machine "A") @@ fun v_pcode ->
-    lam ~ident:(`Machine "B") @@ fun v_code ->
-    lam ~ident:(`Machine "E") @@ fun v_pequiv ->
-    lam ~ident:(`Machine "r") @@ fun r ->
-    lam ~ident:(`Machine "r'") @@ fun r' ->
-    lam ~ident:(`Machine "φ") @@ fun phi ->
-    lam ~ident:(`Machine "M") @@ fun bdy ->
+    lam ~ident:(Ident.machine "s") @@ fun v_r ->
+    lam ~ident:(Ident.machine "A") @@ fun v_pcode ->
+    lam ~ident:(Ident.machine "B") @@ fun v_code ->
+    lam ~ident:(Ident.machine "E") @@ fun v_pequiv ->
+    lam ~ident:(Ident.machine "r") @@ fun r ->
+    lam ~ident:(Ident.machine "r'") @@ fun r' ->
+    lam ~ident:(Ident.machine "φ") @@ fun phi ->
+    lam ~ident:(Ident.machine "M") @@ fun bdy ->
     Kan.V.hcom_v ~v:{r = v_r; pcode = v_pcode; code = v_code; pequiv = v_pequiv} ~r ~r' ~phi ~bdy
 
   let closed_form_coe_v =
-    lam ~ident:(`Machine "s") @@ fun v_r ->
-    lam ~ident:(`Machine "A") @@ fun v_pcode ->
-    lam ~ident:(`Machine "B") @@ fun v_code ->
-    lam ~ident:(`Machine "E") @@ fun v_pequiv ->
-    lam ~ident:(`Machine "r") @@ fun r ->
-    lam ~ident:(`Machine "r'") @@ fun r' ->
-    lam ~ident:(`Machine "M") @@ fun bdy ->
+    lam ~ident:(Ident.machine "s") @@ fun v_r ->
+    lam ~ident:(Ident.machine "A") @@ fun v_pcode ->
+    lam ~ident:(Ident.machine "B") @@ fun v_code ->
+    lam ~ident:(Ident.machine "E") @@ fun v_pequiv ->
+    lam ~ident:(Ident.machine "r") @@ fun r ->
+    lam ~ident:(Ident.machine "r'") @@ fun r' ->
+    lam ~ident:(Ident.machine "M") @@ fun bdy ->
     Kan.V.coe_v ~v:{r = v_r; pcode = v_pcode; code = v_code; pequiv = v_pequiv} ~r ~r' ~bdy
 
   let closed_form_hcom_fhcom =
-    lam ~ident:(`Machine "s") @@ fun h_r ->
-    lam ~ident:(`Machine "s'") @@ fun h_r' ->
-    lam ~ident:(`Machine "ψ") @@ fun h_phi ->
-    lam ~ident:(`Machine "A") @@ fun h_bdy ->
-    lam ~ident:(`Machine "r") @@ fun r ->
-    lam ~ident:(`Machine "r'") @@ fun r' ->
-    lam ~ident:(`Machine "φ") @@ fun phi ->
-    lam ~ident:(`Machine "M") @@ fun bdy ->
+    lam ~ident:(Ident.machine "s") @@ fun h_r ->
+    lam ~ident:(Ident.machine "s'") @@ fun h_r' ->
+    lam ~ident:(Ident.machine "ψ") @@ fun h_phi ->
+    lam ~ident:(Ident.machine "A") @@ fun h_bdy ->
+    lam ~ident:(Ident.machine "r") @@ fun r ->
+    lam ~ident:(Ident.machine "r'") @@ fun r' ->
+    lam ~ident:(Ident.machine "φ") @@ fun phi ->
+    lam ~ident:(Ident.machine "M") @@ fun bdy ->
     Kan.FHCom.hcom_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~phi ~bdy
 
   let closed_form_coe_fhcom =
-    lam ~ident:(`Machine "s") @@ fun h_r ->
-    lam ~ident:(`Machine "s'") @@ fun h_r' ->
-    lam ~ident:(`Machine "φ") @@ fun h_phi ->
-    lam ~ident:(`Machine "A") @@ fun h_bdy ->
-    lam ~ident:(`Machine "r") @@ fun r ->
-    lam ~ident:(`Machine "r'") @@ fun r' ->
-    lam ~ident:(`Machine "M") @@ fun bdy ->
+    lam ~ident:(Ident.machine "s") @@ fun h_r ->
+    lam ~ident:(Ident.machine "s'") @@ fun h_r' ->
+    lam ~ident:(Ident.machine "φ") @@ fun h_phi ->
+    lam ~ident:(Ident.machine "A") @@ fun h_bdy ->
+    lam ~ident:(Ident.machine "r") @@ fun r ->
+    lam ~ident:(Ident.machine "r'") @@ fun r' ->
+    lam ~ident:(Ident.machine "M") @@ fun bdy ->
     Kan.FHCom.coe_fhcom ~fhcom:{r = h_r; r' = h_r'; phi = h_phi; bdy = h_bdy} ~r ~r' ~bdy
 
   let print_example () =

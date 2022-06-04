@@ -87,7 +87,7 @@ struct
     tm, tp
 
   let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a RM.m) -> 'a RM.m =
-    fun ?(ident = `Anon) tp kont ->
+    fun ?(ident = Ident.anon) tp kont ->
     RM.abstract ident tp @@ fun (con : D.con) ->
     kont @@ {tp; con}
 end

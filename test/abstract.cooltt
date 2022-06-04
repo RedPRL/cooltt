@@ -14,6 +14,7 @@ abstract
 def +0L : (x : nat) → path nat {+ 0 x} x :=
   x _ => x
 
+
 unfold [+]
 abstract def +SL : (x y : nat) → path nat {+ {suc x} y} {suc {+ x y}} :=
   x y _ => suc {+ x y}
@@ -86,7 +87,6 @@ def foo (p : path nat {+ 0 0} 0) : path {path nat {+ 0 0} 0} p {_ => 0} :=
 
 def two : nat := + 1 1
 
-abstract
 def test : path nat two 2 :=
   unfold [two,+] in
   i => 2
@@ -94,5 +94,6 @@ def test : path nat two 2 :=
 
 def test2 : path-p {i => path nat two {test i}} {_ => two} test :=
   i j =>
-  unfold [test,two,+] in
-  2
+  --unfold [test,two,+] in
+  unfold[two,+] in
+  ?

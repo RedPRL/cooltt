@@ -158,11 +158,11 @@ and execute_decl (decl : CS.decl) : command =
     Debug.print "Defining %a@." Ident.pp name;
 
     (* Unleash the unfolding dimension for the term component *)
-    let* unf_dim_sym =  
+    let* unf_dim_sym =
       match abstract, requiring, unfolding with 
       | false, [], [] -> RM.ret None 
       | _, _,_ ->
-        let+ var = RM.add_global ~unfolder:None ~requirements:None ~shadowing:false `Anon D.TpDim in 
+        let+ var = RM.add_global ~unfolder:None ~requirements:None ~shadowing:false (Ident.unfolder name) D.TpDim in 
         Some var
     in 
 
@@ -181,7 +181,7 @@ and execute_decl (decl : CS.decl) : command =
       requirement_dims @ unfolding_dims |> RMU.iter @@ fun dim ->
       let* cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_dim dim in 
       RMU.ignore @@
-      RM.add_global ~unfolder:None ~requirements:None ~shadowing:false `Anon @@ D.TpPrf cof
+      RM.add_global ~unfolder:None ~requirements:None ~shadowing:false Ident.anon @@ D.TpPrf cof
     in
 
     let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in 
@@ -202,7 +202,7 @@ and execute_decl (decl : CS.decl) : command =
 
     let* abstract_vtp = 
       let* vsub =
-        RM.abstract `Anon (D.TpPrf requirement_cof) @@ fun _ -> 
+        RM.abstract Ident.anon (D.TpPrf requirement_cof) @@ fun _ -> 
         let* tunf_cof = RM.quote_cof unf_cof in 
         let* vtp_body = RM.eval_tp ttp_body in 
         let* bdy = 
@@ -211,7 +211,7 @@ and execute_decl (decl : CS.decl) : command =
           RM.ret @@ S.Sub (ttp_body, tunf_cof, tm)
         in 
         RM.ret @@
-        S.Pi (S.TpPrf treq_cof, `Anon, bdy)
+        S.Pi (S.TpPrf treq_cof, Ident.anon, bdy)
       in
       RM.eval_tp vsub
     in 
@@ -251,10 +251,10 @@ and execute_decl (decl : CS.decl) : command =
       | _ ->
         let+ treqcof = RM.quote_cof requirement_cof 
         and+ bdy = 
-          RM.abstract `Anon (D.TpPrf requirement_cof) @@ fun _ -> 
+          RM.abstract Ident.anon (D.TpPrf requirement_cof) @@ fun _ -> 
           Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp 
         in
-        S.Pi (S.TpPrf treqcof, `Anon, bdy), Some requirement_syms
+        S.Pi (S.TpPrf treqcof, Ident.anon, bdy), Some requirement_syms
     in
 
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in

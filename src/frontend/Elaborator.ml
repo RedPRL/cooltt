@@ -145,7 +145,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     let n = List.length idents in
     let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
     let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [Ident.anon], {node = CS.CofSplit cases; info = None}); info = None} in
     CoolTp.ext n tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
@@ -311,7 +311,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       let n = List.length idents in
       let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
       let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
+      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [Ident.anon], {node = CS.CofSplit cases; info = None}); info = None} in
       R.Univ.ext n tac_fam tac_cof tac_bdry
 
 
@@ -386,14 +386,14 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
   | CS.HFill (code, src, cof, tm) ->
     let code_tac = chk_tm code in
     let tac =
-      R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
+      R.Pi.intro ~ident:(Ident.machine "i") @@ fun i ->
       Tactics.intro_implicit_connectives @@
       T.Chk.syn @@
       Tactics.elim_implicit_connectives @@
       R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
     in
     T.Syn.ann tac @@
-    R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
+    R.Pi.formation R.Dim.formation (Ident.anon, fun _ -> R.El.formation code_tac)
   | CS.Com (fam, src, trg, cof, tm) ->
     R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
   | CS.Equations {code; eqns} ->

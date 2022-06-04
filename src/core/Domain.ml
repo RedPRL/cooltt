@@ -24,16 +24,16 @@ struct
     Clo (S.Ap (S.Var 1, S.Var 0), {tpenv = Emp; conenv = Snoc (Emp, con)})
 
   let compose f g =
-    Lam (`Anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
+    Lam (Ident.anon, Clo (S.Ap (S.Var 2, S.Ap (S.Var 1, S.Var 0)), {tpenv = Emp; conenv = Snoc (Snoc (Emp, f), g)}))
 
   let apply_to x =
     Clo (S.Ap (S.Var 0, S.Var 1), {tpenv = Emp; conenv = Snoc (Emp, x)})
 
-  let fst = Lam (`Anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
-  let snd = Lam (`Anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
+  let fst = Lam (Ident.anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
+  let snd = Lam (Ident.anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
-  let proj lbl = Lam (`Anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = Emp; conenv = Emp}))
-  let el_out = Lam (`Anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
+  let proj lbl = Lam (Ident.anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = Emp; conenv = Emp}))
+  let el_out = Lam (Ident.anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
   let tm_abort = Split []
   let tp_abort = TpSplit []

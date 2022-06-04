@@ -39,29 +39,6 @@ let json_to_bwd json_to_el : J.value -> 'a bwd =
 
 let labeled lbl v = `A (`String lbl :: v)
 
-(* Identitifers *)
-let json_of_user =
-  function
-  | `User path -> `A (List.map J.string path)
-
-let json_to_user : J.value -> [> `User of string list] =
-  function
-  | `A path -> `User (List.map J.get_string path)
-  | j -> J.parse_error j "json_to_path"
-
-let json_of_ident : Ident.t -> J.value =
-  function
-  | `Anon -> `String "anon"
-  | `User _ as u -> `O [("user", json_of_user u)]
-  | `Machine str -> `O [("machine", `String str)]
-
-let json_to_ident : J.value -> Ident.t =
-  function
-  | `String "anon" -> `Anon
-  | `O [("user", parts)] -> json_to_user parts
-  | `O [("machine", `String str)] -> `Machine str
-  | j -> J.parse_error j "json_to_ident"
-
 let json_of_labeled json_of_el els : J.value =
   `O (List.map (fun (`User path, el) -> (String.concat "::" path, json_of_el el)) els)
 
@@ -110,7 +87,7 @@ struct
     function
     | S.Var n -> labeled "var" [json_of_int n]
     | S.Global sym -> labeled "global" [Global.serialize sym]
-    | S.Let (tm, nm, body) -> labeled "let" [json_of_tm tm; json_of_ident nm; json_of_tm body]
+    | S.Let (tm, nm, body) -> labeled "let" [json_of_tm tm; Ident.json_of_ident nm; json_of_tm body]
     | S.Ann (tm, tp) -> labeled "ann" [json_of_tm tm; json_of_tp tp]
     | S.Zero -> `String "zero"
     | S.Suc tm -> labeled "suc" [json_of_tm tm]
@@ -118,13 +95,13 @@ struct
     | S.Base -> `String "base"
     | S.Loop tm -> labeled "loop" [json_of_tm tm]
     | S.CircleElim (mot, base, loop, scrut) -> labeled  "circle_elim" [json_of_tm mot; json_of_tm base; json_of_tm loop; json_of_tm scrut]
-    | S.Lam (nm, body) -> labeled "lam" [json_of_ident nm; json_of_tm body]
+    | S.Lam (nm, body) -> labeled "lam" [Ident.json_of_ident nm; json_of_tm body]
     | S.Ap (tm0, tm1) -> labeled "ap" [json_of_tm tm0; json_of_tm tm1]
     | S.Pair (tm0, tm1) -> labeled "pair" [json_of_tm tm0; json_of_tm tm1]
     | S.Fst tm -> labeled "fst" [json_of_tm tm]
     | S.Snd tm -> labeled "snd" [json_of_tm tm]
     | S.Struct strct -> labeled "struct" [json_of_labeled json_of_tm strct]
-    | S.Proj (tm, path) -> labeled "proj" [json_of_tm tm; json_of_user path]
+    | S.Proj (tm, path) -> labeled "proj" [json_of_tm tm; Ident.json_of_user path]
     | S.Coe (fam, src, trg, tm) -> labeled "coe" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm tm]
     | S.HCom (code, src, trg, cof, tm) -> labeled "hcom" [json_of_tm code; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm]
     | S.Com (fam, src, trg, cof, tm) -> labeled "com" [json_of_tm fam; json_of_tm src; json_of_tm trg; json_of_tm cof; json_of_tm tm]
@@ -170,8 +147,8 @@ struct
     | S.TpPrf tm -> labeled "prf" [json_of_tm tm]
     | S.TpCofSplit branches -> labeled "split" @@ List.map (fun (cof, tp) -> json_of_pair (json_of_tm cof) (json_of_tp tp)) branches
     | S.Sub (tp, tphi, tm) -> labeled "sub" [json_of_tp tp; json_of_tm tphi; json_of_tm tm]
-    | S.Pi (base, nm, fib) -> labeled "pi" [json_of_tp base; json_of_ident nm; json_of_tp fib ]
-    | S.Sg (base, nm, fib) -> labeled "sg" [json_of_tp base; json_of_ident nm; json_of_tp fib ]
+    | S.Pi (base, nm, fib) -> labeled "pi" [json_of_tp base; Ident.json_of_ident nm; json_of_tp fib ]
+    | S.Sg (base, nm, fib) -> labeled "sg" [json_of_tp base; Ident.json_of_ident nm; json_of_tp fib ]
     | S.Signature sign -> labeled "sign" [json_of_sign sign]
     | S.Nat -> `String "nat"
     | S.Circle -> `String "circle"
@@ -181,7 +158,7 @@ struct
     fun sign -> json_of_labeled json_of_tp sign
 
   let json_of_ctx ctx : J.value =
-    `A (List.map (fun (nm, tp) -> json_of_pair (json_of_ident nm) (json_of_tp tp)) ctx)
+    `A (List.map (fun (nm, tp) -> json_of_pair (Ident.json_of_ident nm) (json_of_tp tp)) ctx)
 
   let rec json_to_tm : J.value -> S.t =
     function
@@ -191,7 +168,7 @@ struct
       S.Global sym
     | `A [`String "let"; j_tm; j_nm; j_body] ->
       let tm = json_to_tm j_tm in
-      let nm = json_to_ident j_nm in
+      let nm = Ident.json_to_ident j_nm in
       let body = json_to_tm j_body in
       S.Let (tm, nm, body)
     | `A [`String "ann"; j_tm; j_tp] ->
@@ -219,7 +196,7 @@ struct
       let scrut = json_to_tm j_scrut in
       S.CircleElim (mot, base, loop, scrut)
     | `A [`String "lam"; j_nm; j_body] ->
-      let nm = json_to_ident j_nm in
+      let nm = Ident.json_to_ident j_nm in
       let body = json_to_tm j_body in
       S.Lam (nm, body)
     | `A [`String "ap"; j_tm0; j_tm1] ->
@@ -241,7 +218,7 @@ struct
       S.Struct strct
     | `A [`String "proj"; j_tm; j_path] ->
       let tm = json_to_tm j_tm in
-      let path = json_to_user j_path in
+      let path = Ident.json_to_user j_path in
       S.Proj (tm, path)
     | `A [`String "coe"; j_fam; j_src; j_trg; j_tm] ->
       let fam = json_to_tm j_fam in
@@ -385,12 +362,12 @@ struct
       S.Sub (tp, phi, tm)
     | `A [`String "pi"; j_base; j_nm; j_fib] ->
       let base = json_to_tp j_base in
-      let nm = json_to_ident j_nm in
+      let nm = Ident.json_to_ident j_nm in
       let fib = json_to_tp j_fib in
       S.Pi (base, nm, fib)
     | `A [`String "sg"; j_base; j_nm; j_fib] ->
       let base = json_to_tp j_base in
-      let nm = json_to_ident j_nm in
+      let nm = Ident.json_to_ident j_nm in
       let fib = json_to_tp j_fib in
       S.Pi (base, nm, fib)
     | `A [`String "sign"; j_sign] ->
@@ -410,7 +387,7 @@ struct
   let json_to_ctx : J.value -> (Ident.t * S.tp) list =
     function
     | `A j_ctx -> j_ctx |> List.map @@ fun binding ->
-      json_to_pair json_to_ident json_to_tp binding
+      json_to_pair Ident.json_to_ident json_to_tp binding
     | j -> J.parse_error j "Syntax.json_to_ctx"
 end
 
@@ -418,7 +395,7 @@ module Domain =
 struct
   let rec json_of_con : D.con -> J.value =
     function
-    | Lam (ident, clo) -> labeled "lam" [json_of_ident ident; json_of_tm_clo clo]
+    | Lam (ident, clo) -> labeled "lam" [Ident.json_of_ident ident; json_of_tm_clo clo]
     | BindSym (dim_probe, con) -> labeled "bind_sym" [DimProbe.serialize dim_probe; json_of_con con]
     | LetSym (dim, dim_probe, con) -> labeled "let_sym" [json_of_dim dim; DimProbe.serialize dim_probe; json_of_con con]
     | Cut {tp; cut} -> labeled "cut" [json_of_tp tp; json_of_cut cut]
@@ -483,8 +460,8 @@ struct
     | TpCof -> `String "tp_cof"
     | TpPrf cof -> labeled "tp_prf" [json_of_cof cof]
     | TpSplit branches -> labeled "tp_split" (json_of_alist json_of_cof json_of_tp_clo branches)
-    | Pi (tp, ident, clo) -> labeled "pi" [json_of_tp tp; json_of_ident ident; json_of_tp_clo clo]
-    | Sg (tp, ident, clo) -> labeled "sg" [json_of_tp tp; json_of_ident ident; json_of_tp_clo clo]
+    | Pi (tp, ident, clo) -> labeled "pi" [json_of_tp tp; Ident.json_of_ident ident; json_of_tp_clo clo]
+    | Sg (tp, ident, clo) -> labeled "sg" [json_of_tp tp; Ident.json_of_ident ident; json_of_tp_clo clo]
     | Signature sign -> labeled "signature" [json_of_sign sign]
     | Nat -> `String "nat"
     | Circle -> `String "circle"
@@ -492,7 +469,7 @@ struct
   and json_of_sign : D.sign -> J.value =
     function
     | D.Empty -> `String "empty"
-    | D.Field (lbl, tp, clo) -> labeled "field" [json_of_user lbl; json_of_tp tp; json_of_sign_clo clo]
+    | D.Field (lbl, tp, clo) -> labeled "field" [Ident.json_of_user lbl; json_of_tp tp; json_of_sign_clo clo]
 
   and json_of_hd : D.hd -> J.value =
     function
@@ -506,7 +483,7 @@ struct
     | D.KAp (tp, con) -> labeled "k_ap" [json_of_tp tp; json_of_con con]
     | D.KFst -> `String "k_fst"
     | D.KSnd -> `String "k_snd"
-    | D.KProj lbl -> labeled "k_proj" [json_of_user lbl]
+    | D.KProj lbl -> labeled "k_proj" [Ident.json_of_user lbl]
     | D.KNatElim (mot, z, s) -> labeled "k_nat_elim" [json_of_con mot; json_of_con z; json_of_con s]
     | D.KCircleElim (mot, b, l) -> labeled "k_circle_elim" [json_of_con mot; json_of_con b; json_of_con l]
     | D.KElOut -> `String "k_el_out"
@@ -543,7 +520,7 @@ struct
 
   let rec json_to_con : J.value -> D.con =
     function
-    | `A [`String "lam"; j_ident; j_clo] -> Lam (json_to_ident j_ident, json_to_tm_clo j_clo)
+    | `A [`String "lam"; j_ident; j_clo] -> Lam (Ident.json_to_ident j_ident, json_to_tm_clo j_clo)
     | `A [`String "bind_sym"; j_dim_probe; j_con] -> BindSym (DimProbe.deserialize j_dim_probe, json_to_con j_con)
     | `A [`String "let_sym"; j_dim; j_dim_probe; j_con] -> LetSym (json_to_dim j_dim, DimProbe.deserialize j_dim_probe, json_to_con j_con)
     | `A [`String "cut"; j_tp; j_cut] -> Cut {tp = json_to_tp j_tp; cut = json_to_cut j_cut}
@@ -618,8 +595,8 @@ struct
     | `String "tp_cof" -> TpCof
     | `A [`String "tp_prf"; j_cof] -> TpPrf (json_to_cof j_cof)
     | `A (`String "tp_split" :: j_branches) -> TpSplit (json_to_alist json_to_cof json_to_tp_clo j_branches)
-    | `A [`String "pi"; j_tp; j_ident; j_clo] -> Pi (json_to_tp j_tp, json_to_ident j_ident, json_to_tp_clo j_clo)
-    | `A [`String "sg"; j_tp; j_ident; j_clo] -> Sg (json_to_tp j_tp, json_to_ident j_ident, json_to_tp_clo j_clo)
+    | `A [`String "pi"; j_tp; j_ident; j_clo] -> Pi (json_to_tp j_tp, Ident.json_to_ident j_ident, json_to_tp_clo j_clo)
+    | `A [`String "sg"; j_tp; j_ident; j_clo] -> Sg (json_to_tp j_tp, Ident.json_to_ident j_ident, json_to_tp_clo j_clo)
     | `A [`String "signature"; j_sign] -> Signature (json_to_sign j_sign)
     | `String "nat" -> Nat
     | `String "circle" -> Circle
@@ -628,7 +605,7 @@ struct
   and json_to_sign : J.value -> D.sign =
     function
     | `String "empty" -> Empty
-    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (json_to_user j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
+    | `A [`String "field"; j_lbl; j_tp; j_clo] -> Field (Ident.json_to_user j_lbl, json_to_tp j_tp, json_to_sign_clo j_clo)
     | j -> J.parse_error j "Domain.json_to_sign"
 
   and json_to_hd : J.value -> D.hd =
@@ -644,7 +621,7 @@ struct
     | `A [`String "k_ap"; j_tp; j_con] -> KAp (json_to_tp j_tp, json_to_con j_con)
     | `String "k_fst" -> KFst
     | `String "k_snd" -> KSnd
-    | `A [`String "k_proj"; j_lbl] -> KProj (json_to_user j_lbl)
+    | `A [`String "k_proj"; j_lbl] -> KProj (Ident.json_to_user j_lbl)
     | `A [`String "k_nat_elim"; j_mot; j_z; j_s] -> KNatElim (json_to_con j_mot, json_to_con j_z, json_to_con j_s)
     | `A [`String "k_circle_elim"; j_mot; j_b; j_l] -> KCircleElim (json_to_con j_mot, json_to_con j_b, json_to_con j_l)
     | `String "k-el_out" -> KElOut
@@ -700,14 +677,14 @@ let deserialize_goal : J.t -> ((Ident.t * S.tp) list * S.tp) =
   | j -> J.parse_error (J.value j) "deserialize_goal"
 
 let serialize_bindings (bindings : (Ident.t * D.tp * D.con option) list) : J.t =
-  `A (List.map (fun (nm, tp, con) -> `A [json_of_ident nm; Domain.json_of_tp tp; J.option Domain.json_of_con con]) bindings)
+  `A (List.map (fun (nm, tp, con) -> `A [Ident.json_of_ident nm; Domain.json_of_tp tp; J.option Domain.json_of_con con]) bindings)
 
 let deserialize_bindings : J.t -> (Ident.t * D.tp * D.con option) list =
   function
   | `A j_bindings -> j_bindings |> List.map @@
     begin
       function
-      | `A [j_nm; j_tp; j_con] -> (json_to_ident j_nm, Domain.json_to_tp j_tp, J.get_option Domain.json_to_con j_con)
+      | `A [j_nm; j_tp; j_con] -> (Ident.json_to_ident j_nm, Domain.json_to_tp j_tp, J.get_option Domain.json_to_con j_con)
       | j -> J.parse_error j "deserialize_bindings"
     end
   | j -> J.parse_error (J.value j) "deserialize_bindings"

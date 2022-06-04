@@ -464,7 +464,7 @@ and equate_unstable_cut (cut0, ufrm0) (cut1, ufrm1) =
 and equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1) =
   let* () = equate_dim r0 r1 in
   let* () =
-    let pcode_tp = D.Pi (D.TpPrf (CofBuilder.eq0 r0), `Anon, D.const_tp_clo D.Univ) in
+    let pcode_tp = D.Pi (D.TpPrf (CofBuilder.eq0 r0), Ident.anon, D.const_tp_clo D.Univ) in
     equate_con pcode_tp pcode0 pcode1
   in
   let* () = equate_con D.Univ code0 code1 in
