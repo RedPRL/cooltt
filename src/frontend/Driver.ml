@@ -24,7 +24,7 @@ type command = continuation RM.m
 (* Refinement Helpers *)
 
 let elaborate_typed_term _name (args : CS.cell list) (tp : CS.con) (tm : CS.con) =
-  let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in 
+  let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in 
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
   let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
