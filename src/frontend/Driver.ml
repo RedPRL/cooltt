@@ -171,14 +171,14 @@ and execute_decl (decl : CS.decl) : command =
       | None -> RM.ret D.Dim1
       | Some var -> RM.eval @@ S.Global var
     in
+
     let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
     let* unfolding_dims =  unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
 
     let* _ =
       unfolding_dims |> RMU.iter @@ fun dim ->
       let* cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_dim dim in
-      RMU.ignore @@
-      RM.add_global ~unfolder:None ~shadowing:false Ident.anon @@ D.TpPrf cof
+      RMU.ignore @@ RM.add_global ~unfolder:None ~shadowing:false Ident.anon @@ D.TpPrf cof
     in
 
     let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in
