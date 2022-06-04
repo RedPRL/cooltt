@@ -18,11 +18,20 @@ struct
     { origin : CodeUnitID.t;
       index : int;
       name : string option;
-      guarded : bool }
+      unfolder : t option;
+      requirements : t list}
   [@@deriving show]
 
   let is_guarded s =
-    s.guarded
+    match s.requirements with 
+    | [] -> false 
+    | _ -> true
+
+  let unfolder s = 
+    s.unfolder 
+
+  let requirements s = 
+    s.requirements 
 
   let compare s1 s2 =
     Int.compare s1.index s2.index
@@ -37,17 +46,19 @@ struct
     | None ->
       Format.fprintf fmt "#%i" sym.index
 
-  let serialize sym =
+  let rec serialize sym =
     `O [("origin", J.option J.string @@ sym.origin);
         ("index", `String (Int.to_string sym.index));
-        ("guarded", `Bool sym.guarded);
+        ("unfolder", J.option serialize sym.unfolder);
+        ("requirements", J.list serialize sym.requirements);
         ("name", J.option J.string @@ sym.name) ]
 
-  let deserialize : J.value -> t =
+  let rec deserialize : J.value -> t =
     function
-    | `O [("origin", j_origin); ("index", j_index); ("guarded", j_guarded); ("name", j_name)] ->
+    | `O [("origin", j_origin); ("index", j_index); ("unfolder", j_unfolder); ("requirements", j_requirements); ("name", j_name)] ->
       { origin = J.get_option J.get_string j_origin;
-        guarded = J.get_bool j_guarded;
+        unfolder = J.get_option deserialize j_unfolder;
+        requirements = J.get_list deserialize j_requirements;
         index = int_of_string @@ J.get_string j_index;
         name = J.get_option J.get_string j_name }
     | j -> J.parse_error j "Global.deserialize"
@@ -65,8 +76,6 @@ struct
   type t =
     { (* The name of the code unit.  *)
       id : id;
-      unfolder : t option;
-      requirements : t list;
       (* All the top-level bindings for this code unit. *)
       symbol_table :  Domain.tp Vector.vector }
 
@@ -76,14 +85,12 @@ struct
 
   let create id =
     { id = id;
-      unfolder = None; 
-      requirements = [];
       symbol_table = Vector.create () }
 
-  let add_global ~guarded ident tp code_unit =
+  let add_global ~unfolder ~requirements ident tp code_unit =
     let index = Vector.length code_unit.symbol_table in
     let _ = Vector.push code_unit.symbol_table tp in
-    let sym = { Global.origin = code_unit.id; guarded; index; name = Ident.to_string_opt ident } in
+    let sym = { Global.origin = code_unit.id; unfolder; requirements; index; name = Ident.to_string_opt ident } in
     (sym, code_unit)
 
   let get_global (sym : Global.t) code_unit =

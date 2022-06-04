@@ -711,7 +711,7 @@ holes.cooltt:8.27-8.28 [Info]:
     p : (_x : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#3 A p q i 1}
+    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 A p q i 1}
 
 
 holes.cooltt:8.7-8.35 [Info]:
@@ -720,7 +720,7 @@ holes.cooltt:8.7-8.35 [Info]:
     p : (_x : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler A {#3 A p q i} {#4 A p q i} 1 i !} : A
+    |- {! trans/filler A {#2 A p q i} {#3 A p q i} 1 i !} : A
     
     Boundary (unsatisfied):
     i = 0 ∨ i = 1
@@ -767,7 +767,7 @@ holes.cooltt:18.26-18.30 [Info]:
 
 holes.cooltt:18.7-18.30 [Info]:
   fail cone-of-silence-hcom:
-  Expected #14 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+  Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
 
 [Warn]:  There are 7 unsolved holes
 
@@ -1443,8 +1443,8 @@ hlevel.cooltt:33.11-33.16 [Info]:
 unfold.cooltt:27.11-27.12 [Info]:
   Computed normal form of + as +
 
-unfold.cooltt:53.11-53.12 [Info]:
-  Computed normal form of + as +
+unfold.cooltt:53.11-53.13 [Info]:
+  Computed normal form of +R as +R
 
 unfold.cooltt:57.11-57.22 [Info]:
   Computed normal form of +R-unfolded as

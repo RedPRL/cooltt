@@ -160,7 +160,7 @@ and execute_decl (decl : CS.decl) : command =
     let* unf_dim = 
       if abstract then 
         (* TODO: need to be able to look these up later *)
-        let* var = RM.add_global ~guarded:false ~shadowing:false (`Machine "unf_tm") D.TpDim in 
+        let* var = RM.add_global ~unfolder:None ~requirements:[] ~shadowing:false (`Machine "unf_tm") D.TpDim in 
         RM.lift_ev @@ Sem.eval @@ S.Global var
       else 
         RM.ret D.Dim1
@@ -178,7 +178,7 @@ and execute_decl (decl : CS.decl) : command =
     in
 
     (* TODO: Make it guarded *)
-    let+ _ = RM.add_global ~guarded:false ~shadowing name vtp_sub in
+    let+ _ = RM.add_global ~unfolder:None ~requirements:[] ~shadowing name vtp_sub in
     Continue
 
   | CS.Axiom {shadowing; name; args; tp; requiring} ->
@@ -190,7 +190,7 @@ and execute_decl (decl : CS.decl) : command =
     in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     (* TODO: make it guarded? *)
-    let* _ = RM.add_global ~guarded:false ~shadowing name vtp in
+    let* _ = RM.add_global ~unfolder:None ~requirements:[] ~shadowing name vtp in
     RM.ret Continue
 
   | CS.NormalizeTerm term ->

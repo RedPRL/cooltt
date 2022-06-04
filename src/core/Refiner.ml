@@ -153,7 +153,7 @@ struct
         | None -> `Anon
         | Some str -> `Machine ("?" ^ str)
       in
-      RM.add_global ~guarded:false ~shadowing:true ident vtp
+      RM.add_global ~unfolder:None ~requirements:[] ~shadowing:true ident vtp
     in
 
     let* () = RM.inc_num_holes in
@@ -1163,7 +1163,7 @@ struct
         Splice.term @@ 
         TB.sub vtp TB.top @@ fun _ -> vtm 
       in
-      let* sym = RM.add_global ~guarded:false ~shadowing:true `Anon tp_sub in
+      let* sym = RM.add_global ~unfolder:None ~requirements:[] ~shadowing:true `Anon tp_sub in
       RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
     in
     let+ tcut = RM.quote_cut cut in 
