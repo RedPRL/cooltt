@@ -58,3 +58,14 @@ axiom nat∷is-set : is-set nat
 require [+] in
 def foo (p : path nat {+ 0 0} 0) : path {path nat {+ 0 0} 0} p {_ => 0} :=
   nat∷is-set 0 0 p {_ => 0}
+
+
+-- A simple example for Daniel G.
+
+def two : nat := + 1 1
+#fail bad : path nat two 2 := i => 2
+
+unfold [two, +] in
+def test : path nat two 2 :=
+  i => 2
+
