@@ -3,6 +3,8 @@ open Basis
 module J = Ezjsonm
 
 type t = [`Anon | `User of string list | `Machine of string | `Unfolder of t | `Blocked of t list]
+
+(* Jon says: I do not like this type!  *)
 type 'a some = 'a constraint 'a = [< t ]
 type user = [ `User of string list ]
 
