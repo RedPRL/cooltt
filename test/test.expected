@@ -1,7 +1,4 @@
 --------------------[abstract.cooltt]--------------------
-abstract.cooltt:3.7-3.10 [Info]:
-  two : (_x : [ ⊤ ]) → sub nat {unf_tm = 1} 2
-
 --------------------[base-types.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.21 [Info]:
@@ -1510,14 +1507,11 @@ section.cooltt:5.7-5.17 [Info]:
 section.cooltt:11.7-11.9 [Info]:
   a2 : (_x : [ ⊤ ]) → sub nat ⊤ 10
 
-section.cooltt:18.7-18.9 [Info]:
-  a3 : (_x : [ ⊤ ]) → sub nat ⊤ 30
-
-section.cooltt:24.7-24.13 [Info]:
+section.cooltt:28.7-28.13 [Info]:
   x4∷b4 : (_x : [ ⊤ ]) → sub nat ⊤ 40
 
 Emitted namespace under ∷
-  ? = { a2 => a2; a3 => a3; x1∷y1∷a1 => a1; x4∷b4 => a4 }
+  ? = { a2 => a2; x1∷y1∷a1 => a1; x4∷b4 => a4 }
 
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.11-8.18 [Info]:

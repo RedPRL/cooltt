@@ -151,19 +151,29 @@ and import_unit ~shadowing path modifier : command =
     let+ () = RM.import ~shadowing modifier (CodeUnitID.file src) in
     Continue
 
+and resolve_unfolder_syms (idents : Ident.t CS.node list) = 
+  let* st = RM.get in 
+  let resolve_global (i : Ident.t CS.node) = 
+    match ST.resolve_global i.node st with
+    | Some sym -> RM.ret @@ Global.unfolder sym
+    | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
+  in
+  RMU.filter_map resolve_global idents
+
+
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
-  | CS.Def {abstract; shadowing; name; args; def; tp; requiring; unfolding = _} ->
+  | CS.Def {abstract; shadowing; name; args; def; tp; requiring; unfolding} ->
     Debug.print "Defining %a@." Ident.pp name;
 
     (* Unleash the unfolding dimension for the term component *)
     let* unf_dim_sym =  
-      match abstract with 
-      | false -> RM.ret None 
-      | true ->
-        let+ var = RM.add_global ~unfolder:None ~requirements:None ~shadowing:false (`Machine "unf_tm") D.TpDim in 
-        Some var 
+      match abstract, requiring, unfolding with 
+      | false, [], [] -> RM.ret None 
+      | _, _,_ ->
+        let+ var = RM.add_global ~unfolder:None ~requirements:None ~shadowing:false `Anon D.TpDim in 
+        Some var
     in 
 
     let* unf_dim =
@@ -172,23 +182,13 @@ and execute_decl (decl : CS.decl) : command =
       | Some var -> RM.eval @@ S.Global var
     in 
 
-    let* requirement_syms =
-      let* st = RM.get in 
-      let resolve_global (i : Ident.t CS.node) = 
-        match ST.resolve_global i.node st with
-        | Some sym -> RM.ret @@ Global.unfolder sym
-        | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
-      in
-      RMU.filter_map resolve_global requiring
-    in
-
-    let* requirement_dims = 
-      requirement_syms |> RMU.map @@ fun sym -> 
-      RM.eval @@ S.Global sym
-    in
+    let* requirement_syms = resolve_unfolder_syms requiring in
+    let* unfolding_syms = resolve_unfolder_syms unfolding in
+    let* requirement_dims =  requirement_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+    let* unfolding_dims =  unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
 
     let* _ = 
-      requirement_dims |> RMU.iter @@ fun dim ->
+      requirement_dims @ unfolding_dims |> RMU.iter @@ fun dim ->
       let* cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_dim dim in 
       RMU.ignore @@
       RM.add_global ~unfolder:None ~requirements:None ~shadowing:false `Anon @@ D.TpPrf cof

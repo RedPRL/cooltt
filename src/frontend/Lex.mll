@@ -69,6 +69,8 @@ let keywords =
     ("cap", CAP);
     ("with", WITH);
     ("import", IMPORT []);
+    ("require", REQUIRE);
+    ("unfold", UNFOLD);
     ("📥", IMPORT []);
     ("begin", BEGIN);
     ("▶️", BEGIN);

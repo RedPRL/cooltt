@@ -1,3 +1,48 @@
-abstract def two : nat := 2
+import prelude
 
-#print two
+
+abstract
+def + : nat → nat → nat :=
+  elim [
+    | zero => n => n
+    | suc {_ => ih} => n => suc {ih n}
+  ]
+
+unfold [+] in
+abstract
+def +R : (x : nat) → path nat {+ x 0} x :=
+  elim [
+  | zero =>
+    _ => 0
+  | suc {y => ih} =>
+    i => suc {ih i} -- suc {ih i}
+  ]
+
+unfold [+] in
+abstract def +L : (x : nat) → path nat {+ 0 x} x :=
+  x i => x
+
+unfold [+] in
+abstract def +S : (x y : nat) → path nat {+ {suc x} y} {suc {+ x y}} :=
+  x y _ => suc {+ x y}
+
+abstract
+def +A : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
+  elim [
+  | zero =>
+    y z =>
+    equation nat begin
+      + {+ 0 y} z =[ i => + {+L y i} z ]
+      + y z =[ symm nat {+L {+ y z}} ]
+      + 0 {+ y z}
+    end
+  | suc {x => ih} =>
+    y z =>
+    equation nat begin
+      + {+ {suc x} y} z =[ i => + {+S x y i} z ]
+      + {suc {+ x y}} z =[ +S {+ x y} z ]
+      suc {+ {+ x y} z} =[ i => suc {ih y z i} ]
+      suc {+ x {+ y z}} =[ symm nat {+S x {+ y z}} ]
+      + {suc x} {+ y z}
+    end
+  ]
