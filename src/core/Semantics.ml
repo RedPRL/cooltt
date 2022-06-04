@@ -769,7 +769,7 @@ and should_unfold_symbol style _sym = (* TODO: get rid of argument *)
   | `UnfoldNone ->
     false
   | `UnfoldAll -> true
-  | `Veil `Transparent -> true 
+  | `Veil `Transparent -> true
   | `Veil `Translucent -> false
 
 and whnf_hd ~style hd =

@@ -31,9 +31,9 @@ let resolve id =
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
 
-let resolve_unfolder_syms (idents : Ident.t list) = 
-  let* st = get in 
-  let resolve_global (i : Ident.t) = 
+let resolve_unfolder_syms (idents : Ident.t list) =
+  let* st = get in
+  let resolve_global (i : Ident.t) =
     match St.resolve_global i st with
     | Some sym -> ret @@ Global.unfolder sym
     | _ -> throw @@ Err.RefineError (Err.UnboundVariable i, None) (* TODO: source location? *)

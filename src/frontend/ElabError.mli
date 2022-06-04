@@ -1,4 +1,4 @@
-open Basis 
+open Basis
 open Core
 
 open CodeUnit

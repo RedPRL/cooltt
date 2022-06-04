@@ -31,13 +31,13 @@ let rec pp fmt =
     Format.fprintf fmt "blocked[%a]" (Format.pp_print_list ~pp_sep:comma pp) ts
 
 let to_string i =
-  let _ = Format.flush_str_formatter () in 
+  let _ = Format.flush_str_formatter () in
   Format.fprintf Format.str_formatter "%a" pp i ;
   Format.flush_str_formatter ()
 
 let to_string_opt : t -> string option =
   function
-  | `Anon -> None 
+  | `Anon -> None
   | i -> Some (to_string i)
 
 let user_to_string_opt =

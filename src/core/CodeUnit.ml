@@ -25,7 +25,7 @@ struct
   let is_guarded s =
     s.guarded
 
-  let unfolder s = 
+  let unfolder s =
     s.unfolder
 
   let compare s1 s2 =

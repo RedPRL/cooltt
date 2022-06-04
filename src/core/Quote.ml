@@ -559,7 +559,7 @@ and quote_cof phi =
       | K.Le (r, s) ->
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
-        S.CofBuilder.le tr ts  
+        S.CofBuilder.le tr ts
       | K.Join phis ->
         let+ tphis = MU.map go phis in
         S.CofBuilder.join tphis

@@ -1095,16 +1095,16 @@ struct
       S.Var ix, tp
     | `Global sym when Global.is_guarded sym ->
       let* tp = RM.get_global sym in
-      begin 
-        match tp with 
+      begin
+        match tp with
         | D.Pi (D.TpPrf _ as prf_tp, _, tp_clo) ->
           let* prf = T.Chk.run Prf.intro prf_tp in
-          let* vprf = RM.eval prf in 
-          let* tp = RM.lift_cmp @@ Sem.inst_tp_clo tp_clo vprf in 
+          let* vprf = RM.eval prf in
+          let* tp = RM.lift_cmp @@ Sem.inst_tp_clo tp_clo vprf in
           RM.ret (S.Ap (S.Global sym, prf), tp)
-        | _ -> 
+        | _ ->
           RM.with_pp @@ fun ppenv ->
-          let* tp = RM.quote_tp tp in 
+          let* tp = RM.quote_tp tp in
           (* TODO: a better error message. *)
           RM.refine_err @@ Err.ExpectedConnective (`Pi, ppenv, tp)
       end
@@ -1143,9 +1143,9 @@ struct
     let* unfolding_syms = RM.resolve_unfolder_syms unfoldings in
 
     let* unfolding_cof =
-      let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in 
+      let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
       RM.lift_cmp @@
-      Sem.con_to_cof @@ 
+      Sem.con_to_cof @@
       D.CofBuilder.meet @@
       List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
     in
@@ -1153,29 +1153,29 @@ struct
     let* cut =
       RM.globally @@
       let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
-      let* vtp = RM.lift_ev @@ Sem.eval_tp tp in 
+      let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let* tp_of_goal =
         RM.lift_cmp @@ Sem.splice_tp @@
         Splice.tp vtp @@ fun vtp ->
-        Splice.cof unfolding_cof @@ fun cof -> 
+        Splice.cof unfolding_cof @@ fun cof ->
         Splice.term @@ TB.pi (TB.tp_prf cof) @@ fun _ -> vtp
       in
       let* vdef =
         let* tm = tp_of_goal |> T.Chk.run @@ Pi.intro @@ fun _ -> intros cells_fwd tac in
         RM.lift_ev @@ Sem.eval tm
       in
-      let* tp_sub = 
+      let* tp_sub =
         RM.lift_cmp @@ Sem.splice_tp @@
         Splice.tp vtp @@ fun vtp ->
         Splice.con vdef @@ fun vtm ->
-        Splice.cof unfolding_cof @@ fun cof -> 
+        Splice.cof unfolding_cof @@ fun cof ->
         Splice.term @@ TB.sub vtp cof @@ fun prf -> TB.ap vtm [prf]
       in
       let* sym = RM.add_global ~unfolder:None ~guarded:false ~shadowing:true (Ident.blocked unfoldings) tp_sub in
-      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unfolding_cof, D.const_tm_clo vdef)) in 
+      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unfolding_cof, D.const_tm_clo vdef)) in
       RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
     in
-    let+ tm = RM.quote_cut cut in 
+    let+ tm = RM.quote_cut cut in
     S.SubOut tm
 
   let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
@@ -1213,16 +1213,16 @@ struct
         let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
-      let* tp_sub = 
+      let* tp_sub =
         RM.lift_cmp @@ Sem.splice_tp @@
         Splice.tp global_tp @@ fun vtp ->
-        Splice.con vdef @@ fun vtm -> 
-        Splice.term @@ 
-        TB.sub vtp TB.top @@ fun _ -> vtm 
+        Splice.con vdef @@ fun vtm ->
+        Splice.term @@
+        TB.sub vtp TB.top @@ fun _ -> vtm
       in
       let* sym = RM.add_global ~unfolder:None ~guarded:false ~shadowing:true Ident.anon tp_sub in
-      let top = Kado.Syntax.Free.top in 
-      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in 
+      let top = Kado.Syntax.Free.top in
+      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
       RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
     in
     RM.quote_cut cut
