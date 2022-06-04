@@ -1,4 +1,23 @@
 --------------------[abstract.cooltt]--------------------
+hlevel.cooltt:32.7-32.12 [Info]:
+  hProp : (_x : [ ⊤ ]) → sub type ⊤
+                         {(A : type) × (c : A) → (c' : A) → ext {i => A} {
+                                                            i =>
+                                                            i = 0 ∨ i = 1} {
+                                                            i _x₂ =>
+                                                            [ i = 0 => c
+                                                            | i = 1 => c'
+                                                            ]}}
+
+hlevel.cooltt:33.11-33.16 [Info]:
+  Computed normal form of hProp * as
+   (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
+                                     i _x => [ i = 0 => c | i = 1 => c' ]}
+
+abstract.cooltt:66.35-66.36 [Info]:
+  fail bad:
+  Expected 2 = [ i = 0 => + * 1 1 | i = 1 => 2 ] : nat
+
 --------------------[base-types.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.21 [Info]:
