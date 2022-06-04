@@ -1101,16 +1101,10 @@ names.cooltt:5.7-5.14 [Info]:
 nat.cooltt:9.11-9.16 [Info]:
   Computed normal form of + * 2 3 as 5
 
-nat-path.cooltt:15.11-15.12 [Info]:
-  Computed normal form of J * as
-   A p C d =>
-   coe {i =>
-        C {_x =>
-           hcom A 0 _x {i = 0 ∨ i = 1}
-             {k _x₁ => [ k = 0 ∨ i = 0 => p 0 | i = 1 => p k ]}}} 0 1
-     d
+nat-path.cooltt:16.11-16.12 [Info]:
+  Computed normal form of J * as J *
 
-nat-path.cooltt:56.11-56.18 [Info]:
+nat-path.cooltt:57.11-57.18 [Info]:
   Computed normal form of +-assoc * as
    _x =>
    elim _x @ {_x₁ =>
@@ -1146,59 +1140,31 @@ nat-path.cooltt:56.11-56.18 [Info]:
      | suc => x ih y z i => suc {ih y z i}
      ]
 
-nat-path.cooltt:58.11-58.26 [Info]:
-  Computed normal form of trans-left-unit * as
-   A p k i =>
-   hcom A 0 1 {k = 0 ∨ i = 0 ∨ i = 1}
-     {j _x =>
-      [ j = 0 ∨ i = 0 => p 0
-      | i = 1 => p j
-      | k = 0 =>
-        hcom A 0 1 {i = 0 ∨ i = 1 ∨ j = 0 ∨ j = 1}
-          {l _x₂ =>
-           [ l = 0 ∨ i = 0 ∨ j = 1 =>
-             hcom A 0 i {l = 0 ∨ l = 1}
-               {j₁ _x₄ => [ j₁ = 0 ∨ l = 0 => p 0 | l = 1 => p j₁ ]}
-           | i = 1 ∨ j = 0 =>
-             hcom A 0 j {l = 0 ∨ l = 1}
-               {j₁ _x₄ => [ j₁ = 0 ∨ l = 0 => p 0 | l = 1 => p j₁ ]}
-           ]}
-      ]}
+nat-path.cooltt:59.11-59.26 [Info]:
+  Computed normal form of trans-left-unit * as trans-left-unit *
 
-nat-path.cooltt:59.11-59.27 [Info]:
-  Computed normal form of trans-right-unit * as
-   A p _x _x₁ =>
-   hcom A 0 _x {_x₁ = 0 ∨ _x₁ = 1}
-     {j _x₂ => [ j = 0 ∨ _x₁ = 0 => p _x₁ | _x₁ = 1 => p 1 ]}
+nat-path.cooltt:60.11-60.27 [Info]:
+  Computed normal form of trans-right-unit * as A p => blocked[trans] * * A p
 
-nat-path.cooltt:60.11-60.26 [Info]:
+nat-path.cooltt:61.11-61.26 [Info]:
   Computed normal form of trans-symm-refl * as
-   A p k i =>
-   hcom A 0 1 {k = 0 ∨ i = 0 ∨ i = 1}
-     {j _x =>
-      hcom A 0 i {j = 0 ∨ j = 1}
-        {j₁ _x₁ => [ j₁ = 0 ∨ j = 1 => p 0 | j = 0 => p j₁ ]}}
+   A p k i => blocked[trans,symm] * * A p k i
 
-nat-path.cooltt:82.11-82.15 [Info]:
+nat-path.cooltt:83.11-83.15 [Info]:
   Computed normal form of test * as
    p i =>
-   hcom nat 0 1 {i = 0 ∨ i = 1}
-     {_x _x₁ =>
-      [ _x = 0 ∨ i = 1 =>
-        elim {p 0} @ {_x₃ => nat} [ zero => 0
-                                  | suc => _x₃ _x₄ => 0
-                                  ]
-      | i = 0 =>
-        elim {p _x} @ {_x₃ => nat} [ zero => 0
-                                   | suc => _x₃ _x₄ => 0
-                                   ]
-      ]}
+   elim {symm * nat {_x => p _x} i} @ {_x => nat}
+     [ zero => 0
+     | suc => _x _x₁ => 0
+     ]
 
-nat-path.cooltt:84.11-84.16 [Info]:
+nat-path.cooltt:85.11-85.16 [Info]:
   Computed normal form of test2 * as
    i =>
-   hcom nat 0 1 {i = 0 ∨ i = 1}
-     {_x _x₁ => [ _x = 0 ∨ i = 1 => 0 | i = 0 => 0 ]}
+   elim {symm * nat {_x => 0} i} @ {_x => nat}
+     [ zero => 0
+     | suc => _x _x₁ => 0
+     ]
 
 --------------------[nat.cooltt]--------------------
 nat.cooltt:9.11-9.16 [Info]:
