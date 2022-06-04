@@ -1537,46 +1537,6 @@ selfification.cooltt:8.11-8.18 [Info]:
   Computed normal form of testing * as
    _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
---------------------[unfold.cooltt]--------------------
-hlevel.cooltt:32.7-32.12 [Info]:
-  hProp : (_x : [ ⊤ ]) → sub type ⊤
-                         {(A : type) × (c : A) → (c' : A) → ext {i => A} {
-                                                            i =>
-                                                            i = 0 ∨ i = 1} {
-                                                            i _x₂ =>
-                                                            [ i = 0 => c
-                                                            | i = 1 => c'
-                                                            ]}}
-
-hlevel.cooltt:33.11-33.16 [Info]:
-  Computed normal form of hProp * as
-   (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
-                                     i _x => [ i = 0 => c | i = 1 => c' ]}
-
-unfold.cooltt:27.11-27.12 [Info]:
-  Computed normal form of + as +
-
-unfold.cooltt:53.11-53.13 [Info]:
-  Computed normal form of +R as +R
-
-unfold.cooltt:57.11-57.22 [Info]:
-  Computed normal form of +R-unfolded * as
-   _x _x₁ _x₂ =>
-   elim _x₁ @ {_x₃ =>
-               ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₄ =>
-                                                    [ i = 0 =>
-                                                      elim _x₃ @ {_x₆ =>
-                                                                  (_x₇ : nat) → nat}
-                                                        [ zero => n => n
-                                                        | suc => _x₆ ih n =>
-                                                                 suc {ih n}
-                                                        ] 0
-                                                    | i = 1 => _x₃
-                                                    ]}}
-     [ zero => _x₃ => 0
-     | suc => y ih i => suc {ih i}
-     ] _x₂
-
 --------------------[v.cooltt]--------------------
 v.cooltt:13.11-13.17 [Info]:
   Computed normal form of v-test * as
