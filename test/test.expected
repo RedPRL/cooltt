@@ -14,21 +14,6 @@ hlevel.cooltt:33.11-33.16 [Info]:
    (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
                                      i _x => [ i = 0 => c | i = 1 => c' ]}
 
-abstract.cooltt:89.35-89.36 [Info]:
-  fail bad:
-  Expected 2 = [ i = 0 => + * 1 1 | i = 1 => 2 ] : nat
-
-[Error]:
-  Type annotation required for
-   (ConcreteSyntaxData.Unfold ([two; +],
-      { ConcreteSyntaxData.node =
-        (ConcreteSyntaxData.Lam ([i],
-           { ConcreteSyntaxData.node = (ConcreteSyntaxData.Lit 2);
-             info = abstract.cooltt:93.7-93.8 }
-           ));
-        info = abstract.cooltt:93.2-93.8 }
-      ))
-
 --------------------[base-types.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.21 [Info]:
