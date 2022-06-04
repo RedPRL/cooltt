@@ -67,9 +67,9 @@ let with_ ~begin_ ~end_ m =
   | Ok a -> ret a
   | Error exn -> let* () = set st in throw exn
 
-let add_global ~unfolder ~requirements ~shadowing id tp =
+let add_global ~unfolder ~guarded ~shadowing id tp =
   let* st = get in
-  let* sym, st' = throw_namespace_errors @@ St.add_global ~unfolder ~requirements ~shadowing id tp st in
+  let* sym, st' = throw_namespace_errors @@ St.add_global ~unfolder ~guarded ~shadowing id tp st in
   let+ () = set st' in
   sym
 

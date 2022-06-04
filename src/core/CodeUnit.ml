@@ -19,19 +19,14 @@ struct
       index : int;
       name : string option;
       unfolder : t option;
-      requirements : t list option}
+      guarded : bool}
   [@@deriving show]
 
   let is_guarded s =
-    match s.requirements with 
-    | None -> false 
-    | _ -> true
+    s.guarded
 
   let unfolder s = 
-    s.unfolder 
-
-  let requirements s = 
-    s.requirements 
+    s.unfolder
 
   let compare s1 s2 =
     Int.compare s1.index s2.index
@@ -50,15 +45,15 @@ struct
     `O [("origin", J.option J.string @@ sym.origin);
         ("index", `String (Int.to_string sym.index));
         ("unfolder", J.option serialize sym.unfolder);
-        ("requirements", J.option (J.list serialize) sym.requirements);
+        ("guarded", J.bool sym.guarded);
         ("name", J.option J.string @@ sym.name) ]
 
   let rec deserialize : J.value -> t =
     function
-    | `O [("origin", j_origin); ("index", j_index); ("unfolder", j_unfolder); ("requirements", j_requirements); ("name", j_name)] ->
+    | `O [("origin", j_origin); ("index", j_index); ("unfolder", j_unfolder); ("guarded", j_guarded); ("name", j_name)] ->
       { origin = J.get_option J.get_string j_origin;
         unfolder = J.get_option deserialize j_unfolder;
-        requirements = J.get_option (J.get_list deserialize) j_requirements;
+        guarded = J.get_bool j_guarded;
         index = int_of_string @@ J.get_string j_index;
         name = J.get_option J.get_string j_name }
     | j -> J.parse_error j "Global.deserialize"
@@ -87,10 +82,10 @@ struct
     { id = id;
       symbol_table = Vector.create () }
 
-  let add_global ~unfolder ~requirements ident tp code_unit =
+  let add_global ~unfolder ~guarded ident tp code_unit =
     let index = Vector.length code_unit.symbol_table in
     let _ = Vector.push code_unit.symbol_table tp in
-    let sym = { Global.origin = code_unit.id; unfolder; requirements; index; name = Ident.to_string_opt ident } in
+    let sym = { Global.origin = code_unit.id; unfolder; guarded; index; name = Ident.to_string_opt ident } in
     (sym, code_unit)
 
   let get_global (sym : Global.t) code_unit =

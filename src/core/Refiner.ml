@@ -154,7 +154,7 @@ struct
         | None -> Ident.anon
         | Some str -> Ident.machine @@ "?" ^ str
       in
-      RM.add_global ~unfolder:None ~requirements:None ~shadowing:true ident vtp
+      RM.add_global ~unfolder:None ~guarded:false ~shadowing:true ident vtp
     in
 
     let* () = RM.inc_num_holes in
@@ -1171,7 +1171,7 @@ struct
         Splice.cof unfolding_cof @@ fun cof -> 
         Splice.term @@ TB.sub vtp cof @@ fun prf -> TB.ap vtm [prf]
       in
-      let* sym = RM.add_global ~unfolder:None ~requirements:None ~shadowing:true (Ident.blocked unfoldings) tp_sub in
+      let* sym = RM.add_global ~unfolder:None ~guarded:false ~shadowing:true (Ident.blocked unfoldings) tp_sub in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unfolding_cof, D.const_tm_clo vdef)) in 
       RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
     in
@@ -1220,7 +1220,7 @@ struct
         Splice.term @@ 
         TB.sub vtp TB.top @@ fun _ -> vtm 
       in
-      let* sym = RM.add_global ~unfolder:None ~requirements:None ~shadowing:true Ident.anon tp_sub in
+      let* sym = RM.add_global ~unfolder:None ~guarded:false ~shadowing:true Ident.anon tp_sub in
       let top = Kado.Syntax.Free.top in 
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in 
       RM.ret @@ GlobalUtil.multi_ap cells (hd, [])

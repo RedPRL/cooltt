@@ -162,7 +162,7 @@ and execute_decl (decl : CS.decl) : command =
       match abstract, requiring, unfolding with 
       | false, [], [] -> RM.ret None 
       | _, _,_ ->
-        let+ var = RM.add_global ~unfolder:None ~requirements:None ~shadowing:false (Ident.unfolder name) D.TpDim in 
+        let+ var = RM.add_global ~unfolder:None ~guarded:false ~shadowing:false (Ident.unfolder name) D.TpDim in 
         Some var
     in 
 
@@ -181,7 +181,7 @@ and execute_decl (decl : CS.decl) : command =
       requirement_dims @ unfolding_dims |> RMU.iter @@ fun dim ->
       let* cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_dim dim in 
       RMU.ignore @@
-      RM.add_global ~unfolder:None ~requirements:None ~shadowing:false Ident.anon @@ D.TpPrf cof
+      RM.add_global ~unfolder:None ~guarded:false ~shadowing:false Ident.anon @@ D.TpPrf cof
     in
 
     let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in 
@@ -219,7 +219,7 @@ and execute_decl (decl : CS.decl) : command =
     let+ _ =
       RM.add_global 
         ~unfolder:unf_dim_sym 
-        ~requirements:(Some requirement_syms)
+        ~guarded:true
         ~shadowing 
         name
         abstract_vtp 
@@ -243,22 +243,22 @@ and execute_decl (decl : CS.decl) : command =
       List.map (D.CofBuilder.eq D.Dim1) requirement_dims
     in
 
-    let* tp, requirements = 
+    let* tp, guarded = 
       match requiring with 
       | [] -> 
         let+ tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in 
-        tp, None
+        tp, false
       | _ ->
         let+ treqcof = RM.quote_cof requirement_cof 
         and+ bdy = 
           RM.abstract Ident.anon (D.TpPrf requirement_cof) @@ fun _ -> 
           Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp 
         in
-        S.Pi (S.TpPrf treqcof, Ident.anon, bdy), Some requirement_syms
+        S.Pi (S.TpPrf treqcof, Ident.anon, bdy), true
     in
 
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    let* _ = RM.add_global ~unfolder:None ~requirements ~shadowing name vtp in
+    let* _ = RM.add_global ~unfolder:None ~guarded ~shadowing name vtp in
     RM.ret Continue
 
   | CS.NormalizeTerm term ->
