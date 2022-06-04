@@ -853,8 +853,8 @@ inequality.cooltt:11.7-11.10 [Info]:
 
 --------------------[isos.cooltt]--------------------
 --------------------[monoid.cooltt]--------------------
-nat.cooltt:9.11-9.16 [Info]:
-  Computed normal form of + * 2 3 as 5
+nat.cooltt:10.11-10.16 [Info]:
+  Computed normal form of + * 2 3 as + * 2 3
 
 monoid.cooltt:19.7-19.17 [Info]:
   monoid/nat : (_x : [ ⊤ ]) → sub {sig (C : ext type ⊤ {_x₁ => nat}) 
@@ -879,218 +879,42 @@ monoid.cooltt:19.7-19.17 [Info]:
                                    | i = 1 => op a {op b c}
                                    ]}) } ⊤
                               {struct (C : nat) 
-                               (op : {_x₂ _x₃ =>
-                                      elim _x₂ @ {_x₄ => (_x₅ : nat) → nat}
-                                        [ zero => n => n
-                                        | suc => _x₄ ih n => suc {ih n}
-                                        ] _x₃})
-                               (z : 0) (idL : {_x₂ _x₃ => _x₂}) 
-                               (idR : {_x₂ _x₃ =>
-                                       elim _x₂ @ {_x₄ =>
-                                                   ext {i => nat} {i =>
-                                                                   i = 0 ∨ i = 1} {
-                                                   i _x₅ =>
-                                                   [ i = 0 =>
-                                                     elim _x₄ @ {_x₇ =>
-                                                                 (_x₈ : nat) → nat}
-                                                       [ zero => n => n
-                                                       | suc => _x₇ ih n =>
-                                                                suc {ih n}
-                                                       ] 0
-                                                   | i = 1 => _x₄
-                                                   ]}}
-                                         [ zero => _x₄ => 0
-                                         | suc => y ih i => suc {ih i}
-                                         ] _x₃})
+                               (op : {_x₂ _x₃ => + * _x₂ _x₃}) (z : 0) 
+                               (idL : {_x₂ _x₃ => +-left-unit * _x₂ _x₃}) 
+                               (idR : {_x₂ _x₃ => +-right-unit * _x₂ _x₃}) 
                                (assoc : {_x₂ _x₃ _x₄ _x₅ =>
-                                         elim _x₂ @ {_x₆ =>
-                                                     (y : nat) → (z : nat) → 
-                                                     ext {i => nat} {
-                                                     i => i = 0 ∨ i = 1} {
-                                                     i _x₇ =>
-                                                     [ i = 0 =>
-                                                       elim {elim _x₆ @ {
-                                                               _x₉ =>
-                                                               (_x₁₀ : nat) → nat}
-                                                               [ zero => 
-                                                               n => n
-                                                               | suc => 
-                                                               _x₉ ih n =>
-                                                               suc {ih n}
-                                                               ] y} @ {
-                                                         _x₉ =>
-                                                         (_x₁₀ : nat) → nat}
-                                                         [ zero => n => n
-                                                         | suc => _x₉ ih n =>
-                                                                  suc {ih n}
-                                                         ] z
-                                                     | i = 1 =>
-                                                       elim _x₆ @ {_x₉ =>
-                                                                   (_x₁₀ : nat) → nat}
-                                                         [ zero => n => n
-                                                         | suc => _x₉ ih n =>
-                                                                  suc {ih n}
-                                                         ] {elim y @ {
-                                                              _x₉ =>
-                                                              (_x₁₀ : nat) → nat}
-                                                              [ zero => 
-                                                              n => n
-                                                              | suc => 
-                                                              _x₉ ih n =>
-                                                              suc {ih n}
-                                                              ] z}
-                                                     ]}}
-                                           [ zero => y z i =>
-                                                     elim y @ {_x₆ =>
-                                                               (_x₇ : nat) → nat}
-                                                       [ zero => n => n
-                                                       | suc => _x₆ ih n =>
-                                                                suc {ih n}
-                                                       ] z
-                                           | suc => x ih y z i =>
-                                                    suc {ih y z i}
-                                           ] _x₃ _x₄ _x₅})
+                                         +-assoc * _x₂ _x₃ _x₄ _x₅})
                                }
 
 monoid.cooltt:27.7-27.19 [Info]:
   monoid/nat/+ : (_x : [ ⊤ ]) → sub {sig (C : ext type ⊤ {_x₁ => nat}) 
                                      (op : ext {(_x₁ : nat) → (_x₂ : nat) → nat} ⊤ {
-                                           _x₁ _x₂ _x₃ =>
-                                           elim _x₂ @ {_x₄ =>
-                                                       (_x₅ : nat) → nat}
-                                             [ zero => n => n
-                                             | suc => _x₄ ih n => suc {ih n}
-                                             ] _x₃})
+                                           _x₁ _x₂ _x₃ => + * _x₂ _x₃})
                                      (z : nat) 
                                      (idL : (x : nat) → ext {i => nat} {
                                                         i => i = 0 ∨ i = 1} {
                                                         i _x₁ =>
-                                                        [ i = 0 =>
-                                                          elim z @ {_x₃ =>
-                                                                    (_x₄ : nat) → nat}
-                                                            [ zero => 
-                                                            n => n
-                                                            | suc => 
-                                                            _x₃ ih n =>
-                                                            suc {ih n}
-                                                            ] x
+                                                        [ i = 0 => + * z x
                                                         | i = 1 => x
                                                         ]})
                                      (idR : (x : nat) → ext {i => nat} {
                                                         i => i = 0 ∨ i = 1} {
                                                         i _x₁ =>
-                                                        [ i = 0 =>
-                                                          elim x @ {_x₃ =>
-                                                                    (_x₄ : nat) → nat}
-                                                            [ zero => 
-                                                            n => n
-                                                            | suc => 
-                                                            _x₃ ih n =>
-                                                            suc {ih n}
-                                                            ] z
+                                                        [ i = 0 => + * x z
                                                         | i = 1 => x
                                                         ]})
                                      (assoc : (a : nat) → (b : nat) → (c : nat) → 
                                      ext {i => nat} {i => i = 0 ∨ i = 1} {
                                      i _x₁ =>
-                                     [ i = 0 =>
-                                       elim {elim a @ {_x₃ =>
-                                                       (_x₄ : nat) → nat}
-                                               [ zero => n => n
-                                               | suc => _x₃ ih n =>
-                                                        suc {ih n}
-                                               ] b} @ {_x₃ =>
-                                                       (_x₄ : nat) → nat}
-                                         [ zero => n => n
-                                         | suc => _x₃ ih n => suc {ih n}
-                                         ] c
-                                     | i = 1 =>
-                                       elim a @ {_x₃ => (_x₄ : nat) → nat}
-                                         [ zero => n => n
-                                         | suc => _x₃ ih n => suc {ih n}
-                                         ] {elim b @ {_x₃ =>
-                                                      (_x₄ : nat) → nat}
-                                              [ zero => n => n
-                                              | suc => _x₃ ih n => suc {ih n}
-                                              ] c}
+                                     [ i = 0 => + * {+ * a b} c
+                                     | i = 1 => + * a {+ * b c}
                                      ]}) } ⊤
                                 {struct (C : nat) 
-                                 (op : {_x₂ _x₃ =>
-                                        elim _x₂ @ {_x₄ => (_x₅ : nat) → nat}
-                                          [ zero => n => n
-                                          | suc => _x₄ ih n => suc {ih n}
-                                          ] _x₃})
-                                 (z : 0) (idL : {_x₂ _x₃ => _x₂}) 
-                                 (idR : {_x₂ _x₃ =>
-                                         elim _x₂ @ {_x₄ =>
-                                                     ext {i => nat} {
-                                                     i => i = 0 ∨ i = 1} {
-                                                     i _x₅ =>
-                                                     [ i = 0 =>
-                                                       elim _x₄ @ {_x₇ =>
-                                                                   (_x₈ : nat) → nat}
-                                                         [ zero => n => n
-                                                         | suc => _x₇ ih n =>
-                                                                  suc {ih n}
-                                                         ] 0
-                                                     | i = 1 => _x₄
-                                                     ]}}
-                                           [ zero => _x₄ => 0
-                                           | suc => y ih i => suc {ih i}
-                                           ] _x₃})
+                                 (op : {_x₂ _x₃ => + * _x₂ _x₃}) (z : 0) 
+                                 (idL : {_x₂ _x₃ => +-left-unit * _x₂ _x₃}) 
+                                 (idR : {_x₂ _x₃ => +-right-unit * _x₂ _x₃}) 
                                  (assoc : {_x₂ _x₃ _x₄ _x₅ =>
-                                           elim _x₂ @ {_x₆ =>
-                                                       (y : nat) → (z : nat) → 
-                                                       ext {i => nat} {
-                                                       i => i = 0 ∨ i = 1} {
-                                                       i _x₇ =>
-                                                       [ i = 0 =>
-                                                         elim {elim _x₆ @ {
-                                                                 _x₉ =>
-                                                                 (_x₁₀ : nat) → nat}
-                                                                 [ zero => 
-                                                                 n => 
-                                                                 n
-                                                                 | suc => 
-                                                                 _x₉ ih n =>
-                                                                 suc {ih n}
-                                                                 ] y} @ {
-                                                           _x₉ =>
-                                                           (_x₁₀ : nat) → nat}
-                                                           [ zero => 
-                                                           n => n
-                                                           | suc => _x₉ ih n =>
-                                                                    suc {ih n}
-                                                           ] z
-                                                       | i = 1 =>
-                                                         elim _x₆ @ {
-                                                           _x₉ =>
-                                                           (_x₁₀ : nat) → nat}
-                                                           [ zero => 
-                                                           n => n
-                                                           | suc => _x₉ ih n =>
-                                                                    suc {ih n}
-                                                           ] {elim y @ {
-                                                                _x₉ =>
-                                                                (_x₁₀ : nat) → nat}
-                                                                [ zero => 
-                                                                n => 
-                                                                n
-                                                                | suc => 
-                                                                _x₉ ih n =>
-                                                                suc {ih n}
-                                                                ] z}
-                                                       ]}}
-                                             [ zero => y z i =>
-                                                       elim y @ {_x₆ =>
-                                                                 (_x₇ : nat) → nat}
-                                                         [ zero => n => n
-                                                         | suc => _x₆ ih n =>
-                                                                  suc {ih n}
-                                                         ] z
-                                             | suc => x ih y z i =>
-                                                      suc {ih y z i}
-                                             ] _x₃ _x₄ _x₅})
+                                           +-assoc * _x₂ _x₃ _x₄ _x₅})
                                  }
 
 --------------------[names.cooltt]--------------------
@@ -1098,47 +922,14 @@ names.cooltt:5.7-5.14 [Info]:
   x∷y∷z : (_x : [ ⊤ ]) → sub {(u∷v : nat) → nat} ⊤ {u∷v => u∷v}
 
 --------------------[nat-path.cooltt]--------------------
-nat.cooltt:9.11-9.16 [Info]:
-  Computed normal form of + * 2 3 as 5
+nat.cooltt:10.11-10.16 [Info]:
+  Computed normal form of + * 2 3 as + * 2 3
 
 nat-path.cooltt:16.11-16.12 [Info]:
   Computed normal form of J * as J *
 
 nat-path.cooltt:57.11-57.18 [Info]:
-  Computed normal form of +-assoc * as
-   _x =>
-   elim _x @ {_x₁ =>
-              (y : nat) → (z : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                      i _x₂ =>
-                                      [ i = 0 =>
-                                        elim {elim _x₁ @ {_x₄ =>
-                                                          (_x₅ : nat) → nat}
-                                                [ zero => n => n
-                                                | suc => _x₄ ih n =>
-                                                         suc {ih n}
-                                                ] y} @ {_x₄ =>
-                                                        (_x₅ : nat) → nat}
-                                          [ zero => n => n
-                                          | suc => _x₄ ih n => suc {ih n}
-                                          ] z
-                                      | i = 1 =>
-                                        elim _x₁ @ {_x₄ => (_x₅ : nat) → nat}
-                                          [ zero => n => n
-                                          | suc => _x₄ ih n => suc {ih n}
-                                          ] {elim y @ {_x₄ =>
-                                                       (_x₅ : nat) → nat}
-                                               [ zero => n => n
-                                               | suc => _x₄ ih n =>
-                                                        suc {ih n}
-                                               ] z}
-                                      ]}}
-     [ zero => y z i =>
-               elim y @ {_x₁ => (_x₂ : nat) → nat}
-                 [ zero => n => n
-                 | suc => _x₁ ih n => suc {ih n}
-                 ] z
-     | suc => x ih y z i => suc {ih y z i}
-     ]
+  Computed normal form of +-assoc * as +-assoc *
 
 nat-path.cooltt:59.11-59.26 [Info]:
   Computed normal form of trans-left-unit * as trans-left-unit *
@@ -1167,8 +958,8 @@ nat-path.cooltt:85.11-85.16 [Info]:
      ]
 
 --------------------[nat.cooltt]--------------------
-nat.cooltt:9.11-9.16 [Info]:
-  Computed normal form of + * 2 3 as 5
+nat.cooltt:10.11-10.16 [Info]:
+  Computed normal form of + * 2 3 as + * 2 3
 
 --------------------[patch.cooltt]--------------------
 patch.cooltt:10.49-10.50 [Info]:
