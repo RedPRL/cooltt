@@ -49,6 +49,7 @@ and con_ =
   | BoundaryHole of con option
   | Underscore
   | Generalize of Ident.t * con
+  | Unfold of Ident.t list * con
   | Elim of {mot : con; cases : case list; scrut : con}
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
@@ -105,8 +106,8 @@ and eqns =
 
 type decl = decl_ node
 and decl_ =
-  | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con; tp : con; requiring : Ident.t node list; unfolding : Ident.t node list}
-  | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con; requiring : Ident.t node list}
+  | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con; tp : con; requiring : Ident.t list; unfolding : Ident.t list}
+  | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con; requiring : Ident.t list}
   | Print of Ident.t node
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of con

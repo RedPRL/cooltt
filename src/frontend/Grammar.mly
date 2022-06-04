@@ -140,11 +140,11 @@ plain_name:
     { name_of_underscore }
 
 require_spec:
-  | REQUIRE LSQ list = separated_list(COMMA, located(plain_name)) RSQ IN
+  | REQUIRE LSQ list = separated_list(COMMA, plain_name) RSQ
     { list }
 
 unfold_spec:
-  | UNFOLD LSQ list = separated_list(COMMA, located(plain_name)) RSQ IN
+  | UNFOLD LSQ list = separated_list(COMMA, plain_name) RSQ
     { list }
 
 decl: t = located(plain_decl) {t}
@@ -334,6 +334,8 @@ plain_term_except_cof_case:
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | GENERALIZE; name = plain_name; IN; body = term;
     { Generalize (name, body) }
+  | unfold_spec = unfold_spec; IN; body = term; 
+    { Unfold (unfold_spec, body) }
   | LET; name = plain_name; COLON; tp = term; COLON_EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
   | LET; name = plain_name; COLON_EQUALS; def = term; IN; body = term

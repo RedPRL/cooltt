@@ -151,16 +151,6 @@ and import_unit ~shadowing path modifier : command =
     let+ () = RM.import ~shadowing modifier (CodeUnitID.file src) in
     Continue
 
-and resolve_unfolder_syms (idents : Ident.t CS.node list) = 
-  let* st = RM.get in 
-  let resolve_global (i : Ident.t CS.node) = 
-    match ST.resolve_global i.node st with
-    | Some sym -> RM.ret @@ Global.unfolder sym
-    | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
-  in
-  RMU.filter_map resolve_global idents
-
-
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
@@ -182,8 +172,8 @@ and execute_decl (decl : CS.decl) : command =
       | Some var -> RM.eval @@ S.Global var
     in 
 
-    let* requirement_syms = resolve_unfolder_syms requiring in
-    let* unfolding_syms = resolve_unfolder_syms unfolding in
+    let* requirement_syms = RM.resolve_unfolder_syms requiring in
+    let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
     let* requirement_dims =  requirement_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
     let* unfolding_dims =  unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
 
@@ -239,15 +229,7 @@ and execute_decl (decl : CS.decl) : command =
   | CS.Axiom {shadowing; name; args; tp; requiring} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
 
-    let* requirement_syms =
-      let* st = RM.get in 
-      let resolve_global (i : Ident.t CS.node) = 
-        match ST.resolve_global i.node st with
-        | Some sym -> RM.ret @@ Global.unfolder sym
-        | _ -> RM.throw @@ Err.RefineError (Err.UnboundVariable i.node, i.info)
-      in
-      RMU.filter_map resolve_global requiring
-    in
+    let* requirement_syms = RM.resolve_unfolder_syms requiring in 
 
     let* requirement_dims =
       requirement_syms |> RMU.map @@ fun sym -> 

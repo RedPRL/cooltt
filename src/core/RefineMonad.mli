@@ -14,6 +14,7 @@ val abstract : Ident.t -> D.tp -> (D.con -> 'a m) -> 'a m
 val add_global : unfolder:Global.t option -> requirements:Global.t list option -> shadowing:bool -> Ident.t -> D.tp -> Global.t m
 val get_global : Global.t -> D.tp m
 val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
+val resolve_unfolder_syms : Ident.t list -> Global.t list m
 
 val inc_num_holes : unit m
 

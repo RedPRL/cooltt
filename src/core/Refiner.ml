@@ -11,6 +11,7 @@ module S = Syntax
 module Env = RefineEnv
 module Err = RefineError
 module RM = RefineMonad
+module RMU = Monad.Util (RM)
 module T = Tactic
 module Splice = Splice
 module TB = TermBuilder
@@ -1123,6 +1124,60 @@ struct
     let ix = RefineEnv.size env - lvl - 1 in
     index ix
 
+  let unfold (unfoldings : Ident.t list) (tac : T.Chk.tac) : T.Chk.tac =
+    let rec intros cells tac : T.Chk.tac =
+      match cells with
+      | [] ->
+        tac
+      | cell :: cells ->
+        let ident = Env.Cell.ident cell in
+        Pi.intro ~ident @@ fun _ ->
+        intros cells tac
+    in
+
+    T.Chk.brule ~name:"Structural.unfold" @@ fun (tp, phi, clo) ->
+    let* env = RM.read in
+    let cells = Env.locals env in
+    let cells_fwd = BwdLabels.to_list cells in
+
+    let* unfolding_syms = RM.resolve_unfolder_syms unfoldings in
+
+    let* unfolding_cof =
+      let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in 
+      RM.lift_cmp @@
+      Sem.con_to_cof @@ 
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
+    in
+
+    let* cut =
+      RM.globally @@
+      let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
+      let* vtp = RM.lift_ev @@ Sem.eval_tp tp in 
+      let* tp_of_goal =
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.tp vtp @@ fun vtp ->
+        Splice.cof unfolding_cof @@ fun cof -> 
+        Splice.term @@ TB.pi (TB.tp_prf cof) @@ fun _ -> vtp
+      in
+      let* vdef =
+        let* tm = tp_of_goal |> T.Chk.run @@ Pi.intro @@ fun _ -> intros cells_fwd tac in
+        RM.lift_ev @@ Sem.eval tm
+      in
+      let* tp_sub = 
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.tp vtp @@ fun vtp ->
+        Splice.con vdef @@ fun vtm ->
+        Splice.cof unfolding_cof @@ fun cof -> 
+        Splice.term @@ TB.sub vtp cof @@ fun prf -> TB.ap vtm [prf]
+      in
+      let* sym = RM.add_global ~unfolder:None ~requirements:None ~shadowing:true `Anon tp_sub in
+      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unfolding_cof, D.const_tm_clo vdef)) in 
+      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+    in
+    let+ tm = RM.quote_cut cut in 
+    S.SubOut tm
+
   let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
     let rec intros cells tac : T.Chk.tac =
       match cells with
@@ -1153,7 +1208,7 @@ struct
         let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp tp in
         RM.lift_ev @@ Sem.eval_tp tp
       in
-      let* def =
+      let* vdef =
         let prefix = List.take lvl cells_fwd in
         let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
         RM.lift_ev @@ Sem.eval tm
@@ -1161,16 +1216,16 @@ struct
       let* tp_sub = 
         RM.lift_cmp @@ Sem.splice_tp @@
         Splice.tp global_tp @@ fun vtp ->
-        Splice.con def @@ fun vtm -> 
+        Splice.con vdef @@ fun vtm -> 
         Splice.term @@ 
         TB.sub vtp TB.top @@ fun _ -> vtm 
       in
       let* sym = RM.add_global ~unfolder:None ~requirements:None ~shadowing:true `Anon tp_sub in
-      RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
+      let top = Kado.Syntax.Free.top in 
+      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in 
+      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
     in
-    let+ tcut = RM.quote_cut cut in 
-    S.SubOut tcut
-
+    RM.quote_cut cut
 
   let let_ ?(ident = `Anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Structural.let_" @@ fun goal ->

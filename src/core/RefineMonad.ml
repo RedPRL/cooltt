@@ -12,6 +12,8 @@ module Conv = Conversion
 open Basis
 include Monads.RefineM
 
+module MU = Monad.Util (Monads.RefineM)
+
 open Monad.Notation (Monads.RefineM)
 
 let refine_err err =
@@ -28,6 +30,16 @@ let resolve id =
     match St.resolve_global id st with
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
+
+let resolve_unfolder_syms (idents : Ident.t list) = 
+  let* st = get in 
+  let resolve_global (i : Ident.t) = 
+    match St.resolve_global i st with
+    | Some sym -> ret @@ Global.unfolder sym
+    | _ -> throw @@ Err.RefineError (Err.UnboundVariable i, None) (* TODO: source location? *)
+  in
+  MU.filter_map resolve_global idents
+
 
 let get_num_holes =
   let+ st = get in
@@ -195,3 +207,5 @@ let abstract nm tp k =
 
 let update_span loc =
   scope @@ Env.set_location loc
+
+
