@@ -9,13 +9,13 @@ def + : nat → nat → nat :=
     | suc {_ => ih} => n => suc {ih n}
   ]
 
-unfold [+]
+unfold +
 abstract
 def +0L : (x : nat) → path nat {+ 0 x} x :=
   x _ => x
 
 
-unfold [+]
+unfold +
 abstract def +SL : (x y : nat) → path nat {+ {suc x} y} {suc {+ x y}} :=
   x y _ => suc {+ x y}
 
@@ -79,7 +79,7 @@ def +A : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
 
 axiom nat∷is-set : is-set nat
 
-require [+]
+require +
 def foo (p : path nat {+ 0 0} 0) : path {path nat {+ 0 0} 0} p {_ => 0} :=
   nat∷is-set 0 0 p {_ => 0}
 
@@ -88,11 +88,11 @@ def foo (p : path nat {+ 0 0} 0) : path {path nat {+ 0 0} 0} p {_ => 0} :=
 def two : nat := + 1 1
 
 def test : path nat two 2 :=
-  unfold [two,+] in
+  unfold two,+ in
   i => 2
 
 
 def test2 : path-p {i => path nat two {test i}} {_ => two} test :=
   i j =>
-  unfold[two,+] in
+  unfold two,+ in
   2

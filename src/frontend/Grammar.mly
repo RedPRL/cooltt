@@ -140,11 +140,11 @@ plain_name:
     { name_of_underscore }
 
 require_spec:
-  | REQUIRE LSQ list = separated_list(COMMA, plain_name) RSQ
+  | REQUIRE list = separated_list(COMMA, plain_name)
     { list }
 
 unfold_spec:
-  | UNFOLD LSQ list = separated_list(COMMA, plain_name) RSQ
+  | UNFOLD list = separated_list(COMMA, plain_name)
     { list }
 
 decl: t = located(plain_decl) {t}
