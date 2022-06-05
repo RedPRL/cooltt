@@ -71,6 +71,9 @@ module QuM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
+  val should_normalize : bool m
+  val with_normalization : bool -> 'a m -> 'a m
+
   val read_global : RefineState.t m
   val read_local : int m
 

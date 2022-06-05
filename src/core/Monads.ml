@@ -38,6 +38,7 @@ module QuL =
 struct
   type local =
     {state : St.t;
+     norm : bool;
      cof_thy : CofThy.Disj.t;
      size : int}
 end
@@ -233,6 +234,13 @@ struct
     M.scope @@ fun local ->
     {local with size = i + local.size}
 
+  let should_normalize =
+    let+ {norm; _} = M.read in
+    norm
+
+  let with_normalization norm =
+    M.scope @@ fun local -> {local with norm}
+
   let top_var tp =
     let+ n = read_local in
     D.mk_var tp @@ n - 1
@@ -297,7 +305,7 @@ struct
   let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
     match
-      QuM.run {state; cof_thy = cof_thy state env; size = Env.size env} m
+      QuM.run {state; cof_thy = cof_thy state env; norm = false; size = Env.size env} m
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state
