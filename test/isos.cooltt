@@ -21,6 +21,7 @@ def iso (A B : type) : type :=
   × {(b : B) → path B {f {g b}} b}
   × {(a : A) → path A {g {f a}} a}
 
+abstract
 def iso/refl (A : type) : iso A A :=
   [     a => a
   , [   a => a
@@ -28,6 +29,7 @@ def iso/refl (A : type) : iso A A :=
       , a i => a
   ] ] ]
 
+abstract
 def iso/symm (A B : type) (I : iso A B) : iso B A :=
   let f := fst I in
   let g := fst {snd I} in
@@ -35,6 +37,7 @@ def iso/symm (A B : type) (I : iso A B) : iso B A :=
   let β := snd {snd {snd I}} in
   [ g , [ f , [ β , α ] ] ]
 
+abstract
 def iso/trans (A B C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
   let f1 := fst I1 in
   let g1 := fst {snd I1} in
@@ -51,17 +54,20 @@ def iso/trans (A B C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
 
 -- pair isos
 
+abstract
 def iso/pair/comm (A B : type) : iso {A × B} {B × A} :=
   [ab => [snd ab, fst ab],
    [ba => [snd ba, fst ba],
     [ba i => ba,
      ab i => ab]]]
 
+abstract
 def iso/pair/assoc (A B C : type) : iso {A × B × C} {{A × B} × C} :=
   [a_bc => [[fst a_bc, fst {snd a_bc}], snd {snd a_bc}],
    [ab_c => [fst {fst ab_c}, [snd {fst ab_c}, snd ab_c]],
     [ab_c i => ab_c, a_bc i => a_bc]]]
 
+abstract
 def iso/pair/unit (A : type) : iso {A × unit} A :=
   [au => fst au,
    [a => [a, ⋆],
