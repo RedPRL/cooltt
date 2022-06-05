@@ -639,23 +639,8 @@ equation.cooltt:18.7-18.26 [Info]:
 
 --------------------[evan.cooltt]--------------------
 --------------------[export.cooltt]--------------------
-Emitted namespace under ∷
-  ? = { a1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a2; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
+export.cooltt:24.0-24.1 [Error]:
+  Parse error near !
 
 --------------------[groupoid-laws.cooltt]--------------------
 --------------------[hcom-type.cooltt]--------------------
@@ -810,43 +795,16 @@ holes.cooltt:18.26-18.30 [Info]:
     |- ? : (_x₂ : 𝕀) → (_x₃ : [ _x₂ = 0 ∨ i = 0 ∨ i = 1 ]) → A
 
 
-holes.cooltt:17.5-18.30 [Error]:
-  Expected #10 _x _x₁ A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+holes.cooltt:17.5-18.30 [Info]:
+  Failure encountered, as expected:
+   Expected #10 _x _x₁ A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+
 
 [Warn]:  There are 7 unsolved holes
 
 --------------------[import.cooltt]--------------------
-Emitted namespace under p2
-  ?cool = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
-          ; refl => refl; symm => symm; symm/filler => symm/filler
-          ; trans => trans; trans/filler => trans/filler; u => unit
-          ; unit/eta => unit/eta }
-
-Emitted namespace under ∷
-  ?all = { p1∷cong => cong; p1∷funext => funext; p1∷path => path
-         ; p1∷path-p => path-p; p1∷refl => refl; p1∷symm => symm
-         ; p1∷symm/filler => symm/filler; p1∷trans => trans
-         ; p1∷trans/filler => trans/filler; p1∷unit/eta => unit/eta
-         ; p1∷⋆ => ⋆; p2∷cong => cong; p2∷funext => funext
-         ; p2∷path-p => path-p; p2∷q∷t => ⋆; p2∷refl => refl; p2∷symm => symm
-         ; p2∷symm/filler => symm/filler; p2∷trans => trans
-         ; p2∷trans/filler => trans/filler; p2∷u => unit
-         ; p2∷unit/eta => unit/eta }
-
-Emitted namespace under ∷
-  ? = { cong => cong; funext => funext; path => path; path-p => path-p
-      ; refl => refl; symm => symm; symm/filler => symm/filler
-      ; trans => trans; trans/filler => trans/filler; unit => unit
-      ; unit/eta => unit/eta; ⋆ => ⋆ }
-
-import.cooltt:26.7-26.14 [Info]:
-  cool-tt : (_x : [ ⊤ ]) → sub {ext nat ⊤ {_x₁ => 0}} ⊤ 0
-
-Emitted namespace under p2
-  ? = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
-      ; refl => refl; symm => symm; symm/filler => symm/filler
-      ; trans => trans; trans/filler => trans/filler; u => unit
-      ; unit/eta => unit/eta }
+import.cooltt:23.0-23.1 [Error]:
+  Parse error near !
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
@@ -1029,193 +987,10 @@ patch.cooltt:25.7-25.14 [Info]:
                                                                 p z @ bx}) } ⊤
                            {A Z B p z => struct (x : p z @ x) (bx : p z @ bx) }
 
-patch.cooltt:28.5-28.86 [Error]:
-  Expected type = (_x₂ : sig (A : type) (a : A) ) → (_x₃ : nat) → type
+patch.cooltt:28.5-28.86 [Info]:
+  Failure encountered, as expected:
+   Expected type = (_x₂ : sig (A : type) (a : A) ) → (_x₃ : nat) → type
 
-patch.cooltt:39.7-39.15 [Info]:
-  category : (_x : [ ⊤ ]) → sub type ⊤
-                            {sig (ob : type) 
-                             (hom : (_x₂ : sig (s : ob) (t : ob) ) → type) 
-                             (idn : (x : ob) → sig (s : ext ob ⊤ {_x₂ => x}) 
-                                               (t : ext ob ⊤ {_x₂ => x}) 
-                                               (fib : hom {struct (s : x) 
-                                                           (t : x) })
-                                               )
-                             (seq : (f : sig (s : ob) (t : ob) 
-                                         (fib : hom {struct (s : s) (t : t) })
-                                         ) → (g : sig (s : ext ob ⊤ {
-                                                           _x₂ => f @ t})
-                                                  (t : ob) 
-                                                  (fib : hom {struct (s : 
-                                                              f @ t) (t : t) })
-                                                  ) → sig (s : ext ob ⊤ {
-                                                               _x₂ => 
-                                                               f @ s})
-                                                      (t : ext ob ⊤ {
-                                                           _x₂ => g @ t})
-                                                      (fib : hom {struct (s : 
-                                                                  f @ s) 
-                                                                  (t : 
-                                                                  g @ t) })
-                                                      )
-                             (seqL : (f : sig (s : ob) (t : ob) 
-                                          (fib : hom {struct (s : s) (t : t) })
-                                          ) → ext {i =>
-                                                   sig (s : ext ob ⊤ {
-                                                            _x₂ => f @ s})
-                                                   (t : ext ob ⊤ {_x₂ =>
-                                                                  f @ t})
-                                                   (fib : hom {struct (s : 
-                                                               f @ s) 
-                                                               (t : f @ t) })
-                                                   } {i => i = 0 ∨ i = 1} {
-                                              i _x₂ =>
-                                              [ i = 0 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) 
-                                                (fib : seq {struct (s : 
-                                                            f @ s) 
-                                                            (t : f @ s) 
-                                                            (fib : idn {
-                                                                   f @ s} @ fib)
-                                                            } {struct (s : 
-                                                               f @ s) 
-                                                               (t : f @ t) 
-                                                               (fib : 
-                                                               f @ fib) } @ fib)
-                                                
-                                              | i = 1 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) (fib : f @ fib) 
-                                              ]})
-                             (seqR : (f : sig (s : ob) (t : ob) 
-                                          (fib : hom {struct (s : s) (t : t) })
-                                          ) → ext {i =>
-                                                   sig (s : ext ob ⊤ {
-                                                            _x₂ => f @ s})
-                                                   (t : ext ob ⊤ {_x₂ =>
-                                                                  f @ t})
-                                                   (fib : hom {struct (s : 
-                                                               f @ s) 
-                                                               (t : f @ t) })
-                                                   } {i => i = 0 ∨ i = 1} {
-                                              i _x₂ =>
-                                              [ i = 0 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) 
-                                                (fib : seq {struct (s : 
-                                                            f @ s) 
-                                                            (t : f @ t) 
-                                                            (fib : f @ fib) } {
-                                                       struct (s : f @ t) 
-                                                       (t : f @ t) 
-                                                       (fib : idn {f @ t} @ fib)
-                                                       } @ fib)
-                                                
-                                              | i = 1 =>
-                                                struct (s : f @ s) 
-                                                (t : f @ t) (fib : f @ fib) 
-                                              ]})
-                             (seqA : (f : sig (s : ob) (t : ob) 
-                                          (fib : hom {struct (s : s) (t : t) })
-                                          ) → (g : sig (s : ext ob ⊤ {
-                                                            _x₂ => f @ t})
-                                                   (t : ob) 
-                                                   (fib : hom {struct (s : 
-                                                               f @ t) (t : t) })
-                                                   ) → (h : sig (s : 
-                                                            ext ob ⊤ {
-                                                            _x₂ => g @ t}) 
-                                                            (t : ob) 
-                                                            (fib : hom {
-                                                            struct (s : 
-                                                            g @ t) (t : t) }) ) → 
-                             ext {i =>
-                                  sig (s : ext ob ⊤ {_x₂ => f @ s}) 
-                                  (t : ext ob ⊤ {_x₂ => h @ t}) 
-                                  (fib : hom {struct (s : f @ s) (t : h @ t) })
-                                  } {i => i = 0 ∨ i = 1} {i _x₂ =>
-                                                          [ i = 0 =>
-                                                            struct (s : 
-                                                            f @ s) 
-                                                            (t : h @ t) 
-                                                            (fib : seq {
-                                                                   struct (s : 
-                                                                   f @ s) 
-                                                                   (t : 
-                                                                   f @ t) 
-                                                                   (fib : 
-                                                                   f @ fib) } {
-                                                                   struct (s : 
-                                                                   f @ t) 
-                                                                   (t : 
-                                                                   h @ t) 
-                                                                   (fib : 
-                                                                   seq {
-                                                                   struct (s : 
-                                                                   f @ t) 
-                                                                   (t : 
-                                                                   g @ t) 
-                                                                   (fib : 
-                                                                   g @ fib) } {
-                                                                   struct (s : 
-                                                                   g @ t) 
-                                                                   (t : 
-                                                                   h @ t) 
-                                                                   (fib : 
-                                                                   h @ fib) } @ fib)
-                                                                   } @ fib)
-                                                            
-                                                          | i = 1 =>
-                                                            struct (s : 
-                                                            f @ s) 
-                                                            (t : h @ t) 
-                                                            (fib : seq {
-                                                                   struct (s : 
-                                                                   f @ s) 
-                                                                   (t : 
-                                                                   g @ t) 
-                                                                   (fib : 
-                                                                   seq {
-                                                                   struct (s : 
-                                                                   f @ s) 
-                                                                   (t : 
-                                                                   f @ t) 
-                                                                   (fib : 
-                                                                   f @ fib) } {
-                                                                   struct (s : 
-                                                                   f @ t) 
-                                                                   (t : 
-                                                                   g @ t) 
-                                                                   (fib : 
-                                                                   g @ fib) } @ fib)
-                                                                   } {
-                                                                   struct (s : 
-                                                                   g @ t) 
-                                                                   (t : 
-                                                                   h @ t) 
-                                                                   (fib : 
-                                                                   h @ fib) } @ fib)
-                                                            
-                                                          ]})
-                             }
-
-patch.cooltt:52.7-52.16 [Info]:
-  test-auto : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → type} ⊤
-                             {fam =>
-                              sig (x : nat) (fib : fam {struct (x : x) }) }
-
-patch.cooltt:55.7-55.22 [Info]:
-  test-auto-patch : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → type} ⊤
-                                   {fam =>
-                                    sig (x : ext nat ⊤ {_x₂ => 0}) 
-                                    (fib : fam {struct (x : 0) }) }
-
-patch.cooltt:59.7-59.24 [Info]:
-  test-unfold-total : (_x : [ ⊤ ]) → sub {(fam : (_x₁ : sig (x : nat) ) → type) → type} ⊤
-                                     {fam =>
-                                      sig (x : nat) 
-                                      (fib : fam {struct (x : x) }) }
 
 [Warn]:  There are 2 unsolved holes
 
@@ -1260,17 +1035,8 @@ record.cooltt:32.7-32.13 [Info]:
                           {sig (tp : type) (fun : (_x₂ : tp) → tp) }
 
 --------------------[repack.cooltt]--------------------
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
-
-Emitted namespace under ∷
-  ? = { a2 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
+repack.cooltt:12.0-12.1 [Error]:
+  Parse error near !
 
 --------------------[section.cooltt]--------------------
 section.cooltt:5.7-5.17 [Info]:
@@ -1279,11 +1045,14 @@ section.cooltt:5.7-5.17 [Info]:
 section.cooltt:11.7-11.9 [Info]:
   a2 : (_x : [ ⊤ ]) → sub nat ⊤ 10
 
-section.cooltt:28.7-28.13 [Info]:
+section.cooltt:18.7-18.9 [Info]:
+  a3 : (_x : [ ⊤ ]) → sub nat ⊤ 30
+
+section.cooltt:25.7-25.13 [Info]:
   x4∷b4 : (_x : [ ⊤ ]) → sub nat ⊤ 40
 
 Emitted namespace under ∷
-  ? = { a2 => a2; x1∷y1∷a1 => a1; x4∷b4 => a4 }
+  ? = { a2 => a2; a3 => a3; x1∷y1∷a1 => a1; x4∷b4 => a4 }
 
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.11-8.18 [Info]:

@@ -147,8 +147,8 @@ and execute_decl (decl : CS.decl) : command =
 
     let* requirement_syms = RM.resolve_unfolder_syms requiring in
     let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
-    let* requirement_dims =  requirement_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
-    let* unfolding_dims =  unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+    let* requirement_dims = requirement_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+    let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
 
     let* _ =
       requirement_dims @ unfolding_dims |> RMU.iter @@ fun dim ->
@@ -234,12 +234,22 @@ and execute_decl (decl : CS.decl) : command =
     let* _ = RM.add_global ~unfolder:None ~guarded ~shadowing name vtp in
     RM.ret Continue
 
-  | CS.NormalizeTerm term ->
+  | CS.NormalizeTerm {unfolding; con} ->
+    let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
+    let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+    let* unfolding_cof =
+      RM.lift_cmp @@
+      Sem.con_to_cof @@
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
+    in
+
     RM.veil `Transparent @@
-    let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
+    RM.abstract `Anon (D.TpPrf unfolding_cof) @@ fun _ ->
+    let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm con in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
     let* tm' = RM.quote_con vtp vtm in
-    let* () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
+    let* () = RM.emit con.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
     RM.ret Continue
 
   | CS.Fail decl ->
@@ -260,6 +270,7 @@ and execute_decl (decl : CS.decl) : command =
 
   | CS.Print ident ->
     print_ident ident
+
   | CS.Import {shadowing; unitpath; modifier} ->
     RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
     let* modifier = Option.fold ~none:(RM.ret Yuujinchou.Pattern.any) ~some:Elaborator.modifier modifier in

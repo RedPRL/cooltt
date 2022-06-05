@@ -78,6 +78,7 @@ let keywords =
     ("⏹️", END);
     ("equation", EQUATION);
     ("section", SECTION);
+    ("shadowing", SHADOWING);
     ("📦", SECTION);
     ("view", VIEW);
     ("👁️", VIEW);

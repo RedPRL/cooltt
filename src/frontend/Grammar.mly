@@ -28,6 +28,17 @@
     | [] -> failwith "Impossible Internal Error"
     | [f] -> drop_location f
     | f :: args -> Ap (f, args)
+
+  type decl_modifiers =
+    {shadowing : bool;
+     abstract : bool;
+     requiring : Ident.t list;
+     unfolding : Ident.t list}
+
+   let defualt_decl_modifier =
+     {shadowing = false; abstract = false; requiring = []; unfolding = []}
+
+   type decl_modifier = decl_modifiers -> decl_modifiers
 %}
 
 %token <int> NUMERAL
@@ -53,7 +64,7 @@
 %token TOPC BOTC
 %token V VPROJ CAP
 %token BEGIN EQUATION END LSQEQUALS LRSQEQUALS
-%token SECTION VIEW EXPORT REPACK
+%token SECTION VIEW EXPORT REPACK SHADOWING
 
 %nonassoc IN RRIGHT_ARROW SEMI
 %nonassoc COLON
@@ -71,6 +82,8 @@
   bracketed
   plain_lambda_except_cof_case
   plain_term_except_cof_case
+%type <decl_modifier> decl_modifier
+%type <decl_modifiers> decl_modifiers
 %type <pat> pat
 %type <pat * con> case
 %type <con * con> cof_case
@@ -147,36 +160,46 @@ unfold_spec:
   | UNFOLD list = separated_list(COMMA, plain_name)
     { list }
 
+decl_modifier:
+  | SHADOWING
+    {fun dmod -> {dmod with shadowing = true}}
+  | unf = unfold_spec
+    {fun dmod -> {dmod with unfolding = dmod.unfolding @ unf}}
+  | req = require_spec
+    {fun dmod -> {dmod with requiring = dmod.requiring @ req}}
+
+decl_modifiers:
+  | dmods = list(decl_modifier)
+    { List.fold_left (fun x f -> f x) defualt_decl_modifier dmods }
+
 decl: t = located(plain_decl) {t}
 plain_decl:
   (* TODO: I am getting stupid shift/reduce conflicts when I try to incorporate the boption(BANG) for shadowing *)
-  | require_spec = option(require_spec); unfold_spec = option(unfold_spec); abstract = boption(ABSTRACT); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Def {abstract; shadowing = false; name = nm; args = tele; def = body; tp; requiring = Option.value require_spec ~default:[]; unfolding = Option.value unfold_spec ~default:[]} }
-
-
-  | require_spec = option(require_spec); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
-    { Axiom {shadowing = false; name = nm; args = tele; tp; requiring = Option.value require_spec ~default:[]} }
+  | dmod = decl_modifiers; abstract = boption(ABSTRACT); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Def {abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; requiring = dmod.requiring; unfolding = dmod.unfolding} }
+  | dmod = decl_modifiers; AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
+    { Axiom {shadowing = dmod.shadowing; name = nm; args = tele; tp; requiring = dmod.requiring} }
 
   | FAIL; d = decl
     { Fail d }
   | QUIT
     { Quit }
-  | NORMALIZE; tm = term
-    { NormalizeTerm tm }
-  | shadowing = boption(BANG); unitpath = IMPORT; modifier = ioption(bracketed_modifier)
-    { Import {shadowing; unitpath; modifier} }
+  | dmod = decl_modifiers; NORMALIZE; tm = term
+    { NormalizeTerm {unfolding = dmod.unfolding; con = tm} }
+  | dmod = decl_modifiers; unitpath = IMPORT; modifier = ioption(bracketed_modifier)
+    { Import {shadowing = dmod.shadowing; unitpath; modifier} }
   | PRINT; name = name
     { Print name }
-  | shadowing = boption(BANG); VIEW; modifier = bracketed_modifier
-    { View {shadowing; modifier} }
-  | shadowing = boption(BANG); EXPORT; modifier = bracketed_modifier
-    { Export {shadowing; modifier} }
-  | shadowing = boption(BANG); EXPORT; path = located(path)
-    { Export {shadowing; modifier = map_node ~f:(fun p -> ModOnly p) path } }
-  | shadowing = boption(BANG); REPACK; modifier = bracketed_modifier
-    { Repack {shadowing; modifier} }
-  | shadowing = boption(BANG); SECTION; prefix = ioption(path); BEGIN; decls = list(decl); END; modifier = ioption(bracketed_modifier)
-    { Section {shadowing; prefix; decls; modifier} }
+  | dmod = decl_modifiers; VIEW; modifier = bracketed_modifier
+    { View {shadowing = dmod.shadowing; modifier} }
+  | dmod = decl_modifiers; EXPORT; modifier = bracketed_modifier
+    { Export {shadowing = dmod.shadowing; modifier} }
+  | dmod = decl_modifiers; EXPORT; path = located(path)
+    { Export {shadowing = dmod.shadowing; modifier = map_node ~f:(fun p -> ModOnly p) path } }
+  | dmod = decl_modifiers; REPACK; modifier = bracketed_modifier
+    { Repack {shadowing = dmod.shadowing; modifier} }
+  | dmod = decl_modifiers; SECTION; prefix = ioption(path); BEGIN; decls = list(decl); END; modifier = ioption(bracketed_modifier)
+    { Section {shadowing = dmod.shadowing; prefix; decls; modifier} }
 
 sign:
   | EOF

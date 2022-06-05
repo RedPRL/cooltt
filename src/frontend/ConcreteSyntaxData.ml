@@ -110,7 +110,7 @@ and decl_ =
   | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con; requiring : Ident.t list}
   | Print of Ident.t node
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
-  | NormalizeTerm of con
+  | NormalizeTerm of {unfolding : Ident.t list; con : con}
   | Fail of decl
   | Quit
   | View of {shadowing : bool; modifier : con}

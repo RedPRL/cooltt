@@ -10,15 +10,12 @@ section begin
 end
 #print a2
 
--- until the genie fixes the parser
-/-
--- section with bang for shadowing
+-- section with shadowing
 def a3 : nat := 20
-!section begin
-  !def a3 : nat := 30
+shadowing section begin
+  shadowing def a3 : nat := 30
 end
 #print a3
--/
 
 
 -- section with pattern
