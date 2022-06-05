@@ -1,13 +1,4 @@
 --------------------[abstract.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 hlevel.cooltt:32.7-32.12 [Info]:
   def hProp : type :=
     (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
@@ -18,19 +9,7 @@ hlevel.cooltt:33.11-33.16 [Info]:
    (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
                                      i _x => [ i = 0 => c | i = 1 => c' ]}
 
-abstract.cooltt:79.31-83.29 [Error]:
-  Unexpected shadowing of foo
-
 --------------------[base-types.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.21 [Info]:
   Computed normal form of loopn 45 as
@@ -603,15 +582,6 @@ elab.cooltt:42.6-42.12 [Info]:
 [Warn]:  There are 3 unsolved holes
 
 --------------------[equation.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 equation.cooltt:10.7-10.23 [Info]:
   def equational/trans : (a : type) → (x : a) → (y : a) → (z : a) → (p : 
   ext {i => a} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => x | i = 1 => y ]}) → (q : 
@@ -636,29 +606,11 @@ equation.cooltt:18.7-18.26 [Info]:
       {_x₂ _x₃ => [ _x₂ = 0 ∨ _x₁ = 0 => 4 | _x₁ = 1 => 4 ]}
 
 --------------------[evan.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 --------------------[export.cooltt]--------------------
 export.cooltt:24.0-24.1 [Error]:
   Parse error near !
 
 --------------------[groupoid-laws.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 --------------------[hcom-type.cooltt]--------------------
 hcom-type.cooltt:17.8-17.13 [Info]:
   Emitted hole:
@@ -695,15 +647,6 @@ hcom-type.cooltt:17.18-17.19 [Info]:
 [Warn]:  There are 3 unsolved holes
 
 --------------------[hlevel.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 hlevel.cooltt:32.7-32.12 [Info]:
   def hProp : type :=
     (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
@@ -715,15 +658,6 @@ hlevel.cooltt:33.11-33.16 [Info]:
                                      i _x => [ i = 0 => c | i = 1 => c' ]}
 
 --------------------[holes.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 holes.cooltt:5.7-5.13 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
@@ -833,25 +767,7 @@ inequality.cooltt:11.7-11.10 [Info]:
     [ ⊤ => 0 ]
 
 --------------------[isos.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 --------------------[monoid.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + 2 3 as + 2 3
 
@@ -917,15 +833,6 @@ names.cooltt:5.7-5.14 [Info]:
     u∷v => u∷v
 
 --------------------[nat-path.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + 2 3 as + 2 3
 
@@ -965,15 +872,6 @@ nat-path.cooltt:85.11-85.16 [Info]:
      ]
 
 --------------------[nat.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + 2 3 as + 2 3
 
@@ -981,15 +879,6 @@ nat.cooltt:13.11-13.16 [Info]:
   Computed normal form of + 2 3 as 5
 
 --------------------[patch.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 patch.cooltt:10.49-10.50 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
@@ -1068,25 +957,7 @@ path-types.cooltt:55.11-55.18 [Info]:
   Computed normal form of pairext as A B p q h i => [ fst h i , snd h i ]
 
 --------------------[prelude.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 --------------------[record.cooltt]--------------------
-prelude.cooltt:48.7-48.11 [Info]:
-  def path : (A : type) → (x : A) → (y : A) → type :=
-    A x y =>
-    ext {i => A} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => x | i = 1 => y ]}
-
-prelude.cooltt:52.7-52.10 [Info]:
-  def foo : type :=
-    ext {i => nat} {i => i = 0 ∨ i = 1} {i _x₁ => [ i = 0 => 0 | i = 1 => 0 ]}
-
 record.cooltt:11.7-11.12 [Info]:
   def basic : type :=
     sig (foo∷x : nat) (bar : (_x₁ : nat) → nat) 
