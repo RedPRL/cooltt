@@ -22,7 +22,7 @@ module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) modul
 type 'a whnf = [`Done | `Reduce of 'a]
 
 
-type whnf_style = [`UnfoldNone | `UnfoldAll | `Veil of Veil.t]
+type whnf_style = [`UnfoldNone | `UnfoldAll]
 
 
 let cut_frm ~tp ~cut frm =

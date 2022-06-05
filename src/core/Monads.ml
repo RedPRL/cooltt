@@ -30,7 +30,6 @@ module ConvL =
 struct
   type local =
     {state : St.t;
-     veil : Veil.t;
      cof_thy : CofThy.Alg.t;
      size : int}
 end
@@ -39,7 +38,6 @@ module QuL =
 struct
   type local =
     {state : St.t;
-     veil : Veil.t;
      cof_thy : CofThy.Disj.t;
      size : int}
 end
@@ -216,10 +214,6 @@ struct
     let+ {size; _} = M.read in
     size
 
-  let read_veil =
-    let+ {veil; _} = M.read in
-    veil
-
   let lift_cmp (m : 'a compute) : 'a m =
     fun {state; cof_thy; _} ->
     m {state; cof_thy}
@@ -281,9 +275,6 @@ struct
         Log.pp_runtime_message ~loc ~lvl pp a;
         Ok (), st
 
-  let veil v =
-    M.scope (Env.set_veil v)
-
   let restrict phis =
     M.scope (Env.restrict phis)
 
@@ -297,7 +288,7 @@ struct
     fun (state, env) ->
       match
         MU.iter
-          (fun cof_thy -> ConvM.run {state; cof_thy; veil = Env.get_veil env; size = Env.size env} m)
+          (fun cof_thy -> ConvM.run {state; cof_thy; size = Env.size env} m)
           (CofThy.Disj.decompose @@ cof_thy state env)
       with
       | Ok () -> Ok (), state
@@ -306,7 +297,7 @@ struct
   let lift_qu (m : 'a quote) : 'a m =
     fun (state, env) ->
     match
-      QuM.run {state; cof_thy = cof_thy state env; veil = Env.get_veil env; size = Env.size env} m
+      QuM.run {state; cof_thy = cof_thy state env; size = Env.size env} m
     with
     | Ok v -> Ok v, state
     | Error exn -> Error exn, state

@@ -194,7 +194,6 @@ and execute_decl (decl : CS.decl) : command =
       List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
     in
 
-    RM.veil `Transparent @@
     RM.abstract `Anon (D.TpPrf unfolding_cof) @@ fun _ ->
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm con in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
