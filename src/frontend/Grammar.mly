@@ -152,7 +152,7 @@ plain_name:
     { name_of_underscore }
 
 unfold_spec:
-  | UNFOLD list = separated_list(COMMA, plain_name)
+  | UNFOLD list = list(plain_name)
     { list }
 
 decl_modifier:

@@ -50,7 +50,7 @@ def trans-right-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {
 
 def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ => p 0} {trans A p {symm A p}} :=
   k i =>
-  unfold trans, symm in
+  unfold trans symm in
   hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
     symm/filler A p j i
   }
