@@ -815,6 +815,9 @@ inequality.cooltt:11.7-11.10 [Info]:
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + * 2 3 as + * 2 3
 
+nat.cooltt:13.11-13.16 [Info]:
+  Computed normal form of + * 2 3 as 5
+
 monoid.cooltt:19.7-19.17 [Info]:
   monoid/nat : (_x : [ ⊤ ]) → sub {sig (C : ext type ⊤ {_x₁ => nat}) 
                                    (op : (_x₁ : nat) → (_x₂ : nat) → nat) 
@@ -884,6 +887,9 @@ names.cooltt:5.7-5.14 [Info]:
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + * 2 3 as + * 2 3
 
+nat.cooltt:13.11-13.16 [Info]:
+  Computed normal form of + * 2 3 as 5
+
 nat-path.cooltt:16.11-16.12 [Info]:
   Computed normal form of J * as J *
 
@@ -919,6 +925,9 @@ nat-path.cooltt:85.11-85.16 [Info]:
 --------------------[nat.cooltt]--------------------
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + * 2 3 as + * 2 3
+
+nat.cooltt:13.11-13.16 [Info]:
+  Computed normal form of + * 2 3 as 5
 
 --------------------[patch.cooltt]--------------------
 patch.cooltt:10.49-10.50 [Info]:
