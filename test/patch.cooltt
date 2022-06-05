@@ -27,26 +27,27 @@ def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z 
 -- Record Patching + Total Space Conversion
 #fail def total-space/fail (fam : sig (A : type) (a : A) -> nat -> type) : type := fam
 
+abstract
 def category : type :=
-  sig (ob : type)
-      (hom : sig (s : ob) (t : ob) → type)
-      (idn : (x : ob) -> hom # [ s .= x | t .= x ])
-      (seq : (f : hom) -> (g : hom # [ s .= f.t ]) -> hom # [ s .= f.s | t .= g.t ])
-      (seqL : (f : hom) -> path {hom # [ s .= f.s | t .= f.t ]} {seq {idn {f.s}} f} f)
-      (seqR : (f : hom) -> path {hom # [ s .= f.s | t .= f.t ]} {seq f {idn {f.t}}} f)
-      (seqA : (f : hom) -> (g : hom # [ s .= f.t ]) -> (h : hom # [ s .= g.t ]) -> path {hom # [ s .= f.s | t .= h.t ]} {seq f {seq g h}} {seq {seq f g} h})
-
-#quit
-#print category
+  sig
+    (ob : type)
+    (hom : sig (s : ob) (t : ob) → type)
+    (idn : (x : ob) -> hom # [ s .= x | t .= x ])
+    (seq : (f : hom) -> (g : hom # [ s .= f.t ]) -> hom # [ s .= f.s | t .= g.t ])
+    (seqL : (f : hom) -> path {hom # [ s .= f.s | t .= f.t ]} {seq {idn {f.s}} f} f)
+    (seqR : (f : hom) -> path {hom # [ s .= f.s | t .= f.t ]} {seq f {idn {f.t}}} f)
+    (seqA : (f : hom) -> (g : hom # [ s .= f.t ]) -> (h : hom # [ s .= g.t ]) -> path {hom # [ s .= f.s | t .= h.t ]} {seq f {seq g h}} {seq {seq f g} h})
 
 def types : category :=
-  struct (ob : type)
-         (hom : args => {args.s} -> {args.t})
-         (idn : x z => z)
-         (seq : f g x => g {f x})
-         (seqL : f i => f)
-         (seqR : f i => f)
-         (seqA : f g h i x => h {g {f x}})
+  unfold category in
+  struct
+    (ob : type)
+    (hom : args => {args.s} -> {args.t})
+    (idn : x z => z)
+    (seq : f g x => g {f x})
+    (seqL : f i => f)
+    (seqR : f i => f)
+    (seqA : f g h i x => h {g {f x}})
 
 
 def test-auto (fam : sig (x : nat) -> type) : type := fam
