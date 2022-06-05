@@ -84,7 +84,7 @@ struct
     let _ = Vector.push code_unit.symbol_table tp in
     let sym =
       {Global.origin = code_unit.id;
-       unfolder_index = Option.flat_map (fun i -> Global.(i.unfolder_index)) unfolder;
+       unfolder_index = Option.map (fun i -> Global.(i.index)) unfolder;
        index;
        name = Ident.to_string_opt ident}
     in
