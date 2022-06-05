@@ -676,7 +676,7 @@ hcom-type.cooltt:17.16-17.17 [Info]:
     
     Boundary:
     i = 0 ∨ i = 1
-    |- _x₁ => ?asdf _x 0 *
+    |- _x₁ => [ ⊤ => ?asdf _x 0 * ]
 
 
 hcom-type.cooltt:17.18-17.19 [Info]:
@@ -688,6 +688,7 @@ hcom-type.cooltt:17.18-17.19 [Info]:
     Boundary:
     i = 0 ∨ i = 0 ∨ i = 1
     |- i = 0 => ?asdf _x 0 *
+       i = 0 => ?asdf _x 0 *
        i = 1 => ?asdf _x 1 *
 
 
@@ -815,7 +816,9 @@ holes.cooltt:18.26-18.30 [Info]:
 
 holes.cooltt:17.5-18.30 [Info]:
   Failure encountered, as expected:
-   Expected #10 _x A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 _x A p q i _x₂ _x₃} =
+            [ i = 0 ∨ i = 1 => [ i = 0 => p 0 | i = 1 => q 1 ] ]
+            : A
 
 
 [Warn]:  There are 7 unsolved holes
@@ -826,8 +829,8 @@ import.cooltt:23.0-23.1 [Error]:
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
-  def bar : ext nat ⊤ {_x => 0} :=
-    0
+  def bar : ext nat ⊤ {_x => [ ⊤ => 0 ]} :=
+    [ ⊤ => 0 ]
 
 --------------------[isos.cooltt]--------------------
 prelude.cooltt:48.7-48.11 [Info]:

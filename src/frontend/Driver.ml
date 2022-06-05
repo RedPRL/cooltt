@@ -15,6 +15,7 @@ module TB = TermBuilder
 module RM = RefineMonad
 module R = Refiner
 module ST = RefineState
+module QuM = Monads.QuM
 module RMU = Monad.Util (RM)
 open Monad.Notation (RM)
 
@@ -215,7 +216,7 @@ and execute_decl (decl : CS.decl) : command =
     RM.abstract `Anon (D.TpPrf unfolding_cof) @@ fun _ ->
     let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm con in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
-    let* tm' = RM.quote_con vtp vtm in
+    let* tm' = RM.lift_qu @@ QuM.with_normalization true @@ Quote.quote_con vtp vtm in
     let* () = RM.emit con.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
     RM.ret Continue
 
