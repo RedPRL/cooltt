@@ -1170,7 +1170,7 @@ struct
       RM.lift_cmp @@
       Sem.con_to_cof @@
       D.CofBuilder.meet @@
-      List.map (D.CofBuilder.eq D.Dim1) dims
+      List.map D.CofBuilder.eq1 dims
     in
     unleash_toplevel ~name:(Ident.blocked unfoldings) ~unf_cof tac goal
 
