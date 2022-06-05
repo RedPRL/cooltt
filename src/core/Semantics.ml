@@ -764,27 +764,11 @@ and plug_into ~style sp con =
   | `Done -> ret @@ `Reduce res
   | `Reduce res -> ret @@ `Reduce res
 
-and should_unfold_symbol style _sym = (* TODO: get rid of argument *)
-  match style with
-  | `UnfoldNone ->
-    false
-  | `UnfoldAll -> true
-  | `Veil `Transparent -> true
-  | `Veil `Translucent -> false
-
 and whnf_hd ~style hd =
   let open CM in
   match hd with
-  | D.Global sym ->
-    if should_unfold_symbol style sym then
-      let* st = CM.read_global in
-      begin
-        match RefineState.get_global sym st with
-        | _ | exception _ ->
-          ret `Done
-      end
-    else
-      ret `Done
+  | D.Global _ ->
+    ret `Done
   | D.Var _ -> ret `Done
   | D.Coe (abs, r, s, con) ->
     begin
