@@ -174,7 +174,6 @@ decl_modifiers:
 
 decl: t = located(plain_decl) {t}
 plain_decl:
-  (* TODO: I am getting stupid shift/reduce conflicts when I try to incorporate the boption(BANG) for shadowing *)
   | dmod = decl_modifiers; abstract = boption(ABSTRACT); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
     { Def {abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; requiring = dmod.requiring; unfolding = dmod.unfolding} }
   | dmod = decl_modifiers; AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
