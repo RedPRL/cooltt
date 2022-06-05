@@ -268,8 +268,18 @@ and execute_decl (decl : CS.decl) : command =
         Continue
     end
 
-  | CS.Print ident ->
-    print_ident ident
+  | CS.Print {unfolding; name} ->
+    let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
+    let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+    let* unfolding_cof =
+      RM.lift_cmp @@
+      Sem.con_to_cof @@
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
+    in
+
+    RM.abstract `Anon (D.TpPrf unfolding_cof) @@ fun _ ->
+    print_ident name
 
   | CS.Import {shadowing; unitpath; modifier} ->
     RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
