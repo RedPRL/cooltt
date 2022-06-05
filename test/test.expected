@@ -630,23 +630,8 @@ equation.cooltt:18.7-18.26 [Info]:
 
 --------------------[evan.cooltt]--------------------
 --------------------[export.cooltt]--------------------
-Emitted namespace under ∷
-  ? = { a1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a2; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
+export.cooltt:24.0-24.1 [Error]:
+  Parse error near !
 
 --------------------[groupoid-laws.cooltt]--------------------
 --------------------[hcom-type.cooltt]--------------------
@@ -778,20 +763,24 @@ holes.cooltt:14.7-14.35 [Info]:
 
 holes.cooltt:18.26-18.30 [Info]:
   Emitted hole:
+    _x : [ ⊤ ]
+    _x₁ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) → A
+    p : (_x₂ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (_x : 𝕀) → (_x₁ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) → A
+    |- ? : (_x₂ : 𝕀) → (_x₃ : [ _x₂ = 0 ∨ i = 0 ∨ i = 1 ]) → A
 
 
-holes.cooltt:18.7-18.30 [Info]:
-  fail cone-of-silence-hcom:
-  Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+holes.cooltt:17.5-18.30 [Info]:
+  Failure encountered, as expected:
+   Expected #10 _x _x₁ A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+
 
 [Warn]:  There are 7 unsolved holes
 
 --------------------[import.cooltt]--------------------
+<<<<<<< HEAD
 Emitted namespace under p2
   ?cool = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
           ; refl => refl; symm => symm; symm/filler => symm/filler
@@ -823,6 +812,10 @@ Emitted namespace under p2
       ; refl => refl; symm => symm; symm/filler => symm/filler
       ; trans => trans; trans/filler => trans/filler; u => unit
       ; unit/eta => unit/eta }
+=======
+import.cooltt:23.0-23.1 [Error]:
+  Parse error near !
+>>>>>>> translucency
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
@@ -832,6 +825,9 @@ inequality.cooltt:11.7-11.10 [Info]:
 --------------------[monoid.cooltt]--------------------
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + 2 3 as + 2 3
+
+nat.cooltt:13.11-13.16 [Info]:
+  Computed normal form of + * 2 3 as 5
 
 monoid.cooltt:19.7-19.17 [Info]:
   monoid/nat : sub {sig (C : ext type ⊤ {_x => nat}) 
@@ -897,6 +893,9 @@ names.cooltt:5.7-5.14 [Info]:
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + 2 3 as + 2 3
 
+nat.cooltt:13.11-13.16 [Info]:
+  Computed normal form of + * 2 3 as 5
+
 nat-path.cooltt:16.11-16.12 [Info]:
   Computed normal form of J as J
 
@@ -932,6 +931,9 @@ nat-path.cooltt:85.11-85.16 [Info]:
 --------------------[nat.cooltt]--------------------
 nat.cooltt:10.11-10.16 [Info]:
   Computed normal form of + 2 3 as + 2 3
+
+nat.cooltt:13.11-13.16 [Info]:
+  Computed normal form of + * 2 3 as 5
 
 --------------------[patch.cooltt]--------------------
 patch.cooltt:10.49-10.50 [Info]:
@@ -991,6 +993,7 @@ patch.cooltt:25.7-25.14 [Info]:
                                                  } ⊤
             {A Z B p z => struct (x : p z @ x) (bx : p z @ bx) }
 
+<<<<<<< HEAD
 patch.cooltt:28.79-28.82 [Info]:
   fail total-space/fail:
   Expected type = (_x : sig (A : type) (a : A) ) → (_x₁ : nat) → type
@@ -1101,6 +1104,12 @@ patch.cooltt:55.7-55.22 [Info]:
 patch.cooltt:59.7-59.24 [Info]:
   test-unfold-total : sub {(fam : (_x : sig (x : nat) ) → type) → type} ⊤
                       {fam => sig (x : nat) (fib : fam {struct (x : x) }) }
+=======
+patch.cooltt:28.5-28.86 [Info]:
+  Failure encountered, as expected:
+   Expected type = (_x₂ : sig (A : type) (a : A) ) → (_x₃ : nat) → type
+
+>>>>>>> translucency
 
 [Warn]:  There are 2 unsolved holes
 
@@ -1142,17 +1151,8 @@ record.cooltt:32.7-32.13 [Info]:
   depend : sub type ⊤ {sig (tp : type) (fun : (_x₁ : tp) → tp) }
 
 --------------------[repack.cooltt]--------------------
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
-
-Emitted namespace under ∷
-  ? = { a2 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a2; a3 => a3; b1 => a1 }
-
-Emitted namespace under ∷
-  ? = { a1 => a1; a2 => a2; a3 => a3 }
+repack.cooltt:12.0-12.1 [Error]:
+  Parse error near !
 
 --------------------[section.cooltt]--------------------
 section.cooltt:5.7-5.17 [Info]:
@@ -1161,11 +1161,19 @@ section.cooltt:5.7-5.17 [Info]:
 section.cooltt:11.7-11.9 [Info]:
   a2 : sub nat ⊤ 10
 
+<<<<<<< HEAD
 section.cooltt:28.7-28.13 [Info]:
   x4∷b4 : sub nat ⊤ 40
+=======
+section.cooltt:18.7-18.9 [Info]:
+  a3 : (_x : [ ⊤ ]) → sub nat ⊤ 30
+
+section.cooltt:25.7-25.13 [Info]:
+  x4∷b4 : (_x : [ ⊤ ]) → sub nat ⊤ 40
+>>>>>>> translucency
 
 Emitted namespace under ∷
-  ? = { a2 => a2; x1∷y1∷a1 => a1; x4∷b4 => a4 }
+  ? = { a2 => a2; a3 => a3; x1∷y1∷a1 => a1; x4∷b4 => a4 }
 
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.11-8.18 [Info]:

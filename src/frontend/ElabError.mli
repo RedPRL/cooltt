@@ -13,6 +13,7 @@ type t =
   | CannotEliminate of Pp.env * S.tp
   | ExpectedSimpleInductive of Pp.env * S.tp
   | InvalidModifier of CS.con
+  | ExpectedFailure of CS.decl
 
 val pp : Format.formatter -> t -> unit
 

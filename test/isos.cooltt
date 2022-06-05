@@ -1,16 +1,16 @@
 -- "stdlib"
 import prelude
 
--- until the genie fixes the parser
-/-
-!def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
+shadowing
+def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
   hcom A 0 j {∂ i} {j _ =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
   }
 
-!def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+shadowing
+def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   trans/filler A p q 1
 
 -- isomorphisms
@@ -107,4 +107,3 @@ def iso/flip (A B C : type) : iso {A → B → C} {B → A → C} :=
    [bac a b => bac b a,
     [bac i => bac,
      abc i => abc]]]
--/

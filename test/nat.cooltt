@@ -9,6 +9,9 @@ def + : nat → nat → nat :=
 
 #normalize + 2 3
 
+unfold +
+#normalize + 2 3
+
 abstract
 def pred : nat → nat :=
   elim [
