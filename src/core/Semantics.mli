@@ -9,7 +9,7 @@ val eval : S.t -> D.con evaluate
 val eval_cof : S.t -> D.cof evaluate
 val eval_tp : S.tp -> D.tp evaluate
 
-type whnf_style = [`UnfoldNone | `UnfoldAll | `Veil of Veil.t]
+type whnf_style = [`UnfoldNone | `UnfoldAll]
 
 type 'a whnf = [`Done | `Reduce of 'a]
 val whnf_con : style:whnf_style -> D.con -> D.con whnf compute

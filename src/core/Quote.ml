@@ -45,9 +45,8 @@ let guess_bound_name : D.con -> Ident.t =
 
 let rec quote_con (tp : D.tp) con =
   QuM.abort_if_inconsistent (ret S.tm_abort) @@
-  let* veil = read_veil in
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:`UnfoldAll tp in
-  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con ~style:(`Veil veil) con in
+  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con ~style:`UnfoldNone con in
   match tp, con with
   | _, D.Split branches ->
     let quote_branch (phi, clo) =
@@ -412,8 +411,7 @@ and quote_sign : D.sign -> S.sign m =
   | Empty -> ret []
 
 and quote_tp (tp : D.tp) =
-  let* veil = read_veil in
-  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
+  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:`UnfoldNone tp in
   match tp with
   | D.Nat -> ret S.Nat
   | D.Circle -> ret S.Circle
