@@ -44,3 +44,9 @@ def ⋆ : unit := 0
 def unit/eta (x : unit) : path unit ⋆ x :=
   _ => x
 
+
+#print path
+
+def foo : type := path nat 0 0
+
+#print foo

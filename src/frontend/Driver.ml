@@ -35,13 +35,31 @@ let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
   function
   | `Global sym ->
-    let* vtp = RM.get_global sym in
-    let* tp = RM.quote_tp vtp in
-    let+ () =
-      RM.emit ident.info pp_message @@
-      OutputMessage (Definition {ident = ident.node; tp})
-    in
-    Continue
+    begin
+      RM.get_global sym |>>
+      function
+      | D.Sub (vtp, cof, clo) ->
+        let* tp = RM.quote_tp vtp in
+        let* bdy =
+          RM.abstract Ident.anon (D.TpPrf cof) @@ fun prf ->
+          let* vbdy = RM.lift_cmp @@ Sem.inst_tm_clo clo prf in
+          RM.quote_con vtp vbdy
+        in
+        let* tcof = RM.quote_cof cof in
+        let+ () =
+          RM.emit ident.info pp_message @@
+          OutputMessage (Definition {ident = ident.node; tp; ptm = Some (tcof, bdy)})
+        in
+        Continue
+      | _ ->
+        let* vtp = RM.get_global sym in
+        let* tp = RM.quote_tp vtp in
+        let+ () =
+          RM.emit ident.info pp_message @@
+          OutputMessage (Definition {ident = ident.node; tp; ptm = None})
+        in
+        Continue
+    end
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
 

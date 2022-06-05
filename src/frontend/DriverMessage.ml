@@ -6,8 +6,8 @@ open CodeUnit
 module S = Syntax
 
 type output_message =
-  | NormalizedTerm of {orig : S.t; nf : S.t}
-  | Definition of {ident : Ident.t; tp : S.tp}
+  | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}
+  | Definition of {ident : Ident.t; tp : Syntax.tp; ptm : (Syntax.t * Syntax.t) option}
 
 type warning_message = |
 
@@ -69,7 +69,16 @@ let pp_message fmt =
       (Syntax.pp env) orig
       (Syntax.pp env) nf
 
-  | OutputMessage (Definition {ident; tp}) ->
+  | OutputMessage (Definition {ident; tp; ptm = Some (_cof, tm)}) ->
+    let env = Pp.Env.emp in
+    let _, env' = Pp.Env.bind env None in
+    Format.fprintf fmt
+      "@[<v>@[def %a : %a :=@]@,  %a@]"
+      Ident.pp ident
+      (Syntax.pp_tp env) tp
+      (Syntax.pp env') tm
+
+  | OutputMessage (Definition {ident; tp; ptm = None}) ->
     let env = Pp.Env.emp in
     Format.fprintf fmt
       "@[%a : %a@]"
