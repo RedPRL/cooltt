@@ -124,7 +124,7 @@
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "axiom" "let" "import" "section" "view" "export" "repack" "require" "unfold" "abstract")
+  '("def" "axiom" "let" "import" "section" "view" "export" "repack" "unfold" "abstract")
   "Declaration keywords.")
 
 (defconst cooltt-command-keywords
