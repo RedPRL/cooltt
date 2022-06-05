@@ -3,7 +3,7 @@ open CodeUnit
 
 type output_message =
   | NormalizedTerm of {orig : Syntax.t; nf : Syntax.t}
-  | Definition of {ident : Ident.t; tp : Syntax.tp}
+  | Definition of {ident : Ident.t; tp : Syntax.tp; ptm : (Syntax.t * Syntax.t) option}
 
 type warning_message = |
 

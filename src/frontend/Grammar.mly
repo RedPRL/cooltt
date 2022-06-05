@@ -32,11 +32,10 @@
   type decl_modifiers =
     {shadowing : bool;
      abstract : bool;
-     requiring : Ident.t list;
      unfolding : Ident.t list}
 
    let defualt_decl_modifier =
-     {shadowing = false; abstract = false; requiring = []; unfolding = []}
+     {shadowing = false; abstract = false; unfolding = []}
 
    type decl_modifier = decl_modifiers -> decl_modifiers
 %}
@@ -57,7 +56,7 @@
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
 
-%token REQUIRE UNFOLD
+%token UNFOLD
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
@@ -152,10 +151,6 @@ plain_name:
   | UNDERSCORE
     { name_of_underscore }
 
-require_spec:
-  | REQUIRE list = list(plain_name)
-    { list }
-
 unfold_spec:
   | UNFOLD list = list(plain_name)
     { list }
@@ -165,8 +160,6 @@ decl_modifier:
     {fun dmod -> {dmod with shadowing = true}}
   | unf = unfold_spec
     {fun dmod -> {dmod with unfolding = dmod.unfolding @ unf}}
-  | req = require_spec
-    {fun dmod -> {dmod with requiring = dmod.requiring @ req}}
 
 decl_modifiers:
   | dmods = list(decl_modifier)
@@ -175,9 +168,9 @@ decl_modifiers:
 decl: t = located(plain_decl) {t}
 plain_decl:
   | dmod = decl_modifiers; abstract = boption(ABSTRACT); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Def {abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; requiring = dmod.requiring; unfolding = dmod.unfolding} }
+    { Def {abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; unfolding = dmod.unfolding} }
   | dmod = decl_modifiers; AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
-    { Axiom {shadowing = dmod.shadowing; name = nm; args = tele; tp; requiring = dmod.requiring} }
+    { Axiom {shadowing = dmod.shadowing; name = nm; args = tele; tp} }
 
   | FAIL; d = decl
     { Fail d }

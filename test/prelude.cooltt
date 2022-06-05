@@ -43,4 +43,3 @@ def ⋆ : unit := 0
 
 def unit/eta (x : unit) : path unit ⋆ x :=
   _ => x
-

@@ -18,12 +18,8 @@ struct
     { origin : CodeUnitID.t;
       index : int;
       name : string option;
-      unfolder : t option;
-      guarded : bool}
+      unfolder : t option}
   [@@deriving show]
-
-  let is_guarded s =
-    s.guarded
 
   let unfolder s =
     s.unfolder
@@ -45,15 +41,13 @@ struct
     `O [("origin", J.option J.string @@ sym.origin);
         ("index", `String (Int.to_string sym.index));
         ("unfolder", J.option serialize sym.unfolder);
-        ("guarded", J.bool sym.guarded);
         ("name", J.option J.string @@ sym.name) ]
 
   let rec deserialize : J.value -> t =
     function
-    | `O [("origin", j_origin); ("index", j_index); ("unfolder", j_unfolder); ("guarded", j_guarded); ("name", j_name)] ->
+    | `O [("origin", j_origin); ("index", j_index); ("unfolder", j_unfolder); ("name", j_name)] ->
       { origin = J.get_option J.get_string j_origin;
         unfolder = J.get_option deserialize j_unfolder;
-        guarded = J.get_bool j_guarded;
         index = int_of_string @@ J.get_string j_index;
         name = J.get_option J.get_string j_name }
     | j -> J.parse_error j "Global.deserialize"
@@ -82,10 +76,10 @@ struct
     { id = id;
       symbol_table = Vector.create () }
 
-  let add_global ~unfolder ~guarded ident tp code_unit =
+  let add_global ~unfolder ident tp code_unit =
     let index = Vector.length code_unit.symbol_table in
     let _ = Vector.push code_unit.symbol_table tp in
-    let sym = { Global.origin = code_unit.id; unfolder; guarded; index; name = Ident.to_string_opt ident } in
+    let sym = { Global.origin = code_unit.id; unfolder; index; name = Ident.to_string_opt ident } in
     (sym, code_unit)
 
   let get_global (sym : Global.t) code_unit =

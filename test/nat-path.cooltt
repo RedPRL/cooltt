@@ -13,6 +13,7 @@ def J (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → ty
     C {hfill A 0 {∂ i} {k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}
   } 0 1 d
 
+unfold J
 #normalize J
 
 abstract
@@ -54,6 +55,9 @@ def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ =
     symm/filler A p j i
   }
 
+#normalize +-assoc
+
+unfold +-assoc +-left-unit +-suc-l +
 #normalize +-assoc
 
 #normalize trans-left-unit

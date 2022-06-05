@@ -36,13 +36,31 @@ let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
   function
   | `Global sym ->
-    let* vtp = RM.get_global sym in
-    let* tp = RM.quote_tp vtp in
-    let+ () =
-      RM.emit ident.info pp_message @@
-      OutputMessage (Definition {ident = ident.node; tp})
-    in
-    Continue
+    begin
+      RM.get_global sym |>>
+      function
+      | D.Sub (vtp, cof, clo) ->
+        let* tp = RM.quote_tp vtp in
+        let* bdy =
+          RM.abstract Ident.anon (D.TpPrf cof) @@ fun prf ->
+          let* vbdy = RM.lift_cmp @@ Sem.inst_tm_clo clo prf in
+          RM.quote_con vtp vbdy
+        in
+        let* tcof = RM.quote_cof cof in
+        let+ () =
+          RM.emit ident.info pp_message @@
+          OutputMessage (Definition {ident = ident.node; tp; ptm = Some (tcof, bdy)})
+        in
+        Continue
+      | _ ->
+        let* vtp = RM.get_global sym in
+        let* tp = RM.quote_tp vtp in
+        let+ () =
+          RM.emit ident.info pp_message @@
+          OutputMessage (Definition {ident = ident.node; tp; ptm = None})
+        in
+        Continue
+    end
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
 
@@ -128,15 +146,15 @@ and import_unit ~shadowing path modifier : command =
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
-  | CS.Def {abstract; shadowing; name; args; def; tp; requiring; unfolding} ->
+  | CS.Def {abstract; shadowing; name; args; def; tp; unfolding} ->
     Debug.print "Defining %a@." Ident.pp name;
 
     (* Unleash the unfolding dimension for the term component *)
     let* unf_dim_sym =
-      match abstract, requiring, unfolding with
-      | false, [], [] -> RM.ret None
-      | _, _,_ ->
-        let+ var = RM.add_global ~unfolder:None ~guarded:false ~shadowing:false (Ident.unfolder name) D.TpDim in
+      match abstract, unfolding with
+      | false, [] -> RM.ret None
+      | _, _->
+        let+ var = RM.add_global ~unfolder:None ~shadowing:false (Ident.unfolder name) D.TpDim in
         Some var
     in
 
@@ -146,46 +164,24 @@ and execute_decl (decl : CS.decl) : command =
       | Some var -> RM.eval @@ S.Global var
     in
 
-    let* requirement_syms = RM.resolve_unfolder_syms requiring in
     let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
-    let* requirement_dims = requirement_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
     let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
 
     let* _ =
-      requirement_dims @ unfolding_dims |> RMU.iter @@ fun dim ->
+      unfolding_dims |> RMU.iter @@ fun dim ->
       let* cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_dim dim in
-      RMU.ignore @@
-      RM.add_global ~unfolder:None ~guarded:false ~shadowing:false Ident.anon @@ D.TpPrf cof
+      RMU.ignore @@ RM.add_global ~unfolder:None ~shadowing:false Ident.anon @@ D.TpPrf cof
     in
 
     let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in
-
-    let* requirement_cof =
-      RM.lift_cmp @@
-      Sem.con_to_cof @@
-      D.CofBuilder.meet @@
-      List.map (D.CofBuilder.eq D.Dim1) requirement_dims
-    in
-
-    let* ttp_body =
-      Tactic.abstract (D.TpPrf requirement_cof) @@ fun _ ->
-      Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
-    in
-
-    let* treq_cof = RM.quote_cof requirement_cof in
-
+    let* ttp_body = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
     let* abstract_vtp =
       let* vsub =
-        RM.abstract Ident.anon (D.TpPrf requirement_cof) @@ fun _ ->
         let* tunf_cof = RM.quote_cof unf_cof in
         let* vtp_body = RM.eval_tp ttp_body in
-        let* bdy =
-          Tactic.abstract (D.TpPrf unf_cof) @@ fun _ ->
-          let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args def) vtp_body in
-          RM.ret @@ S.Sub (ttp_body, tunf_cof, tm)
-        in
-        RM.ret @@
-        S.Pi (S.TpPrf treq_cof, Ident.anon, bdy)
+        Tactic.abstract (D.TpPrf unf_cof) @@ fun _ ->
+        let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args def) vtp_body in
+        RM.ret @@ S.Sub (ttp_body, tunf_cof, tm)
       in
       RM.eval_tp vsub
     in
@@ -193,46 +189,18 @@ and execute_decl (decl : CS.decl) : command =
     let+ _ =
       RM.add_global
         ~unfolder:unf_dim_sym
-        ~guarded:true
         ~shadowing
         name
         abstract_vtp
     in
     Continue
 
-  | CS.Axiom {shadowing; name; args; tp; requiring} ->
+  | CS.Axiom {shadowing; name; args; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
 
-    let* requirement_syms = RM.resolve_unfolder_syms requiring in
-
-    let* requirement_dims =
-      requirement_syms |> RMU.map @@ fun sym ->
-      RM.eval @@ S.Global sym
-    in
-
-    let* requirement_cof =
-      RM.lift_cmp @@
-      Sem.con_to_cof @@
-      D.CofBuilder.meet @@
-      List.map (D.CofBuilder.eq D.Dim1) requirement_dims
-    in
-
-    let* tp, guarded =
-      match requiring with
-      | [] ->
-        let+ tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
-        tp, false
-      | _ ->
-        let+ treqcof = RM.quote_cof requirement_cof
-        and+ bdy =
-          RM.abstract Ident.anon (D.TpPrf requirement_cof) @@ fun _ ->
-          Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp
-        in
-        S.Pi (S.TpPrf treqcof, Ident.anon, bdy), true
-    in
-
+    let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    let* _ = RM.add_global ~unfolder:None ~guarded ~shadowing name vtp in
+    let* _ = RM.add_global ~unfolder:None ~shadowing name vtp in
     RM.ret Continue
 
   | CS.NormalizeTerm {unfolding; con} ->
