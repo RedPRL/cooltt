@@ -1159,7 +1159,7 @@ struct
     let name = Option.value name ~default:Ident.anon in
     let* unf_sym = RM.add_global ~unfolder:None ~shadowing:false (Ident.unfolder name) D.TpDim in
     let* unf_dim = RM.eval @@ S.Global unf_sym in
-    let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in
+    let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq1 unf_dim in
     unleash_toplevel ~name ~unf_sym ~unf_cof tac goal
 
   let unfold (unfoldings : Ident.t list) (tac : T.Chk.tac) : T.Chk.tac =
