@@ -1119,31 +1119,21 @@ struct
       Pi.intro ~ident @@ fun _ ->
       intros ~cells tac
 
-
-  let unfold (unfoldings : Ident.t list) (tac : T.Chk.tac) : T.Chk.tac =
-    T.Chk.brule ~name:"Structural.unfold" @@ fun (tp, phi, clo) ->
+  let unleash_toplevel ~name ?unf_sym ~unf_cof (tac : T.Chk.tac) =
+    fun (tp, phi, clo) ->
     let* env = RM.read in
     let cells = Env.locals env in
     let cells_fwd = BwdLabels.to_list cells in
-
-    let* unfolding_syms = RM.resolve_unfolder_syms unfoldings in
-
-    let* unfolding_cof =
-      let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
-      RM.lift_cmp @@
-      Sem.con_to_cof @@
-      D.CofBuilder.meet @@
-      List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
-    in
-
     let* cut =
       RM.globally @@
-      let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
-      let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
+      let* vtp =
+        let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
+        RM.lift_ev @@ Sem.eval_tp tp
+      in
       let* tp_of_goal =
         RM.lift_cmp @@ Sem.splice_tp @@
         Splice.tp vtp @@ fun vtp ->
-        Splice.cof unfolding_cof @@ fun cof ->
+        Splice.cof unf_cof @@ fun cof ->
         Splice.term @@ TB.pi (TB.tp_prf cof) @@ fun _ -> vtp
       in
       let* vdef =
@@ -1154,15 +1144,35 @@ struct
         RM.lift_cmp @@ Sem.splice_tp @@
         Splice.tp vtp @@ fun vtp ->
         Splice.con vdef @@ fun vtm ->
-        Splice.cof unfolding_cof @@ fun cof ->
+        Splice.cof unf_cof @@ fun cof ->
         Splice.term @@ TB.sub vtp cof @@ fun prf -> TB.ap vtm [prf]
       in
-      let* sym = RM.add_global ~unfolder:None ~shadowing:true (Ident.blocked unfoldings) tp_sub in
-      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unfolding_cof, D.const_tm_clo vdef)) in
+      let* sym = RM.add_global ~unfolder:unf_sym ~shadowing:false name tp_sub in
+      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unf_cof, D.const_tm_clo vdef)) in
       RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
     in
     let+ tm = RM.quote_cut cut in
     S.SubOut tm
+
+  let abstract ~name (tac : T.Chk.tac) : T.Chk.tac =
+    T.Chk.brule ~name:"Structural.abstract" @@ fun goal ->
+    let name = Option.value name ~default:Ident.anon in
+    let* unf_sym = RM.add_global ~unfolder:None ~shadowing:false (Ident.unfolder name) D.TpDim in
+    let* unf_dim = RM.eval @@ S.Global unf_sym in
+    let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in
+    unleash_toplevel ~name ~unf_sym ~unf_cof tac goal
+
+  let unfold (unfoldings : Ident.t list) (tac : T.Chk.tac) : T.Chk.tac =
+    T.Chk.brule ~name:"Structural.unfold" @@ fun goal ->
+    let* unf_cof =
+      let* syms = RM.resolve_unfolder_syms unfoldings in
+      let* dims = syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+      RM.lift_cmp @@
+      Sem.con_to_cof @@
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) dims
+    in
+    unleash_toplevel ~name:(Ident.blocked unfoldings) ~unf_cof tac goal
 
   let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
     T.Chk.rule ~name:"Structural.generalize" @@

@@ -199,6 +199,9 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Unfold (idents, c) ->
     R.Structural.unfold idents (chk_tm c)
 
+  | CS.Abstract (name, c) ->
+    R.Structural.abstract ~name (chk_tm c)
+
   | CS.Lam ([], body) ->
     chk_tm body
 

@@ -95,3 +95,15 @@ def test2 : path-p {i => path nat two {test i}} {_ => two} test :=
   i j =>
   unfold two + in
   2
+
+
+
+def abs-test : nat :=
+  suc {abstract abs-test::foo ← 41}
+
+#print abs-test
+
+unfold abs-test::foo
+#print abs-test
+
+

@@ -188,6 +188,8 @@ and real_token = parse
      { DOT_EQUALS }
   | "→" | "->"
     { RIGHT_ARROW }
+  | "←" | "<-"
+    { LEFT_ARROW }
   | "⇒" | "=>"
     { RRIGHT_ARROW }
   | '_'

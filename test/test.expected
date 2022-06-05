@@ -9,6 +9,14 @@ hlevel.cooltt:33.11-33.16 [Info]:
    (A : type) × (c : A) → (c' : A) → ext {i => A} {i => i = 0 ∨ i = 1} {
                                      i _x => [ i = 0 => c | i = 1 => c' ]}
 
+abstract.cooltt:104.7-104.15 [Info]:
+  def abs-test : nat :=
+    suc {abs-test∷foo _x}
+
+abstract.cooltt:107.7-107.15 [Info]:
+  def abs-test : nat :=
+    42
+
 --------------------[base-types.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.21 [Info]:

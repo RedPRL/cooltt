@@ -43,7 +43,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS LESS_THAN JOIN MEET
 %token TYPE
@@ -65,7 +65,7 @@
 %token BEGIN EQUATION END LSQEQUALS LRSQEQUALS
 %token SECTION VIEW EXPORT REPACK SHADOWING
 
-%nonassoc IN RRIGHT_ARROW SEMI
+%nonassoc IN RRIGHT_ARROW SEMI LEFT_ARROW
 %nonassoc COLON
 %left DOT
 %right RIGHT_ARROW TIMES
@@ -351,6 +351,8 @@ plain_term_except_cof_case:
     { Generalize (name, body) }
   | unfold_spec = unfold_spec; IN; body = term;
     { Unfold (unfold_spec, body) }
+  | ABSTRACT; name = plain_name; LEFT_ARROW; body = term
+    { Abstract (Some name, body) }
   | LET; name = plain_name; COLON; tp = term; COLON_EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
   | LET; name = plain_name; COLON_EQUALS; def = term; IN; body = term

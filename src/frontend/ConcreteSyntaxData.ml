@@ -50,6 +50,7 @@ and con_ =
   | Underscore
   | Generalize of Ident.t * con
   | Unfold of Ident.t list * con
+  | Abstract of Ident.t option * con
   | Elim of {mot : con; cases : case list; scrut : con}
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
