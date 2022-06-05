@@ -48,7 +48,7 @@ let match_goal (tac : _ -> T.Chk.tac RM.m) : T.Chk.tac =
 let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
   fun tac ->
   T.Syn.rule @@
-  let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
+  let* tm, tp = T.Syn.run @@ T.Syn.whnf tac in
   match tp with
   | D.Sub _ ->
     T.Syn.run @@ elim_implicit_connectives @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
@@ -61,7 +61,7 @@ let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
 let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
   fun tac ->
   T.Syn.rule @@
-  let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
+  let* tm, tp = T.Syn.run @@ T.Syn.whnf tac in
   match tp with
   | D.Sub _ ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
@@ -79,7 +79,7 @@ let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
 
 let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   fun tac ->
-  T.Chk.whnf ~style:`UnfoldAll @@
+  T.Chk.whnf @@
   match_goal @@ function
   | D.Sub _, _, _ ->
     RM.ret @@ R.Sub.intro @@ intro_implicit_connectives tac
@@ -96,7 +96,7 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
 
 let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
   fun tac ->
-  T.Chk.whnf ~style:`UnfoldNone @@
+  T.Chk.whnf @@
   match_goal @@ function
   | D.Sub _, _, _ ->
     RM.ret @@ R.Sub.intro @@ intro_subtypes_and_total tac
@@ -130,7 +130,7 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
       | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
         let* tac' = T.abstract ~ident base @@ fun var ->
           let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
-          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll fam in
+          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ fam in
           (* Same HACK *)
           match fam with
           | D.Univ
