@@ -111,12 +111,13 @@ and decl_ =
   | Print of Ident.t node
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of con
-  | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
+  | Fail of decl
   | Quit
   | View of {shadowing : bool; modifier : con}
   | Export of {shadowing : bool; modifier : con}
   | Repack of {shadowing : bool; modifier : con}
   | Section of {shadowing : bool; prefix : string list option; decls : signature; modifier : con option}
+[@@deriving show]
 
 and signature = decl list
 

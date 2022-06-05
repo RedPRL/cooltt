@@ -44,7 +44,7 @@
 %token SIG STRUCT AS
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL 
+%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
 
 %token REQUIRE UNFOLD
 %token <string list> IMPORT
@@ -157,8 +157,8 @@ plain_decl:
   | require_spec = option(require_spec); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Axiom {shadowing = false; name = nm; args = tele; tp; requiring = Option.value require_spec ~default:[]} }
 
-  | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }
+  | FAIL; d = decl
+    { Fail d }
   | QUIT
     { Quit }
   | NORMALIZE; tm = term
@@ -334,7 +334,7 @@ plain_term_except_cof_case:
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | GENERALIZE; name = plain_name; IN; body = term;
     { Generalize (name, body) }
-  | unfold_spec = unfold_spec; IN; body = term; 
+  | unfold_spec = unfold_spec; IN; body = term;
     { Unfold (unfold_spec, body) }
   | LET; name = plain_name; COLON; tp = term; COLON_EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }

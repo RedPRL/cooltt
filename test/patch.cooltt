@@ -25,7 +25,7 @@ def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z 
 #print testing
 
 -- Record Patching + Total Space Conversion
-#fail total-space/fail (fam : sig (A : type) (a : A) -> nat -> type) : type := fam
+#fail def total-space/fail (fam : sig (A : type) (a : A) -> nat -> type) : type := fam
 
 def category : type :=
   sig (ob : type)
@@ -36,6 +36,7 @@ def category : type :=
       (seqR : (f : hom) -> path {hom # [ s .= f.s | t .= f.t ]} {seq f {idn {f.t}}} f)
       (seqA : (f : hom) -> (g : hom # [ s .= f.t ]) -> (h : hom # [ s .= g.t ]) -> path {hom # [ s .= f.s | t .= h.t ]} {seq f {seq g h}} {seq {seq f g} h})
 
+#quit
 #print category
 
 def types : category :=

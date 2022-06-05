@@ -45,33 +45,6 @@ let print_ident (ident : Ident.t CS.node) : command =
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
 
-let print_fail (name : Ident.t) (info : CS.info) (res : (D.tp * D.con, exn) result) : command =
-  match res with
-  | Ok (vtp, vtm) ->
-    let* tm = RM.quote_con vtp vtm in
-    let* tp = RM.quote_tp vtp in
-    let* env = RM.read in
-    let penv = Env.pp_env env in
-    let pp_failure fmt () =
-      Format.fprintf fmt "fail %a:@.  Expected (%a : %a) to fail but it succeded."
-        Ident.pp name
-        (Syntax.pp penv) tm
-        (Syntax.pp_tp penv) tp
-    in
-    let+ () = RM.emit ~lvl:`Error info pp_failure () in
-    Continue
-  | Error (Err.RefineError (err, info)) ->
-    let pp_err_info fmt () =
-      Format.fprintf fmt "fail %a:@.  %a"
-        Ident.pp name
-        RefineError.pp err
-    in
-    let+ () = RM.emit ~lvl:`Info info pp_err_info () in
-    Continue
-  | Error exn ->
-    let+ () = RM.emit ~lvl:`Error info PpExn.pp exn in
-    Continue
-
 let protect m =
   RM.trap m |>> function
   | Ok return ->
@@ -268,9 +241,23 @@ and execute_decl (decl : CS.decl) : command =
     let* tm' = RM.quote_con vtp vtm in
     let* () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
     RM.ret Continue
-  | CS.Fail {name; args; def; tp; info} ->
-    let* res = RM.trap @@ elaborate_typed_term (Ident.to_string name) args tp def in
-    print_fail name info res
+
+  | CS.Fail decl ->
+    let wrap_pp_exn fmt exn =
+      Format.fprintf fmt
+        "Failure encountered, as expected:@, @[<v>%a@]@."
+        PpExn.pp exn
+    in
+    begin
+      RM.trap @@ execute_decl decl |>>
+      function
+      | Ok _ ->
+        RM.throw @@ ElabError.ElabError (ElabError.ExpectedFailure decl, decl.info)
+      | Error exn ->
+        let+ () = RM.emit ~lvl:`Info decl.info wrap_pp_exn exn in
+        Continue
+    end
+
   | CS.Print ident ->
     print_ident ident
   | CS.Import {shadowing; unitpath; modifier} ->

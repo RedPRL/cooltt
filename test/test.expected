@@ -801,16 +801,17 @@ holes.cooltt:14.7-14.35 [Info]:
 
 holes.cooltt:18.26-18.30 [Info]:
   Emitted hole:
+    _x : [ ⊤ ]
+    _x₁ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) → A
+    p : (_x₂ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (_x : 𝕀) → (_x₁ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) → A
+    |- ? : (_x₂ : 𝕀) → (_x₃ : [ _x₂ = 0 ∨ i = 0 ∨ i = 1 ]) → A
 
 
-holes.cooltt:18.7-18.30 [Info]:
-  fail cone-of-silence-hcom:
-  Expected #10 A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
+holes.cooltt:17.5-18.30 [Error]:
+  Expected #10 _x _x₁ A p q i 1 * = [ i = 0 => p 0 | i = 1 => q 1 ] : A
 
 [Warn]:  There are 7 unsolved holes
 
@@ -1028,9 +1029,8 @@ patch.cooltt:25.7-25.14 [Info]:
                                                                 p z @ bx}) } ⊤
                            {A Z B p z => struct (x : p z @ x) (bx : p z @ bx) }
 
-patch.cooltt:28.79-28.82 [Info]:
-  fail total-space/fail:
-  Expected type = (_x : sig (A : type) (a : A) ) → (_x₁ : nat) → type
+patch.cooltt:28.5-28.86 [Error]:
+  Expected type = (_x₂ : sig (A : type) (a : A) ) → (_x₃ : nat) → type
 
 patch.cooltt:39.7-39.15 [Info]:
   category : (_x : [ ⊤ ]) → sub type ⊤
