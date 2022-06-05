@@ -79,7 +79,7 @@ def +A : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
 axiom nat∷is-set : is-set nat
 
 def foo (p : path nat {+ 0 0} 0) : unfold + in path {path nat {+ 0 0} 0} p {_ => 0} :=
-  unfold + in
+  unfold + has-hlevel in
   nat∷is-set 0 0 p {_ => 0}
 
 -- A simple example for Daniel G.
