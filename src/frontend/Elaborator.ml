@@ -50,10 +50,10 @@ struct
     | Tp of T.Tp.tac
     | Code of T.Chk.tac
 
-  let whnf ~style =
+  let whnf =
     function
-    | Tp tac -> Tp (T.Tp.whnf ~style tac)
-    | Code tac -> Code (T.Chk.whnf ~style tac)
+    | Tp tac -> Tp (T.Tp.whnf tac)
+    | Code tac -> Code (T.Chk.whnf tac)
 
   let update_span span =
     function

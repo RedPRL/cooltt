@@ -132,7 +132,7 @@ module Hole : sig
 end =
 struct
   let assert_hole_possible tp =
-    RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp |>>
+    RM.lift_cmp @@ Sem.whnf_tp_ tp |>>
     function
     | D.TpDim | D.TpCof | D.TpPrf _ ->
       let* ttp = RM.quote_tp tp in
@@ -654,7 +654,7 @@ struct
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in
     let* tp = RM.lift_cmp @@ Sem.do_el vcode in
-    let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
+    let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ tp in
     match whnf_tp with
     | D.ElStable (`Signature sign) ->
       patch_fields sign tacs univ

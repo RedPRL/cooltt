@@ -76,8 +76,8 @@ let contractum_or x =
 (* Invariant: tp0 and tp1 not necessarily whnf *)
 let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   ConvM.abort_if_inconsistent (ret ()) @@
-  let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp ~style:`UnfoldAll tp0 in
-  let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp ~style:`UnfoldAll tp1 in
+  let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
+  let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
   match tp0, tp1 with
   | D.TpSplit branches, _
   | _, D.TpSplit branches ->
@@ -199,9 +199,9 @@ and equate_sign_code univ sign0 sign1 =
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
   ConvM.abort_if_inconsistent (ret ()) @@
-  let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp ~style:`UnfoldAll tp in
-  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con ~style:`UnfoldAll con0 in
-  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con ~style:`UnfoldAll con1 in
+  let* tp = contractum_or tp <@> lift_cmp @@ whnf_tp tp in
+  let* con0 = contractum_or con0 <@> lift_cmp @@ whnf_con con0 in
+  let* con1 = contractum_or con1 <@> lift_cmp @@ whnf_con con1 in
   match tp, con0, con1 with
   | D.TpPrf _, _, _ -> ret ()
   | D.TpSplit branches, _, _ ->
@@ -393,13 +393,13 @@ and equate_frm k0 k1 =
     conv_err @@ ExpectedFrmEq (k0, k1)
 
 and assert_done_hd hd =
-  let* w = lift_cmp @@ whnf_hd ~style:`UnfoldAll hd in
+  let* w = lift_cmp @@ whnf_hd hd in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_hd failed"
 
 and assert_done_cut cut =
-  let* w = lift_cmp @@ whnf_cut ~style:`UnfoldAll cut in
+  let* w = lift_cmp @@ whnf_cut cut in
   match w with
   | `Done -> ret ()
   | _ -> failwith "internal error: assert_done_cut failed"

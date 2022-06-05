@@ -9,16 +9,14 @@ val eval : S.t -> D.con evaluate
 val eval_cof : S.t -> D.cof evaluate
 val eval_tp : S.tp -> D.tp evaluate
 
-type whnf_style = [`UnfoldNone | `UnfoldAll]
-
 type 'a whnf = [`Done | `Reduce of 'a]
-val whnf_con : style:whnf_style -> D.con -> D.con whnf compute
-val whnf_cut : style:whnf_style -> D.cut -> D.con whnf compute
-val whnf_hd : style:whnf_style -> D.hd -> D.con whnf compute
-val whnf_tp : style:whnf_style -> D.tp -> D.tp whnf compute
+val whnf_con : D.con -> D.con whnf compute
+val whnf_cut : D.cut -> D.con whnf compute
+val whnf_hd : D.hd -> D.con whnf compute
+val whnf_tp : D.tp -> D.tp whnf compute
 
-val whnf_tp_ : style:whnf_style -> D.tp -> D.tp compute
-val whnf_con_ : style:whnf_style -> D.con -> D.con compute
+val whnf_tp_ : D.tp -> D.tp compute
+val whnf_con_ : D.con -> D.con compute
 
 val inst_tp_clo : D.tp_clo -> D.con -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con -> D.con compute
