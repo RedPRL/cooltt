@@ -25,10 +25,12 @@ struct
     s.unfolder
 
   let compare s1 s2 =
-    Int.compare s1.index s2.index
+    match CodeUnitID.compare s1.origin s2.origin with
+    | 0 -> Int.compare s1.index s2.index
+    | c -> c
 
   let equal s1 s2 =
-    s1.index = s2.index
+    Int.equal (compare s1 s2) 0
 
   let pp fmt sym =
     match sym.name with
