@@ -839,23 +839,139 @@ nat.cooltt:10.11-10.16 [Info]:
 nat.cooltt:13.11-13.16 [Info]:
   Computed normal form of + 2 3 as 5
 
-nat-path.cooltt:16.11-16.12 [Info]:
-  Computed normal form of J as J
+nat-path.cooltt:17.11-17.12 [Info]:
+  Computed normal form of J as
+   A p C d =>
+   coe {i =>
+        C {_x =>
+           hcom A 0 _x {i = 0 ∨ i = 1}
+             {k _x₁ => [ k = 0 ∨ i = 0 => p 0 | i = 1 => p k ]}}} 0 1
+     d
 
-nat-path.cooltt:57.11-57.18 [Info]:
+nat-path.cooltt:58.11-58.18 [Info]:
   Computed normal form of +-assoc as +-assoc
 
-nat-path.cooltt:59.11-59.26 [Info]:
+nat-path.cooltt:61.11-61.18 [Info]:
+  Computed normal form of +-assoc as
+   _x =>
+   elim _x @ {_x₁ =>
+              (y : nat) → (z : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
+                                      i _x₂ =>
+                                      [ i = 0 =>
+                                        elim {elim _x₁ @ {_x₄ =>
+                                                          (_x₅ : nat) → nat}
+                                                [ zero => n => n
+                                                | suc => _x₄ ih n =>
+                                                         suc {ih n}
+                                                ] y} @ {_x₄ =>
+                                                        (_x₅ : nat) → nat}
+                                          [ zero => n => n
+                                          | suc => _x₄ ih n => suc {ih n}
+                                          ] z
+                                      | i = 1 =>
+                                        elim _x₁ @ {_x₄ => (_x₅ : nat) → nat}
+                                          [ zero => n => n
+                                          | suc => _x₄ ih n => suc {ih n}
+                                          ] {elim y @ {_x₄ =>
+                                                       (_x₅ : nat) → nat}
+                                               [ zero => n => n
+                                               | suc => _x₄ ih n =>
+                                                        suc {ih n}
+                                               ] z}
+                                      ]}}
+     [ zero => y z _x₁ =>
+               hcom nat 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+                 {_x₂ _x₃ =>
+                  [ _x₂ = 0 ∨ _x₁ = 0 =>
+                    elim y @ {_x₅ => (_x₆ : nat) → nat}
+                      [ zero => n => n
+                      | suc => _x₅ ih n => suc {ih n}
+                      ] z
+                  | _x₁ = 1 =>
+                    hcom nat 0 1 {_x₂ = 0 ∨ _x₂ = 1}
+                      {_x₅ _x₆ =>
+                       [ _x₅ = 0 ∨ _x₂ = 0 =>
+                         symm nat {_x₈ =>
+                                   elim y @ {_x₉ => (_x₁₀ : nat) → nat}
+                                     [ zero => n => n
+                                     | suc => _x₉ ih n => suc {ih n}
+                                     ] z} _x₂
+                       | _x₂ = 1 =>
+                         elim y @ {_x₈ => (_x₉ : nat) → nat}
+                           [ zero => n => n
+                           | suc => _x₈ ih n => suc {ih n}
+                           ] z
+                       ]}
+                  ]}
+     | suc => x ih y z _x₁ =>
+              hcom nat 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+                {_x₂ _x₃ =>
+                 [ _x₂ = 0 ∨ _x₁ = 0 =>
+                   suc {elim {elim x @ {_x₅ => (_x₆ : nat) → nat}
+                                [ zero => n => n
+                                | suc => _x₅ ih₁ n => suc {ih₁ n}
+                                ] y} @ {_x₅ => (_x₆ : nat) → nat}
+                          [ zero => n => n
+                          | suc => _x₅ ih₁ n => suc {ih₁ n}
+                          ] z}
+                 | _x₁ = 1 =>
+                   hcom nat 0 1 {_x₂ = 0 ∨ _x₂ = 1}
+                     {_x₅ _x₆ =>
+                      [ _x₅ = 0 ∨ _x₂ = 0 =>
+                        suc {elim {elim x @ {_x₈ => (_x₉ : nat) → nat}
+                                     [ zero => n => n
+                                     | suc => _x₈ ih₁ n => suc {ih₁ n}
+                                     ] y} @ {_x₈ => (_x₉ : nat) → nat}
+                               [ zero => n => n
+                               | suc => _x₈ ih₁ n => suc {ih₁ n}
+                               ] z}
+                      | _x₂ = 1 =>
+                        hcom nat 0 1 {_x₅ = 0 ∨ _x₅ = 1}
+                          {_x₈ _x₉ =>
+                           [ _x₈ = 0 ∨ _x₅ = 0 => suc {ih y z _x₅}
+                           | _x₅ = 1 =>
+                             hcom nat 0 1 {_x₈ = 0 ∨ _x₈ = 1}
+                               {_x₁₁ _x₁₂ =>
+                                [ _x₁₁ = 0 ∨ _x₈ = 0 =>
+                                  symm nat {_x₁₄ =>
+                                            suc {elim x @ {_x₁₅ =>
+                                                           (_x₁₆ : nat) → nat}
+                                                   [ zero => n => n
+                                                   | suc => _x₁₅ ih₁ n =>
+                                                            suc {ih₁ n}
+                                                   ] {elim y @ {_x₁₅ =>
+                                                                (_x₁₆ : nat) → nat}
+                                                        [ zero => n => n
+                                                        | suc => _x₁₅ ih₁ n =>
+                                                                 suc {ih₁ n}
+                                                        ] z}}} _x₈
+                                | _x₈ = 1 =>
+                                  suc {elim x @ {_x₁₄ => (_x₁₅ : nat) → nat}
+                                         [ zero => n => n
+                                         | suc => _x₁₄ ih₁ n => suc {ih₁ n}
+                                         ] {elim y @ {_x₁₄ =>
+                                                      (_x₁₅ : nat) → nat}
+                                              [ zero => n => n
+                                              | suc => _x₁₄ ih₁ n =>
+                                                       suc {ih₁ n}
+                                              ] z}}
+                                ]}
+                           ]}
+                      ]}
+                 ]}
+     ]
+
+nat-path.cooltt:63.11-63.26 [Info]:
   Computed normal form of trans-left-unit as trans-left-unit
 
-nat-path.cooltt:60.11-60.27 [Info]:
+nat-path.cooltt:64.11-64.27 [Info]:
   Computed normal form of trans-right-unit as A p => blocked[trans] * A p
 
-nat-path.cooltt:61.11-61.26 [Info]:
+nat-path.cooltt:65.11-65.26 [Info]:
   Computed normal form of trans-symm-refl as
    A p k i => blocked[trans,symm] * A p k i
 
-nat-path.cooltt:83.11-83.15 [Info]:
+nat-path.cooltt:87.11-87.15 [Info]:
   Computed normal form of test as
    p i =>
    elim {symm nat {_x => p _x} i} @ {_x => nat}
@@ -863,7 +979,7 @@ nat-path.cooltt:83.11-83.15 [Info]:
      | suc => _x _x₁ => 0
      ]
 
-nat-path.cooltt:85.11-85.16 [Info]:
+nat-path.cooltt:89.11-89.16 [Info]:
   Computed normal form of test2 as
    i =>
    elim {symm nat {_x => 0} i} @ {_x => nat}
