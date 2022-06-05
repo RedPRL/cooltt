@@ -18,13 +18,14 @@ struct
     {origin : CodeUnitID.t;
      index : int;
      name : string option;
-     unfolder_index : int option}
+     unfolder_index : int option;
+     unfolder_name : string option}
   [@@deriving show]
 
   let unfolder s =
     match s.unfolder_index with
     | None -> None
-    | Some index -> Some {s with index; unfolder_index = None; name = None}
+    | Some index -> Some {s with index; unfolder_index = None; name = s.unfolder_name; unfolder_name = None }
 
 
   let compare s1 s2 =
@@ -44,15 +45,17 @@ struct
     `O [("origin", J.option J.string @@ sym.origin);
         ("index", `String (Int.to_string sym.index));
         ("unfolder_index", J.option J.int sym.unfolder_index);
-        ("name", J.option J.string @@ sym.name) ]
+        ("name", J.option J.string @@ sym.name);
+        ("name", J.option J.string @@ sym.unfolder_name) ]
 
   let deserialize : J.value -> t =
     function
-    | `O [("origin", j_origin); ("index", j_index); ("unfolder_index", j_unfolder_index); ("name", j_name)] ->
+    | `O [("origin", j_origin); ("index", j_index); ("unfolder_index", j_unfolder_index); ("name", j_name); ("unfolder_name", j_unfolder_name)] ->
       { origin = J.get_option J.get_string j_origin;
         unfolder_index = J.get_option J.get_int j_unfolder_index;
         index = int_of_string @@ J.get_string j_index;
-        name = J.get_option J.get_string j_name }
+        name = J.get_option J.get_string j_name;
+        unfolder_name = J.get_option J.get_string j_unfolder_name }
     | j -> J.parse_error j "Global.deserialize"
 end
 
@@ -86,7 +89,8 @@ struct
       {Global.origin = code_unit.id;
        unfolder_index = Option.map (fun i -> Global.(i.index)) unfolder;
        index;
-       name = Ident.to_string_opt ident}
+       name = Ident.to_string_opt ident;
+       unfolder_name = Option.bind unfolder (fun u -> u.name)}
     in
     (sym, code_unit)
 
