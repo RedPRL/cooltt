@@ -1109,17 +1109,18 @@ struct
     let ix = RefineEnv.size env - lvl - 1 in
     index ix
 
-  let unfold (unfoldings : Ident.t list) (tac : T.Chk.tac) : T.Chk.tac =
-    let rec intros cells tac : T.Chk.tac =
-      match cells with
-      | [] ->
-        tac
-      | cell :: cells ->
-        let ident = Env.Cell.ident cell in
-        Pi.intro ~ident @@ fun _ ->
-        intros cells tac
-    in
 
+  let rec intros ~cells tac =
+    match cells with
+    | [] ->
+      tac
+    | cell :: cells ->
+      let ident = Env.Cell.ident cell in
+      Pi.intro ~ident @@ fun _ ->
+      intros ~cells tac
+
+
+  let unfold (unfoldings : Ident.t list) (tac : T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Structural.unfold" @@ fun (tp, phi, clo) ->
     let* env = RM.read in
     let cells = Env.locals env in
@@ -1146,7 +1147,7 @@ struct
         Splice.term @@ TB.pi (TB.tp_prf cof) @@ fun _ -> vtp
       in
       let* vdef =
-        let* tm = tp_of_goal |> T.Chk.run @@ Pi.intro @@ fun _ -> intros cells_fwd tac in
+        let* tm = tp_of_goal |> T.Chk.run @@ Pi.intro @@ fun _ -> intros ~cells:cells_fwd tac in
         RM.lift_ev @@ Sem.eval tm
       in
       let* tp_sub =
@@ -1164,16 +1165,6 @@ struct
     S.SubOut tm
 
   let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
-    let rec intros cells tac : T.Chk.tac =
-      match cells with
-      | [] ->
-        tac
-      | cell :: cells ->
-        let ident = Env.Cell.ident cell in
-        Pi.intro ~ident @@ fun _ ->
-        intros cells tac
-    in
-
     T.Chk.rule ~name:"Structural.generalize" @@
     fun tp ->
     let* env = RM.read in
@@ -1195,7 +1186,7 @@ struct
       in
       let* vdef =
         let prefix = List.take lvl cells_fwd in
-        let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
+        let* tm = global_tp |> T.Chk.run @@ intros ~cells:prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
       let* tp_sub =
