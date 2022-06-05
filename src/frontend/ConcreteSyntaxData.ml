@@ -108,7 +108,7 @@ type decl = decl_ node
 and decl_ =
   | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con; tp : con; unfolding : Ident.t list}
   | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con}
-  | Print of Ident.t node
+  | Print of {unfolding : Ident.t list; name : Ident.t node}
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of {unfolding : Ident.t list; con : con}
   | Fail of decl

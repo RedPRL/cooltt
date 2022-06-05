@@ -180,8 +180,8 @@ plain_decl:
     { NormalizeTerm {unfolding = dmod.unfolding; con = tm} }
   | dmod = decl_modifiers; unitpath = IMPORT; modifier = ioption(bracketed_modifier)
     { Import {shadowing = dmod.shadowing; unitpath; modifier} }
-  | PRINT; name = name
-    { Print name }
+  | dmod = decl_modifiers; PRINT; name = name
+    { Print {unfolding = dmod.unfolding; name} }
   | dmod = decl_modifiers; VIEW; modifier = bracketed_modifier
     { View {shadowing = dmod.shadowing; modifier} }
   | dmod = decl_modifiers; EXPORT; modifier = bracketed_modifier
