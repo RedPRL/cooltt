@@ -34,7 +34,7 @@
      abstract : bool;
      unfolding : Ident.t list}
 
-   let defualt_decl_modifier =
+   let default_decl_modifier =
      {shadowing = false; abstract = false; unfolding = []}
 
    type decl_modifier = decl_modifiers -> decl_modifiers
@@ -158,17 +158,19 @@ unfold_spec:
 decl_modifier:
   | SHADOWING
     {fun dmod -> {dmod with shadowing = true}}
+  | ABSTRACT
+    {fun dmod -> {dmod with abstract = true}}
   | unf = unfold_spec
     {fun dmod -> {dmod with unfolding = dmod.unfolding @ unf}}
 
 decl_modifiers:
   | dmods = list(decl_modifier)
-    { List.fold_left (fun x f -> f x) defualt_decl_modifier dmods }
+    { List.fold_left (fun x f -> f x) default_decl_modifier dmods }
 
 decl: t = located(plain_decl) {t}
 plain_decl:
-  | dmod = decl_modifiers; abstract = boption(ABSTRACT); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Def {abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; unfolding = dmod.unfolding} }
+  | dmod = decl_modifiers; DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Def {abstract = dmod.abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; unfolding = dmod.unfolding} }
   | dmod = decl_modifiers; AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Axiom {shadowing = dmod.shadowing; name = nm; args = tele; tp} }
 
