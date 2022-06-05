@@ -88,11 +88,11 @@ def foo (p : path nat {+ 0 0} 0) : path {path nat {+ 0 0} 0} p {_ => 0} :=
 def two : nat := + 1 1
 
 def test : path nat two 2 :=
-  unfold two,+ in
+  unfold two + in
   i => 2
 
 
 def test2 : path-p {i => path nat two {test i}} {_ => two} test :=
   i j =>
-  unfold two,+ in
+  unfold two + in
   2

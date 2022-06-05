@@ -153,11 +153,11 @@ plain_name:
     { name_of_underscore }
 
 require_spec:
-  | REQUIRE list = separated_list(COMMA, plain_name)
+  | REQUIRE list = list(plain_name)
     { list }
 
 unfold_spec:
-  | UNFOLD list = separated_list(COMMA, plain_name)
+  | UNFOLD list = list(plain_name)
     { list }
 
 decl_modifier:
