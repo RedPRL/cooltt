@@ -15,14 +15,17 @@ type id = CodeUnitID.t
 module Global =
 struct
   type t =
-    { origin : CodeUnitID.t;
-      index : int;
-      name : string option;
-      unfolder : t option}
+    {origin : CodeUnitID.t;
+     index : int;
+     name : string option;
+     unfolder_index : int option}
   [@@deriving show]
 
   let unfolder s =
-    s.unfolder
+    match s.unfolder_index with
+    | None -> None
+    | Some index -> Some {s with index; unfolder_index = None; name = None}
+
 
   let compare s1 s2 =
     Int.compare s1.index s2.index
@@ -37,17 +40,17 @@ struct
     | None ->
       Format.fprintf fmt "#%i" sym.index
 
-  let rec serialize sym =
+  let serialize sym =
     `O [("origin", J.option J.string @@ sym.origin);
         ("index", `String (Int.to_string sym.index));
-        ("unfolder", J.option serialize sym.unfolder);
+        ("unfolder_index", J.option J.int sym.unfolder_index);
         ("name", J.option J.string @@ sym.name) ]
 
-  let rec deserialize : J.value -> t =
+  let deserialize : J.value -> t =
     function
-    | `O [("origin", j_origin); ("index", j_index); ("unfolder", j_unfolder); ("name", j_name)] ->
+    | `O [("origin", j_origin); ("index", j_index); ("unfolder_index", j_unfolder_index); ("name", j_name)] ->
       { origin = J.get_option J.get_string j_origin;
-        unfolder = J.get_option deserialize j_unfolder;
+        unfolder_index = J.get_option J.get_int j_unfolder_index;
         index = int_of_string @@ J.get_string j_index;
         name = J.get_option J.get_string j_name }
     | j -> J.parse_error j "Global.deserialize"
@@ -76,10 +79,15 @@ struct
     { id = id;
       symbol_table = Vector.create () }
 
-  let add_global ~unfolder ident tp code_unit =
+  let add_global ~(unfolder : Global.t option) ident tp code_unit =
     let index = Vector.length code_unit.symbol_table in
     let _ = Vector.push code_unit.symbol_table tp in
-    let sym = { Global.origin = code_unit.id; unfolder; index; name = Ident.to_string_opt ident } in
+    let sym =
+      {Global.origin = code_unit.id;
+       unfolder_index = Option.flat_map (fun i -> Global.(i.unfolder_index)) unfolder;
+       index;
+       name = Ident.to_string_opt ident}
+    in
     (sym, code_unit)
 
   let get_global (sym : Global.t) code_unit =
