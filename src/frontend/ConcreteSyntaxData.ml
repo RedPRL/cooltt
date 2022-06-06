@@ -88,7 +88,7 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and field = Field of { lbl : Ident.user; tp : con }
+and field = Field of { lbl : Ident.user; con : con }
 [@@deriving show]
 
 and pat = Pat of {lbl : string list; args : pat_arg list}

@@ -135,7 +135,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-    let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
+    let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.con)) cells in
     CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -239,7 +239,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Struct fields ->
-      let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
+      let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.con)) fields in
       R.Signature.intro @@ R.Signature.find_field_tac tacs
 
     | CS.Suc c ->
@@ -276,11 +276,11 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature fields ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
+      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) patches in
       R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)

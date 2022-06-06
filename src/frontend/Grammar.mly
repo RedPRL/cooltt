@@ -466,12 +466,12 @@ pat_arg:
     { `Inductive (i0, i1) }
 
 field:
-  | LPR lbl = user; COLON tp = term; RPR
-    { Field {lbl; tp} }
+  | LPR lbl = user; COLON con = term; RPR
+    { Field {lbl; con} }
 
 patch:
-  | lbl = user; DOT_EQUALS; tp = term
-    { Field {lbl; tp} }
+  | lbl = user; DOT_EQUALS; con = term
+    { Field {lbl; con} }
 
 patches:
   | LSQ ioption(PIPE) patches = separated_list(PIPE, patch) RSQ
