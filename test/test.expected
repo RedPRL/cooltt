@@ -1701,20 +1701,20 @@ patch.cooltt:25.7-25.14 [Info]:
                                         :=
     A Z B p z => struct (x : p z @ x) (bx : p z @ bx) 
 
-patch.cooltt:28.5-28.86 [Info]:
+patch.cooltt:28.5-28.88 [Info]:
   Failure encountered, as expected:
    Expected type = (_x₁ : sig (A : type) (a : A) ) → (_x₂ : nat) → type
 
 
-patch.cooltt:54.7-54.16 [Info]:
+patch.cooltt:57.7-57.16 [Info]:
   def test-auto : (fam : (_x : sig (x : nat) ) → type) → type :=
     fam => sig (x : nat) (fib : fam {struct (x : x) }) 
 
-patch.cooltt:57.7-57.22 [Info]:
+patch.cooltt:60.7-60.22 [Info]:
   def test-auto-patch : (fam : (_x : sig (x : nat) ) → type) → type :=
     fam => sig (x : ext nat ⊤ {_x₁ => 0}) (fib : fam {struct (x : 0) }) 
 
-patch.cooltt:61.7-61.24 [Info]:
+patch.cooltt:64.7-64.24 [Info]:
   def test-unfold-total : (fam : (_x : sig (x : nat) ) → type) → type :=
     fam => sig (x : nat) (fib : fam {struct (x : x) }) 
 
