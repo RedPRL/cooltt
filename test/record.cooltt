@@ -3,10 +3,11 @@ import prelude
 
 def basic : type :=
   sig
-    (foo::x : nat)
-    (bar : nat → nat)
+    def foo::x : nat
+    def bar : nat → nat
+  end
 
-def basic::inhabit : basic := struct (foo::x : 1) (bar : x => suc x)
+def basic::inhabit : basic := struct [foo::x := 1, bar := x => suc x]
 
 #print basic
 #print basic::inhabit
@@ -21,13 +22,15 @@ def basic/ext
 :=
 i =>
 struct
-  (foo::x : p i)
-  (bar : q i)
+  def foo::x := p i
+  def bar := q i
+end
 
 def depend : type :=
   sig
-    (tp : type)
-    (fun : tp → tp)
+    def tp : type
+    def fun : tp → tp
+  end
 
 #print depend
 
@@ -38,32 +41,33 @@ def depend/ext
   (p : path type {d0.tp} {d1.tp})
   (q : path-p {i => p i → p i} {d0.fun} {d1.fun}) : path depend d0 d1
 :=
-i => struct (tp : p i) (fun : q i)
+i => struct [tp := p i, fun := q i]
 
 
 -- Can we inhabit first class sigs?
 def sig/inhabit :
   sig
-    (tp : type)
-    (fun : tp → tp → type)
-    (comp : (X : tp) (Y : tp) (Z : tp) (f : fun Y Z) → (g : fun X Y) → fun X Z)
+    def tp : type
+    def fun : tp → tp → type
+    def comp : (X : tp) (Y : tp) (Z : tp) (f : fun Y Z) → (g : fun X Y) → fun X Z
+  end
 :=
-struct (tp : nat) (fun : x y => nat) (comp : x y z f g => 1)
+struct [tp := nat, fun := x y => nat, comp := x y z f g => 1]
 
 -- Can we convert between equal representations of sig types?
-def sig/conv : path type depend {sig (tp : type) (fun : tp → tp)} :=
+def sig/conv : path type depend {sig [tp : type, fun : tp → tp]} :=
 i => depend
 
 -- Test that forming paths in first-class sigs works
 def sig/ext
-  (b0 : sig (foo : nat))
-  (b1 : sig (foo : nat))
+  (b0 : sig [foo : nat])
+  (b1 : sig [foo : nat])
   (p : path nat {b0.foo} {b1.foo})
-  : path {sig (foo : nat)} b0 b1
+  : path {sig [foo : nat]} b0 b1
 :=
-i => struct (foo : p i)
+i => struct [foo := p i]
 
 
 -- Test that empty sigs/structs work
-def empty : type := sig
-def empty/inhabit : empty := struct
+def empty : type := sig []
+def empty/inhabit : empty := struct []

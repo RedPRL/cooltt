@@ -184,8 +184,6 @@ and real_token = parse
     { LESS_THAN }
   | "≔" | ":="
     { COLON_EQUALS }
-  | ".="
-     { DOT_EQUALS }
   | "→" | "->"
     { RIGHT_ARROW }
   | "←" | "<-"

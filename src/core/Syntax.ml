@@ -218,14 +218,20 @@ struct
   let ppenv_bind env ident =
     Pp.Env.bind env @@ Ident.to_string_opt ident
 
-  let rec pp_fields pp_field env fmt  =
+  let rec pp_fields ~pp_copula pp_bdy env fmt  =
     function
     | [] -> ()
-    | ((lbl, tp) :: fields) ->
-      Format.fprintf fmt "(%a : %a)@ @,%a"
+    | [(lbl, tp)] ->
+      Format.fprintf fmt "@[<hv2>def %a %a@;%a@]"
         Ident.pp_user lbl
-        (pp_field env P.(right_of colon)) tp
-        (pp_fields pp_field env) fields
+        pp_copula ()
+        (pp_bdy env P.(right_of colon)) tp
+    | ((lbl, tp) :: fields) ->
+      Format.fprintf fmt "@[<hv2>def %a %a@;%a@]@;%a"
+        Ident.pp_user lbl
+        pp_copula ()
+        (pp_bdy env P.(right_of colon)) tp
+        (pp_fields ~pp_copula pp_bdy env) fields
 
   let rec pp env =
     pp_braced_cond P.classify_tm @@ fun penv fmt ->
@@ -239,28 +245,29 @@ struct
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
     | Struct fields ->
-      Format.fprintf fmt "@[struct %a@]" (pp_fields pp env) fields
+      let pp_copula fmt () = Format.fprintf fmt ":=" in
+      Format.fprintf fmt "@[<hv>struct@;<1 2>@[<hv>%a@]@;end@]" (pp_fields ~pp_copula pp env) fields
     | Proj (tm, lbl) ->
       Format.fprintf fmt "@[%a %@ %a@]" (pp env P.(left_of proj)) tm Ident.pp_user lbl
     | CofSplit branches ->
       let pp_sep fmt () = Format.fprintf fmt "@ | " in
       pp_bracketed_list ~pp_sep (pp_cof_split_branch env) fmt branches
     | HCom (code, r, s, phi, bdy) ->
-      Format.fprintf fmt "@[<hv2>hcom %a %a %a %a@ %a@]"
+      Format.fprintf fmt "@[<hv2>hcom %a %a %a %a@;<1 0>%a@]"
         (pp_atomic env) code
         (pp_atomic env) r
         (pp_atomic env) s
         (pp_atomic env) phi
         (pp_atomic env) bdy
     | Com (fam, r, s, phi, bdy) ->
-      Format.fprintf fmt "@[<hv2>com %a %a %a %a@ %a@]"
+      Format.fprintf fmt "@[<hov2>com@;%a@;@[<h>%a@;%a@]@;%a@;%a@]"
         (pp_atomic env) fam
         (pp_atomic env) r
         (pp_atomic env) s
         (pp_atomic env) phi
         (pp_atomic env) bdy
     | Coe (fam, r, s, bdy) ->
-      Format.fprintf fmt "@[<hv2>coe %a %a %a@ %a@]"
+      Format.fprintf fmt "@[<hov2>coe@;%a@;@[<h>%a@;%a@]@;%a@]"
         (pp_atomic env) fam
         (pp_atomic env) r
         (pp_atomic env) s
@@ -307,7 +314,7 @@ struct
         | None -> Format.fprintf fmt "suc %a" (pp_atomic env) tm
       end
     | NatElim (mot, zero, suc, tm) ->
-      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ zero => %a@ | suc => %a@ ]@]@]"
+      Format.fprintf fmt "@[<hv2>elim@;%a@;%@ %a@;@[<hv2>[ zero =>@;%a@ | suc =>@;%a@ ]@]@]"
         (pp_atomic env) tm
         (pp_atomic env) mot
         (pp env P.isolated) zero
@@ -317,7 +324,7 @@ struct
     | Loop tm ->
       Format.fprintf fmt "loop %a" (pp_atomic env) tm
     | CircleElim (mot, base, loop, tm) ->
-      Format.fprintf fmt "@[<hv2>elim %a %@ %a@ @[<v>[ base => %a@ | loop => %a@ ]@]@]"
+      Format.fprintf fmt "@[<hv2>elim %a %@ %a@;@[<hv2>[ base =>@;%a@ | loop =>@;%a@ ]@]@]"
         (pp_atomic env) tm
         (pp_atomic env) mot
         (pp env P.isolated) base
@@ -340,7 +347,7 @@ struct
         (pp_atomic env) fam
     | CodePi (base, Lam (ident, fam)) ->
       let x, envx = ppenv_bind env ident in
-      Format.fprintf fmt "(%a : %a) %a %a"
+      Format.fprintf fmt "@[<hov>(%a : %a) %a@;<1 2>@[<hov>%a@]@]"
         Uuseg_string.pp_utf_8 x
         (pp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"
@@ -369,9 +376,10 @@ struct
         (pp_atomic env) base
         (pp_atomic env) tm
     | CodeSignature fields ->
-      Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
+      let pp_copula fmt () = Format.fprintf fmt ":" in
+      Format.fprintf fmt "@[<hv>sig@;<1 2>@[<hv>%a@]@;end@]" (pp_fields ~pp_copula pp_binders env) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
-      Format.fprintf fmt "@[ext %a %a %a@]"
+      Format.fprintf fmt "@[<hv>ext@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
         (pp_atomic env) fam
         (pp_atomic Pp.Env.emp) phi
         (pp_atomic env) bdry
@@ -473,9 +481,13 @@ struct
   and pp_sign env fmt : sign -> unit =
     function
     | [] -> ()
+    | [(lbl, tp)] ->
+      Format.fprintf fmt "@[<hv2>def %a :@;%a@]"
+        Ident.pp_user lbl
+        (pp_tp env P.(right_of colon)) tp
     | ((lbl, tp) :: fields) ->
       let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in
-      Format.fprintf fmt "(%s : %a)@ @,%a"
+      Format.fprintf fmt "@[<hv2>def %s :@;%a@]@;%a"
         lbl
         (pp_tp env P.(right_of colon)) tp
         (pp_sign envlbl) fields
@@ -491,7 +503,7 @@ struct
         branches
     | Pi (base, ident, fam) ->
       let x, envx = ppenv_bind env ident in
-      Format.fprintf fmt "(%a : %a) %a %a"
+      Format.fprintf fmt "(%a : %a) %a@;<1 2>%a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"
@@ -591,7 +603,7 @@ struct
     | [] -> pp_goal env fmt goal
     | (var, var_tp) :: ctx ->
       let x, envx = ppenv_bind env var in
-      Fmt.fprintf fmt "%a : %a@;%a"
+      Fmt.fprintf fmt "@[%a :@;%a@]@;%a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) var_tp
         (pp_in_ctx envx ctx pp_goal) goal
