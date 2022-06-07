@@ -487,8 +487,8 @@ struct
         (pp_tp env P.(right_of colon)) tp
     | ((lbl, tp) :: fields) ->
       let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in
-      Format.fprintf fmt "@[<hv2>def %s :@;%a@]@;%a"
-        lbl
+      Format.fprintf fmt "@[<hv2>def %a :@;%a@]@;%a"
+        Uuseg_string.pp_utf_8 lbl
         (pp_tp env P.(right_of colon)) tp
         (pp_sign envlbl) fields
 
@@ -581,7 +581,7 @@ struct
     | Lam (nm, tm) ->
       let x, envx = ppenv_bind env nm in
       if Debug.is_debug_mode ()
-      then Format.fprintf fmt "`{%s} =>@ @[%a@]" x (pp_binders envx penv) tm
+      then Format.fprintf fmt "`{%a} =>@ @[%a@]" Uuseg_string.pp_utf_8 x (pp_binders envx penv) tm
       else pp_binders envx penv fmt tm
     | _ -> pp env penv fmt tm
 
