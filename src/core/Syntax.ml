@@ -474,18 +474,20 @@ struct
         (pp_sub env P.(right_of sub_compose)) sb1
 
   and pp_sign env fmt : sign -> unit =
-    function
-    | [] -> ()
-    | [(lbl, tp)] ->
+    let pp_item env fmt (lbl, tp) =
       Format.fprintf fmt "@[<hv2>def %a :@;%a@]"
         Ident.pp_user lbl
         (pp_tp env P.(right_of colon)) tp
+    in
+    function
+    | [] -> ()
+    | [(lbl, tp)] ->
+      pp_item env fmt (lbl, tp)
     | ((lbl, tp) :: fields) ->
-      let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in
-      Format.fprintf fmt "@[<hv2>def %a :@;%a@]@;%a"
-        Uuseg_string.pp_utf_8 lbl
-        (pp_tp env P.(right_of colon)) tp
-        (pp_sign envlbl) fields
+      let _,envlbl = ppenv_bind env (lbl :> Ident.t) in
+      pp_item env fmt (lbl, tp);
+      Format.pp_print_break fmt 1 0;
+      pp_sign envlbl fmt fields
 
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->
