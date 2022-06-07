@@ -8,7 +8,7 @@ hlevel.cooltt:34.11-34.16 [Info]:
 
 abstract.cooltt:104.7-104.15 [Info]:
   def abs-test : nat :=
-    suc {abs-test∷foo _x}
+    suc {abs-test∷foo *}
 
 abstract.cooltt:107.7-107.15 [Info]:
   def abs-test : nat :=
@@ -18,11 +18,11 @@ abstract.cooltt:107.7-107.15 [Info]:
 base-types.cooltt:44.7-44.11 [Info]:
   def case : (A : type) → (B : type) → (P : (_x : sum A B) → type) → (P/inl : (a : A) → P {inl A B a}) → (P/inr : (b : B) → P {inr A B b}) → (s : sum A B) → P s :=
     A B P P/inl P/inr s =>
-    blocked[sum] _x A B P P/inl P/inr s {_x₁ =>
-                                         elim _x₁ @ {_x₂ => type}
-                                           [ zero => B
-                                           | suc => _x₂ _x₃ => empty
-                                           ]} {blocked[inr] _x A B P P/inl P/inr s {
+    blocked[sum] * A B P P/inl P/inr s {_x₁ =>
+                                        elim _x₁ @ {_x₂ => type}
+                                          [ zero => B
+                                          | suc => _x₂ _x₃ => empty
+                                          ]} {blocked[inr] * A B P P/inl P/inr s {
     _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B
                                     | suc => _x₂ _x₃ => empty
                                     ]}} {_x₁ =>
@@ -34,10 +34,10 @@ base-types.cooltt:44.7-44.11 [Info]:
                                                       | suc => _x₃ _x₄ =>
                                                                empty
                                                       ]
-                                           ]} {blocked[sum,inl] _x A B P P/inl P/inr s {
+                                           ]} {blocked[sum,inl] * A B P P/inl P/inr s {
     _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B
                                     | suc => _x₂ _x₃ => empty
-                                    ]} {blocked[inr] _x A B P P/inl P/inr s {
+                                    ]} {blocked[inr] * A B P P/inl P/inr s {
     _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B
                                     | suc => _x₂ _x₃ => empty
                                     ]}} {_x₁ =>
@@ -1283,7 +1283,7 @@ hcom-type.cooltt:16.11-16.12 [Info]:
     
     Boundary:
     ⊤
-    |- ?asdf _x 0 *
+    |- ?asdf * 0 *
 
 
 hcom-type.cooltt:16.13-16.14 [Info]:
@@ -1294,9 +1294,9 @@ hcom-type.cooltt:16.13-16.14 [Info]:
     
     Boundary:
     i = 0 ∨ i = 0 ∨ i = 1
-    |- i = 0 => #3 _x 0 *
-       i = 0 => ?asdf _x 0 *
-       i = 1 => ?asdf _x 1 *
+    |- i = 0 => #3 * 0 *
+       i = 0 => ?asdf * 0 *
+       i = 1 => ?asdf * 1 *
 
 
 [Warn]:  There are 3 unsolved holes
@@ -1342,7 +1342,7 @@ holes.cooltt:8.27-8.28 [Info]:
     p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 _x A p q i 1}
+    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 * A p q i 1}
 
 
 holes.cooltt:8.7-8.35 [Info]:
@@ -1352,7 +1352,7 @@ holes.cooltt:8.7-8.35 [Info]:
     p : (_x₁ : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler A {#2 _x A p q i} {#3 _x A p q i} 1 i !} : A
+    |- {! trans/filler A {#2 * A p q i} {#3 * A p q i} 1 i !} : A
     
     Boundary (unsatisfied):
     i = 0 ∨ i = 1
@@ -1402,7 +1402,7 @@ holes.cooltt:18.26-18.30 [Info]:
 
 holes.cooltt:17.5-18.30 [Info]:
   Failure encountered, as expected:
-   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 _x A p q i _x₂ _x₃} =
+   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 * A p q i _x₂ *} =
             [ i = 0 ∨ i = 1 => [ i = 0 => p 0 | i = 1 => q 1 ] ]
             : A
 
