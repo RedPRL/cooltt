@@ -1179,8 +1179,8 @@ cool-total-space.cooltt:25.7-25.20 [Info]:
           nat
     end :=
     struct
-      def fam := {_x₁ => (_x₂ : nat) → nat}
-      def test := {total => {total @ fib} 0}
+      def fam := _x₁ => (_x₂ : nat) → nat
+      def test := total => {total @ fib} 0
     end
 
 cool-total-space.cooltt:32.7-32.20 [Info]:
@@ -1192,8 +1192,8 @@ cool-total-space.cooltt:32.7-32.20 [Info]:
           nat
     end :=
     struct
-      def fam := {_x₁ => (_x₂ : nat) × nat}
-      def test := {total => fst {total @ fib}}
+      def fam := _x₁ => (_x₂ : nat) × nat
+      def test := total => fst {total @ fib}
     end
 
 cool-total-space.cooltt:40.7-40.27 [Info]:
@@ -1205,8 +1205,8 @@ cool-total-space.cooltt:40.7-40.27 [Info]:
           nat
     end :=
     struct
-      def fam := {_x₁ => sig def y : nat end}
-      def test := {total => {total @ fib} @ y}
+      def fam := _x₁ => sig def y : nat end
+      def test := total => {total @ fib} @ y
     end
 
 cool-total-space.cooltt:42.64-42.65 [Info]:
@@ -1535,11 +1535,11 @@ monoid.cooltt:25.7-25.17 [Info]:
     end :=
     struct
       def C := nat
-      def op := {_x₁ _x₂ => + _x₁ _x₂}
+      def op := _x₁ _x₂ => + _x₁ _x₂
       def z := 0
-      def idL := {_x₁ _x₂ => +-left-unit _x₁ _x₂}
-      def idR := {_x₁ _x₂ => +-right-unit _x₁ _x₂}
-      def assoc := {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}
+      def idL := _x₁ _x₂ => +-left-unit _x₁ _x₂
+      def idR := _x₁ _x₂ => +-right-unit _x₁ _x₂
+      def assoc := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
     end
 
 monoid.cooltt:36.7-36.19 [Info]:
@@ -1572,11 +1572,11 @@ monoid.cooltt:36.7-36.19 [Info]:
     end :=
     struct
       def C := nat
-      def op := {_x₁ _x₂ => + _x₁ _x₂}
+      def op := _x₁ _x₂ => + _x₁ _x₂
       def z := 0
-      def idL := {_x₁ _x₂ => +-left-unit _x₁ _x₂}
-      def idR := {_x₁ _x₂ => +-right-unit _x₁ _x₂}
-      def assoc := {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}
+      def idL := _x₁ _x₂ => +-left-unit _x₁ _x₂
+      def idR := _x₁ _x₂ => +-right-unit _x₁ _x₂
+      def assoc := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
     end
 
 --------------------[names.cooltt]--------------------
@@ -1892,11 +1892,11 @@ record.cooltt:12.7-12.12 [Info]:
 
 record.cooltt:13.7-13.21 [Info]:
   def basic∷inhabit : sig def foo∷x : nat def bar : (_x : nat) → nat end :=
-    struct def foo∷x := 1 def bar := {x => suc x} end
+    struct def foo∷x := 1 def bar := x => suc x end
 
 record.cooltt:14.11-14.25 [Info]:
   Computed normal form of basic∷inhabit as
-   struct def foo∷x := 1 def bar := {x => suc x} end
+   struct def foo∷x := 1 def bar := x => suc x end
 
 record.cooltt:15.11-15.32 [Info]:
   Computed normal form of basic∷inhabit @ foo∷x as 1

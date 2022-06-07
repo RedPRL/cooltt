@@ -129,7 +129,7 @@ struct
     let arrow = right 3
     let times = right 3
     let colon = nonassoc 2
-    let double_arrow = right 1
+    let double_arrow = right 2
     let in_ = nonassoc 0
 
     (** assumes [Debug.is_debug_mode ()] = [false] *)
