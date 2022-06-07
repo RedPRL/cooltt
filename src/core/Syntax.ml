@@ -218,20 +218,15 @@ struct
   let ppenv_bind env ident =
     Pp.Env.bind env @@ Ident.to_string_opt ident
 
-  let rec pp_fields ~pp_copula pp_bdy env fmt  =
-    function
-    | [] -> ()
-    | [(lbl, tp)] ->
+  let pp_fields ~pp_copula pp_bdy env =
+    let pp_item fmt (lbl, tp) =
       Format.fprintf fmt "@[<hv2>def %a %a@;%a@]"
         Ident.pp_user lbl
         pp_copula ()
         (pp_bdy env P.(right_of colon)) tp
-    | ((lbl, tp) :: fields) ->
-      Format.fprintf fmt "@[<hv2>def %a %a@;%a@]@;%a"
-        Ident.pp_user lbl
-        pp_copula ()
-        (pp_bdy env P.(right_of colon)) tp
-        (pp_fields ~pp_copula pp_bdy env) fields
+    in
+    let pp_sep fmt () = Format.pp_print_break fmt 1 0 in
+    Format.pp_print_list ~pp_sep pp_item
 
   let rec pp env =
     pp_braced_cond P.classify_tm @@ fun penv fmt ->
