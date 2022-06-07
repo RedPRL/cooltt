@@ -1126,12 +1126,12 @@ com.cooltt:64.11-64.20 [Info]:
 
 com.cooltt:80.11-80.19 [Info]:
   Computed normal form of hcom/fun as
-   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ _x₂ _x}
+   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ * _x}
 
 com.cooltt:89.11-89.20 [Info]:
   Computed normal form of com/intro as
    A r r' φ p =>
-   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
+   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x *}}
 
 --------------------[cool-total-space.cooltt]--------------------
 cool-total-space.cooltt:6.7-6.20 [Info]:
@@ -1266,7 +1266,7 @@ groupoid-laws.cooltt:128.7-128.11 [Info]:
     assoc A {_x₂ => p _x₂} ⊥ {_x₂ => q _x₂} ⊥ {_x₂ => r _x₂} j _x₁
 
 --------------------[hcom-type.cooltt]--------------------
-hcom-type.cooltt:17.8-17.13 [Info]:
+hcom-type.cooltt:16.3-16.8 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
     i : 𝕀
@@ -1274,18 +1274,19 @@ hcom-type.cooltt:17.8-17.13 [Info]:
     |- ?asdf : nat
 
 
-hcom-type.cooltt:17.16-17.17 [Info]:
+hcom-type.cooltt:16.11-16.12 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
     i : 𝕀
-    |- ? : (_x₁ : [ i = 0 ]) → nat
+    _x₁ : [ i = 0 ]
+    |- ? : nat
     
     Boundary:
-    i = 0 ∨ i = 1
-    |- _x₁ => [ ⊤ => ?asdf _x 0 * ]
+    ⊤
+    |- ?asdf _x 0 *
 
 
-hcom-type.cooltt:17.18-17.19 [Info]:
+hcom-type.cooltt:16.13-16.14 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
     i : 𝕀
@@ -1293,7 +1294,7 @@ hcom-type.cooltt:17.18-17.19 [Info]:
     
     Boundary:
     i = 0 ∨ i = 0 ∨ i = 1
-    |- i = 0 => ?asdf _x 0 *
+    |- i = 0 => #3 _x 0 *
        i = 0 => ?asdf _x 0 *
        i = 1 => ?asdf _x 1 *
 
@@ -1789,7 +1790,7 @@ selfification.cooltt:8.11-8.18 [Info]:
    _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
 --------------------[v.cooltt]--------------------
-v.cooltt:13.11-13.17 [Info]:
+v.cooltt:12.11-12.17 [Info]:
   Computed normal form of v-test as
    r A =>
    V r {_x => A} A {_x =>
@@ -1808,10 +1809,10 @@ v.cooltt:13.11-13.17 [Info]:
                       ]
                     ]}
 
-v.cooltt:21.11-21.15 [Info]:
+v.cooltt:20.11-20.15 [Info]:
   Computed normal form of cool as A a => coe {_x => A} 0 1 a
 
-v.cooltt:22.11-22.16 [Info]:
+v.cooltt:21.11-21.16 [Info]:
   Computed normal form of cool2 as
    A a i =>
    hcom A 0 1 {i = 0}
@@ -1822,7 +1823,7 @@ v.cooltt:22.11-22.16 [Info]:
           {k _x₃ => [ k = 1 => a | _x = 1 => a | _x = 0 => a ]}
       ]}
 
-v.cooltt:28.11-28.16 [Info]:
+v.cooltt:27.11-27.16 [Info]:
   Computed normal form of cool3 as A a i => a
 
 --------------------[view.cooltt]--------------------

@@ -145,7 +145,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     let n = List.length idents in
     let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
     let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [Ident.anon], {node = CS.CofSplit cases; info = None}); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.CofSplit cases; info = None}); info = None} in
     CoolTp.ext n tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
@@ -314,7 +314,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       let n = List.length idents in
       let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
       let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [Ident.anon], {node = CS.CofSplit cases; info = None}); info = None} in
+      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.CofSplit cases; info = None}); info = None} in
       R.Univ.ext n tac_fam tac_cof tac_bdry
 
 

@@ -3,7 +3,7 @@ import prelude
 
 shadowing
 def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
-  hcom A 0 j {∂ i} {j _ =>
+  hcom A 0 j {∂ i} {j =>
     [ j=0 ∨ i=0 => p i
     | i=1 => q j
     ]
