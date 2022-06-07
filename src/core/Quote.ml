@@ -51,6 +51,8 @@ let rec quote_con (tp : D.tp) con =
     if norm then contractum_or con <@> lift_cmp @@ Sem.whnf_con con else QuM.ret con
   in
   match tp, con with
+  | D.TpPrf _, _ ->
+    ret S.Prf
   | _, D.Split branches ->
     let quote_branch (phi, clo) =
       lift_cmp @@ CmpM.test_sequent [phi] CofBuilder.bot |>> function
@@ -147,9 +149,6 @@ let rec quote_con (tp : D.tp) con =
   | D.TpCof, D.Cof cof ->
     let* cof = lift_cmp @@ cof_con_to_cof cof in
     quote_cof cof
-
-  | D.TpPrf _, _ ->
-    ret S.Prf
 
   | univ, D.StableCode code ->
     quote_stable_code univ code
