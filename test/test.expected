@@ -1249,10 +1249,11 @@ elab.cooltt:42.6-42.12 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
     x : nat
-    |- ?hole1 : ext
-                  {i => nat}
-                  {i => i = 0 ∨ i = 1}
-                  {i _x₁ => [ i = 0 => x | i = 1 => x ]}
+    |- ?hole1 :
+         ext
+           {i => nat}
+           {i => i = 0 ∨ i = 1}
+           {i _x₁ => [ i = 0 => x | i = 1 => x ]}
 
 
 [Warn]:  There are 3 unsolved holes

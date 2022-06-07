@@ -620,7 +620,7 @@ struct
     match get_constraints tp with
     | `Boundary (tp, phi, tm) ->
       let _x, envx = Pp.Env.bind env (Some "_") in
-      Format.fprintf fmt "|- ?%a : @[<hov>%a@]@,@,Boundary:@,%a@,|- @[<v>%a@]"
+      Format.fprintf fmt "@[<v>|- @[?%a :@;<1 2>@[<hov>%a@]@]@;@;Boundary:@,%a@,|- @[<v>%a@]@]"
         Uuseg_string.pp_utf_8 lbl
         (pp_tp env P.(right_of colon)) tp
         (pp env P.(right_of colon))
@@ -628,7 +628,7 @@ struct
         (pp_sequent_boundary envx)
         tm
     | `Unconstrained tp ->
-      Format.fprintf fmt "|- ?%a : @[<hov>%a@]"
+      Format.fprintf fmt "|- @[<hv>?%a :@;<1 2>@[<hov>%a@]@]"
         Uuseg_string.pp_utf_8 lbl
         (pp_tp env P.(right_of colon)) tp
 
