@@ -13,7 +13,6 @@ def monoid : type :=
 
 #print monoid
 
-#quit
 def monoid/nat : monoid # [C := nat] :=
   struct
     def op := +

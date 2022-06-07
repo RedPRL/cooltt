@@ -1505,6 +1505,79 @@ monoid.cooltt:14.7-14.13 [Info]:
                 {i _x₁ => [ i = 0 => op {op a b} c | i = 1 => op a {op b c} ]}
     end
 
+monoid.cooltt:25.7-25.17 [Info]:
+  def monoid/nat :
+    sig
+      def C : ext type ⊤ {_x => nat}
+      def op : (_x : nat) → (_x₁ : nat) → nat
+      def z : nat
+      def idL :
+        (x : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => op z x | i = 1 => x ]}
+      def idR :
+        (x : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => op x z | i = 1 => x ]}
+      def assoc :
+        (a : nat) →
+          (b : nat) →
+            (c : nat) →
+              ext
+                {i => nat}
+                {i => i = 0 ∨ i = 1}
+                {i _x => [ i = 0 => op {op a b} c | i = 1 => op a {op b c} ]}
+    end :=
+    struct
+      def C := nat
+      def op := {_x₁ _x₂ => + _x₁ _x₂}
+      def z := 0
+      def idL := {_x₁ _x₂ => +-left-unit _x₁ _x₂}
+      def idR := {_x₁ _x₂ => +-right-unit _x₁ _x₂}
+      def assoc := {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}
+    end
+
+monoid.cooltt:36.7-36.19 [Info]:
+  def monoid/nat/+ :
+    sig
+      def C : ext type ⊤ {_x => nat}
+      def op :
+        ext {(_x : nat) → (_x₁ : nat) → nat} ⊤ {_x _x₁ _x₂ => + _x₁ _x₂}
+      def z : nat
+      def idL :
+        (x : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => + z x | i = 1 => x ]}
+      def idR :
+        (x : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => + x z | i = 1 => x ]}
+      def assoc :
+        (a : nat) →
+          (b : nat) →
+            (c : nat) →
+              ext
+                {i => nat}
+                {i => i = 0 ∨ i = 1}
+                {i _x => [ i = 0 => + {+ a b} c | i = 1 => + a {+ b c} ]}
+    end :=
+    struct
+      def C := nat
+      def op := {_x₁ _x₂ => + _x₁ _x₂}
+      def z := 0
+      def idL := {_x₁ _x₂ => +-left-unit _x₁ _x₂}
+      def idR := {_x₁ _x₂ => +-right-unit _x₁ _x₂}
+      def assoc := {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}
+    end
+
 --------------------[names.cooltt]--------------------
 names.cooltt:5.7-5.14 [Info]:
   def x∷y∷z : (u∷v : nat) → nat := u∷v => u∷v
