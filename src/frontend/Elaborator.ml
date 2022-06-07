@@ -50,10 +50,10 @@ struct
     | Tp of T.Tp.tac
     | Code of T.Chk.tac
 
-  let whnf ~style =
+  let whnf =
     function
-    | Tp tac -> Tp (T.Tp.whnf ~style tac)
-    | Code tac -> Code (T.Chk.whnf ~style tac)
+    | Tp tac -> Tp (T.Tp.whnf tac)
+    | Code tac -> Code (T.Chk.whnf tac)
 
   let update_span span =
     function
@@ -135,7 +135,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-    let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.tp)) cells in
+    let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.con)) cells in
     CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -145,7 +145,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     let n = List.length idents in
     let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
     let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [Ident.anon], {node = CS.CofSplit cases; info = None}); info = None} in
     CoolTp.ext n tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
@@ -196,6 +196,12 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
 
+  | CS.Unfold (idents, c) ->
+    R.Structural.unfold idents (chk_tm c)
+
+  | CS.Abstract (name, c) ->
+    R.Structural.abstract ~name (chk_tm c)
+
   | CS.Lam ([], body) ->
     chk_tm body
 
@@ -233,7 +239,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Struct fields ->
-      let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.tp)) fields in
+      let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.con)) fields in
       R.Signature.intro @@ R.Signature.find_field_tac tacs
 
     | CS.Suc c ->
@@ -270,11 +276,11 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature fields ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) fields in
+      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.tp) patches in
+      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) patches in
       R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
@@ -282,7 +288,7 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.CofEq (c0, c1) ->
       R.Cof.eq (chk_tm c0) (chk_tm c1)
 
-    | CS.CofLe (c0, c1) -> 
+    | CS.CofLe (c0, c1) ->
       R.Cof.le (chk_tm c0) (chk_tm c1)
 
     | CS.Join cs ->
@@ -308,7 +314,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       let n = List.length idents in
       let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
       let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [`Anon], {node = CS.CofSplit cases; info = None}); info = None} in
+      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents @ [Ident.anon], {node = CS.CofSplit cases; info = None}); info = None} in
       R.Univ.ext n tac_fam tac_cof tac_bdry
 
 
@@ -383,14 +389,14 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
   | CS.HFill (code, src, cof, tm) ->
     let code_tac = chk_tm code in
     let tac =
-      R.Pi.intro ~ident:(`Machine "i") @@ fun i ->
+      R.Pi.intro ~ident:(Ident.machine "i") @@ fun i ->
       Tactics.intro_implicit_connectives @@
       T.Chk.syn @@
       Tactics.elim_implicit_connectives @@
       R.Univ.hcom code_tac (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm cof) (chk_tm tm)
     in
     T.Syn.ann tac @@
-    R.Pi.formation R.Dim.formation (`Anon, fun _ -> R.El.formation code_tac)
+    R.Pi.formation R.Dim.formation (Ident.anon, fun _ -> R.El.formation code_tac)
   | CS.Com (fam, src, trg, cof, tm) ->
     R.Univ.com (chk_tm fam) (chk_tm src) (chk_tm trg) (chk_tm cof) (chk_tm tm)
   | CS.Equations {code; eqns} ->

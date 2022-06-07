@@ -2,6 +2,7 @@
 def path (A : type) (x y : A) : type :=
   ext i => A with [i=0 => x | i=1 => y]
 
+
 def path-p (A : 𝕀 → type) (x : A 0) (y : A 1) : type :=
   ext i => A i with [i=0 => x | i=1 => y]
 
@@ -15,6 +16,7 @@ def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A :=
     ]
   }
 
+abstract
 def symm (A : type) (p : 𝕀 → A) : path A {p 1} {p 0} :=
   i => symm/filler A p i 1
 
@@ -25,6 +27,7 @@ def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 
     ]
   }
 
+abstract
 def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   trans/filler A p q 1
 

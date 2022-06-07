@@ -48,6 +48,7 @@ let keywords =
     ("elim", ELIM);
     ("generalize", GENERALIZE);
     ("def", DEF);
+    ("abstract", ABSTRACT);
     ("📌", DEF);
     ("axiom", AXIOM);
     ("🛐", AXIOM);
@@ -68,6 +69,7 @@ let keywords =
     ("cap", CAP);
     ("with", WITH);
     ("import", IMPORT []);
+    ("unfold", UNFOLD);
     ("📥", IMPORT []);
     ("begin", BEGIN);
     ("▶️", BEGIN);
@@ -75,6 +77,7 @@ let keywords =
     ("⏹️", END);
     ("equation", EQUATION);
     ("section", SECTION);
+    ("shadowing", SHADOWING);
     ("📦", SECTION);
     ("view", VIEW);
     ("👁️", VIEW);
@@ -185,6 +188,8 @@ and real_token = parse
      { DOT_EQUALS }
   | "→" | "->"
     { RIGHT_ARROW }
+  | "←" | "<-"
+    { LEFT_ARROW }
   | "⇒" | "=>"
     { RRIGHT_ARROW }
   | '_'

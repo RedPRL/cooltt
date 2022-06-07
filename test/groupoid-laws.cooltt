@@ -3,6 +3,7 @@
 import prelude
 
 -- pretend we have CCHM Id-types
+abstract
 def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0 ∨ φ} x} → type)
   (d : B ⊤ {_ => x})
   (φ : 𝔽) (p : (i : 𝕀) → sub A {i=0 ∨ φ} x)
@@ -18,12 +19,13 @@ def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0
   in
   com {j => B {φ ∨ j=0} {filler j}} 0 1 {φ} {j _ => d}
 
-!def trans (A : type) (p : (i : 𝕀) → A)
+shadowing def trans (A : type) (p : (i : 𝕀) → A)
   : (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
   → sub {path A {p 0} {q 1}} φ p
   :=
   special-j A {p 1} {_ q => path A {p 0} {q 1}} p
 
+abstract
 def assoc (A : type)
   (p : (i : 𝕀) → A)
   (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})
@@ -83,6 +85,7 @@ def trans' (A : type) (p : (i : 𝕀) → A) (q : (i : 𝕀) → sub A {i=0} {p 
   :=
   trans A p ⊥ q
 
+abstract
 def assoc' (A : type)
   (p : (i : 𝕀) → A)
   (q : (i : 𝕀) → sub A {i=0} {p 1})
@@ -91,6 +94,7 @@ def assoc' (A : type)
   :=
   assoc A p ⊥ q ⊥ r
 
+unfold assoc'
 def pentagon' (A : type)
   (p : (i : 𝕀) → A)
   (q : (i : 𝕀) → sub A {i=0} {p 1})
@@ -120,3 +124,5 @@ def test (A : type)
   : (j : 𝕀) → path A {p 0} {r 1}
   :=
   j => assoc A p ⊥ q ⊥ r j
+
+#print test

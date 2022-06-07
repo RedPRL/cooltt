@@ -1,4 +1,4 @@
-(** The purpose of this module is to transform semantic objects into syntactic objects as efficiently as possible; only user-specified top-level definitions will be unfolded, in accordance with the {i veil} (see {!val:Monads.QuM.read_veil}). *)
+(** The purpose of this module is to transform semantic objects into syntactic objects as efficiently as possible. *)
 open Monads
 open CodeUnit
 

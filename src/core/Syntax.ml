@@ -288,7 +288,7 @@ struct
       let pp_sep fmt () = Uuseg_string.pp_utf_8 fmt " ∧ " in
       Format.pp_print_list ~pp_sep (pp env P.(surrounded_by cof_meet)) fmt phis
     | ForallCof phi ->
-      let x, envx = ppenv_bind env `Anon in
+      let x, envx = ppenv_bind env Ident.anon in
       Format.fprintf fmt "%a %a %a %a"
         Uuseg_string.pp_utf_8 "∀"
         Uuseg_string.pp_utf_8 x
@@ -470,7 +470,7 @@ struct
         Uuseg_string.pp_utf_8 "∘"
         (pp_sub env P.(right_of sub_compose)) sb1
 
-  and pp_sign env fmt : sign -> unit = 
+  and pp_sign env fmt : sign -> unit =
     function
     | [] -> ()
     | ((lbl, tp) :: fields) ->
@@ -478,8 +478,8 @@ struct
       Format.fprintf fmt "(%s : %a)@ @,%a"
         lbl
         (pp_tp env P.(right_of colon)) tp
-        (pp_sign envlbl) fields  
-  
+        (pp_sign envlbl) fields
+
   and pp_tp env =
     pp_braced_cond P.classify_tp @@ fun penv fmt ->
     function
@@ -506,7 +506,7 @@ struct
     | Signature fields ->
       Format.fprintf fmt "sig %a" (pp_sign env) fields
     | Sub (tp, phi, tm) ->
-      let _x, envx = ppenv_bind env `Anon in
+      let _x, envx = ppenv_bind env Ident.anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"
         (pp_tp env P.(right_of juxtaposition)) tp
         (pp_atomic env) phi
@@ -535,13 +535,13 @@ struct
         (pp_tp env P.(right_of substitution)) tp
 
   and pp_cof_split_branch env fmt (phi, tm) =
-    let _x, envx = ppenv_bind env `Anon in
+    let _x, envx = ppenv_bind env Ident.anon in
     Format.fprintf fmt "@[<hv>%a =>@ %a@]"
       (pp env P.(left_of double_arrow)) phi
       (pp envx P.(right_of double_arrow)) tm
 
   and pp_tp_cof_split_branch env fmt (phi, tm) =
-    let _x, envx = ppenv_bind env `Anon in
+    let _x, envx = ppenv_bind env Ident.anon in
     Format.fprintf fmt "@[<hv>%a =>@ %a@]"
       (pp env P.(left_of double_arrow)) phi
       (pp_tp envx P.(right_of double_arrow)) tm
@@ -577,7 +577,7 @@ struct
     let rec pp_branches env fmt (bdry, cons) =
       match cons with
       | CofSplit branches ->
-        let _x, envx = ppenv_bind env `Anon in
+        let _x, envx = ppenv_bind env Ident.anon in
         Format.pp_print_list ~pp_sep:(Format.pp_print_cut) (pp_branches envx) fmt branches
       | _ -> pp_cof_split_branch env fmt (bdry, cons)
     in

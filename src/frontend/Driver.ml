@@ -10,9 +10,12 @@ module Env = RefineEnv
 module Err = RefineError
 module Sem = Semantics
 module Qu = Quote
+module TB = TermBuilder
 
 module RM = RefineMonad
+module R = Refiner
 module ST = RefineState
+module QuM = Monads.QuM
 module RMU = Monad.Util (RM)
 open Monad.Notation (RM)
 
@@ -22,8 +25,8 @@ type command = continuation RM.m
 
 (* Refinement Helpers *)
 
-let elaborate_typed_term _name (args : CS.cell list) tp tm =
-  let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
+let elaborate_typed_term _name (args : CS.cell list) (tp : CS.con) (tm : CS.con) =
+  let* tp = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
   let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
   let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args tm) vtp in
   let+ vtm = RM.lift_ev @@ Sem.eval tm in
@@ -33,49 +36,33 @@ let print_ident (ident : Ident.t CS.node) : command =
   RM.resolve ident.node |>>
   function
   | `Global sym ->
-    let* vtp, con = RM.get_global sym in
-    let* tp = RM.quote_tp vtp in
-    let* tm =
-      match con with
-      | None -> RM.ret None
-      | Some con ->
-        let* tm = RM.quote_con vtp con in
-        RM.ret @@ Some tm
-    in
-    let+ () =
-      RM.emit ident.info pp_message @@
-      OutputMessage (Definition {ident = ident.node; tp; tm})
-    in
-    Continue
+    begin
+      RM.get_global sym |>>
+      function
+      | D.Sub (vtp, cof, clo) ->
+        let* tp = RM.quote_tp vtp in
+        let* bdy =
+          RM.abstract Ident.anon (D.TpPrf cof) @@ fun prf ->
+          let* vbdy = RM.lift_cmp @@ Sem.inst_tm_clo clo prf in
+          RM.quote_con vtp vbdy
+        in
+        let* tcof = RM.quote_cof cof in
+        let+ () =
+          RM.emit ident.info pp_message @@
+          OutputMessage (Definition {ident = ident.node; tp; ptm = Some (tcof, bdy)})
+        in
+        Continue
+      | _ ->
+        let* vtp = RM.get_global sym in
+        let* tp = RM.quote_tp vtp in
+        let+ () =
+          RM.emit ident.info pp_message @@
+          OutputMessage (Definition {ident = ident.node; tp; ptm = None})
+        in
+        Continue
+    end
   | _ ->
     RM.throw @@ Err.RefineError (Err.UnboundVariable ident.node, ident.info)
-
-let print_fail (name : Ident.t) (info : CS.info) (res : (D.tp * D.con, exn) result) : command =
-  match res with
-  | Ok (vtp, vtm) ->
-    let* tm = RM.quote_con vtp vtm in
-    let* tp = RM.quote_tp vtp in
-    let* env = RM.read in
-    let penv = Env.pp_env env in
-    let pp_failure fmt () =
-      Format.fprintf fmt "fail %a:@.  Expected (%a : %a) to fail but it succeded."
-        Ident.pp name
-        (Syntax.pp penv) tm
-        (Syntax.pp_tp penv) tp
-    in
-    let+ () = RM.emit ~lvl:`Error info pp_failure () in
-    Continue
-  | Error (Err.RefineError (err, info)) ->
-    let pp_err_info fmt () =
-      Format.fprintf fmt "fail %a:@.  %a"
-        Ident.pp name
-        RefineError.pp err
-    in
-    let+ () = RM.emit ~lvl:`Info info pp_err_info () in
-    Continue
-  | Error exn ->
-    let+ () = RM.emit ~lvl:`Error info PpExn.pp exn in
-    Continue
 
 let protect m =
   RM.trap m |>> function
@@ -159,29 +146,109 @@ and import_unit ~shadowing path modifier : command =
 and execute_decl (decl : CS.decl) : command =
   RM.update_span (CS.get_info decl) @@
   match decl.node with
-  | CS.Def {shadowing; name; args; def = Some def; tp} ->
+  | CS.Def {abstract; shadowing; name; args; def; tp; unfolding} ->
     Debug.print "Defining %a@." Ident.pp name;
-    let* vtp, vtm = elaborate_typed_term (Ident.to_string name) args tp def in
-    let+ _ = RM.add_global ~shadowing name vtp @@ Some vtm in
+
+    (* Unleash the unfolding dimension for the term component *)
+    let* unf_dim_sym =
+      match abstract, unfolding with
+      | false, [] -> RM.ret None
+      | _, _->
+        let+ var = RM.add_global ~unfolder:None ~shadowing:false (Ident.unfolder name) D.TpDim in
+        Some var
+    in
+
+    let* unf_dim =
+      match unf_dim_sym with
+      | None -> RM.ret D.Dim1
+      | Some var -> RM.eval @@ S.Global var
+    in
+
+    let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
+    let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+
+    let* _ =
+      unfolding_dims |> RMU.iter @@ fun dim ->
+      let* cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.le unf_dim dim in
+      RMU.ignore @@ RM.add_global ~unfolder:None ~shadowing:false Ident.anon @@ D.TpPrf cof
+    in
+
+    let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq unf_dim D.Dim1 in
+    let* ttp_body = Tactic.Tp.run @@ Elaborator.chk_tp_in_tele args tp in
+    let* abstract_vtp =
+      let* vsub =
+        let* tunf_cof = RM.quote_cof unf_cof in
+        let* vtp_body = RM.eval_tp ttp_body in
+        Tactic.abstract (D.TpPrf unf_cof) @@ fun _ ->
+        let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args def) vtp_body in
+        RM.ret @@ S.Sub (ttp_body, tunf_cof, tm)
+      in
+      RM.eval_tp vsub
+    in
+
+    let+ _ =
+      RM.add_global
+        ~unfolder:unf_dim_sym
+        ~shadowing
+        name
+        abstract_vtp
+    in
     Continue
-  | CS.Def {shadowing; name; args; def = None; tp} ->
+
+  | CS.Axiom {shadowing; name; args; tp} ->
     Debug.print "Defining Axiom %a@." Ident.pp name;
+
     let* tp = Tactic.Tp.run_virtual @@ Elaborator.chk_tp_in_tele args tp in
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-    let* _ = RM.add_global ~shadowing name vtp None in
+    let* _ = RM.add_global ~unfolder:None ~shadowing name vtp in
     RM.ret Continue
-  | CS.NormalizeTerm term ->
-    RM.veil `Transparent @@
-    let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm term in
+
+  | CS.NormalizeTerm {unfolding; con} ->
+    let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
+    let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+    let* unfolding_cof =
+      RM.lift_cmp @@
+      Sem.con_to_cof @@
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
+    in
+
+    RM.abstract `Anon (D.TpPrf unfolding_cof) @@ fun _ ->
+    let* tm, vtp = Tactic.Syn.run @@ Elaborator.syn_tm con in
     let* vtm = RM.lift_ev @@ Sem.eval tm in
-    let* tm' = RM.quote_con vtp vtm in
-    let* () = RM.emit term.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
+    let* tm' = RM.lift_qu @@ QuM.with_normalization true @@ Quote.quote_con vtp vtm in
+    let* () = RM.emit con.info pp_message @@ OutputMessage (NormalizedTerm {orig = tm; nf = tm'}) in
     RM.ret Continue
-  | CS.Fail {name; args; def; tp; info} ->
-    let* res = RM.trap @@ elaborate_typed_term (Ident.to_string name) args tp def in
-    print_fail name info res
-  | CS.Print ident ->
-    print_ident ident
+
+  | CS.Fail decl ->
+    let wrap_pp_exn fmt exn =
+      Format.fprintf fmt
+        "Failure encountered, as expected:@, @[<v>%a@]@."
+        PpExn.pp exn
+    in
+    begin
+      RM.trap @@ execute_decl decl |>>
+      function
+      | Ok _ ->
+        RM.throw @@ ElabError.ElabError (ElabError.ExpectedFailure decl, decl.info)
+      | Error exn ->
+        let+ () = RM.emit ~lvl:`Info decl.info wrap_pp_exn exn in
+        Continue
+    end
+
+  | CS.Print {unfolding; name} ->
+    let* unfolding_syms = RM.resolve_unfolder_syms unfolding in
+    let* unfolding_dims = unfolding_syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+    let* unfolding_cof =
+      RM.lift_cmp @@
+      Sem.con_to_cof @@
+      D.CofBuilder.meet @@
+      List.map (D.CofBuilder.eq D.Dim1) unfolding_dims
+    in
+
+    RM.abstract `Anon (D.TpPrf unfolding_cof) @@ fun _ ->
+    print_ident name
+
   | CS.Import {shadowing; unitpath; modifier} ->
     RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
     let* modifier = Option.fold ~none:(RM.ret Yuujinchou.Pattern.any) ~some:Elaborator.modifier modifier in

@@ -10,13 +10,13 @@
 
   let name_of_atoms parts = `User parts
 
-  let name_of_underscore = `Anon
+  let name_of_underscore = Ident.anon
 
   let plain_term_of_name =
     function
     | `User a -> Var (`User a)
     | `Anon -> Underscore
-    | `Machine _ -> failwith "Impossible Internal Error"
+    | `Unfolder _ | `Blocked _ | `Machine _ -> failwith "Impossible Internal Error"
 
   let term_of_name {node; info} =
     {node = plain_term_of_name node; info}
@@ -28,12 +28,22 @@
     | [] -> failwith "Impossible Internal Error"
     | [f] -> drop_location f
     | f :: args -> Ap (f, args)
+
+  type decl_modifiers =
+    {shadowing : bool;
+     abstract : bool;
+     unfolding : Ident.t list}
+
+   let default_decl_modifier =
+     {shadowing = false; abstract = false; unfolding = []}
+
+   type decl_modifier = decl_modifiers -> decl_modifiers
 %}
 
 %token <int> NUMERAL
 %token <string> ATOM
 %token <string option> HOLE_NAME
-%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS LESS_THAN JOIN MEET
 %token TYPE
@@ -44,16 +54,18 @@
 %token SIG STRUCT AS
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM FAIL
+%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
+
+%token UNFOLD
 %token <string list> IMPORT
 %token ELIM
 %token SEMISEMI EOF
 %token TOPC BOTC
 %token V VPROJ CAP
 %token BEGIN EQUATION END LSQEQUALS LRSQEQUALS
-%token SECTION VIEW EXPORT REPACK
+%token SECTION VIEW EXPORT REPACK SHADOWING
 
-%nonassoc IN RRIGHT_ARROW SEMI
+%nonassoc IN RRIGHT_ARROW SEMI LEFT_ARROW
 %nonassoc COLON
 %left DOT
 %right RIGHT_ARROW TIMES
@@ -69,6 +81,8 @@
   bracketed
   plain_lambda_except_cof_case
   plain_term_except_cof_case
+%type <decl_modifier> decl_modifier
+%type <decl_modifiers> decl_modifiers
 %type <pat> pat
 %type <pat * con> case
 %type <con * con> cof_case
@@ -137,32 +151,49 @@ plain_name:
   | UNDERSCORE
     { name_of_underscore }
 
+unfold_spec:
+  | UNFOLD list = list(plain_name)
+    { list }
+
+decl_modifier:
+  | SHADOWING
+    {fun dmod -> {dmod with shadowing = true}}
+  | ABSTRACT
+    {fun dmod -> {dmod with abstract = true}}
+  | unf = unfold_spec
+    {fun dmod -> {dmod with unfolding = dmod.unfolding @ unf}}
+
+decl_modifiers:
+  | dmods = list(decl_modifier)
+    { List.fold_left (fun x f -> f x) default_decl_modifier dmods }
+
 decl: t = located(plain_decl) {t}
 plain_decl:
-  | shadowing = boption(BANG); DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Def {shadowing; name = nm; args = tele; def = Some body; tp} }
-  | shadowing = boption(BANG); AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
-    { Def {shadowing; name = nm; args = tele; def = None; tp} }
-  | FAIL; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
-    { Fail {name = nm; args = tele; def = body; tp; info = info_at $loc} }
+  | dmod = decl_modifiers; DEF; nm = plain_name; tele = list(tele_cell); COLON; tp = term; COLON_EQUALS; body = term
+    { Def {abstract = dmod.abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; unfolding = dmod.unfolding} }
+  | dmod = decl_modifiers; AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
+    { Axiom {shadowing = dmod.shadowing; name = nm; args = tele; tp} }
+
+  | FAIL; d = decl
+    { Fail d }
   | QUIT
     { Quit }
-  | NORMALIZE; tm = term
-    { NormalizeTerm tm }
-  | shadowing = boption(BANG); unitpath = IMPORT; modifier = ioption(bracketed_modifier)
-    { Import {shadowing; unitpath; modifier} }
-  | PRINT; name = name
-    { Print name }
-  | shadowing = boption(BANG); VIEW; modifier = bracketed_modifier
-    { View {shadowing; modifier} }
-  | shadowing = boption(BANG); EXPORT; modifier = bracketed_modifier
-    { Export {shadowing; modifier} }
-  | shadowing = boption(BANG); EXPORT; path = located(path)
-    { Export {shadowing; modifier = map_node ~f:(fun p -> ModOnly p) path } }
-  | shadowing = boption(BANG); REPACK; modifier = bracketed_modifier
-    { Repack {shadowing; modifier} }
-  | shadowing = boption(BANG); SECTION; prefix = ioption(path); BEGIN; decls = list(decl); END; modifier = ioption(bracketed_modifier)
-    { Section {shadowing; prefix; decls; modifier} }
+  | dmod = decl_modifiers; NORMALIZE; tm = term
+    { NormalizeTerm {unfolding = dmod.unfolding; con = tm} }
+  | dmod = decl_modifiers; unitpath = IMPORT; modifier = ioption(bracketed_modifier)
+    { Import {shadowing = dmod.shadowing; unitpath; modifier} }
+  | dmod = decl_modifiers; PRINT; name = name
+    { Print {unfolding = dmod.unfolding; name} }
+  | dmod = decl_modifiers; VIEW; modifier = bracketed_modifier
+    { View {shadowing = dmod.shadowing; modifier} }
+  | dmod = decl_modifiers; EXPORT; modifier = bracketed_modifier
+    { Export {shadowing = dmod.shadowing; modifier} }
+  | dmod = decl_modifiers; EXPORT; path = located(path)
+    { Export {shadowing = dmod.shadowing; modifier = map_node ~f:(fun p -> ModOnly p) path } }
+  | dmod = decl_modifiers; REPACK; modifier = bracketed_modifier
+    { Repack {shadowing = dmod.shadowing; modifier} }
+  | dmod = decl_modifiers; SECTION; prefix = ioption(path); BEGIN; decls = list(decl); END; modifier = ioption(bracketed_modifier)
+    { Section {shadowing = dmod.shadowing; prefix; decls; modifier} }
 
 sign:
   | EOF
@@ -320,6 +351,10 @@ plain_term_except_cof_case:
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | GENERALIZE; name = plain_name; IN; body = term;
     { Generalize (name, body) }
+  | unfold_spec = unfold_spec; IN; body = term;
+    { Unfold (unfold_spec, body) }
+  | ABSTRACT; name = plain_name; LEFT_ARROW; body = term
+    { Abstract (Some name, body) }
   | LET; name = plain_name; COLON; tp = term; COLON_EQUALS; def = term; IN; body = term
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
   | LET; name = plain_name; COLON_EQUALS; def = term; IN; body = term
@@ -431,12 +466,12 @@ pat_arg:
     { `Inductive (i0, i1) }
 
 field:
-  | LPR lbl = user; COLON tp = term; RPR
-    { Field {lbl; tp} }
+  | LPR lbl = user; COLON con = term; RPR
+    { Field {lbl; con} }
 
 patch:
-  | lbl = user; DOT_EQUALS; tp = term
-    { Field {lbl; tp} }
+  | lbl = user; DOT_EQUALS; con = term
+    { Field {lbl; con} }
 
 patches:
   | LSQ ioption(PIPE) patches = separated_list(PIPE, patch) RSQ

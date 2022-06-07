@@ -6,6 +6,7 @@ def is-contr (C : type) : type :=
 def is-prop (C : type) : type :=
   (c : C) (c' : C) → path C c c'
 
+abstract
 def has-hlevel : nat → type → type :=
   let aux : nat → type → type :=
     elim [
@@ -32,16 +33,22 @@ def hGroupoid : type := hLevel 3
 #print hProp
 #normalize hProp
 
+abstract
 def contr-prop (A : type) (A/contr : is-contr A) : is-prop A :=
   a a' => trans A {symm A {{snd A/contr} a}} {{snd A/contr} a'}
 
+abstract
+unfold has-hlevel
 def prop-set (A : type) (A/prop : is-prop A) : is-set A :=
-  a b p q i j => hcom A 0 1 {∂ i ∨ ∂ j} {k _ =>
+  a b p q i j =>
+  hcom A 0 1 {∂ i ∨ ∂ j} {k _ =>
     [ k=0 ∨ ∂ j ∨ i=0 => A/prop a {p j} k
     | i=1 => A/prop a {q j} k
     ]
   }
 
+abstract
+unfold has-hlevel
 def raise-hlevel : (l : nat) (A : type) → has-hlevel l A → has-hlevel {suc l} A :=
   let aux : (m : nat) → (B : type) → has-hlevel {suc m} B → has-hlevel {suc {suc m}} B :=
     elim [
@@ -54,21 +61,26 @@ def raise-hlevel : (l : nat) (A : type) → has-hlevel l A → has-hlevel {suc l
   | suc l => aux l
   ]
 
+abstract
+unfold has-hlevel
 def prop-hlevel : (l : nat) (A : type) → is-prop A → has-hlevel {suc l} A :=
   elim [
   | zero => _ A/prop => A/prop
   | suc {l => ih} => A A/prop => raise-hlevel {suc l} A {ih A A/prop}
   ]
 
+abstract
+unfold has-hlevel
 def path-hlevel
   : (l : nat) (A : type) (A/level : has-hlevel {suc l} A) (a : A) (a' : A)
   → has-hlevel l {path A a a'}
-  :=
+:=
   elim [
   | zero => A A/prop a a' => [A/prop a a', p => prop-set A A/prop a a' {A/prop a a'} p]
   | suc l => A A/lvl a a' => A/lvl a a'
   ]
 
+abstract
 def path-based-contr (A : type) (a : A) : is-contr {(x : A) × path A a x} :=
   [ [a, i => a]
   , x i =>

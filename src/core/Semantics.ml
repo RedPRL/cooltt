@@ -22,9 +22,6 @@ module EvM = struct include Monads.EvM include Monad.Notation (Monads.EvM) modul
 type 'a whnf = [`Done | `Reduce of 'a]
 
 
-type whnf_style = [`UnfoldNone | `UnfoldAll | `Veil of Veil.t]
-
-
 let cut_frm ~tp ~cut frm =
   D.Cut {tp; cut = D.push frm cut}
 
@@ -61,7 +58,7 @@ let rec cof_con_to_cof : (D.con, D.con) Kado.Syntax.endo -> D.cof CM.m =
 and con_to_cof =
   let open CM in
   fun con ->
-    whnf_inspect_con ~style:`UnfoldAll con |>>
+    whnf_inspect_con con |>>
     function
     | D.Cof cof -> cof_con_to_cof cof
     | D.Cut {cut = D.Var l, []; _} -> ret @@ CofBuilder.var (CofVar.Local l)
@@ -71,7 +68,7 @@ and con_to_cof =
 and con_to_dim =
   let open CM in
   fun con ->
-    whnf_inspect_con ~style:`UnfoldAll con |>>
+    whnf_inspect_con con |>>
     function
     | D.Dim0 -> ret Dim.Dim0
     | D.Dim1 -> ret Dim.Dim1
@@ -446,10 +443,10 @@ and eval : S.t -> D.con EvM.m =
     match tm with
     | S.Var i ->
       let* con = get_local i in
-      lift_cmp @@ whnf_inspect_con ~style:`UnfoldNone con
+      lift_cmp @@ whnf_inspect_con con
     | S.Global sym ->
       let* st = EvM.read_global in
-      let tp, _ = RefineState.get_global sym st in
+      let tp = RefineState.get_global sym st in
       ret @@ D.Cut {tp; cut = (D.Global sym, [])}
     | S.Let (def, _, body) ->
       let* vdef = eval def in
@@ -517,7 +514,7 @@ and eval : S.t -> D.con EvM.m =
         | true -> lift_cmp @@ splice_tm bdry
         | false ->
           let* coe_abs = eval tpcode in
-          lift_cmp @@ do_rigid_coe ~style:`UnfoldNone coe_abs r r' con
+          lift_cmp @@ do_rigid_coe coe_abs r r' con
       end
     | S.HCom (tpcode, tr, tr', tphi, tm) ->
       let* r = eval_dim tr in
@@ -530,7 +527,7 @@ and eval : S.t -> D.con EvM.m =
         | true -> lift_cmp @@ splice_tm bdry
         | false ->
           let* vtpcode = eval tpcode in
-          lift_cmp @@ do_rigid_hcom ~style:`UnfoldNone vtpcode r r' phi bdy
+          lift_cmp @@ do_rigid_hcom vtpcode r r' phi bdy
       end
     | S.Com (tpcode, tr, tr', tphi, tm) ->
       let* r = eval_dim tr in
@@ -699,24 +696,24 @@ and eval_cof tphi =
   lift_cmp @@ con_to_cof vphi
 
 
-and whnf_con ~style : D.con -> D.con whnf CM.m =
+and whnf_con : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _
   | D.Cof _ | D.Dim0 | D.Dim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
-    reduce_to ~style @<< push_subst_con r x con
+    reduce_to @<< push_subst_con r x con
   | D.Cut {cut; _} ->
-    whnf_cut ~style cut
+    whnf_cut cut
   | D.FHCom (_, r, r', phi, bdy) ->
-    whnf_boundary ~style @@ Splice.Bdry.hcom ~r ~r' ~phi ~bdy
+    whnf_boundary @@ Splice.Bdry.hcom ~r ~r' ~phi ~bdy
   | D.Box (r, r', phi, sides, cap) ->
-    whnf_boundary ~style @@ Splice.Bdry.box ~r ~r' ~phi ~sides ~cap
+    whnf_boundary @@ Splice.Bdry.box ~r ~r' ~phi ~sides ~cap
   | D.UnstableCode code ->
-    whnf_boundary ~style @@ Splice.Bdry.unstable_code code
+    whnf_boundary @@ Splice.Bdry.unstable_code code
   | D.VIn (r, _pequiv, pivot, base) ->
-    whnf_boundary ~style @@ Splice.Bdry.vin ~r ~pivot ~base
+    whnf_boundary @@ Splice.Bdry.vin ~r ~pivot ~base
   | D.Loop r ->
     begin
       test_sequent [] (CofBuilder.boundary r) |>>
@@ -731,75 +728,56 @@ and whnf_con ~style : D.con -> D.con whnf CM.m =
       | (phi, clo) :: branches ->
         test_sequent [] phi |>> function
         | true ->
-          reduce_to ~style @<< inst_tm_clo clo D.Prf
+          reduce_to @<< inst_tm_clo clo D.Prf
         | false ->
           go branches
     in
     go branches
 
-and whnf_boundary ~style (psi, bdry) =
+and whnf_boundary (psi, bdry) =
   let open CM in
   test_sequent [] psi |>>
   function
-  | true -> reduce_to ~style @<< splice_tm bdry
+  | true -> reduce_to @<< splice_tm bdry
   | false -> ret `Done
 
-and reduce_to ~style con =
+and reduce_to con =
   let open CM in
-  whnf_con ~style con |>> function
+  whnf_con con |>> function
   | `Done -> ret @@ `Reduce con
   | `Reduce con -> ret @@ `Reduce con
 
-and reduce_to_tp ~style tp =
+and reduce_to_tp tp =
   let open CM in
-  whnf_tp ~style tp |>> function
+  whnf_tp tp |>> function
   | `Done -> ret @@ `Reduce tp
   | `Reduce tp -> ret @@ `Reduce tp
 
 
-and plug_into ~style sp con =
+and plug_into sp con =
   let open CM in
   let* res = do_spine con sp in
-  whnf_con ~style res |>> function
+  whnf_con res |>> function
   | `Done -> ret @@ `Reduce res
   | `Reduce res -> ret @@ `Reduce res
 
-and should_unfold_symbol style _sym = (* TODO: get rid of argument *)
-  match style with
-  | `UnfoldNone ->
-    false
-  | `UnfoldAll -> true
-  | `Veil `Transparent -> true 
-  | `Veil `Translucent -> false
-
-and whnf_hd ~style hd =
+and whnf_hd hd =
   let open CM in
   match hd with
-  | D.Global sym ->
-    if should_unfold_symbol style sym then
-      let* st = CM.read_global in
-      begin
-        match RefineState.get_global sym st with
-        | _tp, Some con ->
-          reduce_to ~style con
-        | _, None | exception _ ->
-          ret `Done
-      end
-    else
-      ret `Done
+  | D.Global _ -> ret `Done
   | D.Var _ -> ret `Done
   | D.Coe (abs, r, s, con) ->
     begin
       test_sequent [] (CofBuilder.eq r s) |>> function
-      | true -> reduce_to ~style con
+      | true -> reduce_to con
       | false ->
         begin
-          dispatch_rigid_coe ~style abs |>>
+          dispatch_rigid_coe abs |>>
           function
           | `Done ->
             ret `Done
           | `Reduce tag ->
-            reduce_to ~style @<< enact_rigid_coe abs r s con tag
+            reduce_to @<< enact_rigid_coe abs r s con tag
         end
     end
   | D.UnstableCut (cut, ufrm) ->
@@ -807,19 +785,19 @@ and whnf_hd ~style hd =
     test_sequent [] phi |>>
     function
     | true ->
-      reduce_to ~style @<< splice_tm bdry
+      reduce_to @<< splice_tm bdry
     | false ->
-      whnf_cut ~style cut |>>
+      whnf_cut cut |>>
       function
       | `Done ->
         ret `Done
       | `Reduce con ->
-        reduce_to ~style @<< do_rigid_unstable_frm ~style con ufrm
+        reduce_to @<< do_rigid_unstable_frm con ufrm
 
-and do_rigid_unstable_frm ~style con ufrm =
+and do_rigid_unstable_frm con ufrm =
   match ufrm with
   | D.KHCom (r, s, phi, bdy) ->
-    do_rigid_hcom ~style con r s phi bdy
+    do_rigid_hcom con r s phi bdy
   | D.KCap (r, s, phi, code) ->
     do_rigid_cap r s phi code con
   | D.KVProj (r, pcode, code, pequiv) ->
@@ -827,31 +805,31 @@ and do_rigid_unstable_frm ~style con ufrm =
   | D.KSubOut _ ->
     do_sub_out con
 
-and whnf_cut ~style : D.cut -> D.con whnf CM.m =
+and whnf_cut : D.cut -> D.con whnf CM.m =
   let open CM in
   fun (hd, sp) ->
-    whnf_hd ~style hd |>>
+    whnf_hd hd |>>
     function
     | `Done -> ret `Done
-    | `Reduce con -> plug_into ~style sp con
+    | `Reduce con -> plug_into sp con
 
-and whnf_tp ~style =
+and whnf_tp =
   let open CM in
   function
   | D.ElCut cut ->
     begin
-      whnf_cut ~style cut |>>
+      whnf_cut cut |>>
       function
       | `Done ->
         ret `Done
       | `Reduce con ->
-        reduce_to_tp ~style @<< do_el con
+        reduce_to_tp @<< do_el con
     end
   | D.ElUnstable code ->
     let phi, bdry = Splice.Bdry.unstable_code code in
     begin
       test_sequent [] phi |>> function
-      | true -> reduce_to_tp ~style @<< do_el @<< splice_tm bdry
+      | true -> reduce_to_tp @<< do_el @<< splice_tm bdry
       | false -> ret `Done
     end
   | D.TpSplit branches ->
@@ -861,7 +839,7 @@ and whnf_tp ~style =
       | (phi, tp_clo) :: branches ->
         test_sequent [] phi |>> function
         | true ->
-          reduce_to_tp ~style @<< inst_tp_clo tp_clo D.Prf
+          reduce_to_tp @<< inst_tp_clo tp_clo D.Prf
         | false ->
           go branches
     in
@@ -869,16 +847,16 @@ and whnf_tp ~style =
   | _tp ->
     ret `Done
 
-and whnf_tp_ ~style tp =
+and whnf_tp_ tp =
   let open CM in
-  whnf_tp ~style tp |>>
+  whnf_tp tp |>>
   function
   | `Done -> ret tp
   | `Reduce tp -> ret tp
 
-and whnf_con_ ~style con =
+and whnf_con_ con =
   let open CM in
-  whnf_con ~style con |>>
+  whnf_con con |>>
   function
   | `Done -> ret con
   | `Reduce con -> ret con
@@ -887,7 +865,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
   let open CM in
 
   let rec go con =
-    whnf_inspect_con ~style:`UnfoldNone con |>>
+    whnf_inspect_con con |>>
     function
     | D.Zero ->
       ret zero
@@ -945,7 +923,7 @@ and do_nat_elim (mot : D.con) zero (suc : D.con) : D.con -> D.con CM.m =
 and do_circle_elim (mot : D.con) base (loop : D.con) c : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
-  whnf_inspect_con ~style:`UnfoldNone c |>>
+  whnf_inspect_con c |>>
   function
   | D.Base ->
     ret base
@@ -1014,22 +992,22 @@ and inst_sign_clo : D.sign_clo -> D.con -> D.sign CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_sign sign
 
 (* reduces a constructor to something that is stable to pattern match on *)
-and whnf_inspect_con ~style con =
+and whnf_inspect_con con =
   let open CM in
-  whnf_con ~style con |>>
+  whnf_con con |>>
   function
   | `Done -> ret con
   | `Reduce con' -> ret con'
 
 (* reduces a constructor to something that is stable to pattern match on,
  * _including_ type annotations on cuts *)
-and inspect_con ~style con =
+and inspect_con con =
   let open CM in
-  whnf_inspect_con ~style con |>>
+  whnf_inspect_con con |>>
   function
   | D.Cut {tp; cut} as con ->
     begin
-      whnf_tp ~style:`UnfoldAll tp |>>
+      whnf_tp tp |>>
       function
       | `Done -> ret con
       | `Reduce tp -> ret @@ D.Cut {tp; cut}
@@ -1042,7 +1020,7 @@ and do_fst con : D.con CM.m =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis TB.fst in
   begin
-    inspect_con ~style:`UnfoldNone con |>>
+    inspect_con con |>>
     function
     | D.Pair (con0, _) -> ret con0
     | D.Split branches as con ->
@@ -1061,7 +1039,7 @@ and do_snd con : D.con CM.m =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis TB.snd in
   begin
-    inspect_con ~style:`UnfoldNone con |>>
+    inspect_con con |>>
     function
     | D.Pair (_, con1) -> ret con1
     | D.Split branches ->
@@ -1093,7 +1071,7 @@ and do_proj (con : D.con) (lbl : Ident.user) : D.con CM.m =
   abort_if_inconsistent (ret D.tm_abort) @@
   let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl) in
   begin
-    inspect_con ~style:`UnfoldNone con |>>
+    inspect_con con |>>
     function
     | D.Struct fields ->
       begin
@@ -1130,7 +1108,7 @@ and do_ap con arg =
     Splice.Macro.commute_split con phis @@ fun f -> TB.ap f [arg]
   in
   begin
-    inspect_con ~style:`UnfoldNone con |>>
+    inspect_con con |>>
     function
     | D.Lam (_, clo) ->
       inst_tm_clo clo arg
@@ -1168,7 +1146,7 @@ and do_sub_out con =
     splice_tm @@ Splice.Macro.commute_split con phis TB.sub_out
   in
   begin
-    inspect_con ~style:`UnfoldNone con |>>
+    inspect_con con |>>
     function
     | D.SubIn con ->
       ret con
@@ -1196,7 +1174,7 @@ and do_rigid_cap r s phi code box =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
   begin
-    inspect_con ~style:`UnfoldNone box |>>
+    inspect_con box |>>
     function
     | D.Box (_,_,_,_,cap) ->
       ret cap
@@ -1224,7 +1202,7 @@ and do_rigid_vproj r pcode code pequiv v =
     Splice.Macro.commute_split con phis @@ TB.vproj r pcode code pequiv
   in
   begin
-    inspect_con ~style:`UnfoldNone v |>>
+    inspect_con v |>>
     function
     | D.VIn (_, _, _, base) ->
       ret base
@@ -1251,7 +1229,7 @@ and do_el_out con =
     TB.cof_split @@ List.map (fun phi -> phi, TB.el_out tm) phis
   in
   begin
-    inspect_con ~style:`UnfoldNone con |>>
+    inspect_con con |>>
     function
     | D.ElIn con ->
       ret con
@@ -1280,7 +1258,7 @@ and do_el : D.con -> D.tp CM.m =
       TB.tp_cof_split @@ List.map (fun phi -> phi, TB.el tm) phis
     in
     begin
-      inspect_con ~style:`UnfoldNone con |>>
+      inspect_con con |>>
       function
       | D.UnstableCode code ->
         ret @@ D.ElUnstable code
@@ -1345,7 +1323,7 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
     end
 
 
-and dispatch_rigid_coe ~style line =
+and dispatch_rigid_coe line =
   let open CM in
   let go x codex =
     match codex with
@@ -1366,7 +1344,7 @@ and dispatch_rigid_coe ~style line =
   in
   let peek line =
     let x = DimProbe.fresh () in
-    go x @<< whnf_inspect_con ~style @<< do_ap line @@ D.dim_to_con @@ Dim.DimProbe x |>>
+    go x @<< whnf_inspect_con @<< do_ap line @@ D.dim_to_con @@ Dim.DimProbe x |>>
     function
     | `Reduce _ | `Done as res -> ret res
     | `Unknown ->
@@ -1383,7 +1361,7 @@ and dispatch_rigid_coe ~style line =
   | _ ->
     peek line
 
-and dispatch_rigid_hcom ~style code =
+and dispatch_rigid_hcom code =
   let open CM in
   let go code =
     match code with
@@ -1398,7 +1376,7 @@ and dispatch_rigid_hcom ~style code =
     | _ ->
       throw @@ NbeFailed "Invalid arguments to dispatch_rigid_hcom"
   in
-  go @<< whnf_inspect_con ~style code
+  go @<< whnf_inspect_con code
 
 and enact_rigid_coe line r r' con tag =
   let open CM in
@@ -1593,11 +1571,11 @@ and enact_rigid_hcom code r r' phi bdy tag =
     let hd = D.UnstableCut (cut, D.KHCom (r, r', phi, bdy)) in
     ret @@ D.Cut {tp; cut = hd, []}
 
-and do_rigid_coe ~style (line : D.con) r s con =
+and do_rigid_coe (line : D.con) r s con =
   let open CM in
   CM.abort_if_inconsistent (ret D.tm_abort) @@
   begin
-    dispatch_rigid_coe ~style line |>>
+    dispatch_rigid_coe line |>>
     function
     | `Done ->
       let hd = D.Coe (line, r, s, con) in
@@ -1608,11 +1586,11 @@ and do_rigid_coe ~style (line : D.con) r s con =
       enact_rigid_coe line r s con tag
   end
 
-and do_rigid_hcom ~style code r s phi (bdy : D.con) =
+and do_rigid_hcom code r s phi (bdy : D.con) =
   let open CM in
   CM.abort_if_inconsistent (ret D.tm_abort) @@
   begin
-    dispatch_rigid_hcom ~style code |>>
+    dispatch_rigid_hcom code |>>
     function
     | `Done cut ->
       let tp = D.ElCut cut in
@@ -1625,7 +1603,7 @@ and do_rigid_hcom ~style code r s phi (bdy : D.con) =
 and do_rigid_com (line : D.con) r s phi bdy =
   let open CM in
   let* code_s = do_ap line (D.dim_to_con s) in
-  do_rigid_hcom ~style:`UnfoldAll code_s r s phi @<<
+  do_rigid_hcom code_s r s phi @<<
   splice_tm @@
   Splice.dim s @@ fun s ->
   Splice.con line @@ fun line ->

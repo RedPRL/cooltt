@@ -12,6 +12,8 @@ module Conv = Conversion
 open Basis
 include Monads.RefineM
 
+module MU = Monad.Util (Monads.RefineM)
+
 open Monad.Notation (Monads.RefineM)
 
 let refine_err err =
@@ -28,6 +30,16 @@ let resolve id =
     match St.resolve_global id st with
     | Some sym -> ret @@ `Global sym
     | None -> ret `Unbound
+
+let resolve_unfolder_syms (idents : Ident.t list) =
+  let* st = get in
+  let resolve_global (i : Ident.t) =
+    match St.resolve_global i st with
+    | Some sym -> ret @@ Global.unfolder sym
+    | _ -> throw @@ Err.RefineError (Err.UnboundVariable i, None) (* TODO: source location? *)
+  in
+  MU.filter_map resolve_global idents
+
 
 let get_num_holes =
   let+ st = get in
@@ -55,16 +67,16 @@ let with_ ~begin_ ~end_ m =
   | Ok a -> ret a
   | Error exn -> let* () = set st in throw exn
 
-let add_global ~shadowing id tp con =
+let add_global ~unfolder ~shadowing id tp =
   let* st = get in
-  let* sym, st' = throw_namespace_errors @@ St.add_global ~shadowing id tp con st in
+  let* sym, st' = throw_namespace_errors @@ St.add_global ~unfolder ~shadowing id tp st in
   let+ () = set st' in
   sym
 
-let get_global sym : (D.tp * D.con option) m =
+let get_global sym : D.tp m =
   let* st = get in
   match St.get_global sym st with
-  | tp, con -> ret (tp, con)
+  | tp -> ret tp
   | exception exn -> throw exn
 
 let get_local_tp ix =
@@ -195,3 +207,5 @@ let abstract nm tp k =
 
 let update_span loc =
   scope @@ Env.set_location loc
+
+

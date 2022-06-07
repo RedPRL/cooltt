@@ -9,7 +9,7 @@ module type Tactic =
 sig
   type tac
   val update_span : LexingUtil.span option -> tac -> tac
-  val whnf : style:Semantics.whnf_style -> tac -> tac
+  val whnf : tac -> tac
 end
 
 

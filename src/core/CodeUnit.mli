@@ -15,6 +15,9 @@ type id = CodeUnitID.t
 module Global :
 sig
   include Symbol.S
+
+  (** The global variable representing the 'unfolding dimension' of a global variable. *)
+  val unfolder : t -> t option
 end
 
 module Domain : module type of Domain.Make(Global)
@@ -39,8 +42,8 @@ module CodeUnit : sig
   val create : id -> t
 
   (** Add a binding to a given code unit. *)
-  val add_global : Ident.t -> Domain.tp -> Domain.con option -> t -> (Global.t * t)
+  val add_global : unfolder:Global.t option -> Ident.t -> Domain.tp -> t -> (Global.t * t)
 
   (** Get the binding associated with a symbol. *)
-  val get_global : Global.t -> t -> Domain.tp * Domain.con option
+  val get_global : Global.t -> t -> Domain.tp
 end

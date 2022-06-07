@@ -16,6 +16,7 @@ struct
     | DimVar v1, DimVar v2 -> Int.equal (CofVar.compare v1 v2) 0
     | DimProbe p1, DimProbe p2 -> DimProbe.equal p1 p2
     | _ -> false
+
   let compare d1 d2 =
     match d1, d2 with
     | Dim0, Dim0 -> 0

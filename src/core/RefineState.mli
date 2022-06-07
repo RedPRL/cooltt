@@ -19,8 +19,8 @@ val import : shadowing:bool -> _ Namespace.pattern -> CodeUnitID.t -> t -> (t, '
 val begin_section : t -> t
 val end_section : shadowing:bool -> prefix:Namespace.path option -> t -> (t, 'error) Namespace.result
 
-val add_global : shadowing:bool -> Ident.t -> D.tp -> D.con option -> t -> (Global.t * t, 'error) Namespace.result
-val get_global : Global.t -> t -> D.tp * D.con option
+val add_global : unfolder:Global.t option -> shadowing:bool -> Ident.t -> D.tp -> t -> (Global.t * t, 'error) Namespace.result
+val get_global : Global.t -> t -> D.tp
 val resolve_global : Ident.t -> t -> Global.t option
 val get_global_cof_thy : t -> CofThy.Disj.t
 

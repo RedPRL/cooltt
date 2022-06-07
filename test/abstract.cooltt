@@ -1,0 +1,109 @@
+import prelude
+import hlevel
+
+
+abstract
+def + : nat → nat → nat :=
+  elim [
+    | zero => n => n
+    | suc {_ => ih} => n => suc {ih n}
+  ]
+
+unfold +
+abstract
+def +0L : (x : nat) → path nat {+ 0 x} x :=
+  x _ => x
+
+
+unfold +
+abstract def +SL : (x y : nat) → path nat {+ {suc x} y} {suc {+ x y}} :=
+  x y _ => suc {+ x y}
+
+abstract
+def +0R : (x : nat) → path nat {+ x 0} x :=
+  elim [
+  | zero => +0L 0
+  | suc {x => ih} =>
+    equation nat begin
+      + {suc x} 0 =[ +SL x 0 ]
+      suc {+ x 0} =[ i => suc {ih i} ]
+      suc x
+    end
+  ]
+
+abstract
+def +SR : (x y : nat) → path nat {+ x {suc y}} {suc {+ x y}} :=
+  elim [
+  | zero =>
+    y =>
+    equation nat begin
+      + 0 {suc y} =[ +0L {suc y} ]
+      suc y =[ i => suc {symm nat {+0L y} i} ]
+      suc {+ 0 y}
+    end
+  | suc {x => ih} =>
+    y =>
+    equation nat begin
+      + {suc x} {suc y} =[ +SL x {suc y} ]
+      suc {+ x {suc y}} =[ i => suc {ih y i} ]
+      suc {suc {+ x y}} =[ i => suc {symm nat {+SL x y} i} ]
+      suc {+ {suc x} y}
+    end
+  ]
+
+abstract
+def +A : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
+  elim [
+  | zero =>
+    y z =>
+    equation nat begin
+      + {+ 0 y} z =[ i => + {+0L y i} z ]
+      + y z =[ symm nat {+0L {+ y z}} ]
+      + 0 {+ y z}
+    end
+  | suc {x => ih} =>
+    y z =>
+    equation nat begin
+      + {+ {suc x} y} z =[ i => + {+SL x y i} z ]
+      + {suc {+ x y}} z =[ +SL {+ x y} z ]
+      suc {+ {+ x y} z} =[ i => suc {ih y z i} ]
+      suc {+ x {+ y z}} =[ symm nat {+SL x {+ y z}} ]
+      + {suc x} {+ y z}
+    end
+  ]
+
+
+/- next we demonstrate unfolding in the *types* of declarations
+-/
+
+axiom nat∷is-set : is-set nat
+
+def foo (p : path nat {+ 0 0} 0) : unfold + in path {path nat {+ 0 0} 0} p {_ => 0} :=
+  unfold + has-hlevel in
+  nat∷is-set 0 0 p {_ => 0}
+
+-- A simple example for Daniel G.
+
+def two : nat := + 1 1
+
+def test : path nat two 2 :=
+  unfold two + in
+  i => 2
+
+
+def test2 : path-p {i => path nat two {test i}} {_ => two} test :=
+  i j =>
+  unfold two + in
+  2
+
+
+
+def abs-test : nat :=
+  suc {abstract abs-test::foo ← 41}
+
+#print abs-test
+
+unfold abs-test::foo
+#print abs-test
+
+

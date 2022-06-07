@@ -141,4 +141,6 @@ module Structural : sig
   val lookup_var : Ident.t -> Syn.tac
   val level : int -> Syn.tac
   val generalize : Ident.t -> Chk.tac -> Chk.tac
+  val unfold : Ident.t list -> Chk.tac -> Chk.tac
+  val abstract : name:Ident.t option -> Chk.tac -> Chk.tac
 end
