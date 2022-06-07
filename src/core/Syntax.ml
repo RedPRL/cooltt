@@ -425,7 +425,7 @@ struct
     | Cap (_r, _s, _phi, _code, box) ->
       Format.fprintf fmt "@[<hv2>cap %a@]" (pp_atomic env) box
     | CodeV (r, pcode, code, pequiv) ->
-      Format.fprintf fmt "@[<hv2>V %a %a %a %a@]"
+      Format.fprintf fmt "@[<hv2>V %a %a %a@;<1 0>%a@]"
         (pp_atomic env) r
         (pp_atomic env) pcode
         (pp_atomic env) code

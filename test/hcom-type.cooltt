@@ -10,6 +10,8 @@ def v-test (r : 𝕀) (A : type) : type :=
     ]
   }
 
+#print v-test
+
 def hcom-type (i : 𝕀) : type :=
   hcom type 0 1 {∂ i} {j _ => [j=0 => v-test i nat | ∂ i => nat]}
 

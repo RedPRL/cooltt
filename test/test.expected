@@ -1313,7 +1313,25 @@ groupoid-laws.cooltt:128.7-128.11 [Info]:
     assoc A {_x₂ => p _x₂} ⊥ {_x₂ => q _x₂} ⊥ {_x₂ => r _x₂} j _x₁
 
 --------------------[hcom-type.cooltt]--------------------
-hcom-type.cooltt:17.8-17.13 [Info]:
+hcom-type.cooltt:13.7-13.13 [Info]:
+  def v-test : (r : 𝕀) → (A : type) → type :=
+    r A =>
+    V r {_x₁ => A} A
+      {_x₁ =>
+       [ x => x
+       , x =>
+         [ [ x , _x₂ => x ]
+         , p i =>
+           [ hcom A 1 0 {i = 0 ∨ i = 1}
+               {k _x₂ => [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+           , _x₂ =>
+             hcom A 1 _x₂ {i = 0 ∨ i = 1}
+               {k _x₃ => [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+           ]
+         ]
+       ]}
+
+hcom-type.cooltt:19.8-19.13 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
     i : 𝕀
@@ -1321,7 +1339,7 @@ hcom-type.cooltt:17.8-17.13 [Info]:
     |- ?asdf : nat
 
 
-hcom-type.cooltt:17.16-17.17 [Info]:
+hcom-type.cooltt:19.16-19.17 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
     i : 𝕀
@@ -1332,7 +1350,7 @@ hcom-type.cooltt:17.16-17.17 [Info]:
     |- _x₁ => [ ⊤ => ?asdf _x 0 * ]
 
 
-hcom-type.cooltt:17.18-17.19 [Info]:
+hcom-type.cooltt:19.18-19.19 [Info]:
   Emitted hole:
     _x : [ ⊤ ]
     i : 𝕀
@@ -1936,21 +1954,20 @@ selfification.cooltt:8.11-8.18 [Info]:
 v.cooltt:13.11-13.17 [Info]:
   Computed normal form of v-test as
    r A =>
-   V r {_x => A} A {_x =>
-                    [ x => x
-                    , x =>
-                      [ [ x , _x₁ => x ]
-                      , p i =>
-                        [ hcom A 1 0 {i = 0 ∨ i = 1}
-                            {k _x₁ =>
-                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
-                        , _x₁ =>
-                          hcom A 1 _x₁ {i = 0 ∨ i = 1}
-                            {k _x₂ =>
-                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
-                        ]
-                      ]
-                    ]}
+   V r {_x => A} A
+     {_x =>
+      [ x => x
+      , x =>
+        [ [ x , _x₁ => x ]
+        , p i =>
+          [ hcom A 1 0 {i = 0 ∨ i = 1}
+              {k _x₁ => [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+          , _x₁ =>
+            hcom A 1 _x₁ {i = 0 ∨ i = 1}
+              {k _x₂ => [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+          ]
+        ]
+      ]}
 
 v.cooltt:21.11-21.15 [Info]:
   Computed normal form of cool as A a => coe {_x => A} 0 1 a
