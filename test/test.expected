@@ -1095,6 +1095,7 @@ circle.cooltt:20.11-20.22 [Info]:
       | i = 1 => loop _x
       ]}
 
+--------------------[coercion.cooltt]--------------------
 --------------------[com.cooltt]--------------------
 com.cooltt:21.11-21.20 [Info]:
   Computed normal form of mycom/fun as
