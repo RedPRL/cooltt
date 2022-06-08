@@ -1,0 +1,37 @@
+import prelude
+
+-- This is the Cartesian coercion operator.
+def _ (A : 𝕀 → type) (src : 𝕀) (trg : 𝕀) (x : A src) : sub {A trg} {src=trg} x :=
+  coe A src trg x
+
+-- A special case of coercion is that if we have a path of types A0 = A1, we can
+-- cast/coerce (x : A0) to an element of A1.
+def coe/fwd (A : 𝕀 → type) (x : A 0) : A 1 :=
+  coe A 0 1 x
+
+-- ...and conversely.
+def coe/bwd (A : 𝕀 → type) (x : A 1) : A 0 :=
+  coe A 1 0 x
+
+-- By combining coe with ap (the fact that functions respect paths), we can show
+-- that if we have a path (a0 = a1 : A) and an A-indexed family B of types, then
+-- we can transport (x : B a0) to an element of (B a1).
+def transport/fwd (A : type) (B : A → type) (p : 𝕀 → A) (x : B {p 0}) : B {p 1} :=
+  coe/fwd {i => B {p i}} x
+
+-- If we coerce (x : A0) to an interval variable, we get a dependent path from x
+-- to the coercion of x. That's because of the side condition that coe is the
+-- identity function when src=trg.
+def _ (A : 𝕀 → type) (x : A 0) : path-p A x {coe/fwd A x} :=
+  i => coe A 0 i x
+
+-- Here's another use of coercing to an interval variable. If we have a
+-- homogeneous path in A0, we can turn it into a heterogeneous path in A from
+-- its left endpoint to the coercion of its right endpoint.
+def heterogenize (A : 𝕀 → type) (p : 𝕀 →  A 0) : path-p A {p 0} {coe/fwd A {p 1}} :=
+  i => coe A 0 i {p i}
+
+-- Dually, we can coerce *from* an interval variable to turn a heterogeneous
+-- path into a homogeneous one.
+def homogenize (A : 𝕀 → type) (p : (i : 𝕀) →  A i) : path {A 1} {coe/fwd A {p 0}} {p 1} :=
+  i => coe A i 1 {p i}
