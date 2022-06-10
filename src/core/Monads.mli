@@ -71,9 +71,11 @@ module QuM : sig
 
   val lift_cmp : 'a compute -> 'a m
 
+  val should_normalize : bool m
+  val with_normalization : bool -> 'a m -> 'a m
+
   val read_global : RefineState.t m
   val read_local : int m
-  val read_veil : Veil.t m
 
   val globally : 'a m -> 'a m
 
@@ -94,8 +96,6 @@ module RefineM : sig
 
   val lift_ev : 'a evaluate -> 'a m
   val lift_cmp : 'a compute -> 'a m
-
-  val veil : Veil.t -> 'a m -> 'a m
 
   val restrict : D.cof list -> 'a m -> 'a m
 

@@ -19,7 +19,7 @@ module type Tactic =
 sig
   type tac
   val update_span : LexingUtil.span option -> tac -> tac
-  val whnf : style:Semantics.whnf_style -> tac -> tac
+  val whnf : tac -> tac
 end
 
 module Tp : sig
@@ -64,7 +64,7 @@ struct
   let update_span loc =
     map @@ RM.update_span loc
 
-  let whnf ~style:_ tac =
+  let whnf tac =
     tac
 end
 
@@ -87,7 +87,7 @@ struct
     tm, tp
 
   let abstract : ?ident:Ident.t -> D.tp -> (Var.tac -> 'a RM.m) -> 'a RM.m =
-    fun ?(ident = `Anon) tp kont ->
+    fun ?(ident = Ident.anon) tp kont ->
     RM.abstract ident tp @@ fun (con : D.con) ->
     kont @@ {tp; con}
 end
@@ -152,9 +152,9 @@ struct
     let+ () = RM.equate_tp tp tp' in
     tm
 
-  let whnf ~style tac =
+  let whnf tac =
     brule @@ fun (tp, phi, clo) ->
-    RM.lift_cmp @@ Sem.whnf_tp ~style tp |>>
+    RM.lift_cmp @@ Sem.whnf_tp tp |>>
     function
     | `Done -> brun tac (tp, phi, clo)
     | `Reduce tp -> brun tac (tp, phi, clo)
@@ -184,10 +184,10 @@ struct
     let+ tm = Chk.run tac_tm vtp in
     tm, vtp
 
-  let whnf ~style (name, tac) =
+  let whnf (name, tac) =
     rule ~name @@
     let* tm, tp = tac in
-    RM.lift_cmp @@ Sem.whnf_tp ~style tp |>>
+    RM.lift_cmp @@ Sem.whnf_tp tp |>>
     function
     | `Done -> RM.ret (tm, tp)
     | `Reduce tp' -> RM.ret (tm, tp')

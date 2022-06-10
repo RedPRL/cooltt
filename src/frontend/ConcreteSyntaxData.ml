@@ -49,8 +49,9 @@ and con_ =
   | BoundaryHole of con option
   | Visualize
   | Underscore
-  | Unfold of Ident.t list * con
   | Generalize of Ident.t * con
+  | Unfold of Ident.t list * con
+  | Abstract of Ident.t option * con
   | Elim of {mot : con; cases : case list; scrut : con}
   | Rec of {mot : con; cases : case list; scrut : con}
   | LamElim of case list
@@ -74,8 +75,6 @@ and con_ =
   | V of con * con * con * con
   | VProj of con
   | Cap of con
-  | Locked of con
-  | Unlock of con * con
   | ModAny
   | ModOnly of string list
   | ModRename of string list * string list
@@ -90,7 +89,7 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and field = Field of { lbl : Ident.user; tp : con }
+and field = Field of { lbl : Ident.user; con : con }
 [@@deriving show]
 
 and pat = Pat of {lbl : string list; args : pat_arg list}
@@ -109,19 +108,20 @@ and eqns =
 
 type decl = decl_ node
 and decl_ =
-  | Def of {shadowing : bool; name : Ident.t; args : cell list; def : con option; tp : con}
-  | Print of Ident.t node
+  | Def of {abstract : bool; shadowing : bool; name : Ident.t; args : cell list; def : con; tp : con; unfolding : Ident.t list}
+  | Axiom of {shadowing : bool; name : Ident.t; args : cell list; tp : con}
+  | Print of {unfolding : Ident.t list; name : Ident.t node}
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
-  | NormalizeTerm of con
-  | Fail of {name : Ident.t; args : cell list; def : con; tp : con; info : info}
+  | NormalizeTerm of {unfolding : Ident.t list; con : con}
+  | Fail of decl
   | Quit
   | View of {shadowing : bool; modifier : con}
   | Export of {shadowing : bool; modifier : con}
   | Repack of {shadowing : bool; modifier : con}
   | Section of {shadowing : bool; prefix : string list option; decls : signature; modifier : con option}
+[@@deriving show]
 
 and signature = decl list
-
 
 type repl_command = repl_command_ node
 and repl_command_ =

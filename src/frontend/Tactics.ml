@@ -48,26 +48,28 @@ let match_goal (tac : _ -> T.Chk.tac RM.m) : T.Chk.tac =
 let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
   fun tac ->
   T.Syn.rule @@
-  let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
+  let* tm, tp = T.Syn.run @@ T.Syn.whnf tac in
   match tp with
   | D.Sub _ ->
     T.Syn.run @@ elim_implicit_connectives @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
   (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
   | D.ElStable _ ->
     T.Syn.run @@ elim_implicit_connectives @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
+  | D.Pi (TpPrf _,_,_) -> T.Syn.run @@ elim_implicit_connectives @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
   | _ ->
     RM.ret (tm, tp)
 
 let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
   fun tac ->
   T.Syn.rule @@
-  let* tm, tp = T.Syn.run @@ T.Syn.whnf ~style:`UnfoldAll tac in
+  let* tm, tp = T.Syn.run @@ T.Syn.whnf tac in
   match tp with
   | D.Sub _ ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
   (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
   | D.ElStable _ ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
+  | D.Pi (TpPrf _,_,_) -> T.Syn.run @@ elim_implicit_connectives @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
   | D.Signature sign ->
     begin
       is_total sign |>> function
@@ -79,12 +81,13 @@ let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
 
 let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   fun tac ->
-  T.Chk.whnf ~style:`UnfoldAll @@
+  T.Chk.whnf @@
   match_goal @@ function
   | D.Sub _, _, _ ->
     RM.ret @@ R.Sub.intro @@ intro_implicit_connectives tac
   | D.ElStable _, _, _ ->
     RM.ret @@ R.El.intro @@ intro_implicit_connectives tac
+  | D.Pi (TpPrf _,_,_), _, _  -> RM.ret @@ R.Pi.intro @@ fun _ -> intro_implicit_connectives tac
   | D.Signature sign, _, _ ->
     begin
       is_total sign |>> function
@@ -96,10 +99,11 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
 
 let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
   fun tac ->
-  T.Chk.whnf ~style:`UnfoldNone @@
+  T.Chk.whnf @@
   match_goal @@ function
   | D.Sub _, _, _ ->
     RM.ret @@ R.Sub.intro @@ intro_subtypes_and_total tac
+  | D.Pi (TpPrf _,_,_), _, _  -> RM.ret @@ R.Pi.intro @@ fun _ -> intro_implicit_connectives tac
   | ElStable (`Signature sign_code), _, _ ->
     begin
       RM.lift_cmp @@ Sem.unfold_el (`Signature sign_code) |>> function
@@ -130,7 +134,7 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
       | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
         let* tac' = T.abstract ~ident base @@ fun var ->
           let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
-          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll fam in
+          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ fam in
           (* Same HACK *)
           match fam with
           | D.Univ

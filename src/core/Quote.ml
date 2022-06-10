@@ -37,18 +37,22 @@ let contractum_or x =
 let guess_bound_name : D.con -> Ident.t =
   function
   | D.Lam (x, _) -> x
-  | D.BindSym (_x, _) -> `Anon
+  | D.BindSym (_x, _) -> Ident.anon
   | D.Cut {tp = D.Pi (_, x, _); _} -> x
-  | D.Cut {tp = D.TpSplit (_branch :: _); _} -> `Anon (* XXX what should we do here? *)
-  | D.Split (_branch :: _) -> `Anon (* XXX what should we do here? *)
-  | _ -> `Anon
+  | D.Cut {tp = D.TpSplit (_branch :: _); _} -> Ident.anon (* XXX what should we do here? *)
+  | D.Split (_branch :: _) -> Ident.anon (* XXX what should we do here? *)
+  | _ -> Ident.anon
 
 let rec quote_con (tp : D.tp) con =
   QuM.abort_if_inconsistent (ret S.tm_abort) @@
-  let* veil = read_veil in
-  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:`UnfoldAll tp in
-  let* con = contractum_or con <@> lift_cmp @@ Sem.whnf_con ~style:(`Veil veil) con in
+  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
+  let* con =
+    let* norm = QuM.should_normalize in
+    if norm then contractum_or con <@> lift_cmp @@ Sem.whnf_con con else QuM.ret con
+  in
   match tp, con with
+  | D.TpPrf _, _ ->
+    ret S.Prf
   | _, D.Split branches ->
     let quote_branch (phi, clo) =
       lift_cmp @@ CmpM.test_sequent [phi] CofBuilder.bot |>> function
@@ -146,9 +150,6 @@ let rec quote_con (tp : D.tp) con =
     let* cof = lift_cmp @@ cof_con_to_cof cof in
     quote_cof cof
 
-  | D.TpPrf _, _ ->
-    ret S.Prf
-
   | univ, D.StableCode code ->
     quote_stable_code univ code
 
@@ -197,7 +198,7 @@ let rec quote_con (tp : D.tp) con =
     and+ ts = quote_dim s
     and+ tphi = quote_cof phi
     and+ tsides =
-      quote_lam ~ident:`Anon (D.TpPrf phi) @@ fun _prf ->
+      quote_lam ~ident:Ident.anon (D.TpPrf phi) @@ fun _prf ->
       quote_con tp con
     and+ tcap =
       let* bdy_r = lift_cmp @@ do_ap2 bdy (D.dim_to_con r) D.Prf in
@@ -222,7 +223,7 @@ let rec quote_con (tp : D.tp) con =
       | false ->
         let+ tr = quote_dim r
         and+ part =
-          quote_lam ~ident:`Anon (D.TpPrf (CofBuilder.eq0 r)) @@ fun _ ->
+          quote_lam ~ident:Ident.anon (D.TpPrf (CofBuilder.eq0 r)) @@ fun _ ->
           let* pcode_fib = lift_cmp @@ do_ap pcode D.Prf in
           let* tp = lift_cmp @@ do_el pcode_fib in
           quote_con tp con
@@ -368,7 +369,7 @@ and quote_lam ~ident tp mbdy =
 
 and quote_v_data r pcode code pequiv =
   let+ tr = quote_dim r
-  and+ t_pcode = quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), `Anon, D.const_tp_clo D.Univ)) pcode
+  and+ t_pcode = quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), Ident.anon, D.const_tp_clo D.Univ)) pcode
   and+ tcode = quote_con D.Univ code
   and+ t_pequiv =
     let* tp_pequiv =
@@ -389,7 +390,7 @@ and quote_hcom code r s phi bdy =
     let ident_i = guess_bound_name bdy in
     quote_lam ~ident:ident_i D.TpDim @@ fun i ->
     let* i_dim = lift_cmp @@ con_to_dim i in
-    quote_lam ~ident:`Anon (D.TpPrf (CofBuilder.join [CofBuilder.eq r i_dim; phi])) @@ fun prf ->
+    quote_lam ~ident:Ident.anon (D.TpPrf (CofBuilder.join [CofBuilder.eq r i_dim; phi])) @@ fun prf ->
     let* body = lift_cmp @@ do_ap2 bdy i prf in
     let* tp = lift_cmp @@ do_el code in
     quote_con tp body
@@ -412,8 +413,7 @@ and quote_sign : D.sign -> S.sign m =
   | Empty -> ret []
 
 and quote_tp (tp : D.tp) =
-  let* veil = read_veil in
-  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp ~style:(`Veil veil) tp in
+  let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
   match tp with
   | D.Nat -> ret S.Nat
   | D.Circle -> ret S.Circle
@@ -491,7 +491,7 @@ and quote_hd =
   | D.Global sym ->
     ret @@ S.Global sym
   | D.Coe (code, r, s, con) ->
-    let code_tp = D.Pi (D.TpDim, `Anon, D.const_tp_clo D.Univ) in
+    let code_tp = D.Pi (D.TpDim, Ident.anon, D.const_tp_clo D.Univ) in
     let* tpcode = quote_con code_tp code in
     let* tr = quote_dim r in
     let* ts = quote_dim s in
@@ -529,7 +529,7 @@ and quote_unstable_cut cut ufrm =
     S.Cap (tr, ts, tphi, tcode, tbox)
   | D.KVProj (r, pcode, code, pequiv) ->
     let* tr = quote_dim r in
-    let* tpcode = quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), `Anon, D.const_tp_clo D.Univ)) pcode in
+    let* tpcode = quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), Ident.anon, D.const_tp_clo D.Univ)) pcode in
     let* tcode = quote_con D.Univ code in
     let* t_pequiv =
       let* tp_pequiv =
@@ -559,7 +559,7 @@ and quote_cof phi =
       | K.Le (r, s) ->
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
-        S.CofBuilder.le tr ts  
+        S.CofBuilder.le tr ts
       | K.Join phis ->
         let+ tphis = MU.map go phis in
         S.CofBuilder.join tphis

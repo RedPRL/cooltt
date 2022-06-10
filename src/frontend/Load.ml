@@ -1,7 +1,7 @@
 open Lex
 open Basis
 
-type error = 
+type error =
   | LexingError of {span : LexingUtil.span; last_token : string option}
   | ParseError of {span : LexingUtil.span; last_token : string option}
 

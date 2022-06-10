@@ -34,8 +34,8 @@ def funext : {
 def funextdep : {
   (A : 𝕀 → type) (B : (i : 𝕀) → A i → type)
   (f : (i : 𝕀) → [∂ i] → (x : A i) → B i x)
-  (h : (p : (i : 𝕀) → A i) → ext i => B i {p i} with [∂ i => f i _ {p i}])
-  → ext i => (x : A i) → B i x with [∂ i => f i _]
+  (h : (p : (i : 𝕀) → A i) → ext i => B i {p i} with [∂ i => f i {p i}])
+  → ext i => (x : A i) → B i x with [∂ i => f i]
 } := {
   A B f h i x =>
   h {j => coe A i j x} i

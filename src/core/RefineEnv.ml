@@ -25,9 +25,6 @@ type cell = (D.tp * D.con) Cell.t
 
 type t =
   {
-    (* declaration-wide *)
-    veil : Veil.t;
-
     (* local assumptions *)
     locals : cell bwd;
     cof_thy : CofThy.Disj.t;
@@ -38,22 +35,17 @@ type t =
   }
 
 let init =
-  { veil = Veil.const `Translucent;
-    locals = Emp;
+  { locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
     location = None }
 
 let globally env =
-  { veil = env.veil;
-    locals = Emp;
+  { locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
     location = env.location }
 
-(* veil *)
-let get_veil env = env.veil
-let set_veil v env = {env with veil = v}
 
 (* local assumptions *)
 let locals env = env.locals

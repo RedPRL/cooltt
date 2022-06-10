@@ -11,6 +11,7 @@ module S = Syntax
 module Env = RefineEnv
 module Err = RefineError
 module RM = RefineMonad
+module RMU = Monad.Util (RM)
 module T = Tactic
 module Splice = Splice
 module TB = TermBuilder
@@ -80,7 +81,7 @@ struct
 
   let boundary_satisfied tm tp phi clo : _ m =
     let* con = RM.lift_ev @@ Sem.eval tm in
-    let+ res = RM.trap @@ RM.abstract `Anon (D.TpPrf phi) @@ fun prf ->
+    let+ res = RM.trap @@ RM.abstract Ident.anon (D.TpPrf phi) @@ fun prf ->
       RM.equate tp con @<< RM.lift_cmp @@ Sem.inst_tm_clo clo prf
     in match res with
     | Ok _ -> `BdrySat
@@ -145,7 +146,7 @@ module Hole : sig
 end =
 struct
   let assert_hole_possible tp =
-    RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp |>>
+    RM.lift_cmp @@ Sem.whnf_tp_ tp |>>
     function
     | D.TpDim | D.TpCof | D.TpPrf _ ->
       let* ttp = RM.quote_tp tp in
@@ -164,10 +165,10 @@ struct
       let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
-        | None -> `Anon
-        | Some str -> `Machine ("?" ^ str)
+        | None -> Ident.anon
+        | Some str -> Ident.machine @@ "?" ^ str
       in
-      RM.add_global ~shadowing:true ident vtp None
+      RM.add_global ~unfolder:None ~shadowing:true ident vtp
     in
 
     let* () = RM.inc_num_holes in
@@ -387,11 +388,11 @@ struct
         fun state branch ->
           let* bdy =
             let psi' = CofBuilder.join [state.disj; psi] in
-            let* psi'_fn = splice_split @@ (psi, D.Lam (`Anon, psi_clo)) :: BwdLabels.to_list state.fns in
+            let* psi'_fn = splice_split @@ (psi, D.Lam (Ident.anon, psi_clo)) :: BwdLabels.to_list state.fns in
             T.abstract (D.TpPrf branch.cof) @@ fun prf ->
             T.Chk.brun (branch.bdy prf) (tp, psi', D.un_lam psi'_fn)
           in
-          let+ fn = RM.lift_ev @@ Sem.eval (S.Lam (`Anon, bdy)) in
+          let+ fn = RM.lift_ev @@ Sem.eval (S.Lam (Ident.anon, bdy)) in
           State.append state {cof = branch.cof; tcof = branch.tcof; fn; bdy}
       in
 
@@ -439,13 +440,13 @@ struct
       let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
       S.Pi (base, nm, fam)
 
-  let intro ?(ident = `Anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac =
+  let intro ?(ident = Ident.anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Pi.intro" @@
     function
     | D.Pi (base, _, fam), phi, phi_clo ->
       T.abstract ~ident base @@ fun var ->
       let* fib = RM.lift_cmp @@ Sem.inst_tp_clo fam @@ T.Var.con var in
-      let+ tm = T.Chk.brun (tac_body var) (fib, phi, D.un_lam @@ D.compose (D.Lam (`Anon, D.apply_to (T.Var.con var))) @@ D.Lam (`Anon, phi_clo)) in
+      let+ tm = T.Chk.brun (tac_body var) (fib, phi, D.un_lam @@ D.compose (D.Lam (Ident.anon, D.apply_to (T.Var.con var))) @@ D.Lam (Ident.anon, phi_clo)) in
       S.Lam (ident, tm)
     | tp, _, _ ->
       RM.expected_connective `Pi tp
@@ -480,11 +481,11 @@ struct
     T.Chk.brule ~name:"Sg.intro" @@
     function
     | D.Sg (base, _, fam), phi, phi_clo ->
-      let* tfst = T.Chk.brun tac_fst (base, phi, D.un_lam @@ D.compose D.fst @@ D.Lam (`Anon, phi_clo)) in
+      let* tfst = T.Chk.brun tac_fst (base, phi, D.un_lam @@ D.compose D.fst @@ D.Lam (Ident.anon, phi_clo)) in
       let+ tsnd =
         let* vfst = RM.lift_ev @@ Sem.eval tfst in
         let* fib = RM.lift_cmp @@ Sem.inst_tp_clo fam vfst in
-        T.Chk.brun tac_snd (fib, phi, D.un_lam @@ D.compose D.snd @@ D.Lam (`Anon, phi_clo))
+        T.Chk.brun tac_snd (fib, phi, D.un_lam @@ D.compose D.snd @@ D.Lam (Ident.anon, phi_clo))
       in
       S.Pair (tfst, tsnd)
     | tp , _, _ ->
@@ -667,7 +668,7 @@ struct
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in
     let* tp = RM.lift_cmp @@ Sem.do_el vcode in
-    let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ ~style:`UnfoldAll tp in
+    let* whnf_tp = RM.lift_cmp @@ Sem.whnf_tp_ tp in
     match whnf_tp with
     | D.ElStable (`Signature sign) ->
       patch_fields sign tacs univ
@@ -749,7 +750,7 @@ struct
       RM.lift_cmp @@ Sem.con_to_dim vr_con
     in
     let* pcode =
-      let tp_pcode = D.Pi (D.TpPrf (CofBuilder.eq0 vr), `Anon, D.const_tp_clo D.Univ) in
+      let tp_pcode = D.Pi (D.TpPrf (CofBuilder.eq0 vr), Ident.anon, D.const_tp_clo D.Univ) in
       T.Chk.run tac_pcode tp_pcode
     in
     let* code = T.Chk.run tac_code D.Univ in
@@ -874,7 +875,7 @@ struct
           end
         | None, _ -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
       in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (`Anon, phi_clo)) in
+      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
       let+ tfields = intro_fields phi phi_clo tsign tacs in
@@ -929,7 +930,7 @@ struct
   let intro tac =
     T.Chk.brule ~name:"El.intro" @@ fun (tp, phi, clo) ->
     let* unfolded = dest_el tp in
-    let+ tm = T.Chk.brun tac (unfolded, phi, D.un_lam @@ D.compose D.el_out @@ D.Lam (`Anon, clo)) in
+    let+ tm = T.Chk.brun tac (unfolded, phi, D.un_lam @@ D.compose D.el_out @@ D.Lam (Ident.anon, clo)) in
     S.ElIn tm
 
   let elim tac =
@@ -1003,7 +1004,7 @@ struct
     match tp with
     | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
       let* tr = RM.quote_dim r in
-      let* tpcode = RM.quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), `Anon, D.const_tp_clo D.Univ)) pcode in
+      let* tpcode = RM.quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), Ident.anon, D.const_tp_clo D.Univ)) pcode in
       let* tcode = RM.quote_con D.Univ code in
       let* t_pequiv =
         let* tp_pequiv =
@@ -1064,7 +1065,7 @@ struct
           TB.lam @@ fun _ -> (* [phi ∨ psi] *)
           TB.cof_split
             [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
-             phi, TB.coe (TB.lam ~ident:(`Machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
+             phi, TB.coe (TB.lam ~ident:(Ident.machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
         T.Chk.brun tac_cap (tp_cap, CofBuilder.join [phi; psi], D.un_lam bdry_fn)
       and+ tr = RM.quote_dim r
@@ -1099,7 +1100,6 @@ end
 module Structural =
 struct
 
-
   let lookup_var id : T.Syn.tac =
     T.Syn.rule ~name:"Structural.lookup_var" @@
     let* res = RM.resolve id in
@@ -1108,7 +1108,7 @@ struct
       let+ tp = RM.get_local_tp ix in
       S.Var ix, tp
     | `Global sym ->
-      let+ tp, _ = RM.get_global sym in
+      let+ tp = RM.get_global sym in
       S.Global sym, tp
     | `Unbound ->
       RM.refine_err @@ Err.UnboundVariable id
@@ -1123,17 +1123,72 @@ struct
     let ix = RefineEnv.size env - lvl - 1 in
     index ix
 
-  let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
-    let rec intros cells tac : T.Chk.tac =
-      match cells with
-      | [] ->
-        tac
-      | cell :: cells ->
-        let ident = Env.Cell.ident cell in
-        Pi.intro ~ident @@ fun _ ->
-        intros cells tac
-    in
 
+  let rec intros ~cells tac =
+    match cells with
+    | [] ->
+      tac
+    | cell :: cells ->
+      let ident = Env.Cell.ident cell in
+      Pi.intro ~ident @@ fun _ ->
+      intros ~cells tac
+
+  let unleash_toplevel ~name ?unf_sym ~unf_cof (tac : T.Chk.tac) =
+    fun (tp, phi, clo) ->
+    let* env = RM.read in
+    let cells = Env.locals env in
+    let cells_fwd = BwdLabels.to_list cells in
+    let* cut =
+      RM.globally @@
+      let* vtp =
+        let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
+        RM.lift_ev @@ Sem.eval_tp tp
+      in
+      let* tp_of_goal =
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.tp vtp @@ fun vtp ->
+        Splice.cof unf_cof @@ fun cof ->
+        Splice.term @@ TB.pi (TB.tp_prf cof) @@ fun _ -> vtp
+      in
+      let* vdef =
+        let* tm = tp_of_goal |> T.Chk.run @@ Pi.intro @@ fun _ -> intros ~cells:cells_fwd tac in
+        RM.lift_ev @@ Sem.eval tm
+      in
+      let* tp_sub =
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.tp vtp @@ fun vtp ->
+        Splice.con vdef @@ fun vtm ->
+        Splice.cof unf_cof @@ fun cof ->
+        Splice.term @@ TB.sub vtp cof @@ fun prf -> TB.ap vtm [prf]
+      in
+      let* sym = RM.add_global ~unfolder:unf_sym ~shadowing:false name tp_sub in
+      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unf_cof, D.const_tm_clo vdef)) in
+      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+    in
+    let+ tm = RM.quote_cut cut in
+    S.SubOut tm
+
+  let abstract ~name (tac : T.Chk.tac) : T.Chk.tac =
+    T.Chk.brule ~name:"Structural.abstract" @@ fun goal ->
+    let name = Option.value name ~default:Ident.anon in
+    let* unf_sym = RM.add_global ~unfolder:None ~shadowing:false (Ident.unfolder name) D.TpDim in
+    let* unf_dim = RM.eval @@ S.Global unf_sym in
+    let* unf_cof = RM.lift_cmp @@ Sem.con_to_cof @@ D.CofBuilder.eq1 unf_dim in
+    unleash_toplevel ~name ~unf_sym ~unf_cof tac goal
+
+  let unfold (unfoldings : Ident.t list) (tac : T.Chk.tac) : T.Chk.tac =
+    T.Chk.brule ~name:"Structural.unfold" @@ fun goal ->
+    let* unf_cof =
+      let* syms = RM.resolve_unfolder_syms unfoldings in
+      let* dims = syms |> RMU.map @@ fun sym -> RM.eval @@ S.Global sym in
+      RM.lift_cmp @@
+      Sem.con_to_cof @@
+      D.CofBuilder.meet @@
+      List.map D.CofBuilder.eq1 dims
+    in
+    unleash_toplevel ~name:(Ident.blocked unfoldings) ~unf_cof tac goal
+
+  let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
     T.Chk.rule ~name:"Structural.generalize" @@
     fun tp ->
     let* env = RM.read in
@@ -1153,19 +1208,26 @@ struct
         let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp tp in
         RM.lift_ev @@ Sem.eval_tp tp
       in
-      let* def =
+      let* vdef =
         let prefix = List.take lvl cells_fwd in
-        let* tm = global_tp |> T.Chk.run @@ intros prefix tac in
+        let* tm = global_tp |> T.Chk.run @@ intros ~cells:prefix tac in
         RM.lift_ev @@ Sem.eval tm
       in
-      let* sym = RM.add_global ~shadowing:true `Anon global_tp @@ Some def in
-      RM.ret @@ GlobalUtil.multi_ap cells (D.Global sym, [])
+      let* tp_sub =
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.tp global_tp @@ fun vtp ->
+        Splice.con vdef @@ fun vtm ->
+        Splice.term @@
+        TB.sub vtp TB.top @@ fun _ -> vtm
+      in
+      let* sym = RM.add_global ~unfolder:None ~shadowing:true Ident.anon tp_sub in
+      let top = Kado.Syntax.Free.top in
+      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
+      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
     in
     RM.quote_cut cut
 
-
-
-  let let_ ?(ident = `Anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Chk.tac) : T.Chk.tac =
+  let let_ ?(ident = Ident.anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Structural.let_" @@ fun goal ->
     let* tdef, tp_def = T.Syn.run tac_def in
     let* vdef = RM.lift_ev @@ Sem.eval tdef in
@@ -1179,7 +1241,7 @@ struct
     in
     RM.ret @@ S.Let (S.SubIn tdef, ident, tbdy)
 
-  let let_syn ?(ident = `Anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Syn.tac) : T.Syn.tac =
+  let let_syn ?(ident = Ident.anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Syn.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Structural.let_syn" @@
     let* tdef, tp_def = T.Syn.run tac_def in
     let* vdef = RM.lift_ev @@ Sem.eval tdef in

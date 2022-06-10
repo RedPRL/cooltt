@@ -1,19 +1,25 @@
 import prelude
 
+abstract
 def empty : type := path nat 0 1
 
+abstract
 def abort (P : empty -> type) (e : empty) : P e :=
+  unfold empty in
   let myelim : nat -> type := elim [ zero => unit | suc _ => P e ] in
   coe {i => myelim {e i}} 0 1 ⋆
 
+abstract
 def sum (A B : type) : type :=
-  let fam/shifted : nat -> type := elim [ zero => B | suc _ => empty ] in
-  let fam : nat -> type := elim [ zero => A | suc n => fam/shifted n ] in
+  let fam∷shifted : nat -> type := elim [ zero => B | suc _ => empty ] in
+  let fam : nat -> type := elim [ zero => A | suc n => fam∷shifted n ] in
   (n : nat) * fam n
 
+unfold sum
 def inl (A B : type) (x : A) : sum A B :=
   [ 0 , x ]
 
+unfold sum
 def inr (A B : type) (y : B) : sum A B :=
   [ 1 , y ]
 
@@ -23,11 +29,16 @@ def case (A B : type) (P : sum A B -> type)
   (s : sum A B) : P s
   :=
   let fam/shifted : nat -> type := elim [ zero => B | suc _ => empty ] in
-  let curried/shifted : (n : nat) (e : fam/shifted n) -> P [ suc n , e ] :=
+  let curried/shifted : (n : nat) (e : fam/shifted n) -> unfold sum in P [ suc n , e ] :=
+    unfold inr in
     elim [ zero => P/inr | suc n => e => abort {_ => P [ suc {suc n} , e ]} e ]
   in
   let fam : nat -> type := elim [ zero => A | suc n => fam/shifted n ] in
-  let curried : (n : nat) (e : fam n) -> P [ n , e ] :=
+  let curried : (n : nat) (e : fam n) -> unfold sum in P [ n , e ] :=
+    unfold sum inl in
     elim [ zero => P/inl | suc n => curried/shifted n ]
   in
+  unfold sum in
   curried {fst s} {snd s}
+
+#print case

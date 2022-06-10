@@ -13,7 +13,7 @@ type t =
   | CannotEliminate of Pp.env * S.tp
   | ExpectedSimpleInductive of Pp.env * S.tp
   | InvalidModifier of CS.con
-
+  | ExpectedFailure of CS.decl
 
 let pp fmt =
   function
@@ -39,6 +39,10 @@ let pp fmt =
     Format.fprintf fmt
       "Invalid modifier: %a"
       CS.pp_con cs
+  | ExpectedFailure decl ->
+    Format.fprintf fmt
+      "Expected command to fail: %a"
+      CS.pp_decl decl
 
 exception ElabError of t * LexingUtil.span option
 

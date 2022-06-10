@@ -7,34 +7,34 @@ def evan-test (A : type) (φ : 𝔽) (a : A)
   :=
   p
 
+abstract
 def J (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) (d : C {_ => p 0}) : C p :=
   coe {i =>
-    C {hfill A 0 {∂ i} {k _ => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}
+    C {hfill A 0 {∂ i} {k => [k=0 ∨ i=0 => p 0 | i=1 => p k]}}
   } 0 1 d
 
+unfold J
 #normalize J
 
-def J/eq
-  (A : type)
-  (p : 𝕀 → A)
-  (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type)
-  (d : C {_ => p 0})
-  : path {C {_ => p 0}} {J A {_ => p 0} C d} d
-  :=
-  let square : 𝕀 → 𝕀 → A := i => hfill A 0 {∂ i} {_ _ => p 0} in
+abstract
+def J/eq (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) (d : C {_ => p 0}) : path {C {_ => p 0}} {J A {_ => p 0} C d} d :=
+  let square : 𝕀 → 𝕀 → A := i => hfill A 0 {∂ i} {_ => p 0} in
   k =>
   let mot : 𝕀 → type :=
-    i => C {hfill A 0 {∂ k ∨ ∂ i} {j _ => [k=0 => square i j | j=0 ∨ k=1 ∨ ∂ i => p 0]}}
+    i => C {hfill A 0 {∂ k ∨ ∂ i} {j => [k=0 => square i j | j=0 ∨ k=1 ∨ ∂ i => p 0]}}
   in
-  com mot 0 1 {∂ k} {i _ => [k=0 => coe {j => C {square j}} 0 i d | k=1 ∨ i=0 => d]}
+  unfold J in
+  com mot 0 1 {∂ k} {i => [k=0 => coe {j => C {square j}} 0 i d | k=1 ∨ i=0 => d]}
 
+abstract
 def trans-left-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A {_ => p 0} p} :=
   k i =>
-  hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
+  unfold trans in
+  hcom A 0 1 {k=0 ∨ ∂ i} {j =>
     [ j=0 ∨ i=0 => p 0
     | i=1 => p j
     | k=0 =>
-      hcom A 0 1 {∂ i ∨ ∂ j} {l _ =>
+      hcom A 0 1 {∂ i ∨ ∂ j} {l =>
         let filler : 𝕀 → A := k => trans/filler A {_ => p 0} p k l in
         [ l=0 ∨ i=0 ∨ j=1 => filler i
         | i=1 ∨ j=0 => filler j
@@ -44,15 +44,20 @@ def trans-left-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {t
   }
 
 def trans-right-unit (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A p {_ => p 1}} :=
+  unfold trans in
   trans/filler A p {_ => p 1}
 
 
 def trans-symm-refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {_ => p 0} {trans A p {symm A p}} :=
   k i =>
-  hcom A 0 1 {k=0 ∨ ∂ i} {j _ =>
+  unfold trans symm in
+  hcom A 0 1 {k=0 ∨ ∂ i} {j =>
     symm/filler A p j i
   }
 
+#normalize +-assoc
+
+unfold +-assoc +-left-unit +-suc-l +
 #normalize +-assoc
 
 #normalize trans-left-unit
@@ -87,4 +92,4 @@ def test2 : (i : 𝕀) → nat :=
 -- reduced as they could be, it is of no consequence for definitional
 -- equivalence. That is, we don't bother pushing eliminators through all the
 -- branches of a disjunction split, but our equational theory acts as if we do.
-def test2' : sub {𝕀 → nat} ⊤ {i => hcom nat 0 1 {∂ i} {_ _ => 0}} := test2
+def test2' : sub {𝕀 → nat} ⊤ {i => hcom nat 0 1 {∂ i} {_ => 0}} := unfold symm in test2
