@@ -216,7 +216,9 @@ struct
       plain_pp penv fmt tm
 
   let ppenv_bind env ident =
-    Pp.Env.bind env @@ Ident.to_string_opt ident
+    match ident with
+    | `Anon -> Pp.Env.bind_underscore env
+    | _ -> Pp.Env.bind env @@ Ident.to_string_opt ident
 
   let rec pp_fields pp_field env fmt  =
     function
@@ -338,36 +340,15 @@ struct
         Uuseg_string.pp_utf_8 "<∏>"
         (pp_atomic env) base
         (pp_atomic env) fam
-    | CodePi (base, Lam (ident, fam)) ->
-      let x, envx = ppenv_bind env ident in
-      Format.fprintf fmt "(%a : %a) %a %a"
-        Uuseg_string.pp_utf_8 x
-        (pp env P.(right_of colon)) base
-        Uuseg_string.pp_utf_8 "→"
-        (pp envx P.(right_of arrow)) fam
     | CodePi (base, tm) ->
-      Format.fprintf fmt "@[%a %a %a@]"
-        Uuseg_string.pp_utf_8 "∏"
-        (pp_atomic env) base
-        (pp_atomic env) tm
-
+      pp_code_pi env base tm fmt
     | CodeSg (base, fam) when Debug.is_debug_mode () ->
       Format.fprintf fmt "@[%a %a %a@]"
         Uuseg_string.pp_utf_8 "<Σ>"
         (pp_atomic env) base
         (pp_atomic env) fam
-    | CodeSg (base, Lam (ident, fam)) ->
-      let x, envx = ppenv_bind env ident in
-      Format.fprintf fmt "(%a : %a) %a %a"
-        Uuseg_string.pp_utf_8 x
-        (pp env P.(right_of colon)) base
-        Uuseg_string.pp_utf_8 "×"
-        (pp envx P.(right_of times)) fam
     | CodeSg (base, tm) ->
-      Format.fprintf fmt "@[%a %a %a@]"
-        Uuseg_string.pp_utf_8 "Σ"
-        (pp_atomic env) base
-        (pp_atomic env) tm
+      pp_code_sigma env base tm fmt
     | CodeSignature fields ->
       Format.fprintf fmt "@[sig %a@]" (pp_fields pp_binders env) fields
     | CodeExt (_, fam, `Global phi, bdry) ->
@@ -480,16 +461,37 @@ struct
         (pp_tp env P.(right_of colon)) tp
         (pp_sign envlbl) fields
 
-  and pp_tp env =
-    pp_braced_cond P.classify_tp @@ fun penv fmt ->
-    function
-    | TpCofSplit branches ->
-      let pp_sep fmt () = Format.fprintf fmt "@ | " in
-      pp_bracketed_list ~pp_sep
-        (pp_tp_cof_split_branch env)
-        fmt
-        branches
-    | Pi (base, ident, fam) ->
+  and pp_code_pi env base fam fmt =
+    match fam with
+    | Lam (`Anon, fam) ->
+      let _, envx = Pp.Env.bind_underscore env in
+      Format.fprintf fmt "%a %a %a"
+        (pp env P.(left_of arrow)) base
+        Uuseg_string.pp_utf_8 "→"
+        (pp envx P.(right_of arrow)) fam
+    | Lam (ident, fam) ->
+      let x, envx = ppenv_bind env ident in
+      Format.fprintf fmt "(%a : %a) %a %a"
+        Uuseg_string.pp_utf_8 x
+        (pp env P.(right_of colon)) base
+        Uuseg_string.pp_utf_8 "→"
+        (pp envx P.(right_of arrow)) fam
+    | fam ->
+      Format.fprintf fmt "@[%a %a %a@]"
+        Uuseg_string.pp_utf_8 "∏"
+        (pp_atomic env) base
+        (pp_atomic env) fam
+
+  and pp_pi env base ident fam fmt =
+    match ident with
+    | `Anon ->
+      let (_, envx) = Pp.Env.bind_underscore env
+      in
+      Format.fprintf fmt "%a %a %a"
+        (pp_tp env P.(left_of arrow)) base
+        Uuseg_string.pp_utf_8 "→"
+        (pp_tp envx P.(right_of arrow)) fam
+    | ident -> 
       let x, envx =
         match base with
         | TpPrf _ -> Pp.Env.bind_underscore env
@@ -500,13 +502,59 @@ struct
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"
         (pp_tp envx P.(right_of arrow)) fam
-    | Sg (base, ident, fam) ->
+
+  and pp_code_sigma env base fam fmt =
+    match fam with
+    | Lam (`Anon, fam) ->
+      let _, envx = Pp.Env.bind_underscore env in
+      Format.fprintf fmt "%a %a %a"
+        (pp env P.(left_of times)) base
+        Uuseg_string.pp_utf_8 "×"
+        (pp envx P.(right_of times)) fam
+    | Lam (ident, fam) ->
+      let x, envx = ppenv_bind env ident in
+      Format.fprintf fmt "(%a : %a) %a %a"
+        Uuseg_string.pp_utf_8 x
+        (pp env P.(right_of colon)) base
+        Uuseg_string.pp_utf_8 "×"
+        (pp envx P.(right_of times)) fam
+    | fam ->
+      Format.fprintf fmt "@[%a %a %a@]"
+        Uuseg_string.pp_utf_8 "Σ"
+        (pp_atomic env) base
+        (pp_atomic env) fam
+
+  and pp_sigma env base ident fam fmt =
+    match ident with
+    | `Anon ->
+      let (_, envx) = Pp.Env.bind_underscore env
+      in
+      Format.fprintf fmt "%a %a %a"
+        (pp_tp env P.(left_of times)) base
+        Uuseg_string.pp_utf_8 "×"
+        (pp_tp envx P.(right_of times)) fam
+    | ident -> 
       let x, envx = ppenv_bind env ident in
       Format.fprintf fmt "(%a : %a) %a %a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "×"
         (pp_tp envx P.(right_of times)) fam
+
+
+  and pp_tp env =
+    pp_braced_cond P.classify_tp @@ fun penv fmt ->
+    function
+    | TpCofSplit branches ->
+      let pp_sep fmt () = Format.fprintf fmt "@ | " in
+      pp_bracketed_list ~pp_sep
+        (pp_tp_cof_split_branch env)
+        fmt
+        branches
+    | Pi (base, ident, fam) ->
+      pp_pi env base ident fam fmt
+    | Sg (base, ident, fam) ->
+      pp_sigma env base ident fam fmt
     | Signature fields ->
       Format.fprintf fmt "sig %a" (pp_sign env) fields
     | Sub (tp, phi, tm) ->
