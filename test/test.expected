@@ -18,1122 +18,1126 @@ abstract.cooltt:107.7-107.15 [Info]:
 base-types.cooltt:44.7-44.11 [Info]:
   def case : (A : type) → (B : type) → (P : sum A B → type) → (P/inl : (a : A) → P {inl A B a}) → (P/inr : (b : B) → P {inr A B b}) → (s : sum A B) → P s :=
     A B P P/inl P/inr s =>
-    blocked[sum] * A B P P/inl P/inr s {_ =>
-                                        elim _ @ {_ => type}
+    blocked[sum] * A B P P/inl P/inr s {_x₁ =>
+                                        elim _x₁ @ {_x₂ => type}
                                           [ zero => B
-                                          | suc => _ _ => empty
+                                          | suc => _x₂ _x₃ => empty
                                           ]} {blocked[inr] * A B P P/inl P/inr s {
-    _ => elim _ @ {_ => type} [ zero => B
-                              | suc => _ _ => empty
-                              ]}} {_ =>
-                                   elim _ @ {_ => type}
-                                     [ zero => A
-                                     | suc => n _ =>
-                                              elim n @ {_ => type}
-                                                [ zero => B
-                                                | suc => _ _ => empty
-                                                ]
-                                     ]} {blocked[sum,inl] * A B P P/inl P/inr s {
-    _ => elim _ @ {_ => type} [ zero => B
-                              | suc => _ _ => empty
-                              ]} {blocked[inr] * A B P P/inl P/inr s {
-    _ => elim _ @ {_ => type} [ zero => B
-                              | suc => _ _ => empty
-                              ]}} {_ =>
-                                   elim _ @ {_ => type}
-                                     [ zero => A
-                                     | suc => n _ =>
-                                              elim n @ {_ => type}
-                                                [ zero => B
-                                                | suc => _ _ => empty
-                                                ]
-                                     ]}}
+    _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B
+                                    | suc => _x₂ _x₃ => empty
+                                    ]}} {_x₁ =>
+                                         elim _x₁ @ {_x₂ => type}
+                                           [ zero => A
+                                           | suc => n _x₂ =>
+                                                    elim n @ {_x₃ => type}
+                                                      [ zero => B
+                                                      | suc => _x₃ _x₄ =>
+                                                               empty
+                                                      ]
+                                           ]} {blocked[sum,inl] * A B P P/inl P/inr s {
+    _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B
+                                    | suc => _x₂ _x₃ => empty
+                                    ]} {blocked[inr] * A B P P/inl P/inr s {
+    _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B
+                                    | suc => _x₂ _x₃ => empty
+                                    ]}} {_x₁ =>
+                                         elim _x₁ @ {_x₂ => type}
+                                           [ zero => A
+                                           | suc => n _x₂ =>
+                                                    elim n @ {_x₃ => type}
+                                                      [ zero => B
+                                                      | suc => _x₃ _x₄ =>
+                                                               empty
+                                                      ]
+                                           ]}}
 
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.22 [Info]:
   Computed normal form of loopn 100 as
    i =>
    hcom circle 0 1 {i = 0 ∨ i = 1}
-     {_ _ =>
-      [ _ = 0 =>
+     {_x _x₁ =>
+      [ _x = 0 =>
         hcom circle 0 1 {i = 0 ∨ i = 1}
-          {_ _ =>
-           [ _ = 0 =>
+          {_x₃ _x₄ =>
+           [ _x₃ = 0 =>
              hcom circle 0 1 {i = 0 ∨ i = 1}
-               {_ _ =>
-                [ _ = 0 =>
+               {_x₆ _x₇ =>
+                [ _x₆ = 0 =>
                   hcom circle 0 1 {i = 0 ∨ i = 1}
-                    {_ _ =>
-                     [ _ = 0 =>
+                    {_x₉ _x₁₀ =>
+                     [ _x₉ = 0 =>
                        hcom circle 0 1 {i = 0 ∨ i = 1}
-                         {_ _ =>
-                          [ _ = 0 =>
+                         {_x₁₂ _x₁₃ =>
+                          [ _x₁₂ = 0 =>
                             hcom circle 0 1 {i = 0 ∨ i = 1}
-                              {_ _ =>
-                               [ _ = 0 =>
+                              {_x₁₅ _x₁₆ =>
+                               [ _x₁₅ = 0 =>
                                  hcom circle 0 1 {i = 0 ∨ i = 1}
-                                   {_ _ =>
-                                    [ _ = 0 =>
+                                   {_x₁₈ _x₁₉ =>
+                                    [ _x₁₈ = 0 =>
                                       hcom circle 0 1 {i = 0 ∨ i = 1}
-                                        {_ _ =>
-                                         [ _ = 0 =>
+                                        {_x₂₁ _x₂₂ =>
+                                         [ _x₂₁ = 0 =>
                                            hcom circle 0 1 {i = 0 ∨ i = 1}
-                                             {_ _ =>
-                                              [ _ = 0 =>
+                                             {_x₂₄ _x₂₅ =>
+                                              [ _x₂₄ = 0 =>
                                                 hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                  {_ _ =>
-                                                   [ _ = 0 =>
+                                                  {_x₂₇ _x₂₈ =>
+                                                   [ _x₂₇ = 0 =>
                                                      hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                       {_ _ =>
-                                                        [ _ = 0 =>
+                                                       {_x₃₀ _x₃₁ =>
+                                                        [ _x₃₀ = 0 =>
                                                           hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                            {_ _ =>
-                                                             [ _ = 0 =>
+                                                            {_x₃₃ _x₃₄ =>
+                                                             [ _x₃₃ = 0 =>
                                                                hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                 {_ _ =>
-                                                                  [ _ = 0 =>
+                                                                 {_x₃₆ _x₃₇ =>
+                                                                  [ _x₃₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₃₉ _x₄₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₃₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₄₂ _x₄₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₄₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₄₅ _x₄₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₄₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₄₈ _x₄₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₄₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₅₁ _x₅₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₅₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₅₄ _x₅₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₅₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₅₇ _x₅₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₅₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₆₀ _x₆₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₆₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₆₃ _x₆₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₆₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₆₆ _x₆₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₆₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₆₉ _x₇₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₆₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₇₂ _x₇₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₇₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₇₅ _x₇₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₇₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₇₈ _x₇₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₇₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₈₁ _x₈₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₈₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₈₄ _x₈₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₈₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₈₇ _x₈₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₈₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₉₀ _x₉₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₉₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₉₃ _x₉₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₉₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₉₆ _x₉₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₉₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₉₉ _x₁₀₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₉₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₀₂ _x₁₀₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₀₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₀₅ _x₁₀₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₀₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₀₈ _x₁₀₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₀₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₁₁ _x₁₁₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₁₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₁₄ _x₁₁₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₁₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₁₇ _x₁₁₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₁₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₂₀ _x₁₂₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₂₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₂₃ _x₁₂₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₂₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₂₆ _x₁₂₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₂₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₂₉ _x₁₃₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₂₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₃₂ _x₁₃₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₃₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₃₅ _x₁₃₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₃₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₃₈ _x₁₃₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₃₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₄₁ _x₁₄₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₄₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₄₄ _x₁₄₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₄₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₄₇ _x₁₄₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₄₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₅₀ _x₁₅₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₅₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₅₃ _x₁₅₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₅₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₅₆ _x₁₅₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₅₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₅₉ _x₁₆₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₅₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₆₂ _x₁₆₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₆₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₆₅ _x₁₆₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₆₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₆₈ _x₁₆₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₆₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₇₁ _x₁₇₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₇₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₇₄ _x₁₇₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₇₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₇₇ _x₁₇₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₇₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₈₀ _x₁₈₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₈₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₈₃ _x₁₈₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₈₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₈₆ _x₁₈₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₈₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₈₉ _x₁₉₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₈₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₉₂ _x₁₉₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₉₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₉₅ _x₁₉₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₉₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₁₉₈ _x₁₉₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₁₉₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₀₁ _x₂₀₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₀₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₀₄ _x₂₀₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₀₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₀₇ _x₂₀₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₀₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₁₀ _x₂₁₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₁₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₁₃ _x₂₁₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₁₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₁₆ _x₂₁₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₁₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₁₉ _x₂₂₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₁₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₂₂ _x₂₂₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₂₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₂₅ _x₂₂₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₂₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₂₈ _x₂₂₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₂₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₃₁ _x₂₃₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₃₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₃₄ _x₂₃₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₃₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₃₇ _x₂₃₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₃₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₄₀ _x₂₄₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₄₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₄₃ _x₂₄₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₄₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₄₆ _x₂₄₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₄₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₄₉ _x₂₅₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₄₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₅₂ _x₂₅₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₅₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₅₅ _x₂₅₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₅₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₅₈ _x₂₅₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₅₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₆₁ _x₂₆₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₆₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₆₄ _x₂₆₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₆₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₆₇ _x₂₆₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₆₇ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₇₀ _x₂₇₁ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₇₀ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₇₃ _x₂₇₄ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₇₃ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₇₆ _x₂₇₇ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₇₆ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₇₉ _x₂₈₀ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₇₉ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₈₂ _x₂₈₃ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₈₂ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₈₅ _x₂₈₆ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₈₅ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₈₈ _x₂₈₉ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₈₈ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₉₁ _x₂₉₂ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₉₁ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₉₄ _x₂₉₅ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₉₄ = 0 =>
                                                                     hcom circle 0 1 {i = 0 ∨ i = 1}
-                                                                    {_ _ =>
+                                                                    {_x₂₉₇ _x₂₉₈ =>
                                                                     [ 
-                                                                    _ = 0 =>
+                                                                    _x₂₉₇ = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₉₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₉₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₉₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₈₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₈₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₈₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₇₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₇₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₇₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₇₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₆₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₆₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₆₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₅₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₅₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₅₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₄₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₄₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₄₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₄₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₃₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₃₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₃₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₂₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₂₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₂₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₁₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₁₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₁₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₁₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₀₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₀₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₂₀₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₉₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₉₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₉₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₈₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₈₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₈₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₈₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₇₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₇₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₇₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₆₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₆₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₆₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₅₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₅₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₅₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₅₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₄₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₄₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₄₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₃₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₃₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₃₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₂₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₂₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₂₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₂₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₁₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₁₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₁₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₀₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₀₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₁₀₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₉₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₉₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₉₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₉₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₈₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₈₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₈₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₇₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₇₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₇₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₆₉
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₆₆
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₆₃
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₆₀
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₅₇
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₅₄
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₅₁
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₄₈
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₄₅
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₄₂
                                                                     ]}
                                                                     | 
                                                                     i = 0 =>
                                                                     base
                                                                     | 
                                                                     i = 1 =>
-                                                                    loop _
+                                                                    loop _x₃₉
                                                                     ]}
                                                                   | i = 0 =>
                                                                     base
                                                                   | i = 1 =>
-                                                                    loop _
+                                                                    loop _x₃₆
                                                                   ]}
                                                              | i = 0 => base
                                                              | i = 1 =>
-                                                               loop _
+                                                               loop _x₃₃
                                                              ]}
                                                         | i = 0 => base
-                                                        | i = 1 => loop _
+                                                        | i = 1 => loop _x₃₀
                                                         ]}
                                                    | i = 0 => base
-                                                   | i = 1 => loop _
+                                                   | i = 1 => loop _x₂₇
                                                    ]}
                                               | i = 0 => base
-                                              | i = 1 => loop _
+                                              | i = 1 => loop _x₂₄
                                               ]}
                                          | i = 0 => base
-                                         | i = 1 => loop _
+                                         | i = 1 => loop _x₂₁
                                          ]}
                                     | i = 0 => base
-                                    | i = 1 => loop _
+                                    | i = 1 => loop _x₁₈
                                     ]}
                                | i = 0 => base
-                               | i = 1 => loop _
+                               | i = 1 => loop _x₁₅
                                ]}
                           | i = 0 => base
-                          | i = 1 => loop _
+                          | i = 1 => loop _x₁₂
                           ]}
                      | i = 0 => base
-                     | i = 1 => loop _
+                     | i = 1 => loop _x₉
                      ]}
                 | i = 0 => base
-                | i = 1 => loop _
+                | i = 1 => loop _x₆
                 ]}
            | i = 0 => base
-           | i = 1 => loop _
+           | i = 1 => loop _x₃
            ]}
       | i = 0 => base
-      | i = 1 => loop _
+      | i = 1 => loop _x
       ]}
 
 --------------------[com.cooltt]--------------------
 com.cooltt:21.11-21.20 [Info]:
   Computed normal form of mycom/fun as
    A B com/A com/B r φ p i x =>
-   com/B r φ {j _ => p j * {com/A i ⊥ {_ _ => x} j}} i
+   com/B r φ {j _x => p j * {com/A i ⊥ {_x₁ _x₂ => x} j}} i
 
 com.cooltt:34.11-34.17 [Info]:
   Computed normal form of coe/pi as
-   A B r r' f _ =>
-   coe {_ => B _ {coe {_ => A _} r' _ _}} r r' {f {coe {_ => A _} r' r _}}
+   A B r r' f _x =>
+   coe {_x₁ => B _x₁ {coe {_x₂ => A _x₂} r' _x₁ _x}} r r'
+     {f {coe {_x₁ => A _x₁} r' r _x}}
 
 com.cooltt:44.11-44.20 [Info]:
   Computed normal form of coe/sigma as
    A B r r' p =>
-   [ coe {_ => A _} r r' {fst p}
-   , coe {_ => B _ {coe {_ => A _} r _ {fst p}}} r r' {snd p}
+   [ coe {_x => A _x} r r' {fst p}
+   , coe {_x => B _x {coe {_x₁ => A _x₁} r _x {fst p}}} r r' {snd p}
    ]
 
 com.cooltt:64.11-64.20 [Info]:
   Computed normal form of coe/pathd as
-   A r r' a b m _ =>
-   hcom {A r' _} r r' {_ = 0 ∨ _ = 1}
-     {_ _ =>
-      coe {_ => A _ _} _ r'
-        [ _ = 0 ∨ _ = 1 => [ _ = 0 => a _ | _ = 1 => b _ ]
-        | _ ≤ r ∧ r ≤ _ => m _
+   A r r' a b m _x =>
+   hcom {A r' _x} r r' {_x = 0 ∨ _x = 1}
+     {_x₁ _x₂ =>
+      coe {_x₃ => A _x₃ _x} _x₁ r'
+        [ _x = 0 ∨ _x = 1 => [ _x = 0 => a _x₁ | _x = 1 => b _x₁ ]
+        | _x₁ ≤ r ∧ r ≤ _x₁ => m _x
         ]}
 
 com.cooltt:80.11-80.19 [Info]:
   Computed normal form of hcom/fun as
-   A B r r' φ p _ => hcom B r r' φ {_ _ => p _ * _}
+   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ * _x}
 
 com.cooltt:89.11-89.20 [Info]:
   Computed normal form of com/intro as
-   A r r' φ p => hcom {A r'} r r' φ {_ _ => coe {_ => A _} _ r' {p _ *}}
+   A r r' φ p =>
+   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x *}}
 
 --------------------[cool-total-space.cooltt]--------------------
 cool-total-space.cooltt:6.7-6.20 [Info]:
   def fully-patched : (fam : sig (x : nat)  → type) → (fib : fam {struct (x : 0)
                                                                   }) → 
-  sig (x : ext nat ⊤ {_ => 0}) (fib : fam {struct (x : 0) })  :=
+  sig (x : ext nat ⊤ {_x => 0}) (fib : fam {struct (x : 0) })  :=
     fam fib => struct (x : 0) (fib : fib) 
 
 cool-total-space.cooltt:10.7-10.24 [Info]:
@@ -1160,20 +1164,20 @@ cool-total-space.cooltt:23.7-23.20 [Info]:
   def insert-fib-pi : sig (fam : sig (x : nat)  → type) 
                       (test : sig (x : nat) (fib : fam {struct (x : x) })  → nat)
                        :=
-    struct (fam : {_ => nat → nat}) (test : {total => {total @ fib} 0}) 
+    struct (fam : {_x₁ => nat → nat}) (test : {total => {total @ fib} 0}) 
 
 cool-total-space.cooltt:28.7-28.20 [Info]:
   def insert-fib-sg : sig (fam : sig (x : nat)  → type) 
                       (test : sig (x : nat) (fib : fam {struct (x : x) })  → nat)
                        :=
-    struct (fam : {_ => nat × nat}) (test : {total => fst {total @ fib}}) 
+    struct (fam : {_x₁ => nat × nat}) (test : {total => fst {total @ fib}}) 
 
 cool-total-space.cooltt:33.7-33.27 [Info]:
   def no-insert-fib-record : sig (fam : sig (x : nat)  → type) 
                              (test : sig (x : nat) 
                                      (fib : fam {struct (x : x) })  → nat)
                               :=
-    struct (fam : {_ => sig (y : nat) }) 
+    struct (fam : {_x₁ => sig (y : nat) }) 
     (test : {total => {total @ fib} @ y}) 
 
 cool-total-space.cooltt:35.64-35.65 [Info]:
@@ -1188,7 +1192,7 @@ cool-total-space.cooltt:35.64-35.65 [Info]:
 --------------------[elab.cooltt]--------------------
 elab.cooltt:7.11-7.24 [Info]:
   Computed normal form of boundary-test as
-   i _ => [ i = 1 => 5 | i = 0 => 19 ]
+   i _x => [ i = 1 => 5 | i = 0 => 19 ]
 
 elab.cooltt:18.11-18.23 [Info]:
   Computed normal form of pi-code-test as (x : nat) → nat
@@ -1216,7 +1220,7 @@ elab.cooltt:42.6-42.12 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     x : nat
-    |- ?hole1 : ext {i => nat} {i => i = 0 ∨ i = 1} {i _ =>
+    |- ?hole1 : ext {i => nat} {i => i = 0 ∨ i = 1} {i _x =>
                                                      [ i = 0 => x
                                                      | i = 1 => x
                                                      ]}
@@ -1227,25 +1231,26 @@ elab.cooltt:42.6-42.12 [Info]:
 --------------------[equation.cooltt]--------------------
 equation.cooltt:10.7-10.23 [Info]:
   def equational/trans : (a : type) → (x : a) → (y : a) → (z : a) → (p : 
-  ext {i => a} {i => i = 0 ∨ i = 1} {i _ => [ i = 0 => x | i = 1 => y ]}) → (q : 
-  ext {i => a} {i => i = 0 ∨ i = 1} {i _ => [ i = 0 => y | i = 1 => z ]}) → 
-  ext {i => a} {i => i = 0 ∨ i = 1} {i _ => [ i = 0 => x | i = 1 => z ]} :=
-    a x y z p q _ =>
-    hcom a 0 1 {_ = 0 ∨ _ = 1}
-      {_ _ =>
-       [ _ = 0 ∨ _ = 0 => p _
-       | _ = 1 =>
-         hcom a 0 1 {_ = 0 ∨ _ = 1}
-           {_ _ => [ _ = 0 ∨ _ = 0 => q _ | _ = 1 => z ]}
+  ext {i => a} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => x | i = 1 => y ]}) → (q : 
+  ext {i => a} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => y | i = 1 => z ]}) → 
+  ext {i => a} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => x | i = 1 => z ]} :=
+    a x y z p q _x₁ =>
+    hcom a 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+      {_x₂ _x₃ =>
+       [ _x₂ = 0 ∨ _x₁ = 0 => p _x₁
+       | _x₁ = 1 =>
+         hcom a 0 1 {_x₂ = 0 ∨ _x₂ = 1}
+           {_x₅ _x₆ => [ _x₅ = 0 ∨ _x₂ = 0 => q _x₂ | _x₂ = 1 => z ]}
        ]}
 
 equation.cooltt:18.7-18.26 [Info]:
-  def equational/refl/nat : ext {i => nat} {i => i = 0 ∨ i = 1} {i _ =>
+  def equational/refl/nat : ext {i => nat} {i => i = 0 ∨ i = 1} {i _x =>
                                                                  [ i = 0 => 4
                                                                  | i = 1 => 4
                                                                  ]} :=
-    _ =>
-    hcom nat 0 1 {_ = 0 ∨ _ = 1} {_ _ => [ _ = 0 ∨ _ = 0 => 4 | _ = 1 => 4 ]}
+    _x₁ =>
+    hcom nat 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+      {_x₂ _x₃ => [ _x₂ = 0 ∨ _x₁ = 0 => 4 | _x₁ = 1 => 4 ]}
 
 --------------------[evan.cooltt]--------------------
 --------------------[export.cooltt]--------------------
@@ -1258,8 +1263,9 @@ groupoid-laws.cooltt:128.7-128.11 [Info]:
   def test : (A : type) → (p : (i : 𝕀) → A) → (q : (i : 𝕀) → sub A {i = 0}
                                                                    {p 1}) → (r : (i : 𝕀) → 
   sub A {i = 0} {q 1}) → (s : (i : 𝕀) → sub A {i = 0} {r 1}) → (j : 𝕀) → 
-  ext {i => A} {i => i = 0 ∨ i = 1} {i _ => [ i = 0 => p 0 | i = 1 => r 1 ]} :=
-    A p q r s j _ => assoc A {_ => p _} ⊥ {_ => q _} ⊥ {_ => r _} j _
+  ext {i => A} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => p 0 | i = 1 => r 1 ]} :=
+    A p q r s j _x₁ =>
+    assoc A {_x₂ => p _x₂} ⊥ {_x₂ => q _x₂} ⊥ {_x₂ => r _x₂} j _x₁
 
 --------------------[hcom-type.cooltt]--------------------
 hcom-type.cooltt:16.3-16.8 [Info]:
@@ -1363,7 +1369,7 @@ holes.cooltt:11.7-11.35 [Info]:
     p : (i : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler A {_ => p _} {_ => q _} 0 i !} : A
+    |- {! trans/filler A {_x => p _x} {_x => q _x} 0 i !} : A
     
     Boundary (unsatisfied):
     i = 0 ∨ i = 1
@@ -1378,7 +1384,7 @@ holes.cooltt:14.7-14.35 [Info]:
     p : (i : 𝕀) → A
     q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler A {_ => p _} {_ => q _} 1 i !} : A
+    |- {! trans/filler A {_x => p _x} {_x => q _x} 1 i !} : A
     
     Boundary (satisfied):
     i = 0 ∨ i = 1
@@ -1398,7 +1404,7 @@ holes.cooltt:18.26-18.30 [Info]:
 
 holes.cooltt:17.5-18.30 [Info]:
   Failure encountered, as expected:
-   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_ _ => #10 * A p q i _ *} =
+   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 * A p q i _x₂ *} =
             [ i = 0 ∨ i = 1 => [ i = 0 => p 0 | i = 1 => q 1 ] ]
             : A
 
@@ -1411,7 +1417,7 @@ import.cooltt:23.0-23.1 [Error]:
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
-  def bar : ext nat ⊤ {_ => [ ⊤ => 0 ]} :=
+  def bar : ext nat ⊤ {_x => [ ⊤ => 0 ]} :=
     [ ⊤ => 0 ]
 
 --------------------[isos.cooltt]--------------------
@@ -1423,52 +1429,56 @@ nat.cooltt:13.11-13.16 [Info]:
   Computed normal form of + 2 3 as 5
 
 monoid.cooltt:19.7-19.17 [Info]:
-  def monoid/nat : sig (C : ext type ⊤ {_ => nat}) (op : nat → nat → nat) 
+  def monoid/nat : sig (C : ext type ⊤ {_x => nat}) (op : nat → nat → nat) 
                    (z : nat) 
                    (idL : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                      i _ => [ i = 0 => op z x | i = 1 => x ]})
+                                      i _x =>
+                                      [ i = 0 => op z x | i = 1 => x ]})
                    (idR : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                      i _ => [ i = 0 => op x z | i = 1 => x ]})
+                                      i _x =>
+                                      [ i = 0 => op x z | i = 1 => x ]})
                    (assoc : (a : nat) → (b : nat) → (c : nat) → ext {
                                                                 i => nat} {
                                                                 i =>
                                                                 i = 0 ∨ i = 1} {
-                                                                i _ =>
+                                                                i _x =>
                                                                 [ i = 0 =>
                                                                   op {op a b} c
                                                                 | i = 1 =>
                                                                   op a {op b c}
                                                                 ]})
                     :=
-    struct (C : nat) (op : {_ _ => + _ _}) (z : 0) 
-    (idL : {_ _ => +-left-unit _ _}) (idR : {_ _ => +-right-unit _ _}) 
-    (assoc : {_ _ _ _ => +-assoc _ _ _ _}) 
+    struct (C : nat) (op : {_x₁ _x₂ => + _x₁ _x₂}) (z : 0) 
+    (idL : {_x₁ _x₂ => +-left-unit _x₁ _x₂}) 
+    (idR : {_x₁ _x₂ => +-right-unit _x₁ _x₂}) 
+    (assoc : {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}) 
 
 monoid.cooltt:27.7-27.19 [Info]:
-  def monoid/nat/+ : sig (C : ext type ⊤ {_ => nat}) 
-                     (op : ext {nat → nat → nat} ⊤ {_ _ _ => + _ _}) 
+  def monoid/nat/+ : sig (C : ext type ⊤ {_x => nat}) 
+                     (op : ext {nat → nat → nat} ⊤ {_x _x₁ _x₂ => + _x₁ _x₂}) 
                      (z : nat) 
                      (idL : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                        i _ =>
+                                        i _x =>
                                         [ i = 0 => + z x | i = 1 => x ]})
                      (idR : (x : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                        i _ =>
+                                        i _x =>
                                         [ i = 0 => + x z | i = 1 => x ]})
                      (assoc : (a : nat) → (b : nat) → (c : nat) → ext {
                                                                   i => 
                                                                   nat} {
                                                                   i =>
                                                                   i = 0 ∨ i = 1} {
-                                                                  i _ =>
+                                                                  i _x =>
                                                                   [ i = 0 =>
                                                                     + {+ a b} c
                                                                   | i = 1 =>
                                                                     + a {+ b c}
                                                                   ]})
                       :=
-    struct (C : nat) (op : {_ _ => + _ _}) (z : 0) 
-    (idL : {_ _ => +-left-unit _ _}) (idR : {_ _ => +-right-unit _ _}) 
-    (assoc : {_ _ _ _ => +-assoc _ _ _ _}) 
+    struct (C : nat) (op : {_x₁ _x₂ => + _x₁ _x₂}) (z : 0) 
+    (idL : {_x₁ _x₂ => +-left-unit _x₁ _x₂}) 
+    (idR : {_x₁ _x₂ => +-right-unit _x₁ _x₂}) 
+    (assoc : {_x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄}) 
 
 --------------------[names.cooltt]--------------------
 names.cooltt:5.7-5.14 [Info]:
@@ -1486,9 +1496,9 @@ nat-path.cooltt:17.11-17.12 [Info]:
   Computed normal form of J as
    A p C d =>
    coe {i =>
-        C {_ =>
-           hcom A 0 _ {i = 0 ∨ i = 1}
-             {k _ => [ k = 0 ∨ i = 0 => p 0 | i = 1 => p k ]}}} 0 1
+        C {_x =>
+           hcom A 0 _x {i = 0 ∨ i = 1}
+             {k _x₁ => [ k = 0 ∨ i = 0 => p 0 | i = 1 => p k ]}}} 0 1
      d
 
 nat-path.cooltt:58.11-58.18 [Info]:
@@ -1496,99 +1506,102 @@ nat-path.cooltt:58.11-58.18 [Info]:
 
 nat-path.cooltt:61.11-61.18 [Info]:
   Computed normal form of +-assoc as
-   _ =>
-   elim _ @ {_ =>
-             (y : nat) → (z : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
-                                     i _ =>
-                                     [ i = 0 =>
-                                       elim {elim _ @ {_ => nat → nat}
+   _x =>
+   elim _x @ {_x₁ =>
+              (y : nat) → (z : nat) → ext {i => nat} {i => i = 0 ∨ i = 1} {
+                                      i _x₂ =>
+                                      [ i = 0 =>
+                                        elim {elim _x₁ @ {_x₄ => nat → nat}
+                                                [ zero => n => n
+                                                | suc => _x₄ ih n =>
+                                                         suc {ih n}
+                                                ] y} @ {_x₄ => nat → nat}
+                                          [ zero => n => n
+                                          | suc => _x₄ ih n => suc {ih n}
+                                          ] z
+                                      | i = 1 =>
+                                        elim _x₁ @ {_x₄ => nat → nat}
+                                          [ zero => n => n
+                                          | suc => _x₄ ih n => suc {ih n}
+                                          ] {elim y @ {_x₄ => nat → nat}
                                                [ zero => n => n
-                                               | suc => _ ih n => suc {ih n}
-                                               ] y} @ {_ => nat → nat}
-                                         [ zero => n => n
-                                         | suc => _ ih n => suc {ih n}
-                                         ] z
-                                     | i = 1 =>
-                                       elim _ @ {_ => nat → nat}
-                                         [ zero => n => n
-                                         | suc => _ ih n => suc {ih n}
-                                         ] {elim y @ {_ => nat → nat}
-                                              [ zero => n => n
-                                              | suc => _ ih n => suc {ih n}
-                                              ] z}
-                                     ]}}
-     [ zero => y z _ =>
-               hcom nat 0 1 {_ = 0 ∨ _ = 1}
-                 {_ _ =>
-                  [ _ = 0 ∨ _ = 0 =>
-                    elim y @ {_ => nat → nat}
+                                               | suc => _x₄ ih n =>
+                                                        suc {ih n}
+                                               ] z}
+                                      ]}}
+     [ zero => y z _x₁ =>
+               hcom nat 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+                 {_x₂ _x₃ =>
+                  [ _x₂ = 0 ∨ _x₁ = 0 =>
+                    elim y @ {_x₅ => nat → nat}
                       [ zero => n => n
-                      | suc => _ ih n => suc {ih n}
+                      | suc => _x₅ ih n => suc {ih n}
                       ] z
-                  | _ = 1 =>
-                    hcom nat 0 1 {_ = 0 ∨ _ = 1}
-                      {_ _ =>
-                       [ _ = 0 ∨ _ = 0 =>
-                         symm nat {_ =>
-                                   elim y @ {_ => nat → nat}
+                  | _x₁ = 1 =>
+                    hcom nat 0 1 {_x₂ = 0 ∨ _x₂ = 1}
+                      {_x₅ _x₆ =>
+                       [ _x₅ = 0 ∨ _x₂ = 0 =>
+                         symm nat {_x₈ =>
+                                   elim y @ {_x₉ => nat → nat}
                                      [ zero => n => n
-                                     | suc => _ ih n => suc {ih n}
-                                     ] z} _
-                       | _ = 1 =>
-                         elim y @ {_ => nat → nat}
+                                     | suc => _x₉ ih n => suc {ih n}
+                                     ] z} _x₂
+                       | _x₂ = 1 =>
+                         elim y @ {_x₈ => nat → nat}
                            [ zero => n => n
-                           | suc => _ ih n => suc {ih n}
+                           | suc => _x₈ ih n => suc {ih n}
                            ] z
                        ]}
                   ]}
-     | suc => x ih y z _ =>
-              hcom nat 0 1 {_ = 0 ∨ _ = 1}
-                {_ _ =>
-                 [ _ = 0 ∨ _ = 0 =>
-                   suc {elim {elim x @ {_ => nat → nat}
+     | suc => x ih y z _x₁ =>
+              hcom nat 0 1 {_x₁ = 0 ∨ _x₁ = 1}
+                {_x₂ _x₃ =>
+                 [ _x₂ = 0 ∨ _x₁ = 0 =>
+                   suc {elim {elim x @ {_x₅ => nat → nat}
                                 [ zero => n => n
-                                | suc => _ ih₁ n => suc {ih₁ n}
-                                ] y} @ {_ => nat → nat}
+                                | suc => _x₅ ih₁ n => suc {ih₁ n}
+                                ] y} @ {_x₅ => nat → nat}
                           [ zero => n => n
-                          | suc => _ ih₁ n => suc {ih₁ n}
+                          | suc => _x₅ ih₁ n => suc {ih₁ n}
                           ] z}
-                 | _ = 1 =>
-                   hcom nat 0 1 {_ = 0 ∨ _ = 1}
-                     {_ _ =>
-                      [ _ = 0 ∨ _ = 0 =>
-                        suc {elim {elim x @ {_ => nat → nat}
+                 | _x₁ = 1 =>
+                   hcom nat 0 1 {_x₂ = 0 ∨ _x₂ = 1}
+                     {_x₅ _x₆ =>
+                      [ _x₅ = 0 ∨ _x₂ = 0 =>
+                        suc {elim {elim x @ {_x₈ => nat → nat}
                                      [ zero => n => n
-                                     | suc => _ ih₁ n => suc {ih₁ n}
-                                     ] y} @ {_ => nat → nat}
+                                     | suc => _x₈ ih₁ n => suc {ih₁ n}
+                                     ] y} @ {_x₈ => nat → nat}
                                [ zero => n => n
-                               | suc => _ ih₁ n => suc {ih₁ n}
+                               | suc => _x₈ ih₁ n => suc {ih₁ n}
                                ] z}
-                      | _ = 1 =>
-                        hcom nat 0 1 {_ = 0 ∨ _ = 1}
-                          {_ _ =>
-                           [ _ = 0 ∨ _ = 0 => suc {ih y z _}
-                           | _ = 1 =>
-                             hcom nat 0 1 {_ = 0 ∨ _ = 1}
-                               {_ _ =>
-                                [ _ = 0 ∨ _ = 0 =>
-                                  symm nat {_ =>
-                                            suc {elim x @ {_ => nat → nat}
+                      | _x₂ = 1 =>
+                        hcom nat 0 1 {_x₅ = 0 ∨ _x₅ = 1}
+                          {_x₈ _x₉ =>
+                           [ _x₈ = 0 ∨ _x₅ = 0 => suc {ih y z _x₅}
+                           | _x₅ = 1 =>
+                             hcom nat 0 1 {_x₈ = 0 ∨ _x₈ = 1}
+                               {_x₁₁ _x₁₂ =>
+                                [ _x₁₁ = 0 ∨ _x₈ = 0 =>
+                                  symm nat {_x₁₄ =>
+                                            suc {elim x @ {_x₁₅ => nat → nat}
                                                    [ zero => n => n
-                                                   | suc => _ ih₁ n =>
+                                                   | suc => _x₁₅ ih₁ n =>
                                                             suc {ih₁ n}
-                                                   ] {elim y @ {_ =>
+                                                   ] {elim y @ {_x₁₅ =>
                                                                 nat → nat}
                                                         [ zero => n => n
-                                                        | suc => _ ih₁ n =>
+                                                        | suc => _x₁₅ ih₁ n =>
                                                                  suc {ih₁ n}
-                                                        ] z}}} _
-                                | _ = 1 =>
-                                  suc {elim x @ {_ => nat → nat}
+                                                        ] z}}} _x₈
+                                | _x₈ = 1 =>
+                                  suc {elim x @ {_x₁₄ => nat → nat}
                                          [ zero => n => n
-                                         | suc => _ ih₁ n => suc {ih₁ n}
-                                         ] {elim y @ {_ => nat → nat}
+                                         | suc => _x₁₄ ih₁ n => suc {ih₁ n}
+                                         ] {elim y @ {_x₁₄ => nat → nat}
                                               [ zero => n => n
-                                              | suc => _ ih₁ n => suc {ih₁ n}
+                                              | suc => _x₁₄ ih₁ n =>
+                                                       suc {ih₁ n}
                                               ] z}}
                                 ]}
                            ]}
@@ -1609,16 +1622,18 @@ nat-path.cooltt:65.11-65.26 [Info]:
 nat-path.cooltt:87.11-87.15 [Info]:
   Computed normal form of test as
    p i =>
-   elim {symm nat {_ => p _} i} @ {_ => nat} [ zero => 0
-                                             | suc => _ _ => 0
-                                             ]
+   elim {symm nat {_x => p _x} i} @ {_x => nat}
+     [ zero => 0
+     | suc => _x _x₁ => 0
+     ]
 
 nat-path.cooltt:89.11-89.16 [Info]:
   Computed normal form of test2 as
    i =>
-   elim {symm nat {_ => 0} i} @ {_ => nat} [ zero => 0
-                                           | suc => _ _ => 0
-                                           ]
+   elim {symm nat {_x => 0} i} @ {_x => nat}
+     [ zero => 0
+     | suc => _x _x₁ => 0
+     ]
 
 --------------------[nat.cooltt]--------------------
 nat.cooltt:10.11-10.16 [Info]:
@@ -1650,35 +1665,37 @@ patch.cooltt:10.57-10.58 [Info]:
 
 patch.cooltt:12.7-12.15 [Info]:
   def el-patch : type :=
-    sig (A : ext type ⊤ {_ => nat}) (a : ext nat ⊤ {_ => 4}) 
+    sig (A : ext type ⊤ {_x₁ => nat}) (a : ext nat ⊤ {_x₁ => 4}) 
 
 patch.cooltt:13.7-13.23 [Info]:
   def el-patch-partial : type :=
-    sig (A : ext type ⊤ {_ => nat}) (a : nat) 
+    sig (A : ext type ⊤ {_x₁ => nat}) (a : nat) 
 
 patch.cooltt:14.7-14.20 [Info]:
-  def patch/inhabit : sig (A : ext type ⊤ {_ => nat}) 
-                      (a : ext nat ⊤ {_ => 4})  :=
+  def patch/inhabit : sig (A : ext type ⊤ {_x => nat}) 
+                      (a : ext nat ⊤ {_x => 4})  :=
     struct (A : nat) (a : 4) 
 
 patch.cooltt:15.7-15.34 [Info]:
-  def patch-partial/inhabit/infer : sig (A : ext type ⊤ {_ => nat}) (a : nat)  :=
+  def patch-partial/inhabit/infer : sig (A : ext type ⊤ {_x => nat}) 
+                                    (a : nat)  :=
     struct (A : nat) (a : 4) 
 
 patch.cooltt:16.7-16.26 [Info]:
-  def patch/inhabit/infer : sig (A : ext type ⊤ {_ => nat}) 
-                            (a : ext nat ⊤ {_ => 4})  :=
+  def patch/inhabit/infer : sig (A : ext type ⊤ {_x => nat}) 
+                            (a : ext nat ⊤ {_x => 4})  :=
     struct (A : nat) (a : 4) 
 
 patch.cooltt:19.7-19.20 [Info]:
   def patch-depends : type :=
-    sig (A : ext type ⊤ {_ => nat}) (B : ext type ⊤ {_ => nat}) 
+    sig (A : ext type ⊤ {_x₁ => nat}) (B : ext type ⊤ {_x₁ => nat}) 
 
 patch.cooltt:25.7-25.14 [Info]:
   def testing : (A : type) → (Z : type) → (B : A → type) → (p : Z → sig (x : A)
                                                                     (bx : B x)
                                                                     ) → (z : Z) → 
-  sig (x : ext A ⊤ {_ => p z @ x}) (bx : ext {B {p z @ x}} ⊤ {_ => p z @ bx})  :=
+  sig (x : ext A ⊤ {_x => p z @ x}) 
+  (bx : ext {B {p z @ x}} ⊤ {_x => p z @ bx})  :=
     A Z B p z => struct (x : p z @ x) (bx : p z @ bx) 
 
 patch.cooltt:28.5-28.88 [Info]:
@@ -1692,7 +1709,7 @@ patch.cooltt:57.7-57.16 [Info]:
 
 patch.cooltt:60.7-60.22 [Info]:
   def test-auto-patch : (fam : sig (x : nat)  → type) → type :=
-    fam => sig (x : ext nat ⊤ {_ => 0}) (fib : fam {struct (x : 0) }) 
+    fam => sig (x : ext nat ⊤ {_x₁ => 0}) (fib : fam {struct (x : 0) }) 
 
 patch.cooltt:64.7-64.24 [Info]:
   def test-unfold-total : (fam : sig (x : nat)  → type) → type :=
@@ -1704,7 +1721,7 @@ patch.cooltt:64.7-64.24 [Info]:
 path-types.cooltt:8.11-8.20 [Info]:
   Computed normal form of formation as
    A a b =>
-   ext {i => A i} {i => i = 0 ∨ i = 1} {i _ => [ i = 0 => a | i = 1 => b ]}
+   ext {i => A i} {i => i = 0 ∨ i = 1} {i _x => [ i = 0 => a | i = 1 => b ]}
 
 path-types.cooltt:21.11-21.17 [Info]:
   Computed normal form of myrefl as A a i => a
@@ -1765,40 +1782,41 @@ Emitted namespace under ∷
 
 --------------------[selfification.cooltt]--------------------
 selfification.cooltt:8.11-8.18 [Info]:
-  Computed normal form of testing as _ _ _ p _ => [ fst {p _} , snd {p _} ]
+  Computed normal form of testing as
+   _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
 --------------------[v.cooltt]--------------------
 v.cooltt:12.11-12.17 [Info]:
   Computed normal form of v-test as
    r A =>
-   V r {_ => A} A {_ =>
-                   [ x => x
-                   , x =>
-                     [ [ x , _ => x ]
-                     , p i =>
-                       [ hcom A 1 0 {i = 0 ∨ i = 1}
-                           {k _ =>
-                            [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
-                       , _ =>
-                         hcom A 1 _ {i = 0 ∨ i = 1}
-                           {k _ =>
-                            [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
-                       ]
-                     ]
-                   ]}
+   V r {_x => A} A {_x =>
+                    [ x => x
+                    , x =>
+                      [ [ x , _x₁ => x ]
+                      , p i =>
+                        [ hcom A 1 0 {i = 0 ∨ i = 1}
+                            {k _x₁ =>
+                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+                        , _x₁ =>
+                          hcom A 1 _x₁ {i = 0 ∨ i = 1}
+                            {k _x₂ =>
+                             [ k = 1 => x | i = 1 => snd p k | i = 0 => x ]}
+                        ]
+                      ]
+                    ]}
 
 v.cooltt:20.11-20.15 [Info]:
-  Computed normal form of cool as A a => coe {_ => A} 0 1 a
+  Computed normal form of cool as A a => coe {_x => A} 0 1 a
 
 v.cooltt:21.11-21.16 [Info]:
   Computed normal form of cool2 as
    A a i =>
    hcom A 0 1 {i = 0}
-     {_ _ =>
-      [ _ = 0 => coe {_ => A} i 0 a
+     {_x _x₁ =>
+      [ _x = 0 => coe {_x₃ => A} i 0 a
       | i = 0 =>
-        hcom A 1 0 {_ = 0 ∨ _ = 1}
-          {k _ => [ k = 1 => a | _ = 1 => a | _ = 0 => a ]}
+        hcom A 1 0 {_x = 0 ∨ _x = 1}
+          {k _x₃ => [ k = 1 => a | _x = 1 => a | _x = 0 => a ]}
       ]}
 
 v.cooltt:27.11-27.16 [Info]:
