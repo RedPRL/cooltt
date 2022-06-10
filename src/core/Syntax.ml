@@ -483,8 +483,22 @@ struct
         (pp_atomic env) fam
 
   and pp_pi env base ident fam fmt =
-    match ident with
-    | `Anon ->
+    match (ident, base) with
+    | `Anon, TpDim ->
+      let (x, envx) = ppenv_bind env (`Machine "i") in
+      Format.fprintf fmt "(%a : %a) %a %a"
+        Uuseg_string.pp_utf_8 x
+        (pp_tp env P.(right_of colon)) base
+        Uuseg_string.pp_utf_8 "→"
+        (pp_tp envx P.(right_of arrow)) fam
+    | `Anon, TpCof ->
+      let (x, envx) = ppenv_bind env (`Machine "φ") in
+      Format.fprintf fmt "(%a : %a) %a %a"
+        Uuseg_string.pp_utf_8 x
+        (pp_tp env P.(right_of colon)) base
+        Uuseg_string.pp_utf_8 "→"
+        (pp_tp envx P.(right_of arrow)) fam
+    | `Anon, _ ->
       let (_, envx) = Pp.Env.bind_underscore env
       in
       Format.fprintf fmt "%a %a %a"
