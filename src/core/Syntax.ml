@@ -216,9 +216,7 @@ struct
       plain_pp penv fmt tm
 
   let ppenv_bind env ident =
-    match ident with
-    | `Anon -> Pp.Env.bind_underscore env
-    | _ -> Pp.Env.bind env @@ Ident.to_string_opt ident
+    Pp.Env.bind env @@ Ident.to_string_opt ident
 
   let rec pp_fields pp_field env fmt  =
     function
@@ -505,7 +503,7 @@ struct
         (pp_tp env P.(left_of arrow)) base
         Uuseg_string.pp_utf_8 "→"
         (pp_tp envx P.(right_of arrow)) fam
-    | ident -> 
+    | ident, _ -> 
       let x, envx =
         match base with
         | TpPrf _ -> Pp.Env.bind_underscore env
