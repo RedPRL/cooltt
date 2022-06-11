@@ -6,7 +6,7 @@ hlevel.cooltt:34.11-34.16 [Info]:
   Computed normal form of hProp as (A : type) × has-hlevel 1 A
 
 abstract.cooltt:104.7-104.15 [Info]:
-  def abs-test : nat := suc {abs-test∷foo _x}
+  def abs-test : nat := suc {abs-test∷foo *}
 
 abstract.cooltt:107.7-107.15 [Info]:
   def abs-test : nat := 42
@@ -20,15 +20,15 @@ base-types.cooltt:44.7-44.11 [Info]:
           (P/inl : (a : A) → P {inl A B a}) →
             (P/inr : (b : B) → P {inr A B b}) → (s : sum A B) → P s :=
     A B P P/inl P/inr s =>
-    blocked[sum] _x A B P P/inl P/inr s {_x₁ =>
-                                         elim
-                                           _x₁
-                                           @ {_x₂ => type}
-                                           [ zero =>
-                                             B
-                                             | suc =>
-                                             _x₂ _x₃ => empty
-                                             ]} {blocked[inr] _x A B P P/inl P/inr s {
+    blocked[sum] * A B P P/inl P/inr s {_x₁ =>
+                                        elim
+                                          _x₁
+                                          @ {_x₂ => type}
+                                          [ zero =>
+                                            B
+                                            | suc =>
+                                            _x₂ _x₃ => empty
+                                            ]} {blocked[inr] * A B P P/inl P/inr s {
     _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B | suc => _x₂ _x₃ => empty ]}} {
     _x₁ =>
     elim
@@ -39,15 +39,15 @@ base-types.cooltt:44.7-44.11 [Info]:
         | suc =>
         n _x₂ =>
         elim n @ {_x₃ => type} [ zero => B | suc => _x₃ _x₄ => empty ]
-        ]} {blocked[sum,inl] _x A B P P/inl P/inr s {_x₁ =>
-                                                     elim
-                                                       _x₁
-                                                       @ {_x₂ => type}
-                                                       [ zero =>
-                                                         B
-                                                         | suc =>
-                                                         _x₂ _x₃ => empty
-                                                         ]} {blocked[inr] _x A B P P/inl P/inr s {
+        ]} {blocked[sum,inl] * A B P P/inl P/inr s {_x₁ =>
+                                                    elim
+                                                      _x₁
+                                                      @ {_x₂ => type}
+                                                      [ zero =>
+                                                        B
+                                                        | suc =>
+                                                        _x₂ _x₃ => empty
+                                                        ]} {blocked[inr] * A B P P/inl P/inr s {
     _x₁ => elim _x₁ @ {_x₂ => type} [ zero => B | suc => _x₂ _x₃ => empty ]}} {
     _x₁ =>
     elim
@@ -1135,12 +1135,12 @@ com.cooltt:64.11-64.20 [Info]:
 
 com.cooltt:80.11-80.19 [Info]:
   Computed normal form of hcom/fun as
-   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ _x₂ _x}
+   A B r r' φ p _x => hcom B r r' φ {_x₁ _x₂ => p _x₁ * _x}
 
 com.cooltt:89.11-89.20 [Info]:
   Computed normal form of com/intro as
    A r r' φ p =>
-   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x _x₁}}
+   hcom {A r'} r r' φ {_x _x₁ => coe {_x₂ => A _x₂} _x r' {p _x *}}
 
 --------------------[cool-total-space.cooltt]--------------------
 cool-total-space.cooltt:6.7-6.20 [Info]:
@@ -1211,8 +1211,8 @@ cool-total-space.cooltt:40.7-40.27 [Info]:
 
 cool-total-space.cooltt:42.64-42.65 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
-    fam : (_x₁ : sig def x : nat end) → type
+    _ : [ ⊤ ]
+    fam : (_x : sig def x : nat end) → type
     |- ? : fam {struct def x := 0 end}
 
 
@@ -1239,7 +1239,7 @@ elab.cooltt:33.6-33.13 [Info]:
 
 elab.cooltt:35.9-35.16 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     y : nat
     z : nat
     |- ?tmhole : (z₁ : nat) → ?tyhole y z z₁
@@ -1247,13 +1247,13 @@ elab.cooltt:35.9-35.16 [Info]:
 
 elab.cooltt:42.6-42.12 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     x : nat
     |- ?hole1 :
          ext
            {i => nat}
            {i => i = 0 ∨ i = 1}
-           {i _x₁ => [ i = 0 => x | i = 1 => x ]}
+           {i _x => [ i = 0 => x | i = 1 => x ]}
 
 
 [Warn]:  There are 3 unsolved holes
@@ -1302,19 +1302,19 @@ export.cooltt:24.0-24.1 [Error]:
 --------------------[groupoid-laws.cooltt]--------------------
 groupoid-laws.cooltt:128.7-128.11 [Info]:
   def test :
-    (A : type) → (p : (i : 𝕀) → A) → (q : (i : 𝕀) →
-      sub A {i = 0} {p 1}) → (r : (i : 𝕀) → sub A {i = 0} {q 1}) →
-      (s : (i : 𝕀) → sub A {i = 0} {r 1}) → (j : 𝕀) →
-      ext
-        {i => A}
-        {i => i = 0 ∨ i = 1}
-        {i _x => [ i = 0 => p 0 | i = 1 => r 1 ]} :=
+    (A : type) →  (p : (i : 𝕀) →  A) →  (q : (i : 𝕀) →
+       sub A {i = 0} {p 1}) →  (r : (i : 𝕀) →  sub A {i = 0} {q 1}) →
+       (s : (i : 𝕀) →  sub A {i = 0} {r 1}) →  (j : 𝕀) →
+       ext
+         {i => A}
+         {i => i = 0 ∨ i = 1}
+         {i _x => [ i = 0 => p 0 | i = 1 => r 1 ]} :=
     A p q r s j _x₁ =>
     assoc A {_x₂ => p _x₂} ⊥ {_x₂ => q _x₂} ⊥ {_x₂ => r _x₂} j _x₁
 
 --------------------[hcom-type.cooltt]--------------------
-hcom-type.cooltt:13.7-13.13 [Info]:
-  def v-test : (r : 𝕀) → (A : type) → type :=
+hcom-type.cooltt:12.7-12.13 [Info]:
+  def v-test : (r : 𝕀) →  (A : type) → type :=
     r A =>
     V r {_x₁ => A} A
       {_x₁ =>
@@ -1331,36 +1331,37 @@ hcom-type.cooltt:13.7-13.13 [Info]:
          ]
        ]}
 
-hcom-type.cooltt:19.8-19.13 [Info]:
+hcom-type.cooltt:18.3-18.8 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     i : 𝕀
-    _x₁ : [ i = 0 ∨ i = 1 ]
+    _ : [ i = 0 ∨ i = 1 ]
     |- ?asdf : nat
 
 
-hcom-type.cooltt:19.16-19.17 [Info]:
+hcom-type.cooltt:18.11-18.12 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     i : 𝕀
-    |- ? : (_x₁ : [ i = 0 ]) → nat
+    _ : [ i = 0 ]
+    |- ? : nat
     
     Boundary:
-    i = 0 ∨ i = 1
-    |- _x₁ => [ ⊤ => ?asdf _x 0 * ]
+    ⊤
+    |- ?asdf * 0 *
 
 
-hcom-type.cooltt:19.18-19.19 [Info]:
+hcom-type.cooltt:18.13-18.14 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     i : 𝕀
     |- ? : nat
     
     Boundary:
     i = 0 ∨ i = 0 ∨ i = 1
-    |- i = 0 => ?asdf _x 0 *
-       i = 0 => ?asdf _x 0 *
-       i = 1 => ?asdf _x 1 *
+    |- i = 0 => #3 * 0 *
+       i = 0 => ?asdf * 0 *
+       i = 1 => ?asdf * 1 *
 
 
 [Warn]:  There are 3 unsolved holes
@@ -1375,10 +1376,10 @@ hlevel.cooltt:34.11-34.16 [Info]:
 --------------------[holes.cooltt]--------------------
 holes.cooltt:5.7-5.13 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     A : type
-    p : (_x₁ : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    p : (_x : 𝕀) →  A
+    q : (i : 𝕀) →  sub A {i = 0} {p 1}
     i : 𝕀
     |- ? : A
     
@@ -1390,32 +1391,32 @@ holes.cooltt:5.7-5.13 [Info]:
 
 holes.cooltt:8.25-8.26 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     A : type
-    p : (_x₁ : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    p : (_x : 𝕀) →  A
+    q : (i : 𝕀) →  sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (_x₁ : 𝕀) → A
+    |- ? : (_x : 𝕀) →  A
 
 
 holes.cooltt:8.27-8.28 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     A : type
-    p : (_x₁ : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    p : (_x : 𝕀) →  A
+    q : (i : 𝕀) →  sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 _x A p q i 1}
+    |- ? : (i₁ : 𝕀) →  sub A {i₁ = 0} {#2 * A p q i 1}
 
 
 holes.cooltt:8.7-8.35 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     A : type
-    p : (_x₁ : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    p : (_x : 𝕀) →  A
+    q : (i : 𝕀) →  sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler A {#2 _x A p q i} {#3 _x A p q i} 1 i !} : A
+    |- {! trans/filler A {#2 * A p q i} {#3 * A p q i} 1 i !} : A
     
     Boundary (unsatisfied):
     i = 0 ∨ i = 1
@@ -1425,12 +1426,12 @@ holes.cooltt:8.7-8.35 [Info]:
 
 holes.cooltt:11.7-11.35 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     A : type
-    p : (_x₁ : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    p : (_x : 𝕀) →  A
+    q : (i : 𝕀) →  sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler A {_x₁ => p _x₁} {_x₁ => q _x₁} 0 i !} : A
+    |- {! trans/filler A {_x => p _x} {_x => q _x} 0 i !} : A
     
     Boundary (unsatisfied):
     i = 0 ∨ i = 1
@@ -1440,12 +1441,12 @@ holes.cooltt:11.7-11.35 [Info]:
 
 holes.cooltt:14.7-14.35 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     A : type
-    p : (_x₁ : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    p : (_x : 𝕀) →  A
+    q : (i : 𝕀) →  sub A {i = 0} {p 1}
     i : 𝕀
-    |- {! trans/filler A {_x₁ => p _x₁} {_x₁ => q _x₁} 1 i !} : A
+    |- {! trans/filler A {_x => p _x} {_x => q _x} 1 i !} : A
     
     Boundary (satisfied):
     i = 0 ∨ i = 1
@@ -1455,17 +1456,17 @@ holes.cooltt:14.7-14.35 [Info]:
 
 holes.cooltt:18.26-18.30 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     A : type
-    p : (_x₁ : 𝕀) → A
-    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    p : (_x : 𝕀) →  A
+    q : (i : 𝕀) →  sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (_x₁ : 𝕀) → (_x₂ : [ _x₁ = 0 ∨ i = 0 ∨ i = 1 ]) → A
+    |- ? : (_x : 𝕀) →  (_ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) →  A
 
 
 holes.cooltt:17.5-18.30 [Info]:
   Failure encountered, as expected:
-   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 _x A p q i _x₂ _x₃} =
+   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 * A p q i _x₂ *} =
             [ i = 0 ∨ i = 1 => [ i = 0 => p 0 | i = 1 => q 1 ] ]
             : A
 
@@ -1806,7 +1807,7 @@ nat.cooltt:15.11-15.16 [Info]:
 --------------------[patch.cooltt]--------------------
 patch.cooltt:20.53-20.54 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     |- ? : type
     
     Boundary:
@@ -1816,7 +1817,7 @@ patch.cooltt:20.53-20.54 [Info]:
 
 patch.cooltt:20.64-20.65 [Info]:
   Emitted hole:
-    _x : [ ⊤ ]
+    _ : [ ⊤ ]
     |- ? : nat
     
     Boundary:
@@ -1868,7 +1869,7 @@ patch.cooltt:39.5-39.87 [Info]:
   Failure encountered, as expected:
    Expected type =
             (_x₁ : sig def A : type def a : A end) →
-              (_x₂ : nat) → type
+               (_x₂ : nat) → type
 
 
 patch.cooltt:79.7-79.16 [Info]:
@@ -1951,7 +1952,7 @@ selfification.cooltt:8.11-8.18 [Info]:
    _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
 --------------------[v.cooltt]--------------------
-v.cooltt:13.11-13.17 [Info]:
+v.cooltt:12.11-12.17 [Info]:
   Computed normal form of v-test as
    r A =>
    V r {_x => A} A
@@ -1969,10 +1970,10 @@ v.cooltt:13.11-13.17 [Info]:
         ]
       ]}
 
-v.cooltt:21.11-21.15 [Info]:
+v.cooltt:20.11-20.15 [Info]:
   Computed normal form of cool as A a => coe {_x => A} 0 1 a
 
-v.cooltt:22.11-22.16 [Info]:
+v.cooltt:21.11-21.16 [Info]:
   Computed normal form of cool2 as
    A a i =>
    hcom A 0 1 {i = 0}
@@ -1983,7 +1984,7 @@ v.cooltt:22.11-22.16 [Info]:
           {k _x₃ => [ k = 1 => a | _x = 1 => a | _x = 0 => a ]}
       ]}
 
-v.cooltt:28.11-28.16 [Info]:
+v.cooltt:27.11-27.16 [Info]:
   Computed normal form of cool3 as A a i => a
 
 --------------------[view.cooltt]--------------------

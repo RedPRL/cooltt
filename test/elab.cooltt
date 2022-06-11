@@ -1,5 +1,5 @@
-def boundary-test : (i : 𝕀) (_ : [∂ i]) → nat :=
-  i _ =>
+def boundary-test : (i : 𝕀) → [∂ i] → nat :=
+  i =>
   [ i=1 => 5
   | i=0 => 19
   ]

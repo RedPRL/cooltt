@@ -499,8 +499,12 @@ struct
         fmt
         branches
     | Pi (base, ident, fam) ->
-      let x, envx = ppenv_bind env ident in
-      Format.fprintf fmt "(%a : %a) %a@;<1 2>%a"
+      let x, envx =
+        match base with
+        | TpPrf _ -> Pp.Env.bind_underscore env
+        | _ -> ppenv_bind env ident
+      in
+      Format.fprintf fmt "(%a : %a) %a@;<1 2> %a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"
@@ -599,7 +603,11 @@ struct
     match ctx with
     | [] -> pp_goal env fmt goal
     | (var, var_tp) :: ctx ->
-      let x, envx = ppenv_bind env var in
+      let x, envx =
+        match var_tp with
+        | TpPrf _ -> Pp.Env.bind_underscore env
+        | _ -> ppenv_bind env var
+      in
       Fmt.fprintf fmt "@[%a :@;%a@]@;%a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) var_tp
@@ -616,7 +624,7 @@ struct
     let lbl = Option.value ~default:"" lbl in
     match get_constraints tp with
     | `Boundary (tp, phi, tm) ->
-      let _x, envx = Pp.Env.bind env (Some "_") in
+      let _x, envx = Pp.Env.bind_underscore env in
       Format.fprintf fmt "@[<v>|- @[?%a :@;<1 2>@[<hov>%a@]@]@;@;Boundary:@,%a@,|- @[<v>%a@]@]"
         Uuseg_string.pp_utf_8 lbl
         (pp_tp env P.(right_of colon)) tp
@@ -642,7 +650,7 @@ struct
   let pp_partial_sequent_goal bdry_sat env fmt (partial, tp) =
     match get_constraints tp with
     | `Boundary (tp, phi, tm) ->
-      let _x, envx = Pp.Env.bind env (Some "_") in
+      let _x, envx = Pp.Env.bind_underscore env in
       Format.fprintf fmt "|- {! %a !} : @[<hov>%a@]@,@,Boundary (%a):@,%a@,|- @[<v>%a@]"
         (pp env P.(right_of colon)) partial
         (pp_tp env P.(right_of colon)) tp

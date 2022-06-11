@@ -11,13 +11,13 @@ def special-j (A : type) (x : A) (B : (φ : 𝔽) → {(i : 𝕀) → sub A {i=0
   :=
   let filler : 𝕀 → 𝕀 → A :=
     j i =>
-    hcom A 0 i {∂ j ∨ φ} {i _ =>
+    hcom A 0 i {∂ j ∨ φ} {i =>
       [ i=0 ∨ j=0 ∨ φ => p 0
       | j=1 => p i
       ]
     }
   in
-  com {j => B {φ ∨ j=0} {filler j}} 0 1 {φ} {j _ => d}
+  com {j => B {φ ∨ j=0} {filler j}} 0 1 {φ} {j => d}
 
 shadowing def trans (A : type) (p : (i : 𝕀) → A)
   : (φ : 𝔽) (q : (i : 𝕀) → sub A {i=0 ∨ φ} {p 1})

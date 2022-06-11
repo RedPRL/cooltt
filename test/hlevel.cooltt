@@ -41,7 +41,7 @@ abstract
 unfold has-hlevel
 def prop-set (A : type) (A/prop : is-prop A) : is-set A :=
   a b p q i j =>
-  hcom A 0 1 {∂ i ∨ ∂ j} {k _ =>
+  hcom A 0 1 {∂ i ∨ ∂ j} {k =>
     [ k=0 ∨ ∂ j ∨ i=0 => A/prop a {p j} k
     | i=1 => A/prop a {q j} k
     ]
@@ -85,7 +85,7 @@ def path-based-contr (A : type) (a : A) : is-contr {(x : A) × path A a x} :=
   [ [a, i => a]
   , x i =>
     let aux : 𝕀 → A := j =>
-      hcom A 0 j {∂ i} {k _ =>
+      hcom A 0 j {∂ i} {k =>
         [ k=0 ∨ i=0 => a
         | i=1 => {snd x} k
         ]
