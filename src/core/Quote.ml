@@ -54,21 +54,10 @@ let rec quote_con (tp : D.tp) con =
   | D.TpPrf _, _ ->
     ret S.Prf
   | _, D.Split branches ->
-    let rec reduce_if_true = function
-      | [] -> ret None
-      | (phi,clo) :: branches ->
-        lift_cmp @@ CmpM.test_sequent [] phi |>> function
-        | true -> 
-          let* body = lift_cmp @@ inst_tm_clo clo D.Prf in
-          let+ s = quote_con tp body in
-          Some s
-        | false -> reduce_if_true branches
-    in
-    let* reduced = reduce_if_true branches in
-    begin
-      match reduced with
-      | Some e -> ret e
-      | None ->
+    (* NOTE: we reduce the split so that [ ⊤ => e ] will be quoted to e, reducing noise *)
+    lift_cmp @@ Sem.whnf_con_branches branches |>> begin function
+      | `Reduce d -> quote_con tp d
+      | `Done ->
         let quote_branch (phi, clo) =
           lift_cmp @@ CmpM.test_sequent [phi] CofBuilder.bot |>> function
           | false ->
@@ -490,14 +479,26 @@ and quote_tp (tp : D.tp) =
     let+ tr, t_pcode, tcode, t_pequiv = quote_v_data r pcode code pequiv in
     S.El (S.CodeV (tr, t_pcode, tcode, t_pequiv))
   | D.TpSplit branches ->
-    let branch_body (phi, clo) : S.tp m =
-      QuM.bind_var (D.TpPrf phi) @@ fun prf ->
-      let* tp = lift_cmp @@ inst_tp_clo clo prf in
-      quote_tp tp
-    in
-    let+ tphis = MU.map (fun (phi , _) -> quote_cof phi) branches
-    and+ tps = MU.map branch_body branches in
-    S.TpCofSplit (List.combine tphis tps)
+    (* NOTE: we reduce the split so that [ ⊤ => tp ] will be quoted to tp, reducing noise *)
+    lift_cmp @@ Sem.whnf_tp_branches branches |>> begin function
+      | `Reduce tp -> quote_tp tp
+      | `Done ->
+        let quote_branch (phi, clo) =
+          lift_cmp @@ CmpM.test_sequent [phi] CofBuilder.bot |>> function
+          | false ->
+            let+ tphi = quote_cof phi
+            and+ tbdy =
+              bind_var (D.TpPrf phi) @@ fun prf ->
+              let* body = lift_cmp @@ inst_tp_clo clo prf in
+              quote_tp body
+            in
+            Some (tphi, tbdy)
+          | true ->
+            ret None
+        in
+        let* tbranches = MU.filter_map quote_branch branches in
+        ret @@ S.TpCofSplit tbranches
+    end
 
 and quote_hd =
   function
