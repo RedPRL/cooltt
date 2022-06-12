@@ -57,7 +57,7 @@ let rec quote_con (tp : D.tp) con =
     let rec reduce_if_true = function
       | [] -> ret None
       | (phi,clo) :: branches ->
-      lift_cmp @@ CmpM.test_sequent [] phi |>> function
+        lift_cmp @@ CmpM.test_sequent [] phi |>> function
         | true -> 
           let* body = lift_cmp @@ inst_tm_clo clo D.Prf in
           let+ s = quote_con tp body in
@@ -66,7 +66,7 @@ let rec quote_con (tp : D.tp) con =
     in
     let* reduced = reduce_if_true branches in
     begin
-    match reduced with
+      match reduced with
       | Some e -> ret e
       | None ->
         let quote_branch (phi, clo) =
