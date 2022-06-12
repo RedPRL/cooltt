@@ -1294,8 +1294,7 @@ hcom-type.cooltt:16.13-16.14 [Info]:
     
     Boundary:
     i = 0 ∨ i = 0 ∨ i = 1
-    |- i = 0 => #3 * 0 *
-       i = 0 => ?asdf * 0 *
+    |- i = 0 => ?asdf * 0 *
        i = 1 => ?asdf * 1 *
 
 
@@ -1403,7 +1402,7 @@ holes.cooltt:18.26-18.30 [Info]:
 holes.cooltt:17.5-18.30 [Info]:
   Failure encountered, as expected:
    Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 * A p q i _x₂ *} =
-            [ i = 0 ∨ i = 1 => [ i = 0 => p 0 | i = 1 => q 1 ] ]
+            [ i = 0 => p 0 | i = 1 => q 1 ]
             : A
 
 
@@ -1415,8 +1414,8 @@ import.cooltt:23.0-23.1 [Error]:
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
-  def bar : ext nat ⊤ {_x => [ ⊤ => 0 ]} :=
-    [ ⊤ => 0 ]
+  def bar : ext nat ⊤ {_x => 0} :=
+    0
 
 --------------------[isos.cooltt]--------------------
 --------------------[monoid.cooltt]--------------------

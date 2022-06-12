@@ -721,18 +721,29 @@ and whnf_con : D.con -> D.con whnf CM.m =
       | true -> ret (`Reduce D.Base)
       | false -> ret `Done
     end
-  | D.Split branches ->
-    let rec go =
-      function
-      | [] -> ret `Done
-      | (phi, clo) :: branches ->
-        test_sequent [] phi |>> function
-        | true ->
-          reduce_to @<< inst_tm_clo clo D.Prf
-        | false ->
-          go branches
-    in
-    go branches
+  | D.Split branches -> whnf_con_branches branches
+
+and whnf_con_branches =
+  let open CM in
+  function
+  | [] -> ret `Done
+  | (phi, clo) :: branches ->
+    test_sequent [] phi |>> function
+    | true ->
+      reduce_to @<< inst_tm_clo clo D.Prf
+    | false ->
+      whnf_con_branches branches
+
+and whnf_tp_branches =
+  let open CM in
+  function
+  | [] -> ret `Done
+  | (phi, clo) :: branches ->
+    test_sequent [] phi |>> function
+    | true ->
+      reduce_to_tp @<< inst_tp_clo clo D.Prf
+    | false ->
+      whnf_tp_branches branches
 
 and whnf_boundary (psi, bdry) =
   let open CM in
@@ -832,18 +843,7 @@ and whnf_tp =
       | true -> reduce_to_tp @<< do_el @<< splice_tm bdry
       | false -> ret `Done
     end
-  | D.TpSplit branches ->
-    let rec go =
-      function
-      | [] -> ret `Done
-      | (phi, tp_clo) :: branches ->
-        test_sequent [] phi |>> function
-        | true ->
-          reduce_to_tp @<< inst_tp_clo tp_clo D.Prf
-        | false ->
-          go branches
-    in
-    go branches
+  | D.TpSplit branches -> whnf_tp_branches branches
   | _tp ->
     ret `Done
 
