@@ -16,7 +16,7 @@ val get_global : Global.t -> D.tp m
 val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
 val resolve_unfolder_syms : Ident.t list -> Global.t list m
 
-val inc_num_holes : unit m
+val add_hole : (D.tp * D.cof * D.tm_clo) -> unit m
 
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
