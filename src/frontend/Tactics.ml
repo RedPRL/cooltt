@@ -45,6 +45,38 @@ let match_goal (tac : _ -> T.Chk.tac RM.m) : T.Chk.tac =
   let* tac = tac goal in
   T.Chk.brun tac goal
 
+let refine k =
+  T.Chk.brule @@ fun (tp, phi, tm_clo) ->
+  let rec go tac =
+    (* [HACK: Hole State]
+       The holes are tracked as part of the /state/, rather than as some
+       sort of WriterT doodad, so we need to trim off the existing holes
+       before applying refinement. *)
+    let* st = RM.get in
+    let* before_holes = RM.get_holes in
+    let* r = RM.trap @@ T.Chk.brun tac (tp, phi, tm_clo) in
+    (* [NOTE: State Restoration]
+       We don't want to restore the state directly after executing the tactic,
+       as we still need to read off the holes generated, even in the case
+       where the tactic failed.
+
+       For instance, when refining an 'hcom', the tactic will basically always fail
+       the boundary check! *)
+    let* after_holes = RM.get_holes in
+    let n_holes = List.length after_holes - List.length before_holes in
+    let holes = CCList.take n_holes after_holes in
+    match holes, r with
+    | [], Ok tm -> RM.ret tm
+    | holes, Ok _ ->
+      let* () = RM.set st in
+      go (k holes None)
+    | holes, Error exn ->
+      let* () = RM.set st in
+      go (k holes (Some exn))
+  in
+  (* [TODO: Reed M, 14/06/2022] Should we 'unleash_hole' here, or cof split? *)
+  go (R.Hole.unleash_hole None)
+
 let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
   fun tac ->
   T.Syn.rule @@
