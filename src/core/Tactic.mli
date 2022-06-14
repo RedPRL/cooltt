@@ -42,6 +42,8 @@ sig
   val brun : tac -> D.tp * D.cof * D.tm_clo -> S.t RM.m
 
   val syn : Syn.tac -> tac
+
+  val catch : Chk.tac -> (exn -> Chk.tac) -> Chk.tac
 end
 and Syn :
 sig
@@ -49,6 +51,8 @@ sig
   val rule : ?name:string -> (S.t * D.tp) RM.m -> tac
   val run : tac -> (S.t * D.tp) RM.m
   val ann : Chk.tac -> Tp.tac -> tac
+
+  val catch : Syn.tac -> (exn -> Syn.tac) -> Syn.tac
 end
 
 
