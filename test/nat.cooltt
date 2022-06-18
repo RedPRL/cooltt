@@ -1,5 +1,6 @@
 import prelude
 
+abstract
 def + : nat → nat → nat :=
   elim [
   | zero => n => n
@@ -8,41 +9,94 @@ def + : nat → nat → nat :=
 
 #normalize + 2 3
 
+unfold +
+#normalize + 2 3
+
+abstract
 def pred : nat → nat :=
   elim [
   | zero => zero
   | suc {n => _} => n
   ]
 
+abstract
 def +-left-unit (x : nat) : path nat {+ 0 x} x :=
+  unfold + in
   _ => x
 
+abstract
+def +-suc-l (x y : nat) : path nat {+ {suc x} y} {suc {+ x y}} :=
+  unfold + in
+  _ => suc {+ x y}
+
+
+abstract
 def +-right-unit : (x : nat) → path nat {+ x 0} x :=
   elim [
   | zero =>
-    _ => 0
+    +-left-unit 0
   | suc {y => ih} =>
-    i => suc {ih i}
+    equation nat begin
+      + {suc y} 0 =[ +-suc-l y 0 ]
+      suc {+ y 0} =[ i => suc {ih i} ]
+      suc y
+    end
   ]
 
+
+abstract
 def +-suc-r : (x y : nat) → path nat {+ x {suc y}} {suc {+ x y}} :=
   elim [
-  | zero =>
-    x i => {suc x}
-  | suc {x => ih} =>
-    y i => suc {ih y i}
+  | zero => x =>
+    equation nat begin
+      + 0 {suc x} =[ +-left-unit {suc x} ]
+      suc x =[ i => suc {symm nat {+-left-unit x} i} ]
+      suc {+ 0 x}
+    end
+  | suc {x => ih} => y =>
+    equation nat begin
+      + {suc x} {suc y} =[ +-suc-l x {suc y} ]
+      suc {+ x {suc y}} =[ i => suc {ih y i} ]
+      suc {suc {+ x y}} =[ i => suc {symm nat {+-suc-l x y} i} ]
+      suc {+ {suc x} y}
+    end
   ]
 
+abstract
 def +-comm : (x y : nat) → path nat {+ y x} {+ x y} :=
   elim [
-  | zero => +-right-unit
+  | zero =>
+    y =>
+    equation nat begin
+      + y 0 =[ +-right-unit y ]
+      y =[ symm nat {+-left-unit y} ]
+      + 0 y
+    end
   | suc {y => ih} =>
     z =>
-    trans nat {+-suc-r z y} {j => suc {ih z j}}
+    equation nat begin
+      + z {suc y} =[ +-suc-r z y ]
+      suc {+ z y} =[ i => suc {ih z i} ]
+      suc {+ y z} =[ symm nat {+-suc-l y z} ]
+      + {suc y} z
+    end
   ]
 
+abstract
 def +-assoc : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
   elim [
-  | zero => y z i => + y z
-  | suc {x => ih} => y z i => suc {ih y z i}
+  | zero => y z =>
+    equation nat begin
+      + {+ 0 y} z =[ i => + {+-left-unit y i} z ]
+      + y z =[ symm nat {+-left-unit {+ y z}} ]
+      + 0 {+ y z}
+    end
+  | suc {x => ih} => y z =>
+    equation nat begin
+      + {+ {suc x} y} z =[ i => + {+-suc-l x y i} z ]
+      + {suc {+ x y}} z =[ +-suc-l {+ x y} z ]
+      suc {+ {+ x y} z} =[ i => suc {ih y z i} ]
+      suc {+ x {+ y z}} =[ symm nat {+-suc-l x {+ y z}} ]
+      + {suc x} {+ y z}
+    end
   ]

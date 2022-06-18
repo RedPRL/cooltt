@@ -9,7 +9,7 @@ def loopn : nat -> Ω1s1 :=
   | zero => _ => base
   | suc {n => loopn} =>
     i =>
-    hcom circle 0 1 {∂ i} {k _ =>
+    hcom circle 0 1 {∂ i} {k =>
       [ k=0 => loopn i
       | i=0 => base
       | i=1 => loop k
@@ -17,4 +17,4 @@ def loopn : nat -> Ω1s1 :=
     }
   ]
 
-#normalize {loopn 45}
+#normalize {loopn 100}

@@ -42,6 +42,9 @@ struct
     in
     x, env #< x
 
+  let bind_underscore (env : t) : string * t =
+    "_", env #< "_"
+
   let rec bindn (env : t) (nms : string option list) : string list * t =
     match nms with
     | [] ->

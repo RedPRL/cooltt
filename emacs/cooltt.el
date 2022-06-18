@@ -124,7 +124,7 @@
   "Syntax table for cooltt.")
 
 (defconst cooltt-declaration-keywords
-  '("def" "axiom" "let" "import" "section" "view" "export" "repack")
+  '("def" "axiom" "let" "import" "section" "view" "export" "repack" "unfold" "abstract")
   "Declaration keywords.")
 
 (defconst cooltt-command-keywords
@@ -132,7 +132,7 @@
   "Command keywords.")
 
 (defconst cooltt-expression-keywords
-  '("zero" "suc" "nat" "in" "fst" "snd" "elim" "unfold" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill" "sig" "struct" "equation" "begin" "end")
+  '("zero" "suc" "nat" "in" "fst" "snd" "elim" "type" "dim" "cof" "sub" "pathd" "coe" "hcom" "com" "hfill" "sig" "struct" "equation" "begin" "end")
   "Expression keywords.")
 
 

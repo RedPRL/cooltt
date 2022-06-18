@@ -18,7 +18,7 @@ view { m1, m1 -> }
 repack [?] -- check all exported bindings
 
 -- move everything under m2 to the root; shadow existing bindings with the bang
-!view [ m2 -> ]
+shadowing view [ m2 -> ]
 #print a2
 #print a3
 #print a4
