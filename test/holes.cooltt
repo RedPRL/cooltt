@@ -13,6 +13,12 @@ def incomplete-trans₃ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i
 def incomplete-trans₄ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   i => {! trans/filler A p q 1 i !}
 
+def incomplete-trans₅ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+  i => {! trans/filler A ?_h1 ?h2 1 i !}
+
+def incomplete-trans₆ (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
+  i => {! trans/filler A ?h3 ?_h4 1 i !}
+
 -- Test that the cone of silence tactic still triggers failures when it ought to
 #fail def cone-of-silence-hcom (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
   i => hcom A 0 1 {∂ i} {!!}

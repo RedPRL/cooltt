@@ -188,8 +188,10 @@ and chk_tm : CS.con -> T.Chk.tac =
   T.Chk.update_span con.info @@
   Tactics.intro_subtypes_and_total @@
   match con.node with
-  | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
-  | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
+  | CS.Hole ({name; silent=false}, None) -> Refiner.Hole.unleash_hole name
+  | CS.Hole ({name; silent=false}, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
+  | CS.Hole ({name; silent=true}, None) -> Refiner.Hole.silent_hole name
+  | CS.Hole ({name=_; silent=true}, Some con) -> chk_tm con
   | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
   | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
 
@@ -338,8 +340,10 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
   T.Syn.update_span con.info @@
   (if elim_total then Tactics.elim_implicit_connectives_and_total else Tactics.elim_implicit_connectives) @@
   match con.node with
-  | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
-  | CS.Hole (name, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
+  | CS.Hole ({name; silent=false}, None) -> Refiner.Hole.unleash_syn_hole name
+  | CS.Hole ({name; silent=false}, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
+  | CS.Hole ({name; silent=true}, None) -> Refiner.Hole.silent_syn_hole name
+  | CS.Hole ({name=_; silent=true}, Some con) -> syn_tm con
   | CS.BoundaryHole None ->  Refiner.Hole.unleash_syn_hole None
   | CS.BoundaryHole (Some con) ->  Refiner.Probe.probe_syn None @@ syn_tm con
   | CS.Var id ->
@@ -444,5 +448,6 @@ let rec modifier (con : CS.con) =
   | CS.ModSeq l -> seq <@> MU.map modifier l
   | CS.ModUnion l -> union <@> MU.map modifier l
   | CS.ModInSubtree (p, m) -> in_ p <@> modifier m
-  | CS.ModPrint lbl -> RM.ret @@ hook @@ `Print lbl
+  | CS.ModPrint {name; silent=false} -> RM.ret @@ hook @@ `Print name
+  | CS.ModPrint {name=_; silent=true} -> RM.ret @@ seq []
   | _ -> RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
