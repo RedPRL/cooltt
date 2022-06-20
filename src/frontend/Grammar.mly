@@ -410,8 +410,12 @@ plain_term_except_cof_case:
     { Coe (fam, src, trg, body) }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { HCom (tp, src, trg, phi, body) }
+  | HCOM; src = atomic_term; trg = atomic_term; body = atomic_term
+    { HComInfer (src, trg, body) }
   | HFILL; tp = atomic_term; src = atomic_term; phi = atomic_term; body = atomic_term
     { HFill (tp, src, phi, body) }
+  | HFILL; src = atomic_term; body = atomic_term
+    { HFillInfer (src, body) }
   | COM; fam = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { Com (fam, src, trg, phi, body) }
   | EQUATION; code = term; BEGIN; eqns = step; END

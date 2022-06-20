@@ -186,7 +186,8 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.update_span con.info @@
-  Tactics.intro_subtypes_and_total @@
+  (* [HACK: June, 06-20-2022] This should go somewhere else, and breaks HComInfer *)
+  (* Tactics.intro_subtypes_and_total @@ *)
   match con.node with
   | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
   | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
@@ -206,6 +207,10 @@ and chk_tm : CS.con -> T.Chk.tac =
 
   | CS.Lam ([], body) ->
     chk_tm body
+
+  | CS.HComInfer (src, trg, tm) ->
+    Tactics.Univ.hcom_chk (chk_tm src) (chk_tm trg) (chk_tm tm)
+  | CS.HFillInfer (src, tm) -> failwith "FIXME: HFillInfer unimplemented"
 
   | _ ->
     Tactics.intro_implicit_connectives @@
