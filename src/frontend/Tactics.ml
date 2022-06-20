@@ -38,7 +38,6 @@ let elab_err err =
   let* env = RM.read in
   RM.throw @@ ElabError.ElabError (err, RefineEnv.location env)
 
-
 let match_goal (tac : _ -> T.Chk.tac RM.m) : T.Chk.tac =
   T.Chk.brule @@
   fun goal ->
@@ -330,4 +329,39 @@ struct
     in
     let+ trefl = RM.quote_con refl_tp refl in
     (trefl, refl_tp)
+end
+
+module Univ =
+struct
+  let as_code = function
+    | D.ElStable code -> RM.ret @@ D.StableCode code
+    | D.ElUnstable code -> RM.ret @@ D.UnstableCode code
+    | D.ElCut cut -> RM.ret @@ D.Cut { tp = D.Univ; cut }
+    | tp -> RM.expected_connective `El tp
+
+  let hcom_chk tac_src tac_trg tac_tm =
+    T.Chk.brule ~name:"hcom_chk" @@ fun (tp, phi, tm_clo) ->
+    let* tp = RM.lift_cmp @@ Sem.whnf_tp_ tp in
+    match tp with
+    | D.Sub (tp, psi, _) ->
+      let* vcode = as_code tp in
+      let* code = RM.quote_con D.Univ vcode in
+      let* src = T.Chk.run tac_src D.TpDim in
+      let* vsrc = RM.eval src in
+      let* trg = T.Chk.run tac_trg D.TpDim in
+      let* cof = RM.quote_cof psi in
+      let* body_tp =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con vsrc @@ fun src ->
+        Splice.cof psi @@ fun cof ->
+        Splice.tp tp @@ fun vtp ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
+        vtp
+      in
+      let* tm = T.Chk.run tac_tm body_tp in
+      RM.ret @@ S.SubIn (S.HCom (code, src, trg, cof, tm))
+    | _ -> RM.expected_connective `Sub tp
 end
