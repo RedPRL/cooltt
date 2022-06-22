@@ -147,7 +147,7 @@ def p≡refl∘p (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {tran
 def bottom-id (A : type) (α : 𝕀 → 𝕀 → A) (β : (i j : 𝕀) → sub A {∂ j ∨ i=0} {α i j}) : path {path A {α 1 0} {β 1 1}} {α 1} {β 1} :=
   k i =>
   hcom 0 1 {j =>
-    [ i=0 ∨ i=1 ∨ j=0 ∨ k=0 => α j i
+    [ ∂ i ∨ j=0 ∨ k=0 => α j i
     | k=1 => β j i
     ]
   }
