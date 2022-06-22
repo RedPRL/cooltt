@@ -215,7 +215,8 @@ def htrans
 
 -- Theorem 4.1.1 (path induction)
 def is-refl (A : type) (p : 𝕀 → A) : path-p {i => path A {p 0} {p i}} {refl A {p 0}} p :=
-  k i => hcom 0 1 {j =>
+  k i =>
+  hcom 0 1 {j =>
     [ i=0 => p 0
     | i=1 => op₂ A p k j
     | j=0 => p≡p∘refl A p k i
