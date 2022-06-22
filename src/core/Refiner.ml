@@ -718,6 +718,7 @@ struct
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
+      (* TODO: another place to avoid this kind of matching *)
     | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       let* () = Cof.assert_true cof in
@@ -861,6 +862,9 @@ struct
       let* tac = match tacs lbl, tp with
         | Some tac, _ -> RM.ret tac
         | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
+          (* This is a case where we can avoid matching on ElStable. 
+             We should instead check if the type is "judgmentally contractible" --- which can be implemented by a relatively simple type-directed algorithm.
+          *)
           let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
           begin
             RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
