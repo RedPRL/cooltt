@@ -7,6 +7,8 @@ def + : nat → nat → nat :=
   | suc {_ => ih} => n => suc {ih n}
   ]
 
+#print +
+
 #normalize + 2 3
 
 unfold +

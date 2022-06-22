@@ -2,26 +2,35 @@ import prelude
 import nat
 
 def monoid : type :=
-    sig (C : type)
-        (op : C -> C -> C)
-        (z : C)
-        (idL : (x : C) -> path C {op z x} x)
-        (idR : (x : C) -> path C {op x z} x)
-        (assoc : (a b c : C) -> path C {op {op a b} c} {op a {op b c}})
+  sig
+    def C : type
+    def op : C → C → C
+    def z : C
+    def idL : (x : C) → path C {op z x} x
+    def idR : (x : C) → path C {op x z} x
+    def assoc : (a b c : C) → path C {op {op a b} c} {op a {op b c}}
+  end
 
-def monoid/nat : monoid # [ C .= nat ] := 
-    struct (op : +)
-           (z : 0)
-           (idL : +-left-unit)
-           (idR : +-right-unit)
-           (assoc : +-assoc)
-           
+#print monoid
+
+def monoid/nat : monoid # [C := nat] :=
+  struct
+    def op := +
+    def z := 0
+    def idL := +-left-unit
+    def idR := +-right-unit
+    def assoc := +-assoc
+  end
+
 #print monoid/nat
 
-def monoid/nat/+ : monoid # [ C .= nat | op .= + ] :=
-    struct (z : 0)
-           (idL : +-left-unit)
-           (idR : +-right-unit)
-           (assoc : +-assoc)
+def monoid/nat/+ : monoid # [C := nat, op := +] :=
+  struct
+    def z := 0
+    def idL := +-left-unit
+    def idR := +-right-unit
+    def assoc := +-assoc
+  end
+
 
 #print monoid/nat/+
