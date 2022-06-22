@@ -30,29 +30,32 @@ def refl≡p∘p¯¹ (A : type) (p : 𝕀 → A)
 
 def square (A : type) : type :=
   sig
-    (top    : ext i => A with [])
-    (bot    : ext i => A with [])
-    (left   : ext i => A with [i=0 => top 0 | i=1 => bot 0])
-    (right  : ext i => A with [i=0 => top 1 | i=1 => bot 1])
-    (filler : ext i j => A with [i=0 => top j | i=1 => bot j | j=0 => left i | j=1 => right i])
+    def top : ext i => A with []
+    def bot : ext i => A with []
+    def left : ext i => A with [i=0 => top 0 | i=1 => bot 0]
+    def right : ext i => A with [i=0 => top 1 | i=1 => bot 1]
+    def filler : ext i j => A with [i=0 => top j | i=1 => bot j | j=0 => left i | j=1 => right i]
+  end
 
 -- Lemma 3.2.5 (square swap)
 def swap (A : type) (sq : square A)
   : square A #
-    [ top   .= sq.bot
-    | bot   .= sq.top
-    | left  .= symm A {sq.left}
-    | right .= symm A {sq.right}
+    [ top   := sq.bot
+    , bot   := sq.top
+    , left  := symm A {sq.left}
+    , right := symm A {sq.right}
     ] :=
   unfold symm in
   struct
-    (filler : i k => hcom 0 1 {j =>
-      [ i=0 => sq.filler j k
-      | i=1 ∨ j=0 => sq.top k
-      | k=0 => symm/filler A {sq.left} i j
-      | k=1 => symm/filler A {sq.right} i j
-      ]
-    })
+    def filler :=
+      i k => hcom 0 1 {j =>
+        [ i=0 => sq.filler j k
+        | i=1 ∨ j=0 => sq.top k
+        | k=0 => symm/filler A {sq.left} i j
+        | k=1 => symm/filler A {sq.right} i j
+        ]
+      }
+  end
 
 -- Lemma 3.2.6 (inversability)
 def symm-invol (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {symm A {symm A p}} :=
@@ -67,11 +70,12 @@ def symm-invol (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {symm A
   in
   let back : square A :=
     struct
-      (top    : symm A p)
-      (bot    : trans A {symm A p} p)
-      (left   : refl A b)
-      (right  : p)
-      (filler : trans/filler A {symm A p} p)
+      def top := symm A p
+      def bot := trans A {symm A p} p
+      def left := refl A b
+      def right := p
+      def filler := trans/filler A {symm A p} p
+    end
   in
   let front : square A := swap A {swap A back} in
   k i => hcom 0 1 {j =>
@@ -153,26 +157,29 @@ def assoc (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (r 
   unfold trans in
   let α : square A :=
     struct
-      (top : p)
-      (bot : trans A {trans A p q} r)
-      (left : refl A {p 0})
-      (right : trans A q r)
-      (filler : k i => hcom 0 1 {j =>
-        [ i=0 => p 0
-        | i=1 => trans/filler A q r j k
-        | j=0 => trans/filler A p q k i
-        | k=0 => p i
-        | k=1 => trans/filler A {trans A p q} r j i
-        ]
-      })
+      def top := p
+      def bot := trans A {trans A p q} r
+      def left := refl A {p 0}
+      def right := trans A q r
+      def filler :=
+        k i => hcom 0 1 {j =>
+          [ i=0 => p 0
+          | i=1 => trans/filler A q r j k
+          | j=0 => trans/filler A p q k i
+          | k=0 => p i
+          | k=1 => trans/filler A {trans A p q} r j i
+          ]
+        }
+    end
   in
   let β : square A :=
     struct
-      (top : α.top)
-      (bot : trans A p {trans A q r})
-      (left : α.left)
-      (right : α.right)
-      (filler : trans/filler A p {trans A q r})
+      def top := α.top
+      def bot := trans A p {trans A q r}
+      def left := α.left
+      def right := α.right
+      def filler := trans/filler A p {trans A q r}
+    end
   in bottom-id A {α.filler} {β.filler}
 
 -- Lemma 3.3.1 (heterogeneous inversion)
