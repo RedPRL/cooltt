@@ -192,18 +192,22 @@ and real_token = parse
     { RRIGHT_ARROW }
   | '_'
     { UNDERSCORE }
+  | "?_" hole_atom
+    {
+      let str = lexeme lexbuf in
+      let hole_name = String.sub str 2 (String.length str - 2) in
+      HOLE {name = Some hole_name; silent = true}
+    }
+  | "?_"
+    { HOLE {name = None; silent = true} }
   | "?" hole_atom
     {
       let str = lexeme lexbuf in
-      let len = String.length str in
-      if len = 1 then
-        HOLE_NAME None
-      else
-        let hole_name = String.sub str 1 (String.length str - 1) in
-        HOLE_NAME (Some hole_name)
+      let hole_name = String.sub str 1 (String.length str - 1) in
+      HOLE {name = Some hole_name; silent = false}
     }
   | "?"
-    { HOLE_NAME None }
+    { HOLE {name = None; silent = false} }
   | "!"
     { BANG }
   | "∂" (* XXX what to do with "∂i"? *)

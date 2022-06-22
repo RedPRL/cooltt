@@ -16,6 +16,7 @@ type 'a telescope =
 module Hole : sig
   val silent_hole : string option -> Chk.tac
   val unleash_hole : string option -> Chk.tac
+  val silent_syn_hole : string option -> Syn.tac
   val unleash_syn_hole : string option -> Syn.tac
 end
 

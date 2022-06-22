@@ -1104,6 +1104,7 @@ circle.cooltt:20.11-20.22 [Info]:
       | i = 1 => loop _x
       ]}
 
+--------------------[coercion.cooltt]--------------------
 --------------------[com.cooltt]--------------------
 com.cooltt:21.11-21.20 [Info]:
   Computed normal form of mycom/fun as
@@ -1359,8 +1360,7 @@ hcom-type.cooltt:18.13-18.14 [Info]:
     
     Boundary:
     i = 0 ∨ i = 0 ∨ i = 1
-    |- i = 0 => #3 * 0 *
-       i = 0 => ?asdf * 0 *
+    |- i = 0 => ?asdf * 0 *
        i = 1 => ?asdf * 1 *
 
 
@@ -1454,7 +1454,57 @@ holes.cooltt:14.7-14.35 [Info]:
        i = 1 => q 1
 
 
-holes.cooltt:18.26-18.30 [Info]:
+holes.cooltt:17.30-17.33 [Info]:
+  Emitted hole:
+    _ : [ ⊤ ]
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- ?h2 : (i₁ : 𝕀) → sub A {i₁ = 0} {?h1 * A p q i 1}
+
+
+holes.cooltt:17.7-17.40 [Info]:
+  Emitted hole:
+    _ : [ ⊤ ]
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- {! trans/filler A {?h1 * A p q i} {?h2 * A p q i} 1 i !} : A
+    
+    Boundary (unsatisfied):
+    i = 0 ∨ i = 1
+    |- i = 0 => p 0
+       i = 1 => q 1
+
+
+holes.cooltt:20.25-20.28 [Info]:
+  Emitted hole:
+    _ : [ ⊤ ]
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- ?h3 : (_x : 𝕀) → A
+
+
+holes.cooltt:20.7-20.40 [Info]:
+  Emitted hole:
+    _ : [ ⊤ ]
+    A : type
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
+    i : 𝕀
+    |- {! trans/filler A {?h3 * A p q i} {?h4 * A p q i} 1 i !} : A
+    
+    Boundary (unsatisfied):
+    i = 0 ∨ i = 1
+    |- i = 0 => p 0
+       i = 1 => q 1
+
+
+holes.cooltt:24.26-24.30 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
@@ -1464,14 +1514,14 @@ holes.cooltt:18.26-18.30 [Info]:
     |- ? : (_x : 𝕀) →  (_ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) →  A
 
 
-holes.cooltt:17.5-18.30 [Info]:
+holes.cooltt:23.5-24.30 [Info]:
   Failure encountered, as expected:
-   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #10 * A p q i _x₂ *} =
-            [ i = 0 ∨ i = 1 => [ i = 0 => p 0 | i = 1 => q 1 ] ]
+   Expected hcom A 0 1 {i = 0 ∨ i = 1} {_x₂ _x₃ => #18 * A p q i _x₂ *} =
+            [ i = 0 => p 0 | i = 1 => q 1 ]
             : A
 
 
-[Warn]:  There are 7 unsolved holes
+[Warn]:  There are 13 unsolved holes
 
 --------------------[import.cooltt]--------------------
 import.cooltt:23.0-23.1 [Error]:
@@ -1479,7 +1529,12 @@ import.cooltt:23.0-23.1 [Error]:
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
+<<<<<<< HEAD
   def bar : ext nat ⊤ {_x => [ ⊤ => 0 ]} := [ ⊤ => 0 ]
+=======
+  def bar : ext nat ⊤ {_x => 0} :=
+    0
+>>>>>>> origin/main
 
 --------------------[isos.cooltt]--------------------
 --------------------[monoid.cooltt]--------------------

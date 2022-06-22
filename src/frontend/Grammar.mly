@@ -42,7 +42,7 @@
 
 %token <int> NUMERAL
 %token <string> ATOM
-%token <string option> HOLE_NAME
+%token <ConcreteSyntax.hole> HOLE
 %token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS LESS_THAN JOIN MEET
@@ -224,8 +224,8 @@ plain_atomic_modifier:
     { ModNone }
   | BANG path = iocc_path
     { ModExcept path }
-  | name = HOLE_NAME
-    { ModPrint name }
+  | hole = HOLE
+    { ModPrint hole }
 
 plain_modifier:
   | COLON_COLON
@@ -295,8 +295,8 @@ plain_atomic_term_except_sq:
     { Circle }
   | TYPE
     { Type }
-  | name = HOLE_NAME
-    { Hole (name, None) }
+  | hole = HOLE
+    { Hole (hole, None) }
   | DIM
     { Dim }
   | COF
@@ -400,8 +400,8 @@ plain_term_except_cof_case:
     { VProj t }
   | CAP; t = atomic_term
     { Cap t }
-  | name = HOLE_NAME; SEMI; t = term
-    { Hole (name, Some t) }
+  | hole = HOLE; SEMI; t = term
+    { Hole (hole, Some t) }
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
