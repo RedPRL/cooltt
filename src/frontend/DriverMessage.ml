@@ -73,7 +73,7 @@ let pp_message fmt =
     let env = Pp.Env.emp in
     let _, env' = Pp.Env.bind env None in
     Format.fprintf fmt
-      "@[<v>@[def %a : %a :=@]@,  %a@]"
+      "@[<hov2>def %a :@;@[%a@]@;:=@;%a@]"
       Ident.pp ident
       (Syntax.pp_tp env) tp
       (Syntax.pp env') tm

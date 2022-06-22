@@ -16,6 +16,7 @@ def J (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → ty
 unfold J
 #normalize J
 
+
 abstract
 def J/eq (A : type) (p : 𝕀 → A) (C : {(i : 𝕀) → sub A {i=0} {p 0}} → type) (d : C {_ => p 0}) : path {C {_ => p 0}} {J A {_ => p 0} C d} d :=
   let square : 𝕀 → 𝕀 → A := i => hfill A 0 {∂ i} {_ => p 0} in
