@@ -62,10 +62,7 @@ def symm-invol (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {symm A
   let a : A := p 0 in
   let b : A := p 1 in
   let true-at-refl : path {path A b b} {refl A b} {symm A {symm A {refl A b}}} :=
-    trans {path A b b}
-          {refl≡refl¯¹ A b}
-          {cong {path A b b} {_ => path A b b}
-                {symm A} {refl A b} {symm A {refl A b}} {refl≡refl¯¹ A b}}
+    trans {path A b b} {refl≡refl¯¹ A b} {i => symm A {refl≡refl¯¹ A b i}}
   in
   let back : square A :=
     unfold trans in
