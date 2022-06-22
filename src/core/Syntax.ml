@@ -504,7 +504,7 @@ struct
         | TpPrf _ -> Pp.Env.bind_underscore env
         | _ -> ppenv_bind env ident
       in
-      Format.fprintf fmt "(%a : %a) %a@;<1 2> %a"
+      Format.fprintf fmt "(%a : %a) %a@;<1 2>%a"
         Uuseg_string.pp_utf_8 x
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"

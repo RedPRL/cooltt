@@ -1303,19 +1303,19 @@ export.cooltt:24.0-24.1 [Error]:
 --------------------[groupoid-laws.cooltt]--------------------
 groupoid-laws.cooltt:128.7-128.11 [Info]:
   def test :
-    (A : type) →  (p : (i : 𝕀) →  A) →  (q : (i : 𝕀) →
-       sub A {i = 0} {p 1}) →  (r : (i : 𝕀) →  sub A {i = 0} {q 1}) →
-       (s : (i : 𝕀) →  sub A {i = 0} {r 1}) →  (j : 𝕀) →
-       ext
-         {i => A}
-         {i => i = 0 ∨ i = 1}
-         {i _x => [ i = 0 => p 0 | i = 1 => r 1 ]} :=
+    (A : type) → (p : (i : 𝕀) → A) → (q : (i : 𝕀) →
+      sub A {i = 0} {p 1}) → (r : (i : 𝕀) → sub A {i = 0} {q 1}) →
+      (s : (i : 𝕀) → sub A {i = 0} {r 1}) → (j : 𝕀) →
+      ext
+        {i => A}
+        {i => i = 0 ∨ i = 1}
+        {i _x => [ i = 0 => p 0 | i = 1 => r 1 ]} :=
     A p q r s j _x₁ =>
     assoc A {_x₂ => p _x₂} ⊥ {_x₂ => q _x₂} ⊥ {_x₂ => r _x₂} j _x₁
 
 --------------------[hcom-type.cooltt]--------------------
 hcom-type.cooltt:12.7-12.13 [Info]:
-  def v-test : (r : 𝕀) →  (A : type) → type :=
+  def v-test : (r : 𝕀) → (A : type) → type :=
     r A =>
     V r {_x₁ => A} A
       {_x₁ =>
@@ -1378,8 +1378,8 @@ holes.cooltt:5.7-5.13 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) →  A
-    q : (i : 𝕀) →  sub A {i = 0} {p 1}
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
     |- ? : A
     
@@ -1393,28 +1393,28 @@ holes.cooltt:8.25-8.26 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) →  A
-    q : (i : 𝕀) →  sub A {i = 0} {p 1}
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (_x : 𝕀) →  A
+    |- ? : (_x : 𝕀) → A
 
 
 holes.cooltt:8.27-8.28 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) →  A
-    q : (i : 𝕀) →  sub A {i = 0} {p 1}
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (i₁ : 𝕀) →  sub A {i₁ = 0} {#2 * A p q i 1}
+    |- ? : (i₁ : 𝕀) → sub A {i₁ = 0} {#2 * A p q i 1}
 
 
 holes.cooltt:8.7-8.35 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) →  A
-    q : (i : 𝕀) →  sub A {i = 0} {p 1}
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
     |- {! trans/filler A {#2 * A p q i} {#3 * A p q i} 1 i !} : A
     
@@ -1428,8 +1428,8 @@ holes.cooltt:11.7-11.35 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) →  A
-    q : (i : 𝕀) →  sub A {i = 0} {p 1}
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
     |- {! trans/filler A {_x => p _x} {_x => q _x} 0 i !} : A
     
@@ -1443,8 +1443,8 @@ holes.cooltt:14.7-14.35 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) →  A
-    q : (i : 𝕀) →  sub A {i = 0} {p 1}
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
     |- {! trans/filler A {_x => p _x} {_x => q _x} 1 i !} : A
     
@@ -1508,10 +1508,10 @@ holes.cooltt:24.26-24.30 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
     A : type
-    p : (_x : 𝕀) →  A
-    q : (i : 𝕀) →  sub A {i = 0} {p 1}
+    p : (_x : 𝕀) → A
+    q : (i : 𝕀) → sub A {i = 0} {p 1}
     i : 𝕀
-    |- ? : (_x : 𝕀) →  (_ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) →  A
+    |- ? : (_x : 𝕀) → (_ : [ _x = 0 ∨ i = 0 ∨ i = 1 ]) → A
 
 
 holes.cooltt:23.5-24.30 [Info]:
@@ -1529,12 +1529,7 @@ import.cooltt:23.0-23.1 [Error]:
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:
-<<<<<<< HEAD
-  def bar : ext nat ⊤ {_x => [ ⊤ => 0 ]} := [ ⊤ => 0 ]
-=======
-  def bar : ext nat ⊤ {_x => 0} :=
-    0
->>>>>>> origin/main
+  def bar : ext nat ⊤ {_x => 0} := 0
 
 --------------------[isos.cooltt]--------------------
 --------------------[monoid.cooltt]--------------------
@@ -1924,7 +1919,7 @@ patch.cooltt:39.5-39.87 [Info]:
   Failure encountered, as expected:
    Expected type =
             (_x₁ : sig def A : type def a : A end) →
-               (_x₂ : nat) → type
+              (_x₂ : nat) → type
 
 
 patch.cooltt:79.7-79.16 [Info]:
