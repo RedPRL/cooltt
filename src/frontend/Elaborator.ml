@@ -196,6 +196,9 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Lam ([], body) ->
     chk_tm body
 
+  | CS.Let (c, ident, body) ->
+    R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> chk_tm body
+
   | _ ->
     Tactics.intro_subtypes_and_total @@
     match con.node with
@@ -260,9 +263,6 @@ and chk_tm : CS.con -> T.Chk.tac =
 
       | CS.Loop c ->
         R.Circle.loop (chk_tm c)
-
-      | CS.Let (c, ident, body) ->
-        R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> chk_tm body
 
       | CS.Nat ->
         R.Univ.nat

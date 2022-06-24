@@ -69,6 +69,8 @@ module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
   val probe_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
+
+  val dispatch_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
 end =
 struct
   let print_state lbl tp : unit m =
@@ -113,6 +115,18 @@ struct
     let* probe_tm = T.Chk.run probe tp in
     let* () = print_boundary probe_tm tp phi clo in
     T.Chk.brun tac (tp, phi, clo)
+
+  let dispatch_boundary tac backup =
+    T.Chk.brule ~name:"dispatch_boundary" @@ fun (tp, phi, tm_clo) ->
+    (* [HACK: Hazel; 2022-06-23] Is it the right thing to run the tactic twice? *)
+    let* tm = T.Chk.run tac tp in
+    let* bdry_sat = boundary_satisfied tm tp phi tm_clo in
+    match bdry_sat with
+    | `BdryUnsat ->
+      (* [HACK: Hazel; 2022-06-23] This assumes that backup is a hole tactic *)
+      let* () = print_boundary tm tp phi tm_clo in
+      T.Chk.brun backup (tp, phi, tm_clo)
+    | `BdrySat -> T.Chk.brun tac (tp, phi, tm_clo)
 
   let probe_syn name tac =
     T.Syn.rule ~name:"probe_syn" @@
