@@ -361,5 +361,8 @@ struct
         T.Chk.brun hcom_tac (tp, phi, tm_clo)
       | _ -> RM.expected_connective `Sub tp
     in
-    R.Probe.dispatch_boundary cool_hcom @@ R.Hole.silent_hole None
+    R.Probe.dispatch_boundary cool_hcom @@ fun tm ->
+    T.Chk.brule @@ fun (tp, phi, tm_clo) ->
+    let* () = RM.print_boundary tm tp phi tm_clo in
+    T.Chk.brun (R.Hole.silent_hole None) (tp, phi, tm_clo)
 end
