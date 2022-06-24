@@ -56,12 +56,11 @@ struct
 
   let dispatch_boundary tac backup =
     T.Chk.brule ~name:"dispatch_boundary" @@ fun (tp, phi, tm_clo) ->
-    (* [HACK: Hazel; 2022-06-23] Is it the right thing to run the tactic twice? *)
-    let* tm = T.Chk.run tac tp in
+    let* tm = T.Chk.brun tac (tp, phi, tm_clo) in
     let* bdry_sat = RM.boundary_satisfied tm tp phi tm_clo in
     match bdry_sat with
     | `BdryUnsat -> T.Chk.brun (backup tm) (tp, phi, tm_clo)
-    | `BdrySat -> T.Chk.brun tac (tp, phi, tm_clo)
+    | `BdrySat -> RM.ret tm
 
   let probe_syn name tac =
     T.Syn.rule ~name:"probe_syn" @@

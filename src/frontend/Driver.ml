@@ -180,6 +180,7 @@ and execute_decl (decl : CS.decl) : command =
         let* tunf_cof = RM.quote_cof unf_cof in
         let* vtp_body = RM.eval_tp ttp_body in
         Tactic.abstract (D.TpPrf unf_cof) @@ fun _ ->
+        Debug.print "------------------------------------------@.";
         let* tm = Tactic.Chk.run (Elaborator.chk_tm_in_tele args def) vtp_body in
         RM.ret @@ S.Sub (ttp_body, tunf_cof, tm)
       in

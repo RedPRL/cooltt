@@ -131,8 +131,9 @@ struct
         in
         RM.ret tm
     | BChk (name, btac) ->
-      debug_tactic name;
-      btac
+      fun (tp, phi, clo) ->
+        debug_tactic name;
+        btac (tp, phi, clo)
 
   let rule ?(name = "") tac = Chk (name, tac)
   let brule ?(name = "") tac = BChk (name, tac)
