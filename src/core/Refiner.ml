@@ -603,7 +603,7 @@ struct
   let quote_code_sign sign univ = quote_code_sign_hooks sign ~patch_tacs:(fun _ -> None) ~renaming:(fun _ -> None) univ
   let patch_fields sign patch_tacs univ = quote_code_sign_hooks sign ~patch_tacs ~renaming:(fun _ -> None) univ
 
-  let rename_code_sign sign renaming univ = quote_code_sign_hooks sign ~patch_tacs:(fun _ -> None) ~renaming univ
+  let rename_code_sign sign renaming univ = quote_code_sign_hooks sign ~renaming ~patch_tacs:(fun _ -> None) univ
 
 
   (* [NOTE: Sig Code Quantifiers]
@@ -859,30 +859,62 @@ struct
     | [] ->
       None
 
+  let equate_sign_prefix sign0 sign1 con =
+    let rec go acc sign0 sign1 =
+      match sign0, sign1 with
+        | D.Empty, _ -> RM.ret (List.rev acc, sign1)
+        | D.Field (lbl0,tp0,sign_clo0), D.Field (lbl1,tp1,sign_clo1) when Ident.equal lbl0 lbl1 ->
+          let* () = RM.equate_tp tp0 tp1 in
+          let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
+          let* qproj = RM.quote_con tp0 proj in
+          let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
+          let* sign1 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo1 proj in
+          go ((lbl0,qproj) :: acc) sign0 sign1
+        | _ -> failwith "including term in struct with incompatible type"
+    in
+    go [] sign0 sign1
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : Ident.user -> T.Chk.tac option) : (Ident.user * S.t) list m =
-    match sign with
-    | D.Field (lbl, tp, sign_clo) ->
-      let* tac = match tacs lbl, tp with
-        | Some tac, _ -> RM.ret tac
-        | None, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac] list) : (Ident.user * S.t) list m =
+    match sign,tacs with
+    | D.Field (lbl0, tp, sign_clo), (`Field (lbl1,tac) :: tacs as all_tacs) ->
+      Debug.print "INTRO_FIELDS: %a %a\n" Ident.pp_user lbl0 Ident.pp_user lbl1;
+      let* tac,tacs = match Ident.equal lbl0 lbl1, tp with
+        | true, _ -> RM.ret (tac,tacs)
+        | false, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
           let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
           begin
             RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
-            | true -> RM.ret Univ.infer_nullary_ext
-            | false -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
+            | true -> RM.ret (Univ.infer_nullary_ext,all_tacs)
+            | false -> RM.ret (Hole.unleash_hole (Ident.user_to_string_opt lbl0),tacs)
           end
-        | None, _ -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
+        | false, _ -> RM.ret (Hole.unleash_hole (Ident.user_to_string_opt lbl0),tacs)
       in
+      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0) @@ D.Lam (Ident.anon, phi_clo)) in
+      let* vfield = RM.lift_ev @@ Sem.eval tfield in
+      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
+      let+ tfields = intro_fields phi phi_clo tsign tacs in
+      (lbl0, tfield) :: tfields
+    | sign, `Include tac :: tacs ->
+      let* tm,tp = T.Syn.run tac in
+      RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
+        | D.Signature inc_sign -> 
+          let* vtm = RM.lift_ev @@ Sem.eval tm in
+          let* fields,sign = equate_sign_prefix inc_sign sign vtm in
+          let+ tfields = intro_fields phi phi_clo sign tacs in
+          fields @ tfields
+        | _ -> failwith "including non-struct"
+      end
+    | D.Field (lbl,tp,sign_clo), [] -> 
+      let tac = Hole.unleash_hole (Ident.user_to_string_opt lbl) in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
       let+ tfields = intro_fields phi phi_clo tsign tacs in
       (lbl, tfield) :: tfields
-    | D.Empty ->
+    | D.Empty,[] ->
       RM.ret []
-
-  let intro (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+    | _ -> failwith "intro_fields"
+  let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac] list) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->

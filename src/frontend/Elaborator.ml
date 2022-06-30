@@ -232,8 +232,8 @@ and chk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Struct fields ->
-      let tacs = List.map (fun (`Field (lbl,con)) -> (lbl, chk_tm con)) fields in
-      R.Signature.intro @@ R.Signature.find_field tacs
+      let tacs = List. map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include con -> `Include (syn_tm con)) fields in
+      R.Signature.intro tacs
 
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)
@@ -320,9 +320,10 @@ and chk_tm : CS.con -> T.Chk.tac =
         RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
       | D.Sg _ ->
         RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
-      | D.Signature _ ->
-        let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
-        RM.ret @@ R.Signature.intro field_tac
+      | D.Signature sign ->
+        let lbls = D.sign_lbls sign in
+        let fields = List.map (fun lbl -> `Field (lbl,chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None})) lbls in
+        RM.ret @@ R.Signature.intro fields
       | _ ->
         RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 

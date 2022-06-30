@@ -511,6 +511,8 @@ bare_field_spec:
 field:
   | DEF; fld = bare_field
     { fld }
+  | INCLUDE; con = term
+    { `Include con }
 
 field_spec:
   | DEF; fld = bare_field_spec

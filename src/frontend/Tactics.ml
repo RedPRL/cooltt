@@ -91,7 +91,7 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   | D.Signature sign, _, _ ->
     begin
       is_total sign |>> function
-      | `TotalAll -> RM.ret @@ R.Signature.intro (function `User ["fib"] -> Some (intro_implicit_connectives tac) | _ -> None)
+      | `TotalAll -> RM.ret @@ R.Signature.intro [`Field (`User ["fib"], (intro_implicit_connectives tac))]
       | _ -> RM.ret tac
     end
   | _ ->
@@ -110,7 +110,7 @@ let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
       | D.Signature sign ->
         begin
           is_total sign |>> function
-          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro (function `User ["fib"] -> Some (intro_subtypes_and_total tac) | _ -> None)
+          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro [`Field (`User ["fib"], (intro_subtypes_and_total tac))]
           | _ -> RM.ret tac
         end
       | _ -> failwith "impossible"
