@@ -43,7 +43,7 @@ def ring : type :=
   sig
     def t : type
     include abelian-group # [ t ::= t ]
-    include multiplicative-monoid # [t ::= t]
+    include multiplicative-monoid # [ t ::= t ]
   end
 
 def monoid/nat : monoid # [t := nat] :=
@@ -64,6 +64,3 @@ def monoid/nat/+ : monoid # [t := nat, op := +] :=
     def opR := +-right-unit
     def opA := +-assoc
   end
-
-
-#print monoid/nat/+

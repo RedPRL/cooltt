@@ -1,0 +1,55 @@
+import base-types
+
+def functor : type :=
+  sig
+    def F : type → type
+    def map : (A B : type) → {A → B} → F A → F B
+  end
+
+def applicative : type :=
+  sig
+    include functor
+    def pure : (A : type) → A → F A
+    def ap : (A B : type) → F {A → B} → F A → F B
+  end
+
+def monad : type :=
+  sig
+    include applicative
+    def bind : (A B : type) → F A → {A → F B} → F B
+  end
+
+abstract
+def maybe (A : type) : type :=
+  (R : type) → {A → R} → R → R
+
+def some (A : type) (x : A) : maybe A :=
+  unfold maybe in
+  R some none => some x
+
+def none (A : type) : maybe A :=
+  unfold maybe in
+  R some none => none
+
+
+def functor/maybe : functor # [F := maybe] :=
+  struct
+    def map := A B f opt => unfold maybe in R some none => opt R {x => some {f x}} none
+  end
+
+def applicative/maybe : applicative # [F := maybe] :=
+  struct
+    include functor/maybe
+    def pure := some
+    def ap := A B mf mx =>
+      unfold maybe in
+      mf {maybe B} {f => mx {maybe B} {x => some B {f x}} {none B}} {none B}
+  end
+
+def monad/maybe : monad # [F := maybe] :=
+  struct
+    include applicative/maybe
+    def bind := A B mx f => 
+      unfold maybe in
+      mx {maybe B} f {none B}
+  end 
