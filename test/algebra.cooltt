@@ -1,0 +1,69 @@
+import prelude
+import nat
+
+
+def monoid : type :=
+  sig
+    def t : type
+    def op : t → t → t
+    def emp : t
+    def opL : (u : t) → path t {op emp u} u
+    def opR : (u : t) → path t {op u emp} u
+    def opA : (u v w : t) → path t {op {op u v} w} {op u {op v w}}
+  end
+
+
+def commutative-monoid : type :=
+  sig
+    include monoid
+    def opC : (u v : t) → path t {op u v} {op v u}
+  end
+
+def multiplicative-monoid : type :=
+  sig
+    include monoid 
+      renaming [op → mul; emp → one; opL → mulL; opR → mulR; opA → mulA]
+  end
+
+def additive-monoid : type :=
+  sig
+    include monoid 
+      renaming [op → add; emp → zer; opL → addL; opR → addR; opA → addA]
+  end
+
+def abelian-group : type :=
+  sig
+    include additive-monoid
+    def neg : t → t
+    def addC : (u v : t) → path t {add u v} {add v u}
+    def add-neg : (u : t) → path t {add {neg u} u} zer
+  end
+
+def ring : type :=
+  sig
+    def t : type
+    include abelian-group # [ t ::= t ]
+    include multiplicative-monoid # [t ::= t]
+  end
+
+def monoid/nat : monoid # [t := nat] :=
+  struct
+    def op := +
+    def emp := 0
+    def opL := +-left-unit
+    def opR := +-right-unit
+    def opA := +-assoc
+  end
+
+#print monoid/nat
+
+def monoid/nat/+ : monoid # [t := nat, op := +] :=
+  struct
+    def emp := 0
+    def opL := +-left-unit
+    def opR := +-right-unit
+    def opA := +-assoc
+  end
+
+
+#print monoid/nat/+
