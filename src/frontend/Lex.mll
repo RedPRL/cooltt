@@ -40,6 +40,7 @@ let keywords =
     ("✏", SIG);
     ("struct", STRUCT);
     ("🍱", STRUCT);
+    ("include", INCLUDE);
     ("as", AS);
     ("let", LET);
     ("in", IN);

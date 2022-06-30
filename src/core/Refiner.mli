@@ -57,7 +57,7 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : (Ident.user * Chk.tac) list -> Chk.tac
+  val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac] list -> Chk.tac
   val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
   val total : (Ident.user * CodeUnit.Domain.con) list -> CodeUnit.Domain.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac

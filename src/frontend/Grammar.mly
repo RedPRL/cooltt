@@ -51,7 +51,7 @@
 %token LET IN SUB
 %token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token SIG STRUCT AS
+%token SIG STRUCT AS INCLUDE
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
@@ -485,11 +485,11 @@ sig_body:
 
 bare_field:
   | lbl = user; COLON_EQUALS; con = term
-    { Field {lbl; con} }
+    { `Field (lbl,con) }
 
 bare_field_spec:
   | lbl = user; COLON; con = term
-    { Field {lbl; con} }
+    { `Field (lbl,con) }
 
 field:
   | DEF; fld = bare_field
@@ -498,6 +498,8 @@ field:
 field_spec:
   | DEF; fld = bare_field_spec
     { fld }
+  | INCLUDE; con = term
+    { `Include con }
 
 tele_cell:
   | LPR names = nonempty_list(plain_name); COLON tp = term; RPR

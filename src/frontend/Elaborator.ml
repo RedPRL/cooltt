@@ -17,15 +17,6 @@ module Sem = Semantics
 open Monad.Notation (RM)
 module MU = Monad.Util (RM)
 
-(* Account for the lambda-bound signature field dependencies.
-    See [NOTE: Sig Code Quantifiers] for more info. *)
-let bind_sig_tacs (tacs : ('a Ident.some * T.Chk.tac) list) : ('a Ident.some * T.Chk.tac) list =
-  let bind_tac lbls (lbl, tac) =
-    let tac = BwdLabels.fold_right ~f:(fun lbl tac -> R.Pi.intro ~ident:(lbl :> Ident.t) (fun _ -> tac)) lbls ~init:tac in
-    Snoc (lbls, lbl) , (lbl, tac)
-  in
-  snd @@ ListUtil.map_accum_left bind_tac Emp tacs
-
 module CoolTp :
 sig
   include T.Tactic
@@ -33,7 +24,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : (Ident.user * tac) list -> tac
+  val signature : [`Field of (Ident.user * tac) | `Include of tac] list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -68,8 +59,9 @@ struct
   let as_codes =
     ListUtil.map_opt @@
     function
-    | (_, Tp _) -> None
-    | (lbl, Code tac) -> Some (lbl, tac)
+    | `Field (_, Tp _) | `Include (Tp _) -> None
+    | `Field (lbl, Code tac) -> Some (`Field (lbl, tac))
+    | `Include (Code tac) -> Some (`Include tac)
 
   let pi (tac_base : tac) (ident : Ident.t) (tac_fam : tac) : tac =
     match tac_base, tac_fam with
@@ -93,13 +85,13 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : (Ident.user * tac) list) : tac =
+  let signature (tacs : [`Field of (Ident.user * tac) | `Include of tac] list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
-      let tac = R.Univ.signature (bind_sig_tacs tacs) in
+      let tac = R.Univ.signature tacs in
       Code tac
     | None ->
-      let tele = List.fold_right (fun (nm, tac) tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) tacs R.Done in
+      let tele = List.fold_right (function `Field (nm, tac) -> (fun tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) | `Include _ -> failwith "include sig tp") tacs R.Done in
       let tac = R.Signature.formation tele in
       Tp tac
 
@@ -135,7 +127,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-    let tacs = List.map (fun (CS.Field field) -> (field.lbl, cool_chk_tp field.con)) cells in
+    let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, cool_chk_tp con) | `Include con -> `Include (cool_chk_tp con)) cells in
     CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -241,7 +233,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Struct fields ->
-      let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.con)) fields in
+      let tacs = List.map (fun (`Field (lbl,con)) -> (lbl, chk_tm con)) fields in
       R.Signature.intro @@ R.Signature.find_field_tac tacs
 
     | CS.Suc c ->
@@ -278,11 +270,11 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature fields ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) fields in
+      let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include con -> `Include (chk_tm con)) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) patches in
+      let tacs = List.map (fun (`Field (lbl,con)) -> lbl, chk_tm con) patches in
       R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
