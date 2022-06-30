@@ -57,8 +57,8 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac] list -> Chk.tac
-  val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
+  val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
+  val patch : Chk.tac -> (Ident.user -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
   val total : (Ident.user * CodeUnit.Domain.con) list -> CodeUnit.Domain.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val infer_nullary_ext : Chk.tac
@@ -103,7 +103,7 @@ module Signature : sig
   val intro : (Ident.user -> Chk.tac option) -> Chk.tac
   val proj : Syn.tac -> Ident.user -> Syn.tac
 
-  val find_field_tac : (Ident.user * Chk.tac) list -> Ident.user -> Chk.tac option
+  val find_field : (Ident.user * 'a) list -> Ident.user -> 'a option
 end
 
 module Sub : sig

@@ -41,7 +41,7 @@ and con_ =
   | Signature of sig_field list
   | Struct of field list
   | Proj of con * Ident.user
-  | Patch of con * field list
+  | Patch of con * patch_field list
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con
@@ -90,7 +90,9 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and sig_field = [`Field of Ident.user * con | `Include of con]
+and sig_field = [`Field of Ident.user * con | `Include of con * (Ident.user * Ident.user) list]
+
+and patch_field = [`Patch of Ident.user * con | `Subst of Ident.user * con]
 
 and field = [`Field of Ident.user * con]
 [@@deriving show]

@@ -558,29 +558,38 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
-  let patch_fields (sign : (Ident.user * D.con) list) (tacs : Ident.user -> T.Chk.tac option) (univ : D.tp) : _ m =
+  let quote_code_sign_hooks (sign : (Ident.user * D.con) list) 
+                           ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) 
+                           ~(renaming : Ident.user -> Ident.user option) 
+                            (univ : D.tp) : _ m =
     let rec go = function
       | [] -> RM.ret []
       | (lbl,code) :: sign ->
-        match tacs lbl with
-          | Some tac ->
+        let lbl = Option.value ~default:lbl (renaming lbl) in
+        match patch_tacs lbl with
+          | Some ((`Patch tac | `Subst tac) as kind) ->
             let* tp = RM.lift_cmp @@ Sem.do_el code in
             let* patch = T.Chk.run tac tp in
             let* vpatch = RM.eval patch in
-            let* patched_code = 
-              RM.lift_cmp @@
-              Sem.splice_tm @@
-              Splice.con code @@ fun code ->
-              Splice.con vpatch @@ fun patch ->
-              Splice.term @@
-              TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
-            in
-            let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
-            let* qpatched_code = RM.quote_con univ patched_code in
-            RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
-            let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
-            let+ sign = go sign in
-            (lbl,qpatched_code) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
+            begin
+            match kind with
+              | `Subst _ -> RM.lift_cmp @@ Sem.inst_code_sign sign vpatch |>> go
+              | `Patch _ ->
+                let* patched_code = 
+                  RM.lift_cmp @@
+                  Sem.splice_tm @@
+                  Splice.con code @@ fun code ->
+                  Splice.con vpatch @@ fun patch ->
+                  Splice.term @@
+                  TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
+                in
+                let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
+                let* qpatched_code = RM.quote_con univ patched_code in
+                RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
+                let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
+                let+ sign = go sign in
+                (lbl,qpatched_code) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
+            end
           | None -> 
             let* qcode = RM.quote_con univ code in
             let* tp = RM.lift_cmp @@ Sem.do_el code in
@@ -589,6 +598,12 @@ struct
             (lbl,qcode) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
     in
     go sign
+
+  let quote_code_sign sign univ = quote_code_sign_hooks sign ~patch_tacs:(fun _ -> None) ~renaming:(fun _ -> None) univ
+  let patch_fields sign patch_tacs univ = quote_code_sign_hooks sign ~patch_tacs ~renaming:(fun _ -> None) univ
+
+  let rename_code_sign sign renaming univ = quote_code_sign_hooks sign ~patch_tacs:(fun _ -> None) ~renaming univ
+
 
   (* [NOTE: Sig Code Quantifiers]
      When we are creating a code for a signature, we need to make sure
@@ -620,7 +635,7 @@ struct
     in 
     go [] sign
 
-  let signature (tacs : [`Field of (Ident.user * T.Chk.tac) | `Include of T.Chk.tac] list) : T.Chk.tac =
+  let signature (tacs : [`Field of (Ident.user * T.Chk.tac) | `Include of T.Chk.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
     let rec go = function
       | [] -> RM.ret []
@@ -631,12 +646,12 @@ struct
         RM.abstract (lbl :> Ident.t) tp @@ fun _ ->
         let+ sign = go sign in
         (lbl,code) :: List.map (fun (lbl,s) -> (lbl,S.Lam ((lbl :> Ident.t),s))) sign
-      | `Include tac :: sign ->
+      | `Include (tac,renaming) :: sign ->
         let* inc = T.Chk.run tac univ in
         let* vinc = RM.eval inc in
         RM.lift_cmp @@ Sem.whnf_con_ vinc |>> function
           | D.StableCode (`Signature inc_sign) ->
-            let* qinc_sign = patch_fields inc_sign (fun _ -> None) univ in
+            let* qinc_sign = rename_code_sign inc_sign renaming univ in
             abstract_code_sign inc_sign @@ fun _ ->
             let+ sign = go sign in
             qinc_sign @ List.map (fun (lbl,code) -> lbl, List.fold_right (fun (lbl,_) s -> S.Lam ((lbl :> Ident.t),s)) inc_sign code) sign
@@ -645,7 +660,7 @@ struct
     let+ fields = go tacs in
     S.CodeSignature fields
 
-  let patch (sig_tac : T.Chk.tac) (tacs : Ident.user -> T.Chk.tac option) : T.Chk.tac =
+  let patch (sig_tac : T.Chk.tac) (tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) : T.Chk.tac =
     univ_tac "Univ.patch" @@ fun univ ->
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in
@@ -661,7 +676,7 @@ struct
   let total (vsign : (Ident.user * D.con) list) (vtm : D.con) : T.Chk.tac =
     univ_tac "Univ.total" @@ fun univ ->
     let (sign_names, vsign_codes) = List.split vsign in
-    let* qsign = patch_fields vsign (fun _ -> None) univ in
+    let* qsign = quote_code_sign vsign univ in
     (* See [NOTE: Sig Code Quantifiers]. *)
     let* fib_tp =
       RM.lift_cmp @@
@@ -834,12 +849,12 @@ struct
       | Done -> RM.ret @@ S.Signature (BwdLabels.to_list tele)
     in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
 
-  let rec find_field_tac (fields : (Ident.user * T.Chk.tac) list) (lbl : Ident.user) : T.Chk.tac option =
+  let rec find_field (fields : (Ident.user * 'a) list) (lbl : Ident.user) : 'a option =
     match fields with
-    | (lbl', tac) :: _ when Ident.equal lbl lbl'  ->
-      Some tac
+    | (lbl', x) :: _ when Ident.equal lbl lbl'  ->
+      Some x
     | _ :: fields ->
-      find_field_tac fields lbl
+      find_field fields lbl
     | [] ->
       None
 

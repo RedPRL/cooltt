@@ -41,6 +41,7 @@ let keywords =
     ("struct", STRUCT);
     ("🍱", STRUCT);
     ("include", INCLUDE);
+    ("renaming", RENAMING);
     ("as", AS);
     ("let", LET);
     ("in", IN);
@@ -185,6 +186,8 @@ and real_token = parse
     { LESS_THAN }
   | "≔" | ":="
     { COLON_EQUALS }
+  | "::="
+    { COLON_COLON_EQUALS }
   | "→" | "->"
     { RIGHT_ARROW }
   | "←" | "<-"

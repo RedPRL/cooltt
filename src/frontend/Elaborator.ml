@@ -1,6 +1,5 @@
 open Core
 open Basis
-open Bwd
 
 open CodeUnit
 
@@ -24,7 +23,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : [`Field of (Ident.user * tac) | `Include of tac] list -> tac
+  val signature : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -59,9 +58,9 @@ struct
   let as_codes =
     ListUtil.map_opt @@
     function
-    | `Field (_, Tp _) | `Include (Tp _) -> None
+    | `Field (_, Tp _) | `Include ((Tp _),_) -> None
     | `Field (lbl, Code tac) -> Some (`Field (lbl, tac))
-    | `Include (Code tac) -> Some (`Include tac)
+    | `Include ((Code tac),rn) -> Some (`Include (tac,rn))
 
   let pi (tac_base : tac) (ident : Ident.t) (tac_fam : tac) : tac =
     match tac_base, tac_fam with
@@ -85,7 +84,7 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : [`Field of (Ident.user * tac) | `Include of tac] list) : tac =
+  let signature (tacs : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list) : tac =
     match (as_codes tacs) with
     | Some tacs ->
       let tac = R.Univ.signature tacs in
@@ -127,7 +126,7 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-    let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, cool_chk_tp con) | `Include con -> `Include (cool_chk_tp con)) cells in
+    let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, cool_chk_tp con) | `Include (inc,rn) -> `Include (cool_chk_tp inc, R.Signature.find_field rn)) cells in
     CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -234,7 +233,7 @@ and chk_tm : CS.con -> T.Chk.tac =
 
     | CS.Struct fields ->
       let tacs = List.map (fun (`Field (lbl,con)) -> (lbl, chk_tm con)) fields in
-      R.Signature.intro @@ R.Signature.find_field_tac tacs
+      R.Signature.intro @@ R.Signature.find_field tacs
 
     | CS.Suc c ->
       R.Nat.suc (chk_tm c)
@@ -270,12 +269,12 @@ and chk_tm : CS.con -> T.Chk.tac =
       Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
     | CS.Signature fields ->
-      let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include con -> `Include (chk_tm con)) fields in
+      let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include (inc,rn) -> `Include (chk_tm inc, R.Signature.find_field rn)) fields in
       R.Univ.signature tacs
 
     | CS.Patch (tp, patches) ->
-      let tacs = List.map (fun (`Field (lbl,con)) -> lbl, chk_tm con) patches in
-      R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
+      let tacs = List.map (function `Patch (lbl,con) -> lbl, `Patch (chk_tm con) | `Subst (lbl,con) -> lbl, `Subst (chk_tm con)) patches in
+      R.Univ.patch (chk_tm tp) (R.Signature.find_field tacs)
     | CS.V (r, pcode, code, pequiv) ->
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
 

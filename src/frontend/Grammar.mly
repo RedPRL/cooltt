@@ -43,7 +43,7 @@
 %token <int> NUMERAL
 %token <string> ATOM
 %token <ConcreteSyntax.hole> HOLE
-%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token BANG COLON COLON_COLON COLON_EQUALS COLON_COLON_EQUALS HASH PIPE COMMA DOT SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS LESS_THAN JOIN MEET
 %token TYPE
@@ -51,7 +51,7 @@
 %token LET IN SUB
 %token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token SIG STRUCT AS INCLUDE
+%token SIG STRUCT AS INCLUDE RENAMING
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
@@ -245,6 +245,14 @@ plain_modifier:
   | m = plain_atomic_modifier
     { m }
 
+plain_sign_modifier:
+  | p1 = user; RIGHT_ARROW; p2 = user
+    { (p1,p2) }
+
+plain_bracketed_sign_modifier:
+  | LSQ list = separated_list(SEMI, plain_sign_modifier) RSQ
+    { list }
+
 plain_atomic_in_cof_except_term:
   | BOUNDARY t = atomic_term
     { CofBoundary t }
@@ -386,7 +394,7 @@ plain_term_except_cof_case:
   /* So the issue is when we have a cofibration split case, we will have a bunch of pipe separated things
    We need to ensure that any patches occur in brackets...
    */
-  | tp = term; HASH; ps = inline_struct_body
+  | tp = term; HASH; ps = patches
     { Patch (tp, ps) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
@@ -465,6 +473,15 @@ pat_arg:
   | LBR i0 = plain_name RRIGHT_ARROW i1 = plain_name RBR
     { `Inductive (i0, i1) }
 
+patches:
+  | LSQ fields = separated_list(COMMA, patch) RSQ
+    { fields }
+
+patch:
+  | lbl = user; COLON_EQUALS; con = term
+    { `Patch (lbl,con) }
+  | lbl = user; COLON_COLON_EQUALS; con = term
+    { `Subst (lbl,con) }
 
 inline_struct_body:
   | LSQ fields = separated_list(COMMA, bare_field) RSQ
@@ -499,7 +516,9 @@ field_spec:
   | DEF; fld = bare_field_spec
     { fld }
   | INCLUDE; con = term
-    { `Include con }
+    { `Include (con, []) }
+  | INCLUDE; con = term; RENAMING; rn = plain_bracketed_sign_modifier
+    { `Include (con, rn) }
 
 tele_cell:
   | LPR names = nonempty_list(plain_name); COLON tp = term; RPR
