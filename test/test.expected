@@ -62,6 +62,43 @@ algebra.cooltt:58.7-58.17 [Info]:
       def opA := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
     end
 
+algebra.cooltt:74.7-74.26 [Info]:
+  def additive-monoid/nat :
+    sig
+      def t : ext type ⊤ {_x => nat}
+      def add : (_x : nat) → (_x₁ : nat) → nat
+      def zer : nat
+      def addL :
+        (u : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => add zer u | i = 1 => u ]}
+      def addR :
+        (u : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => add u zer | i = 1 => u ]}
+      def addA :
+        (u : nat) →
+          (v : nat) →
+            (w : nat) →
+              ext
+                {i => nat}
+                {i => i = 0 ∨ i = 1}
+                {i _x =>
+                   [ i = 0 => add {add u v} w | i = 1 => add u {add v w} ]}
+    end :=
+    struct
+      def t := nat
+      def add := _x₁ _x₂ => + _x₁ _x₂
+      def zer := 0
+      def addL := _x₁ _x₂ => +-left-unit _x₁ _x₂
+      def addR := _x₁ _x₂ => +-right-unit _x₁ _x₂
+      def addA := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
+    end
+
 --------------------[base-types.cooltt]--------------------
 base-types.cooltt:44.7-44.11 [Info]:
   def case :
