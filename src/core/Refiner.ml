@@ -859,25 +859,24 @@ struct
     | [] ->
       None
 
-  let equate_sign_prefix sign0 sign1 con =
+  let equate_sign_prefix sign0 sign1 con ~renaming =
     let rec go acc sign0 sign1 =
       match sign0, sign1 with
         | D.Empty, _ -> RM.ret (List.rev acc, sign1)
-        | D.Field (lbl0,tp0,sign_clo0), D.Field (lbl1,tp1,sign_clo1) when Ident.equal lbl0 lbl1 ->
+        | D.Field (lbl0,tp0,sign_clo0), D.Field (lbl1,tp1,sign_clo1) when Ident.equal (Option.value ~default:lbl0 (renaming lbl0)) lbl1 ->
           let* () = RM.equate_tp tp0 tp1 in
           let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
           let* qproj = RM.quote_con tp0 proj in
           let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
           let* sign1 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo1 proj in
-          go ((lbl0,qproj) :: acc) sign0 sign1
+          go ((lbl1,qproj) :: acc) sign0 sign1
         | _ -> failwith "including term in struct with incompatible type"
     in
     go [] sign0 sign1
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac] list) : (Ident.user * S.t) list m =
+  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : (Ident.user * S.t) list m =
     match sign,tacs with
     | D.Field (lbl0, tp, sign_clo), (`Field (lbl1,tac) :: tacs as all_tacs) ->
-      Debug.print "INTRO_FIELDS: %a %a\n" Ident.pp_user lbl0 Ident.pp_user lbl1;
       let* tac,tacs = match Ident.equal lbl0 lbl1, tp with
         | true, _ -> RM.ret (tac,tacs)
         | false, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
@@ -894,12 +893,12 @@ struct
       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
       let+ tfields = intro_fields phi phi_clo tsign tacs in
       (lbl0, tfield) :: tfields
-    | sign, `Include tac :: tacs ->
+    | sign, `Include (tac,renaming) :: tacs ->
       let* tm,tp = T.Syn.run tac in
       RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
         | D.Signature inc_sign -> 
           let* vtm = RM.lift_ev @@ Sem.eval tm in
-          let* fields,sign = equate_sign_prefix inc_sign sign vtm in
+          let* fields,sign = equate_sign_prefix ~renaming inc_sign sign vtm in
           let+ tfields = intro_fields phi phi_clo sign tacs in
           fields @ tfields
         | _ -> failwith "including non-struct"
@@ -914,7 +913,7 @@ struct
     | D.Empty,[] ->
       RM.ret []
     | _ -> failwith "intro_fields"
-  let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac] list) : T.Chk.tac =
+  let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->

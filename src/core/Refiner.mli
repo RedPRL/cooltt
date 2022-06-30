@@ -100,7 +100,7 @@ end
 
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
-  val intro : [`Field of Ident.user * Chk.tac | `Include of Syn.tac] list -> Chk.tac
+  val intro : [`Field of Ident.user * Chk.tac |`Include of Syn.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
   val proj : Syn.tac -> Ident.user -> Syn.tac
 
   val find_field : (Ident.user * 'a) list -> Ident.user -> 'a option

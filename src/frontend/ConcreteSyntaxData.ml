@@ -38,8 +38,8 @@ and con_ =
   | Lam of Ident.t list * con
   | Ap of con * con list
   | Sg of cell list * con
-  | Signature of sig_field list
-  | Struct of struct_field list
+  | Signature of field list
+  | Struct of field list
   | Proj of con * Ident.user
   | Patch of con * patch_field list
   | Sub of con * con * con
@@ -90,11 +90,10 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and sig_field = [`Field of Ident.user * con | `Include of con * (Ident.user * Ident.user) list]
+and field = [`Field of Ident.user * con | `Include of con * (Ident.user * Ident.user) list]
+[@@deriving show]
 
 and patch_field = [`Patch of Ident.user * con | `Subst of Ident.user * con]
-
-and struct_field = [`Field of Ident.user * con | `Include of con]
 [@@deriving show]
 
 and pat = Pat of {lbl : string list; args : pat_arg list}

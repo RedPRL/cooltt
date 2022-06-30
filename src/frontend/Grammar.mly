@@ -512,7 +512,9 @@ field:
   | DEF; fld = bare_field
     { fld }
   | INCLUDE; con = term
-    { `Include con }
+    { `Include (con,[]) }
+  | INCLUDE; con = term; RENAMING; rn = plain_bracketed_sign_modifier
+    { `Include (con, rn) }
 
 field_spec:
   | DEF; fld = bare_field_spec

@@ -232,7 +232,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       end
 
     | CS.Struct fields ->
-      let tacs = List. map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include con -> `Include (syn_tm con)) fields in
+      let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include (con,rn) -> `Include (syn_tm con,R.Signature.find_field rn)) fields in
       R.Signature.intro tacs
 
     | CS.Suc c ->

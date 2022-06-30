@@ -64,3 +64,11 @@ def monoid/nat/+ : monoid # [t := nat, op := +] :=
     def opR := +-right-unit
     def opA := +-assoc
   end
+
+def additive-monoid/nat : additive-monoid # [ t := nat ] :=
+  struct
+    include monoid/nat
+      renaming [op → add; emp → zer; opL → addL; opR → addR; opA → addA]
+  end
+
+#print additive-monoid/nat
