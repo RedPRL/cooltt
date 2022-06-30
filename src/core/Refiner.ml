@@ -567,29 +567,30 @@ struct
       | (lbl,code) :: sign ->
         let lbl = Option.value ~default:lbl (renaming lbl) in
         match patch_tacs lbl with
-          | Some ((`Patch tac | `Subst tac) as kind) ->
+          | Some (`Subst tac) ->
             let* tp = RM.lift_cmp @@ Sem.do_el code in
             let* patch = T.Chk.run tac tp in
             let* vpatch = RM.eval patch in
-            begin
-            match kind with
-              | `Subst _ -> RM.lift_cmp @@ Sem.inst_code_sign sign vpatch |>> go
-              | `Patch _ ->
-                let* patched_code = 
-                  RM.lift_cmp @@
-                  Sem.splice_tm @@
-                  Splice.con code @@ fun code ->
-                  Splice.con vpatch @@ fun patch ->
-                  Splice.term @@
-                  TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
-                in
-                let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
-                let* qpatched_code = RM.quote_con univ patched_code in
-                RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
-                let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
-                let+ sign = go sign in
-                (lbl,qpatched_code) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
-            end
+            RM.lift_cmp @@ Sem.inst_code_sign sign vpatch |>> go
+          | Some (`Patch tac) ->
+            let* tp = RM.lift_cmp @@ Sem.do_el code in
+            let* patch = T.Chk.run tac tp in
+            let* vpatch = RM.eval patch in
+            let* patched_code = 
+              RM.lift_cmp @@
+              Sem.splice_tm @@
+              Splice.con code @@ fun code ->
+              Splice.con vpatch @@ fun patch ->
+              Splice.term @@
+              TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
+            in
+            let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
+            let* qpatched_code = RM.quote_con univ patched_code in
+            RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
+            let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
+            let+ sign = go sign in
+            (lbl,qpatched_code) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
+
           | None -> 
             let* qcode = RM.quote_con univ code in
             let* tp = RM.lift_cmp @@ Sem.do_el code in
