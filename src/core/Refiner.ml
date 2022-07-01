@@ -912,7 +912,9 @@ struct
       (lbl, tfield) :: tfields
     | D.Empty,[] ->
       RM.ret []
-    | _ -> failwith "intro_fields"
+    | D.Empty, `Field _ :: _ ->
+      failwith "too many fields"
+      
   let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function

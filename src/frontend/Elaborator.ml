@@ -90,7 +90,7 @@ struct
       let tac = R.Univ.signature tacs in
       Code tac
     | None ->
-      let tele = List.fold_right (function `Field (nm, tac) -> (fun tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) | `Include _ -> failwith "include sig tp") tacs R.Done in
+      let tele = List.fold_right (function `Field (nm, tac) -> (fun tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) | `Include _ -> failwith "impossible") tacs R.Done in
       let tac = R.Signature.formation tele in
       Tp tac
 
