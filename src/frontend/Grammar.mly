@@ -368,7 +368,9 @@ plain_term_except_cof_case:
   | LET; name = plain_name; COLON_EQUALS; def = term; IN; body = term
     { Let (def, name, body) }
   | OPEN; con = term; IN; body = term
-    { Open (con,body) }
+    { Open (con,[],body) }
+  | OPEN; con = term; RENAMING; rn = plain_bracketed_sign_modifier; IN; body = term
+    { Open (con,rn,body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }
   | SUC; t = atomic_term

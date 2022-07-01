@@ -247,8 +247,8 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Let (c, ident, body) ->
       R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> chk_tm body
 
-    | CS.Open (tm,body) ->
-      Tactics.open_ (syn_tm tm) @@ fun _ -> chk_tm body
+    | CS.Open (tm,rn,body) ->
+      Tactics.open_ (syn_tm tm) (R.Signature.find_field rn) @@ fun _ -> chk_tm body
 
     | CS.Nat ->
       R.Univ.nat
@@ -379,7 +379,7 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
       (chk_cases cases)
       (syn_tm scrut)
 
-  | CS.Open (tm,bdy) -> Tactics.open_syn (syn_tm tm) @@ fun _ -> syn_tm bdy
+  | CS.Open (tm,rn,bdy) -> Tactics.open_syn (syn_tm tm) (R.Signature.find_field rn) @@ fun _ -> syn_tm bdy
   | CS.Ann {term; tp} ->
     T.Syn.ann (chk_tm term) (chk_tp tp)
   | CS.Coe (tp, src, trg, body) ->
