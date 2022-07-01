@@ -55,9 +55,9 @@ def monad/maybe : monad # [F := maybe] :=
   end 
 
 def monad-prod (M : monad) (A B : type) (ma : M.F A) (mb : M.F B) : M.F {A * B} :=
-  open M in
-  bind A {A * B} ma {x =>
-  bind B {A * B} mb {y =>
-    pure {A * B} [x,y]
+  open M renaming [bind -> bnd ; pure -> ret] in
+  bnd A {A * B} ma {x =>
+  bnd B {A * B} mb {y =>
+    ret {A * B} [x,y]
     }
   }
