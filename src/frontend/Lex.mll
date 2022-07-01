@@ -42,6 +42,7 @@ let keywords =
     ("🍱", STRUCT);
     ("include", INCLUDE);
     ("renaming", RENAMING);
+    ("open", OPEN);
     ("as", AS);
     ("let", LET);
     ("in", IN);

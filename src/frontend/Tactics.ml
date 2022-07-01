@@ -146,6 +146,45 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
     end
   | tp -> T.Chk.run (T.Chk.syn tac) tp
 
+
+let open_sign_chk sign tm_tac tac_bdy =
+  let rec go vars = function
+    | D.Empty -> tac_bdy vars
+    | D.Field (lbl,_,sign_clo) ->
+      R.Structural.let_ ~ident:(lbl :> Ident.t) (R.Signature.proj tm_tac lbl) @@ fun x ->
+      T.Chk.rule @@ fun goal ->
+      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo (T.Var.con x) in
+      T.Chk.run (go (x :: vars) sign) goal
+  in 
+  go [] sign
+
+let open_sign_syn sign tm_tac tac_bdy =
+  let rec go vars = function
+    | D.Empty -> tac_bdy vars
+    | D.Field (lbl,_,sign_clo) ->
+      R.Structural.let_syn ~ident:(lbl :> Ident.t) (R.Signature.proj tm_tac lbl) @@ fun x ->
+      T.Syn.rule @@
+      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo (T.Var.con x) in
+      T.Syn.run (go (x :: vars) sign)
+  in 
+  go [] sign
+
+let open_ tac tac_bdy : T.Chk.tac =
+  T.Chk.rule ~name:"Signature.open_" @@ fun goal ->
+  let* _,tp = T.Syn.run tac in
+  RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
+    | D.Signature sign -> 
+      T.Chk.run (open_sign_chk sign tac tac_bdy) goal
+    | _ -> failwith "opening non-structure"
+
+let open_syn tac tac_bdy : T.Syn.tac =
+  T.Syn.rule ~name:"Signature.open_syn" @@ 
+    let* _,tp = T.Syn.run tac in
+    RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
+      | D.Signature sign -> 
+        T.Syn.run (open_sign_syn sign tac tac_bdy)
+      | _ -> failwith "opening non-structure"
+
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with
   | [] -> body

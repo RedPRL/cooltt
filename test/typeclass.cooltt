@@ -1,4 +1,4 @@
-import base-types
+import prelude
 
 def functor : type :=
   sig
@@ -53,3 +53,11 @@ def monad/maybe : monad # [F := maybe] :=
       unfold maybe in
       mx {maybe B} f {none B}
   end 
+
+def monad-prod (M : monad) (A B : type) (ma : M.F A) (mb : M.F B) : M.F {A * B} :=
+  open M in
+  bind A {A * B} ma {x =>
+  bind B {A * B} mb {y =>
+    pure {A * B} [x,y]
+    }
+  }

@@ -51,7 +51,7 @@
 %token LET IN SUB
 %token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
-%token SIG STRUCT AS INCLUDE RENAMING
+%token SIG STRUCT AS INCLUDE RENAMING OPEN
 %token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
@@ -367,6 +367,8 @@ plain_term_except_cof_case:
     { Let ({node = Ann {term = def; tp}; info = def.info}, name, body) }
   | LET; name = plain_name; COLON_EQUALS; def = term; IN; body = term
     { Let (def, name, body) }
+  | OPEN; con = term; IN; body = term
+    { Open (con,body) }
   | t = term; COLON; tp = term
     { Ann {term = t; tp} }
   | SUC; t = atomic_term

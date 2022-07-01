@@ -23,6 +23,10 @@ val elim_implicit_connectives : Syn.tac -> Syn.tac
 val elim_implicit_connectives_and_total : Syn.tac -> Syn.tac
 val intro_conversions : Syn.tac -> Chk.tac
 
+val open_ : Syn.tac -> (var list -> Chk.tac) -> Chk.tac
+val open_syn : Syn.tac -> (var list -> Syn.tac) -> Syn.tac
+
+
 val tac_nary_quantifier : ('a, 'b) R.quantifier -> (Ident.t * 'a) list -> 'b -> 'b
 
 val match_goal : (D.tp * D.cof * D.tm_clo -> Chk.tac RM.m) -> Chk.tac
