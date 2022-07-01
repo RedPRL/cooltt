@@ -1868,26 +1868,6 @@ nat.cooltt:15.11-15.16 [Info]:
   Computed normal form of + 2 3 as 5
 
 --------------------[patch.cooltt]--------------------
-patch.cooltt:19.38-19.48 [Info]:
-  Emitted hole:
-    _ : [ ⊤ ]
-    |- ?A : type
-    
-    Boundary:
-    ⊤
-    |- nat
-
-
-patch.cooltt:19.38-19.48 [Info]:
-  Emitted hole:
-    _ : [ ⊤ ]
-    |- ?a : nat
-    
-    Boundary:
-    ⊤
-    |- 4
-
-
 patch.cooltt:20.53-20.54 [Info]:
   Emitted hole:
     _ : [ ⊤ ]
@@ -1929,7 +1909,7 @@ patch.cooltt:25.7-25.34 [Info]:
 patch.cooltt:26.7-26.26 [Info]:
   def patch/inhabit/infer :
     sig def A : ext type ⊤ {_x => nat} def a : ext nat ⊤ {_x => 4} end :=
-    struct def A := ?A * def a := ?a * end
+    struct def A := nat def a := 4 end
 
 patch.cooltt:29.7-29.20 [Info]:
   def patch-depends : type :=
@@ -1967,7 +1947,7 @@ patch.cooltt:86.7-86.24 [Info]:
   def test-unfold-total : (fam : (_x : sig def x : nat end) → type) → type :=
     fam => sig def x : nat def fib : fam {struct def x := x end} end
 
-[Warn]:  There are 4 unsolved holes
+[Warn]:  There are 2 unsolved holes
 
 --------------------[path-types.cooltt]--------------------
 path-types.cooltt:8.11-8.20 [Info]:

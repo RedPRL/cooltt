@@ -904,7 +904,16 @@ struct
         | _ -> failwith "including non-struct"
       end
     | D.Field (lbl,tp,sign_clo), [] -> 
-      let tac = Hole.unleash_hole (Ident.user_to_string_opt lbl) in
+      let* tac = match tp with
+        | ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
+          let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+          begin
+            RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
+            | true -> RM.ret @@ Univ.infer_nullary_ext
+            | false -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
+          end
+        | _ -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
+      in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
@@ -914,7 +923,7 @@ struct
       RM.ret []
     | D.Empty, `Field _ :: _ ->
       failwith "too many fields"
-      
+
   let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
