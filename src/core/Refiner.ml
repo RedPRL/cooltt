@@ -559,44 +559,44 @@ struct
     S.CodeSg (tp, fam)
 
   let quote_code_sign_hooks (sign : (Ident.user * D.con) list) 
-                           ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) 
-                           ~(renaming : Ident.user -> Ident.user option) 
-                            (univ : D.tp) : _ m =
+      ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) 
+      ~(renaming : Ident.user -> Ident.user option) 
+      (univ : D.tp) : _ m =
     let rec go = function
       | [] -> RM.ret []
       | (lbl,code) :: sign ->
         let lbl = Option.value ~default:lbl (renaming lbl) in
         match patch_tacs lbl with
-          | Some (`Subst tac) ->
-            let* tp = RM.lift_cmp @@ Sem.do_el code in
-            let* patch = T.Chk.run tac tp in
-            let* vpatch = RM.eval patch in
-            RM.lift_cmp @@ Sem.inst_code_sign sign vpatch |>> go
-          | Some (`Patch tac) ->
-            let* tp = RM.lift_cmp @@ Sem.do_el code in
-            let* patch = T.Chk.run tac tp in
-            let* vpatch = RM.eval patch in
-            let* patched_code = 
-              RM.lift_cmp @@
-              Sem.splice_tm @@
-              Splice.con code @@ fun code ->
-              Splice.con vpatch @@ fun patch ->
-              Splice.term @@
-              TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
-            in
-            let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
-            let* qpatched_code = RM.quote_con univ patched_code in
-            RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
-            let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
-            let+ sign = go sign in
-            (lbl,qpatched_code) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
+        | Some (`Subst tac) ->
+          let* tp = RM.lift_cmp @@ Sem.do_el code in
+          let* patch = T.Chk.run tac tp in
+          let* vpatch = RM.eval patch in
+          RM.lift_cmp @@ Sem.inst_code_sign sign vpatch |>> go
+        | Some (`Patch tac) ->
+          let* tp = RM.lift_cmp @@ Sem.do_el code in
+          let* patch = T.Chk.run tac tp in
+          let* vpatch = RM.eval patch in
+          let* patched_code = 
+            RM.lift_cmp @@
+            Sem.splice_tm @@
+            Splice.con code @@ fun code ->
+            Splice.con vpatch @@ fun patch ->
+            Splice.term @@
+            TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
+          in
+          let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
+          let* qpatched_code = RM.quote_con univ patched_code in
+          RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
+          let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
+          let+ sign = go sign in
+          (lbl,qpatched_code) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
 
-          | None -> 
-            let* qcode = RM.quote_con univ code in
-            let* tp = RM.lift_cmp @@ Sem.do_el code in
-            RM.abstract (lbl :> Ident.t) tp @@ fun x ->
-            let+ sign = RM.lift_cmp @@ Sem.inst_code_sign sign x |>> go in
-            (lbl,qcode) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
+        | None -> 
+          let* qcode = RM.quote_con univ code in
+          let* tp = RM.lift_cmp @@ Sem.do_el code in
+          RM.abstract (lbl :> Ident.t) tp @@ fun x ->
+          let+ sign = RM.lift_cmp @@ Sem.inst_code_sign sign x |>> go in
+          (lbl,qcode) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
     in
     go sign
 
@@ -651,12 +651,12 @@ struct
         let* inc = T.Chk.run tac univ in
         let* vinc = RM.eval inc in
         RM.lift_cmp @@ Sem.whnf_con_ vinc |>> function
-          | D.StableCode (`Signature inc_sign) ->
-            let* qinc_sign = rename_code_sign inc_sign renaming univ in
-            abstract_code_sign inc_sign @@ fun _ ->
-            let+ sign = go sign in
-            qinc_sign @ List.map (fun (lbl,code) -> lbl, List.fold_right (fun (lbl,_) s -> S.Lam ((lbl :> Ident.t),s)) inc_sign code) sign
-          | _ -> failwith "including non signature"
+        | D.StableCode (`Signature inc_sign) ->
+          let* qinc_sign = rename_code_sign inc_sign renaming univ in
+          abstract_code_sign inc_sign @@ fun _ ->
+          let+ sign = go sign in
+          qinc_sign @ List.map (fun (lbl,code) -> lbl, List.fold_right (fun (lbl,_) s -> S.Lam ((lbl :> Ident.t),s)) inc_sign code) sign
+        | _ -> failwith "including non signature"
     in
     let+ fields = go tacs in
     S.CodeSignature fields
@@ -862,15 +862,15 @@ struct
   let equate_sign_prefix sign0 sign1 con ~renaming =
     let rec go acc sign0 sign1 =
       match sign0, sign1 with
-        | D.Empty, _ -> RM.ret (List.rev acc, sign1)
-        | D.Field (lbl0,tp0,sign_clo0), D.Field (lbl1,tp1,sign_clo1) when Ident.equal (Option.value ~default:lbl0 (renaming lbl0)) lbl1 ->
-          let* () = RM.equate_tp tp0 tp1 in
-          let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
-          let* qproj = RM.quote_con tp0 proj in
-          let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
-          let* sign1 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo1 proj in
-          go ((lbl1,qproj) :: acc) sign0 sign1
-        | _ -> failwith "including term in struct with incompatible type"
+      | D.Empty, _ -> RM.ret (List.rev acc, sign1)
+      | D.Field (lbl0,tp0,sign_clo0), D.Field (lbl1,tp1,sign_clo1) when Ident.equal (Option.value ~default:lbl0 (renaming lbl0)) lbl1 ->
+        let* () = RM.equate_tp tp0 tp1 in
+        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
+        let* qproj = RM.quote_con tp0 proj in
+        let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
+        let* sign1 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo1 proj in
+        go ((lbl1,qproj) :: acc) sign0 sign1
+      | _ -> failwith "including term in struct with incompatible type"
     in
     go [] sign0 sign1
 

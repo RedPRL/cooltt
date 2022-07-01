@@ -994,7 +994,7 @@ and inst_sign_clo : D.sign_clo -> D.con -> D.sign CM.m =
 and inst_code_sign : (Ident.user * D.con) list -> D.con -> (Ident.user * D.con) list CM.m =
   fun sign x ->
   CM.MU.map (fun (lbl,code_fun) -> CM.bind (do_ap code_fun x) @@ fun code -> CM.ret (lbl,code)) sign
-  
+
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con con =
   let open CM in

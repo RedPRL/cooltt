@@ -177,17 +177,17 @@ let open_ tac renaming tac_bdy : T.Chk.tac =
   T.Chk.rule ~name:"Signature.open_" @@ fun goal ->
   let* _,tp = T.Syn.run tac in
   RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
-    | D.Signature sign -> 
-      T.Chk.run (open_sign_chk ~renaming sign tac tac_bdy) goal
-    | _ -> failwith "opening non-structure"
+  | D.Signature sign -> 
+    T.Chk.run (open_sign_chk ~renaming sign tac tac_bdy) goal
+  | _ -> failwith "opening non-structure"
 
 let open_syn tac renaming tac_bdy : T.Syn.tac =
   T.Syn.rule ~name:"Signature.open_syn" @@ 
-    let* _,tp = T.Syn.run tac in
-    RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
-      | D.Signature sign -> 
-        T.Syn.run (open_sign_syn ~renaming sign tac tac_bdy)
-      | _ -> failwith "opening non-structure"
+  let* _,tp = T.Syn.run tac in
+  RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
+  | D.Signature sign -> 
+    T.Syn.run (open_sign_syn ~renaming sign tac tac_bdy)
+  | _ -> failwith "opening non-structure"
 
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with
