@@ -1,15 +1,18 @@
 --------------------[abstract.cooltt]--------------------
-hlevel.cooltt:33.7-33.12 [Info]:
-  def hProp : type := (A : type) × has-hlevel 1 A
+hlevel.cooltt:30.7-30.11 [Info]:
+  def prop : type :=
+    sig
+      def lvl : ext nat ⊤ {_x₁ => 1} def tp : type def prf : has-hlevel 1 tp
+    end
 
-hlevel.cooltt:34.11-34.16 [Info]:
-  Computed normal form of hProp as (A : type) × has-hlevel 1 A
+hlevel.cooltt:31.11-31.15 [Info]:
+  Computed normal form of prop as
+   sig
+     def lvl : ext nat ⊤ {_x => 1} def tp : type def prf : has-hlevel 1 tp
+   end
 
-abstract.cooltt:104.7-104.15 [Info]:
-  def abs-test : nat := suc {abs-test∷foo *}
-
-abstract.cooltt:107.7-107.15 [Info]:
-  def abs-test : nat := 42
+abstract.cooltt:79.21-79.27 [Error]:
+  Unbound variable is-set
 
 --------------------[algebra.cooltt]--------------------
 nat.cooltt:10.7-10.8 [Info]:
@@ -1477,11 +1480,17 @@ hcom-type.cooltt:18.13-18.14 [Info]:
 [Warn]:  There are 3 unsolved holes
 
 --------------------[hlevel.cooltt]--------------------
-hlevel.cooltt:33.7-33.12 [Info]:
-  def hProp : type := (A : type) × has-hlevel 1 A
+hlevel.cooltt:30.7-30.11 [Info]:
+  def prop : type :=
+    sig
+      def lvl : ext nat ⊤ {_x₁ => 1} def tp : type def prf : has-hlevel 1 tp
+    end
 
-hlevel.cooltt:34.11-34.16 [Info]:
-  Computed normal form of hProp as (A : type) × has-hlevel 1 A
+hlevel.cooltt:31.11-31.15 [Info]:
+  Computed normal form of prop as
+   sig
+     def lvl : ext nat ⊤ {_x => 1} def tp : type def prf : has-hlevel 1 tp
+   end
 
 --------------------[holes.cooltt]--------------------
 holes.cooltt:5.7-5.13 [Info]:
