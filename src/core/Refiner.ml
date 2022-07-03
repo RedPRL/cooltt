@@ -731,10 +731,10 @@ struct
 
 
   let is_nullary_ext = function
-  | D.ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
-    let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-    RM.lift_cmp @@ CmpM.test_sequent [] cof 
-  | _ -> RM.ret false
+    | D.ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
+      let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+      RM.lift_cmp @@ CmpM.test_sequent [] cof 
+    | _ -> RM.ret false
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
