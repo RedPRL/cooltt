@@ -991,6 +991,16 @@ and inst_sign_clo : D.sign_clo -> D.con -> D.sign CM.m =
   | D.Clo (sign, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_sign sign
 
+(* Apply each of the functions in a code signature to some value
+   INVARIANT: the first element of the code signature should have only *one* lambda binding
+   This is meant to have the same effect as instantiating the sign_clo in a real signature,
+   in that, assuming the invariant, the first element of the resulting list will be a bare code
+   with all field variables already instantiated
+*)
+and inst_code_sign : (Ident.user * D.con) list -> D.con -> (Ident.user * D.con) list CM.m =
+  fun sign x ->
+  CM.MU.map (fun (lbl,code_fun) -> CM.bind (do_ap code_fun x) @@ fun code -> CM.ret (lbl,code)) sign
+
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con con =
   let open CM in

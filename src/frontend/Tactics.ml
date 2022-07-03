@@ -69,7 +69,7 @@ let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
   (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
   | D.ElStable _ ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
-  | D.Pi (TpPrf _,_,_) -> T.Syn.run @@ elim_implicit_connectives @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
+  | D.Pi (TpPrf _,_,_) -> T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
   | D.Signature sign ->
     begin
       is_total sign |>> function
@@ -91,7 +91,7 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   | D.Signature sign, _, _ ->
     begin
       is_total sign |>> function
-      | `TotalAll -> RM.ret @@ R.Signature.intro (function `User ["fib"] -> Some (intro_implicit_connectives tac) | _ -> None)
+      | `TotalAll -> RM.ret @@ R.Signature.intro [`Field (`User ["fib"], (intro_implicit_connectives tac))]
       | _ -> RM.ret tac
     end
   | _ ->
@@ -103,14 +103,14 @@ let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
   match_goal @@ function
   | D.Sub _, _, _ ->
     RM.ret @@ R.Sub.intro @@ intro_subtypes_and_total tac
-  | D.Pi (TpPrf _,_,_), _, _  -> RM.ret @@ R.Pi.intro @@ fun _ -> intro_implicit_connectives tac
+  | D.Pi (TpPrf _,_,_), _, _  -> RM.ret @@ R.Pi.intro @@ fun _ -> intro_subtypes_and_total tac
   | ElStable (`Signature sign_code), _, _ ->
     begin
       RM.lift_cmp @@ Sem.unfold_el (`Signature sign_code) |>> function
       | D.Signature sign ->
         begin
           is_total sign |>> function
-          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro (function `User ["fib"] -> Some (intro_subtypes_and_total tac) | _ -> None)
+          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro [`Field (`User ["fib"], (intro_subtypes_and_total tac))]
           | _ -> RM.ret tac
         end
       | _ -> failwith "impossible"
@@ -145,6 +145,54 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
       | _ -> T.Chk.run (T.Chk.syn tac) tp
     end
   | tp -> T.Chk.run (T.Chk.syn tac) tp
+
+
+let open_sign_chk sign tm_tac tac_bdy ~renaming =
+  let rec go vars = function
+    | D.Empty -> tac_bdy vars
+    | D.Field (lbl,_,sign_clo) ->
+      let ident = (Option.value ~default:lbl (renaming lbl) :> Ident.t) in
+      R.Structural.let_ ~ident (R.Signature.proj tm_tac lbl) @@ fun x ->
+      T.Chk.rule @@ fun goal ->
+      let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
+      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo y in
+      T.Chk.run (go (x :: vars) sign) goal
+  in
+  go [] sign
+
+let open_sign_syn sign tm_tac tac_bdy ~renaming =
+  let rec go vars = function
+    | D.Empty -> tac_bdy vars
+    | D.Field (lbl,_,sign_clo) ->
+      let ident = (Option.value ~default:lbl (renaming lbl) :> Ident.t) in
+      R.Structural.let_syn ~ident (R.Signature.proj tm_tac lbl) @@ fun x ->
+      T.Syn.rule @@
+      let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
+      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo y in
+      T.Syn.run (go (x :: vars) sign)
+  in
+  go [] sign
+
+let open_ tac renaming tac_bdy : T.Chk.tac =
+  T.Chk.rule ~name:"Signature.open_" @@ fun goal ->
+  let* tm,tp = T.Syn.run tac in
+  RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
+  | D.Signature sign ->
+    T.Chk.run (open_sign_chk ~renaming sign tac tac_bdy) goal
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
+
+let open_syn tac renaming tac_bdy : T.Syn.tac =
+  T.Syn.rule ~name:"Signature.open_syn" @@
+  let* tm, tp = T.Syn.run tac in
+  RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
+  | D.Signature sign ->
+    T.Syn.run @@ open_sign_syn ~renaming sign tac tac_bdy
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
+
 
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with

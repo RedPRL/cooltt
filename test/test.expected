@@ -11,6 +11,94 @@ abstract.cooltt:104.7-104.15 [Info]:
 abstract.cooltt:107.7-107.15 [Info]:
   def abs-test : nat := 42
 
+--------------------[algebra.cooltt]--------------------
+nat.cooltt:10.7-10.8 [Info]:
+  def + : (_x : nat) → (_x₁ : nat) → nat :=
+    _x₁ =>
+      elim
+        _x₁
+        @ {_x₂ => (_x₃ : nat) → nat}
+        [ zero => n => n | suc => _x₂ ih n => suc {ih n} ]
+
+nat.cooltt:12.11-12.16 [Info]:
+  Computed normal form of + 2 3 as + 2 3
+
+nat.cooltt:15.11-15.16 [Info]:
+  Computed normal form of + 2 3 as 5
+
+algebra.cooltt:58.7-58.17 [Info]:
+  def monoid/nat :
+    sig
+      def t : ext type ⊤ {_x => nat}
+      def op : (_x : nat) → (_x₁ : nat) → nat
+      def emp : nat
+      def opL :
+        (u : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => op emp u | i = 1 => u ]}
+      def opR :
+        (u : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => op u emp | i = 1 => u ]}
+      def opA :
+        (u : nat) →
+          (v : nat) →
+            (w : nat) →
+              ext
+                {i => nat}
+                {i => i = 0 ∨ i = 1}
+                {i _x => [ i = 0 => op {op u v} w | i = 1 => op u {op v w} ]}
+    end :=
+    struct
+      def t := nat
+      def op := _x₁ _x₂ => + _x₁ _x₂
+      def emp := 0
+      def opL := _x₁ _x₂ => +-left-unit _x₁ _x₂
+      def opR := _x₁ _x₂ => +-right-unit _x₁ _x₂
+      def opA := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
+    end
+
+algebra.cooltt:74.7-74.26 [Info]:
+  def additive-monoid/nat :
+    sig
+      def t : ext type ⊤ {_x => nat}
+      def add : (_x : nat) → (_x₁ : nat) → nat
+      def zer : nat
+      def addL :
+        (u : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => add zer u | i = 1 => u ]}
+      def addR :
+        (u : nat) →
+          ext
+            {i => nat}
+            {i => i = 0 ∨ i = 1}
+            {i _x => [ i = 0 => add u zer | i = 1 => u ]}
+      def addA :
+        (u : nat) →
+          (v : nat) →
+            (w : nat) →
+              ext
+                {i => nat}
+                {i => i = 0 ∨ i = 1}
+                {i _x =>
+                   [ i = 0 => add {add u v} w | i = 1 => add u {add v w} ]}
+    end :=
+    struct
+      def t := nat
+      def add := _x₁ _x₂ => + _x₁ _x₂
+      def zer := 0
+      def addL := _x₁ _x₂ => +-left-unit _x₁ _x₂
+      def addR := _x₁ _x₂ => +-right-unit _x₁ _x₂
+      def addA := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
+    end
+
 --------------------[base-types.cooltt]--------------------
 base-types.cooltt:44.7-44.11 [Info]:
   def case :
@@ -1554,122 +1642,6 @@ inequality.cooltt:11.7-11.10 [Info]:
   def bar : ext nat ⊤ {_x => 0} := 0
 
 --------------------[isos.cooltt]--------------------
---------------------[monoid.cooltt]--------------------
-nat.cooltt:10.7-10.8 [Info]:
-  def + : (_x : nat) → (_x₁ : nat) → nat :=
-    _x₁ =>
-      elim
-        _x₁
-        @ {_x₂ => (_x₃ : nat) → nat}
-        [ zero => n => n | suc => _x₂ ih n => suc {ih n} ]
-
-nat.cooltt:12.11-12.16 [Info]:
-  Computed normal form of + 2 3 as + 2 3
-
-nat.cooltt:15.11-15.16 [Info]:
-  Computed normal form of + 2 3 as 5
-
-monoid.cooltt:14.7-14.13 [Info]:
-  def monoid : type :=
-    sig
-      def C : type
-      def op : (_x₁ : C) → (_x₂ : C) → C
-      def z : C
-      def idL :
-        (x : C) →
-          ext
-            {i => C}
-            {i => i = 0 ∨ i = 1}
-            {i _x₁ => [ i = 0 => op z x | i = 1 => x ]}
-      def idR :
-        (x : C) →
-          ext
-            {i => C}
-            {i => i = 0 ∨ i = 1}
-            {i _x₁ => [ i = 0 => op x z | i = 1 => x ]}
-      def assoc :
-        (a : C) →
-          (b : C) →
-            (c : C) →
-              ext
-                {i => C}
-                {i => i = 0 ∨ i = 1}
-                {i _x₁ => [ i = 0 => op {op a b} c | i = 1 => op a {op b c} ]}
-    end
-
-monoid.cooltt:25.7-25.17 [Info]:
-  def monoid/nat :
-    sig
-      def C : ext type ⊤ {_x => nat}
-      def op : (_x : nat) → (_x₁ : nat) → nat
-      def z : nat
-      def idL :
-        (x : nat) →
-          ext
-            {i => nat}
-            {i => i = 0 ∨ i = 1}
-            {i _x => [ i = 0 => op z x | i = 1 => x ]}
-      def idR :
-        (x : nat) →
-          ext
-            {i => nat}
-            {i => i = 0 ∨ i = 1}
-            {i _x => [ i = 0 => op x z | i = 1 => x ]}
-      def assoc :
-        (a : nat) →
-          (b : nat) →
-            (c : nat) →
-              ext
-                {i => nat}
-                {i => i = 0 ∨ i = 1}
-                {i _x => [ i = 0 => op {op a b} c | i = 1 => op a {op b c} ]}
-    end :=
-    struct
-      def C := nat
-      def op := _x₁ _x₂ => + _x₁ _x₂
-      def z := 0
-      def idL := _x₁ _x₂ => +-left-unit _x₁ _x₂
-      def idR := _x₁ _x₂ => +-right-unit _x₁ _x₂
-      def assoc := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
-    end
-
-monoid.cooltt:36.7-36.19 [Info]:
-  def monoid/nat/+ :
-    sig
-      def C : ext type ⊤ {_x => nat}
-      def op :
-        ext {(_x : nat) → (_x₁ : nat) → nat} ⊤ {_x _x₁ _x₂ => + _x₁ _x₂}
-      def z : nat
-      def idL :
-        (x : nat) →
-          ext
-            {i => nat}
-            {i => i = 0 ∨ i = 1}
-            {i _x => [ i = 0 => + z x | i = 1 => x ]}
-      def idR :
-        (x : nat) →
-          ext
-            {i => nat}
-            {i => i = 0 ∨ i = 1}
-            {i _x => [ i = 0 => + x z | i = 1 => x ]}
-      def assoc :
-        (a : nat) →
-          (b : nat) →
-            (c : nat) →
-              ext
-                {i => nat}
-                {i => i = 0 ∨ i = 1}
-                {i _x => [ i = 0 => + {+ a b} c | i = 1 => + a {+ b c} ]}
-    end :=
-    struct
-      def C := nat
-      def op := _x₁ _x₂ => + _x₁ _x₂
-      def z := 0
-      def idL := _x₁ _x₂ => +-left-unit _x₁ _x₂
-      def idR := _x₁ _x₂ => +-right-unit _x₁ _x₂
-      def assoc := _x₁ _x₂ _x₃ _x₄ => +-assoc _x₁ _x₂ _x₃ _x₄
-    end
-
 --------------------[names.cooltt]--------------------
 names.cooltt:5.7-5.14 [Info]:
   def x∷y∷z : (u∷v : nat) → nat := u∷v => u∷v
@@ -2042,6 +2014,7 @@ selfification.cooltt:8.11-8.18 [Info]:
   Computed normal form of testing as
    _x _x₁ _x₂ p _x₃ => [ fst {p _x₃} , snd {p _x₃} ]
 
+--------------------[typeclass.cooltt]--------------------
 --------------------[v.cooltt]--------------------
 v.cooltt:12.11-12.17 [Info]:
   Computed normal form of v-test as
