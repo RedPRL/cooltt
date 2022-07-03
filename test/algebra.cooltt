@@ -72,3 +72,28 @@ def additive-monoid/nat : additive-monoid # [ t := nat ] :=
   end
 
 #print additive-monoid/nat
+
+def monoid/unit : monoid # [t := unit] :=
+  struct
+    def op := _ _ => 0
+    def emp := 0
+    def opL := _ _ => 0
+    def opR := _ _ => 0
+    def opA := _ _ _ _ => 0
+  end
+
+def abelian-group/unit : abelian-group # [t := unit] :=
+  struct
+    include monoid/unit
+      renaming [op → add; emp → zer; opL → addL; opR → addR; opA → addA]
+    def neg := _ => 0
+    def addC := _ _ _ => 0
+    def add-neg := _ _ => 0
+  end
+
+def ring/unit : ring # [t := unit] :=
+  struct
+    include abelian-group/unit
+    include monoid/unit
+      renaming [op → mul; emp → one; opL → mulL; opR → mulR; opA → mulA]
+  end
