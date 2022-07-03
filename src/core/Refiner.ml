@@ -888,7 +888,11 @@ struct
         let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
         let* sign1 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo1 proj in
         go ((lbl1,qproj) :: acc) sign0 sign1
-      | _ -> failwith "including term in struct with incompatible type"
+      (* Extra field in included sign *)
+      | D.Field (lbl0,_,sign_clo0), _ ->
+        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
+        let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
+        go acc sign0 sign1
     in
     go [] sign0 sign1
 
