@@ -58,6 +58,4 @@ def monad-prod (M : monad) (A B : type) (ma : M.F A) (mb : M.F B) : M.F {A * B} 
   open M renaming [bind -> bnd ; pure -> ret] in
   bnd A {A * B} ma {x =>
   bnd B {A * B} mb {y =>
-    ret {A * B} [x,y]
-    }
-  }
+  ret {A * B} [x,y] }}
