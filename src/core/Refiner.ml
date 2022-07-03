@@ -729,6 +729,13 @@ struct
     in
     S.CodeExt (n, tfam, `Global tcof, tbdry)
 
+
+  let is_nullary_ext = function
+  | D.ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
+    let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+    RM.lift_cmp @@ CmpM.test_sequent [] cof 
+  | _ -> RM.ret false
+
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
     | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
@@ -867,6 +874,9 @@ struct
     | [] ->
       None
 
+  (* Check that [sign0] is a prefix of [sign1], and return the rest of [sign1] 
+     along with the quoted eta-expansion of [con], which has type [sign0]
+  *)
   let equate_sign_prefix sign0 sign1 con ~renaming =
     let rec go acc sign0 sign1 =
       match sign0, sign1 with
@@ -882,16 +892,6 @@ struct
     in
     go [] sign0 sign1
 
-  let is_contractible = function
-    | D.ElStable (`Ext (0,_ ,`Global (Cof cof), _)) as tp ->
-      let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-      begin
-        RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
-        | true -> Option.some <@> T.Chk.run Univ.infer_nullary_ext tp
-        | false -> RM.ret None
-      end
-    | _ -> RM.ret @@ None
-
   let rec intro_fields phi phi_clo (sign : D.sign) (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : (Ident.user * S.t) list m =
     let add_field lbl sign_clo tfield tacs =
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
@@ -900,14 +900,35 @@ struct
       (lbl, tfield) :: tfields
     in
     match sign,tacs with
+    (* The sig and struct labels line up, run the tactic and add the field *)
     | D.Field (lbl0, tp, sign_clo), `Field (lbl1,tac) :: tacs when Ident.equal lbl0 lbl1 ->
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0) @@ D.Lam (Ident.anon, phi_clo)) in
       add_field lbl0 sign_clo tfield tacs
+    (* The labels do not line up.
+       If the sig field is a nullary extension type then we fill it automatically 
+       and continue with our list of struct tactics unchanged.
+       Otherwise we ignore the extra field
+    *)
     | D.Field (lbl,tp,sign_clo), (`Field _ :: tacs as all_tacs) -> 
-      is_contractible tp |>> begin function
-        | None -> intro_fields phi phi_clo sign tacs
-        | Some tfield -> add_field lbl sign_clo tfield all_tacs
+      Univ.is_nullary_ext tp |>> begin function
+        | true ->
+          let* tfield = T.Chk.brun Univ.infer_nullary_ext (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
+          add_field lbl sign_clo tfield all_tacs
+        | false -> 
+          intro_fields phi phi_clo sign tacs
       end
+    (* There are no more struct tactics.
+       If the sig field is a nullary extension type then we fill it automatically.
+       Otherwise the field is missing, so we unleash a hole for it
+    *)
+    | D.Field (lbl,tp,sign_clo), [] -> 
+      let* tac = Univ.is_nullary_ext tp |>> function 
+        | true -> RM.ret Univ.infer_nullary_ext 
+        | false -> RM.ret @@ Hole.unleash_hole @@ Ident.user_to_string_opt lbl
+      in
+      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
+      add_field lbl sign_clo tfield tacs
+    (* Including the fields of another struct *)
     | sign, `Include (tac,renaming) :: tacs ->
       let* tm,tp = T.Syn.run tac in
       RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
@@ -918,20 +939,9 @@ struct
           fields @ tfields
         | _ -> failwith "including non-struct"
       end
-    | D.Field (lbl,tp,sign_clo), [] -> 
-      let* tac = match tp with
-        | ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
-          let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-          begin
-            RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
-            | true -> RM.ret @@ Univ.infer_nullary_ext
-            | false -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
-          end
-        | _ -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
-      in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
-      add_field lbl sign_clo tfield tacs
+    (* There are extra fields, they can be ignored *)
     | D.Empty, `Field _ :: _
+    (* There are no extra fields, we're done *)
     | D.Empty,[] ->
       RM.ret []
 
