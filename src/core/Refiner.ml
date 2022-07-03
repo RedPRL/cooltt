@@ -558,7 +558,13 @@ struct
     let+ tp, fam = quantifier tac_base tac_fam univ in
     S.CodeSg (tp, fam)
 
-  let quote_code_sign_hooks (sign : (Ident.user * D.con) list) 
+  (* Quote a domain code signature to a syntax code signature, while optionally patching/renaming its fields
+     [patch_tacs] is a function from fields to an optional tactic that will definitionally constrain the value of that field.
+        `Patch will make the field an extension type, while `Subst will simply drop the field after instantiating it to the patch
+     [renaming] is a function from fields to an optional new name for that field
+  *)
+  let quote_code_sign_hooks 
+      (sign : (Ident.user * D.con) list) 
       ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) 
       ~(renaming : Ident.user -> Ident.user option) 
       (univ : D.tp) : _ m =
@@ -589,14 +595,14 @@ struct
           RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
           let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
           let+ sign = go sign in
-          (lbl,qpatched_code) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
+          (lbl,qpatched_code) :: S.bind_code_sign_vars [lbl] sign
 
         | None -> 
           let* qcode = RM.quote_con univ code in
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           RM.abstract (lbl :> Ident.t) tp @@ fun x ->
           let+ sign = RM.lift_cmp @@ Sem.inst_code_sign sign x |>> go in
-          (lbl,qcode) :: List.map (fun (lbl2,code) -> lbl2, S.Lam ((lbl :> Ident.t),code)) sign
+          (lbl,qcode) :: S.bind_code_sign_vars [lbl] sign
     in
     go sign
 
@@ -625,6 +631,7 @@ struct
              (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
   *)
 
+  (* RM.abstract over all the variables in a code signature *)
   let abstract_code_sign sign k =
     let rec go vars = function
       | [] -> k vars
@@ -646,16 +653,17 @@ struct
         let* tp = RM.lift_cmp @@ Sem.do_el vcode in
         RM.abstract (lbl :> Ident.t) tp @@ fun _ ->
         let+ sign = go sign in
-        (lbl,code) :: List.map (fun (lbl,s) -> (lbl,S.Lam ((lbl :> Ident.t),s))) sign
+        (lbl,code) :: S.bind_code_sign_vars [lbl] sign
       | `Include (tac,renaming) :: sign ->
         let* inc = T.Chk.run tac univ in
         let* vinc = RM.eval inc in
         RM.lift_cmp @@ Sem.whnf_con_ vinc |>> function
         | D.StableCode (`Signature inc_sign) ->
+          let lbls = List.map fst inc_sign in
           let* qinc_sign = rename_code_sign inc_sign renaming univ in
           abstract_code_sign inc_sign @@ fun _ ->
           let+ sign = go sign in
-          qinc_sign @ List.map (fun (lbl,code) -> lbl, List.fold_right (fun (lbl,_) s -> S.Lam ((lbl :> Ident.t),s)) inc_sign code) sign
+          qinc_sign @ S.bind_code_sign_vars lbls sign
         | _ -> failwith "including non signature"
     in
     let+ fields = go tacs in
