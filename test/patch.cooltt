@@ -92,3 +92,11 @@ def test-extra-field : sub el true {struct [A := nat, a := 0]} :=
 
 def test-extra-field-patch : sub {el # [A := nat]} true {struct [A := nat, a := 0]} :=
   struct [B := 0, x := 0, a := 0, y := 0]
+
+def test-extra-field-include : sub el true {struct [A := nat, a := 0]} :=
+  unfold category in
+  struct
+    include types
+    include test-extra-field
+    include types
+  end 
