@@ -882,25 +882,32 @@ struct
     in
     go [] sign0 sign1
 
+  let is_contractible = function
+    | D.ElStable (`Ext (0,_ ,`Global (Cof cof), _)) as tp ->
+      let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+      begin
+        RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
+        | true -> Option.some <@> T.Chk.run Univ.infer_nullary_ext tp
+        | false -> RM.ret None
+      end
+    | _ -> RM.ret @@ None
+
   let rec intro_fields phi phi_clo (sign : D.sign) (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : (Ident.user * S.t) list m =
-    match sign,tacs with
-    | D.Field (lbl0, tp, sign_clo), (`Field (lbl1,tac) :: tacs as all_tacs) ->
-      let* tac,tacs = match Ident.equal lbl0 lbl1, tp with
-        | true, _ -> RM.ret (tac,tacs)
-        | false, ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
-          let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-          begin
-            RM.lift_cmp @@ CmpM.test_sequent [] cof |>> function
-            | true -> RM.ret (Univ.infer_nullary_ext,all_tacs)
-            | false -> RM.ret (Hole.unleash_hole (Ident.user_to_string_opt lbl0),tacs)
-          end
-        | false, _ -> RM.ret (Hole.unleash_hole (Ident.user_to_string_opt lbl0),tacs)
-      in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0) @@ D.Lam (Ident.anon, phi_clo)) in
+    let add_field lbl sign_clo tfield tacs =
       let* vfield = RM.lift_ev @@ Sem.eval tfield in
       let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
       let+ tfields = intro_fields phi phi_clo tsign tacs in
-      (lbl0, tfield) :: tfields
+      (lbl, tfield) :: tfields
+    in
+    match sign,tacs with
+    | D.Field (lbl0, tp, sign_clo), `Field (lbl1,tac) :: tacs when Ident.equal lbl0 lbl1 ->
+      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0) @@ D.Lam (Ident.anon, phi_clo)) in
+      add_field lbl0 sign_clo tfield tacs
+    | D.Field (lbl,tp,sign_clo), (`Field _ :: tacs as all_tacs) -> 
+      is_contractible tp |>> begin function
+        | None -> intro_fields phi phi_clo sign tacs
+        | Some tfield -> add_field lbl sign_clo tfield all_tacs
+      end
     | sign, `Include (tac,renaming) :: tacs ->
       let* tm,tp = T.Syn.run tac in
       RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
@@ -923,14 +930,10 @@ struct
         | _ -> RM.ret @@ Hole.unleash_hole (Ident.user_to_string_opt lbl)
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
-      let* vfield = RM.lift_ev @@ Sem.eval tfield in
-      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
-      let+ tfields = intro_fields phi phi_clo tsign tacs in
-      (lbl, tfield) :: tfields
+      add_field lbl sign_clo tfield tacs
+    | D.Empty, `Field _ :: _
     | D.Empty,[] ->
       RM.ret []
-    | D.Empty, `Field _ :: _ ->
-      failwith "too many fields"
 
   let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@

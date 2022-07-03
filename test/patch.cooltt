@@ -84,3 +84,11 @@ def test-auto-patch (fam : sig [x : nat] → type) : type := fam # [x := 0]
 def U : type := type
 def test-unfold-total (fam : sig [x : nat] → U) : U := fam
 #print test-unfold-total
+
+
+-- Extra fields are ignored and elaborated away
+def test-extra-field : sub el true {struct [A := nat, a := 0]} := 
+  struct [B := 0, A := nat, x := 0, a := 0, y := 0]
+
+def test-extra-field-patch : sub {el # [A := nat]} true {struct [A := nat, a := 0]} :=
+  struct [B := 0, x := 0, a := 0, y := 0]
