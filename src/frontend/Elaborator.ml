@@ -85,12 +85,20 @@ struct
       Tp tac
 
   let signature (tacs : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list) : tac =
-    match (as_codes tacs) with
+    match as_codes tacs with
     | Some tacs ->
       let tac = R.Univ.signature tacs in
       Code tac
     | None ->
-      let tele = List.fold_right (function `Field (nm, tac) -> (fun tele -> R.Bind (nm, as_tp tac, fun _ -> tele)) | `Include _ -> failwith "cannot use include in non-code signature types") tacs R.Done in
+      let alg =
+        function
+        | `Field (nm, tac) -> (fun tele -> R.Bind (nm, as_tp tac, fun _ -> tele))
+        | `Include _ -> failwith "cannot use include in non-code signature types"
+      in
+      let tele =
+        List.fold_right
+          alg tacs R.Done
+      in
       let tac = R.Signature.formation tele in
       Tp tac
 

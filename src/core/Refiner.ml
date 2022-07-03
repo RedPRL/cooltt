@@ -563,10 +563,10 @@ struct
         `Patch will make the field an extension type, while `Subst will simply drop the field after instantiating it to the patch
      [renaming] is a function from fields to an optional new name for that field
   *)
-  let quote_code_sign_hooks 
-      (sign : (Ident.user * D.con) list) 
-      ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) 
-      ~(renaming : Ident.user -> Ident.user option) 
+  let quote_code_sign_hooks
+      (sign : (Ident.user * D.con) list)
+      ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option)
+      ~(renaming : Ident.user -> Ident.user option)
       (univ : D.tp) : _ m =
     let rec go = function
       | [] -> RM.ret []
@@ -582,7 +582,7 @@ struct
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           let* patch = T.Chk.run tac tp in
           let* vpatch = RM.eval patch in
-          let* patched_code = 
+          let* patched_code =
             RM.lift_cmp @@
             Sem.splice_tm @@
             Splice.con code @@ fun code ->
@@ -597,7 +597,7 @@ struct
           let+ sign = go sign in
           (lbl,qpatched_code) :: S.bind_code_sign_vars [lbl] sign
 
-        | None -> 
+        | None ->
           let* qcode = RM.quote_con univ code in
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           RM.abstract (lbl :> Ident.t) tp @@ fun x ->
@@ -640,7 +640,7 @@ struct
         RM.abstract (lbl :> Ident.t) tp @@ fun x ->
         let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign x in
         go (x :: vars) sign
-    in 
+    in
     go [] sign
 
   let signature (tacs : [`Field of (Ident.user * T.Chk.tac) | `Include of T.Chk.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
@@ -664,7 +664,10 @@ struct
           abstract_code_sign inc_sign @@ fun _ ->
           let+ sign = go sign in
           qinc_sign @ S.bind_code_sign_vars lbls sign
-        | _ -> failwith "including non signature"
+        | _ ->
+          RM.with_pp @@ fun ppenv ->
+          RM.refine_err @@
+          Err.ExpectedSignature (ppenv, inc)
     in
     let+ fields = go tacs in
     S.CodeSignature fields
@@ -733,7 +736,7 @@ struct
   let is_nullary_ext = function
     | D.ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-      RM.lift_cmp @@ CmpM.test_sequent [] cof 
+      RM.lift_cmp @@ CmpM.test_sequent [] cof
     | _ -> RM.ret false
 
   let infer_nullary_ext : T.Chk.tac =
@@ -874,7 +877,7 @@ struct
     | [] ->
       None
 
-  (* Check that [sign0] is a prefix of [sign1], and return the rest of [sign1] 
+  (* Check that [sign0] is a prefix of [sign1], and return the rest of [sign1]
      along with the quoted eta-expansion of [con], which has type [sign0]
   *)
   let equate_sign_prefix sign0 sign1 con ~renaming =
@@ -909,25 +912,25 @@ struct
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0) @@ D.Lam (Ident.anon, phi_clo)) in
       add_field lbl0 sign_clo tfield tacs
     (* The labels do not line up.
-       If the sig field is a nullary extension type then we fill it automatically 
+       If the sig field is a nullary extension type then we fill it automatically
        and continue with our list of struct tactics unchanged.
        Otherwise we ignore the extra field
     *)
-    | D.Field (lbl,tp,sign_clo), (`Field _ :: tacs as all_tacs) -> 
+    | D.Field (lbl,tp,sign_clo), (`Field _ :: tacs as all_tacs) ->
       Univ.is_nullary_ext tp |>> begin function
         | true ->
           let* tfield = T.Chk.brun Univ.infer_nullary_ext (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
           add_field lbl sign_clo tfield all_tacs
-        | false -> 
+        | false ->
           intro_fields phi phi_clo sign tacs
       end
     (* There are no more struct tactics.
        If the sig field is a nullary extension type then we fill it automatically.
        Otherwise the field is missing, so we unleash a hole for it
     *)
-    | D.Field (lbl,tp,sign_clo), [] -> 
-      let* tac = Univ.is_nullary_ext tp |>> function 
-        | true -> RM.ret Univ.infer_nullary_ext 
+    | D.Field (lbl,tp,sign_clo), [] ->
+      let* tac = Univ.is_nullary_ext tp |>> function
+        | true -> RM.ret Univ.infer_nullary_ext
         | false -> RM.ret @@ Hole.unleash_hole @@ Ident.user_to_string_opt lbl
       in
       let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
@@ -936,12 +939,14 @@ struct
     | sign, `Include (tac,renaming) :: tacs ->
       let* tm,tp = T.Syn.run tac in
       RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
-        | D.Signature inc_sign -> 
+        | D.Signature inc_sign ->
           let* vtm = RM.lift_ev @@ Sem.eval tm in
           let* fields,sign = equate_sign_prefix ~renaming inc_sign sign vtm in
           let+ tfields = intro_fields phi phi_clo sign tacs in
           fields @ tfields
-        | _ -> failwith "including non-struct"
+        | _ ->
+          RM.with_pp @@ fun ppenv ->
+          RM.refine_err @@ Err.ExpectedStructure (ppenv, tm)
       end
     (* There are extra fields, they can be ignored *)
     | D.Empty, `Field _ :: _

@@ -157,7 +157,7 @@ let open_sign_chk sign tm_tac tac_bdy ~renaming =
       let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
       let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo y in
       T.Chk.run (go (x :: vars) sign) goal
-  in 
+  in
   go [] sign
 
 let open_sign_syn sign tm_tac tac_bdy ~renaming =
@@ -170,24 +170,29 @@ let open_sign_syn sign tm_tac tac_bdy ~renaming =
       let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
       let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo y in
       T.Syn.run (go (x :: vars) sign)
-  in 
+  in
   go [] sign
 
 let open_ tac renaming tac_bdy : T.Chk.tac =
   T.Chk.rule ~name:"Signature.open_" @@ fun goal ->
-  let* _,tp = T.Syn.run tac in
+  let* tm,tp = T.Syn.run tac in
   RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
-  | D.Signature sign -> 
+  | D.Signature sign ->
     T.Chk.run (open_sign_chk ~renaming sign tac tac_bdy) goal
-  | _ -> failwith "opening non-structure"
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
 
 let open_syn tac renaming tac_bdy : T.Syn.tac =
-  T.Syn.rule ~name:"Signature.open_syn" @@ 
-  let* _,tp = T.Syn.run tac in
+  T.Syn.rule ~name:"Signature.open_syn" @@
+  let* tm, tp = T.Syn.run tac in
   RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
-  | D.Signature sign -> 
-    T.Syn.run (open_sign_syn ~renaming sign tac tac_bdy)
-  | _ -> failwith "opening non-structure"
+  | D.Signature sign ->
+    T.Syn.run @@ open_sign_syn ~renaming sign tac tac_bdy
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
+
 
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with
