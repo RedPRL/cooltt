@@ -11,8 +11,11 @@ hlevel.cooltt:31.11-31.15 [Info]:
      def lvl : ext nat ⊤ {_x => 1} def tp : type def prf : has-hlevel 1 tp
    end
 
-abstract.cooltt:79.21-79.27 [Error]:
-  Unbound variable is-set
+abstract.cooltt:104.7-104.15 [Info]:
+  def abs-test : nat := suc {abs-test∷foo *}
+
+abstract.cooltt:107.7-107.15 [Info]:
+  def abs-test : nat := 42
 
 --------------------[algebra.cooltt]--------------------
 nat.cooltt:10.7-10.8 [Info]:
