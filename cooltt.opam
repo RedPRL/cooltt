@@ -12,7 +12,7 @@ depends: [
   "dune" {>= "2.0"}
   "ocaml" {>= "4.10.0"}
   "ppx_deriving" {>= "4.4.1"}
-  "bantorra"
+  "bantorra" {>= "0.1" & < "0.2"}
   "bwd" {>= "1.2"}
   "cmdliner" {>= "1.1"}
   "containers" {>= "3.4"}
