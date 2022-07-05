@@ -15,12 +15,7 @@ def has-hlevel : nat → type → type :=
     | suc l => A => aux l A
   ]
 
-def htype : type :=
-  sig
-    def lvl : nat
-    def tp : type
-    def prf : has-hlevel lvl tp
-  end
+def htype : sig [lvl : nat, tp : type] → type := a => open a in has-hlevel lvl tp
 
 def contr : type :=  htype # [lvl := 0]
 def prop : type := htype # [lvl := 1]
@@ -32,22 +27,17 @@ def groupoid : type := htype # [lvl := 3]
 
 abstract
 def contr-prop (A : contr) : prop # [tp := A.tp] := 
-  open A in
-  struct
-    def prf := unfold has-hlevel in pt pt' => trans tp {symm tp {prf.path pt}} {prf.path pt'}
-  end 
-
+  unfold has-hlevel in pt pt' => trans {A.tp} {symm {A.tp} {A.fib.path pt}} {A.fib.path pt'}
+ 
 abstract
 def prop-set (A : prop) : set # [tp := A.tp] :=
-  open A in
-  struct
-    def prf := unfold has-hlevel in a b p q i j => 
-      hcom tp 0 1 {∂ i ∨ ∂ j} {k =>
-        [ k=0 ∨ ∂ j ∨ i=0 => prf a {p j} k
-        | i=1 => prf a {q j} k
-        ]
-      }
-  end
+  unfold has-hlevel in a b p q i j => 
+  hcom {A.tp} 0 1 {∂ i ∨ ∂ j} {k =>
+    [ k=0 ∨ ∂ j ∨ i=0 => A a {p j} k
+    | i=1 => A a {q j} k
+    ]
+  }
+
 
 abstract
 def raise-hlevel (A : htype) : htype # [lvl := suc {A.lvl}, tp := A.tp] :=
@@ -56,9 +46,7 @@ def raise-hlevel (A : htype) : htype # [lvl := suc {A.lvl}, tp := A.tp] :=
     | zero => prop-set
     | suc {l => ih} => B => 
       unfold has-hlevel in 
-      struct 
-        def prf := b b' => {ih {struct [tp := path {B.tp} b b', prf := B.prf b b']}}.prf
-      end
+      b b' => {ih {struct [tp := path {B.tp} b b', fib := B b b']}}
     ]
   in
   let aux2 : (m : nat) (B : htype # [lvl := m]) → htype # [lvl := suc m, tp := B.tp] :=
@@ -69,6 +57,7 @@ def raise-hlevel (A : htype) : htype # [lvl := suc {A.lvl}, tp := A.tp] :=
   in
   aux2 {A.lvl} A
 
+
 abstract
 def prop-hlevel : (l : nat) (A : prop) → htype # [lvl := suc l, tp := A.tp] :=
   elim [
@@ -76,34 +65,31 @@ def prop-hlevel : (l : nat) (A : prop) → htype # [lvl := suc l, tp := A.tp] :=
   | suc {l => ih} => A => raise-hlevel {ih A}
   ]
 
+
 abstract
 def path-hlevel : (l : nat) (A : htype # [lvl := suc l]) (a a' : A.tp) → htype # [lvl := l, tp := path {A.tp} a a'] :=
   elim [
   | zero => A a a' => 
     unfold has-hlevel in 
-    struct 
-      def prf := struct [pt := A.prf a a', path := {prop-set A}.prf a a' {A.prf a a'}]
-    end
+    struct [pt := A a a', path := {prop-set A} a a' {A a a'}]
+
   | suc l => 
     unfold has-hlevel in
-    A a a' => struct [prf := {A.prf} a a']
+    A => A
   ]
 
 abstract
 def path-based-contr (A : type) (a : A) : contr # [tp := (x : A) × path A a x] :=
+  unfold has-hlevel in
   struct
-    def prf := 
-      unfold has-hlevel in
-      struct
-        def pt := [a, i => a]
-        def path := x i =>
-         let aux : 𝕀 → A := j =>
-            hcom A 0 j {∂ i} {k =>
-              [ k=0 ∨ i=0 => a
-              | i=1 => {snd x} k
-              ]
-            }
-          in
-          [aux 1, aux]
-      end 
-  end
+    def pt := [a, i => a]
+    def path := x i =>
+      let aux : 𝕀 → A := j =>
+        hcom A 0 j {∂ i} {k =>
+          [ k=0 ∨ i=0 => a
+          | i=1 => {snd x} k
+          ]
+        }
+      in
+      [aux 1, aux]
+  end 
