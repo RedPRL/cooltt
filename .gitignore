@@ -127,3 +127,6 @@ setup.log
 
 # Local OPAM switch
 _opam/
+
+# for Nix
+result/
