@@ -25,7 +25,7 @@ module Probe : sig
   val probe_boundary : Chk.tac -> Chk.tac -> Chk.tac
   val probe_syn : string option -> Syn.tac -> Syn.tac
 
-  val dispatch_boundary : Chk.tac -> (CodeUnit.Syntax.t -> Chk.tac) -> Chk.tac
+  val try_with_boundary : Chk.tac -> (CodeUnit.Syntax.t -> Chk.tac) -> Chk.tac
 end
 
 module Dim : sig

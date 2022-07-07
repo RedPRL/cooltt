@@ -36,7 +36,8 @@ module Probe : sig
   val probe_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
 
-  val dispatch_boundary : T.Chk.tac -> (S.t -> T.Chk.tac) -> T.Chk.tac
+  (** Run the first tactic, and if the boundary is not satisfied, run the second tactic family at the term produced by the first tactic. *)
+  val try_with_boundary : T.Chk.tac -> (S.t -> T.Chk.tac) -> T.Chk.tac
 end =
 struct
   let probe_chk name tac =
@@ -54,8 +55,8 @@ struct
     let* () = RM.print_boundary probe_tm tp phi clo in
     T.Chk.brun tac (tp, phi, clo)
 
-  let dispatch_boundary tac backup =
-    T.Chk.brule ~name:"dispatch_boundary" @@ fun (tp, phi, tm_clo) ->
+  let try_with_boundary tac backup =
+    T.Chk.brule ~name:"try_with_boundary" @@ fun (tp, phi, tm_clo) ->
     let* tm = T.Chk.brun tac (tp, phi, tm_clo) in
     let* bdry_sat = RM.boundary_satisfied tm tp phi tm_clo in
     match bdry_sat with
