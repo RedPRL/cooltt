@@ -49,7 +49,3 @@ module Equations : sig
   val step : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val qed : Chk.tac -> Chk.tac -> Syn.tac
 end
-
-module Univ : sig
-  val hcom_chk : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
-end

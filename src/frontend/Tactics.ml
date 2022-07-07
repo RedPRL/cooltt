@@ -378,39 +378,3 @@ struct
     let+ trefl = RM.quote_con refl_tp refl in
     (trefl, refl_tp)
 end
-
-module Univ =
-struct
-  let as_code = function
-    | D.ElStable code -> RM.ret @@ D.StableCode code
-    | D.ElUnstable code -> RM.ret @@ D.UnstableCode code
-    | D.ElCut cut -> RM.ret @@ D.Cut { tp = D.Univ; cut }
-    | tp -> RM.expected_connective `El tp
-
-  let hcom_chk tac_src tac_trg tac_tm =
-    let cool_hcom =
-      T.Chk.brule ~name:"cool_hcom" @@ fun (tp, phi, tm_clo) ->
-      let* tp = RM.lift_cmp @@ Sem.whnf_tp_ tp in
-      match tp with
-      | D.Sub (sub_tp, psi, _) ->
-        let tac_code =
-          T.Chk.brule @@ fun (_, _, _) ->
-          let* vcode = as_code sub_tp in
-          RM.quote_con D.Univ vcode
-        in
-        let tac_cof =
-          T.Chk.brule @@ fun (_, _, _) ->
-          RM.quote_cof @@ D.Cof.join [phi; psi]
-        in
-        let hcom_tac =
-          R.Sub.intro @@
-          T.Chk.syn @@
-          R.Univ.hcom tac_code tac_src tac_trg tac_cof tac_tm in
-        T.Chk.brun hcom_tac (tp, phi, tm_clo)
-      | _ -> RM.expected_connective `Sub tp
-    in
-    R.Probe.try_with_boundary cool_hcom @@ fun tm ->
-    T.Chk.brule @@ fun (tp, phi, tm_clo) ->
-    let* () = RM.print_boundary tm tp phi tm_clo in
-    T.Chk.brun (R.Hole.silent_hole None) (tp, phi, tm_clo)
-end
