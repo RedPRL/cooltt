@@ -25,7 +25,7 @@ def iso/refl (A : type) : iso # [A := A, B := A] :=
 
 abstract
 def iso/symm (I : iso) : iso # [A := I.B, B := I.A] :=
-open I in
+  open I in
   struct
     def fwd := bwd
     def bwd := fwd
