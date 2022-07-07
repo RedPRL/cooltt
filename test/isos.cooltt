@@ -1,78 +1,77 @@
 -- "stdlib"
 import prelude
 
-shadowing
-def trans/filler (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) (j i : 𝕀) : A :=
-  hcom A 0 j {∂ i} {j =>
-    [ j=0 ∨ i=0 => p i
-    | i=1 => q j
-    ]
-  }
-
-shadowing
-def trans (A : type) (p : 𝕀 → A) (q : (i : 𝕀) → sub A {i=0} {p 1}) : path A {p 0} {q 1} :=
-  trans/filler A p q 1
-
 -- isomorphisms
 
-def iso (A B : type) : type :=
-    (f : A → B)
-  × (g : B → A)
-  × {(b : B) → path B {f {g b}} b}
-  × {(a : A) → path A {g {f a}} a}
+def iso : type :=
+  sig
+    def A : type
+    def B : type
+    def fwd : A → B
+    def bwd : B → A
+    def fwd-bwd : (b : B) → path B {fwd {bwd b}} b
+    def bwd-fwd : (a : A) → path A {bwd {fwd a}} a
+  end
+
 
 abstract
-def iso/refl (A : type) : iso A A :=
-  [     a => a
-  , [   a => a
-    , [ a i => a
-      , a i => a
-  ] ] ]
+def iso/refl (A : type) : iso # [A := A, B := A] :=
+  struct
+    def fwd := x => x
+    def bwd := x => x
+    def fwd-bwd := b i => b
+    def bwd-fwd := a i => a
+  end
 
 abstract
-def iso/symm (A B : type) (I : iso A B) : iso B A :=
-  let f := fst I in
-  let g := fst {snd I} in
-  let α := fst {snd {snd I}} in
-  let β := snd {snd {snd I}} in
-  [ g , [ f , [ β , α ] ] ]
+def iso/symm (I : iso) : iso # [A := I.B, B := I.A] :=
+open I in
+  struct
+    def fwd := bwd
+    def bwd := fwd
+    def fwd-bwd := bwd-fwd
+    def bwd-fwd := fwd-bwd
+  end
+
 
 abstract
-def iso/trans (A B C : type) (I1 : iso A B) (I2 : iso B C) : iso A C :=
-  let f1 := fst I1 in
-  let g1 := fst {snd I1} in
-  let α1 := fst {snd {snd I1}} in
-  let β1 := snd {snd {snd I1}} in
-  let f2 := fst I2 in
-  let g2 := fst {snd I2} in
-  let α2 := fst {snd {snd I2}} in
-  let β2 := snd {snd {snd I2}} in
-  [a => f2 {f1 a},
-   [c => g1 {g2 c},
-    [c => trans C {j => f2 {α1 {g2 c} j}} {α2 c},
-     a => trans A {j => g1 {β2 {f1 a} j}} {β1 a}]]]
+def iso/trans (I1 : iso) (I2 : iso # [ A := I1.B ]) : iso # [A := I1.A, B := I2.B] :=
+  struct
+    def fwd := a => I2.fwd {I1.fwd a}
+    def bwd := b => I1.bwd {I2.bwd b}
+    def fwd-bwd := b => trans {I2.B} {j => I2.fwd {I1.fwd-bwd {I2.bwd b} j}} {I2.fwd-bwd b}
+    def bwd-fwd := a => trans {I1.A} {j => I1.bwd {I2.bwd-fwd {I1.fwd a} j}} {I1.bwd-fwd a}
+  end
 
 -- pair isos
 
 abstract
-def iso/pair/comm (A B : type) : iso {A × B} {B × A} :=
-  [ab => [snd ab, fst ab],
-   [ba => [snd ba, fst ba],
-    [ba i => ba,
-     ab i => ab]]]
+def iso/pair/comm (X Y : type) : iso # [A := X × Y, B := Y × X] :=
+  struct
+    def fwd := ab => [snd ab, fst ab]
+    def bwd := ba => [snd ba, fst ba]
+    def fwd-bwd := ba i => ba
+    def bwd-fwd := ab i => ab
+  end
 
 abstract
-def iso/pair/assoc (A B C : type) : iso {A × B × C} {{A × B} × C} :=
-  [a_bc => [[fst a_bc, fst {snd a_bc}], snd {snd a_bc}],
-   [ab_c => [fst {fst ab_c}, [snd {fst ab_c}, snd ab_c]],
-    [ab_c i => ab_c, a_bc i => a_bc]]]
+def iso/pair/assoc (X Y Z : type) : iso # [A := {X × Y × Z}, B := {{X × Y} × Z}] :=
+  struct
+    def fwd := a_bc => [[fst a_bc, fst {snd a_bc}], snd {snd a_bc}]
+    def bwd := ab_c => [fst {fst ab_c}, [snd {fst ab_c}, snd ab_c]]
+    def fwd-bwd := ab_c i => ab_c
+    def bwd-fwd := a_bc i => a_bc
+  end
 
 abstract
-def iso/pair/unit (A : type) : iso {A × unit} A :=
-  [au => fst au,
-   [a => [a, ⋆],
-    [a i => a,
-     au i => au]]]
+def iso/pair/unit (X : type) : iso # [A := X × unit, B := X] :=
+  struct
+    def fwd := au => fst au
+    def bwd := a => [a, ⋆]
+    def fwd-bwd := a i => a
+    def bwd-fwd := au i => au
+  end
+
 
 -- function isos
 
@@ -82,34 +81,36 @@ def curry (A B C : type) : {{A × B} → C} → {A → B → C} :=
 def uncurry (A B C : type) : {A → B → C} → {{A × B} → C} :=
   f ab => f {fst ab} {snd ab}
 
-def iso/curry (A B C : type) : iso {A → B → C} {{A × B} → C} :=
-  [uncurry A B C,
-   [curry A B C,
-    [ab_c i => ab_c,
-     a_b_c i => a_b_c]]]
+def iso/curry (X Y Z : type) : iso # [A := X → Y → Z, B := {X × Y} → Z] :=
+  struct
+    def fwd := uncurry X Y Z
+    def bwd := curry X Y Z
+    def fwd-bwd := ab_c i => ab_c
+    def bwd-fwd := a_b_c i => a_b_c
+  end
 
-def iso/lhs (A B C : type) (I : iso A B) : iso {A → C} {B → C} :=
-  let f := fst I in
-  let g := fst {snd I} in
-  let α := fst {snd {snd I}} in
-  let β := snd {snd {snd I}} in
-  [ac b => ac {g b},
-   [bc a => bc {f a},
-    [bc i b => bc {α b i},
-     ac i a => ac {β a i}]]]
+def iso/lhs (C : type) (I : iso) : iso # [A := {I.A} → C, B := {I.B} → C] :=
+  open I in
+  struct
+    def fwd := ac b => ac {bwd b}
+    def bwd := bc a => bc {fwd a}
+    def fwd-bwd := bc i b => bc {fwd-bwd b i}
+    def bwd-fwd := ac i a => ac {bwd-fwd a i}
+  end
 
-def iso/rhs (A B C : type) (I : iso A B) : iso {C → A} {C → B} :=
-  let f := fst I in
-  let g := fst {snd I} in
-  let α := fst {snd {snd I}} in
-  let β := snd {snd {snd I}} in
-  [ca c => f {ca c},
-   [cb c => g {cb c},
-    [cb i c => α {cb c} i,
-     ca i c => β {ca c} i]]]
+def iso/rhs (C : type) (I : iso) : iso # [A := C → {I.A}, B := C → {I.B} ] :=
+  open I in
+  struct
+    def fwd := ca c => fwd {ca c}
+    def bwd := cb c => bwd {cb c}
+    def fwd-bwd := cb i c => fwd-bwd {cb c} i
+    def bwd-fwd := ca i c => bwd-fwd {ca c} i
+  end
 
-def iso/flip (A B C : type) : iso {A → B → C} {B → A → C} :=
-  [abc b a => abc a b,
-   [bac a b => bac b a,
-    [bac i => bac,
-     abc i => abc]]]
+def iso/flip (X Y Z : type) : iso # [A := X → Y → Z, B := Y → X → Z] :=
+  struct
+    def fwd := abc b a => abc a b
+    def bwd := bac a b => bac b a
+    def fwd-bwd := bac i => bac
+    def bwd-fwd := abc i => abc
+  end

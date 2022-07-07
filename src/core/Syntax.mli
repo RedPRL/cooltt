@@ -9,6 +9,10 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val tm_abort : t
   val tp_abort : tp
 
+  (** Lambda bind a list of variables on all of the fields of code signature *)
+  val bind_code_sign_vars : Ident.user list -> (Ident.user * t) list -> (Ident.user * t) list
+
+
   (** {1 Pretty printers} *)
 
   (** {2 For display}

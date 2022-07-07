@@ -8,6 +8,7 @@ module D := Domain
 val eval : S.t -> D.con evaluate
 val eval_cof : S.t -> D.cof evaluate
 val eval_tp : S.tp -> D.tp evaluate
+val eval_sign : S.sign -> D.sign evaluate
 
 type 'a whnf = [`Done | `Reduce of 'a]
 val whnf_con : D.con -> D.con whnf compute
@@ -24,6 +25,8 @@ val whnf_con_ : D.con -> D.con compute
 val inst_tp_clo : D.tp_clo -> D.con -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con -> D.con compute
 val inst_sign_clo : D.sign_clo -> D.con -> D.sign compute
+val inst_code_sign : (Ident.user * D.con) list -> D.con -> (Ident.user * D.con) list compute
+
 
 val do_ap : D.con -> D.con -> D.con compute
 val do_ap2 : D.con -> D.con -> D.con -> D.con compute
