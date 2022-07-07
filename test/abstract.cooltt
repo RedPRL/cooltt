@@ -80,7 +80,7 @@ axiom nat∷set : set # [tp := nat]
 
 def foo (p : path nat {+ 0 0} 0) : unfold + in path {path nat {+ 0 0} 0} p {_ => 0} :=
   unfold + has-hlevel in
-  nat∷set.prf 0 0 p {_ => 0}
+  nat∷set 0 0 p {_ => 0}
 
 -- A simple example for Daniel G.
 

@@ -11,36 +11,11 @@ hlevel.cooltt:26.11-26.15 [Info]:
      def lvl : ext nat ⊤ {_x => 1} def tp : type def fib : has-hlevel 1 tp
    end
 
-abstract.cooltt:83.2-83.30 [Error]:
-  Expected (nat∷set : sig 
-  (lvl : ext nat ⊤ {_x₄ => 2})
-  (tp : ext type ⊤ {_x₄ => nat})def fib :
-                                  (a : nat) →
-                                    (a' : nat) →
-                                      (a₁ : ext
-                                              {i => nat}
-                                              {i => i = 0 ∨ i = 1}
-                                              {i _x₄ =>
-                                                 [ i = 0 => a | i = 1 => a' ]}) →
-                                        (a'₁ : ext
-                                                 {i => nat}
-                                                 {i => i = 0 ∨ i = 1}
-                                                 {i _x₄ =>
-                                                    [ i = 0 => a
-                                                    | i = 1 => a'
-                                                    ]}) →
-                                          ext
-                                            {i =>
-                                               ext
-                                                 {i₁ => nat}
-                                                 {i => i = 0 ∨ i = 1}
-                                                 {i₁ _x₄ =>
-                                                    [ i₁ = 0 => a
-                                                    | i₁ = 1 => a'
-                                                    ]}}
-                                            {i => i = 0 ∨ i = 1}
-                                            {i _x₄ =>
-                                               [ i = 0 => a₁ | i = 1 => a'₁ ]}) to have field prf
+abstract.cooltt:104.7-104.15 [Info]:
+  def abs-test : nat := suc {abs-test∷foo *}
+
+abstract.cooltt:107.7-107.15 [Info]:
+  def abs-test : nat := 42
 
 --------------------[algebra.cooltt]--------------------
 nat.cooltt:10.7-10.8 [Info]:

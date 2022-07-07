@@ -12,7 +12,7 @@ def has-hlevel : nat → type → type :=
   in
   elim [
     | zero => A => sig [pt : A, path : (pt' : A) → path A pt pt']
-    | suc l => A => aux l A
+    | suc l => aux l
   ]
 
 def htype : sig [lvl : nat, tp : type] → type := a => open a in has-hlevel lvl tp
