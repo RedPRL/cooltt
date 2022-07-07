@@ -1,13 +1,23 @@
 import prelude
 
-def el : type := sig (A : type) (a : A)
-def el-patch : type := el # [ A .= nat | a .= 4 ]
-def el-patch-partial : type := el # [ A .= nat ]
+def el : type :=
+sig
+  def A : type
+  def a : A
+end
 
-def patch/inhabit : el-patch := struct (A : nat) (a : 4)
-def patch-partial/inhabit/infer : el-patch-partial := struct (a : 4)
-def patch/inhabit/infer : el-patch := struct
-def patch/inhabit/hole : el-patch := struct (A : ?) (a : ?)
+def el-patch : type := el # [A := nat, a := 4]
+def el-patch-partial : type := el # [ A := nat ]
+
+def patch/inhabit : el-patch :=
+struct
+  def A := nat
+  def a := 4
+end
+
+def patch-partial/inhabit/infer : el-patch-partial := struct def a := 4 end
+def patch/inhabit/infer : el-patch := struct end
+def patch/inhabit/hole : el-patch := struct def A := ? def a := ? end
 
 #print el-patch
 #print el-patch-partial
@@ -15,50 +25,62 @@ def patch/inhabit/hole : el-patch := struct (A : ?) (a : ?)
 #print patch-partial/inhabit/infer
 #print patch/inhabit/infer
 
-def patch-depends : type := {sig (A : type) (B : type)} # [ A .= nat | B .= A ]
+def patch-depends : type := {sig [A : type, B : type]} # [A := nat, B := A]
 #print patch-depends
-def patch-depends/inhabit : patch-depends := struct (A : nat) (B : nat)
+def patch-depends/inhabit : patch-depends := struct def A := nat def B := nat end
 
-def testing (A Z : type) (B : A → type) (p : Z → sig (x : A) (bx : B x)) (z : Z) : sig (x : A) (bx : B x) # [ x .= p z.x | bx .= p z.bx ] :=
+
+def testing (A Z : type) (B : A → type) (p : Z → sig [x : A, bx : B x]) (z : Z) : sig [x : A, bx : B x] # [x := p z.x, bx := p z.bx] :=
   p z
 
 #print testing
 
 -- Record Patching + Total Space Conversion
-#fail def total-space/fail (fam : sig (A : type) (a : A) → nat → type) : type := fam
+#fail def total-space/fail (fam : sig [A : type, a : A] → nat → type) : type := fam
+
+
 
 abstract
 def category : type :=
   sig
-    (ob : type)
-    (hom : sig (s : ob) (t : ob) → type)
-    (idn : (x : ob) → hom # [ s .= x | t .= x ])
-    (seq : (f : hom) → (g : hom # [ s .= f.t ]) → hom # [ s .= f.s | t .= g.t ])
-    (seqL : abstract seqL∷tp ← (f : hom) → path {hom # [ s .= f.s | t .= f.t ]} {seq {idn {f.s}} f} f)
-    (seqR : abstract seqR∷tp ← (f : hom) → path {hom # [ s .= f.s | t .= f.t ]} {seq f {idn {f.t}}} f)
-    (seqA :
+    def ob : type
+    def hom : sig [s : ob, t : ob] → type
+    def idn : (x : ob) → hom # [s := x, t := x]
+    def seq : (f : hom) → (g : hom # [s := f.t]) → hom # [s := f.s, t := g.t]
+
+    def seqL :
+      abstract seqL∷tp ←
+      (f : hom) → path {hom # [s := f.s, t := f.t]} {seq {idn {f.s}} f} f
+
+    def seqR :
+      abstract seqR∷tp ←
+      (f : hom) → path {hom # [s := f.s, t := f.t]} {seq f {idn {f.t}}} f
+
+    def seqA :
       abstract seqA∷tp ←
-      (f : hom) (g : hom # [ s .= f.t ]) (h : hom # [ s .= g.t ])
-      → path {hom # [ s .= f.s | t .= h.t ]} {seq f {seq g h}} {seq {seq f g} h})
+      (f : hom) (g : hom # [s := f.t]) (h : hom # [s := g.t])
+      → path {hom # [s := f.s, t := h.t]} {seq f {seq g h}} {seq {seq f g} h}
+  end
 
 def types : category :=
   unfold category in
   struct
-    (ob : type)
-    (hom : args => {args.s} → {args.t})
-    (idn : x z => z)
-    (seq : f g x => g {f x})
-    (seqL : unfold seqL∷tp in f i => f)
-    (seqR : unfold seqR∷tp in f i => f)
-    (seqA : unfold seqA∷tp in f g h i x => h {g {f x}})
+    def ob := type
+    def hom := args => {args.s} → {args.t}
+    def idn := _ x => x
+    def seq := f g x => g {f x}
 
+    def seqL := unfold seqL∷tp in f _ => f
+    def seqR := unfold seqR∷tp in f _ => f
+    def seqA := unfold seqA∷tp in f g h _ x => h {g {f x}}
+  end
 
-def test-auto (fam : sig (x : nat) → type) : type := fam
+def test-auto (fam : sig [x : nat] → type) : type := fam
 #print test-auto
 
-def test-auto-patch (fam : sig (x : nat) → type) : type := fam # [x .= 0]
+def test-auto-patch (fam : sig [x : nat] → type) : type := fam # [x := 0]
 #print test-auto-patch
 
 def U : type := type
-def test-unfold-total (fam : sig (x : nat) → U) : U := fam
+def test-unfold-total (fam : sig [x : nat] → U) : U := fam
 #print test-unfold-total

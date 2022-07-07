@@ -13,7 +13,10 @@ type 'a whnf = [`Done | `Reduce of 'a]
 val whnf_con : D.con -> D.con whnf compute
 val whnf_cut : D.cut -> D.con whnf compute
 val whnf_hd : D.hd -> D.con whnf compute
+val whnf_con_branches : (D.cof * D.tm_clo) list -> D.con whnf compute
 val whnf_tp : D.tp -> D.tp whnf compute
+val whnf_tp_branches : (D.cof * D.tp_clo) list -> D.tp whnf compute
+
 
 val whnf_tp_ : D.tp -> D.tp compute
 val whnf_con_ : D.con -> D.con compute

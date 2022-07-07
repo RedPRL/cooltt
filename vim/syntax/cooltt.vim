@@ -21,6 +21,7 @@ syn region  coolttEncl transparent matchgroup=coolttSymb start="\[" end="\]" con
 syn region  coolttEncl transparent matchgroup=coolttSymb start="{" end="}" contains=ALLBUT,coolttBraceErr
 
 syn match   coolttHole '?\k*'
+syn match   coolttHole '?_\k*'
 
 syn keyword coolttKeyw zero suc nat fst snd elim type dim equation begin end
 syn keyword coolttKeyw cof sub ext coe hcom com hfill V vproj with struct sig tt ff #

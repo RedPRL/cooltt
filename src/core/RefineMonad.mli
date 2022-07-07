@@ -1,8 +1,10 @@
 open CodeUnit
 module D = Domain
 module S = Syntax
+module Env = RefineEnv
 
 open Basis
+open Bwd
 
 include module type of Monads.RefineM
 
@@ -50,3 +52,12 @@ val with_pp : (Pp.env -> 'a m) -> 'a m
 val expected_connective : RefineError.connective -> D.tp -> 'a m
 val expected_field : D.sign -> S.t -> Ident.user -> 'a m
 val field_names_mismatch : expected:Ident.user list -> actual:Ident.user list -> 'a m
+
+(* [HACK: Hazel; 2022-06-24] FKA GlobalUtil, maybe this shouldn't go here *)
+val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
+val multi_pi : Env.cell list -> S.tp m -> S.tp m
+val multi_ap : Env.cell bwd -> D.cut -> D.cut
+
+val print_state : string option -> S.tp -> unit m
+val print_boundary : S.t -> D.tp -> D.cof -> D.tm_clo -> unit m
+val boundary_satisfied : S.t -> D.tp -> D.cof -> D.tm_clo -> [> `BdrySat | `BdryUnsat ] m

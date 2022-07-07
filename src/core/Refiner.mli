@@ -18,6 +18,7 @@ type 'a telescope =
 module Hole : sig
   val silent_hole : string option -> Chk.tac
   val unleash_hole : string option -> Chk.tac
+  val silent_syn_hole : string option -> Syn.tac
   val unleash_syn_hole : string option -> Syn.tac
 end
 
@@ -28,6 +29,8 @@ module Probe : sig
 
   val probe_goal_chk : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Chk.tac -> Chk.tac
   val probe_goal_syn : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Syn.tac -> Syn.tac
+
+  val dispatch_boundary : Chk.tac -> (S.t -> Chk.tac) -> Chk.tac
 end
 
 module Dim : sig

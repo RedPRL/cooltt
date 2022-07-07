@@ -10,6 +10,7 @@ module Qu = Quote
 module Conv = Conversion
 
 open Basis
+open Bwd
 include Monads.RefineM
 
 module MU = Monad.Util (Monads.RefineM)
@@ -207,4 +208,58 @@ let abstract nm tp k =
 let update_span loc =
   scope @@ Env.set_location loc
 
+(* [HACK: Hazel; 2022-06-24] FKA Refiner.GlobalUtil *)
+let rec destruct_cells =
+  function
+  | [] -> ret []
+  | cell :: cells ->
+    let ctp, _ = Env.Cell.contents cell in
+    let ident = Env.Cell.ident cell in
+    let+ base = quote_tp ctp
+    and+ rest = abstract ident ctp @@ fun _ -> destruct_cells cells in
+    (ident, base) :: rest
 
+let rec multi_pi (cells : Env.cell list) (finally : S.tp m) : S.tp m =
+  match cells with
+  | [] -> finally
+  | cell :: cells ->
+    let ctp, _ = Env.Cell.contents cell in
+    let ident = Env.Cell.ident cell in
+    let+ base = quote_tp ctp
+    and+ fam = abstract ident ctp @@ fun _ -> multi_pi cells finally in
+    S.Pi (base, ident, fam)
+
+let rec multi_ap (cells : Env.cell bwd) (finally : D.cut) : D.cut =
+  match cells with
+  | Emp -> finally
+  | Snoc (cells, cell) ->
+    let tp, con = Env.Cell.contents cell in
+    multi_ap cells finally |> D.push @@ D.KAp (tp, con)
+
+let print_state lbl tp : unit m =
+  let* env = read in
+  let cells = Env.locals env in
+
+  globally @@
+  let* ctx = destruct_cells @@ BwdLabels.to_list cells in
+  () |> emit (RefineEnv.location env) @@ fun fmt () ->
+  Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
+
+let boundary_satisfied tm tp phi clo : _ m =
+  let* con = lift_ev @@ Sem.eval tm in
+  let+ res = trap @@ abstract Ident.anon (D.TpPrf phi) @@ fun prf ->
+    equate tp con @<< lift_cmp @@ Sem.inst_tm_clo clo prf
+  in match res with
+  | Ok _ -> `BdrySat
+  | Error _ -> `BdryUnsat
+
+let print_boundary tm tp phi clo : unit m =
+  let* env = read in
+  let cells = Env.locals env in
+  let* bdry_sat = boundary_satisfied tm tp phi clo in
+  let* stp = quote_tp @@ D.Sub (tp, phi, clo) in
+
+  globally @@
+  let* ctx = destruct_cells @@ BwdLabels.to_list cells in
+  () |> emit (RefineEnv.location env) @@ fun fmt () ->
+  Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)

@@ -186,18 +186,11 @@ and chk_tm_in_tele (args : CS.cell list) (con : CS.con) : T.Chk.tac =
 and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.update_span con.info @@
-  (* [HACK: June, 06-20-2022] This should go somewhere else, and breaks HComInfer *)
-  (* Tactics.intro_subtypes_and_total @@ *)
   match con.node with
-  | CS.Hole (name, None) -> Refiner.Hole.unleash_hole name
-  | CS.Hole (name, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
-  | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
-  | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
-
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
 
-  | CS.Visualize -> Refiner.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal) @@ Refiner.Hole.unleash_hole None
+  | CS.Visualize -> R.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal) @@ R.Hole.unleash_hole None
 
   | CS.Unfold (idents, c) ->
     R.Structural.unfold idents (chk_tm c)
@@ -205,148 +198,171 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Abstract (name, c) ->
     R.Structural.abstract ~name (chk_tm c)
 
+  | CS.HComInfer (src, trg, tm) ->
+    Tactics.Univ.hcom_chk (chk_tm src) (chk_tm trg) (chk_tm tm)
+  | CS.HFillInfer (src, tm) ->
+    R.Pi.intro ~ident:(Ident.machine "i") @@ fun i ->
+    Tactics.Univ.hcom_chk (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm tm)
+
   | CS.Lam ([], body) ->
     chk_tm body
 
-  | CS.HComInfer (src, trg, tm) ->
-    Tactics.Univ.hcom_chk (chk_tm src) (chk_tm trg) (chk_tm tm)
-  | CS.HFillInfer (src, tm) -> failwith "FIXME: HFillInfer unimplemented"
+  | CS.Let (c, ident, body) ->
+    R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> chk_tm body
 
   | _ ->
-    Tactics.intro_implicit_connectives @@
+    Tactics.intro_subtypes_and_total @@
     match con.node with
-    | CS.Underscore ->
-      R.Prf.intro
+    | CS.Hole ({name; silent=false}, None) -> Refiner.Hole.unleash_hole name
+    | CS.Hole ({name; silent=false}, Some con) -> Refiner.Probe.probe_chk name @@ chk_tm con
+    | CS.Hole ({name; silent=true}, None) -> Refiner.Hole.silent_hole name
+    | CS.Hole ({name=_; silent=true}, Some con) -> chk_tm con
+    | CS.BoundaryHole None -> Refiner.Hole.unleash_hole None
+    | CS.BoundaryHole (Some con) -> Refiner.Probe.probe_boundary (chk_tm con) (Refiner.Hole.silent_hole None)
 
-    | CS.Lit n ->
-      begin
-        Tactics.match_goal @@ function
-        | D.TpDim, _, _ -> RM.ret @@ R.Dim.literal n
-        | _ -> RM.ret @@ R.Nat.literal n
-      end
+    | CS.Generalize (ident, c) ->
+      R.Structural.generalize ident (chk_tm c)
 
-    | CS.Lam (nm :: names, body) ->
-      R.Pi.intro ~ident:nm @@ fun _ ->
-      chk_tm {con with node = CS.Lam (names, body)}
+    | CS.Unfold (idents, c) ->
+      R.Structural.unfold idents (chk_tm c)
 
-    | CS.LamElim cases ->
-      Tactics.Elim.lam_elim @@ chk_cases cases
-
-    | CS.Pair (c0, c1) ->
-      begin
-        Tactics.match_goal @@ function
-        | D.Sg _, _, _ ->
-          RM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
-        | D.ElUnstable (`V _), _, _ ->
-          RM.ret @@ R.ElV.intro (chk_tm c0) (chk_tm c1)
-        | D.ElUnstable (`HCom _), _, _ ->
-          RM.ret @@ R.ElHCom.intro (chk_tm c0) (chk_tm c1)
-        | tp, _, _ ->
-          RM.expected_connective `Sg tp
-      end
-
-    | CS.Struct fields ->
-      let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.con)) fields in
-      R.Signature.intro @@ R.Signature.find_field_tac tacs
-
-    | CS.Suc c ->
-      R.Nat.suc (chk_tm c)
-
-    | CS.Base ->
-      R.Circle.base
-
-    | CS.Loop c ->
-      R.Circle.loop (chk_tm c)
-
-    | CS.Let (c, ident, body) ->
-      R.Structural.let_ ~ident (syn_tm c) @@ fun _ -> chk_tm body
-
-    | CS.Nat ->
-      R.Univ.nat
-
-    | CS.Circle ->
-      R.Univ.circle
-
-    | CS.Type ->
-      R.Univ.univ
-
-    | CS.Pi (cells, body) ->
-      let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
-      let tacs = cells |> List.concat_map tac in
-      let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
-      Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
-
-    | CS.Sg (cells, body) ->
-      let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
-      let tacs = cells |> List.concat_map tac in
-      let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
-      Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
-
-    | CS.Signature fields ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) fields in
-      R.Univ.signature tacs
-
-    | CS.Patch (tp, patches) ->
-      let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) patches in
-      R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
-    | CS.V (r, pcode, code, pequiv) ->
-      R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
-
-    | CS.CofEq (c0, c1) ->
-      R.Cof.eq (chk_tm c0) (chk_tm c1)
-
-    | CS.CofLe (c0, c1) ->
-      R.Cof.le (chk_tm c0) (chk_tm c1)
-
-    | CS.Join cs ->
-      R.Cof.join (List.map chk_tm cs)
-
-    | CS.BotC ->
-      R.Cof.join []
-
-    | CS.Meet cs ->
-      R.Cof.meet (List.map chk_tm cs)
-
-    | CS.TopC ->
-      R.Cof.meet []
-
-    | CS.CofBoundary c ->
-      R.Cof.boundary (chk_tm c)
-
-    | CS.CofSplit splits ->
-      let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> R.Cof.{cof = chk_tm cphi; bdy = fun _ -> chk_tm ctm} in
-      R.Cof.split branch_tacs
-
-    | CS.Ext (idents, tp, cases) ->
-      let n = List.length idents in
-      let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
-      let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.CofSplit cases; info = None}); info = None} in
-      R.Univ.ext n tac_fam tac_cof tac_bdry
-
+    | CS.Abstract (name, c) ->
+      R.Structural.abstract ~name (chk_tm c)
 
     | _ ->
-      Tactics.match_goal @@ fun (tp, _, _) ->
-      match tp with
-      | D.Pi _ ->
-        let* env = RM.read in
-        let lvl = RefineEnv.size env in
-        RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
-      | D.Sg _ ->
-        RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
-      | D.Signature _ ->
-        let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
-        RM.ret @@ R.Signature.intro field_tac
+      Tactics.intro_implicit_connectives @@
+      match con.node with
+      | CS.Underscore ->
+        R.Prf.intro
+
+      | CS.Lit n ->
+        begin
+          Tactics.match_goal @@ function
+          | D.TpDim, _, _ -> RM.ret @@ R.Dim.literal n
+          | _ -> RM.ret @@ R.Nat.literal n
+        end
+
+      | CS.Lam (nm :: names, body) ->
+        R.Pi.intro ~ident:nm @@ fun _ ->
+        chk_tm {con with node = CS.Lam (names, body)}
+
+      | CS.LamElim cases ->
+        Tactics.Elim.lam_elim @@ chk_cases cases
+
+      | CS.Pair (c0, c1) ->
+        begin
+          Tactics.match_goal @@ function
+          | D.Sg _, _, _ ->
+            RM.ret @@ R.Sg.intro (chk_tm c0) (chk_tm c1)
+          | D.ElUnstable (`V _), _, _ ->
+            RM.ret @@ R.ElV.intro (chk_tm c0) (chk_tm c1)
+          | D.ElUnstable (`HCom _), _, _ ->
+            RM.ret @@ R.ElHCom.intro (chk_tm c0) (chk_tm c1)
+          | tp, _, _ ->
+            RM.expected_connective `Sg tp
+        end
+
+      | CS.Struct fields ->
+        let tacs = List.map (fun (CS.Field field) -> (field.lbl, chk_tm field.con)) fields in
+        R.Signature.intro @@ R.Signature.find_field_tac tacs
+
+      | CS.Suc c ->
+        R.Nat.suc (chk_tm c)
+
+      | CS.Base ->
+        R.Circle.base
+
+      | CS.Loop c ->
+        R.Circle.loop (chk_tm c)
+
+      | CS.Nat ->
+        R.Univ.nat
+
+      | CS.Circle ->
+        R.Univ.circle
+
+      | CS.Type ->
+        R.Univ.univ
+
+      | CS.Pi (cells, body) ->
+        let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
+        let tacs = cells |> List.concat_map tac in
+        let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
+        Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
+
+      | CS.Sg (cells, body) ->
+        let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
+        let tacs = cells |> List.concat_map tac in
+        let quant base (nm, fam) = R.Univ.sg base (R.Pi.intro ~ident:nm fam) in
+        Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
+
+      | CS.Signature fields ->
+        let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) fields in
+        R.Univ.signature tacs
+
+      | CS.Patch (tp, patches) ->
+        let tacs = bind_sig_tacs @@ List.map (fun (CS.Field field) -> field.lbl, chk_tm field.con) patches in
+        R.Univ.patch (chk_tm tp) (R.Signature.find_field_tac tacs)
+      | CS.V (r, pcode, code, pequiv) ->
+        R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
+
+      | CS.CofEq (c0, c1) ->
+        R.Cof.eq (chk_tm c0) (chk_tm c1)
+
+      | CS.CofLe (c0, c1) ->
+        R.Cof.le (chk_tm c0) (chk_tm c1)
+
+      | CS.Join cs ->
+        R.Cof.join (List.map chk_tm cs)
+
+      | CS.BotC ->
+        R.Cof.join []
+
+      | CS.Meet cs ->
+        R.Cof.meet (List.map chk_tm cs)
+
+      | CS.TopC ->
+        R.Cof.meet []
+
+      | CS.CofBoundary c ->
+        R.Cof.boundary (chk_tm c)
+
+      | CS.CofSplit splits ->
+        let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> R.Cof.{cof = chk_tm cphi; bdy = fun _ -> chk_tm ctm} in
+        R.Cof.split branch_tacs
+
+      | CS.Ext (idents, tp, cases) ->
+        let n = List.length idents in
+        let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
+        let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+        let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.CofSplit cases; info = None}); info = None} in
+        R.Univ.ext n tac_fam tac_cof tac_bdry
+
+
       | _ ->
-        RM.ret @@ Tactics.intro_conversions @@ syn_tm con
+        Tactics.match_goal @@ fun (tp, _, _) ->
+        match tp with
+        | D.Pi _ ->
+          let* env = RM.read in
+          let lvl = RefineEnv.size env in
+          RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
+        | D.Sg _ ->
+          RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
+        | D.Signature _ ->
+          let field_tac lbl = Option.some @@ chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None} in
+          RM.ret @@ R.Signature.intro field_tac
+        | _ ->
+          RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 
 and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
   fun ?(elim_total = true) con ->
   T.Syn.update_span con.info @@
   (if elim_total then Tactics.elim_implicit_connectives_and_total else Tactics.elim_implicit_connectives) @@
   match con.node with
-  | CS.Hole (name, None) -> Refiner.Hole.unleash_syn_hole name
-  | CS.Hole (name, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
+  | CS.Hole ({name; silent=false}, None) -> Refiner.Hole.unleash_syn_hole name
+  | CS.Hole ({name; silent=false}, Some con) -> Refiner.Probe.probe_syn name @@ syn_tm con
+  | CS.Hole ({name; silent=true}, None) -> Refiner.Hole.silent_syn_hole name
+  | CS.Hole ({name=_; silent=true}, Some con) -> syn_tm con
   | CS.BoundaryHole None ->  Refiner.Hole.unleash_syn_hole None
   | CS.BoundaryHole (Some con) ->  Refiner.Probe.probe_syn None @@ syn_tm con
   | CS.Var id ->
@@ -451,5 +467,6 @@ let rec modifier (con : CS.con) =
   | CS.ModSeq l -> seq <@> MU.map modifier l
   | CS.ModUnion l -> union <@> MU.map modifier l
   | CS.ModInSubtree (p, m) -> in_ p <@> modifier m
-  | CS.ModPrint lbl -> RM.ret @@ hook @@ `Print lbl
+  | CS.ModPrint {name; silent=false} -> RM.ret @@ hook @@ `Print name
+  | CS.ModPrint {name=_; silent=true} -> RM.ret @@ seq []
   | _ -> RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)

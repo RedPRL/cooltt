@@ -9,8 +9,8 @@ def path-p (A : 𝕀 → type) (x : A 0) (y : A 1) : type :=
 def refl (A : type) (x : A) : path A x x :=
   i => x
 
-def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : 𝕀 → A :=
-  hfill A 0 {∂ i} {j =>
+def symm/filler (A : type) (p : 𝕀 → A) (i : 𝕀) : (j : 𝕀) → sub A {∂ i} [ i=1 => p 0 | i=0 => p j ] :=
+  hfill 0 {j =>
     [ j=0 ∨ i=1 => p 0
     | i=0 => p j
     ]

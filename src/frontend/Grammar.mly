@@ -42,8 +42,8 @@
 
 %token <int> NUMERAL
 %token <string> ATOM
-%token <string option> HOLE_NAME
-%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT DOT_EQUALS SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
+%token <ConcreteSyntax.hole> HOLE
+%token BANG COLON COLON_COLON COLON_EQUALS HASH PIPE COMMA DOT SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM COF BOUNDARY
 %token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
 %token EQUALS LESS_THAN JOIN MEET
 %token TYPE
@@ -224,8 +224,8 @@ plain_atomic_modifier:
     { ModNone }
   | BANG path = iocc_path
     { ModExcept path }
-  | name = HOLE_NAME
-    { ModPrint name }
+  | hole = HOLE
+    { ModPrint hole }
 
 plain_modifier:
   | COLON_COLON
@@ -295,7 +295,7 @@ plain_atomic_term_except_sq:
     { Circle }
   | TYPE
     { Type }
-  | name = HOLE_NAME
+  | name = HOLE
     { Hole (name, None) }
   | VISUALIZE
     { Visualize }
@@ -377,10 +377,10 @@ plain_term_except_cof_case:
     { Pi (tele, cod) }
   | tele = nonempty_list(tele_cell); TIMES; cod = term
     { Sg (tele, cod) }
-  | SIG; tele = list(field);
-    { Signature tele }
-  | STRUCT; tele = list(field);
-    { Struct tele }
+  | SIG; body = sig_body
+    { Signature body }
+  | STRUCT; body = struct_body
+    { Struct body }
   | dom = term; RIGHT_ARROW; cod = term
     { Pi ([Cell {names = [`Anon]; tp = dom}], cod) }
   | dom = term; TIMES; cod = term
@@ -388,7 +388,7 @@ plain_term_except_cof_case:
   /* So the issue is when we have a cofibration split case, we will have a bunch of pipe separated things
    We need to ensure that any patches occur in brackets...
    */
-  | tp = term; HASH; ps = patches
+  | tp = term; HASH; ps = inline_struct_body
     { Patch (tp, ps) }
   | SUB; tp = atomic_term; phi = atomic_term; tm = atomic_term
     { Sub (tp, phi, tm) }
@@ -402,8 +402,8 @@ plain_term_except_cof_case:
     { VProj t }
   | CAP; t = atomic_term
     { Cap t }
-  | name = HOLE_NAME; SEMI; t = term
-    { Hole (name, Some t) }
+  | hole = HOLE; SEMI; t = term
+    { Hole (hole, Some t) }
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, fam, cases) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
@@ -471,17 +471,39 @@ pat_arg:
   | LBR i0 = plain_name RRIGHT_ARROW i1 = plain_name RBR
     { `Inductive (i0, i1) }
 
+
+inline_struct_body:
+  | LSQ fields = separated_list(COMMA, bare_field) RSQ
+    { fields }
+
+struct_body:
+  | fields = list(field) END
+    { fields }
+  | fields = inline_struct_body
+    { fields }
+
+sig_body:
+  | fields = list(field_spec) END
+    { fields }
+  | LSQ fields = separated_list(COMMA, bare_field_spec) RSQ
+    { fields }
+
+
+bare_field:
+  | lbl = user; COLON_EQUALS; con = term
+    { Field {lbl; con} }
+
+bare_field_spec:
+  | lbl = user; COLON; con = term
+    { Field {lbl; con} }
+
 field:
-  | LPR lbl = user; COLON con = term; RPR
-    { Field {lbl; con} }
+  | DEF; fld = bare_field
+    { fld }
 
-patch:
-  | lbl = user; DOT_EQUALS; con = term
-    { Field {lbl; con} }
-
-patches:
-  | LSQ ioption(PIPE) patches = separated_list(PIPE, patch) RSQ
-  { patches }
+field_spec:
+  | DEF; fld = bare_field_spec
+    { fld }
 
 tele_cell:
   | LPR names = nonempty_list(plain_name); COLON tp = term; RPR

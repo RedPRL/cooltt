@@ -30,40 +30,6 @@ type 'a telescope =
   | Bind of Ident.user * 'a * (T.var -> 'a telescope)
   | Done
 
-module GlobalUtil : sig
-  val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
-  val multi_pi : Env.cell list -> S.tp m -> S.tp m
-  val multi_ap : Env.cell bwd -> D.cut -> D.cut
-end =
-struct
-  let rec destruct_cells =
-    function
-    | [] -> RM.ret []
-    | cell :: cells ->
-      let ctp, _ = Env.Cell.contents cell in
-      let ident = Env.Cell.ident cell in
-      let+ base = RM.quote_tp ctp
-      and+ rest = RM.abstract ident ctp @@ fun _ -> destruct_cells cells in
-      (ident, base) :: rest
-
-  let rec multi_pi (cells : Env.cell list) (finally : S.tp m) : S.tp m =
-    match cells with
-    | [] -> finally
-    | cell :: cells ->
-      let ctp, _ = Env.Cell.contents cell in
-      let ident = Env.Cell.ident cell in
-      let+ base = RM.quote_tp ctp
-      and+ fam = RM.abstract ident ctp @@ fun _ -> multi_pi cells finally in
-      S.Pi (base, ident, fam)
-
-  let rec multi_ap (cells : Env.cell bwd) (finally : D.cut) : D.cut =
-    match cells with
-    | Emp -> finally
-    | Snoc (cells, cell) ->
-      let tp, con = Env.Cell.contents cell in
-      multi_ap cells finally |> D.push @@ D.KAp (tp, con)
-end
-
 
 module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
@@ -72,6 +38,8 @@ module Probe : sig
 
   val probe_goal_chk : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> T.Chk.tac -> T.Chk.tac
   val probe_goal_syn : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> T.Syn.tac -> T.Syn.tac
+
+  val dispatch_boundary : T.Chk.tac -> (S.t -> T.Chk.tac) -> T.Chk.tac
 end =
 struct
   let print_state lbl ctx tp : unit m =
@@ -94,7 +62,7 @@ struct
     let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
 
     RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
+    let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
 
@@ -107,7 +75,7 @@ struct
       let* env = RM.read in
       let cells = Env.locals env in
       RM.globally @@
-      let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
+      let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
       k ctx stp
     in
     s
@@ -120,7 +88,7 @@ struct
       let* env = RM.read in
       let cells = Env.locals env in
       RM.globally @@
-      let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
+      let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
       k ctx stp
     in
     s, tp
@@ -131,8 +99,16 @@ struct
   let probe_boundary probe tac =
     T.Chk.brule ~name:"probe_boundary" @@ fun (tp, phi, clo) ->
     let* probe_tm = T.Chk.run probe tp in
-    let* () = print_boundary probe_tm tp phi clo in
+    let* () = RM.print_boundary probe_tm tp phi clo in
     T.Chk.brun tac (tp, phi, clo)
+
+  let dispatch_boundary tac backup =
+    T.Chk.brule ~name:"dispatch_boundary" @@ fun (tp, phi, tm_clo) ->
+    let* tm = T.Chk.brun tac (tp, phi, tm_clo) in
+    let* bdry_sat = RM.boundary_satisfied tm tp phi tm_clo in
+    match bdry_sat with
+    | `BdryUnsat -> T.Chk.brun (backup tm) (tp, phi, tm_clo)
+    | `BdrySat -> RM.ret tm
 
   let probe_syn name tac =
     probe_goal_syn (print_state name) tac
@@ -142,6 +118,7 @@ end
 module Hole : sig
   val silent_hole : string option -> T.Chk.tac
   val unleash_hole : string option -> T.Chk.tac
+  val silent_syn_hole : string option -> T.Syn.tac
   val unleash_syn_hole : string option -> T.Syn.tac
 end =
 struct
@@ -161,7 +138,7 @@ struct
 
     RM.globally @@
     let* sym =
-      let* tp = GlobalUtil.multi_pi (BwdLabels.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
+      let* tp = RM.multi_pi (BwdLabels.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
       let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
@@ -173,7 +150,7 @@ struct
 
     let* () = RM.add_hole (tp, phi, clo) in
 
-    let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
+    let cut = RM.multi_ap cells (D.Global sym, []) in
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
   let silent_hole name : T.Chk.tac =
@@ -186,6 +163,13 @@ struct
     T.Chk.brule ~name:"unleash_hole" @@ fun (tp, phi, clo) ->
     let* cut = make_hole name (tp, phi, clo) in
     RM.quote_cut cut
+
+  let silent_syn_hole name : T.Syn.tac =
+    T.Syn.rule ~name:"silent_syn_hole" @@
+    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let tp = D.ElCut cut in
+    let+ tm = tp |> T.Chk.run @@ unleash_hole name in
+    tm, tp
 
   let unleash_syn_hole name : T.Syn.tac =
     Probe.probe_syn name @@
@@ -1141,7 +1125,7 @@ struct
     let* cut =
       RM.globally @@
       let* vtp =
-        let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
+        let* tp = RM.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
         RM.lift_ev @@ Sem.eval_tp tp
       in
       let* tp_of_goal =
@@ -1163,7 +1147,7 @@ struct
       in
       let* sym = RM.add_global ~unfolder:unf_sym ~shadowing:false name tp_sub in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unf_cof, D.const_tm_clo vdef)) in
-      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+      RM.ret @@ RM.multi_ap cells (hd, [])
     in
     let+ tm = RM.quote_cut cut in
     S.SubOut tm
@@ -1205,7 +1189,7 @@ struct
     let* cut =
       RM.globally @@
       let* global_tp =
-        let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp tp in
+        let* tp = RM.multi_pi cells_fwd @@ RM.quote_tp tp in
         RM.lift_ev @@ Sem.eval_tp tp
       in
       let* vdef =
@@ -1223,7 +1207,7 @@ struct
       let* sym = RM.add_global ~unfolder:None ~shadowing:true Ident.anon tp_sub in
       let top = Kado.Syntax.Free.top in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
-      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+      RM.ret @@ RM.multi_ap cells (hd, [])
     in
     RM.quote_cut cut
 
