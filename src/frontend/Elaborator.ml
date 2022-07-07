@@ -188,6 +188,7 @@ and chk_tm : CS.con -> T.Chk.tac =
   match con.node with
   | CS.HComInfer (src, trg, tm) ->
     Tactics.Univ.hcom_chk (chk_tm src) (chk_tm trg) (chk_tm tm)
+
   | CS.HFillInfer (src, tm) ->
     R.Pi.intro ~ident:(Ident.machine "i") @@ fun i ->
     Tactics.Univ.hcom_chk (chk_tm src) (T.Chk.syn @@ T.Var.syn i) (chk_tm tm)
