@@ -71,9 +71,9 @@ and con_ =
   | TopC
   | BotC
   | HCom of con * con * con * con * con
-  | HComInfer of con * con * con
+  | HComChk of con * con * con
   | HFill of con * con * con * con
-  | HFillInfer of con * con
+  | HFillChk of con * con
   | Com of con * con * con * con * con
   | V of con * con * con * con
   | VProj of con
