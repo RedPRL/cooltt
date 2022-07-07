@@ -1,95 +1,95 @@
 import prelude
 
-def is-contr (C : type) : type :=
-  (c : C) × {(c' : C) → path C c c'}
-
-def is-prop (C : type) : type :=
-  (c : C) (c' : C) → path C c c'
 
 abstract
 def has-hlevel : nat → type → type :=
   let aux : nat → type → type :=
     elim [
-    | zero => is-prop
+    | zero => A => (a a' : A) → path A a a'
     | suc {l => ih} =>
       A => (a : A) (a' : A) → ih {path A a a'}
     ]
   in
   elim [
-  | zero => is-contr
-  | suc l => aux l
+    | zero => A => sig [pt : A, path : (pt' : A) → path A pt pt']
+    | suc l => aux l
   ]
 
-def is-set : type → type := has-hlevel 2
-def is-groupoid : type → type := has-hlevel 3
+def htype : sig [lvl : nat, tp : type] → type := a => open a in has-hlevel lvl tp
 
-def hLevel (n : nat) : type :=
-  (A : type) × has-hlevel n A
+def contr : type :=  htype # [lvl := 0]
+def prop : type := htype # [lvl := 1]
+def set : type := htype # [lvl := 2]
+def groupoid : type := htype # [lvl := 3]
 
-def hProp : type := hLevel 1
-def hSet : type := hLevel 2
-def hGroupoid : type := hLevel 3
-
-#print hProp
-#normalize hProp
+#print prop
+#normalize prop
 
 abstract
-def contr-prop (A : type) (A/contr : is-contr A) : is-prop A :=
-  a a' => trans A {symm A {{snd A/contr} a}} {{snd A/contr} a'}
-
+def contr-prop (A : contr) : prop # [tp := A.tp] := 
+  unfold has-hlevel in pt pt' => trans {A.tp} {symm {A.tp} {A.fib.path pt}} {A.fib.path pt'}
+ 
 abstract
-unfold has-hlevel
-def prop-set (A : type) (A/prop : is-prop A) : is-set A :=
-  a b p q i j =>
-  hcom A 0 1 {∂ i ∨ ∂ j} {k =>
-    [ k=0 ∨ ∂ j ∨ i=0 => A/prop a {p j} k
-    | i=1 => A/prop a {q j} k
+def prop-set (A : prop) : set # [tp := A.tp] :=
+  unfold has-hlevel in a b p q i j => 
+  hcom {A.tp} 0 1 {∂ i ∨ ∂ j} {k =>
+    [ k=0 ∨ ∂ j ∨ i=0 => A a {p j} k
+    | i=1 => A a {q j} k
     ]
   }
 
+
 abstract
-unfold has-hlevel
-def raise-hlevel : (l : nat) (A : type) → has-hlevel l A → has-hlevel {suc l} A :=
-  let aux : (m : nat) → (B : type) → has-hlevel {suc m} B → has-hlevel {suc {suc m}} B :=
+def raise-hlevel (A : htype) : htype # [lvl := suc {A.lvl}, tp := A.tp] :=
+  let aux : (m : nat) (B : htype # [lvl := suc m]) → htype # [lvl := suc {suc m}, tp := B.tp] :=
     elim [
     | zero => prop-set
-    | suc {l => ih} => B B/lvl b b' => ih {path B b b'} {B/lvl b b'}
+    | suc {l => ih} => B => 
+      unfold has-hlevel in 
+      b b' => {ih {struct [tp := path {B.tp} b b', fib := B b b']}}
     ]
   in
+  let aux2 : (m : nat) (B : htype # [lvl := m]) → htype # [lvl := suc m, tp := B.tp] :=
+    elim [
+    | zero => contr-prop
+    | suc l => aux l
+    ]
+  in
+  aux2 {A.lvl} A
+
+
+abstract
+def prop-hlevel : (l : nat) (A : prop) → htype # [lvl := suc l, tp := A.tp] :=
   elim [
-  | zero => contr-prop
-  | suc l => aux l
+  | zero => A => A
+  | suc {l => ih} => A => raise-hlevel {ih A}
+  ]
+
+
+abstract
+def path-hlevel : (l : nat) (A : htype # [lvl := suc l]) (a a' : A.tp) → htype # [lvl := l, tp := path {A.tp} a a'] :=
+  elim [
+  | zero => A a a' => 
+    unfold has-hlevel in 
+    struct [pt := A a a', path := {prop-set A} a a' {A a a'}]
+
+  | suc l => 
+    unfold has-hlevel in
+    A => A
   ]
 
 abstract
-unfold has-hlevel
-def prop-hlevel : (l : nat) (A : type) → is-prop A → has-hlevel {suc l} A :=
-  elim [
-  | zero => _ A/prop => A/prop
-  | suc {l => ih} => A A/prop => raise-hlevel {suc l} A {ih A A/prop}
-  ]
-
-abstract
-unfold has-hlevel
-def path-hlevel
-  : (l : nat) (A : type) (A/level : has-hlevel {suc l} A) (a : A) (a' : A)
-  → has-hlevel l {path A a a'}
-:=
-  elim [
-  | zero => A A/prop a a' => [A/prop a a', p => prop-set A A/prop a a' {A/prop a a'} p]
-  | suc l => A A/lvl a a' => A/lvl a a'
-  ]
-
-abstract
-def path-based-contr (A : type) (a : A) : is-contr {(x : A) × path A a x} :=
-  [ [a, i => a]
-  , x i =>
-    let aux : 𝕀 → A := j =>
-      hcom A 0 j {∂ i} {k =>
-        [ k=0 ∨ i=0 => a
-        | i=1 => {snd x} k
-        ]
-      }
-    in
-    [aux 1, aux]
-  ]
+def path-based-contr (A : type) (a : A) : contr # [tp := (x : A) × path A a x] :=
+  unfold has-hlevel in
+  struct
+    def pt := [a, i => a]
+    def path := x i =>
+      let aux : 𝕀 → A := j =>
+        hcom A 0 j {∂ i} {k =>
+          [ k=0 ∨ i=0 => a
+          | i=1 => {snd x} k
+          ]
+        }
+      in
+      [aux 1, aux]
+  end 
