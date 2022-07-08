@@ -155,6 +155,7 @@ base-types.cooltt:44.7-44.11 [Info]:
               elim n @ {_x₃ => type} [ zero => B | suc => _x₃ _x₄ => empty ]
             ]}}
 
+--------------------[bruno.cooltt]--------------------
 --------------------[circle.cooltt]--------------------
 circle.cooltt:20.11-20.22 [Info]:
   Computed normal form of loopn 100 as

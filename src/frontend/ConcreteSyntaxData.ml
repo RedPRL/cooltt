@@ -9,7 +9,6 @@ let pp_info fmt =
   | Some span ->
     LexingUtil.pp_span fmt span
 
-
 type 'a node =
   {node : 'a;
    info : info}
@@ -72,7 +71,9 @@ and con_ =
   | TopC
   | BotC
   | HCom of con * con * con * con * con
+  | HComChk of con * con * con
   | HFill of con * con * con * con
+  | HFillChk of con * con
   | Com of con * con * con * con * con
   | V of con * con * con * con
   | VProj of con

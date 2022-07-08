@@ -30,96 +30,45 @@ type 'a telescope =
   | Bind of Ident.user * 'a * (T.var -> 'a telescope)
   | Done
 
-module GlobalUtil : sig
-  val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
-  val multi_pi : Env.cell list -> S.tp m -> S.tp m
-  val multi_ap : Env.cell bwd -> D.cut -> D.cut
-end =
-struct
-  let rec destruct_cells =
-    function
-    | [] -> RM.ret []
-    | cell :: cells ->
-      let ctp, _ = Env.Cell.contents cell in
-      let ident = Env.Cell.ident cell in
-      let+ base = RM.quote_tp ctp
-      and+ rest = RM.abstract ident ctp @@ fun _ -> destruct_cells cells in
-      (ident, base) :: rest
-
-  let rec multi_pi (cells : Env.cell list) (finally : S.tp m) : S.tp m =
-    match cells with
-    | [] -> finally
-    | cell :: cells ->
-      let ctp, _ = Env.Cell.contents cell in
-      let ident = Env.Cell.ident cell in
-      let+ base = RM.quote_tp ctp
-      and+ fam = RM.abstract ident ctp @@ fun _ -> multi_pi cells finally in
-      S.Pi (base, ident, fam)
-
-  let rec multi_ap (cells : Env.cell bwd) (finally : D.cut) : D.cut =
-    match cells with
-    | Emp -> finally
-    | Snoc (cells, cell) ->
-      let tp, con = Env.Cell.contents cell in
-      multi_ap cells finally |> D.push @@ D.KAp (tp, con)
-end
-
 
 module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
   val probe_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
+
+  (** Run the first tactic, and if the boundary is not satisfied, run the second tactic family at the term produced by the first tactic. *)
+  val try_with_boundary : T.Chk.tac -> (S.t -> T.Chk.tac) -> T.Chk.tac
 end =
 struct
-  let print_state lbl tp : unit m =
-    let* env = RM.read in
-    let cells = Env.locals env in
-
-    RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
-    () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
-    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
-
-  let boundary_satisfied tm tp phi clo : _ m =
-    let* con = RM.lift_ev @@ Sem.eval tm in
-    let+ res = RM.trap @@ RM.abstract Ident.anon (D.TpPrf phi) @@ fun prf ->
-      RM.equate tp con @<< RM.lift_cmp @@ Sem.inst_tm_clo clo prf
-    in match res with
-    | Ok _ -> `BdrySat
-    | Error _ -> `BdryUnsat
-
-  let print_boundary tm tp phi clo : unit m =
-    let* env = RM.read in
-    let cells = Env.locals env in
-    let* bdry_sat = boundary_satisfied tm tp phi clo in
-    let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
-
-    RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
-    () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
-    Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
-
   let probe_chk name tac =
     T.Chk.brule ~name:"probe_chk" @@ fun (tp, phi, clo) ->
     let* s = T.Chk.brun tac (tp, phi, clo) in
     let+ () =
       let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
-      print_state name stp
+      RM.print_state name stp
     in
     s
 
   let probe_boundary probe tac =
     T.Chk.brule ~name:"probe_boundary" @@ fun (tp, phi, clo) ->
     let* probe_tm = T.Chk.run probe tp in
-    let* () = print_boundary probe_tm tp phi clo in
+    let* () = RM.print_boundary probe_tm tp phi clo in
     T.Chk.brun tac (tp, phi, clo)
+
+  let try_with_boundary tac backup =
+    T.Chk.brule ~name:"try_with_boundary" @@ fun (tp, phi, tm_clo) ->
+    let* tm = T.Chk.brun tac (tp, phi, tm_clo) in
+    let* bdry_sat = RM.boundary_satisfied tm tp phi tm_clo in
+    match bdry_sat with
+    | `BdryUnsat -> T.Chk.brun (backup tm) (tp, phi, tm_clo)
+    | `BdrySat -> RM.ret tm
 
   let probe_syn name tac =
     T.Syn.rule ~name:"probe_syn" @@
     let* s, tp = T.Syn.run tac in
     let+ () =
       let* stp = RM.quote_tp tp in
-      print_state name stp
+      RM.print_state name stp
     in
     s, tp
 end
@@ -148,7 +97,7 @@ struct
 
     RM.globally @@
     let* sym =
-      let* tp = GlobalUtil.multi_pi (BwdLabels.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
+      let* tp = RM.multi_pi (BwdLabels.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
       let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
@@ -160,7 +109,7 @@ struct
 
     let* () = RM.inc_num_holes in
 
-    let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
+    let cut = RM.multi_ap cells (D.Global sym, []) in
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
   let silent_hole name : T.Chk.tac =
@@ -823,6 +772,39 @@ struct
     let+ tm = T.Chk.run tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
     S.HCom (code, src, trg, cof, tm), vtp
 
+  let hcom_chk (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Chk.tac =
+    let as_code = function
+      | D.ElStable code -> RM.ret @@ D.StableCode code
+      | D.ElUnstable code -> RM.ret @@ D.UnstableCode code
+      | D.ElCut cut -> RM.ret @@ D.Cut { tp = D.Univ; cut }
+      | tp -> RM.expected_connective `El tp
+    in
+    let cool_hcom =
+      T.Chk.brule ~name:"Univ.hcom_chk" @@ fun (tp, phi, tm_clo) ->
+      let* tp = RM.lift_cmp @@ Sem.whnf_tp_ tp in
+      match tp with
+      | D.Sub (sub_tp, psi, _) ->
+        let tac_code =
+          T.Chk.brule @@ fun (_, _, _) ->
+          let* vcode = as_code sub_tp in
+          RM.quote_con D.Univ vcode
+        in
+        let tac_cof =
+          T.Chk.brule @@ fun (_, _, _) ->
+          RM.quote_cof @@ D.Cof.join [phi; psi]
+        in
+        let hcom_tac =
+          Sub.intro @@
+          T.Chk.syn @@
+          hcom tac_code tac_src tac_trg tac_cof tac_tm in
+        T.Chk.brun hcom_tac (tp, phi, tm_clo)
+      | _ -> RM.expected_connective `Sub tp
+    in
+    Probe.try_with_boundary cool_hcom @@ fun tm ->
+    T.Chk.brule @@ fun (tp, phi, tm_clo) ->
+    let* () = RM.print_boundary tm tp phi tm_clo in
+    T.Chk.brun (Hole.silent_hole None) (tp, phi, tm_clo)
+
   let com (tac_fam : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Univ.com" @@
     let* piuniv =
@@ -1212,7 +1194,7 @@ struct
     let* cut =
       RM.globally @@
       let* vtp =
-        let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
+        let* tp = RM.multi_pi cells_fwd @@ RM.quote_tp (D.Sub (tp, phi, clo)) in
         RM.lift_ev @@ Sem.eval_tp tp
       in
       let* tp_of_goal =
@@ -1234,7 +1216,7 @@ struct
       in
       let* sym = RM.add_global ~unfolder:unf_sym ~shadowing:false name tp_sub in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unf_cof, D.const_tm_clo vdef)) in
-      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+      RM.ret @@ RM.multi_ap cells (hd, [])
     in
     let+ tm = RM.quote_cut cut in
     S.SubOut tm
@@ -1276,7 +1258,7 @@ struct
     let* cut =
       RM.globally @@
       let* global_tp =
-        let* tp = GlobalUtil.multi_pi cells_fwd @@ RM.quote_tp tp in
+        let* tp = RM.multi_pi cells_fwd @@ RM.quote_tp tp in
         RM.lift_ev @@ Sem.eval_tp tp
       in
       let* vdef =
@@ -1294,7 +1276,7 @@ struct
       let* sym = RM.add_global ~unfolder:None ~shadowing:true Ident.anon tp_sub in
       let top = Kado.Syntax.Free.top in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
-      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+      RM.ret @@ RM.multi_ap cells (hd, [])
     in
     RM.quote_cut cut
 

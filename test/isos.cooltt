@@ -16,12 +16,12 @@ def iso : type :=
 
 abstract
 def iso/refl (A : type) : iso # [A := A, B := A] :=
-  struct 
+  struct
     def fwd := x => x
     def bwd := x => x
     def fwd-bwd := b i => b
     def bwd-fwd := a i => a
-  end 
+  end
 
 abstract
 def iso/symm (I : iso) : iso # [A := I.B, B := I.A] :=
@@ -52,7 +52,7 @@ def iso/pair/comm (X Y : type) : iso # [A := X × Y, B := Y × X] :=
     def bwd := ba => [snd ba, fst ba]
     def fwd-bwd := ba i => ba
     def bwd-fwd := ab i => ab
-  end 
+  end
 
 abstract
 def iso/pair/assoc (X Y Z : type) : iso # [A := {X × Y × Z}, B := {{X × Y} × Z}] :=
@@ -87,7 +87,7 @@ def iso/curry (X Y Z : type) : iso # [A := X → Y → Z, B := {X × Y} → Z] :
     def bwd := curry X Y Z
     def fwd-bwd := ab_c i => ab_c
     def bwd-fwd := a_b_c i => a_b_c
-  end 
+  end
 
 def iso/lhs (C : type) (I : iso) : iso # [A := {I.A} → C, B := {I.B} → C] :=
   open I in

@@ -24,6 +24,8 @@ module Probe : sig
   val probe_chk : string option -> Chk.tac -> Chk.tac
   val probe_boundary : Chk.tac -> Chk.tac -> Chk.tac
   val probe_syn : string option -> Syn.tac -> Syn.tac
+
+  val try_with_boundary : Chk.tac -> (CodeUnit.Syntax.t -> Chk.tac) -> Chk.tac
 end
 
 module Dim : sig
@@ -65,6 +67,7 @@ module Univ : sig
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val hcom : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
+  val hcom_chk : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val com : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
 end
 

@@ -1,0 +1,229 @@
+import prelude
+-- https://arxiv.org/abs/1806.08490
+-- Lemmas 3.1.x in prelude (refl, sym, trans, respectively)
+
+-- Lemma 3.2.1 (inversion unit)
+def refl≡refl¯¹ (A : type) (x : A) : path {path A x x} {refl A x} {symm A {refl A x}} :=
+  j i =>
+  unfold symm in
+  symm/filler A {refl A x} i j
+
+-- Lemma 3.2.2 (composition unit)
+def refl≡refl∘refl (A : type) (x : A) : path {path A x x} {refl A x} {trans A {refl A x} {refl A x}} :=
+  unfold trans in
+  trans/filler A {refl A x} {refl A x}
+
+-- Lemma 3.2.3 (right unit)
+def p≡p∘refl (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A p {refl A {p 1}}} :=
+  unfold trans in
+  trans/filler A p {refl A {p 1}}
+
+-- Lemma 3.2.4 (right cancellation)
+def refl≡p∘p¯¹ (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 0}} {refl A {p 0}} {trans A p {symm A p}} :=
+  k i =>
+  unfold trans symm in
+  hcom 0 1 {j =>
+    [ j=0 ∨ i=0 => p i
+    | i=1 ∨ k=0 => symm/filler A p j i
+    | k=1 => trans/filler A p {symm A p} j i
+    ]
+  }
+
+def square (A : type) : type :=
+  sig
+    def top : ext i => A with []
+    def bot : ext i => A with []
+    def left : ext i => A with [i=0 => top 0 | i=1 => bot 0]
+    def right : ext i => A with [i=0 => top 1 | i=1 => bot 1]
+    def filler : ext i j => A with [i=0 => top j | i=1 => bot j | j=0 => left i | j=1 => right i]
+  end
+
+-- Lemma 3.2.5 (square swap)
+def swap (A : type) (sq : square A)
+  : square A #
+    [top := sq.bot,
+     bot := sq.top,
+     left := symm A {sq.left},
+     right := symm A {sq.right}] :=
+  unfold symm in
+  struct
+    def filler :=
+      i k => hcom 0 1 {j =>
+        [ i=0 => sq.filler j k
+        | i=1 ∨ j=0 => sq.top k
+        | k=0 => symm/filler A {sq.left} i j
+        | k=1 => symm/filler A {sq.right} i j
+        ]
+      }
+  end
+
+-- Lemma 3.2.6 (inversability)
+def symm-invol (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {symm A {symm A p}} :=
+  let a : A := p 0 in
+  let b : A := p 1 in
+  let true-at-refl : path {path A b b} {refl A b} {symm A {symm A {refl A b}}} :=
+    trans {path A b b} {refl≡refl¯¹ A b} {i => symm A {refl≡refl¯¹ A b i}}
+  in
+  let back : square A :=
+    unfold trans in
+    struct
+      def top := symm A p
+      def bot := trans A {symm A p} p
+      def left := refl A b
+      def right := p
+      def filler := trans/filler A {symm A p} p
+    end
+  in
+  let front : square A := swap A {swap A back} in
+  k i =>
+  unfold trans in
+  hcom 0 1 {j =>
+    [ i=0 => symm A p j
+    | i=1 => trans A {symm A p} p j
+    | j=0 => true-at-refl k i
+    | k=0 => back.filler i j
+    | k=1 => front.filler i j
+    ]
+  }
+
+-- Lemma 3.2.7(i) (opposite identification)
+def op₁ (A : type) (p : 𝕀 → A) : path-p {i => path A {p 0} {symm A p i}} p {refl A {p 0}} :=
+  k i =>
+  unfold trans in
+  hcom 0 1 {j =>
+    [ i=0 => p 0
+    | i=1 => symm A p k
+    | j=0 => trans/filler A p {symm A p} k i
+    | k=0 => p i
+    | k=1 => symm {path A {p 0} {p 0}} {refl≡p∘p¯¹ A p} j i
+    ]
+  }
+
+-- Lemma 3.2.8 (left cancellation)
+def refl≡p¯¹∘p (A : type) (p : 𝕀 → A) : path {path A {p 1} {p 1}} {refl A {p 1}} {trans A {symm A p} p} :=
+  k i =>
+  unfold trans in
+  hcom 0 1 {j =>
+    [ i=0 => p 1
+    | i=1 => symm {path A {p 0} {p 1}} {symm-invol A p} k j
+    | j=0 => symm A p i
+    | k=0 => op₁ A {symm A p} j i
+    | k=1 => trans/filler A {symm A p} p j i
+    ]
+  }
+
+-- Lemma 3.2.7(ii) (opposite identification)
+--
+-- the paper mentions that this can be solved in a "similar argument" to 3.2.7(i),
+-- but for the truly symmetric proof (nearly identical to op₁) you need 3.2.8. so
+-- this is kind of nonlinear and might not be how the author intended?
+def op₂ (A : type) (p : 𝕀 → A) : path-p {i => path A {p 1} {p i}} {symm A p} {refl A {p 1}} :=
+  k i =>
+  unfold trans in
+  hcom 0 1 {j =>
+    [ i=0 => p 1
+    | i=1 => p k
+    | j=0 => trans/filler A {symm A p} p k i
+    | k=0 => symm A p i
+    | k=1 => symm {path A {p 1} {p 1}} {refl≡p¯¹∘p A p} j i
+    ]
+  }
+
+-- Lemma 3.2.9 (left unit)
+def p≡refl∘p (A : type) (p : 𝕀 → A) : path {path A {p 0} {p 1}} p {trans A {refl A {p 0}} p} :=
+  k i =>
+  unfold trans in
+  hcom 0 1 {j =>
+    [ i=0 => p 0
+    | i=1 => op₂ A p j k
+    | j=0 => op₁ A p k i
+    | k=0 => p i
+    | k=1 => trans/filler A {refl A {p 0}} p j i
+    ]
+  }
+
+-- Lemma 3.2.10 (bottom identification)
+-- we represent squares as just their filler here, not the struct
+def bottom-id (A : type) (α : 𝕀 → 𝕀 → A) (β : (i j : 𝕀) → sub A {∂ j ∨ i=0} {α i j}) : path {path A {α 1 0} {β 1 1}} {α 1} {β 1} :=
+  k i =>
+  hcom 0 1 {j =>
+    [ ∂ i ∨ j=0 ∨ k=0 => α j i
+    | k=1 => β j i
+    ]
+  }
+
+-- Lemma 3.2.11 (associativity)
+def assoc
+  (A : type)
+  (p : 𝕀 → A)
+  (q : (i : 𝕀) → sub A {i=0} {p 1})
+  (r : (i : 𝕀) → sub A {i=0} {q 1})
+: path {path A {p 0} {r 1}} {trans A {trans A p q} r} {trans A p {trans A q r}}
+:=
+  unfold trans in
+  let α : square A :=
+    struct
+      def top := p
+      def bot := trans A {trans A p q} r
+      def left := refl A {p 0}
+      def right := trans A q r
+      def filler :=
+        k i => hcom 0 1 {j =>
+          [ i=0 => p 0
+          | i=1 => trans/filler A q r j k
+          | j=0 => trans/filler A p q k i
+          | k=0 => p i
+          | k=1 => trans/filler A {trans A p q} r j i
+          ]
+        }
+    end
+  in
+  let β : square A :=
+    struct
+      def top := α.top
+      def bot := trans A p {trans A q r}
+      def left := α.left
+      def right := α.right
+      def filler := trans/filler A p {trans A q r}
+    end
+  in bottom-id A {α.filler} {β.filler}
+
+-- Lemma 3.3.1 (heterogeneous inversion)
+def hsymm (A : 𝕀 → type) (p : (i : 𝕀) → A i) : path-p {symm type A} {p 1} {p 0} :=
+  i =>
+  unfold symm in
+  com {symm/filler type A i} 0 1 {∂ i} {j =>
+    [ i=0 => p j
+    | i=1 ∨ j=0 => p 0
+    ]
+  }
+
+-- Lemma 3.3.2 (heterogeneous composition)
+def htrans
+  (A : 𝕀 → type)
+  (B : (i : 𝕀) → sub type {i=0} {A 1})
+  (p : (i : 𝕀) → A i) (q : (i : 𝕀) → sub {B i} {i=0} {p 1})
+: path-p {trans type A B} {p 0} {q 1}
+:=
+  i =>
+  unfold trans in
+  com {j => trans/filler type A B j i} 0 1 {∂ i} {j =>
+    [ j=0 ∨ i=0 => p i
+    | i=1 => q j
+    ]
+  }
+
+-- Theorem 4.1.1 (path induction)
+def is-refl (A : type) (p : 𝕀 → A) : path-p {i => path A {p 0} {p i}} {refl A {p 0}} p :=
+  k i =>
+  hcom 0 1 {j =>
+    [ i=0 => p 0
+    | i=1 => op₂ A p k j
+    | j=0 => p≡p∘refl A p k i
+    | k=0 => op₁ A p j i
+    | k=1 => symm {path A {p 0} {p 1}} {p≡p∘refl A p} j i
+    ]
+  }
+
+def J (A : type) (a : A) (P : (x : A) → {path A a x} → type) (u : P a {refl A a}) (p : (i : 𝕀) → sub A {i=0} a) : P {p 1} p :=
+  coe {i => P {p i} {is-refl A p i}} 0 1 u

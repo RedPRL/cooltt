@@ -38,7 +38,6 @@ let elab_err err =
   let* env = RM.read in
   RM.throw @@ ElabError.ElabError (err, RefineEnv.location env)
 
-
 let match_goal (tac : _ -> T.Chk.tac RM.m) : T.Chk.tac =
   T.Chk.brule @@
   fun goal ->
