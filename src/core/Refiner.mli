@@ -30,7 +30,7 @@ module Probe : sig
   val probe_goal_chk : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Chk.tac -> Chk.tac
   val probe_goal_syn : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Syn.tac -> Syn.tac
 
-  val dispatch_boundary : Chk.tac -> (S.t -> Chk.tac) -> Chk.tac
+  val try_with_boundary : Chk.tac -> (S.t -> Chk.tac) -> Chk.tac
 end
 
 module Dim : sig
@@ -64,14 +64,15 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : (Ident.user * Chk.tac) list -> Chk.tac
-  val patch : Chk.tac -> (Ident.user -> Chk.tac option) -> Chk.tac
+  val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
+  val patch : Chk.tac -> (Ident.user -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
   val total : (Ident.user * D.con) list -> D.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val infer_nullary_ext : Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val hcom : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
+  val hcom_chk : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val com : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
 end
 
@@ -107,10 +108,10 @@ end
 
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
-  val intro : (Ident.user -> Chk.tac option) -> Chk.tac
+  val intro : [`Field of Ident.user * Chk.tac |`Include of Syn.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
   val proj : Syn.tac -> Ident.user -> Syn.tac
 
-  val find_field_tac : (Ident.user * Chk.tac) list -> Ident.user -> Chk.tac option
+  val find_field : (Ident.user * 'a) list -> Ident.user -> 'a option
 end
 
 module Sub : sig

@@ -236,14 +236,14 @@ let rec multi_ap (cells : Env.cell bwd) (finally : D.cut) : D.cut =
     let tp, con = Env.Cell.contents cell in
     multi_ap cells finally |> D.push @@ D.KAp (tp, con)
 
-let print_state lbl tp : unit m =
+let print_state lbl ctx tp : unit m =
   let* env = read in
-  let cells = Env.locals env in
 
   globally @@
-  let* ctx = destruct_cells @@ BwdLabels.to_list cells in
-  () |> emit (RefineEnv.location env) @@ fun fmt () ->
-  Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
+  emit (RefineEnv.location env)
+    (fun fmt () ->
+       Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp)
+    ()
 
 let boundary_satisfied tm tp phi clo : _ m =
   let* con = lift_ev @@ Sem.eval tm in

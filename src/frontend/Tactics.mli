@@ -23,6 +23,10 @@ val elim_implicit_connectives : Syn.tac -> Syn.tac
 val elim_implicit_connectives_and_total : Syn.tac -> Syn.tac
 val intro_conversions : Syn.tac -> Chk.tac
 
+val open_ : Syn.tac -> (Ident.user -> Ident.user option) -> (var list -> Chk.tac) -> Chk.tac
+val open_syn : Syn.tac -> (Ident.user -> Ident.user option) -> (var list -> Syn.tac) -> Syn.tac
+
+
 val tac_nary_quantifier : ('a, 'b) R.quantifier -> (Ident.t * 'a) list -> 'b -> 'b
 
 val match_goal : (D.tp * D.cof * D.tm_clo -> Chk.tac RM.m) -> Chk.tac
@@ -46,8 +50,4 @@ end
 module Equations : sig
   val step : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac
   val qed : Chk.tac -> Chk.tac -> Syn.tac
-end
-
-module Univ : sig
-  val hcom_chk : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
 end

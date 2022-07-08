@@ -16,6 +16,10 @@ struct
   let tm_abort = CofSplit []
   let tp_abort = TpCofSplit []
 
+  let bind_code_sign_vars lbls code_sign =
+    List.map (fun (lbl,code) -> lbl, List.fold_right (fun lbl s -> Lam ((lbl :> Ident.t),s)) lbls code) code_sign
+
+
   module Fmt = Format
 
   let rec dump fmt =

@@ -76,11 +76,11 @@ def +A : (x y z : nat) → path nat {+ {+ x y} z} {+ x {+ y z}} :=
 /- next we demonstrate unfolding in the *types* of declarations
 -/
 
-axiom nat∷is-set : is-set nat
+axiom nat∷set : set # [tp := nat]
 
 def foo (p : path nat {+ 0 0} 0) : unfold + in path {path nat {+ 0 0} 0} p {_ => 0} :=
   unfold + has-hlevel in
-  nat∷is-set 0 0 p {_ => 0}
+  nat∷set 0 0 p {_ => 0}
 
 -- A simple example for Daniel G.
 

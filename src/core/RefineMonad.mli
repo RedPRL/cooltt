@@ -58,6 +58,6 @@ val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
 val multi_pi : Env.cell list -> S.tp m -> S.tp m
 val multi_ap : Env.cell bwd -> D.cut -> D.cut
 
-val print_state : string option -> S.tp -> unit m
+val print_state : string option -> (Ident.t * S.tp) list -> S.tp -> unit m
 val print_boundary : S.t -> D.tp -> D.cof -> D.tm_clo -> unit m
 val boundary_satisfied : S.t -> D.tp -> D.cof -> D.tm_clo -> [> `BdrySat | `BdryUnsat ] m

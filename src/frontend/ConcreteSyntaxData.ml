@@ -40,7 +40,8 @@ and con_ =
   | Signature of field list
   | Struct of field list
   | Proj of con * Ident.user
-  | Patch of con * field list
+  | Patch of con * patch_field list
+  | Open of con * (Ident.user * Ident.user) list * con
   | Sub of con * con * con
   | Pair of con * con
   | Fst of con
@@ -71,9 +72,9 @@ and con_ =
   | TopC
   | BotC
   | HCom of con * con * con * con * con
-  | HComInfer of con * con * con
+  | HComChk of con * con * con
   | HFill of con * con * con * con
-  | HFillInfer of con * con
+  | HFillChk of con * con
   | Com of con * con * con * con * con
   | V of con * con * con * con
   | VProj of con
@@ -92,7 +93,10 @@ and con_ =
 and case = pat * con
 [@@deriving show]
 
-and field = Field of { lbl : Ident.user; con : con }
+and field = [`Field of Ident.user * con | `Include of con * (Ident.user * Ident.user) list]
+[@@deriving show]
+
+and patch_field = [`Patch of Ident.user * con | `Subst of Ident.user * con]
 [@@deriving show]
 
 and pat = Pat of {lbl : string list; args : pat_arg list}
