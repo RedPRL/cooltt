@@ -100,6 +100,8 @@ and Chk : sig
   val run : tac -> D.tp -> S.t RM.m
   val brun : tac -> D.tp * D.cof * D.tm_clo -> S.t RM.m
 
+  val catch : tac -> (exn -> tac) -> tac
+
   val syn : Syn.tac -> tac
 end =
 struct
@@ -153,6 +155,16 @@ struct
     let+ () = RM.equate_tp tp tp' in
     tm
 
+  let catch tac handle : tac =
+    brule @@ fun (tp, phi, clo) ->
+    let* st = RM.get in
+    let* r = RM.trap @@ brun tac (tp, phi, clo) in
+    match r with
+    | Ok s -> RM.ret s
+    | Error exn ->
+      let* () = RM.set st in
+      brun (handle exn) (tp, phi, clo)
+
   let whnf tac =
     brule @@ fun (tp, phi, clo) ->
     RM.lift_cmp @@ Sem.whnf_tp tp |>>
@@ -166,6 +178,8 @@ and Syn : sig
   val rule : ?name:string -> (S.t * D.tp) RM.m -> tac
   val run : tac -> (S.t * D.tp) RM.m
   val ann : Chk.tac -> Tp.tac -> tac
+
+  val catch : tac -> (exn -> tac) -> tac
 end =
 struct
   type tac = string * (S.t * D.tp) RM.m
@@ -184,6 +198,16 @@ struct
     let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
     let+ tm = Chk.run tac_tm vtp in
     tm, vtp
+
+  let catch tac handle : tac =
+    rule @@
+    let* st = RM.get in 
+    let* r = RM.trap @@ run tac in
+    match r with
+    | Ok (tm, tp) -> RM.ret (tm, tp)
+    | Error exn ->
+      let* () = RM.set st in
+      run (handle exn)
 
   let whnf (name, tac) =
     rule ~name @@

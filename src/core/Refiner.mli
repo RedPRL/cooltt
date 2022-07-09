@@ -1,6 +1,8 @@
 (** This is the basis of trusted inference rules for cooltt. This module also contains
     some auxiliary tactics, but these don't need to be trusted so they should be moved elsewhere. *)
 
+open CodeUnit
+
 module D := Domain
 module S := Syntax
 module RM := Monads.RefineM
@@ -25,7 +27,10 @@ module Probe : sig
   val probe_boundary : Chk.tac -> Chk.tac -> Chk.tac
   val probe_syn : string option -> Syn.tac -> Syn.tac
 
-  val try_with_boundary : Chk.tac -> (CodeUnit.Syntax.t -> Chk.tac) -> Chk.tac
+  val probe_goal_chk : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Chk.tac -> Chk.tac
+  val probe_goal_syn : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> Syn.tac -> Syn.tac
+
+  val try_with_boundary : Chk.tac -> (S.t -> Chk.tac) -> Chk.tac
 end
 
 module Dim : sig
@@ -61,7 +66,7 @@ module Univ : sig
   val sg : Chk.tac -> Chk.tac -> Chk.tac
   val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
   val patch : Chk.tac -> (Ident.user -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
-  val total : (Ident.user * CodeUnit.Domain.con) list -> CodeUnit.Domain.con -> Chk.tac
+  val total : (Ident.user * D.con) list -> D.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val infer_nullary_ext : Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac

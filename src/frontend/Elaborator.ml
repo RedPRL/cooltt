@@ -186,6 +186,11 @@ and chk_tm : CS.con -> T.Chk.tac =
   fun con ->
   T.Chk.update_span con.info @@
   match con.node with
+  | CS.Generalize (ident, c) ->
+    R.Structural.generalize ident (chk_tm c)
+
+  | CS.Visualize -> R.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal) @@ R.Hole.unleash_hole None
+
   | CS.HComChk (src, trg, tm) ->
     R.Univ.hcom_chk (chk_tm src) (chk_tm trg) (chk_tm tm)
 
@@ -253,7 +258,6 @@ and chk_tm : CS.con -> T.Chk.tac =
 
       | CS.Open (tm,rn,body) ->
         Tactics.open_ (syn_tm tm) (R.Signature.find_field rn) @@ fun _ -> chk_tm body
-
 
       | CS.Struct fields ->
         let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include (con,rn) -> `Include (syn_tm con,R.Signature.find_field rn)) fields in
@@ -342,10 +346,11 @@ and chk_tm : CS.con -> T.Chk.tac =
           RM.ret @@ R.Pi.intro @@ fun _ -> chk_tm @@ CS.{node = CS.Ap (con, [CS.{node = DeBruijnLevel lvl; info = None}]); info = None}
         | D.Sg _ ->
           RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
+
         | D.Signature sign ->
           let lbls = D.sign_lbls sign in
           let fields = List.map (fun lbl -> `Field (lbl,chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None})) lbls in
-          RM.ret @@ R.Signature.intro fields    
+          RM.ret @@ R.Signature.intro fields
         | _ ->
           RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 

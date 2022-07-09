@@ -42,11 +42,11 @@ let resolve_unfolder_syms (idents : Ident.t list) =
   MU.filter_map resolve_global idents
 
 
-let get_num_holes =
+let get_holes =
   let+ st = get in
-  St.get_num_holes st
-let inc_num_holes =
-  modify St.inc_num_holes
+  St.get_holes st
+let add_hole hole =
+  modify (St.add_hole hole)
 
 let throw_namespace_errors : ('a, 'error) Namespace.result -> 'a m =
   function
@@ -100,11 +100,10 @@ let with_unit lib unit_id (action : 'a m) =
     ~end_:(fun ~parent ~child -> ret @@ St.end_unit ~parent ~child)
     (let* ans = action in
      let* () =
-       let* num_holes = get_num_holes in
-       if num_holes > 0 then
-         emit ~lvl:`Warn None Err.pp @@ UnsolvedHoles num_holes
-       else
-         ret ()
+       let* holes = get_holes in
+       match holes with
+       | [] -> ret ()
+       | _ -> emit ~lvl:`Warn None Err.pp @@ UnsolvedHoles (List.length holes)
      in ret ans)
 
 let import ~shadowing pat unit_id =
@@ -237,14 +236,14 @@ let rec multi_ap (cells : Env.cell bwd) (finally : D.cut) : D.cut =
     let tp, con = Env.Cell.contents cell in
     multi_ap cells finally |> D.push @@ D.KAp (tp, con)
 
-let print_state lbl tp : unit m =
+let print_state lbl ctx tp : unit m =
   let* env = read in
-  let cells = Env.locals env in
 
   globally @@
-  let* ctx = destruct_cells @@ BwdLabels.to_list cells in
-  () |> emit (RefineEnv.location env) @@ fun fmt () ->
-  Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
+  emit (RefineEnv.location env)
+    (fun fmt () ->
+       Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp)
+    ()
 
 let boundary_satisfied tm tp phi clo : _ m =
   let* con = lift_ev @@ Sem.eval tm in

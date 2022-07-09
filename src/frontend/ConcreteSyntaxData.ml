@@ -49,6 +49,7 @@ and con_ =
   | Type
   | Hole of hole * con option
   | BoundaryHole of con option
+  | Visualize
   | Underscore
   | Generalize of Ident.t * con
   | Unfold of Ident.t list * con

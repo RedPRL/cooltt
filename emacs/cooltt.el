@@ -128,7 +128,7 @@
   "Declaration keywords.")
 
 (defconst cooltt-command-keywords
-  '("#fail" "#normalize" "#print" "#quit")
+  '("#fail" "#normalize" "#print" "#quit" "#viz")
   "Command keywords.")
 
 (defconst cooltt-expression-keywords
@@ -198,7 +198,7 @@ See `compilation-error-regexp-alist' for semantics.")
 
 (defun cooltt-compile-options ()
   "Compute the options to provide to cooltt."
-  (let (opts cooltt-options)
+  (let ((opts cooltt-options))
     (when cooltt-debug
       (push "--debug" opts))
     opts))

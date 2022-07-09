@@ -18,7 +18,8 @@ val get_global : Global.t -> D.tp m
 val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
 val resolve_unfolder_syms : Ident.t list -> Global.t list m
 
-val inc_num_holes : unit m
+val add_hole : (D.tp * D.cof * D.tm_clo) -> unit m
+val get_holes : (D.tp * D.cof * D.tm_clo) list m
 
 val get_local_tp : int -> D.tp m
 val get_local : int -> D.con m
@@ -57,6 +58,6 @@ val destruct_cells : Env.cell list -> (Ident.t * S.tp) list m
 val multi_pi : Env.cell list -> S.tp m -> S.tp m
 val multi_ap : Env.cell bwd -> D.cut -> D.cut
 
-val print_state : string option -> S.tp -> unit m
+val print_state : string option -> (Ident.t * S.tp) list -> S.tp -> unit m
 val print_boundary : S.t -> D.tp -> D.cof -> D.tm_clo -> unit m
 val boundary_satisfied : S.t -> D.tp -> D.cof -> D.tm_clo -> [> `BdrySat | `BdryUnsat ] m

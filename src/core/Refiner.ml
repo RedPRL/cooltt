@@ -36,18 +36,45 @@ module Probe : sig
   val probe_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
   val probe_syn : string option -> T.Syn.tac -> T.Syn.tac
 
+  val probe_goal_chk : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> T.Chk.tac -> T.Chk.tac
+  val probe_goal_syn : ((Ident.t * S.tp) list -> S.tp -> unit RM.m) -> T.Syn.tac -> T.Syn.tac
+
   (** Run the first tactic, and if the boundary is not satisfied, run the second tactic family at the term produced by the first tactic. *)
   val try_with_boundary : T.Chk.tac -> (S.t -> T.Chk.tac) -> T.Chk.tac
 end =
 struct
-  let probe_chk name tac =
-    T.Chk.brule ~name:"probe_chk" @@ fun (tp, phi, clo) ->
+  let probe_goal_chk k tac =
+    T.Chk.brule ~name:"probe_goal_chk" @@ fun (tp, phi, clo) ->
     let* s = T.Chk.brun tac (tp, phi, clo) in
     let+ () =
       let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
-      RM.print_state name stp
+
+      let* env = RM.read in
+      let cells = Env.locals env in
+      RM.globally @@
+      let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
+      k ctx stp
     in
     s
+
+  let probe_goal_syn k tac =
+    T.Syn.rule ~name:"probe_goal_syn" @@
+    let* s, tp = T.Syn.run tac in
+    let+ () =
+      let* stp = RM.quote_tp tp in
+      let* env = RM.read in
+      let cells = Env.locals env in
+      RM.globally @@
+      let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
+      k ctx stp
+    in
+    s, tp
+
+  let probe_chk name tac =
+    probe_goal_chk (RM.print_state name) tac
+
+  let probe_syn name tac =
+    probe_goal_syn (RM.print_state name) tac
 
   let probe_boundary probe tac =
     T.Chk.brule ~name:"probe_boundary" @@ fun (tp, phi, clo) ->
@@ -62,15 +89,6 @@ struct
     match bdry_sat with
     | `BdryUnsat -> T.Chk.brun (backup tm) (tp, phi, tm_clo)
     | `BdrySat -> RM.ret tm
-
-  let probe_syn name tac =
-    T.Syn.rule ~name:"probe_syn" @@
-    let* s, tp = T.Syn.run tac in
-    let+ () =
-      let* stp = RM.quote_tp tp in
-      RM.print_state name stp
-    in
-    s, tp
 end
 
 
@@ -107,7 +125,7 @@ struct
       RM.add_global ~unfolder:None ~shadowing:true ident vtp
     in
 
-    let* () = RM.inc_num_holes in
+    let* () = RM.add_hole (tp, phi, clo) in
 
     let cut = RM.multi_ap cells (D.Global sym, []) in
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
@@ -773,7 +791,7 @@ struct
     S.HCom (code, src, trg, cof, tm), vtp
 
   let hcom_chk (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Chk.tac =
-    let as_code = function
+    let rec as_code = function
       | D.ElStable code -> RM.ret @@ D.StableCode code
       | D.ElUnstable code -> RM.ret @@ D.UnstableCode code
       | D.ElCut cut -> RM.ret @@ D.Cut { tp = D.Univ; cut }
@@ -784,6 +802,7 @@ struct
       let* tp = RM.lift_cmp @@ Sem.whnf_tp_ tp in
       match tp with
       | D.Sub (sub_tp, psi, _) ->
+        Debug.print "Sub type: %a@." D.pp_tp sub_tp;
         let tac_code =
           T.Chk.brule @@ fun (_, _, _) ->
           let* vcode = as_code sub_tp in

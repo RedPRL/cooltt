@@ -19,6 +19,11 @@ module QuM = Monads.QuM
 module RMU = Monad.Util (RM)
 open Monad.Notation (RM)
 
+type options =
+  { as_file : string option;
+    debug_mode : bool;
+    server_info : (string * int) option }
+
 type status = (unit, unit) Result.t
 type continuation = Continue | Quit
 type command = continuation RM.m
@@ -306,11 +311,12 @@ and process_file input =
     Log.pp_error_message ~loc:(Some err.span) ~lvl:`Error pp_message @@ ErrorMessage {error = LexingError; last_token = err.last_token};
     RM.ret @@ Error ()
 
-let load_file ~as_file ~debug_mode input : status =
+let load_file {as_file; debug_mode; server_info} input : status =
   match load_current_library ~as_file input with
   | Error () -> Error ()
   | Ok lib ->
     Debug.debug_mode debug_mode;
+    Option.iter (fun (hostname, port) -> Server.init hostname port) server_info;
     let unit_id = assign_unit_id ~as_file input in
     RM.run_exn (ST.init lib) Env.init @@
     RM.with_unit lib unit_id @@
@@ -342,7 +348,7 @@ let rec repl lib (ch : in_channel) lexbuf =
       close_in ch;
       RM.ret @@ Ok ()
 
-let do_repl ~as_file ~debug_mode : status =
+let do_repl {as_file; debug_mode; _} : status =
   match load_current_library ~as_file `Stdin with
   | Error () -> Error ()
   | Ok lib ->

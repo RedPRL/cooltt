@@ -5,18 +5,28 @@ let _ =
   Printexc.record_backtrace false;
   ()
 
+type mode =
+  [ `Interactive
+  | `Scripting of [`Stdin | `File of string]
+  ]
+
 type options =
-  { mode : [`Interactive | `Scripting of [`Stdin | `File of string]];
+  { mode : mode;
     as_file : string option;
     width : int;
-    debug_mode : bool }
+    debug_mode : bool;
+    server_info : (string * int) option;
+  }
 
-let main {mode; as_file; width; debug_mode} =
+let options mode as_file width debug_mode server_info =
+  { mode; as_file; width; debug_mode; server_info }
+
+let main {mode; as_file; width; debug_mode; server_info} =
   Format.set_margin width;
   match
     match mode with
-    | `Interactive -> Driver.do_repl ~as_file ~debug_mode
-    | `Scripting input -> Driver.load_file ~as_file ~debug_mode input
+    | `Interactive -> Driver.do_repl {as_file; debug_mode; server_info}
+    | `Scripting input -> Driver.load_file {as_file; debug_mode; server_info} input
   with
   | Ok () -> `Ok ()
   | Error () -> `Error (false, "encountered one or more errors")
@@ -53,6 +63,21 @@ let opt_debug =
   in
   Arg.(value & flag & info ["debug"] ~doc)
 
+let opt_server =
+  let doc = "Enable the cooltt hole server."
+  in
+  Arg.(value & flag & info ["server"] ~doc)
+
+let opt_server_hostname =
+  let doc = "The cooltt hole server hostname. If --server is not enabled, this does nothing."
+  in
+  Arg.(value & opt string "localhost" & info ["server-hostname"] ~doc ~docv:"HOSTNAME")
+
+let opt_server_port =
+  let doc = "The cooltt hole server port. If --server is not enabled, this does nothing."
+  in
+  Arg.(value & opt int 3001 & info ["server-port"] ~doc ~docv:"PORT")
+
 let myinfo =
   let doc = "elaborate and normalize terms in Cartesian cubical type theory" in
   let err_exit = Cmd.Exit.info ~doc:"on ill-formed types or terms." 1 in
@@ -67,24 +92,29 @@ let parse_mode =
 
 let quote s = "`" ^ s ^ "'"
 
-let consolidate_options mode interactive width input_file as_file debug_mode : options Term.ret =
-  match Option.map parse_mode mode, interactive, width, input_file with
-  | (Some `Scripting | None), false, width, Some input_file ->
-    `Ok {mode = `Scripting input_file; as_file; width; debug_mode}
-  | (Some `Scripting | None), false, _, None ->
-    `Error (true, "scripting mode expects an input file")
-  | Some `Interactive, _, width, None | None, true, width, None ->
-    `Ok {mode = `Interactive; as_file; width; debug_mode}
-  | Some `Interactive, _, _, Some _ | None, true, _, _ ->
-    `Error (true, "interactive mode expects no input files")
-  | Some `Scripting, true, _, _ ->
-    `Error (true, "inconsistent mode assignment")
-  | Some (`Nonexistent s), _, _, _ ->
-    `Error (true, "no mode named " ^ quote s)
+let consolidate_input_options mode interactive input_file : (mode, [`Msg of string]) result  =
+  match Option.map parse_mode mode, interactive, input_file with
+  | (Some `Scripting | None), false, Some input_file ->
+    Ok (`Scripting input_file)
+  | (Some `Scripting | None), false, None ->
+    Error (`Msg "scripting mode expects an input file")
+  | Some `Interactive, _, None | None, true, None ->
+    Ok `Interactive
+  | Some `Interactive, _, Some _ | None, true, _ ->
+    Error (`Msg "interactive mode expects no input files")
+  | Some `Scripting, true, _ ->
+    Error (`Msg "inconsistent mode assignment")
+  | Some (`Nonexistent s), _, _ ->
+    Error (`Msg ("no mode named " ^ quote s))
+
+let consolidate_server_options server_enabled server_host server_port =
+  if server_enabled
+  then Some (server_host, server_port)
+  else None
 
 let () =
-  let options : options Term.t =
-    Term.(ret (const consolidate_options $ opt_mode $ opt_interactive $ opt_width $ opt_input_file $ opt_as_file $ opt_debug))
-  in
+  let opts_input = Term.(term_result ~usage:true (const consolidate_input_options $ opt_mode $ opt_interactive $ opt_input_file))  in
+  let opts_server = Term.(const consolidate_server_options $ opt_server $ opt_server_hostname $ opt_server_port) in
+  let options : options Term.t = Term.(const options $ opts_input $ opt_as_file $ opt_width $ opt_debug $ opts_server) in
   let t = Term.ret @@ Term.(const main $ options) in
   exit (Cmd.eval ~catch:true ~err:Format.std_formatter @@ Cmd.v myinfo t)

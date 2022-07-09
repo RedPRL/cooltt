@@ -22,6 +22,7 @@ let commands =
       ("#fail", FAIL);
       ("#normalize", NORMALIZE);
       ("#print", PRINT);
+      ("#viz", VISUALIZE);
       ("#quit", QUIT);
     ]
 

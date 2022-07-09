@@ -7,8 +7,8 @@ val init : Bantorra.Manager.library -> t
 
 val get_lib : t -> Bantorra.Manager.library
 
-val get_num_holes : t -> int
-val inc_num_holes : t -> t
+val get_holes : t -> (D.tp * D.cof * D.tm_clo) list
+val add_hole : (D.tp * D.cof * D.tm_clo) -> t -> t
 
 (* Manipulate of scopes *)
 val transform_view : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Namespace.result

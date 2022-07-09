@@ -8,4 +8,5 @@ _arguments ':' \
   '(- :)--version[show version]' \
   '(-w --width)'{-w,--width=}'[specify width for pretty printing]:width:' \
   '(--debug)--debug[enable debug mode]' \
+  '(--server)--server=[enable cooltt server]:port:' \
   "1:CoolTT file:_files -g '*.cooltt'"

@@ -54,7 +54,7 @@
 %token SIG STRUCT AS INCLUDE RENAMING OPEN
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
+%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL VISUALIZE
 
 %token UNFOLD
 %token <string list> IMPORT
@@ -303,8 +303,10 @@ plain_atomic_term_except_sq:
     { Circle }
   | TYPE
     { Type }
-  | hole = HOLE
-    { Hole (hole, None) }
+  | name = HOLE
+    { Hole (name, None) }
+  | VISUALIZE
+    { Visualize }
   | DIM
     { Dim }
   | COF
