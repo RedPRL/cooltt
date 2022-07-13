@@ -121,6 +121,7 @@ and decl_ =
   | Import of {shadowing : bool; unitpath : string list; modifier : con option}
   | NormalizeTerm of {unfolding : Ident.t list; con : con}
   | Fail of decl
+  | Debug of bool
   | Quit
   | View of {shadowing : bool; modifier : con}
   | Export of {shadowing : bool; modifier : con}

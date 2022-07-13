@@ -22,6 +22,7 @@ let commands =
       ("#fail", FAIL);
       ("#normalize", NORMALIZE);
       ("#print", PRINT);
+      ("#debug", DEBUG);
       ("#viz", VISUALIZE);
       ("#quit", QUIT);
     ]
@@ -93,6 +94,8 @@ let keywords =
     ("🧧", REPACK);
     ("export", EXPORT);
     ("📤", EXPORT);
+    ("on", ON);
+    ("off", OFF);
   ]
 }
 
