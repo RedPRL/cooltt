@@ -7,7 +7,6 @@ open Core
 open CodeUnit
 
 module S = Syntax
-
 module J = Ezjsonm
 
 (* [NOTE: Cooltt Server]
@@ -65,22 +64,60 @@ let rec dim_from_cof (dims : (string option) bwd) (cof : S.t) : (string * float)
     failwith @@ Format.asprintf "dim_from_cof: bad cof '%a'" S.dump cof
 
 (* Create our list of labels from a boundary constraint. *)
-let boundary_labels (dims : (string option) bwd) (env : Pp.env) (tm : S.t) : J.value list =
+let boundary_labels (dims : (string option) bwd) (env : Pp.env) (cof : S.t) (tm : S.t) : J.value list =
   let rec go env dims (bdry, cons) =
     match cons with
     | S.CofSplit branches ->
-      let (_x, envx) = ppenv_bind env `Anon in
+      let (_x, envx) = ppenv_bind env Ident.anon in
       List.concat_map (go envx (Snoc (dims, None))) branches
     | _ ->
-      let (_x, envx) = ppenv_bind env `Anon in
+      let (_x, envx) = ppenv_bind env Ident.anon in
       let lbl = Format.asprintf "%a" (S.pp envx) cons in
       List.map (serialize_label lbl) @@ dim_from_cof (Snoc (dims, None)) bdry
   in
+  let (_, envx) = ppenv_bind env Ident.anon in
   match tm with
-  | S.CofSplit branches ->
-    let (_x, envx) = ppenv_bind env `Anon in
+  | S.CofSplit branches -> 
     List.concat_map (go envx dims) branches
-  | _ -> []
+  | _ ->
+    let lbl = Format.asprintf "%a" (S.pp envx) tm in
+    List.map (serialize_label lbl) @@ dim_from_cof dims cof
+
+
+let context_labels (ctx : (Ident.t * S.tp) list) (env : Pp.env) : J.value list =
+  let serialize_cube id dims labels =
+    let dim_names = BwdLabels.to_list @@ BwdLabels.filter_map ~f:Fun.id dims in
+    `O [
+      ("id", `String (Ident.to_string id));
+      ("dims", `A (List.map J.string dim_names));
+      ("labels", `A labels) 
+    ]
+  in
+  let rec unpack_bdry_lam tm env =
+    match tm with
+    | S.Lam (var, body) ->
+      let (_, envx) = ppenv_bind env var in
+      unpack_bdry_lam body envx
+    | _ -> tm, env
+  in
+  let rec type_labels dims env (id, tp) =
+    match tp with
+    | S.Sub (_, cof, tm) ->
+      let labels = boundary_labels dims env cof tm in
+      serialize_cube id dims labels
+    | S.El (S.CodeExt (_, cof, _, bdry_lam)) ->
+      let (tm, envx) = unpack_bdry_lam bdry_lam env in
+      let labels = boundary_labels dims envx cof tm in
+      serialize_cube id dims labels
+    | S.Pi (dom, var, cod) ->
+      let (dim_name, envx) = ppenv_bind env var in
+      begin
+        match dom with
+        | S.TpDim -> type_labels (Snoc (dims, Some dim_name)) envx (id, cod)
+        | _ -> type_labels (Snoc (dims, None)) envx (id, cod)
+      end      
+    | _ -> serialize_cube id dims []
+  in List.map (type_labels Emp env) ctx
 
 let serialize_boundary (ctx : (Ident.t * S.tp) list) (goal : S.tp) : J.t option =
   let rec go dims env =
@@ -88,14 +125,16 @@ let serialize_boundary (ctx : (Ident.t * S.tp) list) (goal : S.tp) : J.t option 
     | [] ->
       begin
         match goal with
-        | S.Sub (_, _, bdry) ->
+        | S.Sub (_, cof, tm) ->
           let dim_names = BwdLabels.to_list @@ BwdLabels.filter_map ~f:Fun.id dims in
-          let labels = boundary_labels dims env bdry in
+          let labels = boundary_labels dims env cof tm in
           let context = Format.asprintf "%a" (S.pp_sequent ~lbl:None ctx) goal in
+          let ctx_labels = context_labels ctx env in
           let msg = `O [
               ("dims", `A (List.map J.string dim_names));
               ("labels", `A labels);
-              ("context", `String context)
+              ("context", `String context);
+              ("cubes", `A ctx_labels)
             ] in
           Some (`O [("DisplayGoal", msg)])
         | _ -> None
