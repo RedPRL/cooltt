@@ -189,7 +189,26 @@ and chk_tm : CS.con -> T.Chk.tac =
   | CS.Generalize (ident, c) ->
     R.Structural.generalize ident (chk_tm c)
 
-  | CS.Visualize -> R.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal) @@ R.Hole.unleash_hole None
+  | CS.Visualize ->
+    R.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal)
+    @@ R.Hole.unleash_hole None
+
+  | CS.Edit ->
+    Tactics.refine
+      (R.Probe.probe_goal_chk (fun ctx goal -> RM.ret @@ Server.dispatch_goal ctx goal)
+       @@ R.Hole.unleash_hole None)
+    @@ fun ctx goals err ->
+    begin
+      match err with
+      | Some exn ->
+        (* [TODO: June; 2022-07-15] Send message to the server, and undo the last action *)
+        raise exn
+      | None ->
+        let* tm = Server.send_faces ctx goals in
+        match tm with
+        | Some tm -> RM.ret @@ chk_tm tm
+        | None -> RM.ret @@ R.Hole.unleash_hole None
+    end
 
   | CS.HComChk (src, trg, tm) ->
     R.Univ.hcom_chk (chk_tm src) (chk_tm trg) (chk_tm tm)

@@ -1,6 +1,40 @@
 open Basis
 open Core
 
+(* [HACK: June; 2022-07-14] We are using Yojson to avoid having to write a serializer
+   for concrete syntax by hand. However, the rest of cooltt uses Ezjsonm. In my mind, this
+   is justification to dump Ezjsonm. But for now, we need a converter.
+
+   Maybe this should go somewhere else. But considering that this is /the/ module that uses
+   Yojson, I put it here. *)
+
+module J = Ezjsonm
+module Y = Yojson.Safe
+
+let rec yojson_of_ezjsonm (j : J.value) : Y.t =
+  match j with
+  | `A vals -> `List (List.map yojson_of_ezjsonm vals)
+  | `O vals -> `Assoc (List.map (fun (k, v) -> (k, yojson_of_ezjsonm v)) vals)
+  (* [HACK: June; 2022-07-14] Do we need more sophisticated float conversion? *)
+  | `Float f -> `Float f
+  | `Null -> `Null
+  | `Bool b -> `Bool b
+  | `String s -> `String s
+
+let rec ezjsonm_of_yojson (j : Y.t) : J.value =
+  match j with
+  | `List vals
+  | `Tuple vals -> `A (List.map ezjsonm_of_yojson vals)
+  | `Assoc vals -> `O (List.map (fun (k, v) -> (k, ezjsonm_of_yojson v)) vals)
+  | `Variant (label, Some x) -> `A [`String label; ezjsonm_of_yojson x]
+  | `Variant (label, None) -> `String label
+  | `Intlit i -> `String i
+  | `Null -> `Null
+  | `Float f -> `Float f
+  | `Bool b -> `Bool b
+  | `String s -> `String s
+  | `Int i -> `Float (float_of_int i)
+
 type info = LexingUtil.span option
 
 let pp_info fmt =
@@ -11,11 +45,12 @@ let pp_info fmt =
 
 type 'a node =
   {node : 'a;
-   info : info}
-[@@deriving show]
+   info : (info [@yojson.opaque])
+  }
+[@@deriving show, yojson]
 
 type hole = {name: string option; silent: bool}
-[@@deriving show]
+[@@deriving show, yojson]
 
 let map_node ~f n = {n with node = f n.node}
 let get_info n = n.info
@@ -50,6 +85,7 @@ and con_ =
   | Hole of hole * con option
   | BoundaryHole of con option
   | Visualize
+  | Edit
   | Underscore
   | Generalize of Ident.t * con
   | Unfold of Ident.t list * con
@@ -88,7 +124,7 @@ and con_ =
   | ModUnion of con list
   | ModInSubtree of string list * con
   | ModPrint of hole
-[@@deriving show]
+[@@deriving show, yojson]
 
 and case = pat * con
 [@@deriving show]

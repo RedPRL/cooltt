@@ -6,9 +6,9 @@
 
 (library
  (name Frontend)
- (libraries kado bantorra cooltt.basis cooltt.core ezjsonm menhirLib)
+ (libraries kado bantorra cooltt.basis cooltt.core ezjsonm menhirLib yojson)
  (preprocess
-  (pps ppx_deriving.std))
+  (pps ppx_deriving.std ppx_yojson_conv))
  (flags
   (:standard -w -32-37-38 -warn-error -a+31))
  (public_name cooltt.frontend))

@@ -1,4 +1,5 @@
 open Basis
+open Bwd
 open Core
 open CodeUnit
 
@@ -7,6 +8,7 @@ module T = Tactic
 module D = Domain
 module S = Syntax
 module R = Refiner
+module Env = RefineEnv
 module CS = ConcreteSyntax
 module Sem = Semantics
 module TB = TermBuilder
@@ -44,7 +46,7 @@ let match_goal (tac : _ -> T.Chk.tac RM.m) : T.Chk.tac =
   let* tac = tac goal in
   T.Chk.brun tac goal
 
-let refine k =
+let refine tac k =
   T.Chk.brule @@ fun (tp, phi, tm_clo) ->
   let rec go tac =
     (* [HACK: Hole State]
@@ -64,17 +66,21 @@ let refine k =
     let* after_holes = RM.get_holes in
     let n_holes = List.length after_holes - List.length before_holes in
     let holes = CCList.take n_holes after_holes in
+    let* env = RM.read in
+    let cells = Env.locals env in
+    let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
     match holes, r with
     | [], Ok tm -> RM.ret tm
     | holes, Ok _ ->
       let* () = RM.set st in
-      go (k holes None)
+      let* tac = k ctx holes None in
+      go tac
     | holes, Error exn ->
       let* () = RM.set st in
-      go (k holes (Some exn))
+      let* tac = k ctx holes (Some exn) in
+      go tac
   in
-  (* [TODO: Reed M, 14/06/2022] Should we 'unleash_hole' here, or cof split? *)
-  go (R.Hole.unleash_hole None)
+  go tac
 
 let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
   fun tac ->
