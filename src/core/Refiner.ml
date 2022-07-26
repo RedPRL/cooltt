@@ -267,6 +267,37 @@ struct
       RM.refine_err @@ Err.ExpectedDimensionLiteral n
 end
 
+module DDim =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.virtual_rule ~name:"DDim.formation" @@
+    RM.ret S.TpDDim
+
+  let ddim0 : T.Chk.tac =
+    T.Chk.rule ~name:"DDim.ddim0" @@
+    function
+    | D.TpDDim ->
+      RM.ret S.DDim0
+    | tp ->
+      RM.expected_connective `DDim tp
+
+  let ddim1 : T.Chk.tac =
+    T.Chk.rule ~name:"DDim.ddim1" @@
+    function
+    | D.TpDDim ->
+      RM.ret S.DDim1
+    | tp ->
+      RM.expected_connective `DDim tp
+
+  let literal : int -> T.Chk.tac =
+    function
+    | 0 -> ddim0
+    | 1 -> ddim1
+    | n ->
+      T.Chk.rule ~name:"DDim.literal" @@ fun _ ->
+      RM.refine_err @@ Err.ExpectedDDimensionLiteral n
+end
+
 module Cof =
 struct
   let formation : T.Tp.tac =

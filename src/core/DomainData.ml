@@ -6,11 +6,14 @@ struct
   module S = Syntax.Make(Symbol)
   module CofVar = CofVar.Make(Symbol)
   module Dim = Dim.Make(Symbol)
+  module DDim = DDim.Make(Symbol) (** Q: Will this work? *)
   module Cof = CofBuilder.Make(Symbol)
 
   type dim = Dim.t
   type cof_var = CofVar.t
   type cof = Cof.cof
+
+    type ddim = DDim.t
 
   (** A type code whose head constructor is stable under dimension substitution. *)
   type 'a stable_code =
@@ -87,6 +90,9 @@ struct
 
     | Prf
 
+    | DDim0
+    | DDim1
+
     | FHCom of [`Nat | `Circle] * dim * dim * cof * con
 
     | StableCode of con stable_code
@@ -106,6 +112,7 @@ struct
     | TpDim
     | TpCof
     | TpPrf of cof
+    | TpDDim
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo

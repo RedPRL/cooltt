@@ -151,6 +151,12 @@ let rec quote_con (tp : D.tp) con =
   | D.TpDim, D.Dim1 ->
     ret @@ S.Dim1
 
+  | D.TpDDim, D.DDim0 ->
+    ret @@ S.DDim0
+
+  | D.TpDDim, D.DDim1 ->
+    ret @@ S.DDim1
+
   | D.TpCof, D.Cof cof ->
     let* cof = lift_cmp @@ cof_con_to_cof cof in
     quote_cof cof
@@ -452,6 +458,8 @@ and quote_tp (tp : D.tp) =
     S.Sub (ttp, tphi, tm)
   | D.TpDim ->
     ret S.TpDim
+  | D.TpDDim ->
+    ret S.TpDDim
   | D.TpCof ->
     ret S.TpCof
   | D.TpPrf phi ->

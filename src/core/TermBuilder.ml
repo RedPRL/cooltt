@@ -324,6 +324,9 @@ let tp_cof = ret S.TpCof
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
 
+let ddim0 = ret S.DDim0
+let ddim1 = ret S.DDim1
+
 let cube n mfam : _ m =
   let rec go acc n =
     if n = 0 then

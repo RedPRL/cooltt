@@ -14,6 +14,8 @@ let pp_connective fmt =
     Format.fprintf fmt "cof"
   | `Dim ->
     Format.fprintf fmt "dim"
+  | `DDim ->
+    Format.fprintf fmt "ddim"
   | `Pi ->
     Format.fprintf fmt "pi"
   | `Sg ->
@@ -62,6 +64,9 @@ let pp fmt =
   | ExpectedDimensionLiteral n ->
     Fmt.fprintf fmt
       "Expected dimension literal 0 or 1, but got %i" n
+  | ExpectedDDimensionLiteral n ->
+    Fmt.fprintf fmt
+      "Expected directed dimension literal 0 or 1, but got %i" n
   | ExpectedTrue (ppenv, cof) ->
     Fmt.fprintf fmt
       "Expected true cofibration: %a"

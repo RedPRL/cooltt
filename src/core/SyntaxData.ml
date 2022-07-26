@@ -42,6 +42,9 @@ struct
     | CofSplit of (t * t) list
     | Prf
 
+    | DDim0
+    | DDim1
+
     | ElIn of t
     | ElOut of t
 
@@ -71,6 +74,7 @@ struct
     | TpCof
     | TpPrf of t
     | TpCofSplit of (t * tp) list
+    | TpDDim
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp

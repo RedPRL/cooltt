@@ -61,6 +61,9 @@ struct
     | CofSplit branches -> Format.fprintf fmt "cof/split[%a]" (Pp.pp_sep_list dump_branch) branches
     | Prf -> Format.fprintf fmt "prf"
 
+    | DDim0 -> Format.fprintf fmt "<ddim0>"
+    | DDim1 -> Format.fprintf fmt "<ddim1>"
+
     | ElIn tm -> Format.fprintf fmt "el/in[%a]" dump tm
     | ElOut tm -> Format.fprintf fmt "el/out[%a]" dump tm
 
@@ -99,6 +102,7 @@ struct
     | TpCof -> Format.fprintf fmt "tp/cof"
     | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
     | TpCofSplit _ -> Format.fprintf fmt "<tp/cof/split>"
+    | TpDDim -> Format.fprintf fmt "tp/ddim"
     | Sub _ -> Format.fprintf fmt "<sub>"
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
@@ -152,7 +156,7 @@ struct
       | Cof (Cof.Meet _) -> cof_meet
       | ForallCof _ -> dual juxtaposition arrow
 
-      | Zero | Base | CodeNat | CodeCircle | CodeUniv | Dim0 | Dim1 | Prf -> atom
+      | Zero | Base | CodeNat | CodeCircle | CodeUniv | Dim0 | Dim1 | DDim0 | DDim1 | Prf -> atom
       | Suc _ as tm -> if Option.is_some (to_numeral tm) then atom else juxtaposition
       | HCom _ | Com _ | Coe _
       | Fst _ | Snd _
@@ -183,7 +187,7 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | TpDim | TpCof | Nat | Circle -> atom
+      | Univ | TpDim | TpDDim | TpCof | Nat | Circle -> atom
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -386,6 +390,10 @@ struct
       Format.fprintf fmt "0"
     | Dim1 ->
       Format.fprintf fmt "1"
+    | DDim0 ->
+      Format.fprintf fmt "0"
+    | DDim1 ->
+      Format.fprintf fmt "1"
     | Prf ->
       Format.fprintf fmt "*"
     | Ann (tm, _) ->
@@ -510,6 +518,13 @@ struct
         (pp_tp env P.(right_of colon)) base
         Uuseg_string.pp_utf_8 "→"
         (pp_tp envx P.(right_of arrow)) fam
+    | `Anon, TpDDim ->
+      let (x, envx) = ppenv_bind env (`Machine "i") in
+      Format.fprintf fmt "@[(%a : @[%a@])@]@ %a %a"
+        Uuseg_string.pp_utf_8 x
+        (pp_tp env P.(right_of colon)) base
+        Uuseg_string.pp_utf_8 "→"
+        (pp_tp envx P.(right_of arrow)) fam
     | `Anon, TpCof ->
       let (x, envx) = ppenv_bind env (`Machine "φ") in
       Format.fprintf fmt "@[(%a : @[%a@])@]@ %a %a"
@@ -600,6 +615,8 @@ struct
       Format.fprintf fmt "𝕀"
     | TpCof ->
       Format.fprintf fmt "𝔽"
+    | TpDim ->
+      Format.fprintf fmt "𝟚"
     | Univ ->
       Format.fprintf fmt "type"
     | Nat ->

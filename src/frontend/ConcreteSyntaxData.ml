@@ -59,6 +59,7 @@ and con_ =
   | LamElim of case list
   | Equations of { code : con; eqns : eqns step }
   | Dim
+  | DDim
   | Cof
   | CofEq of con * con
   | CofLe of con * con

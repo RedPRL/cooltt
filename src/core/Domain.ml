@@ -54,6 +54,17 @@ struct
     | Dim.DimProbe sym ->
       DimProbe sym
 
+  let ddim_to_con =
+    function
+    | DDim.DDim0 -> DDim0
+    | DDim.DDim1 -> DDim1
+    | DDim.DDimVar (CofVar.Local lvl) ->
+      Cut {tp = TpDDim; cut = Var lvl, []}
+    | DDim.DDimVar (CofVar.Axiom sym) ->
+      Cut {tp = TpDDim; cut = Global sym, []}
+    | DDim.DDimProbe sym ->
+      DimProbe sym
+
   let rec cof_to_con =
     let module K = Kado.Syntax in
     function
@@ -119,6 +130,10 @@ struct
     fun fmt r ->
     pp_con fmt @@ dim_to_con r
 
+  and pp_ddim : ddim Pp.printer =
+    fun fmt r ->
+    pp_con fmt @@ ddim_to_con r
+
   and pp_clo : tm_clo Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (tm, {tpenv; conenv})) ->
@@ -177,6 +192,10 @@ struct
       Format.fprintf fmt "dim0"
     | Dim1 ->
       Format.fprintf fmt "dim1"
+    | DDim0 ->
+      Format.fprintf fmt "ddim0"
+    | DDim1 ->
+      Format.fprintf fmt "ddim1"
     | ElIn con ->
       Format.fprintf fmt "el/in[%a]" pp_con con
     | StableCode `Nat ->
@@ -223,6 +242,8 @@ struct
       Format.fprintf fmt "<cof>"
     | TpDim ->
       Format.fprintf fmt "<dim>"
+    | TpDDim ->
+      Format.fprintf fmt "<ddim>"
     | Univ ->
       Format.fprintf fmt "<univ>"
     | Nat ->

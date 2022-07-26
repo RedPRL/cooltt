@@ -15,6 +15,7 @@ struct
     | `Circle
     | `Univ
     | `Dim
+    | `DDim
     | `Cof
     | `Sub
     | `Prf
@@ -32,6 +33,7 @@ struct
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | ExpectedConnective of connective * Pp.env * S.tp
     | ExpectedDimensionLiteral of int
+    | ExpectedDDimensionLiteral of int
     | ExpectedTrue of Pp.env * S.t
     | VirtualType
     | HoleNotPermitted of Pp.env * S.tp

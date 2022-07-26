@@ -96,6 +96,9 @@ val bot : t m
 val boundary : t m -> t m
 val forall : t b -> t m
 
+val ddim0 : t m
+val ddim1 : t m
+
 
 module Equiv : sig
   val code_is_contr : t m -> t m
