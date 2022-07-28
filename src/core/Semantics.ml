@@ -40,7 +40,7 @@ let get_local_tp i =
   | v -> EvM.ret v
   | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
 
-let rec cof_con_to_cof : (D.con, D.con) Kado.Syntax.endo -> D.cof CM.m =
+let rec cof_con_to_cof : (D.con, D.con, D.con) Kado.Syntax.endo -> D.cof CM.m =
   let open CM in
   let module K = Kado.Syntax in
   function
@@ -48,6 +48,10 @@ let rec cof_con_to_cof : (D.con, D.con) Kado.Syntax.endo -> D.cof CM.m =
     let+ r = con_to_dim r
     and+ s = con_to_dim s in
     CofBuilder.le r s
+  | K.DLe (r, s) ->
+    let+ r = con_to_ddim r
+    and+ s = con_to_ddim s in
+    CofBuilder.dle r s
   | K.Join phis ->
     let+ phis = MU.map con_to_cof phis in
     CofBuilder.join phis
@@ -78,6 +82,17 @@ and con_to_dim =
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
+
+and con_to_ddim =
+  let open CM in
+  fun con ->
+    whnf_inspect_con con |>>
+    function
+    | D.DDim0 -> ret DDim.DDim0
+    | D.DDim1 -> ret DDim.DDim1
+    | con ->
+      Format.eprintf "bad: %a@." D.pp_con con;
+      throw @@ NbeFailed "con_to_ddim"
 
 
 and subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
@@ -137,6 +152,10 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     let+ s = subst_con r x s
     and+ s' = subst_con r x s' in
     D.Cof (K.Le (s, s'))
+  | D.Cof (K.DLe (s, s')) ->
+    let+ s = subst_con r x s
+    and+ s' = subst_con r x s' in
+    D.Cof (K.DLe (s, s'))
   | D.FHCom (tag, s, s', phi, bdy) ->
     let+ s = subst_dim r x s
     and+ s' = subst_dim r x s'
@@ -567,6 +586,10 @@ and eval : S.t -> D.con EvM.m =
           let+ r = eval tr
           and+ s = eval ts in
           D.CofBuilder.le r s
+        | K.DLe (tr, ts) ->
+          let+ r = eval tr
+          and+ s = eval ts in
+          D.CofBuilder.dle r s
         | K.Join tphis ->
           let+ phis = MU.map eval tphis in
           D.CofBuilder.join phis

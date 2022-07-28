@@ -112,7 +112,7 @@ struct
     | TpESub _ -> Format.fprintf fmt "<esub>"
 
 
-  and dump_cof fmt = Cof.dump dump dump fmt
+  and dump_cof fmt = Cof.dump dump dump dump fmt
 
   and dump_branch fmt (cof, bdy) =
     Format.fprintf fmt "[%a, %a]" dump cof dump bdy
@@ -131,6 +131,7 @@ struct
     let proj = right 8
     let sub_compose = left 7
     let cof_le = nonassoc 6
+    let cof_dle = nonassoc 6
     let cof_meet = nonassoc 5
     let cof_join = nonassoc 5
     let sub_comma = left 4
@@ -151,6 +152,7 @@ struct
       | Proj _ -> proj
       | CofSplit _ -> tuple
       | Cof (Cof.Le _) -> cof_le
+      | Cof (Cof.DLe _) -> cof_dle
       | Cof (Cof.Join [] | Cof.Meet []) -> atom
       | Cof (Cof.Join _) -> cof_join
       | Cof (Cof.Meet _) -> cof_meet
@@ -285,6 +287,12 @@ struct
       Format.fprintf fmt "%a = 0" (pp env P.(left_of cof_le)) r
     | Cof (Cof.Le (r, s)) ->
       Format.fprintf fmt "%a %a %a" (pp env P.(left_of cof_le)) r Uuseg_string.pp_utf_8 "≤" (pp env P.(right_of cof_le)) s
+    | Cof (Cof.DLe (DDim1, s)) ->
+      Format.fprintf fmt "%a = 1" (pp env P.(left_of cof_dle)) s
+    | Cof (Cof.DLe (r, DDim0)) ->
+      Format.fprintf fmt "%a = 0" (pp env P.(left_of cof_dle)) r
+    | Cof (Cof.DLe (r, s)) ->
+      Format.fprintf fmt "%a %a %a" (pp env P.(left_of cof_dle)) r Uuseg_string.pp_utf_8 "≤" (pp env P.(right_of cof_dle)) s
     | Cof (Cof.Join []) ->
       Format.fprintf fmt "%a"
         Uuseg_string.pp_utf_8 "⊥"
@@ -615,7 +623,7 @@ struct
       Format.fprintf fmt "𝕀"
     | TpCof ->
       Format.fprintf fmt "𝔽"
-    | TpDim ->
+    | TpDDim ->
       Format.fprintf fmt "𝟚"
     | Univ ->
       Format.fprintf fmt "type"

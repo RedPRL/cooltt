@@ -54,27 +54,29 @@ module Cof =
 struct
   module K = Kado.Syntax
 
-  let json_of_cof_f (json_of_r : 'r -> J.value) (json_of_a : 'a -> J.value) : ('r, 'a) K.endo -> J.value =
+  let json_of_cof_f (json_of_r : 'r -> J.value) (json_of_s : 's -> J.value) (json_of_a : 'a -> J.value) : ('r, 's, 'a) K.endo -> J.value =
     function
     | Le (r0, r1) -> labeled "le" [json_of_r r0; json_of_r r1]
+    | DLe (s0, s1) -> labeled "dle" [json_of_s s0; json_of_s s1]
     | Join xs -> labeled "join" @@ List.map json_of_a xs
     | Meet xs -> labeled "meet" @@ List.map json_of_a xs
 
-  let rec json_of_cof (json_of_r : 'r -> J.value) (json_of_v : 'v -> J.value) : ('r, 'v) K.free -> J.value =
+  let rec json_of_cof (json_of_r : 'r -> J.value) (json_of_s : 's -> J.value) (json_of_v : 'v -> J.value) : ('r, 's, 'v) K.free -> J.value =
     function
-    | Cof cof -> labeled "cof" [json_of_cof_f json_of_r (json_of_cof json_of_r json_of_v) cof]
+    | Cof cof -> labeled "cof" [json_of_cof_f json_of_r json_of_s (json_of_cof json_of_r json_of_s json_of_v) cof]
     | Var v -> labeled "var" [json_of_v v]
 
-  let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_a : J.value -> 'a) : J.value -> ('r, 'a) K.endo =
+  let json_to_cof_f (json_to_r : J.value -> 'r) (json_to_s : J.value -> 's) (json_to_a : J.value -> 'a) : J.value -> ('r, 's, 'a) K.endo =
     function
     | `A [`String "le"; r0; r1] -> Le (json_to_r r0, json_to_r r1)
+    | `A [`String "dle"; s0; s1] -> DLe (json_to_s s0, json_to_s s1)
     | `A (`String "join" :: xs) -> Join (List.map json_to_a xs)
     | `A (`String "meet" :: xs) -> Meet (List.map json_to_a xs)
     | j -> J.parse_error j "Cof.json_to_cof_f"
 
-  let rec json_to_cof (json_to_r : J.value -> 'r) (json_to_v : J.value -> 'v) : J.value -> ('r, 'v) K.free =
+  let rec json_to_cof (json_to_r : J.value -> 'r) (json_to_s : J.value -> 's) (json_to_v : J.value -> 'v) : J.value -> ('r, 's, 'v) K.free =
     function
-    | `A [`String "cof"; j_cof_f] -> Cof (json_to_cof_f json_to_r (json_to_cof json_to_r json_to_v) j_cof_f)
+    | `A [`String "cof"; j_cof_f] -> Cof (json_to_cof_f json_to_r json_to_s (json_to_cof json_to_r json_to_s json_to_v) j_cof_f)
     | `A [`String "var"; j_var] -> Var (json_to_v j_var)
     | j -> J.parse_error j "Cof.json_to_cof"
 end
@@ -109,7 +111,9 @@ struct
     | S.SubOut tm -> labeled "sub_out" [json_of_tm tm]
     | S.Dim0 -> `String "dim0"
     | S.Dim1 -> `String "dim1"
-    | S.Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_tm json_of_tm cof]
+    | S.DDim0 -> `String "ddim0"
+    | S.DDim1 -> `String "ddim1"
+    | S.Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_tm json_of_tm json_of_tm cof]
     | S.ForallCof cof -> labeled "forall" [json_of_tm cof]
     | S.CofSplit branches -> labeled "split" @@ List.map (fun (tphi, tm) -> json_of_pair (json_of_tm tphi) (json_of_tm tm)) branches
     | S.Prf -> `String "prf"
@@ -143,6 +147,7 @@ struct
     | S.El tm -> labeled "el" [json_of_tm tm]
     | S.TpVar n -> labeled "var" [json_of_int n]
     | S.TpDim -> `String "dim"
+    | S.TpDDim -> `String "ddim"
     | S.TpCof -> `String "cof"
     | S.TpPrf tm -> labeled "prf" [json_of_tm tm]
     | S.TpCofSplit branches -> labeled "split" @@ List.map (fun (cof, tp) -> json_of_pair (json_of_tm cof) (json_of_tp tp)) branches
@@ -249,7 +254,7 @@ struct
     | `String "dim0" -> S.Dim0
     | `String "dim1" -> S.Dim1
     | `A [`String "cof"; j_cof] ->
-      let cof = Cof.json_to_cof_f json_to_tm json_to_tm j_cof in
+      let cof = Cof.json_to_cof_f json_to_tm json_to_tm json_to_tm j_cof in
       S.Cof cof
     | `A [`String "forall"; j_cof] ->
       let cof = json_to_tm j_cof in
@@ -409,8 +414,10 @@ struct
     | ElIn con -> labeled "el_in" [json_of_con con]
     | Dim0 -> `String "dim0"
     | Dim1 -> `String "dim1"
+    | DDim0 -> `String "ddim0"
+    | DDim1 -> `String "ddim1"
     | DimProbe dim_probe -> labeled "dim_probe" [DimProbe.serialize dim_probe]
-    | Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_con json_of_con cof]
+    | Cof cof -> labeled "cof" [Cof.json_of_cof_f json_of_con json_of_con json_of_con cof]
     | Prf -> `String "prf"
     | FHCom (tag, src, trg, cof, con) -> labeled "fhcom" [json_of_fhcom_tag tag; json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con]
     | StableCode code -> labeled "stable_code" [json_of_stable_code code]
@@ -440,7 +447,7 @@ struct
     | CofVar.Axiom sym -> labeled "axiom" [Global.serialize sym]
 
   and json_of_cof (cof : D.cof) : J.value =
-    Cof.json_of_cof json_of_dim json_of_cof_var cof
+    Cof.json_of_cof json_of_dim json_of_ddim json_of_cof_var cof
 
   and json_of_dim : D.dim -> J.value =
     function
@@ -448,6 +455,13 @@ struct
     | Dim1 -> `String "dim1"
     | DimVar n -> labeled "dim_var" [json_of_cof_var n]
     | DimProbe dim_probe -> labeled "dim_probe" [DimProbe.serialize dim_probe]
+
+  and json_of_ddim : D.ddim -> J.value =
+    function
+    | DDim0 -> `String "ddim0"
+    | DDim1 -> `String "ddim1"
+    | DDimVar n -> labeled "ddim_var" [json_of_cof_var n]
+    | DDimProbe dim_probe -> labeled "ddim_probe" [DimProbe.serialize dim_probe]
 
   and json_of_tp : D.tp -> J.value =
     function
@@ -457,6 +471,7 @@ struct
     | ElStable code -> labeled "el_stable" [json_of_stable_code code]
     | ElUnstable code -> labeled "el_unstable" [json_of_unstable_code code]
     | TpDim -> `String "tp_dim"
+    | TpDDim -> `String "tp_ddim"
     | TpCof -> `String "tp_cof"
     | TpPrf cof -> labeled "tp_prf" [json_of_cof cof]
     | TpSplit branches -> labeled "tp_split" (json_of_alist json_of_cof json_of_tp_clo branches)
@@ -535,7 +550,7 @@ struct
     | `String "dim0" -> Dim0
     | `String "dim1" -> Dim1
     | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
-    | `A [`String "cof"; j_cof] -> Cof (Cof.json_to_cof_f json_to_con json_to_con j_cof)
+    | `A [`String "cof"; j_cof] -> Cof (Cof.json_to_cof_f json_to_con json_to_con json_to_con j_cof)
     | `String "prf" -> Prf
     | `A [`String "fhcom"; j_tag; j_src; j_trg; j_cof; j_con] -> FHCom (json_to_fhcom_tag j_tag, json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
     | `A [`String "stable_code"; j_code] -> StableCode (json_to_stable_code j_code)
@@ -572,9 +587,8 @@ struct
     | `A [`String "axiom"; j_sym] -> CofVar.Axiom (Global.deserialize j_sym)
     | j -> J.parse_error j "Domain.json_to_cof_var"
 
-
   and json_to_cof : J.value -> D.cof =
-    fun j_cof -> Cof.json_to_cof json_to_dim json_to_cof_var j_cof
+    fun j_cof -> Cof.json_to_cof json_to_dim json_to_ddim json_to_cof_var j_cof
 
   and json_to_dim : J.value -> D.dim =
     function
@@ -583,6 +597,14 @@ struct
     | `A [`String "dim_var"; j_n] -> DimVar (json_to_cof_var j_n)
     | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
     | j -> J.parse_error j "Domain.json_to_dim"
+
+  and json_to_ddim : J.value -> D.ddim =
+    function
+    | `String "ddim0" -> DDim0
+    | `String "ddim1" -> DDim1
+    | `A [`String "ddim_var"; j_n] -> DDimVar (json_to_cof_var j_n)
+    | `A [`String "ddim_probe"; j_dim_probe] -> DDimProbe (DimProbe.deserialize j_dim_probe)
+    | j -> J.parse_error j "Domain.json_to_ddim"
 
   and json_to_tp : J.value -> D.tp =
     function

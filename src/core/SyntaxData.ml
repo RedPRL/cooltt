@@ -37,7 +37,7 @@ struct
 
     | Dim0
     | Dim1
-    | Cof of (t, t) Cof.t
+    | Cof of (t, t, t) Cof.t
     | ForallCof of t
     | CofSplit of (t * t) list
     | Prf
@@ -105,10 +105,14 @@ struct
   module CofBuilder = Kado.Builder.Endo.Make
       (struct
         type dim = t
+        type ddim = t
         type cof = t
         let dim0 = Dim0
         let dim1 = Dim1
+        let ddim0 = DDim0
+        let ddim1 = DDim1
         let equal_dim = (=)
+        let equal_ddim = (=)
         let cof phi = Cof phi
         let uncof = function Cof phi -> Some phi | _ -> None
       end)

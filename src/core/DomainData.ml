@@ -85,7 +85,7 @@ struct
     | Dim1
     | DimProbe of DimProbe.t
 
-    | Cof of (con, con) Kado.Syntax.endo
+    | Cof of (con, con, con) Kado.Syntax.endo
     (** A mixin of the language of cofibrations (as described in {!module:Cubical.Cof}), with dimensions and indeterminates in {!type:con}. *)
 
     | Prf
@@ -161,10 +161,14 @@ struct
   module CofBuilder = Kado.Builder.Endo.Make
       (struct
         type dim = con
+        type ddim = con
         type cof = con
         let dim0 = Dim0
         let dim1 = Dim1
+        let ddim0 = DDim0
+        let ddim1 = DDim1
         let equal_dim = (=)
+        let equal_ddim = (=)
         let cof phi = Cof phi
         let uncof = function Cof phi -> Some phi | _ -> None
       end)
