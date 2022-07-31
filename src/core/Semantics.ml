@@ -322,10 +322,10 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
   | `Signature fields ->
     let+ fields = MU.map (MU.second (subst_con r x)) fields in
     `Signature fields
-  | `Ext (n, code, `Global cof, con) ->
+  | `Ext (m, n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
-    `Ext (n, code, `Global cof, con)
+    `Ext (m, n, code, `Global cof, con)
   | `Nat | `Circle | `Univ as code ->
     ret code
 
@@ -613,11 +613,11 @@ and eval : S.t -> D.con EvM.m =
     | S.Prf ->
       ret D.Prf
 
-    | S.CodeExt (n, fam, `Global phi, bdry) ->
+    | S.CodeExt (m, n, fam, `Global phi, bdry) ->
       let* phi = drop_all_cons @@ eval phi in
       let* fam = eval fam in
       let* bdry = eval bdry in
-      ret @@ D.StableCode (`Ext (n, fam, `Global phi, bdry))
+      ret @@ D.StableCode (`Ext (m, n, fam, `Global phi, bdry))
 
     | S.CodePi (base, fam) ->
       let+ vbase = eval base
@@ -1350,13 +1350,13 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.cons field_cons @@ fun fields ->
         Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
 
-      | `Ext (n, fam, `Global phi, bdry) ->
+      | `Ext (m, n, fam, `Global phi, bdry) ->
         splice_tp @@
         Splice.con phi @@ fun phi ->
         Splice.con fam @@ fun fam ->
         Splice.con bdry @@ fun bdry ->
         Splice.term @@
-        TB.cube n @@ fun js ->
+        TB.cube m n @@ fun js ->
         TB.sub (TB.el @@ TB.ap fam js) (TB.ap phi js) @@ fun _ ->
         TB.ap bdry @@ js @ [TB.prf]
     end
@@ -1449,7 +1449,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
-      | `Ext (n, famx, `Global cof, bdryx) ->
+      | `Ext (n, n', famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
         Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
@@ -1457,7 +1457,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r @@ fun r ->
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
-        Splice.term @@ TB.Kan.coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
+        Splice.term @@ TB.Kan.coe_ext ~n ~n' ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
     end
   | `Unstable (x, codex) ->
     begin
@@ -1532,7 +1532,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
-      | `Ext (n, fam, `Global cof, bdry) ->
+      | `Ext (n, n', fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
         Splice.con fam @@ fun fam ->
@@ -1542,7 +1542,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.cof phi @@ fun phi ->
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
-        TB.Kan.hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
+        TB.Kan.hcom_ext ~n ~n' ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
       | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@

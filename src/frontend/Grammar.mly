@@ -420,8 +420,8 @@ plain_term_except_cof_case:
     { Cap t }
   | hole = HOLE; SEMI; t = term
     { Hole (hole, Some t) }
-  | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
-    { Ext (names, fam, cases) }
+  | EXT; names = list(plain_name); PIPE; dnames = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
+    { Ext (names, dnames, fam, cases) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term

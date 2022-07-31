@@ -54,7 +54,7 @@ struct
     | VIn of t * t * t * t
     | VProj of t * t * t * t * t
 
-    | CodeExt of int * t * [`Global of t] * t
+    | CodeExt of int * int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
     | CodeSignature of (Ident.user * t) list

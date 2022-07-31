@@ -25,7 +25,7 @@ sig
   val sg : tac -> Ident.t -> tac -> tac
   val signature : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
-  val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
+  val ext : int -> int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
   val circle : tac
   val univ : tac
@@ -107,8 +107,8 @@ struct
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
     Tp tac
 
-  let ext n tac_tp tac_cof tac_bdry =
-    let tac = R.Univ.ext n tac_tp tac_cof tac_bdry in
+  let ext m n tac_tp tac_cof tac_bdry =
+    let tac = R.Univ.ext m n tac_tp tac_cof tac_bdry in
     Code tac
 
   let nat = Code R.Univ.nat
@@ -143,12 +143,13 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) -> CoolTp.sub (cool_chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
-  | CS.Ext (idents, tp, cases) ->
-    let n = List.length idents in
-    let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
-    let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.CofSplit cases; info = None}); info = None} in
-    CoolTp.ext n tac_fam tac_cof tac_bdry
+  | CS.Ext (idents, didents, tp, cases) ->
+    let m = List.length idents in
+    let n = List.length didents in
+    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, tp); info = tp.info} in
+    let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
+    CoolTp.ext m n tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
 
@@ -317,12 +318,13 @@ and chk_tm : CS.con -> T.Chk.tac =
       let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> R.Cof.{cof = chk_tm cphi; bdy = fun _ -> chk_tm ctm} in
       R.Cof.split branch_tacs
 
-    | CS.Ext (idents, tp, cases) ->
-      let n = List.length idents in
-      let tac_fam = chk_tm @@ CS.{node = CS.Lam (idents, tp); info = tp.info} in
-      let tac_cof = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (idents, {node = CS.CofSplit cases; info = None}); info = None} in
-      R.Univ.ext n tac_fam tac_cof tac_bdry
+    | CS.Ext (idents, didents, tp, cases) ->
+    let m = List.length idents in
+    let n = List.length didents in
+      let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, tp); info = tp.info} in
+      let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
+      R.Univ.ext m n tac_fam tac_cof tac_bdry
 
 
     | _ ->

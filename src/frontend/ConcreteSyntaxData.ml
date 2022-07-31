@@ -70,7 +70,7 @@ and con_ =
   | CofBoundary of con
   | Prf of con
   | CofSplit of (con * con) list
-  | Ext of Ident.t list * con * (con * con) list
+  | Ext of Ident.t list * Ident.t list * con * (con * con) list
   | Coe of con * con * con * con
   | TopC
   | BotC

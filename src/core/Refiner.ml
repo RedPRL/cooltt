@@ -631,7 +631,7 @@ struct
             Splice.con code @@ fun code ->
             Splice.con vpatch @@ fun patch ->
             Splice.term @@
-            TB.code_ext 0 code TB.top @@ TB.lam @@ fun _ -> patch
+            TB.code_ext 0 0 code TB.top @@ TB.lam @@ fun _ -> patch
           in
           let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
           let* qpatched_code = RM.quote_con univ patched_code in
@@ -749,15 +749,15 @@ struct
     let+ qfib = RM.quote_con fib_tp fib in
     S.CodeSignature (qsign @ [`User ["fib"], qfib])
 
-  let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
+  let ext (m : int) (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->
     let* tcof =
-      let* tp_cof_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
+      let* tp_cof_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
       RM.globally @@ T.Chk.run tac_cof tp_cof_fam
     in
     let* cof = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
     let* tfam =
-      let* tp_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.tp univ @@ fun univ -> Splice.term @@ TB.cube n @@ fun _ -> univ in
+      let* tp_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.tp univ @@ fun univ -> Splice.term @@ TB.cube m n @@ fun _ -> univ in
       T.Chk.run tac_fam tp_fam
     in
     let+ tbdry =
@@ -767,24 +767,24 @@ struct
         Splice.con cof @@ fun cof ->
         Splice.con fam @@ fun fam ->
         Splice.term @@
-        TB.cube n @@ fun js ->
+        TB.cube m n @@ fun js ->
         TB.pi (TB.tp_prf @@ TB.ap cof js) @@ fun _ ->
         TB.el @@ TB.ap fam js
       in
       T.Chk.run tac_bdry tp_bdry
     in
-    S.CodeExt (n, tfam, `Global tcof, tbdry)
+    S.CodeExt (m, n, tfam, `Global tcof, tbdry)
 
 
   let is_nullary_ext = function
-    | D.ElStable (`Ext (0,_ ,`Global (Cof cof), _)) ->
+    | D.ElStable (`Ext (0, 0,_ ,`Global (Cof cof), _)) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       RM.lift_cmp @@ CmpM.test_sequent [] cof
     | _ -> RM.ret false
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
-    | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
+    | ElStable (`Ext (0, 0, code ,`Global (Cof cof),bdry)) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       let* () = Cof.assert_true cof in
       let* tp = RM.lift_cmp @@

@@ -164,13 +164,13 @@ and equate_stable_code univ code0 code1 =
     in
     equate_con fam_tp fam0 fam1
 
-  | `Ext (n0, code0, `Global phi0, bdry0), `Ext (n1, code1, `Global phi1, bdry1) when n0 = n1 ->
+  | `Ext (m0, n0, code0, `Global phi0, bdry0), `Ext (m1, n1, code1, `Global phi1, bdry1) when n0 = n1 && m0 = m1 ->
     let* () =
-      let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n0 @@ fun _ -> TB.tp_cof in
+      let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube m0 n0 @@ fun _ -> TB.tp_cof in
       globally @@ equate_con tp_cof_fam phi0 phi1
     in
     let* () =
-      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n0 @@ fun _ -> TB.univ in
+      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube m0 n0 @@ fun _ -> TB.univ in
       equate_con tp_code code0 code1
     in
     let* tp_bdry =
@@ -178,7 +178,7 @@ and equate_stable_code univ code0 code1 =
       Splice.con code0 @@ fun code ->
       Splice.con phi0 @@ fun phi ->
       Splice.term @@
-      TB.cube n0 @@ fun js ->
+      TB.cube m0 n0 @@ fun js ->
       TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
       TB.el @@ TB.ap code js
     in

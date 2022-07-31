@@ -249,7 +249,7 @@ let code_sg mbase mfam : _ m =
 let code_path mfam mbdry : _ m =
   let+ fam = mfam
   and+ bdry = mbdry in
-  S.CodeExt (1, fam, `Global (S.Lam (Ident.anon, CB.boundary (S.Var 0))), bdry)
+  S.CodeExt (1, 0, fam, `Global (S.Lam (Ident.anon, CB.boundary (S.Var 0))), bdry)
 
 let code_v mr mpcode mcode mpequiv : _ m=
   let+ r = mr
@@ -258,11 +258,11 @@ let code_v mr mpcode mcode mpequiv : _ m=
   and+ pequiv = mpequiv in
   S.CodeV (r, pcode, code, pequiv)
 
-let code_ext n mfam mcof mbdry =
+let code_ext m n mfam mcof mbdry =
   let+ fam = mfam
   and+ cof = mcof
   and+ bdry = mbdry in
-  S.CodeExt (n, fam, `Global cof, bdry)
+  S.CodeExt (m, n, fam, `Global cof, bdry)
 
 let code_pis (margs : S.t m list) (mfam : S.t m list -> S.t m) : S.t m =
   let rec go margs vars =
@@ -320,13 +320,16 @@ let forall mphi =
   S.ForallCof phi
 
 let tp_dim = ret S.TpDim
+let tp_ddim = ret S.TpDDim
 let tp_cof = ret S.TpCof
+
 let dim0 = ret S.Dim0
 let dim1 = ret S.Dim1
 
 let ddim0 = ret S.DDim0
 let ddim1 = ret S.DDim1
 
+(**
 let cube n mfam : _ m =
   let rec go acc n =
     if n = 0 then
@@ -336,7 +339,23 @@ let cube n mfam : _ m =
       go (Snoc (acc, i)) (n - 1)
   in
   go Emp n
+*)
 
+let cube n n' mfam : _ m =
+  let rec go acc n n' =
+    if n' = 0 then
+      if n = 0 then
+        mfam @@ BwdLabels.to_list acc
+      else 
+        pi tp_dim @@ fun i ->
+        go (Snoc (acc, i)) (n - 1) 0
+    else
+      pi tp_ddim @@ fun i ->
+      go (Snoc (acc, i)) n (n' - 1)
+  in
+  go Emp n n'
+
+(**
 let nlam n mbdy : _ m =
   let rec go acc n =
     if n = 0 then
@@ -346,6 +365,21 @@ let nlam n mbdy : _ m =
       go (Snoc (acc, i)) (n - 1)
   in
   go Emp n
+*)
+
+let nlam n n' mbdy : _ m =
+  let rec go acc n n' =
+    if n' = 0 then
+      if n = 0 then
+        mbdy @@ BwdLabels.to_list acc
+      else 
+        lam @@ fun i ->
+        go (Snoc (acc, i)) (n - 1) 0
+    else
+      lam @@ fun i ->
+      go (Snoc (acc, i)) n (n' - 1)
+  in
+  go Emp n n'
 
 
 let boundary mr =
@@ -517,9 +551,9 @@ struct
     in
     el_in @@ struct_ @@ List.map (fun (lbl, p_line) -> lbl, ap p_line [r']) lines
 
-  let coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
+  let coe_ext ~n ~n' ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
     el_in @@
-    nlam n @@ fun js ->
+    nlam n n' @@ fun js ->
     sub_in @@
     let_ (ap cof js) @@ fun cof_js ->
     com (lam @@ fun i -> ap fam_line @@ i :: js) r r' cof_js @@
@@ -529,9 +563,9 @@ struct
       [cof_js, ap bdry_line @@ i :: js @ [prf]
       ; eq i r, sub_out @@ ap (el_out bdy) js]
 
-  let hcom_ext ~n ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
+  let hcom_ext ~n ~n' ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
     el_in @@
-    nlam n @@ fun js ->
+    nlam n n' @@ fun js -> 
     sub_in @@
     let_ (ap cof js) @@ fun cof_js ->
     let_ (ap fam js) @@ fun fam_js ->

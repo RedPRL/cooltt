@@ -361,12 +361,12 @@ and quote_stable_code univ =
     in
     S.CodeSignature tfields
 
-  | `Ext (n, code, `Global phi, bdry) ->
+  | `Ext (m, n, code, `Global phi, bdry) ->
     let+ tphi =
-      let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.tp_cof in
+      let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
       quote_global_con tp_cof_fam @@ `Global phi
     and+ tcode =
-      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube n @@ fun _ -> TB.univ in
+      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.univ in
       quote_con tp_code code
     and+ tbdry =
       let* tp_bdry =
@@ -374,13 +374,13 @@ and quote_stable_code univ =
         Splice.con code @@ fun code ->
         Splice.con phi @@ fun phi ->
         Splice.term @@
-        TB.cube n @@ fun js ->
+        TB.cube m n @@ fun js ->
         TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
         TB.el @@ TB.ap code js
       in
       quote_con tp_bdry bdry
     in
-    S.CodeExt (n, tcode, tphi, tbdry)
+    S.CodeExt (m, n, tcode, tphi, tbdry)
 
 and quote_global_con tp (`Global con) =
   globally @@

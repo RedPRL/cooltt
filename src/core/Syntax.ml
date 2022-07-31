@@ -375,7 +375,7 @@ struct
     | CodeSignature fields ->
       let pp_copula fmt () = Format.fprintf fmt ":" in
       Format.fprintf fmt "@[<hv>sig@;<1 2>@[<hv>%a@]@;end@]" (pp_fields ~pp_copula pp_binders env) fields
-    | CodeExt (_, fam, `Global phi, bdry) ->
+    | CodeExt (_, _, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[<hv>ext@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
         (pp_atomic env) fam
         (pp_atomic Pp.Env.emp) phi
@@ -714,7 +714,7 @@ struct
     function
     | Sub (tp, Cof (Cof.Join []), _) -> get_constraints tp
     | Sub (tp, phi, tm) -> `Boundary (tp, phi, tm)
-    | El (CodeExt (0, tp, `Global phi, (Lam (_, tm)))) -> `Boundary (El tp, phi, tm)
+    | El (CodeExt (0, 0, tp, `Global phi, (Lam (_, tm)))) -> `Boundary (El tp, phi, tm)
     | tp -> `Unconstrained tp
 
   let pp_sequent_goal ~lbl env fmt tp  =

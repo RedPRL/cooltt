@@ -26,7 +26,7 @@ struct
     | `Signature of (Ident.user * 'a) list
     (** First-Class Record types *)
 
-    | `Ext of int * 'a * [`Global of 'a] * 'a
+    | `Ext of int * int * 'a * [`Global of 'a] * 'a
     (** Extension type *)
 
     | `Nat

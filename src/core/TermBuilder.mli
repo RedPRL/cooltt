@@ -68,12 +68,13 @@ val signature : (Ident.user * (t m list -> tp m)) list -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m
+val tp_ddim : tp m
 val tp_cof : tp m
 val el : t m -> tp m
 
 val pis: ?idents:Ident.t list -> t m list -> (t m list -> tp m) -> tp m
 
-val cube : int -> (t m list -> tp m) -> tp m
+val cube : int -> int -> (t m list -> tp m) -> tp m
 
 val code_pi : t m -> t m -> t m
 val code_sg : t m -> t m -> t m
@@ -81,7 +82,7 @@ val code_path : t m -> t m -> t m
 (** A specialization of {!val:code_path} that performs a {!val:cof_split}. *)
 val code_path' : t m -> t m -> t m -> t m
 val code_v : t m -> t m -> t m -> t m -> t m
-val code_ext : int -> t m -> t m -> t m -> t m
+val code_ext : int -> int -> t m -> t m -> t m -> t m
 val vproj : t m -> t m -> t m -> t m -> t m -> t m
 
 val code_pis : t m list -> (t m list -> t m) -> t m
@@ -123,8 +124,8 @@ module Kan : sig
   val coe_sign : field_lines:(Ident.user * t m) list -> coe
   val hcom_sign : fields:(Ident.user * t m) list -> hcom
 
-  val hcom_ext : n:int -> cof:t m -> fam:t m -> bdry:t m -> hcom
-  val coe_ext : n:int -> cof:t m -> fam_line:t m -> bdry_line:t m -> coe
+  val hcom_ext : n:int -> n':int -> cof:t m -> fam:t m -> bdry:t m -> hcom
+  val coe_ext : n:int -> n':int -> cof:t m -> fam_line:t m -> bdry_line:t m -> coe
 
   module V : sig
     type vcode = {r : t m; pcode : t m; code : t m; pequiv : t m}
