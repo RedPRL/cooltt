@@ -1,0 +1,10 @@
+def hom (A : type) (a b : A) : type :=
+  ext | i ⇒ A with [i=d0 => a | i=d1 => b]
+
+def test1 : ddim → nat := x ⇒ 3
+
+def test2 : nat := test1 d1
+
+def test3 (i : ddim) : sub nat {i = d0} 3 := test1 i
+def test4 (i : ddim) : sub nat {i ≤ d1} 3 := test1 i
+def test5 : hom nat 3 3 := test1
