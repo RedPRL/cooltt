@@ -92,7 +92,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | D.TpSplit branches, _
   | _, D.TpSplit branches ->
     MU.iter (fun (phi, _) -> ConvM.restrict_ [phi] @@ equate_tp tp0 tp1) branches
-  | D.TpDim, D.TpDim | D.TpCof, D.TpCof -> ret ()
+  | D.TpDim, D.TpDim |  D.TpDDim, D.TpDDim | D.TpCof, D.TpCof -> ret ()
   | D.TpPrf phi0, D.TpPrf phi1 ->
     equate_cof phi0 phi1
   | D.Pi (base0, _, fam0), D.Pi (base1, _, fam1)

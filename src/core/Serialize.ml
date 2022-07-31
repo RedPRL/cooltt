@@ -253,6 +253,8 @@ struct
       S.SubOut tm
     | `String "dim0" -> S.Dim0
     | `String "dim1" -> S.Dim1
+    | `String "ddim0" -> S.Dim0
+    | `String "ddim1" -> S.Dim1
     | `A [`String "cof"; j_cof] ->
       let cof = Cof.json_to_cof_f json_to_tm json_to_tm json_to_tm j_cof in
       S.Cof cof
@@ -353,6 +355,7 @@ struct
       let n = json_to_int j_n in
       S.TpVar n
     | `String "dim" -> S.TpDim
+    | `String "ddim" -> S.TpDDim
     | `String "cof" -> S.TpCof
     | `A [`String "prf"; j_prf] ->
       let prf = json_to_tm j_prf in
@@ -549,6 +552,8 @@ struct
     | `A [`String "el_in"; j_con] -> ElIn (json_to_con j_con)
     | `String "dim0" -> Dim0
     | `String "dim1" -> Dim1
+    | `String "ddim0" -> DDim0
+    | `String "ddim1" -> DDim1
     | `A [`String "dim_probe"; j_dim_probe] -> DimProbe (DimProbe.deserialize j_dim_probe)
     | `A [`String "cof"; j_cof] -> Cof (Cof.json_to_cof_f json_to_con json_to_con json_to_con j_cof)
     | `String "prf" -> Prf
@@ -614,6 +619,7 @@ struct
     | `A [`String "el_stable"; j_code] -> ElStable (json_to_stable_code j_code)
     | `A [`String "el_unstable"; j_code] -> ElUnstable (json_to_unstable_code j_code)
     | `String "tp_dim" -> TpDim
+    | `String "tp_ddim" -> TpDim
     | `String "tp_cof" -> TpCof
     | `A [`String "tp_prf"; j_cof] -> TpPrf (json_to_cof j_cof)
     | `A (`String "tp_split" :: j_branches) -> TpSplit (json_to_alist json_to_cof json_to_tp_clo j_branches)

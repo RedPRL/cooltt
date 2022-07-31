@@ -68,7 +68,7 @@ let pp fmt =
     Fmt.fprintf fmt
       "Expected directed dimension literal 0 or 1, but got %i" n
   | ExpectedOfMatchingIntervalType (ppenv, tm0 , tm1) ->
-      Fmt.fprintf fmt "Expected %a and %a to be terms of an interval type" 
+      Fmt.fprintf fmt "Expected %a and %a to be terms of a matching interval type" 
       (S.pp ppenv) tm0
       (S.pp ppenv) tm1
   | ExpectedTrue (ppenv, cof) ->

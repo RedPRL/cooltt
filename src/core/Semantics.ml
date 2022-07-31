@@ -90,6 +90,8 @@ and con_to_ddim =
     function
     | D.DDim0 -> ret DDim.DDim0
     | D.DDim1 -> ret DDim.DDim1
+    | D.Cut {cut = D.Var l, []; _} -> ret @@ DDim.DDimVar (CofVar.Local l)
+    | D.Cut {cut = D.Global sym, []; _} -> ret @@ DDim.DDimVar (CofVar.Axiom sym)
     | con ->
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_ddim"

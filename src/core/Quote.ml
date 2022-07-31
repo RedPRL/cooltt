@@ -87,6 +87,19 @@ let rec quote_con (tp : D.tp) con =
         | false ->
           let+ ix = quote_var lvl in
           S.Var ix
+    end  
+    | _, D.Cut {cut = (D.Var lvl, []); tp = TpDDim} ->
+    (* for dimension variables, check to see if we can prove them to be
+        the same as 0 or 1 and return those instead if so. *)
+    begin
+      lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.deq0 (DDim.dvar lvl) |>> function
+      | true -> ret S.DDim0
+      | false ->
+        lift_cmp @@ CmpM.test_sequent [] @@ CofBuilder.deq1 (DDim.dvar lvl) |>> function
+        | true -> ret S.DDim1
+        | false ->
+          let+ ix = quote_var lvl in
+          S.Var ix
     end
 
   | _, D.Cut {cut = (hd, sp); tp = _} ->
