@@ -9,6 +9,7 @@ module Make : functor (Symbol : Symbol.S) -> sig
   (** {1 Convenience constructors} *)
 
   val dim_to_con : dim -> con
+  val ddim_to_con : ddim -> con
   val cof_to_con : cof -> con
   val mk_var : tp -> int -> con
   val push : frm -> cut -> cut
@@ -35,6 +36,7 @@ module Make : functor (Symbol : Symbol.S) -> sig
       These are only for debugging. *)
 
   val pp_dim : dim Pp.printer
+  val pp_ddim : ddim Pp.printer
   val pp_clo : tm_clo Pp.printer
   val pp_cof : cof Pp.printer
   val pp_tp : tp Pp.printer

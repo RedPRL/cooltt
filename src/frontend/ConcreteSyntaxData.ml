@@ -60,6 +60,8 @@ and con_ =
   | Equations of { code : con; eqns : eqns step }
   | Dim
   | DDim
+  | D0
+  | D1
   | Cof
   | CofEq of con * con
   | CofLe of con * con

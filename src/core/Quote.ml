@@ -570,6 +570,10 @@ and quote_dim d : S.t quote =
   quote_con D.TpDim @@
   D.dim_to_con d
 
+and quote_ddim d : S.t quote =
+  quote_con D.TpDDim @@
+  D.ddim_to_con d
+
 and quote_cof phi =
   let module K = Kado.Syntax in
   let rec go =
@@ -585,6 +589,10 @@ and quote_cof phi =
         let+ tr = quote_dim r
         and+ ts = quote_dim s in
         S.CofBuilder.le tr ts
+      | K.DLe (r, s) ->
+        let+ tr = quote_ddim r
+        and+ ts = quote_ddim s in
+        S.CofBuilder.dle tr ts
       | K.Join phis ->
         let+ tphis = MU.map go phis in
         S.CofBuilder.join tphis

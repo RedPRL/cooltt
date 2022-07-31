@@ -219,7 +219,6 @@ and chk_tm : CS.con -> T.Chk.tac =
       begin
         Tactics.match_goal @@ function
         | D.TpDim, _, _ -> RM.ret @@ R.Dim.literal n
-        | D.TpDDim, _, _ -> RM.ret @@ R.DDim.literal n
         | _ -> RM.ret @@ R.Nat.literal n
       end
 
@@ -294,10 +293,10 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
 
     | CS.CofEq (c0, c1) ->
-      R.Cof.eq (chk_tm c0) (chk_tm c1)
+      R.Cof.eq (syn_tm c0) (syn_tm c1)
 
     | CS.CofLe (c0, c1) ->
-      R.Cof.le (chk_tm c0) (chk_tm c1)
+      R.Cof.le (syn_tm c0) (syn_tm c1)
 
     | CS.Join cs ->
       R.Cof.join (List.map chk_tm cs)
@@ -312,7 +311,7 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Cof.meet []
 
     | CS.CofBoundary c ->
-      R.Cof.boundary (chk_tm c)
+      R.Cof.boundary (syn_tm c)
 
     | CS.CofSplit splits ->
       let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> R.Cof.{cof = chk_tm cphi; bdy = fun _ -> chk_tm ctm} in
@@ -356,7 +355,10 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
   | CS.Var id ->
     R.Structural.lookup_var id
   | CS.DeBruijnLevel lvl ->
-    R.Structural.level lvl
+    R.Structural.level lvl    
+  | CS.D0 -> R.DDim.ddim0
+  | CS.D1 -> R.DDim.ddim1
+  | CS.Lit n -> R.Dim.literalcof n
   | CS.Ap (t, []) ->
     syn_tm t
   | CS.Ap (t, ts) ->

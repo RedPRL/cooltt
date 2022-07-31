@@ -13,7 +13,7 @@ struct
   type cof_var = CofVar.t
   type cof = Cof.cof
 
-    type ddim = DDim.t
+  type ddim = DDim.t
 
   (** A type code whose head constructor is stable under dimension substitution. *)
   type 'a stable_code =

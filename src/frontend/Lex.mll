@@ -60,6 +60,8 @@ let keywords =
     ("dim", DIM);
     ("𝟚", DDIM);
     ("ddim", DDIM);
+    ("d0", DZERO);
+    ("d1", DONE);
     ("𝔽", COF);
     ("cof", COF);
     ("sub", SUB);

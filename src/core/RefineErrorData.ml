@@ -34,6 +34,7 @@ struct
     | ExpectedConnective of connective * Pp.env * S.tp
     | ExpectedDimensionLiteral of int
     | ExpectedDDimensionLiteral of int
+    | ExpectedOfMatchingIntervalType of Pp.env * S.t * S.t
     | ExpectedTrue of Pp.env * S.t
     | VirtualType
     | HoleNotPermitted of Pp.env * S.tp

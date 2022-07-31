@@ -182,7 +182,7 @@ struct
     | Cof (Le (x, y)) ->
       Format.fprintf fmt "le[%a,%a]" pp_con x pp_con y
     | Cof (DLe (x, y)) ->
-      Format.fprintf fmt "le[%a,%a]" pp_con x pp_con y
+      Format.fprintf fmt "dle[%a,%a]" pp_con x pp_con y
     | Cof (Join phis) ->
       Format.fprintf fmt "join[%a]" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.pp_print_string fmt ",") pp_con) phis
     | Cof (Meet phis) ->

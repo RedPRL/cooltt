@@ -135,7 +135,7 @@ struct
   let assert_hole_possible tp =
     RM.lift_cmp @@ Sem.whnf_tp_ tp |>>
     function
-    | D.TpDim | D.TpCof | D.TpPrf _ ->
+    | D.TpDim | D.TpDDim | D.TpCof | D.TpPrf _ ->
       let* ttp = RM.quote_tp tp in
       RM.with_pp @@ fun ppenv ->
       RM.refine_err @@ Err.HoleNotPermitted (ppenv, ttp)
@@ -242,8 +242,16 @@ struct
     T.Tp.virtual_rule ~name:"Dim.formation" @@
     RM.ret S.TpDim
 
+  let dim0cof : T.Syn.tac =
+    T.Syn.rule ~name:"Dim.dim0cof" @@
+    RM.ret (S.Dim0, D.TpDim)
+
+  let dim1cof : T.Syn.tac =
+    T.Syn.rule ~name:"Dim.dim1cof" @@
+    RM.ret (S.Dim1, D.TpDim)
+
   let dim0 : T.Chk.tac =
-    T.Chk.rule ~name:"Dim.dim0" @@
+    T.Chk.rule ~name:"Dim.chk0" @@
     function
     | D.TpDim ->
       RM.ret S.Dim0
@@ -251,7 +259,7 @@ struct
       RM.expected_connective `Dim tp
 
   let dim1 : T.Chk.tac =
-    T.Chk.rule ~name:"Dim.dim1" @@
+    T.Chk.rule ~name:"Dim.chk1" @@
     function
     | D.TpDim ->
       RM.ret S.Dim1
@@ -265,6 +273,14 @@ struct
     | n ->
       T.Chk.rule ~name:"Dim.literal" @@ fun _ ->
       RM.refine_err @@ Err.ExpectedDimensionLiteral n
+
+  let literalcof : int -> T.Syn.tac =
+    function
+    | 0 -> dim0cof
+    | 1 -> dim1cof
+    | n ->
+      T.Syn.rule ~name:"Dim.literalcof" @@
+      RM.refine_err @@ Err.ExpectedDimensionLiteral n
 end
 
 module DDim =
@@ -273,29 +289,13 @@ struct
     T.Tp.virtual_rule ~name:"DDim.formation" @@
     RM.ret S.TpDDim
 
-  let ddim0 : T.Chk.tac =
-    T.Chk.rule ~name:"DDim.ddim0" @@
-    function
-    | D.TpDDim ->
-      RM.ret S.DDim0
-    | tp ->
-      RM.expected_connective `DDim tp
+  let ddim0 : T.Syn.tac =
+    T.Syn.rule ~name:"DDim.ddim0" @@
+    RM.ret (S.DDim0, D.TpDDim)
 
-  let ddim1 : T.Chk.tac =
-    T.Chk.rule ~name:"DDim.ddim1" @@
-    function
-    | D.TpDDim ->
-      RM.ret S.DDim1
-    | tp ->
-      RM.expected_connective `DDim tp
-
-  let literal : int -> T.Chk.tac =
-    function
-    | 0 -> ddim0
-    | 1 -> ddim1
-    | n ->
-      T.Chk.rule ~name:"DDim.literal" @@ fun _ ->
-      RM.refine_err @@ Err.ExpectedDDimensionLiteral n
+  let ddim1 : T.Syn.tac =
+    T.Syn.rule ~name:"DDim.ddim1" @@
+    RM.ret (S.DDim1, D.TpDDim)
 end
 
 module Cof =
@@ -311,9 +311,15 @@ struct
     T.Chk.rule ~name:"Cof.eq" @@
     function
     | D.TpCof ->
-      let+ r0 = T.Chk.run tac0 D.TpDim
-      and+ r1 = T.Chk.run tac1 D.TpDim in
-      S.CofBuilder.eq r0 r1
+      let* (r0, tp0) = T.Syn.run tac0
+      and* (r1, tp1) = T.Syn.run tac1 in
+      begin match tp0, tp1 with
+      | D.TpDim, D.TpDim -> RM.ret (S.CofBuilder.eq r0 r1)
+      | D.TpDDim, D.TpDDim -> RM.ret (S.CofBuilder.deq r0 r1)
+      | _, _ -> 
+        RM.with_pp @@ fun ppenv -> 
+        RM.refine_err @@ ExpectedOfMatchingIntervalType (ppenv, r0, r1)
+      end
     | tp ->
       expected_cof tp
 
@@ -321,12 +327,17 @@ struct
     T.Chk.rule ~name:"Cof.le" @@
     function
     | D.TpCof ->
-      let+ r0 = T.Chk.run tac0 D.TpDim
-      and+ r1 = T.Chk.run tac1 D.TpDim in
-      S.CofBuilder.le r0 r1
+      let* (r0, tp0) = T.Syn.run tac0
+      and* (r1, tp1) = T.Syn.run tac1 in
+      begin match tp0, tp1 with
+      | D.TpDim, D.TpDim -> RM.ret (S.CofBuilder.le r0 r1)
+      | D.TpDDim, D.TpDDim -> RM.ret (S.CofBuilder.dle r0 r1)
+      | _, _ -> 
+        RM.with_pp @@ fun ppenv -> 
+        RM.refine_err @@ ExpectedOfMatchingIntervalType (ppenv, r0, r1)
+      end 
     | tp ->
       expected_cof tp
-
 
   let join tacs =
     T.Chk.rule ~name:"Cof.join" @@
@@ -346,7 +357,8 @@ struct
     | tp ->
       expected_cof tp
 
-  let boundary tac = join [eq tac Dim.dim0; eq tac Dim.dim1]
+  let boundary tac = join [eq tac Dim.dim0cof; eq tac Dim.dim1cof]
+  let dboundary tac = join [eq tac DDim.ddim0; eq tac DDim.ddim1]
 
   let assert_true vphi =
     RM.lift_cmp @@ CmpM.test_sequent [] vphi |>> function

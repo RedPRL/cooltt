@@ -30,23 +30,26 @@ module Dim : sig
   val formation : Tp.tac
   val dim0 : Chk.tac
   val dim1 : Chk.tac
+  val dim0cof : Syn.tac
+  val dim1cof: Syn.tac
   val literal : int -> Chk.tac
+  val literalcof : int -> Syn.tac
 end
 
 module DDim : sig
   val formation : Tp.tac
-  val ddim0 : Chk.tac
-  val ddim1 : Chk.tac
-  val literal : int -> Chk.tac
+  val ddim0 : Syn.tac
+  val ddim1 : Syn.tac
 end
 
 module Cof : sig
   val formation : Tp.tac
-  val eq : Chk.tac -> Chk.tac -> Chk.tac
-  val le : Chk.tac -> Chk.tac -> Chk.tac
+  val eq : Syn.tac -> Syn.tac -> Chk.tac
+  val le : Syn.tac -> Syn.tac -> Chk.tac
   val join : Chk.tac list -> Chk.tac
   val meet : Chk.tac list -> Chk.tac
-  val boundary : Chk.tac -> Chk.tac
+  val boundary : Syn.tac -> Chk.tac
+  val dboundary : Syn.tac -> Chk.tac
 
   type branch_tac = {cof : Chk.tac; bdy : var -> Chk.tac}
   val split : branch_tac list -> Chk.tac
