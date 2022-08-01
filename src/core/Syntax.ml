@@ -288,9 +288,9 @@ struct
     | Cof (Cof.Le (r, s)) ->
       Format.fprintf fmt "%a %a %a" (pp env P.(left_of cof_le)) r Uuseg_string.pp_utf_8 "≤" (pp env P.(right_of cof_le)) s
     | Cof (Cof.DLe (DDim1, s)) ->
-      Format.fprintf fmt "%a = 1" (pp env P.(left_of cof_dle)) s
+      Format.fprintf fmt "%a = d1" (pp env P.(left_of cof_dle)) s
     | Cof (Cof.DLe (r, DDim0)) ->
-      Format.fprintf fmt "%a = 0" (pp env P.(left_of cof_dle)) r
+      Format.fprintf fmt "%a = d0" (pp env P.(left_of cof_dle)) r
     | Cof (Cof.DLe (r, s)) ->
       Format.fprintf fmt "%a %a %a" (pp env P.(left_of cof_dle)) r Uuseg_string.pp_utf_8 "≤" (pp env P.(right_of cof_dle)) s
     | Cof (Cof.Join []) ->
@@ -399,9 +399,9 @@ struct
     | Dim1 ->
       Format.fprintf fmt "1"
     | DDim0 ->
-      Format.fprintf fmt "0"
+      Format.fprintf fmt "d0"
     | DDim1 ->
-      Format.fprintf fmt "1"
+      Format.fprintf fmt "d1"
     | Prf ->
       Format.fprintf fmt "*"
     | Ann (tm, _) ->

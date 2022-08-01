@@ -1,5 +1,13 @@
 def hom (A : type) (a b : A) : type :=
-  ext | i ⇒ A with [i=d0 => a | i=d1 => b]
+  ext | i ⇒ A with [i=d0 ⇒ a | i=d1 ⇒ b]
+  
+def homO (A : 𝟚 → type) (a : A d0) (b : A d1) : type :=
+  ext | i ⇒ A i with [i=d0 ⇒ a | i=d1 ⇒ b]
+
+#print homO
+
+def path (A : type) (a b : A) : type :=
+  ext i ⇒ A with [i=0 ⇒ a | i=1 ⇒ b]
 
 def test1 : ddim → nat := x ⇒ 3
 

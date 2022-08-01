@@ -146,9 +146,9 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Ext (idents, didents, tp, cases) ->
     let m = List.length idents in
     let n = List.length didents in
-    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, tp); info = tp.info} in
-    let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
+    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, tp); info = tp.info} in
+    let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.CofSplit cases; info = None}); info = None} in
     CoolTp.ext m n tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
@@ -321,9 +321,9 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Ext (idents, didents, tp, cases) ->
     let m = List.length idents in
     let n = List.length didents in
-      let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, tp); info = tp.info} in
-      let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
+      let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, tp); info = tp.info} in
+      let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.CofSplit cases; info = None}); info = None} in
       R.Univ.ext m n tac_fam tac_cof tac_bdry
 
 
