@@ -66,6 +66,7 @@ let keywords =
     ("cof", COF);
     ("sub", SUB);
     ("ext", EXT);
+    ("dext", DEXT);
     ("coe", COE);
     ("hcom", HCOM);
     ("hfill", HFILL);

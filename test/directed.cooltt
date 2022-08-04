@@ -1,18 +1,49 @@
 def hom (A : type) (a b : A) : type :=
-  ext | i ⇒ A with [i=d0 ⇒ a | i=d1 ⇒ b]
-  
-def homO (A : 𝟚 → type) (a : A d0) (b : A d1) : type :=
-  ext | i ⇒ A i with [i=d0 ⇒ a | i=d1 ⇒ b]
+    dext i ⇒ A with [i = d0 ⇒ a | i=d1 ⇒ b]
 
-#print homO
+def pathO (A : 𝕀 → type) (a : A 0) (b : A 1) : type :=
+    ext i ⇒ A i with [i = 0 ⇒ a | i = 1 ⇒ b]
+
+def homO (A : 𝟚 → type) (a : A d0) (b : A d1) : type :=
+    dext i ⇒ A i with [i = d0 ⇒ a | i = d1 ⇒ b]
+
+def Λ↣Δ (A  : (i j : 𝟚) → [i ≤ j] → type)
+        (aΛ : (i j : 𝟚) → [i = d0 ∨ j = d1] → A i j) : type :=
+    ext | i j | i ≤ j ⇒ A i j with [ i = d0 ⇒ aΛ d0 j
+                                   | j = d1 ⇒ aΛ i d1 ]
+
+
+def weirdSquare (A : 𝕀 → 𝟚 → type)
+                (ai0 : (i : 𝕀) → A i d0)
+                (ai1 : (i : 𝕀) → A i d1)
+                (a0j : dext j ⇒ A 0 j with [ j = d0 ⇒ ai0 0
+                                           | j = d1 ⇒ ai1 0 ])
+                (a1j : dext j ⇒ A 1 j with [ j = d0 ⇒ ai0 1
+                                           | j = d1 ⇒ ai1 1 ]) : type :=
+    ext i | j ⇒ A i j with [ j = d0 ⇒ ai0 i
+                           | j = d1 ⇒ ai1 i
+                           | i = 0  ⇒ a0j j
+                           | i = 1  ⇒ a1j j ]
 
 def path (A : type) (a b : A) : type :=
-  ext i ⇒ A with [i=0 ⇒ a | i=1 ⇒ b]
+    ext i ⇒ A with [i=0 ⇒ a | i=1 ⇒ b]
 
 def test1 : ddim → nat := x ⇒ 3
-
 def test2 : nat := test1 d1
+def test3 (i : 𝟚) : sub nat {i = d0} 3 := test1 i
+def test4 (i : 𝟚) : sub nat {i ≤ d1} 3 := test1 i
+def test5 (i : 𝟚) : sub nat {d0 = d1} [] := test1 i
+def test6 (i : 𝟚) : sub nat {d1 ≤ d0} [] := test1 i
+def test7 : hom nat 3 3 := test1
 
-def test3 (i : ddim) : sub nat {i = d0} 3 := test1 i
-def test4 (i : ddim) : sub nat {i ≤ d1} 3 := test1 i
-def test5 : hom nat 3 3 := test1
+def test8 (i : ddim) : sub nat {i = d0 ∨ d0 = d1}
+                               [ i = d0 ⇒ 3
+                               | i = d1 ⇒ 3 ] := test1 i
+
+
+
+/-
+#print homO
+#print weirdSquare
+#print test8
+-/

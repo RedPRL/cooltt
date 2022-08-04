@@ -316,8 +316,8 @@ struct
       begin match tp0, tp1 with
       | D.TpDim, D.TpDim -> RM.ret (S.CofBuilder.eq r0 r1)
       | D.TpDDim, D.TpDDim -> RM.ret (S.CofBuilder.deq r0 r1)
-      | _, _ -> 
-        RM.with_pp @@ fun ppenv -> 
+      | _, _ ->
+        RM.with_pp @@ fun ppenv ->
         RM.refine_err @@ ExpectedOfMatchingIntervalType (ppenv, r0, r1)
       end
     | tp ->
@@ -332,10 +332,10 @@ struct
       begin match tp0, tp1 with
       | D.TpDim, D.TpDim -> RM.ret (S.CofBuilder.le r0 r1)
       | D.TpDDim, D.TpDDim -> RM.ret (S.CofBuilder.dle r0 r1)
-      | _, _ -> 
-        RM.with_pp @@ fun ppenv -> 
+      | _, _ ->
+        RM.with_pp @@ fun ppenv ->
         RM.refine_err @@ ExpectedOfMatchingIntervalType (ppenv, r0, r1)
-      end 
+      end
     | tp ->
       expected_cof tp
 
@@ -486,6 +486,7 @@ struct
       let+ tm = T.Chk.brun (tac_body var) (fib, phi, D.un_lam @@ D.compose (D.Lam (Ident.anon, D.apply_to (T.Var.con var))) @@ D.Lam (Ident.anon, phi_clo)) in
       S.Lam (ident, tm)
     | tp, _, _ ->
+      Format.printf "Bad pi intro!! %a@." D.pp_tp tp;
       RM.expected_connective `Pi tp
 
   let apply tac_fun tac_arg : T.Syn.tac =
@@ -496,6 +497,8 @@ struct
       let* targ = T.Chk.run tac_arg base in
       let+ fib =
         let* varg = RM.lift_ev @@ Sem.eval targ in
+        Format.printf "Apply arg: %a@." S.dump targ;
+        Format.printf "Apply type: %a@." D.pp_tp tp;
         RM.lift_cmp @@ Sem.inst_tp_clo fam varg
       in
       S.Ap (tfun, targ), fib
@@ -631,7 +634,7 @@ struct
             Splice.con code @@ fun code ->
             Splice.con vpatch @@ fun patch ->
             Splice.term @@
-            TB.code_ext 0 0 code TB.top @@ TB.lam @@ fun _ -> patch
+            TB.code_ext 0 0 TB.top code TB.top @@ TB.lam @@ fun _ -> patch
           in
           let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
           let* qpatched_code = RM.quote_con univ patched_code in
@@ -749,42 +752,60 @@ struct
     let+ qfib = RM.quote_con fib_tp fib in
     S.CodeSignature (qsign @ [`User ["fib"], qfib])
 
-  let ext (m : int) (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
+  let ext (m : int) (n : int)(tac_phi : T.Chk.tac) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->
+    let* tphi =
+      let* tp_cof = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
+      Format.printf "pre chk phi: %a@." D.pp_tp tp_cof;
+      RM.globally @@
+      T.Chk.run tac_phi tp_cof
+    in
+    let* phi = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tphi in
     let* tcof =
       let* tp_cof_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
+      Format.printf "pre chk cof: %a@." D.pp_tp tp_cof_fam;
       RM.globally @@ T.Chk.run tac_cof tp_cof_fam
     in
     let* cof = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
     let* tfam =
-      let* tp_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.tp univ @@ fun univ -> Splice.term @@ TB.cube m n @@ fun _ -> univ in
+      let* tp_fam =
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.con phi @@ fun phi ->
+        Splice.tp univ @@ fun univ ->
+        Splice.term @@ TB.cube m n @@ fun js ->
+        TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
+        univ
+      in
+      Format.printf "pre chk fam: %a@." D.pp_tp tp_fam;
       T.Chk.run tac_fam tp_fam
     in
     let+ tbdry =
       let* fam = RM.lift_ev @@ Sem.eval tfam in
       let* tp_bdry =
         RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.con phi @@ fun phi ->
         Splice.con cof @@ fun cof ->
         Splice.con fam @@ fun fam ->
         Splice.term @@
         TB.cube m n @@ fun js ->
+        TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun phi ->
         TB.pi (TB.tp_prf @@ TB.ap cof js) @@ fun _ ->
-        TB.el @@ TB.ap fam js
+        TB.el @@ TB.ap fam (List.append js [phi])
       in
+      Format.printf "pre chk bdry: %a@." D.pp_tp tp_bdry;
       T.Chk.run tac_bdry tp_bdry
     in
-    S.CodeExt (m, n, tfam, `Global tcof, tbdry)
-
+    S.CodeExt (m, n, tphi, tfam, `Global tcof, tbdry)
 
   let is_nullary_ext = function
-    | D.ElStable (`Ext (0, 0,_ ,`Global (Cof cof), _)) ->
+    | D.ElStable (`Ext (0, 0, Cof (Meet []), _ ,`Global (Cof cof), _)) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       RM.lift_cmp @@ CmpM.test_sequent [] cof
     | _ -> RM.ret false
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
-    | ElStable (`Ext (0, 0, code ,`Global (Cof cof),bdry)) ->
+    | ElStable (`Ext (0, 0, Cof (Meet []), code ,`Global (Cof cof),bdry)) ->
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       let* () = Cof.assert_true cof in
       let* tp = RM.lift_cmp @@

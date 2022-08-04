@@ -123,7 +123,7 @@ struct
     | S.Cap (r, s, phi, code, box) -> labeled "cap" [json_of_tm r; json_of_tm s; json_of_tm phi; json_of_tm code; json_of_tm box]
     | S.VIn (r, pequiv, pivot, base) -> labeled "v_in" [json_of_tm r; json_of_tm pequiv; json_of_tm pivot; json_of_tm base]
     | S.VProj (r, pcode, code, pequiv, v) -> labeled "v_proj" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv; json_of_tm v]
-    | S.CodeExt (m, n, fam, `Global phi, tbdry) -> labeled "code_ext" [json_of_int m; json_of_int n; json_of_tm fam; json_of_tm phi; json_of_tm tbdry]
+    | S.CodeExt (m, n, psi, fam, `Global phi, tbdry) -> labeled "code_ext" [json_of_int m; json_of_int n; json_of_tm psi; json_of_tm fam; json_of_tm phi; json_of_tm tbdry]
     | S.CodePi (tbase, tfam) -> labeled "code_pi" [json_of_tm tbase; json_of_tm tfam]
     | S.CodeSg (tbase, tfam) -> labeled "code_sg" [json_of_tm tbase; json_of_tm tfam]
     | S.CodeSignature sign -> labeled "code_sign" [json_of_labeled json_of_tm sign]
@@ -298,13 +298,14 @@ struct
       let pequiv = json_to_tm j_pequiv in
       let v = json_to_tm j_v in
       S.VProj (r, pcode, code, pequiv, v)
-    | `A [`String "code_ext"; j_m; j_n; j_fam; j_phi; j_bdry] ->
+    | `A [`String "code_ext"; j_m; j_n; j_psi; j_fam; j_phi; j_bdry] ->
       let m = json_to_int j_m in
       let n = json_to_int j_n in
+      let psi = json_to_tm j_psi in
       let fam = json_to_tm j_fam in
       let phi = json_to_tm j_phi in
       let brdy = json_to_tm j_bdry in
-      S.CodeExt (m, n, fam, `Global phi, brdy)
+      S.CodeExt (m, n, psi, fam, `Global phi, brdy)
     | `A [`String "code_pi"; j_base; j_fam] ->
       let base = json_to_tm j_base in
       let fam = json_to_tm j_fam in
@@ -522,7 +523,7 @@ struct
     | `Pi (base, fam) -> labeled "pi" [json_of_con base; json_of_con fam]
     | `Sg (base, fam) -> labeled "sg" [json_of_con base; json_of_con fam]
     | `Signature sign -> labeled "signature" [json_of_labeled json_of_con sign]
-    | `Ext (m, n, code, `Global phi, fam) -> labeled "ext" [json_of_int m; json_of_int n; json_of_con code; json_of_con phi; json_of_con fam]
+    | `Ext (m, n, psi, code, `Global phi, fam) -> labeled "ext" [json_of_int m; json_of_int n; json_of_con psi; json_of_con code; json_of_con phi; json_of_con fam]
     | `Nat -> `String "nat"
     | `Circle -> `String "circle"
     | `Univ -> `String "univ"
@@ -674,7 +675,7 @@ struct
     | `A [`String "pi"; j_base; j_fam] -> `Pi (json_to_con j_base, json_to_con j_fam)
     | `A [`String "sg"; j_base; j_fam] -> `Sg (json_to_con j_base, json_to_con j_fam)
     | `A [`String "signature"; j_sign] -> `Signature (json_to_labeled json_to_con j_sign)
-    | `A [`String "ext"; j_m; j_n; j_code; j_phi; j_fam] -> `Ext (json_to_int j_m, json_to_int j_n, json_to_con j_code, `Global (json_to_con j_phi), json_to_con j_fam)
+    | `A [`String "ext"; j_m; j_n; j_psi; j_code; j_phi; j_fam] -> `Ext (json_to_int j_m, json_to_int j_n, json_to_con j_psi, json_to_con j_code, `Global (json_to_con j_phi), json_to_con j_fam)
     | `String "nat" -> `Nat
     | `String "circle" -> `Circle
     | `String "univ" -> `Univ

@@ -25,7 +25,7 @@ sig
   val sg : tac -> Ident.t -> tac -> tac
   val signature : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
-  val ext : int -> int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
+  val ext : int -> int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
   val circle : tac
   val univ : tac
@@ -107,8 +107,8 @@ struct
     let tac = R.Sub.formation (as_tp tac_tp) tac_phi (fun _ -> tac_pel) in
     Tp tac
 
-  let ext m n tac_tp tac_cof tac_bdry =
-    let tac = R.Univ.ext m n tac_tp tac_cof tac_bdry in
+  let ext m n tac_phi tac_tp tac_cof tac_bdry =
+    let tac = R.Univ.ext m n tac_phi tac_tp tac_cof tac_bdry in
     Code tac
 
   let nat = Code R.Univ.nat
@@ -143,13 +143,14 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) -> CoolTp.sub (cool_chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
-  | CS.Ext (idents, didents, tp, cases) ->
+  | CS.Ext (idents, didents, phi, tp, cases) ->
     let m = List.length idents in
     let n = List.length didents in
-    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, tp); info = tp.info} in
+    let tac_phi = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, phi); info = None} in
+    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, tp); info = tp.info} in (* R.Pi.intro (etc...) *)
     let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
     let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.CofSplit cases; info = None}); info = None} in
-    CoolTp.ext m n tac_fam tac_cof tac_bdry
+    CoolTp.ext m n tac_phi tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
 
@@ -318,13 +319,14 @@ and chk_tm : CS.con -> T.Chk.tac =
       let branch_tacs = splits |> List.map @@ fun (cphi, ctm) -> R.Cof.{cof = chk_tm cphi; bdy = fun _ -> chk_tm ctm} in
       R.Cof.split branch_tacs
 
-    | CS.Ext (idents, didents, tp, cases) ->
+    | CS.Ext (idents, didents, phi, tp, cases) ->
     let m = List.length idents in
     let n = List.length didents in
-      let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, tp); info = tp.info} in
-      let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-      let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.CofSplit cases; info = None}); info = None} in
-      R.Univ.ext m n tac_fam tac_cof tac_bdry
+    let tac_phi = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, phi); info = None} in
+    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, tp); info = tp.info} in (* R.Pi.intro (etc...) *)
+    let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append didents idents, {node = CS.CofSplit cases; info = None}); info = None} in
+      R.Univ.ext m n tac_phi tac_fam tac_cof tac_bdry
 
 
     | _ ->
@@ -357,7 +359,7 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
   | CS.Var id ->
     R.Structural.lookup_var id
   | CS.DeBruijnLevel lvl ->
-    R.Structural.level lvl    
+    R.Structural.level lvl
   | CS.D0 -> R.DDim.ddim0
   | CS.D1 -> R.DDim.ddim1
   | CS.Lit n -> R.Dim.literalcof n

@@ -322,10 +322,10 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
   | `Signature fields ->
     let+ fields = MU.map (MU.second (subst_con r x)) fields in
     `Signature fields
-  | `Ext (m, n, code, `Global cof, con) ->
+  | `Ext (m, n, phi, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
-    `Ext (m, n, code, `Global cof, con)
+    `Ext (m, n, phi, code, `Global cof, con)
   | `Nat | `Circle | `Univ as code ->
     ret code
 
@@ -436,8 +436,13 @@ and eval_tp : S.tp -> D.tp EvM.m =
     lift_cmp @@ do_el con
   | S.Sub (tp, tphi, tm) ->
     let+ env = read_local
-    and+ tp = eval_tp tp
-    and+ phi = eval_cof tphi in
+    and+ tp =
+      Format.printf "eval_tp sub: %a@." S.dump_tp tp;
+      eval_tp tp
+    and+ phi =
+      Format.printf "eval_tp phi: %a@." S.dump tphi;
+      eval_cof tphi in
+    Format.printf "I made it!@.";
     D.Sub (tp, phi, D.Clo (tm, env))
   | S.TpDim  ->
     ret D.TpDim
@@ -510,6 +515,8 @@ and eval : S.t -> D.con EvM.m =
     | S.Ap (t0, t1) ->
       let* con0 = eval t0 in
       let* con1 = eval t1 in
+      Format.printf "eval ap fun: %a@." D.pp_con con0;
+      Format.printf "eval ap arg: %a@." D.pp_con con1;
       lift_cmp @@ do_ap con0 con1
     | S.Pair (t1, t2) ->
       let+ el1 = eval t1
@@ -613,11 +620,12 @@ and eval : S.t -> D.con EvM.m =
     | S.Prf ->
       ret D.Prf
 
-    | S.CodeExt (m, n, fam, `Global phi, bdry) ->
+    | S.CodeExt (m, n, psi, fam, `Global phi, bdry) ->
+      let* psi = drop_all_cons @@ eval psi in
       let* phi = drop_all_cons @@ eval phi in
       let* fam = eval fam in
       let* bdry = eval bdry in
-      ret @@ D.StableCode (`Ext (m, n, fam, `Global phi, bdry))
+      ret @@ D.StableCode (`Ext (m, n, psi, fam, `Global phi, bdry))
 
     | S.CodePi (base, fam) ->
       let+ vbase = eval base
@@ -721,7 +729,10 @@ and eval_dim tr =
 
 and eval_cof tphi =
   let open EvM in
-  let* vphi = eval tphi in
+  Format.printf "pre eval_cof phi: %a@." S.dump tphi;
+  let* vphi =
+      eval tphi in (* This eval seems to go smoothly when following the calls/printing everything *)
+  Format.printf "eval_cof phi: %a@." D.pp_con vphi; (* This doesn't print!!! *)
   lift_cmp @@ con_to_cof vphi
 
 
@@ -1350,13 +1361,15 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.cons field_cons @@ fun fields ->
         Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
 
-      | `Ext (m, n, fam, `Global phi, bdry) ->
+      | `Ext (m, n, psi, fam, `Global phi, bdry) ->
         splice_tp @@
+        Splice.con psi @@ fun psi ->
         Splice.con phi @@ fun phi ->
         Splice.con fam @@ fun fam ->
         Splice.con bdry @@ fun bdry ->
         Splice.term @@
         TB.cube m n @@ fun js ->
+        TB.pi (TB.tp_prf @@ TB.ap psi js) @@ fun _ ->
         TB.sub (TB.el @@ TB.ap fam js) (TB.ap phi js) @@ fun _ ->
         TB.ap bdry @@ js @ [TB.prf]
     end
@@ -1449,15 +1462,16 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
-      | `Ext (n, n', famx, `Global cof, bdryx) ->
+      | `Ext (n, n', psi, famx, `Global cof, bdryx) ->
         splice_tm @@
+        Splice.con psi @@ fun psi ->
         Splice.con cof @@ fun cof ->
         Splice.con (D.BindSym (x, famx)) @@ fun fam_line ->
         Splice.con (D.BindSym (x, bdryx)) @@ fun bdry_line ->
         Splice.dim r @@ fun r ->
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
-        Splice.term @@ TB.Kan.coe_ext ~n ~n' ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
+        Splice.term @@ TB.Kan.coe_ext ~n ~n' ~psi ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
     end
   | `Unstable (x, codex) ->
     begin
@@ -1532,8 +1546,9 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
-      | `Ext (n, n', fam, `Global cof, bdry) ->
+      | `Ext (n, n', psi, fam, `Global cof, bdry) ->
         splice_tm @@
+        Splice.con psi @@ fun psi ->
         Splice.con cof @@ fun cof ->
         Splice.con fam @@ fun fam ->
         Splice.con bdry @@ fun bdry ->
@@ -1542,7 +1557,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.cof phi @@ fun phi ->
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
-        TB.Kan.hcom_ext ~n ~n' ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
+        TB.Kan.hcom_ext ~n ~n' ~cof ~psi ~fam ~bdry ~r ~r' ~phi ~bdy
       | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@

@@ -70,7 +70,7 @@ module Univ : sig
   val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
   val patch : Chk.tac -> (Ident.user -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
   val total : (Ident.user * CodeUnit.Domain.con) list -> CodeUnit.Domain.con -> Chk.tac
-  val ext : int -> int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
+  val ext : int -> int -> Chk.tac  -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val infer_nullary_ext : Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val coe : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Syn.tac

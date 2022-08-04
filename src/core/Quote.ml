@@ -87,7 +87,7 @@ let rec quote_con (tp : D.tp) con =
         | false ->
           let+ ix = quote_var lvl in
           S.Var ix
-    end  
+    end
     | _, D.Cut {cut = (D.Var lvl, []); tp = TpDDim} ->
     (* for dimension variables, check to see if we can prove them to be
         the same as 0 or 1 and return those instead if so. *)
@@ -361,26 +361,36 @@ and quote_stable_code univ =
     in
     S.CodeSignature tfields
 
-  | `Ext (m, n, code, `Global phi, bdry) ->
-    let+ tphi =
+  | `Ext (m, n, psi, code, `Global phi, bdry) ->
+    let+ tpsi =
+      let* tp_cof = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
+      quote_con tp_cof psi
+    and+ tphi =
       let* tp_cof_fam = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
       quote_global_con tp_cof_fam @@ `Global phi
     and+ tcode =
-      let* tp_code = lift_cmp @@ splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.univ in
+      let* tp_code = lift_cmp @@ splice_tp @@
+                    Splice.con psi @@ fun psi ->
+                    Splice.term @@
+                    TB.cube m n @@ fun js ->
+                    TB.pi (TB.tp_prf @@ TB.ap psi js) @@ fun _ ->
+                    TB.univ in
       quote_con tp_code code
     and+ tbdry =
       let* tp_bdry =
         lift_cmp @@ splice_tp @@
+        Splice.con psi @@ fun psi ->
         Splice.con code @@ fun code ->
         Splice.con phi @@ fun phi ->
         Splice.term @@
         TB.cube m n @@ fun js ->
+        TB.pi (TB.tp_prf @@ TB.ap psi js) @@ fun _ ->
         TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
         TB.el @@ TB.ap code js
       in
       quote_con tp_bdry bdry
     in
-    S.CodeExt (m, n, tcode, tphi, tbdry)
+    S.CodeExt (m, n, tpsi, tcode, tphi, tbdry)
 
 and quote_global_con tp (`Global con) =
   globally @@
