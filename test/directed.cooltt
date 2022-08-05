@@ -9,7 +9,7 @@ def homO (A : 𝟚 → type) (a : A d0) (b : A d1) : type :=
 
 def Λ↣Δ (A  : (i j : 𝟚) → [i ≤ j] → type)
         (aΛ : (i j : 𝟚) → [i = d0 ∨ j = d1] → A i j) : type :=
-    ext | i j | i ≤ j ⇒ A i j with [ i = d0 ⇒ aΛ d0 j
+    dext i j | [i ≤ j] ⇒ A i j with [ i = d0 ⇒ aΛ d0 j
                                    | j = d1 ⇒ aΛ i d1 ]
 
 
@@ -20,7 +20,7 @@ def weirdSquare (A : 𝕀 → 𝟚 → type)
                                            | j = d1 ⇒ ai1 0 ])
                 (a1j : dext j ⇒ A 1 j with [ j = d0 ⇒ ai0 1
                                            | j = d1 ⇒ ai1 1 ]) : type :=
-    ext i | j | ⊤ ⇒ A i j with [ j = d0 ⇒ ai0 i
+    ext i | j ⇒ A i j with [ j = d0 ⇒ ai0 i
                            | j = d1 ⇒ ai1 i
                            | i = 0  ⇒ a0j j
                            | i = 1  ⇒ a1j j ]
@@ -45,4 +45,3 @@ def test8 (i : ddim) : sub nat {i = d0 ∨ d0 = d1}
 
 #print homO
 #print weirdSquare
-#print test8

@@ -330,55 +330,31 @@ let dim1 = ret S.Dim1
 let ddim0 = ret S.DDim0
 let ddim1 = ret S.DDim1
 
-(**
-let cube n mfam : _ m =
-  let rec go acc n =
-    if n = 0 then
-      mfam @@ BwdLabels.to_list acc
-    else
-      pi tp_dim @@ fun i ->
-      go (Snoc (acc, i)) (n - 1)
-  in
-  go Emp n
-*)
-
 let cube n n' mfam : _ m =
   let rec go acc n n' =
-    if n' = 0 then
-      if n = 0 then
+    if n = 0 then
+      if n' = 0 then
         mfam @@ BwdLabels.to_list acc
       else
-        pi tp_dim @@ fun i ->
-        go (Snoc (acc, i)) (n - 1) 0
+        pi tp_ddim @@ fun i ->
+        go (Snoc (acc, i)) 0 (n' - 1)
     else
-      pi tp_ddim @@ fun i ->
-      go (Snoc (acc, i)) n (n' - 1)
+      pi tp_dim @@ fun i ->
+      go (Snoc (acc, i)) (n - 1) n'
   in
   go Emp n n'
 
-(**
-let nlam n mbdy : _ m =
-  let rec go acc n =
-    if n = 0 then
-      mbdy @@ BwdLabels.to_list acc
-    else
-      lam @@ fun i ->
-      go (Snoc (acc, i)) (n - 1)
-  in
-  go Emp n
-*)
-
 let nlam n n' mbdy : _ m =
   let rec go acc n n' =
-    if n' = 0 then
-      if n = 0 then
+    if n = 0 then
+      if n' = 0 then
         mbdy @@ BwdLabels.to_list acc
       else
         lam @@ fun i ->
-        go (Snoc (acc, i)) (n - 1) 0
+        go (Snoc (acc, i)) 0 (n' - 1)
     else
       lam @@ fun i ->
-      go (Snoc (acc, i)) n (n' - 1)
+      go (Snoc (acc, i)) (n - 1) n'
   in
   go Emp n n'
 
