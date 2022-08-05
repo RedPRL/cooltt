@@ -386,7 +386,7 @@ and quote_stable_code univ =
         TB.cube m n @@ fun js ->
         TB.pi (TB.tp_prf @@ TB.ap psi js) @@ fun _ ->
         TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
-        TB.el @@ TB.ap code js
+        TB.el @@ TB.ap code (List.append js [psi])
       in
       quote_con tp_bdry bdry
     in

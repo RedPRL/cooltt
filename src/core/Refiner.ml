@@ -486,7 +486,6 @@ struct
       let+ tm = T.Chk.brun (tac_body var) (fib, phi, D.un_lam @@ D.compose (D.Lam (Ident.anon, D.apply_to (T.Var.con var))) @@ D.Lam (Ident.anon, phi_clo)) in
       S.Lam (ident, tm)
     | tp, _, _ ->
-      Format.printf "Bad pi intro!! %a@." D.pp_tp tp;
       RM.expected_connective `Pi tp
 
   let apply tac_fun tac_arg : T.Syn.tac =
@@ -497,8 +496,6 @@ struct
       let* targ = T.Chk.run tac_arg base in
       let+ fib =
         let* varg = RM.lift_ev @@ Sem.eval targ in
-        Format.printf "Apply arg: %a@." S.dump targ;
-        Format.printf "Apply type: %a@." D.pp_tp tp;
         RM.lift_cmp @@ Sem.inst_tp_clo fam varg
       in
       S.Ap (tfun, targ), fib
@@ -756,14 +753,12 @@ struct
     univ_tac "Univ.ext" @@ fun univ ->
     let* tphi =
       let* tp_cof = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
-      Format.printf "pre chk phi: %a@." D.pp_tp tp_cof;
       RM.globally @@
       T.Chk.run tac_phi tp_cof
     in
     let* phi = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tphi in
     let* tcof =
       let* tp_cof_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
-      Format.printf "pre chk cof: %a@." D.pp_tp tp_cof_fam;
       RM.globally @@ T.Chk.run tac_cof tp_cof_fam
     in
     let* cof = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
@@ -776,7 +771,6 @@ struct
         TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
         univ
       in
-      Format.printf "pre chk fam: %a@." D.pp_tp tp_fam;
       T.Chk.run tac_fam tp_fam
     in
     let+ tbdry =
@@ -792,7 +786,6 @@ struct
         TB.pi (TB.tp_prf @@ TB.ap cof js) @@ fun _ ->
         TB.el @@ TB.ap fam (List.append js [phi])
       in
-      Format.printf "pre chk bdry: %a@." D.pp_tp tp_bdry;
       T.Chk.run tac_bdry tp_bdry
     in
     S.CodeExt (m, n, tphi, tfam, `Global tcof, tbdry)
@@ -817,7 +810,7 @@ struct
         Sem.splice_tm @@
         Splice.con bdry @@ fun bdry ->
         Splice.term @@
-        TB.ap bdry [TB.prf]
+        TB.ap bdry [TB.prf; TB.prf]
       in
       let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
       S.ElIn (S.SubIn ttm)

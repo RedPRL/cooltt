@@ -556,9 +556,9 @@ struct
     el_in @@
     nlam n n' @@ fun js ->
     sub_in @@
-    let_ (ap psi js) @@ fun _ ->
+    let_ (ap psi js) @@ fun psi_js ->
     let_ (ap cof js) @@ fun cof_js ->
-    com (lam @@ fun i -> ap fam_line @@ i :: js) r r' cof_js @@
+    com (lam @@ fun i -> ap fam_line @@ List.append (i :: js) [psi_js]) r r' cof_js @@
     lam @@ fun i ->
     lam @@ fun _ ->
     cof_split
@@ -569,9 +569,9 @@ struct
     el_in @@
     nlam n n' @@ fun js ->
     sub_in @@
-    let_ (ap psi js) @@ fun _ ->
+    let_ (ap psi js) @@ fun psi_js ->
     let_ (ap cof js) @@ fun cof_js ->
-    let_ (ap fam js) @@ fun fam_js ->
+    let_ (ap fam (List.append js [psi_js])) @@ fun fam_js ->
     hcom fam_js r r' (join [phi; cof_js]) @@
     lam @@ fun k ->
     lam @@ fun _p ->

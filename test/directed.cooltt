@@ -20,13 +20,15 @@ def weirdSquare (A : 𝕀 → 𝟚 → type)
                                            | j = d1 ⇒ ai1 0 ])
                 (a1j : dext j ⇒ A 1 j with [ j = d0 ⇒ ai0 1
                                            | j = d1 ⇒ ai1 1 ]) : type :=
-    ext i | j ⇒ A i j with [ j = d0 ⇒ ai0 i
+    ext i | j | ⊤ ⇒ A i j with [ j = d0 ⇒ ai0 i
                            | j = d1 ⇒ ai1 i
                            | i = 0  ⇒ a0j j
                            | i = 1  ⇒ a1j j ]
 
+
 def path (A : type) (a b : A) : type :=
     ext i ⇒ A with [i=0 ⇒ a | i=1 ⇒ b]
+
 
 def test1 : ddim → nat := x ⇒ 3
 def test2 : nat := test1 d1
@@ -41,9 +43,6 @@ def test8 (i : ddim) : sub nat {i = d0 ∨ d0 = d1}
                                | i = d1 ⇒ 3 ] := test1 i
 
 
-
-/-
 #print homO
 #print weirdSquare
 #print test8
--/
