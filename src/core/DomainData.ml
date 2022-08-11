@@ -83,7 +83,7 @@ struct
     | DimProbe of DimProbe.t
 
     | Cof of (con, con) Kado.Syntax.endo
-    (** A mixin of the language of cofibrations (as described in {!module:Cubical.Cof}), with dimensions and indeterminates in {!type:con}. *)
+    (** A mixin of the language of cofibrations (as described in {!module:CofBuilder}), with dimensions and indeterminates in {!type:con}. *)
 
     | Prf
 
