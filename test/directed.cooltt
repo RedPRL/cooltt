@@ -22,9 +22,18 @@ def relInner (Γ : type) (A : Γ → type) : type :=
 
 def prodInner (Γ : type) (A : Γ → type) (B : Γ → type)
               (inA : relInner Γ A) (inB : relInner Γ B)
-              : relInner Γ {γ ⇒ {A γ} × {B γ}} :=
+              : relInner Γ {γ ⇒ A γ × B γ} :=
     p b φ t i j ⇒ [ inA p {i j ⇒ fst {b i j}} φ {i j ⇒ fst {t i j}} i j
                   , inB p {i j ⇒ snd {b i j}} φ {i j ⇒ snd {t i j}} i j ]
+
+def sigmaInner (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
+               (inA : relInner Γ A) (inB : relInner {(γ : Γ) × A γ} {p ⇒ B {fst p} {snd p}})
+               : relInner Γ {γ ⇒ (a : A γ) × B γ a} :=
+    p b φ t i j ⇒
+        let a : (i j : ddim) → [i ≤ j] → A {p i j} :=
+            inA p {i j ⇒ fst {b i j}} φ {i j ⇒ fst {t i j}} in
+        [ a i j
+        , inB {i j ⇒ [p i j , a i j]} {i j ⇒ snd {b i j}} φ {i j ⇒ snd {t i j}} i j ]
 
 /-
 BAD : i isn't in scope for extension type inside cfill
