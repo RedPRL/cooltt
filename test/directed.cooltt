@@ -16,7 +16,15 @@ def isInner (A : (i j : 𝟚) → [i ≤ j] → type) : type :=
     (b : <|i j [i = d0 ∨ j = d1]> ⇒ A i j)
     → cfill {dext i j [i ≤ j] ⇒ A i j with [i = d0 ∨ j = d1 ⇒ b i j]}
 
-def test (A : (i j : 𝟚) → [i ≤ j] → type) : isInner A := b φ t => ?
+def relInner (Γ : type) (A : Γ → type) : type :=
+    (p : <|i j [i ≤ j]> ⇒ Γ)
+    → isInner {i j ⇒ {A {p i j}}}
+
+def prodInner (Γ : type) (A : Γ → type) (B : Γ → type)
+              (inA : relInner Γ A) (inB : relInner Γ B)
+              : relInner Γ {γ ⇒ {A γ} × {B γ}} :=
+    p b φ t i j ⇒ [ inA p {i j ⇒ fst {b i j}} φ {i j ⇒ fst {t i j}} i j
+                  , inB p {i j ⇒ snd {b i j}} φ {i j ⇒ snd {t i j}} i j ]
 
 /-
 BAD : i isn't in scope for extension type inside cfill
@@ -25,13 +33,6 @@ def isKan (A : 𝕀 → type) : type :=
 
 def isCov (A : 𝟚 → type) : type :=
     <|i> ⇒ {(b : A i) → cfill {dext j [i ≤ j] ⇒ A j with [i=j ⇒ b]}}
-
-def isInner (A : (i j : 𝟚) → [i ≤ j] → type) : type :=
-    (φ : 𝔽)
-    → (b : dext i j | [i = d0 ∨ j = d1] ⇒ A i j with [])
-    → (t : dext i j | [i ≤ j ∧ φ] ⇒ A i j with [i = d0 ∨ j = d1 ⇒ b i j])
-    → dext i j [i ≤ j] ⇒ A i j with [ i = d0 ∨ j = d1 ⇒ b i j
-                                    | φ ⇒ t i j]
 
 "def" isFill Phi → (psi ≤ phi : 𝔽[Phi]) → (A : Phi → [phi] → type) : type :=
       (b : <cube [psi]> ⇒ A cube)
