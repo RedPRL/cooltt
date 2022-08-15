@@ -67,6 +67,7 @@ let keywords =
     ("sub", SUB);
     ("ext", EXT);
     ("dext", DEXT);
+    ("cfill", CFILL);
     ("coe", COE);
     ("hcom", HCOM);
     ("hfill", HFILL);
@@ -158,6 +159,10 @@ and real_token = parse
     { LSQ }
   | ']'
     { RSQ }
+  | '<'
+    { LANG }
+  | '>'
+    { RANG }
   | "{!"
     { LBANG }
   | "!}"

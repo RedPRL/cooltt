@@ -398,7 +398,7 @@ struct
 
     module State =
     struct
-      open BwdNotation
+      open Bwd.Infix (* open BwdNotation *)
       type t =
         {disj : D.cof;
          fns : (D.cof * D.con) bwd;
@@ -753,8 +753,7 @@ struct
     univ_tac "Univ.ext" @@ fun univ ->
     let* tphi =
       let* tp_cof = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
-      RM.globally @@
-      T.Chk.run tac_phi tp_cof
+      RM.globally @@ T.Chk.run tac_phi tp_cof
     in
     let* phi = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tphi in
     let* tcof =
@@ -815,6 +814,11 @@ struct
       let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
       S.ElIn (S.SubIn ttm)
     | tp -> RM.expected_connective `ElExt tp
+
+  let cfill (tac_tp : T.Chk.tac) : T.Chk.tac =
+    univ_tac "Univ.cfill" @@ fun univ ->
+    let+ tp = T.Chk.run tac_tp univ in
+    S.CodeCFill tp
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.code_v" @@ fun _univ ->

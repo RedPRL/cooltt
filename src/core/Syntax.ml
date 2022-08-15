@@ -73,6 +73,7 @@ struct
     | VIn _ -> Format.fprintf fmt "<vin>"
     | VProj _ -> Format.fprintf fmt "<vproj>"
 
+    | CodeCFill _ -> Format.fprintf fmt "<cfill>"
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
@@ -170,6 +171,7 @@ struct
       | CodeSg _ -> times
       | CodeSignature _ -> juxtaposition
       | CodeExt _ -> juxtaposition
+      | CodeCFill _ -> juxtaposition
 
       | Ann _ -> passed
       | Let _ -> dual juxtaposition in_
@@ -381,6 +383,8 @@ struct
         (pp_atomic env) fam
         (pp_atomic Pp.Env.emp) phi
         (pp_atomic env) bdry
+    | CodeCFill tp ->
+      Format.fprintf fmt "cfill %a" (pp_atomic env) tp
 
     | CodeNat when Debug.is_debug_mode () ->
       Format.fprintf fmt "`nat"

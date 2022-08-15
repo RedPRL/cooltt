@@ -44,7 +44,7 @@
 %token <string> ATOM
 %token <ConcreteSyntax.hole> HOLE
 %token BANG COLON COLON_COLON COLON_EQUALS COLON_COLON_EQUALS HASH PIPE COMMA DOT SEMI LEFT_ARROW RIGHT_ARROW RRIGHT_ARROW UNDERSCORE DIM DDIM DZERO DONE COF BOUNDARY
-%token LPR RPR LBR RBR LSQ RSQ LBANG RBANG
+%token LPR RPR LBR RBR LSQ RSQ LANG RANG LBANG RBANG
 %token EQUALS LESS_THAN JOIN MEET
 %token TYPE
 %token TIMES FST SND
@@ -52,7 +52,7 @@
 %token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT AS INCLUDE RENAMING OPEN
-%token EXT DEXT
+%token EXT DEXT CFILL
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
 
@@ -420,20 +420,30 @@ plain_term_except_cof_case:
     { Cap t }
   | hole = HOLE; SEMI; t = term
     { Hole (hole, Some t) }
-  | EXT; names = list(plain_name); PIPE; dnames = list(plain_name); PIPE; LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
+  | EXT; names = list(plain_name); PIPE; dnames = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, dnames, phi, fam, cases) }
   | EXT; names = list(plain_name); PIPE; dnames = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, dnames, { node = TopC ; info = None }, fam, cases) }
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, [], { node = TopC ; info = None }, fam, cases) }
-  | EXT; names = list(plain_name); PIPE; LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
+  | EXT; names = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, [], phi, fam, cases) }
   | DEXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext ([], names, { node = TopC ; info = None }, fam, cases) }
-  | DEXT; names = list(plain_name); PIPE; LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
+  | DEXT; names = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext ([], names, phi, fam, cases) }
+  | LANG; names = list(plain_name); PIPE; dnames = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RANG; RRIGHT_ARROW; fam = term;
+    { Ext (names, dnames, phi, fam, []) }
+  | LANG; names = list(plain_name); PIPE; dnames = list(plain_name); RANG; RRIGHT_ARROW; fam = term;
+    { Ext (names, dnames, { node = TopC ; info = None }, fam, []) }
+  | LANG; names = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RANG; RRIGHT_ARROW; fam = term;
+    { Ext (names, [], phi, fam, []) }
+  | LANG; names = list(plain_name); RANG; RRIGHT_ARROW; fam = term;
+    { Ext (names, [], { node = TopC ; info = None }, fam, []) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
+  | CFILL; tp = atomic_term
+    { CFill tp }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { HCom (tp, src, trg, phi, body) }
   | HFILL; tp = atomic_term; src = atomic_term; phi = atomic_term; body = atomic_term

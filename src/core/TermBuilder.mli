@@ -124,8 +124,12 @@ module Kan : sig
   val coe_sign : field_lines:(Ident.user * t m) list -> coe
   val hcom_sign : fields:(Ident.user * t m) list -> hcom
 
-  val hcom_ext : n:int -> n':int -> psi:t m -> cof:t m -> fam:t m -> bdry:t m -> hcom
+
   val coe_ext : n:int -> n':int -> psi:t m -> cof:t m -> fam_line:t m -> bdry_line:t m -> coe
+  val hcom_ext : n:int -> n':int -> psi:t m -> cof:t m -> fam:t m -> bdry:t m -> hcom
+
+  val coe_cfill : tp:t m -> coe
+  val hcom_cfill : tp:t m -> hcom
 
   module V : sig
     type vcode = {r : t m; pcode : t m; code : t m; pequiv : t m}

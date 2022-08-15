@@ -389,8 +389,11 @@ and quote_stable_code univ =
         TB.el @@ TB.ap code (List.append js [psi])
       in
       quote_con tp_bdry bdry
-    in
-    S.CodeExt (m, n, tpsi, tcode, tphi, tbdry)
+      in
+      S.CodeExt (m, n, tpsi, tcode, tphi, tbdry)
+    | `CFill tp ->
+      let+ ttp = quote_con univ tp in
+      S.CodeCFill ttp
 
 and quote_global_con tp (`Global con) =
   globally @@

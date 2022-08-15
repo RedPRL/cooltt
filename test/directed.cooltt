@@ -9,9 +9,34 @@ def homO (A : 𝟚 → type) (a : A d0) (b : A d1) : type :=
 
 def Λ↣Δ (A  : (i j : 𝟚) → [i ≤ j] → type)
         (aΛ : (i j : 𝟚) → [i = d0 ∨ j = d1] → A i j) : type :=
-    dext i j | [i ≤ j] ⇒ A i j with [ i = d0 ⇒ aΛ d0 j
-                                   | j = d1 ⇒ aΛ i d1 ]
+    dext i j [i ≤ j] ⇒ A i j with [ i = d0 ⇒ aΛ d0 j
+                                  | j = d1 ⇒ aΛ i d1 ]
 
+def isInner (A : (i j : 𝟚) → [i ≤ j] → type) : type :=
+    (b : <|i j [i = d0 ∨ j = d1]> ⇒ A i j)
+    → cfill {dext i j [i ≤ j] ⇒ A i j with [i = d0 ∨ j = d1 ⇒ b i j]}
+
+def test (A : (i j : 𝟚) → [i ≤ j] → type) : isInner A := b φ t => ?
+
+/-
+BAD : i isn't in scope for extension type inside cfill
+def isKan (A : 𝕀 → type) : type :=
+    <i> ⇒ {(b : A i) → cfill {ext j ⇒ A j with [i=j ⇒ b]}}
+
+def isCov (A : 𝟚 → type) : type :=
+    <|i> ⇒ {(b : A i) → cfill {dext j [i ≤ j] ⇒ A j with [i=j ⇒ b]}}
+
+def isInner (A : (i j : 𝟚) → [i ≤ j] → type) : type :=
+    (φ : 𝔽)
+    → (b : dext i j | [i = d0 ∨ j = d1] ⇒ A i j with [])
+    → (t : dext i j | [i ≤ j ∧ φ] ⇒ A i j with [i = d0 ∨ j = d1 ⇒ b i j])
+    → dext i j [i ≤ j] ⇒ A i j with [ i = d0 ∨ j = d1 ⇒ b i j
+                                    | φ ⇒ t i j]
+
+"def" isFill Phi → (psi ≤ phi : 𝔽[Phi]) → (A : Phi → [phi] → type) : type :=
+      (b : <cube [psi]> ⇒ A cube)
+      → contrFill {cube | [phi] ⇒ A cube with [psi ⇒ b cube]}
+-/
 
 def weirdSquare (A : 𝕀 → 𝟚 → type)
                 (ai0 : (i : 𝕀) → A i d0)
@@ -41,7 +66,3 @@ def test7 : hom nat 3 3 := test1
 def test8 (i : ddim) : sub nat {i = d0 ∨ d0 = d1}
                                [ i = d0 ⇒ 3
                                | i = d1 ⇒ 3 ] := test1 i
-
-
-#print homO
-#print weirdSquare

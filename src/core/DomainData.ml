@@ -29,6 +29,9 @@ struct
     | `Ext of int * int * 'a * 'a * [`Global of 'a] * 'a
     (** Extension type *)
 
+    | `CFill of 'a
+    (** contractible fill type *)
+
     | `Nat
     (** Natural numbers type *)
 

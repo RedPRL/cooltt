@@ -190,6 +190,9 @@ and equate_stable_code univ code0 code1 =
     in
     equate_con tp_bdry bdry0 bdry1
 
+  | `CFill tp0 , `CFill tp1 ->
+    equate_con univ tp0 tp1
+
   | `Signature sign0, `Signature sign1 ->
     equate_sign_code univ sign0 sign1
   | code0, code1 ->

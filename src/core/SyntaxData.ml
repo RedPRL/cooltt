@@ -54,6 +54,7 @@ struct
     | VIn of t * t * t * t
     | VProj of t * t * t * t * t
 
+    | CodeCFill of t
     | CodeExt of int * int * t * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t

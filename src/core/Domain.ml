@@ -267,6 +267,7 @@ struct
   and pp_stable_code fmt =
     function
     | `Ext _ -> Format.fprintf fmt "<code-ext>"
+    | `CFill _ -> Format.fprintf fmt "<code-cfill>"
     | `Pi _ -> Format.fprintf fmt "<code-pi>"
     | `Sg _ -> Format.fprintf fmt "<code-sg>"
     | `Signature _ -> Format.fprintf fmt "<code-sig>"
