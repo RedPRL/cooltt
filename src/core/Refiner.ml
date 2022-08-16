@@ -398,7 +398,7 @@ struct
 
     module State =
     struct
-      open Bwd.Infix (* open BwdNotation *)
+      open BwdNotation
       type t =
         {disj : D.cof;
          fns : (D.cof * D.con) bwd;
