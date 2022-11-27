@@ -1647,8 +1647,37 @@ holes.cooltt:23.5-24.30 [Info]:
 [Warn]:  There are 13 unsolved holes
 
 --------------------[import.cooltt]--------------------
-import.cooltt:23.0-23.1 [Error]:
-  Parse error near !
+Emitted namespace under p2
+  ?cool = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
+          ; refl => refl; symm => symm; symm/filler => symm/filler
+          ; trans => trans; trans/filler => trans/filler; u => unit
+          ; unit/eta => unit/eta }
+
+Emitted namespace under ∷
+  ?all = { p1∷cong => cong; p1∷funext => funext; p1∷path => path
+         ; p1∷path-p => path-p; p1∷refl => refl; p1∷symm => symm
+         ; p1∷symm/filler => symm/filler; p1∷trans => trans
+         ; p1∷trans/filler => trans/filler; p1∷unit/eta => unit/eta
+         ; p1∷⋆ => ⋆; p2∷cong => cong; p2∷funext => funext
+         ; p2∷path-p => path-p; p2∷q∷t => ⋆; p2∷refl => refl; p2∷symm => symm
+         ; p2∷symm/filler => symm/filler; p2∷trans => trans
+         ; p2∷trans/filler => trans/filler; p2∷u => unit
+         ; p2∷unit/eta => unit/eta }
+
+Emitted namespace under ∷
+  ? = { cong => cong; funext => funext; path => path; path-p => path-p
+      ; refl => refl; symm => symm; symm/filler => symm/filler
+      ; trans => trans; trans/filler => trans/filler; unit => unit
+      ; unit/eta => unit/eta; ⋆ => ⋆ }
+
+import.cooltt:25.7-25.14 [Info]:
+  def cool-tt : ext nat ⊤ {_x => 0} := 0
+
+Emitted namespace under p2
+  ? = { cong => cong; funext => funext; path-p => path-p; q∷t => ⋆
+      ; refl => refl; symm => symm; symm/filler => symm/filler
+      ; trans => trans; trans/filler => trans/filler; u => unit
+      ; unit/eta => unit/eta }
 
 --------------------[inequality.cooltt]--------------------
 inequality.cooltt:11.7-11.10 [Info]:

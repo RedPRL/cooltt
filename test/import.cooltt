@@ -20,7 +20,6 @@ import /- comment -/prelude [ ! :: ] -- import nothing
 import /- comment -/ prelude [?; !] -- print out all the bindings but then import nothing
 
 import prelude [cong; cong -> cool::cong]
-!import prelude [cong; cong -> cool::cong] -- use bang to shadow existing bindings
 
 def cool-tt : p1::u := p2::q::t
 #print cool-tt
