@@ -1,7 +1,7 @@
 open ContainersLabels
 open Basis
 open Bwd
-open BwdNotation
+open Bwd.Infix
 
 open CodeUnit
 

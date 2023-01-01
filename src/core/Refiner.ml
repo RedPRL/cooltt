@@ -322,7 +322,7 @@ struct
 
     module State =
     struct
-      open BwdNotation
+      open Bwd.Infix
       type t =
         {disj : D.cof;
          fns : (D.cof * D.con) bwd;
@@ -791,7 +791,7 @@ struct
     S.HCom (code, src, trg, cof, tm), vtp
 
   let hcom_chk (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Chk.tac =
-    let rec as_code = function
+    let as_code = function
       | D.ElStable code -> RM.ret @@ D.StableCode code
       | D.ElUnstable code -> RM.ret @@ D.UnstableCode code
       | D.ElCut cut -> RM.ret @@ D.Cut { tp = D.Univ; cut }

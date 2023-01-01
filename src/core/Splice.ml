@@ -1,5 +1,5 @@
 open Bwd
-open BwdNotation
+open Bwd.Infix
 
 open CodeUnit
 
