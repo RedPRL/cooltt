@@ -1,7 +1,7 @@
 type 'a printer = Format.formatter -> 'a -> unit
 
 open Bwd
-open BwdNotation
+open Bwd.Infix
 
 module Env =
 struct
