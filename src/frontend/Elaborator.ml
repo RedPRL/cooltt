@@ -280,6 +280,15 @@ and chk_tm : CS.con -> T.Chk.tac =
     | CS.Type ->
       R.Univ.univ
 
+    | CS.Dim ->
+      R.Dom.dim
+
+    | CS.DDim ->
+      R.Dom.ddim
+
+    | CS.Cof ->
+      R.Dom.cof_ty
+
     | CS.Pi (cells, body) ->
       let tac (CS.Cell cell) = let tp = chk_tm cell.tp in List.map (fun name -> name, tp) cell.names in
       let tacs = cells |> List.concat_map tac in
@@ -335,6 +344,12 @@ and chk_tm : CS.con -> T.Chk.tac =
     let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
     let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
       R.Univ.ext m n tac_phi tac_fam tac_cof tac_bdry
+
+    | CS.FSub (tp, cases) ->
+      let tac_tp = chk_tm @@ tp in
+      let tac_cof = chk_tm @@ CS.{node = CS.Join (List.map fst cases); info = None} in
+      let tac_bdry = chk_tm @@ CS.{node = CS.CofSplit cases; info = None} in
+      R.Univ.sub tac_tp tac_cof tac_bdry
 
     | CS.CFill tp ->
       let tac_tp = chk_tm @@ tp in

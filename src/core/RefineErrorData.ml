@@ -23,7 +23,9 @@ struct
     | `ElV
     | `ElHCom
     | `ElExt
+    | `ElSub
     | `ElCFill
+    | `DomTp
     ]
 
   type t =
@@ -46,4 +48,5 @@ struct
     | UnsolvedHoles of int
     | ExpectedSignature of Pp.env * S.t
     | ExpectedStructure of Pp.env * S.t
+    | ExpectedFibVar (* of Pp.env * int *)
 end

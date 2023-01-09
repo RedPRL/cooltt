@@ -48,7 +48,7 @@
 %token EQUALS LESS_THAN JOIN MEET
 %token TYPE
 %token TIMES FST SND
-%token LET IN SUB
+%token LET IN SUB FSUB
 %token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT AS INCLUDE RENAMING OPEN
@@ -440,6 +440,8 @@ plain_term_except_cof_case:
     { Ext (names, [], phi, fam, []) }
   | LANG; names = list(plain_name); RANG; RRIGHT_ARROW; fam = term;
     { Ext (names, [], { node = TopC ; info = None }, fam, []) }
+  | FSUB; tp = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
+    { FSub (tp, cases) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
   | CFILL; tp = atomic_term

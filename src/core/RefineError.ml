@@ -42,6 +42,10 @@ let pp_connective fmt =
     Format.fprintf fmt "ext"
   | `ElCFill ->
     Format.fprintf fmt "cfill"
+  | `DomTp ->
+    Format.fprintf fmt "dom"
+  | `ElSub ->
+    Format.fprintf fmt "sub'"
 
 let pp fmt =
   function
@@ -114,6 +118,9 @@ let pp fmt =
   | ExpectedStructure (ppenv, tm) ->
     Fmt.fprintf fmt
       "Expected structure but got %a" (S.pp ppenv) tm
+  | ExpectedFibVar ->
+    Fmt.fprintf fmt
+      "Not a ~fancy~ var!"
 
 
 

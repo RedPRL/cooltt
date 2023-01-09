@@ -274,6 +274,9 @@ struct
   let globally m (st, env) =
     scope Env.globally m (st, env)
 
+  let fib_only m (st, env) =
+    scope Env.fib_only m (st, env)
+
   let emit ?(lvl = `Info) loc pp a : unit m =
     fun (st, _env) -> match lvl with
       | `Error ->

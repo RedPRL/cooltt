@@ -106,6 +106,7 @@ struct
   type tac =
     | Chk of string * (D.tp -> S.t RM.m)
     | BChk of string * (D.tp * D.cof * D.tm_clo -> S.t RM.m)
+(*  | FibChk of string * int Set * (D.tp -> S.t RM.m) WRONG *)
 
   let run =
     function
@@ -168,6 +169,7 @@ and Syn : sig
 end =
 struct
   type tac = string * (S.t * D.tp) RM.m
+(*         | Fib of string * int Set * (S.t * D.tp) RM.m  WRONG *)
 
   let rule ?(name = "") tac = (name, tac)
   let run (name, tac) =

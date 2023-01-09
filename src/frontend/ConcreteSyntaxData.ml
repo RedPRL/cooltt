@@ -44,6 +44,7 @@ and con_ =
   | Patch of con * patch_field list
   | Open of con * (Ident.user * Ident.user) list * con
   | Sub of con * con * con
+  | FSub of con * (con * con) list
   | Pair of con * con
   | Fst of con
   | Snd of con

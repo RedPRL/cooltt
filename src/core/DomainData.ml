@@ -29,6 +29,10 @@ struct
     | `Ext of int * int * 'a * 'a * [`Global of 'a] * 'a
     (** Extension type *)
 
+
+    | `FSub of 'a * [`Fib of 'a] * 'a
+    (** Fibrant Sub type *)
+
     | `CFill of 'a
     (** contractible fill type *)
 
@@ -40,6 +44,7 @@ struct
 
     | `Univ
       (** A code for the universe (antinomous for now). *)
+
     ]
 
   (** A type code which {i may or may not} be stable under dimension substitution. That is,
@@ -51,6 +56,13 @@ struct
     | `V of dim * 'a * 'a * 'a
       (** V types, for univalence *)
     ]
+
+  type dom_code =
+  [
+    | `Dim
+    | `DDim
+    | `Cof
+  ]
 
   type env = {tpenv : tp bwd; conenv: con bwd}
 
@@ -100,6 +112,7 @@ struct
 
     | StableCode of con stable_code
     | UnstableCode of con unstable_code
+    | DomCode of dom_code
 
     | Box of dim * dim * cof * con * con
     | VIn of dim * con * con * con
@@ -109,6 +122,7 @@ struct
   and tp =
     | Sub of tp * cof * tm_clo
     | Univ
+    | DomTp
     | ElCut of cut
     | ElStable of con stable_code
     | ElUnstable of con unstable_code

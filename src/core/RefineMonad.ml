@@ -41,6 +41,21 @@ let resolve_unfolder_syms (idents : Ident.t list) =
   MU.filter_map resolve_global idents
 
 
+let set_fib b m = scope (Env.set_fib b) m
+(*
+let ensure_fib_var lvl =
+  let* env = read in
+    if Env.is_fib_var lvl env
+      then ret ()
+      else refine_err (Err.ExpectedFibVar)
+*)
+let last_var_good t m =
+  let* env = read in
+  match t with
+  | D.TpDim | D.TpDDim | D.TpCof ->
+    if Env.is_fib env then scope (Env.add_fib_var ((Env.size env) - 1)) m else m
+  | _ -> m
+
 let get_num_holes =
   let+ st = get in
   St.get_num_holes st
@@ -207,5 +222,3 @@ let abstract nm tp k =
 
 let update_span loc =
   scope @@ Env.set_location loc
-
-

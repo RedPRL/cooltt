@@ -176,7 +176,7 @@ struct
 
   let silent_syn_hole name : T.Syn.tac =
     T.Syn.rule ~name:"silent_syn_hole" @@
-    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in (* may not be empty!!! *)
     let tp = D.ElCut cut in
     let+ tm = tp |> T.Chk.run @@ unleash_hole name in
     tm, tp
@@ -477,11 +477,12 @@ struct
       let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
       S.Pi (base, nm, fam)
 
-  let intro ?(ident = Ident.anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac =
+  let intro ?(ident = Ident.anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac = (* todo: flag as good if in_fib *)
     T.Chk.brule ~name:"Pi.intro" @@
     function
     | D.Pi (base, _, fam), phi, phi_clo ->
       T.abstract ~ident base @@ fun var ->
+      RM.last_var_good base @@
       let* fib = RM.lift_cmp @@ Sem.inst_tp_clo fam @@ T.Var.con var in
       let+ tm = T.Chk.brun (tac_body var) (fib, phi, D.un_lam @@ D.compose (D.Lam (Ident.anon, D.apply_to (T.Var.con var))) @@ D.Lam (Ident.anon, phi_clo)) in
       S.Lam (ident, tm)
@@ -552,6 +553,31 @@ struct
       RM.expected_connective `Sg tp
 end
 
+module Dom =
+struct
+  let formation : T.Tp.tac =
+    T.Tp.rule ~name:"Dom.formation" @@
+    RM.ret S.DomTp
+
+  let dom_tac : string -> (D.tp -> S.t RM.m) -> T.Chk.tac =
+    fun nm m ->
+    T.Chk.rule ~name:nm @@
+    function
+    | D.DomTp -> m D.DomTp
+    | tp ->
+      RM.expected_connective `DomTp tp
+
+  let dim : T.Chk.tac =
+    dom_tac "Dom.dim" @@ fun _ -> RM.ret S.CodeDim
+
+  let ddim : T.Chk.tac =
+    dom_tac "Dom.ddim" @@ fun _ -> RM.ret S.CodeDDim
+
+  let cof_ty : T.Chk.tac =
+    dom_tac "Dom.cof_ty" @@ fun _ -> RM.ret S.CodeCof
+
+end
+
 module Univ =
 struct
   let formation : T.Tp.tac =
@@ -562,7 +588,9 @@ struct
     fun nm m ->
     T.Chk.rule ~name:nm @@
     function
-    | D.Univ -> m D.Univ
+    | D.Univ ->
+      (* RM.enter_fib @@ *)
+      m D.Univ
     | tp ->
       RM.expected_connective `Univ tp
 
@@ -588,13 +616,26 @@ struct
       Splice.tp univ @@ fun univ ->
       Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
     in
-    let+ fam = T.Chk.run tac_fam famtp in
+    let+ fam = RM.set_fib false @@ T.Chk.run tac_fam famtp in
     base, fam
 
   let pi tac_base tac_fam : T.Chk.tac =
     univ_tac "Univ.pi" @@ fun univ ->
-    let+ tp, fam = quantifier tac_base tac_fam univ in
-    S.CodePi (tp, fam)
+    let* fancy = RM.trap @@ T.Chk.run tac_base D.DomTp in
+    let* base =
+      match fancy with
+      | Ok t -> RM.ret t
+      | Error _ -> T.Chk.run tac_base univ in
+    let* vbase = RM.lift_ev @@ Sem.eval base in
+    let* famtp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con vbase @@ fun base ->
+      Splice.tp univ @@ fun univ ->
+      Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
+    in
+    let+ fam = RM.set_fib true @@ T.Chk.run tac_fam famtp in
+    S.CodePi (base, fam)
 
   let sg tac_base tac_fam : T.Chk.tac =
     univ_tac "Univ.sg" @@ fun univ ->
@@ -749,45 +790,67 @@ struct
     let+ qfib = RM.quote_con fib_tp fib in
     S.CodeSignature (qsign @ [`User ["fib"], qfib])
 
-  let ext (m : int) (n : int)(tac_phi : T.Chk.tac) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
-    univ_tac "Univ.ext" @@ fun univ ->
-    let* tphi =
-      let* tp_cof = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
-      RM.globally @@ T.Chk.run tac_phi tp_cof
-    in
-    let* phi = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tphi in
+  let sub (tac_tp : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
+    univ_tac "Univ.sub" @@ fun univ ->
     let* tcof =
-      let* tp_cof_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
-      RM.globally @@ T.Chk.run tac_cof tp_cof_fam
+      RM.fib_only @@ T.Chk.run tac_cof D.TpCof
     in
     let* cof = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
-    let* tfam =
-      let* tp_fam =
-        RM.lift_cmp @@ Sem.splice_tp @@
-        Splice.con phi @@ fun phi ->
-        Splice.tp univ @@ fun univ ->
-        Splice.term @@ TB.cube m n @@ fun js ->
-        TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
-        univ
-      in
-      T.Chk.run tac_fam tp_fam
+    let* ttp = T.Chk.run tac_tp univ
     in
     let+ tbdry =
-      let* fam = RM.lift_ev @@ Sem.eval tfam in
+      let* tp = RM.lift_ev @@ Sem.eval ttp in
       let* tp_bdry =
         RM.lift_cmp @@ Sem.splice_tp @@
-        Splice.con phi @@ fun phi ->
         Splice.con cof @@ fun cof ->
-        Splice.con fam @@ fun fam ->
+        Splice.con tp @@ fun tp ->
         Splice.term @@
-        TB.cube m n @@ fun js ->
-        TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun phi ->
-        TB.pi (TB.tp_prf @@ TB.ap cof js) @@ fun _ ->
-        TB.el @@ TB.ap fam (List.append js [phi])
+        TB.pi (TB.tp_prf @@ cof) @@ fun _ ->
+        TB.el @@ tp
       in
       T.Chk.run tac_bdry tp_bdry
     in
-    S.CodeExt (m, n, tphi, tfam, `Global tcof, tbdry)
+    S.CodeSub (ttp, `Fib tcof, tbdry)
+
+    let ext (m : int) (n : int)(tac_phi : T.Chk.tac) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
+      univ_tac "Univ.ext" @@ fun univ ->
+      let* tphi =
+        let* tp_cof = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
+        RM.fib_only @@ T.Chk.run tac_phi tp_cof
+      in
+      let* phi = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tphi in
+      let* tcof =
+        let* tp_cof_fam = RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@ TB.cube m n @@ fun _ -> TB.tp_cof in
+        RM.fib_only @@ T.Chk.run tac_cof tp_cof_fam
+      in
+      let* cof = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
+      let* tfam =
+        let* tp_fam =
+          RM.lift_cmp @@ Sem.splice_tp @@
+          Splice.con phi @@ fun phi ->
+          Splice.tp univ @@ fun univ ->
+          Splice.term @@ TB.cube m n @@ fun js ->
+          TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun _ ->
+          univ
+        in
+        T.Chk.run tac_fam tp_fam
+      in
+      let+ tbdry =
+        let* fam = RM.lift_ev @@ Sem.eval tfam in
+        let* tp_bdry =
+          RM.lift_cmp @@ Sem.splice_tp @@
+          Splice.con phi @@ fun phi ->
+          Splice.con cof @@ fun cof ->
+          Splice.con fam @@ fun fam ->
+          Splice.term @@
+          TB.cube m n @@ fun js ->
+          TB.pi (TB.tp_prf @@ TB.ap phi js) @@ fun phi ->
+          TB.pi (TB.tp_prf @@ TB.ap cof js) @@ fun _ ->
+          TB.el @@ TB.ap fam (List.append js [phi])
+        in
+        T.Chk.run tac_bdry tp_bdry
+      in
+      S.CodeExt (m, n, tphi, tfam, `Global tcof, tbdry)
 
   let is_nullary_ext = function
     | D.ElStable (`Ext (0, 0, Cof (Meet []), _ ,`Global (Cof cof), _)) ->
@@ -1232,18 +1295,38 @@ end
 module Structural =
 struct
 
+let lookup_var id : T.Syn.tac =
+  T.Syn.rule ~name:"Structural.lookup_var" @@
+  let* res = RM.resolve id in
+  match res with
+  | `Local ix ->
+    let* tp = RM.get_local_tp ix in
+    RM.ret (S.Var ix, tp)
+  | `Global sym -> (* todo: make is_fib RM, make false *)
+    let+ tp = RM.get_global sym in
+    S.Global sym, tp
+  | `Unbound ->
+    RM.refine_err @@ Err.UnboundVariable id
+
+(*
   let lookup_var id : T.Syn.tac =
     T.Syn.rule ~name:"Structural.lookup_var" @@
     let* res = RM.resolve id in
     match res with
     | `Local ix ->
-      let+ tp = RM.get_local_tp ix in
-      S.Var ix, tp
-    | `Global sym ->
+      let* tp = RM.get_local_tp ix in
+      begin match tp with
+      | D.TpDDim | D.TpCof ->
+        let+ () = RM.ensure_fib_var ix in
+        S.Var ix, tp
+      | _ -> RM.ret (S.Var ix, tp)
+      end
+    | `Global sym -> (* todo: make is_fib RM, make false *)
       let+ tp = RM.get_global sym in
       S.Global sym, tp
     | `Unbound ->
       RM.refine_err @@ Err.UnboundVariable id
+*)
 
   let index ix =
     let+ tp = RM.get_local_tp ix in

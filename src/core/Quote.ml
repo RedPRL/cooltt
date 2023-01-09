@@ -391,14 +391,33 @@ and quote_stable_code univ =
       quote_con tp_bdry bdry
       in
       S.CodeExt (m, n, tpsi, tcode, tphi, tbdry)
-    | `CFill tp ->
-      let+ ttp = quote_con univ tp in
-      S.CodeCFill ttp
+  | `CFill tp ->
+    let+ ttp = quote_con univ tp in
+    S.CodeCFill ttp
+  | `FSub (code, `Fib phi, bdry) ->
+    let+ tphi = quote_fib_con D.TpCof @@ `Fib phi
+    and+ tcode = quote_con univ code
+    and+ tbdry =
+      let* tp_bdry =
+        lift_cmp @@ splice_tp @@
+        Splice.con code @@ fun code ->
+        Splice.con phi @@ fun phi ->
+        Splice.term @@
+        TB.pi (TB.tp_prf @@ phi) @@ fun _ ->
+        TB.el code
+      in
+      quote_con tp_bdry bdry
+      in
+    S.CodeSub (tcode, tphi, tbdry)
 
 and quote_global_con tp (`Global con) =
   globally @@
   let+ tm = quote_con tp con in
   `Global tm
+
+and quote_fib_con tp (`Fib con) = (*TODO: This is trivial currently*)
+  let+ tm = quote_con tp con in
+  `Fib tm
 
 and quote_lam ~ident tp mbdy =
   let+ bdy = bind_var tp mbdy in
@@ -482,6 +501,8 @@ and quote_tp (tp : D.tp) =
       quote_con tp body
     in
     S.Sub (ttp, tphi, tm)
+  | D.DomTp ->
+    ret S.DomTp
   | D.TpDim ->
     ret S.TpDim
   | D.TpDDim ->

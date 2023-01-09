@@ -75,6 +75,10 @@ struct
 
     | CodeCFill _ -> Format.fprintf fmt "<cfill>"
     | CodeExt _ -> Format.fprintf fmt "<ext>"
+    | CodeSub _ -> Format.fprintf fmt "<fsub>"
+    | CodeDim -> Format.fprintf fmt "<dim>"
+    | CodeDDim -> Format.fprintf fmt "<ddim>"
+    | CodeCof -> Format.fprintf fmt "<cof>"
     | CodePi _ -> Format.fprintf fmt "<pi>"
     | CodeSg _ -> Format.fprintf fmt "<sg>"
     | CodeSignature fields ->
@@ -87,6 +91,7 @@ struct
     | CodeCircle -> Format.fprintf fmt "circle"
 
     | ESub _ -> Format.fprintf fmt "<esub>"
+
 
   and dump_struct fmt fields =
     Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump tp)) fields
@@ -111,6 +116,7 @@ struct
     | Nat -> Format.fprintf fmt "nat"
     | Circle -> Format.fprintf fmt "circle"
     | TpESub _ -> Format.fprintf fmt "<esub>"
+    | DomTp -> Format.fprintf fmt "<dom>"
 
 
   and dump_cof fmt = Cof.dump dump dump dump fmt
@@ -159,7 +165,7 @@ struct
       | Cof (Cof.Meet _) -> cof_meet
       | ForallCof _ -> dual juxtaposition arrow
 
-      | Zero | Base | CodeNat | CodeCircle | CodeUniv | Dim0 | Dim1 | DDim0 | DDim1 | Prf -> atom
+      | Zero | Base | CodeNat | CodeCircle | CodeUniv | Dim0 | Dim1 | DDim0 | DDim1 | Prf | CodeDim | CodeDDim | CodeCof -> atom
       | Suc _ as tm -> if Option.is_some (to_numeral tm) then atom else juxtaposition
       | HCom _ | Com _ | Coe _
       | Fst _ | Snd _
@@ -171,6 +177,7 @@ struct
       | CodeSg _ -> times
       | CodeSignature _ -> juxtaposition
       | CodeExt _ -> juxtaposition
+      | CodeSub _ -> juxtaposition
       | CodeCFill _ -> juxtaposition
 
       | Ann _ -> passed
@@ -191,7 +198,7 @@ struct
 
     let classify_tp : tp -> t =
       function
-      | Univ | TpDim | TpDDim | TpCof | Nat | Circle -> atom
+      | Univ | TpDim | TpDDim | TpCof | Nat | Circle | DomTp -> atom
       | El _ -> passed
       | TpVar _ -> atom
       | TpPrf _ -> delimited
@@ -383,6 +390,11 @@ struct
         (pp_atomic env) fam
         (pp_atomic Pp.Env.emp) phi
         (pp_atomic env) bdry
+    | CodeSub (tp, `Fib phi, bdry) ->
+      Format.fprintf fmt "@[<hv>sub@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
+        (pp_atomic env) tp
+        (pp_atomic Pp.Env.emp) phi
+        (pp_atomic env) bdry
     | CodeCFill tp ->
       Format.fprintf fmt "cfill %a" (pp_atomic env) tp
 
@@ -459,6 +471,13 @@ struct
     | VProj (_, _, _, _, v) ->
       Format.fprintf fmt "@[<hv2>vproj %a@]"
         (pp_atomic env) v
+
+    | CodeDim ->
+      Format.fprintf fmt "`dim"
+    | CodeDDim  ->
+      Format.fprintf fmt "`ddim"
+    | CodeCof ->
+      Format.fprintf fmt "`cof"
 
     | ESub (sub, tm) ->
       Format.fprintf fmt "[%a]%a"
@@ -648,6 +667,8 @@ struct
       Format.fprintf fmt "[%a]%a"
         (pp_sub env P.isolated) sub
         (pp_tp env P.(right_of substitution)) tp
+    | DomTp ->
+      Format.fprintf fmt "dom"
 
   and pp_cof_split_branch env fmt (phi, tm) =
     let _x, envx = ppenv_bind env Ident.anon in

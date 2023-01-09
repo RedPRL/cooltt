@@ -1,5 +1,11 @@
+
+def subtest (A : type) (a b : A) : type :=
+  (i : 𝟚) → fsub A with [ i = d0 ⇒ a | 1 = d1 ⇒ b ]
+
+#quit
+
 def hom (A : type) (a b : A) : type :=
-    dext i ⇒ A with [i = d0 ⇒ a | i=d1 ⇒ b]
+    <|k> ⇒ dext i ⇒ A with [i = d0 ⇒ a | k=d1 ⇒ b]
 
 def pathO (A : 𝕀 → type) (a : A 0) (b : A 1) : type :=
     ext i ⇒ A i with [i = 0 ⇒ a | i = 1 ⇒ b]
@@ -25,6 +31,9 @@ def prodInner (Γ : type) (A : Γ → type) (B : Γ → type)
               : relInner Γ {γ ⇒ A γ × B γ} :=
     p b φ t i j ⇒ [ inA p {i j ⇒ fst {b i j}} φ {i j ⇒ fst {t i j}} i j
                   , inB p {i j ⇒ snd {b i j}} φ {i j ⇒ snd {t i j}} i j ]
+
+-- #print prodInner
+
 
 def sigmaInner (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
                (inA : relInner Γ A) (inB : relInner {(γ : Γ) × A γ} {p ⇒ B {fst p} {snd p}})

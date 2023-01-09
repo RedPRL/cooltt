@@ -100,6 +100,7 @@ module RefineM : sig
   val restrict : D.cof list -> 'a m -> 'a m
 
   val globally : 'a m -> 'a m
+  val fib_only : 'a m -> 'a m
   val emit : ?lvl:Log.level -> LexingUtil.span option -> (Format.formatter -> 'a -> unit) -> 'a -> unit m
 
   val abort_if_inconsistent : 'a m -> 'a m -> 'a m

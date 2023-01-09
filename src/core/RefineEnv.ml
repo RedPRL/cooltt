@@ -9,6 +9,7 @@ module StringMap = Map.Make (String)
 module D = Domain
 module S = Syntax
 
+module IntSet = Set.Make (Int)
 
 module Cell =
 struct
@@ -29,6 +30,8 @@ type t =
     locals : cell bwd;
     cof_thy : CofThy.Disj.t;
     pp : Pp.env;
+    fib_vars : IntSet.t; (* fancy vars *)
+    is_fib : bool; (* if ussing fib_vars *)
 
     (* location *)
     location : LexingUtil.span option;
@@ -38,12 +41,16 @@ let init =
   { locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
+    fib_vars = IntSet.empty;
+    is_fib = false;
     location = None }
 
 let globally env =
   { locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
+    fib_vars = IntSet.empty;
+    is_fib = false;
     location = env.location }
 
 
@@ -77,6 +84,23 @@ let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
   | [] -> ()
   | (cell :: cells) ->
     Format.fprintf fmt "%a : %a := @[<hov 2>%a@]@;%a" Ident.pp cell.ident D.pp_tp (fst cell.contents) D.pp_con (snd cell.contents) dump_locals cells
+
+(*
+let is_fib_var lvl env =
+  if env.is_fib
+    then IntSet.mem lvl env.fib_vars
+    else true
+*)
+let set_fib b env = {env with is_fib = b}
+
+let is_fib env = env.is_fib
+
+let add_fib_var lvl env = {env with fib_vars = IntSet.add lvl env.fib_vars}
+
+let get_fib_vars env =
+  Bwd.of_list @@ List.map (BwdLabels.nth env.locals) (IntSet.to_list env.fib_vars)
+
+let fib_only env = {env with locals = get_fib_vars env}
 
 (* cofibrations and others *)
 let local_cof_thy env = env.cof_thy

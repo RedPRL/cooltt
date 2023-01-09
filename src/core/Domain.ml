@@ -215,6 +215,7 @@ struct
     | BindSym _ -> Format.fprintf fmt "<bind-sym>"
     | StableCode code -> pp_stable_code fmt code
     | UnstableCode _ -> Format.fprintf fmt "<unstable-code>"
+    | DomCode code -> pp_dom_code fmt code
     | Box _ -> Format.fprintf fmt "<box>"
     | VIn _ -> Format.fprintf fmt "<vin>"
     | Split branches ->
@@ -249,6 +250,8 @@ struct
       Format.fprintf fmt "<ddim>"
     | Univ ->
       Format.fprintf fmt "<univ>"
+    | DomTp ->
+      Format.fprintf fmt "<dom>"
     | Nat ->
       Format.fprintf fmt "<nat>"
     | Circle ->
@@ -274,5 +277,12 @@ struct
     | `Nat -> Format.fprintf fmt "<code-nat>"
     | `Circle -> Format.fprintf fmt "<code-circle>"
     | `Univ -> Format.fprintf fmt "<code-univ>"
+    | `FSub _ -> Format.fprintf fmt "<code-sub>"
+
+  and pp_dom_code fmt =
+    function
+    | `Dim -> Format.fprintf fmt "<code-dim>"
+    | `DDim -> Format.fprintf fmt "<code-ddim>"
+    | `Cof -> Format.fprintf fmt "<code-cof>"
 
 end

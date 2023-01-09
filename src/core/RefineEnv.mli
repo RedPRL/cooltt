@@ -24,6 +24,13 @@ val get_local_tp : int -> t -> D.tp
 val get_local : int -> t -> D.con
 val resolve_local : Ident.t -> t -> int option
 
+(*
+val is_fib_var : int -> t -> bool *)
+val set_fib : bool -> t -> t
+val is_fib : t -> bool
+val add_fib_var : int -> t -> t
+val fib_only : t -> t
+
 val local_cof_thy : t -> CofThy.Disj.t
 val pp_env : t -> Pp.env
 val sem_env : t -> D.env

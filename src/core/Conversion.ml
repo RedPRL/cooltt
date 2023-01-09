@@ -88,7 +88,6 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   ConvM.abort_if_inconsistent (ret ()) @@
   let* tp0 = contractum_or tp0 <@> lift_cmp @@ whnf_tp tp0 in
   let* tp1 = contractum_or tp1 <@> lift_cmp @@ whnf_tp tp1 in
-  let _ = Format.printf "C.equate_tp:\n %a \n = \n %a@." D.pp_tp tp0 D.pp_tp tp1 in
   match tp0, tp1 with
   | D.TpSplit branches, _
   | _, D.TpSplit branches ->

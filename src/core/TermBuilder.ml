@@ -556,6 +556,27 @@ struct
       ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k; prf])) js
       ]
 
+  let coe_sub ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
+    el_in @@
+    sub_in @@
+    com (lam @@ fun i -> ap fam_line [i]) r r' cof @@
+    lam @@ fun i ->
+    lam @@ fun _ ->
+    cof_split
+      [cof, ap bdry_line [i; prf]
+      ; eq i r, sub_out (el_out bdy)]
+
+  let hcom_sub ~cof ~fam ~bdry ~r ~r' ~phi ~bdy =
+    el_in @@
+    sub_in @@
+    hcom fam r r' (join [phi; cof]) @@
+    lam @@ fun k ->
+    lam @@ fun _p ->
+    cof_split
+      [ cof, ap bdry @@ [prf]
+      ; join [phi; eq k r], sub_out @@ el_out (ap bdy [k; prf])
+      ]
+
   let coe_cfill ~tp ~r ~r' ~bdy  =
     el_in @@
     lam @@ fun phi ->

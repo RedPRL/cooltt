@@ -56,6 +56,10 @@ struct
 
     | CodeCFill of t
     | CodeExt of int * int * t * t * [`Global of t] * t
+    | CodeSub of t * [`Fib of t] * t
+    | CodeDim
+    | CodeDDim
+    | CodeCof
     | CodePi of t * t
     | CodeSg of t * t
     | CodeSignature of (Ident.user * t) list
@@ -83,6 +87,7 @@ struct
     | Nat
     | Circle
     | TpESub of sub * tp
+    | DomTp
 
   and sign = (Ident.user * tp) list
 

@@ -106,7 +106,8 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   let open CM in
   let module K = Kado.Syntax in
   function
-  | D.Dim0 | D.Dim1 | D.Prf | D.DDim0 | D.DDim1 | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ) as con -> ret con
+  | D.Dim0 | D.Dim1 | D.Prf | D.DDim0 | D.DDim1 | D.Zero | D.Base | D.StableCode (`Nat | `Circle | `Univ)
+  | D.DomCode (`Dim | `DDim | `Cof) as con -> ret con
   | D.LetSym (s, y, con) ->
     push_subst_con r x @<< push_subst_con s y con
   | D.Suc con ->
@@ -276,7 +277,7 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
-  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpDDim | D.TpCof as con -> ret con
+  | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpDDim | D.TpCof | D.DomTp as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
     D.TpPrf phi
@@ -326,6 +327,10 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `Ext (m, n, phi, code, `Global cof, con)
+  | `FSub (code, `Fib cof, con) ->
+    let+ code = subst_con r x code
+    and+ con = subst_con r x con in
+    `FSub (code, `Fib cof, con)
   | `CFill con ->
     let+ con = subst_con r x con in
     `CFill con
@@ -463,6 +468,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.TpSplit (List.combine phis pclos)
   | S.TpESub (sb, tp) ->
     eval_sub sb @@ eval_tp tp
+    | S.DomTp ->
+      ret D.DomTp
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -625,6 +632,13 @@ and eval : S.t -> D.con EvM.m =
       let* bdry = eval bdry in
       ret @@ D.StableCode (`Ext (m, n, psi, fam, `Global phi, bdry))
 
+    | S.CodeSub (tp, `Fib phi, bdry) ->
+      let* phi = drop_all_cons @@ eval phi in
+      let* tp = eval tp in
+      let* bdry = eval bdry in
+      ret @@ D.StableCode (`FSub (tp, `Fib phi, bdry))
+
+
     | S.CodeCFill tp ->
         let* tp = eval tp in
         ret @@ D.StableCode (`CFill tp)
@@ -652,6 +666,13 @@ and eval : S.t -> D.con EvM.m =
 
     | S.CodeUniv ->
       ret @@ D.StableCode `Univ
+
+    | S.CodeDim ->
+      ret @@ D.DomCode `Dim
+    | S.CodeDDim ->
+      ret @@ D.DomCode `DDim
+    | S.CodeCof ->
+      ret @@ D.DomCode `Cof
 
     | S.Box (r, s, phi, sides, cap) ->
       let+ vr = eval_dim r
@@ -740,7 +761,7 @@ and whnf_con : D.con -> D.con whnf CM.m =
   let open CM in
   function
   | D.Lam _ | D.BindSym _ | D.Zero | D.Suc _ | D.Base | D.Pair _ | D.Struct _ | D.SubIn _ | D.ElIn _
-  | D.Cof _ | D.Dim0 | D.Dim1 |  D.DDim0 | D.DDim1 | D.Prf | D.StableCode _ | D.DimProbe _ ->
+  | D.Cof _ | D.Dim0 | D.Dim1 |  D.DDim0 | D.DDim1 | D.Prf | D.StableCode _ | D.DomCode _ | D.DimProbe _ ->
     ret `Done
   | D.LetSym (r, x, con) ->
     reduce_to @<< push_subst_con r x con
@@ -1320,6 +1341,12 @@ and do_el : D.con -> D.tp CM.m =
         ret @@ D.ElCut cut
       | D.StableCode code ->
         ret @@ D.ElStable code
+      | D.DomCode `Dim ->
+        ret @@ D.TpDim
+      | D.DomCode `DDim ->
+        ret @@ D.TpDDim
+      | D.DomCode `Cof ->
+        ret @@ D.TpCof
       | _ ->
         Format.eprintf "bad do_el: %a@." D.pp_con con;
         throw @@ NbeFailed "Invalid arguments to do_el"
@@ -1372,6 +1399,15 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.pi (TB.tp_prf @@ TB.ap psi js) @@ fun psi ->
         TB.sub (TB.el @@ TB.ap fam (List.append js [psi])) (TB.ap phi js) @@ fun _ ->
         TB.ap bdry @@ js @ [TB.prf; TB.prf]
+
+      | `FSub (tp, `Fib phi, bdry) ->
+        splice_tp @@
+        Splice.con phi @@ fun phi ->
+        Splice.con tp @@ fun tp ->
+        Splice.con bdry @@ fun bdry ->
+        Splice.term @@
+        TB.sub (TB.el @@ tp) phi @@ fun _ ->
+        TB.ap bdry @@ [TB.prf]
 
       | `CFill tp ->
         splice_tp @@
@@ -1471,6 +1507,16 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
+      | `FSub (fam, `Fib cof, bdry) ->
+        splice_tm @@
+        Splice.con cof @@ fun cof ->
+        Splice.con fam @@ fun fam_line ->
+        Splice.con bdry @@ fun bdry_line ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.coe_sub ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
       | `Ext (n, n', psi, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con psi @@ fun psi ->
@@ -1563,6 +1609,17 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
+      | `FSub (fam, `Fib cof, bdry) ->
+        splice_tm @@
+        Splice.con cof @@ fun cof ->
+        Splice.con fam @@ fun fam ->
+        Splice.con bdry @@ fun bdry ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.hcom_sub ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
       | `Ext (n, n', psi, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con psi @@ fun psi ->

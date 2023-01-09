@@ -124,6 +124,7 @@ struct
     | S.VIn (r, pequiv, pivot, base) -> labeled "v_in" [json_of_tm r; json_of_tm pequiv; json_of_tm pivot; json_of_tm base]
     | S.VProj (r, pcode, code, pequiv, v) -> labeled "v_proj" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv; json_of_tm v]
     | S.CodeExt (m, n, psi, fam, `Global phi, tbdry) -> labeled "code_ext" [json_of_int m; json_of_int n; json_of_tm psi; json_of_tm fam; json_of_tm phi; json_of_tm tbdry]
+    | S.CodeSub (tp, `Fib phi, tbdry) -> labeled "fsub" [json_of_tm tp; json_of_tm phi; json_of_tm tbdry]
     | S.CodeCFill tp -> labeled "code_cfill" [json_of_tm tp]
     | S.CodePi (tbase, tfam) -> labeled "code_pi" [json_of_tm tbase; json_of_tm tfam]
     | S.CodeSg (tbase, tfam) -> labeled "code_sg" [json_of_tm tbase; json_of_tm tfam]
@@ -476,6 +477,7 @@ struct
     function
     | Sub (tp, cof, clo) -> labeled "sub" [json_of_tp tp; json_of_cof cof; json_of_tm_clo clo]
     | Univ -> `String "univ"
+    | DomTp -> `String "dom"
     | ElCut cut -> labeled "el_cut" [json_of_cut cut]
     | ElStable code -> labeled "el_stable" [json_of_stable_code code]
     | ElUnstable code -> labeled "el_unstable" [json_of_unstable_code code]
@@ -532,6 +534,7 @@ struct
     | `Nat -> `String "nat"
     | `Circle -> `String "circle"
     | `Univ -> `String "univ"
+    | `FSub (code, `Fib phi, tp) -> labeled "fsub" [json_of_con code; json_of_con phi; json_of_con tp]
 
   and json_of_unstable_code : D.con D.unstable_code -> J.value =
     function
