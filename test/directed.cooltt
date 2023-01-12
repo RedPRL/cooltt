@@ -1,6 +1,17 @@
 
-def subtest (A : type) (a b : A) : type :=
-  (i : 𝟚) → fsub A with [ i = d0 ⇒ a | 1 = d1 ⇒ b ]
+def hom (A : type) (a b : A) : type :=
+  (i : ddim) → fsub A with [i = d0 ⇒ a | i = d1 ⇒ b]
+
+def cofTest (A : type) (a : A) : type :=
+  (α : cof) → fsub A with [α ⇒ a]
+
+def crazyTest (A : type) (a b : A) : type :=
+  (i j k : ddim) → {fsub A with [i = d0 ⇒ a | i = d1 ⇒ b] × fsub A with [j = d0 ⇒ b | j = d1 ⇒ a]}
+  → fsub A with [i = d0 ⇒ a | k = d1 ⇒ a]
+
+#print hom
+#print cofTest
+#print crazyTest
 
 #quit
 

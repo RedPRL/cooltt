@@ -393,7 +393,7 @@ struct
     | CodeSub (tp, `Fib phi, bdry) ->
       Format.fprintf fmt "@[<hv>sub@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
         (pp_atomic env) tp
-        (pp_atomic Pp.Env.emp) phi
+        (pp_atomic env) phi
         (pp_atomic env) bdry
     | CodeCFill tp ->
       Format.fprintf fmt "cfill %a" (pp_atomic env) tp

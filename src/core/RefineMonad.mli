@@ -17,8 +17,7 @@ val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
 val resolve_unfolder_syms : Ident.t list -> Global.t list m
 
 val set_fib : bool -> 'a m -> 'a m
-(* val ensure_fib_var : int -> unit m *)
-val last_var_good : D.tp -> 'a m -> 'a m
+val ensure_dom : int -> unit m
 
 val inc_num_holes : unit m
 

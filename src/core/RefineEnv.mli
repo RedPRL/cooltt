@@ -18,17 +18,15 @@ type t
 val init : t
 val globally : t -> t
 
-val locals : t -> cell bwd
+val locals : t -> (cell * bool) bwd
 val size : t -> int
 val get_local_tp : int -> t -> D.tp
 val get_local : int -> t -> D.con
 val resolve_local : Ident.t -> t -> int option
 
-(*
-val is_fib_var : int -> t -> bool *)
 val set_fib : bool -> t -> t
-val is_fib : t -> bool
-val add_fib_var : int -> t -> t
+val is_fib_only : t -> bool
+val get_dom_bool : int -> t -> bool
 val fib_only : t -> t
 
 val local_cof_thy : t -> CofThy.Disj.t

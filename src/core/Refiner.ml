@@ -76,7 +76,7 @@ struct
     let cells = Env.locals env in
 
     RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
+    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list @@ Bwd.map fst cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_sequent ~lbl ctx) tp
 
@@ -95,7 +95,7 @@ struct
     let* stp = RM.quote_tp @@ D.Sub (tp, phi, clo) in
 
     RM.globally @@
-    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list cells in
+    let* ctx = GlobalUtil.destruct_cells @@ BwdLabels.to_list @@ Bwd.map fst cells in
     () |> RM.emit (RefineEnv.location env) @@ fun fmt () ->
     Format.fprintf fmt "Emitted hole:@,  @[<v>%a@]@." (S.pp_partial_sequent bdry_sat ctx) (tm, stp)
 
@@ -148,7 +148,7 @@ struct
 
     RM.globally @@
     let* sym =
-      let* tp = GlobalUtil.multi_pi (BwdLabels.to_list cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
+      let* tp = GlobalUtil.multi_pi (BwdLabels.to_list @@ Bwd.map fst cells) @@ RM.quote_tp @@ D.Sub (tp, phi, clo) in
       let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
       let ident =
         match name with
@@ -160,7 +160,7 @@ struct
 
     let* () = RM.inc_num_holes in
 
-    let cut = GlobalUtil.multi_ap cells (D.Global sym, []) in
+    let cut = GlobalUtil.multi_ap (Bwd.map fst cells) (D.Global sym, []) in
     RM.ret (D.UnstableCut (cut, D.KSubOut (phi, clo)), [])
 
   let silent_hole name : T.Chk.tac =
@@ -477,12 +477,11 @@ struct
       let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
       S.Pi (base, nm, fam)
 
-  let intro ?(ident = Ident.anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac = (* todo: flag as good if in_fib *)
+  let intro ?(ident = Ident.anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Pi.intro" @@
     function
     | D.Pi (base, _, fam), phi, phi_clo ->
       T.abstract ~ident base @@ fun var ->
-      RM.last_var_good base @@
       let* fib = RM.lift_cmp @@ Sem.inst_tp_clo fam @@ T.Var.con var in
       let+ tm = T.Chk.brun (tac_body var) (fib, phi, D.un_lam @@ D.compose (D.Lam (Ident.anon, D.apply_to (T.Var.con var))) @@ D.Lam (Ident.anon, phi_clo)) in
       S.Lam (ident, tm)
@@ -616,12 +615,16 @@ struct
       Splice.tp univ @@ fun univ ->
       Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
     in
-    let+ fam = RM.set_fib false @@ T.Chk.run tac_fam famtp in
+    let+ fam = T.Chk.run tac_fam famtp in (* bad bad bad *)
     base, fam
 
   let pi tac_base tac_fam : T.Chk.tac =
     univ_tac "Univ.pi" @@ fun univ ->
     let* fancy = RM.trap @@ T.Chk.run tac_base D.DomTp in
+    let isFancy =
+      match fancy with
+      | Ok _ -> true
+      | _ -> false in
     let* base =
       match fancy with
       | Ok t -> RM.ret t
@@ -634,8 +637,13 @@ struct
       Splice.tp univ @@ fun univ ->
       Splice.term @@ TB.pi (TB.el base) @@ fun _ -> univ
     in
-    let+ fam = RM.set_fib true @@ T.Chk.run tac_fam famtp in
-    S.CodePi (base, fam)
+    if isFancy
+    then
+      let+ fam = RM.set_fib true @@ T.Chk.run tac_fam famtp in
+      S.CodePi (base, fam)
+    else
+      let+ fam = T.Chk.run tac_fam famtp in
+      S.CodePi (base, fam)
 
   let sg tac_base tac_fam : T.Chk.tac =
     univ_tac "Univ.sg" @@ fun univ ->
@@ -795,7 +803,7 @@ struct
     let* tcof =
       RM.fib_only @@ T.Chk.run tac_cof D.TpCof
     in
-    let* cof = RM.lift_ev @@ EvM.drop_all_cons @@ Sem.eval tcof in
+    let* cof = RM.lift_ev @@ Sem.eval tcof in
     let* ttp = T.Chk.run tac_tp univ
     in
     let+ tbdry =
@@ -1301,8 +1309,13 @@ let lookup_var id : T.Syn.tac =
   match res with
   | `Local ix ->
     let* tp = RM.get_local_tp ix in
-    RM.ret (S.Var ix, tp)
-  | `Global sym -> (* todo: make is_fib RM, make false *)
+    let* env = RM.read in
+    if Env.is_fib_only env then
+      let* _ = RM.ensure_dom ix in
+      RM.ret (S.Var ix, tp)
+    else
+      RM.ret (S.Var ix, tp)
+  | `Global sym ->
     let+ tp = RM.get_global sym in
     S.Global sym, tp
   | `Unbound ->
@@ -1352,7 +1365,7 @@ let lookup_var id : T.Syn.tac =
     fun (tp, phi, clo) ->
     let* env = RM.read in
     let cells = Env.locals env in
-    let cells_fwd = BwdLabels.to_list cells in
+    let cells_fwd = BwdLabels.to_list @@ Bwd.map fst cells in
     let* cut =
       RM.globally @@
       let* vtp =
@@ -1378,7 +1391,7 @@ let lookup_var id : T.Syn.tac =
       in
       let* sym = RM.add_global ~unfolder:unf_sym ~shadowing:false name tp_sub in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (unf_cof, D.const_tm_clo vdef)) in
-      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+      RM.ret @@ GlobalUtil.multi_ap (Bwd.map fst cells) (hd, [])
     in
     let+ tm = RM.quote_cut cut in
     S.SubOut tm
@@ -1415,7 +1428,7 @@ let lookup_var id : T.Syn.tac =
     in
 
     let cells = Env.locals env in
-    let cells_fwd = BwdLabels.to_list cells in
+    let cells_fwd = BwdLabels.to_list @@ Bwd.map fst cells in
 
     let* cut =
       RM.globally @@
@@ -1438,7 +1451,7 @@ let lookup_var id : T.Syn.tac =
       let* sym = RM.add_global ~unfolder:None ~shadowing:true Ident.anon tp_sub in
       let top = Kado.Syntax.Free.top in
       let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
-      RM.ret @@ GlobalUtil.multi_ap cells (hd, [])
+      RM.ret @@ GlobalUtil.multi_ap (Bwd.map fst cells) (hd, [])
     in
     RM.quote_cut cut
 

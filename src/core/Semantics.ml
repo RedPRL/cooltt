@@ -31,7 +31,9 @@ let get_local i =
   let* env = EvM.read_local in
   match BwdLabels.nth env.conenv i with
   | v -> EvM.ret v
-  | exception _ -> EvM.throw @@ NbeFailed "Variable out of bounds"
+  | exception _ ->
+    let _ = print_int i in
+     EvM.throw @@ NbeFailed "Variable out of bounds"
 
 let get_local_tp i =
   let open EvM in
@@ -633,11 +635,10 @@ and eval : S.t -> D.con EvM.m =
       ret @@ D.StableCode (`Ext (m, n, psi, fam, `Global phi, bdry))
 
     | S.CodeSub (tp, `Fib phi, bdry) ->
-      let* phi = drop_all_cons @@ eval phi in
+      let* phi = eval phi in
       let* tp = eval tp in
       let* bdry = eval bdry in
       ret @@ D.StableCode (`FSub (tp, `Fib phi, bdry))
-
 
     | S.CodeCFill tp ->
         let* tp = eval tp in

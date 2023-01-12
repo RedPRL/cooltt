@@ -177,6 +177,14 @@ let rec quote_con (tp : D.tp) con =
   | univ, D.StableCode code ->
     quote_stable_code univ code
 
+  | _, D.DomCode `Dim ->
+    ret @@ S.CodeDim
+
+  | _, D.DomCode `DDim ->
+    ret @@ S.CodeDDim
+
+  | _, D.DomCode `Cof ->
+    ret @@ S.CodeCof
 
   | D.Nat, D.FHCom (`Nat, r, s, phi, bdy) ->
     (* bdy : (i : 𝕀) (_ : [...]) → nat *)
@@ -337,7 +345,7 @@ and quote_stable_code univ =
 
   | `Pi (base, fam) ->
     let ident = guess_bound_name fam in
-    let+ tbase = quote_con univ base
+    let+ tbase = quote_con univ base (*BAD, not always univ *)
     and+ tfam =
       let* elbase = lift_cmp @@ do_el base in
       quote_lam ~ident elbase @@ fun var ->

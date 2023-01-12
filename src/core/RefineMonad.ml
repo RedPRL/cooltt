@@ -42,19 +42,12 @@ let resolve_unfolder_syms (idents : Ident.t list) =
 
 
 let set_fib b m = scope (Env.set_fib b) m
-(*
-let ensure_fib_var lvl =
+
+let ensure_dom lvl =
   let* env = read in
-    if Env.is_fib_var lvl env
+    if Env.get_dom_bool lvl env
       then ret ()
       else refine_err (Err.ExpectedFibVar)
-*)
-let last_var_good t m =
-  let* env = read in
-  match t with
-  | D.TpDim | D.TpDDim | D.TpCof ->
-    if Env.is_fib env then scope (Env.add_fib_var ((Env.size env) - 1)) m else m
-  | _ -> m
 
 let get_num_holes =
   let+ st = get in

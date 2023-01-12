@@ -27,11 +27,11 @@ type cell = (D.tp * D.con) Cell.t
 type t =
   {
     (* local assumptions *)
-    locals : cell bwd;
+    locals : (cell * bool) bwd;
     cof_thy : CofThy.Disj.t;
     pp : Pp.env;
-    fib_vars : IntSet.t; (* fancy vars *)
-    is_fib : bool; (* if ussing fib_vars *)
+    fib_only : bool; (*if only fancy local variables allowed *)
+    is_fib : bool; (* if potentially adding fibrant domain vars *)
 
     (* location *)
     location : LexingUtil.span option;
@@ -41,7 +41,7 @@ let init =
   { locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
-    fib_vars = IntSet.empty;
+    fib_only = false;
     is_fib = false;
     location = None }
 
@@ -49,7 +49,7 @@ let globally env =
   { locals = Emp;
     cof_thy = CofThy.Disj.empty;
     pp = Pp.Env.emp;
-    fib_vars = IntSet.empty;
+    fib_only = false;
     is_fib = false;
     location = env.location }
 
@@ -58,11 +58,11 @@ let globally env =
 let locals env = env.locals
 let size env = BwdLabels.length env.locals
 let get_local_tp ix env =
-  let cell = BwdLabels.nth env.locals ix in
+  let cell = fst (BwdLabels.nth env.locals ix) in
   let tp, _ = Cell.contents cell in
   tp
 let get_local ix env =
-  let cell = BwdLabels.nth env.locals ix in
+  let cell = fst (BwdLabels.nth env.locals ix) in
   let _, con = Cell.contents cell in
   con
 let resolve_local (ident : Ident.t) env =
@@ -71,7 +71,7 @@ let resolve_local (ident : Ident.t) env =
     | Emp -> raise E
     | Snoc (xs, cell) ->
       begin
-        match ident, Cell.ident cell with
+        match ident, Cell.ident (fst cell) with
         | `User parts_x, `User parts_y when List.equal String.equal parts_x parts_y -> i
         | _ -> go (i + 1) xs
       end
@@ -85,22 +85,14 @@ let rec dump_locals fmt : (D.tp * D.con) Cell.t list -> unit =
   | (cell :: cells) ->
     Format.fprintf fmt "%a : %a := @[<hov 2>%a@]@;%a" Ident.pp cell.ident D.pp_tp (fst cell.contents) D.pp_con (snd cell.contents) dump_locals cells
 
-(*
-let is_fib_var lvl env =
-  if env.is_fib
-    then IntSet.mem lvl env.fib_vars
-    else true
-*)
 let set_fib b env = {env with is_fib = b}
 
-let is_fib env = env.is_fib
+let is_fib_only env = env.fib_only
 
-let add_fib_var lvl env = {env with fib_vars = IntSet.add lvl env.fib_vars}
+let get_dom_bool ix env =
+  snd (BwdLabels.nth env.locals ix)
 
-let get_fib_vars env =
-  Bwd.of_list @@ List.map (BwdLabels.nth env.locals) (IntSet.to_list env.fib_vars)
-
-let fib_only env = {env with locals = get_fib_vars env}
+let fib_only env = {env with fib_only = true}
 
 (* cofibrations and others *)
 let local_cof_thy env = env.cof_thy
@@ -110,7 +102,7 @@ let sem_env (env : t) : D.env =
    conenv =
      BwdLabels.map env.locals
        ~f:(fun cell ->
-           let _, con = Cell.contents cell in
+           let _, con = Cell.contents (fst cell) in
            con)}
 let restrict phis env =
   {env with
@@ -118,7 +110,8 @@ let restrict phis env =
 let append_con ident con tp env =
   {env with
    pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
-   locals = env.locals #< (Cell.make ident (tp, con));
+   locals = env.locals #< (Cell.make ident (tp, con), env.is_fib);
+   is_fib = false;
    cof_thy =
      match tp with
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]
@@ -133,4 +126,4 @@ let set_location loc env =
 
 let dump fmt : t -> unit =
   fun env ->
-  Format.fprintf fmt "Locals: @[<v>%a@]" dump_locals (BwdLabels.to_list env.locals)
+  Format.fprintf fmt "Locals: @[<v>%a@]" dump_locals (BwdLabels.to_list (Bwd.map fst env.locals))
