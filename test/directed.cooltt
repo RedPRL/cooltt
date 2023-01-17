@@ -13,19 +13,34 @@ def crazyTest (A : type) (a b : A) : type :=
               × {(k : 𝟚) → fsub A with [i = d0 ⇒ a | k = d1 ⇒ a]}}
             → (α : cof) → fsub A with [i = d0 ⇒ a | j = d1 ⇒ a | α ⇒ a]
 
-def partialTest (A : type) (a b : A) : type :=
+def partTest (A : type) (a b : A) : type :=
   (i j : 𝟚) → < {i = j} > → fsub A with [ i=d0 ⇒ a | j=d1 ⇒ b ]
 
-def partialTermTest (A : type) (a b : A) (p : hom A a b) : partialTest A a b :=
+def partTermTest (A : type) (a b : A) (p : hom A a b) : partTest A a b :=
   i j ⇒ p j
 
+def triangle : type := (i j : 𝟚) → <{i ≤ j}> → type
+def horn : triangle → type := A ⇒ (i j : 𝟚) → <{i = d0 ∨ j = d1}> → A i j
 
-#print hom
-#print homO
-#print cofTest
-#print crazyTest
-#print partialTest
-#print partialTermTest
+def isInner (A : triangle) : type :=
+  (b : horn A) →
+  (α : cof) →
+  (t : (i j : 𝟚) → <{i ≤ j ∧ α}> →
+  fsub A i j with [i = d0 ∨ j = d1 ⇒ b i j]) →
+  (i j : 𝟚) → <{i ≤ j}> →
+  fsub A i j with [ α               ⇒ t i j
+                  | i = d0 ∨ j = d1 ⇒ b i j ]
+
+def isCov (A : 𝟚 → type) : type :=
+  (i j : 𝟚) → <{i ≤ j}> → (α : cof) →
+  (b : A i) →
+  (t : (k : 𝟚) → <{i ≤ k ∧ k ≤ j ∧ α}> → fsub A k with [k = i ⇒ b]) →
+  (k : 𝟚) → <{i ≤ k ∧ k ≤ j}> →
+  fsub A k with [ α   ⇒ t k
+                | i=k ⇒ b ]
+
+#print isInner
+#print isCov
 
 #quit
 
