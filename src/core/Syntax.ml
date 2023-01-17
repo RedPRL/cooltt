@@ -76,6 +76,7 @@ struct
     | CodeCFill _ -> Format.fprintf fmt "<cfill>"
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodeSub _ -> Format.fprintf fmt "<fsub>"
+    | CodePartial _ -> Format.fprintf fmt "<partial>"
     | CodeDim -> Format.fprintf fmt "<dim>"
     | CodeDDim -> Format.fprintf fmt "<ddim>"
     | CodeCof -> Format.fprintf fmt "<cof>"
@@ -109,7 +110,8 @@ struct
     | TpPrf t -> Format.fprintf fmt "tp/prf[%a]" dump t
     | TpCofSplit _ -> Format.fprintf fmt "<tp/cof/split>"
     | TpDDim -> Format.fprintf fmt "tp/ddim"
-    | Sub _ -> Format.fprintf fmt "<sub>"
+    | Sub (tp, cof, bdry) -> Format.fprintf fmt "sub[%a, %a, %a]" dump_tp tp dump cof dump bdry
+    | Partial (cof, tp) -> Format.fprintf fmt "partial[%a, %a]" dump cof dump_tp tp
     | Pi (base, ident, fam) -> Format.fprintf fmt "pi[%a, %a, %a]" dump_tp base Ident.pp ident dump_tp fam
     | Sg _ -> Format.fprintf fmt "<sg>"
     | Signature fields -> Format.fprintf fmt "tp/sig[%a]" dump_sign fields
@@ -178,6 +180,7 @@ struct
       | CodeSignature _ -> juxtaposition
       | CodeExt _ -> juxtaposition
       | CodeSub _ -> juxtaposition
+      | CodePartial _ -> arrow
       | CodeCFill _ -> juxtaposition
 
       | Ann _ -> passed
@@ -204,6 +207,7 @@ struct
       | TpPrf _ -> delimited
       | TpCofSplit _ -> delimited
       | Sub _ -> juxtaposition
+      | Partial _ -> arrow
       | Pi _ -> arrow
       | Sg _ -> times
       | Signature _ -> juxtaposition
@@ -395,6 +399,10 @@ struct
         (pp_atomic env) tp
         (pp_atomic env) phi
         (pp_atomic env) bdry
+    | CodePartial (`Fib phi, tp) ->
+      Format.fprintf fmt "@[<hv>sub@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
+      (pp_atomic env) phi
+      (pp_atomic env) tp
     | CodeCFill tp ->
       Format.fprintf fmt "cfill %a" (pp_atomic env) tp
 
@@ -643,6 +651,11 @@ struct
         (pp_tp env P.(right_of juxtaposition)) tp
         (pp_atomic env) phi
         (pp_atomic envx) tm
+    | Partial (phi, tp) ->
+      Format.fprintf fmt "@[%a] %a %a"
+        (pp env P.(left_of arrow)) phi
+        Uuseg_string.pp_utf_8 "→"
+        (pp_tp env P.(right_of arrow)) tp
     | TpDim ->
       Format.fprintf fmt "𝕀"
     | TpCof ->

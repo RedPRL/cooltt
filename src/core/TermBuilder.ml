@@ -571,11 +571,28 @@ struct
     sub_in @@
     hcom fam r r' (join [phi; cof]) @@
     lam @@ fun k ->
-    lam @@ fun _p ->
+    lam @@ fun _ ->
     cof_split
       [ cof, ap bdry @@ [prf]
       ; join [phi; eq k r], sub_out @@ el_out (ap bdy [k; prf])
       ]
+
+  let coe_partial ~cof ~ty ~r ~r' ~bdy =
+    el_in @@
+    lam @@ fun _ ->
+    com (lam @@ fun i -> ap ty [i]) r r' cof @@
+    lam @@ fun i ->
+    lam @@ fun _ ->
+    bdy (* TODO: FINISH *)
+
+  let hcom_partial ~cof ~ty ~r ~r' ~phi ~bdy =
+    el_in @@
+    lam @@ fun _ ->
+    hcom ty r r' (join [phi; cof]) @@
+    lam @@ fun i ->
+    lam @@ fun _ ->
+    bdy (* TODO: FINISH *)
+
 
   let coe_cfill ~tp ~r ~r' ~bdy  =
     el_in @@

@@ -64,6 +64,7 @@ and con_ =
   | D0
   | D1
   | Cof
+  | Partial of con * con
   | CofEq of con * con
   | CofLe of con * con
   | Join of con list

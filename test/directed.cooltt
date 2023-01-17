@@ -1,20 +1,35 @@
 
 def hom (A : type) (a b : A) : type :=
-  (i : ddim) → fsub A with [i = d0 ⇒ a | i = d1 ⇒ b]
+  (i : 𝟚) → fsub A with [i = d0 ⇒ a | i = d1 ⇒ b]
+
+def homO (A : (i : 𝟚) → type) (a : A d0) (b : A d1) : type :=
+  (i : 𝟚) → fsub A i with [i = d0 ⇒ a | i = d1 ⇒ b]
 
 def cofTest (A : type) (a : A) : type :=
   (α : cof) → fsub A with [α ⇒ a]
 
 def crazyTest (A : type) (a b : A) : type :=
-  (i j k : ddim) → {fsub A with [i = d0 ⇒ a | i = d1 ⇒ b] × fsub A with [j = d0 ⇒ b | j = d1 ⇒ a]}
-  → fsub A with [i = d0 ⇒ a | k = d1 ⇒ a]
+  (i j : 𝟚) → {fsub A with [i = d0 ⇒ a | i = d1 ⇒ b]
+              × {(k : 𝟚) → fsub A with [i = d0 ⇒ a | k = d1 ⇒ a]}}
+            → (α : cof) → fsub A with [i = d0 ⇒ a | j = d1 ⇒ a | α ⇒ a]
+
+def partialTest (A : type) (a b : A) : type :=
+  (i j : 𝟚) → < {i = j} > → fsub A with [ i=d0 ⇒ a | j=d1 ⇒ b ]
+
+def partialTermTest (A : type) (a b : A) (p : hom A a b) : partialTest A a b :=
+  i j ⇒ p j
+
 
 #print hom
+#print homO
 #print cofTest
 #print crazyTest
+#print partialTest
+#print partialTermTest
 
 #quit
 
+/-
 def hom (A : type) (a b : A) : type :=
     <|k> ⇒ dext i ⇒ A with [i = d0 ⇒ a | k=d1 ⇒ b]
 
@@ -96,3 +111,4 @@ def test7 : hom nat 3 3 := test1
 def test8 (i : ddim) : sub nat {i = d0 ∨ d0 = d1}
                                [ i = d0 ⇒ 3
                                | i = d1 ⇒ 3 ] := test1 i
+-/

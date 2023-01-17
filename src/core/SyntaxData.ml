@@ -57,6 +57,7 @@ struct
     | CodeCFill of t
     | CodeExt of int * int * t * t * [`Global of t] * t
     | CodeSub of t * [`Fib of t] * t
+    | CodePartial of [`Fib of t] * t
     | CodeDim
     | CodeDDim
     | CodeCof
@@ -81,6 +82,7 @@ struct
     | TpCofSplit of (t * tp) list
     | TpDDim
     | Sub of tp * t * t
+    | Partial of t * tp
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
     | Signature of sign

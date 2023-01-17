@@ -29,6 +29,7 @@ struct
     | `Ext of int * int * 'a * 'a * [`Global of 'a] * 'a
     (** Extension type *)
 
+    | `Partial of [`Fib of 'a] * 'a
 
     | `FSub of 'a * [`Fib of 'a] * 'a
     (** Fibrant Sub type *)
@@ -130,6 +131,7 @@ struct
     | TpCof
     | TpPrf of cof
     | TpDDim
+    | Partial of cof * tp
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo

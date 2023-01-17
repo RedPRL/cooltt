@@ -125,6 +125,10 @@ struct
     | S.VProj (r, pcode, code, pequiv, v) -> labeled "v_proj" [json_of_tm r; json_of_tm pcode; json_of_tm code; json_of_tm pequiv; json_of_tm v]
     | S.CodeExt (m, n, psi, fam, `Global phi, tbdry) -> labeled "code_ext" [json_of_int m; json_of_int n; json_of_tm psi; json_of_tm fam; json_of_tm phi; json_of_tm tbdry]
     | S.CodeSub (tp, `Fib phi, tbdry) -> labeled "fsub" [json_of_tm tp; json_of_tm phi; json_of_tm tbdry]
+    | S.CodePartial (`Fib phi, tp) -> labeled "partial" [json_of_tm phi; json_of_tm tp]
+    | S.CodeDim -> `String  "code_dim"
+    | S.CodeDDim -> `String  "code_ddim"
+    | S.CodeCof -> `String  "code_cof"
     | S.CodeCFill tp -> labeled "code_cfill" [json_of_tm tp]
     | S.CodePi (tbase, tfam) -> labeled "code_pi" [json_of_tm tbase; json_of_tm tfam]
     | S.CodeSg (tbase, tfam) -> labeled "code_sg" [json_of_tm tbase; json_of_tm tfam]
@@ -154,12 +158,14 @@ struct
     | S.TpPrf tm -> labeled "prf" [json_of_tm tm]
     | S.TpCofSplit branches -> labeled "split" @@ List.map (fun (cof, tp) -> json_of_pair (json_of_tm cof) (json_of_tp tp)) branches
     | S.Sub (tp, tphi, tm) -> labeled "sub" [json_of_tp tp; json_of_tm tphi; json_of_tm tm]
+    | S.Partial (tphi, tp) -> labeled "partial" [json_of_tm tphi; json_of_tp tp]
     | S.Pi (base, nm, fib) -> labeled "pi" [json_of_tp base; Ident.json_of_ident nm; json_of_tp fib ]
     | S.Sg (base, nm, fib) -> labeled "sg" [json_of_tp base; Ident.json_of_ident nm; json_of_tp fib ]
     | S.Signature sign -> labeled "sign" [json_of_sign sign]
     | S.Nat -> `String "nat"
     | S.Circle -> `String "circle"
     | S.TpESub (sub, tp) -> labeled "subst" [json_of_sub sub; json_of_tp tp ]
+    | S.DomTp -> `String "dom"
 
   and json_of_sign : S.sign -> J.value =
     fun sign -> json_of_labeled json_of_tp sign
@@ -257,6 +263,9 @@ struct
     | `String "dim1" -> S.Dim1
     | `String "ddim0" -> S.Dim0
     | `String "ddim1" -> S.Dim1
+    | `String "code_dim" -> S.CodeDim
+    | `String "code_ddim" -> S.CodeDDim
+    | `String "code_cof" -> S.CodeCof
     | `A [`String "cof"; j_cof] ->
       let cof = Cof.json_to_cof_f json_to_tm json_to_tm json_to_tm j_cof in
       S.Cof cof
@@ -361,6 +370,7 @@ struct
     | `A [`String "var"; j_n] ->
       let n = json_to_int j_n in
       S.TpVar n
+    | `String "dom" -> S.DomTp
     | `String "dim" -> S.TpDim
     | `String "ddim" -> S.TpDDim
     | `String "cof" -> S.TpCof
@@ -432,6 +442,7 @@ struct
     | FHCom (tag, src, trg, cof, con) -> labeled "fhcom" [json_of_fhcom_tag tag; json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con]
     | StableCode code -> labeled "stable_code" [json_of_stable_code code]
     | UnstableCode code -> labeled "unstable_code" [json_of_unstable_code code]
+    | DomCode code -> labeled "dom_code" [json_of_dom_code code]
     | Box (src, trg, cof, sides, cap) -> labeled "box" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con sides; json_of_con cap]
     | VIn (s, eq, pivot, base) -> labeled "v_in" [json_of_dim s; json_of_con eq; json_of_con pivot; json_of_con base]
     | Split branches -> labeled "split" (json_of_alist json_of_cof json_of_tm_clo branches)
@@ -484,6 +495,7 @@ struct
     | TpDim -> `String "tp_dim"
     | TpDDim -> `String "tp_ddim"
     | TpCof -> `String "tp_cof"
+    | Partial (phi, tp) -> labeled "partial" [json_of_cof phi; json_of_tp tp]
     | TpPrf cof -> labeled "tp_prf" [json_of_cof cof]
     | TpSplit branches -> labeled "tp_split" (json_of_alist json_of_cof json_of_tp_clo branches)
     | Pi (tp, ident, clo) -> labeled "pi" [json_of_tp tp; Ident.json_of_ident ident; json_of_tp_clo clo]
@@ -535,11 +547,18 @@ struct
     | `Circle -> `String "circle"
     | `Univ -> `String "univ"
     | `FSub (code, `Fib phi, tp) -> labeled "fsub" [json_of_con code; json_of_con phi; json_of_con tp]
+    | `Partial (`Fib phi, tp) -> labeled "partial" [json_of_con phi; json_of_con tp]
 
   and json_of_unstable_code : D.con D.unstable_code -> J.value =
     function
     | `HCom (src, trg, cof, con) -> labeled "hcom" [json_of_dim src; json_of_dim trg; json_of_cof cof; json_of_con con]
     | `V (r, pcode, code, pequiv) -> labeled "v" [json_of_dim r; json_of_con pcode; json_of_con code; json_of_con pequiv]
+
+  and json_of_dom_code : D.dom_code -> J.value =
+    function
+    | `Dim -> `String "dim"
+    | `DDim -> `String "ddim"
+    | `Cof -> `String "cof"
 
   and json_of_fhcom_tag : [`Nat | `Circle] -> J.value =
     function
@@ -570,6 +589,7 @@ struct
     | `A [`String "fhcom"; j_tag; j_src; j_trg; j_cof; j_con] -> FHCom (json_to_fhcom_tag j_tag, json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
     | `A [`String "stable_code"; j_code] -> StableCode (json_to_stable_code j_code)
     | `A [`String "unstable_code"; j_code] -> UnstableCode (json_to_unstable_code j_code)
+    | `A [`String "dom_code"; j_code] -> DomCode (json_to_dom_code j_code)
     | `A [`String "box"; j_src; j_trg; j_cof; j_sides; j_cap] -> Box (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_sides, json_to_con j_cap)
     | `A [`String "v_in"; j_s; j_eq; j_pivot; j_base] -> VIn (json_to_dim j_s, json_to_con j_eq, json_to_con j_pivot, json_to_con j_base)
     | `A (`String "split" :: j_branches) -> Split (json_to_alist json_to_cof json_to_tm_clo j_branches)
@@ -631,6 +651,7 @@ struct
     | `String "tp_dim" -> TpDim
     | `String "tp_ddim" -> TpDim
     | `String "tp_cof" -> TpCof
+    | `String "dom" -> DomTp
     | `A [`String "tp_prf"; j_cof] -> TpPrf (json_to_cof j_cof)
     | `A (`String "tp_split" :: j_branches) -> TpSplit (json_to_alist json_to_cof json_to_tp_clo j_branches)
     | `A [`String "pi"; j_tp; j_ident; j_clo] -> Pi (json_to_tp j_tp, Ident.json_to_ident j_ident, json_to_tp_clo j_clo)
@@ -684,7 +705,9 @@ struct
     | `A [`String "sg"; j_base; j_fam] -> `Sg (json_to_con j_base, json_to_con j_fam)
     | `A [`String "signature"; j_sign] -> `Signature (json_to_labeled json_to_con j_sign)
     | `A [`String "ext"; j_m; j_n; j_psi; j_code; j_phi; j_fam] -> `Ext (json_to_int j_m, json_to_int j_n, json_to_con j_psi, json_to_con j_code, `Global (json_to_con j_phi), json_to_con j_fam)
+    | `A [`String "fsub"; j_code; j_phi; j_fam] -> `FSub (json_to_con j_code, `Fib (json_to_con j_phi), json_to_con j_fam)
     | `A [`String "cfill"; j_tp] -> `CFill (json_to_con j_tp)
+    | `A [`String "partial"; j_phi; j_tp] -> `Partial (`Fib (json_to_con j_phi), json_to_con j_tp)
     | `String "nat" -> `Nat
     | `String "circle" -> `Circle
     | `String "univ" -> `Univ
@@ -695,6 +718,13 @@ struct
     | `A [`String "hcom"; j_src; j_trg; j_cof; j_con] -> `HCom (json_to_dim j_src, json_to_dim j_trg, json_to_cof j_cof, json_to_con j_con)
     | `A [`String "v"; j_r; j_pcode; j_code; j_pequiv] -> `V (json_to_dim j_r, json_to_con j_pcode, json_to_con j_code, json_to_con j_pequiv)
     | j -> J.parse_error j "Domain.json_to_unstable_code"
+
+  and json_to_dom_code : J.value -> D.dom_code =
+  function
+  | `String "dim" -> `Dim
+  | `String "ddim" -> `DDim
+  | `String "cof" -> `Cof
+  | j -> J.parse_error j "Domain.json_to_dom_code"
 
   and json_to_fhcom_tag : J.value -> [ `Nat | `Circle ] =
     function

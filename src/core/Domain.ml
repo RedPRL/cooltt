@@ -248,6 +248,8 @@ struct
       Format.fprintf fmt "<dim>"
     | TpDDim ->
       Format.fprintf fmt "<ddim>"
+    | Partial (cof, tp) ->
+      Format.fprintf fmt "partial[%a, %a]" pp_cof cof pp_tp tp
     | Univ ->
       Format.fprintf fmt "<univ>"
     | DomTp ->
@@ -278,6 +280,7 @@ struct
     | `Circle -> Format.fprintf fmt "<code-circle>"
     | `Univ -> Format.fprintf fmt "<code-univ>"
     | `FSub _ -> Format.fprintf fmt "<code-sub>"
+    | `Partial _ -> Format.fprintf fmt "<code-partial>"
 
   and pp_dom_code fmt =
     function

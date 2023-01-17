@@ -26,6 +26,8 @@ sig
   val signature : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
+  val fsub : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
+  val partial : T.Chk.tac -> T.Chk.tac -> tac
   val cfill : T.Chk.tac -> tac
   val nat : tac
   val circle : tac
@@ -112,6 +114,14 @@ struct
     let tac = R.Univ.ext m n tac_phi tac_tp tac_cof tac_bdry in
     Code tac
 
+  let fsub tac_tp tac_phi tac_bdry =
+    let tac = R.Univ.sub tac_tp tac_phi tac_bdry in
+    Code tac
+
+  let partial tac_phi tac_tp =
+    let tac = R.Univ.partial tac_phi tac_tp in
+    Code tac
+
   let cfill tac_tp =
     let tac = R.Univ.cfill tac_tp in
     Code tac
@@ -156,6 +166,15 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
     let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
     CoolTp.ext m n tac_phi tac_fam tac_cof tac_bdry
+  | CS.FSub (tp, cases) ->
+    let tac_tp = chk_tm @@ tp in
+    let tac_cof = chk_tm @@ CS.{node = CS.Join (List.map fst cases); info = None} in
+    let tac_bdry = chk_tm @@ CS.{node = CS.CofSplit cases; info = None} in
+    CoolTp.fsub tac_tp tac_cof tac_bdry
+  | CS.Partial (phi, tp) ->
+    let tac_phi = chk_tm phi in
+    let tac_tp = chk_tm tp in
+    CoolTp.partial tac_phi tac_tp
   | CS.CFill tp ->
     let tac_tp = chk_tm @@ tp in
     CoolTp.cfill tac_tp
@@ -350,6 +369,11 @@ and chk_tm : CS.con -> T.Chk.tac =
       let tac_cof = chk_tm @@ CS.{node = CS.Join (List.map fst cases); info = None} in
       let tac_bdry = chk_tm @@ CS.{node = CS.CofSplit cases; info = None} in
       R.Univ.sub tac_tp tac_cof tac_bdry
+
+    | CS.Partial (phi, tp) ->
+      let tac_phi = chk_tm phi in
+      let tac_tp = chk_tm tp in
+      R.Univ.partial tac_phi tac_tp
 
     | CS.CFill tp ->
       let tac_tp = chk_tm @@ tp in

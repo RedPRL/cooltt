@@ -417,6 +417,19 @@ and quote_stable_code univ =
       quote_con tp_bdry bdry
       in
     S.CodeSub (tcode, tphi, tbdry)
+  | `Partial (`Fib phi, code) ->
+    let+ tphi = quote_fib_con D.TpCof @@ `Fib phi
+    and+ tcode =
+      let* tp_code =
+        lift_cmp @@ splice_tp @@
+        Splice.con phi @@ fun phi ->
+        Splice.term @@
+        TB.pi (TB.tp_prf @@ phi) @@ fun _ ->
+        TB.univ
+      in
+      quote_con tp_code code
+    in S.CodePartial (tphi, tcode)
+
 
 and quote_global_con tp (`Global con) =
   globally @@
@@ -509,6 +522,10 @@ and quote_tp (tp : D.tp) =
       quote_con tp body
     in
     S.Sub (ttp, tphi, tm)
+  | D.Partial (phi, tp) ->
+    let* tphi = quote_cof phi in
+    let+ ttp = quote_tp tp
+    in S.Partial (tphi, ttp)
   | D.DomTp ->
     ret S.DomTp
   | D.TpDim ->

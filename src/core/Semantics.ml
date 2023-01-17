@@ -279,6 +279,10 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     and+ phi = subst_cof r x phi
     and+ clo = subst_clo r x clo in
     D.Sub (base, phi, clo)
+  | D.Partial (phi, tp) ->
+    let+ phi = subst_cof r x phi
+    and+ tp = subst_tp r x tp in
+    D.Partial (phi, tp)
   | D.Univ | D.Nat | D.Circle | D.TpDim | D.TpDDim | D.TpCof | D.DomTp as con -> ret con
   | D.TpPrf phi ->
     let+ phi = subst_cof r x phi in
@@ -333,6 +337,9 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
     `FSub (code, `Fib cof, con)
+  | `Partial (`Fib cof, code) ->
+    let+ code = subst_con r x code in
+    `Partial (`Fib cof, code)
   | `CFill con ->
     let+ con = subst_con r x con in
     `CFill con
@@ -451,6 +458,12 @@ and eval_tp : S.tp -> D.tp EvM.m =
     and+ phi =
       eval_cof tphi in
     D.Sub (tp, phi, D.Clo (tm, env))
+  | S.Partial (tphi, tp) ->
+    let+ phi =
+      eval_cof tphi
+    and+ tp =
+      eval_tp tp in
+    D.Partial (phi, tp)
   | S.TpDim  ->
     ret D.TpDim
   | S.TpDDim  ->
@@ -639,6 +652,11 @@ and eval : S.t -> D.con EvM.m =
       let* tp = eval tp in
       let* bdry = eval bdry in
       ret @@ D.StableCode (`FSub (tp, `Fib phi, bdry))
+
+    | S.CodePartial (`Fib phi, tp) ->
+      let* phi = eval phi in
+      let* tp = eval tp in
+      ret @@ D.StableCode (`Partial (`Fib phi, tp))
 
     | S.CodeCFill tp ->
         let* tp = eval tp in
@@ -1410,6 +1428,14 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.sub (TB.el @@ tp) phi @@ fun _ ->
         TB.ap bdry @@ [TB.prf]
 
+      | `Partial (`Fib phi, tp) ->
+        splice_tp @@
+        Splice.con phi @@ fun phi ->
+        Splice.con tp @@ fun tp ->
+        Splice.term @@
+        TB.pi (TB.tp_prf phi) @@ fun _ ->
+        TB.el @@ TB.ap tp [TB.prf]
+
       | `CFill tp ->
         splice_tp @@
         Splice.con tp @@ fun tp ->
@@ -1518,6 +1544,15 @@ and enact_rigid_coe line r r' con tag =
         Splice.con con @@ fun bdy ->
         Splice.term @@
         TB.Kan.coe_sub ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
+      | `Partial (`Fib cof, ty) ->
+        splice_tm @@
+        Splice.con cof @@ fun cof ->
+        Splice.con ty @@ fun ty ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.con con @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.coe_partial ~cof ~ty ~r ~r' ~bdy
       | `Ext (n, n', psi, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con psi @@ fun psi ->
@@ -1621,6 +1656,16 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sub ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
+      | `Partial (`Fib cof, ty) ->
+        splice_tm @@
+        Splice.con cof @@ fun cof ->
+        Splice.con ty @@ fun ty ->
+        Splice.dim r @@ fun r ->
+        Splice.dim r' @@ fun r' ->
+        Splice.cof phi @@ fun phi ->
+        Splice.con bdy @@ fun bdy ->
+        Splice.term @@
+        TB.Kan.hcom_partial ~cof ~ty ~r ~r' ~phi ~bdy
       | `Ext (n, n', psi, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con psi @@ fun psi ->

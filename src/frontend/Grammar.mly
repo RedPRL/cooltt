@@ -432,16 +432,10 @@ plain_term_except_cof_case:
     { Ext ([], names, { node = TopC ; info = None }, fam, cases) }
   | DEXT; names = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext ([], names, phi, fam, cases) }
-  | LANG; names = list(plain_name); PIPE; dnames = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RANG; RRIGHT_ARROW; fam = term;
-    { Ext (names, dnames, phi, fam, []) }
-  | LANG; names = list(plain_name); PIPE; dnames = list(plain_name); RANG; RRIGHT_ARROW; fam = term;
-    { Ext (names, dnames, { node = TopC ; info = None }, fam, []) }
-  | LANG; names = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RANG; RRIGHT_ARROW; fam = term;
-    { Ext (names, [], phi, fam, []) }
-  | LANG; names = list(plain_name); RANG; RRIGHT_ARROW; fam = term;
-    { Ext (names, [], { node = TopC ; info = None }, fam, []) }
   | FSUB; tp = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { FSub (tp, cases) }
+  | LANG; phi = located(plain_cof_or_atomic_term_except_name); RANG; RIGHT_ARROW; ty = term;
+    { Partial (phi, ty) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
   | CFILL; tp = atomic_term

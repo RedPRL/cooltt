@@ -798,6 +798,24 @@ struct
     let+ qfib = RM.quote_con fib_tp fib in
     S.CodeSignature (qsign @ [`User ["fib"], qfib])
 
+  let partial (tac_cof : T.Chk.tac) (tac_tp : T.Chk.tac) : T.Chk.tac =
+    univ_tac "Univ.partial" @@ fun univ ->
+    let* tcof =
+      RM.fib_only @@ T.Chk.run tac_cof D.TpCof
+    in
+    let* cof = RM.lift_ev @@ Sem.eval tcof in
+    let+ ttp =
+      let* tp_of_tp =
+        RM.lift_cmp @@ Sem.splice_tp @@
+        Splice.con cof @@ fun cof ->
+        Splice.tp univ @@ fun univ ->
+        Splice.term @@
+        TB.pi (TB.tp_prf cof) @@ fun _ ->
+        univ
+      in T.Chk.run tac_tp tp_of_tp
+    in
+    S.CodePartial (`Fib tcof, ttp)
+
   let sub (tac_tp : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.sub" @@ fun univ ->
     let* tcof =
