@@ -14,35 +14,94 @@ def crazyTest (A : type) (a b : A) : type :=
             → (α : cof) → fsub A with [i = d0 ⇒ a | j = d1 ⇒ a | α ⇒ a]
 
 def partTest (A : type) (a b : A) : type :=
-  (i j : 𝟚) → < {i = j} > → fsub A with [ i=d0 ⇒ a | j=d1 ⇒ b ]
+  (i j : 𝟚) → <{i=j}> → fsub A with [ i=d0 ⇒ a | j=d1 ⇒ b ]
 
 def partTermTest (A : type) (a b : A) (p : hom A a b) : partTest A a b :=
   i j ⇒ p j
 
+
+
 def triangle : type := (i j : 𝟚) → <{i ≤ j}> → type
-def horn : triangle → type := A ⇒ (i j : 𝟚) → <{i = d0 ∨ j = d1}> → A i j
+def horn (A : triangle) : type := (i j : 𝟚) → <{i=d0 ∨ j=d1}> → A i j
 
 def isInner (A : triangle) : type :=
-  (b : horn A) →
   (α : cof) →
-  (t : (i j : 𝟚) → <{i ≤ j ∧ α}> →
-  fsub A i j with [i = d0 ∨ j = d1 ⇒ b i j]) →
+  (b : horn A) →
+  (t : (i j : 𝟚) → <{i ≤ j ∧ α}>
+     → fsub A i j with [i=d0 ∨ j=d1 ⇒ b i j]) →
   (i j : 𝟚) → <{i ≤ j}> →
-  fsub A i j with [ α               ⇒ t i j
-                  | i = d0 ∨ j = d1 ⇒ b i j ]
+  fsub A i j with [ α           ⇒ t i j
+                  | i=d0 ∨ j=d1 ⇒ b i j ]
 
-def isCov (A : 𝟚 → type) : type :=
-  (i j : 𝟚) → <{i ≤ j}> → (α : cof) →
+def relInner (Γ : type) (A : Γ → type) : type :=
+    (p : (i j : 𝟚) → <{i ≤ j}> →  Γ)
+    → isInner {i j ⇒ {A {p i j}}}
+
+/-
+def isCovTy : type :=
+  (i j : 𝟚) → <{i ≤ j}> → (A : (k : 𝟚) → <{i ≤ k ∧ k ≤ j}> → type) → type
+
+-- Should we be able to denote i and j as fancy/modal?
+
+def isCov : isCovTy :=
+  i j A ⇒
+  (α : cof) →
   (b : A i) →
-  (t : (k : 𝟚) → <{i ≤ k ∧ k ≤ j ∧ α}> → fsub A k with [k = i ⇒ b]) →
+  (t : (k : 𝟚) → <{i ≤ k ∧ k ≤ j ∧ α}>
+     → fsub A k with [i=k ⇒ b]) →
   (k : 𝟚) → <{i ≤ k ∧ k ≤ j}> →
   fsub A k with [ α   ⇒ t k
                 | i=k ⇒ b ]
+-/
 
-#print isInner
-#print isCov
+ -- (i j : 𝟚) → <{i ≤ j}> → (p : (k : 𝟚) → <{i ≤ k ∧ k ≤ j}> →  Γ) → isCov i j (A o p)
+def relCov (Γ : type) (A : Γ → type) : type :=
+    (i j : 𝟚) → <{i ≤ j}> →
+    (p : (k : 𝟚) → <{i ≤ k ∧ k ≤ j}> →  Γ) →
+    (α : cof) →
+    (b : A {p i}) →
+    (t : (k : 𝟚) → <{i ≤ k ∧ k ≤ j ∧ α}>
+       → fsub A {p k} with [i=k ⇒ b]) →
+    (k : 𝟚) → <{i ≤ k ∧ k ≤ j}> →
+    fsub A {p k} with [ α   ⇒ t k
+                      | i=k ⇒ b ]
 
-#quit
+def prodInner (Γ : type) (A : Γ → type) (B : Γ → type)
+              (inA : relInner Γ A) (inB : relInner Γ B)
+              : relInner Γ {γ ⇒ A γ × B γ} :=
+    p α b t i j ⇒ [ inA p α {i j ⇒ fst {b i j}} {i j ⇒ fst {t i j}} i j
+                  , inB p α {i j ⇒ snd {b i j}} {i j ⇒ snd {t i j}} i j ]
+
+def prodCov (Γ : type) (A : Γ → type) (B : Γ → type)
+            (covA : relCov Γ A) (covB : relCov Γ B)
+            : relCov Γ {γ ⇒ A γ × B γ} :=
+    i j p α b t k ⇒ [ covA i j p α {fst b} {k ⇒ fst {t k}} k
+                    , covB i j p α {snd b} {k ⇒ snd {t k}} k ]
+
+/-
+def sigmaInner (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
+               (inA : relInner Γ A) (inB : relInner {(γ : Γ) × A γ} {p ⇒ B {fst p} {snd p}})
+               : relInner Γ {γ ⇒ (a : A γ) × B γ a} :=
+    p α b t i j ⇒
+        let a : (i j : ddim) → [i ≤ j] → A {p i j} :=
+            inA p α {i j ⇒ fst {b i j}} {i j ⇒ fst {t i j}} in
+        [ a i j
+        , inB {i j ⇒ [p i j , a i j]} α {i j ⇒ snd {b i j}} {i j ⇒ snd {t i j}} i j ]
+
+def sigmaCov (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
+             (covA : relCov Γ A) (covB : relCov {(γ : Γ) × A γ} {p ⇒ B {fst p} {snd p}})
+             : relCov Γ {γ ⇒ (a : A γ) × B γ a} :=
+    i j p α b t k ⇒
+        let a : (k : 𝟚) → [i ≤ k ∧ k ≤ j] → A {p k} :=
+            covA i j p α {fst b} {k ⇒ fst {t k}} in
+        [ a k
+        , covB i j {k ⇒ [p k , a k]} α {snd b} {k ⇒ snd {t k}} k ]
+-/
+/-
+   TODO: fix surface syntax to match cof proof terms
+         fix refiner to work in type signatures
+         fix bug in semantics of Σ-types stopping sigmaInner/sigmaCov -/
+
 
 /-
 def hom (A : type) (a b : A) : type :=
