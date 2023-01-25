@@ -53,13 +53,13 @@ let pp fmt =
     Fmt.fprintf fmt "Unbound variable %a" Ident.pp id
   | ExpectedEqual (ppenv, tp, tm0, tm1, _) ->
     Fmt.fprintf fmt
-      "Expected @[<hv>%a =@;%a@;: %a@]"
+      "Expected equal terms @[<hv>%a =@;%a@;: %a@]"
       (S.pp ppenv) tm0
       (S.pp ppenv) tm1
       (S.pp_tp ppenv) tp
   | ExpectedEqualTypes (ppenv, tp0, tp1, _) ->
     Fmt.fprintf fmt
-      "Expected @[<hv>%a =@;%a@]"
+      "Expected equal types @[<hv>%a =@;%a@]"
       (S.pp_tp ppenv) tp0
       (S.pp_tp ppenv) tp1
   | ExpectedConnective (conn, ppenv, tp) ->

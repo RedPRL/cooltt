@@ -474,7 +474,16 @@ struct
       T.Tp.rule ~name:"Pi.formation" @@
       let* base = T.Tp.run_virtual tac_base in
       let* vbase = RM.lift_ev @@ Sem.eval_tp base in
-      let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
+      let fancy =
+        match vbase with
+        | D.TpDim | D.TpDDim | D.TpCof -> true
+        | _ -> false in
+      let+ fam =
+        if fancy then
+          RM.set_fib true @@ T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var
+        else
+          T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var
+      in
       S.Pi (base, nm, fam)
 
   let intro ?(ident = Ident.anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac =

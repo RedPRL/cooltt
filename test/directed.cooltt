@@ -21,10 +21,11 @@ def partTermTest (A : type) (a b : A) (p : hom A a b) : partTest A a b :=
 
 
 
+
 def triangle : type := (i j : 𝟚) → <{i ≤ j}> → type
 def horn (A : triangle) : type := (i j : 𝟚) → <{i=d0 ∨ j=d1}> → A i j
 
-def isInner (A : triangle) : type :=
+def isInner (A : (i j : 𝟚) → <{i ≤ j}> → type) : type :=
   (α : cof) →
   (b : horn A) →
   (t : (i j : 𝟚) → <{i ≤ j ∧ α}>
@@ -36,6 +37,7 @@ def isInner (A : triangle) : type :=
 def relInner (Γ : type) (A : Γ → type) : type :=
     (p : (i j : 𝟚) → <{i ≤ j}> →  Γ)
     → isInner {i j ⇒ {A {p i j}}}
+
 
 /-
 def isCovTy : type :=
@@ -66,6 +68,7 @@ def relCov (Γ : type) (A : Γ → type) : type :=
     fsub A {p k} with [ α   ⇒ t k
                       | i=k ⇒ b ]
 
+
 def prodInner (Γ : type) (A : Γ → type) (B : Γ → type)
               (inA : relInner Γ A) (inB : relInner Γ B)
               : relInner Γ {γ ⇒ A γ × B γ} :=
@@ -78,15 +81,15 @@ def prodCov (Γ : type) (A : Γ → type) (B : Γ → type)
     i j p α b t k ⇒ [ covA i j p α {fst b} {k ⇒ fst {t k}} k
                     , covB i j p α {snd b} {k ⇒ snd {t k}} k ]
 
-/-
+
 def sigmaInner (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
                (inA : relInner Γ A) (inB : relInner {(γ : Γ) × A γ} {p ⇒ B {fst p} {snd p}})
                : relInner Γ {γ ⇒ (a : A γ) × B γ a} :=
     p α b t i j ⇒
-        let a : (i j : ddim) → [i ≤ j] → A {p i j} :=
+        let a : (i j : ddim) → <{i ≤ j}> → A {p i j} :=
             inA p α {i j ⇒ fst {b i j}} {i j ⇒ fst {t i j}} in
         [ a i j
-        , inB {i j ⇒ [p i j , a i j]} α {i j ⇒ snd {b i j}} {i j ⇒ snd {t i j}} i j ]
+        , inB {i j ⇒ [p i j , a i j ]} α {i j ⇒ snd {b i j}} {i j ⇒ snd {t i j}} i j ]
 
 def sigmaCov (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
              (covA : relCov Γ A) (covB : relCov {(γ : Γ) × A γ} {p ⇒ B {fst p} {snd p}})
@@ -96,93 +99,10 @@ def sigmaCov (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
             covA i j p α {fst b} {k ⇒ fst {t k}} in
         [ a k
         , covB i j {k ⇒ [p k , a k]} α {snd b} {k ⇒ snd {t k}} k ]
--/
+
+
 /-
    TODO: fix surface syntax to match cof proof terms
          fix refiner to work in type signatures
-         fix bug in semantics of Σ-types stopping sigmaInner/sigmaCov -/
-
-
-/-
-def hom (A : type) (a b : A) : type :=
-    <|k> ⇒ dext i ⇒ A with [i = d0 ⇒ a | k=d1 ⇒ b]
-
-def pathO (A : 𝕀 → type) (a : A 0) (b : A 1) : type :=
-    ext i ⇒ A i with [i = 0 ⇒ a | i = 1 ⇒ b]
-
-def homO (A : 𝟚 → type) (a : A d0) (b : A d1) : type :=
-    dext i ⇒ A i with [i = d0 ⇒ a | i = d1 ⇒ b]
-
-def Λ↣Δ (A  : (i j : 𝟚) → [i ≤ j] → type)
-        (aΛ : (i j : 𝟚) → [i = d0 ∨ j = d1] → A i j) : type :=
-    dext i j [i ≤ j] ⇒ A i j with [ i = d0 ⇒ aΛ d0 j
-                                  | j = d1 ⇒ aΛ i d1 ]
-
-def isInner (A : (i j : 𝟚) → [i ≤ j] → type) : type :=
-    (b : <|i j [i = d0 ∨ j = d1]> ⇒ A i j)
-    → cfill {dext i j [i ≤ j] ⇒ A i j with [i = d0 ∨ j = d1 ⇒ b i j]}
-
-def relInner (Γ : type) (A : Γ → type) : type :=
-    (p : <|i j [i ≤ j]> ⇒ Γ)
-    → isInner {i j ⇒ {A {p i j}}}
-
-def prodInner (Γ : type) (A : Γ → type) (B : Γ → type)
-              (inA : relInner Γ A) (inB : relInner Γ B)
-              : relInner Γ {γ ⇒ A γ × B γ} :=
-    p b φ t i j ⇒ [ inA p {i j ⇒ fst {b i j}} φ {i j ⇒ fst {t i j}} i j
-                  , inB p {i j ⇒ snd {b i j}} φ {i j ⇒ snd {t i j}} i j ]
-
--- #print prodInner
-
-
-def sigmaInner (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
-               (inA : relInner Γ A) (inB : relInner {(γ : Γ) × A γ} {p ⇒ B {fst p} {snd p}})
-               : relInner Γ {γ ⇒ (a : A γ) × B γ a} :=
-    p b φ t i j ⇒
-        let a : (i j : ddim) → [i ≤ j] → A {p i j} :=
-            inA p {i j ⇒ fst {b i j}} φ {i j ⇒ fst {t i j}} in
-        [ a i j
-        , inB {i j ⇒ [p i j , a i j]} {i j ⇒ snd {b i j}} φ {i j ⇒ snd {t i j}} i j ]
-
-/-
-BAD : i isn't in scope for extension type inside cfill
-def isKan (A : 𝕀 → type) : type :=
-    <i> ⇒ {(b : A i) → cfill {ext j ⇒ A j with [i=j ⇒ b]}}
-
-def isCov (A : 𝟚 → type) : type :=
-    <|i> ⇒ {(b : A i) → cfill {dext j [i ≤ j] ⇒ A j with [i=j ⇒ b]}}
-
-"def" isFill Phi → (psi ≤ phi : 𝔽[Phi]) → (A : Phi → [phi] → type) : type :=
-      (b : <cube [psi]> ⇒ A cube)
-      → contrFill {cube | [phi] ⇒ A cube with [psi ⇒ b cube]}
--/
-
-def weirdSquare (A : 𝕀 → 𝟚 → type)
-                (ai0 : (i : 𝕀) → A i d0)
-                (ai1 : (i : 𝕀) → A i d1)
-                (a0j : dext j ⇒ A 0 j with [ j = d0 ⇒ ai0 0
-                                           | j = d1 ⇒ ai1 0 ])
-                (a1j : dext j ⇒ A 1 j with [ j = d0 ⇒ ai0 1
-                                           | j = d1 ⇒ ai1 1 ]) : type :=
-    ext i | j ⇒ A i j with [ j = d0 ⇒ ai0 i
-                           | j = d1 ⇒ ai1 i
-                           | i = 0  ⇒ a0j j
-                           | i = 1  ⇒ a1j j ]
-
-
-def path (A : type) (a b : A) : type :=
-    ext i ⇒ A with [i=0 ⇒ a | i=1 ⇒ b]
-
-
-def test1 : ddim → nat := x ⇒ 3
-def test2 : nat := test1 d1
-def test3 (i : 𝟚) : sub nat {i = d0} 3 := test1 i
-def test4 (i : 𝟚) : sub nat {i ≤ d1} 3 := test1 i
-def test5 (i : 𝟚) : sub nat {d0 = d1} [] := test1 i
-def test6 (i : 𝟚) : sub nat {d1 ≤ d0} [] := test1 i
-def test7 : hom nat 3 3 := test1
-
-def test8 (i : ddim) : sub nat {i = d0 ∨ d0 = d1}
-                               [ i = d0 ⇒ 3
-                               | i = d1 ⇒ 3 ] := test1 i
+         fix bug in semantics of Σ-types stopping sigmaInner/sigmaCov
 -/

@@ -110,6 +110,9 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* con0 = lift_cmp @@ inst_tm_clo clo0 prf in
     let* con1 = lift_cmp @@ inst_tm_clo clo1 prf in
     equate_con tp0 con0 con1
+  | D.Partial (phi0, tp0), D.Partial (phi1, tp1) ->
+    let* () = equate_tp tp0 tp1 in
+    equate_cof phi0 phi1
   | D.Nat, D.Nat
   | D.Circle, D.Circle
   | D.Univ, D.Univ ->
@@ -190,6 +193,28 @@ and equate_stable_code univ code0 code1 =
     in
     equate_con tp_bdry bdry0 bdry1
 
+  | `FSub (code0, `Fib phi0, bdry0), `FSub (code1, `Fib phi1, bdry1) ->
+    let* _ = equate_con D.TpCof phi0 phi1 in
+    let* _ = equate_con univ code0 code1 in
+    let* tp_bdry =
+      lift_cmp @@ splice_tp @@
+      Splice.con phi1 @@ fun phi ->
+      Splice.con code0 @@ fun code ->
+      Splice.term @@
+      TB.pi (TB.tp_prf phi) @@ fun _ ->
+      TB.el code
+    in
+    equate_con tp_bdry bdry0 bdry1
+
+  | `Partial (`Fib phi0, code0), `Partial (`Fib phi1, code1) ->
+    let* _ = equate_con D.TpCof phi0 phi1 in
+    let* tp = lift_cmp @@ Sem.splice_tp @@
+      Splice.con phi0 @@ fun phi ->
+      Splice.tp univ @@ fun univ ->
+      Splice.term @@
+      TB.pi (TB.tp_prf phi) (fun _ -> univ) in
+    equate_con tp code0 code1
+
   | `CFill tp0 , `CFill tp1 ->
     equate_con univ tp0 tp1
 
@@ -197,6 +222,14 @@ and equate_stable_code univ code0 code1 =
     equate_sign_code univ sign0 sign1
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
+
+
+and equate_dom_code univ code0 code1 =
+  match (code0, code1) with
+  | `Dim , `Dim | `DDim, `DDim | `Cof, `Cof ->
+    ret ()
+  | code0, code1 ->
+    conv_err @@ ExpectedConEq (univ, D.DomCode code0, D.DomCode code1)
 
 and equate_sign_code univ sign0 sign1 =
   let rec go vfams sign0 sign1 =
@@ -248,6 +281,11 @@ and equate_con tp con0 con1 =
     let* out0 = lift_cmp @@ do_sub_out con0 in
     let* out1 = lift_cmp @@ do_sub_out con1 in
     equate_con tp out0 out1
+  | D.Partial (phi, tp), _, _ ->
+    ConvM.bind_var_ (D.TpPrf phi) @@ fun prf ->
+    let* t0 = lift_cmp @@ do_ap con0 prf in
+    let* t1 = lift_cmp @@ do_ap con1 prf in
+    equate_con tp t0 t1
   | D.ElStable code, _, _ ->
     let* out0 = lift_cmp @@ do_el_out con0 in
     let* out1 = lift_cmp @@ do_el_out con1 in
@@ -304,6 +342,8 @@ and equate_con tp con0 con1 =
   | _, D.UnstableCode (`V (r0, pcode0, code0, pequiv0)), D.UnstableCode (`V (r1, pcode1, code1, pequiv1)) ->
     equate_v_data (r0, pcode0, code0, pequiv0) (r1, pcode1, code1, pequiv1)
 
+  | univ, D.DomCode code0, D.DomCode code1 ->
+    equate_dom_code univ code0 code1
 
   | D.ElUnstable (`HCom (r, s, phi, bdy)) as hcom_tp, _, _ ->
     let* cap0 = lift_cmp @@ Sem.do_rigid_cap r s phi bdy con0 in
@@ -322,7 +362,7 @@ and equate_con tp con0 con1 =
     equate_con tp_proj proj0 proj1
 
   | _ ->
-    Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
+    Format.eprintf "failed:@.%a =@.%a@.@.: %a@." D.pp_con con0 D.pp_con con1 D.pp_tp tp;
     conv_err @@ ExpectedConEq (tp, con0, con1)
 
 and equate_struct (sign : D.sign) con0 con1 =

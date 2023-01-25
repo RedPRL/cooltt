@@ -183,6 +183,7 @@ let equate_tp tp tp' =
   | `Ok -> ret ()
   | `Err err ->
     let* env = read in
+    (* let _ = Format.printf "%a@." Conversion.Error.pp err in *)
     let* ttp = quote_tp tp in
     let* ttp' = quote_tp tp' in
     refine_err @@ Err.ExpectedEqualTypes (Env.pp_env env, ttp, ttp', err)
