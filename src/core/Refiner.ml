@@ -913,11 +913,6 @@ struct
       S.ElIn (S.SubIn ttm)
     | tp -> RM.expected_connective `ElExt tp
 
-  let cfill (tac_tp : T.Chk.tac) : T.Chk.tac =
-    univ_tac "Univ.cfill" @@ fun univ ->
-    let+ tp = T.Chk.run tac_tp univ in
-    S.CodeCFill tp
-
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.code_v" @@ fun _univ ->
     let* r = T.Chk.run tac_dim D.TpDim in

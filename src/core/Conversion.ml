@@ -215,9 +215,6 @@ and equate_stable_code univ code0 code1 =
       TB.pi (TB.tp_prf phi) (fun _ -> univ) in
     equate_con tp code0 code1
 
-  | `CFill tp0 , `CFill tp1 ->
-    equate_con univ tp0 tp1
-
   | `Signature sign0, `Signature sign1 ->
     equate_sign_code univ sign0 sign1
   | code0, code1 ->

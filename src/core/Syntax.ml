@@ -73,7 +73,6 @@ struct
     | VIn _ -> Format.fprintf fmt "<vin>"
     | VProj _ -> Format.fprintf fmt "<vproj>"
 
-    | CodeCFill _ -> Format.fprintf fmt "<cfill>"
     | CodeExt _ -> Format.fprintf fmt "<ext>"
     | CodeSub _ -> Format.fprintf fmt "<fsub>"
     | CodePartial _ -> Format.fprintf fmt "<partial>"
@@ -181,7 +180,6 @@ struct
       | CodeExt _ -> juxtaposition
       | CodeSub _ -> juxtaposition
       | CodePartial _ -> arrow
-      | CodeCFill _ -> juxtaposition
 
       | Ann _ -> passed
       | Let _ -> dual juxtaposition in_
@@ -403,8 +401,6 @@ struct
       Format.fprintf fmt "@[<hv>sub@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
       (pp_atomic env) phi
       (pp_atomic env) tp
-    | CodeCFill tp ->
-      Format.fprintf fmt "cfill %a" (pp_atomic env) tp
 
     | CodeNat when Debug.is_debug_mode () ->
       Format.fprintf fmt "`nat"

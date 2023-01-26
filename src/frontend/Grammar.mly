@@ -52,7 +52,7 @@
 %token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT AS INCLUDE RENAMING OPEN
-%token EXT DEXT CFILL
+%token EXT DEXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
 
@@ -438,8 +438,6 @@ plain_term_except_cof_case:
     { Partial (phi, ty) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
-  | CFILL; tp = atomic_term
-    { CFill tp }
   | HCOM; tp = atomic_term; src = atomic_term; trg = atomic_term; phi = atomic_term; body = atomic_term
     { HCom (tp, src, trg, phi, body) }
   | HFILL; tp = atomic_term; src = atomic_term; phi = atomic_term; body = atomic_term

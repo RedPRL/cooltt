@@ -28,7 +28,6 @@ sig
   val ext : int -> int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val fsub : T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val partial : T.Chk.tac -> T.Chk.tac -> tac
-  val cfill : T.Chk.tac -> tac
   val nat : tac
   val circle : tac
   val univ : tac
@@ -122,10 +121,6 @@ struct
     let tac = R.Univ.partial tac_phi tac_tp in
     Code tac
 
-  let cfill tac_tp =
-    let tac = R.Univ.cfill tac_tp in
-    Code tac
-
   let nat = Code R.Univ.nat
   let circle = Code R.Univ.circle
   let univ = Code R.Univ.univ
@@ -175,9 +170,6 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     let tac_phi = chk_tm phi in
     let tac_tp = chk_tm tp in
     CoolTp.partial tac_phi tac_tp
-  | CS.CFill tp ->
-    let tac_tp = chk_tm @@ tp in
-    CoolTp.cfill tac_tp
   | _ -> CoolTp.code @@ chk_tm con
 
 
@@ -374,10 +366,6 @@ and chk_tm : CS.con -> T.Chk.tac =
       let tac_phi = chk_tm phi in
       let tac_tp = chk_tm tp in
       R.Univ.partial tac_phi tac_tp
-
-    | CS.CFill tp ->
-      let tac_tp = chk_tm @@ tp in
-      R.Univ.cfill tac_tp
 
     | _ ->
       Tactics.match_goal @@ fun (tp, _, _) ->

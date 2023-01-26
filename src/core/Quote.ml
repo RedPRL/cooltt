@@ -399,9 +399,6 @@ and quote_stable_code univ =
       quote_con tp_bdry bdry
       in
       S.CodeExt (m, n, tpsi, tcode, tphi, tbdry)
-  | `CFill tp ->
-    let+ ttp = quote_con univ tp in
-    S.CodeCFill ttp
   | `FSub (code, `Fib phi, bdry) ->
     let+ tphi = quote_fib_con D.TpCof @@ `Fib phi
     and+ tcode = quote_con univ code

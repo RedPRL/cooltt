@@ -73,7 +73,6 @@ and con_ =
   | Prf of con
   | CofSplit of (con * con) list
   | Ext of Ident.t list * Ident.t list * con * con * (con * con) list
-  | CFill of con
   | Coe of con * con * con * con
   | TopC
   | BotC

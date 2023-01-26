@@ -68,7 +68,6 @@ let keywords =
     ("fsub", FSUB);
     ("ext", EXT);
     ("dext", DEXT);
-    ("cfill", CFILL);
     ("coe", COE);
     ("hcom", HCOM);
     ("hfill", HFILL);

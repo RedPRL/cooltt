@@ -34,9 +34,6 @@ struct
     | `FSub of 'a * [`Fib of 'a] * 'a
     (** Fibrant Sub type *)
 
-    | `CFill of 'a
-    (** contractible fill type *)
-
     | `Nat
     (** Natural numbers type *)
 

@@ -340,9 +340,6 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
   | `Partial (`Fib cof, code) ->
     let+ code = subst_con r x code in
     `Partial (`Fib cof, code)
-  | `CFill con ->
-    let+ con = subst_con r x con in
-    `CFill con
   | `Nat | `Circle | `Univ as code ->
     ret code
 
@@ -657,10 +654,6 @@ and eval : S.t -> D.con EvM.m =
       let* phi = eval phi in
       let* tp = eval tp in
       ret @@ D.StableCode (`Partial (`Fib phi, tp))
-
-    | S.CodeCFill tp ->
-        let* tp = eval tp in
-        ret @@ D.StableCode (`CFill tp)
 
     | S.CodePi (base, fam) ->
       let+ vbase = eval base
@@ -1435,15 +1428,6 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.term @@
         TB.pi (TB.tp_prf phi) @@ fun _ ->
         TB.el @@ TB.ap tp [TB.prf]
-
-      | `CFill tp ->
-        splice_tp @@
-        Splice.con tp @@ fun tp ->
-        Splice.term @@
-        TB.pi (TB.ret S.TpCof) @@ fun phi ->
-        TB.pi (TB.pi (TB.tp_prf phi) (fun _ -> TB.el tp)) @@ fun tm ->
-        TB.sub (TB.el tp) phi @@ fun _ ->
-        TB.ap tm @@ [TB.prf]
     end
 
 
@@ -1562,14 +1546,6 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_ext ~n ~n' ~psi ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
-      | `CFill tp ->
-        splice_tm @@
-        Splice.con tp @@ fun tp ->
-        Splice.dim r @@ fun r ->
-        Splice.dim r' @@ fun r' ->
-        Splice.con con @@ fun bdy ->
-        Splice.term @@
-        TB.Kan.coe_cfill ~tp ~r ~r' ~bdy
     end
   | `Unstable (x, codex) ->
     begin
@@ -1676,14 +1652,6 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_ext ~n ~n' ~cof ~psi ~fam ~bdry ~r ~r' ~phi ~bdy
-      | `CFill tp ->
-        splice_tm @@
-        Splice.con tp @@ fun tp ->
-        Splice.dim r @@ fun r ->
-        Splice.dim r' @@ fun r' ->
-        Splice.cof phi @@ fun phi ->
-        Splice.con bdy @@ fun bdy ->
-        Splice.term @@ TB.Kan.hcom_cfill ~tp ~r ~r' ~phi ~bdy
       | `Circle | `Nat as tag ->
         let+ bdy' =
           splice_tm @@

@@ -588,22 +588,6 @@ struct
     hcom ty r r' (join [phi]) @@ ap bdy [prf]
 
 
-
-
-  let coe_cfill ~tp ~r ~r' ~bdy  =
-    el_in @@
-    lam @@ fun phi ->
-    lam @@ fun tm ->
-    sub_in @@
-    tm (* TODO: actually write *)
-
-  let hcom_cfill ~tp ~r ~r' ~phi ~bdy  =
-    el_in @@
-    lam @@ fun phi ->
-    lam @@ fun tm ->
-    sub_in @@
-    tm (* TODO: actually write *)
-
   module V :
   sig
     type vcode = {r : S.t m; pcode : S.t m; code : S.t m; pequiv : S.t m}

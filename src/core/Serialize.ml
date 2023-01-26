@@ -129,7 +129,6 @@ struct
     | S.CodeDim -> `String  "code_dim"
     | S.CodeDDim -> `String  "code_ddim"
     | S.CodeCof -> `String  "code_cof"
-    | S.CodeCFill tp -> labeled "code_cfill" [json_of_tm tp]
     | S.CodePi (tbase, tfam) -> labeled "code_pi" [json_of_tm tbase; json_of_tm tfam]
     | S.CodeSg (tbase, tfam) -> labeled "code_sg" [json_of_tm tbase; json_of_tm tfam]
     | S.CodeSignature sign -> labeled "code_sign" [json_of_labeled json_of_tm sign]
@@ -317,9 +316,6 @@ struct
       let phi = json_to_tm j_phi in
       let brdy = json_to_tm j_bdry in
       S.CodeExt (m, n, psi, fam, `Global phi, brdy)
-    | `A [`String "code_cfill"; j_tp] ->
-      let tp = json_to_tm j_tp in
-      S.CodeCFill tp
     | `A [`String "code_pi"; j_base; j_fam] ->
       let base = json_to_tm j_base in
       let fam = json_to_tm j_fam in
@@ -542,7 +538,6 @@ struct
     | `Sg (base, fam) -> labeled "sg" [json_of_con base; json_of_con fam]
     | `Signature sign -> labeled "signature" [json_of_labeled json_of_con sign]
     | `Ext (m, n, psi, code, `Global phi, fam) -> labeled "ext" [json_of_int m; json_of_int n; json_of_con psi; json_of_con code; json_of_con phi; json_of_con fam]
-    | `CFill tp -> labeled "cfill" [json_of_con tp]
     | `Nat -> `String "nat"
     | `Circle -> `String "circle"
     | `Univ -> `String "univ"
@@ -706,7 +701,6 @@ struct
     | `A [`String "signature"; j_sign] -> `Signature (json_to_labeled json_to_con j_sign)
     | `A [`String "ext"; j_m; j_n; j_psi; j_code; j_phi; j_fam] -> `Ext (json_to_int j_m, json_to_int j_n, json_to_con j_psi, json_to_con j_code, `Global (json_to_con j_phi), json_to_con j_fam)
     | `A [`String "fsub"; j_code; j_phi; j_fam] -> `FSub (json_to_con j_code, `Fib (json_to_con j_phi), json_to_con j_fam)
-    | `A [`String "cfill"; j_tp] -> `CFill (json_to_con j_tp)
     | `A [`String "partial"; j_phi; j_tp] -> `Partial (`Fib (json_to_con j_phi), json_to_con j_tp)
     | `String "nat" -> `Nat
     | `String "circle" -> `Circle

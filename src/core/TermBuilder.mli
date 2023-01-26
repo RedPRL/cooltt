@@ -134,9 +134,6 @@ module Kan : sig
   val coe_partial : ty:t m -> coe
   val hcom_partial : ty:t m -> hcom
 
-  val coe_cfill : tp:t m -> coe
-  val hcom_cfill : tp:t m -> hcom
-
   module V : sig
     type vcode = {r : t m; pcode : t m; code : t m; pequiv : t m}
     val hcom_v : v:vcode -> r:t m -> r':t m -> phi:t m -> bdy:t m -> t m
