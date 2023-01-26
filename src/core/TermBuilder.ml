@@ -577,21 +577,17 @@ struct
       ; join [phi; eq k r], sub_out @@ el_out (ap bdy [k; prf])
       ]
 
-  let coe_partial ~cof ~ty ~r ~r' ~bdy =
+  let coe_partial ~ty ~r ~r' ~bdy =
     el_in @@
     lam @@ fun _ ->
-    com (lam @@ fun i -> ap ty [i]) r r' cof @@
-    lam @@ fun i ->
-    lam @@ fun _ ->
-    bdy (* TODO: FINISH *)
+    coe (lam @@ fun i -> ap ty [i]) r r' @@ ap bdy [prf]
 
-  let hcom_partial ~cof ~ty ~r ~r' ~phi ~bdy =
+  let hcom_partial ~ty ~r ~r' ~phi ~bdy =
     el_in @@
     lam @@ fun _ ->
-    hcom ty r r' (join [phi; cof]) @@
-    lam @@ fun i ->
-    lam @@ fun _ ->
-    bdy (* TODO: FINISH *)
+    hcom ty r r' (join [phi]) @@ ap bdy [prf]
+
+
 
 
   let coe_cfill ~tp ~r ~r' ~bdy  =

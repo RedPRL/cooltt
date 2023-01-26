@@ -131,8 +131,8 @@ module Kan : sig
   val coe_sub : cof:t m -> fam_line:t m -> bdry_line:t m -> coe
   val hcom_sub : cof:t m -> fam:t m -> bdry:t m -> hcom
 
-  val coe_partial : cof:t m -> ty:t m -> coe
-  val hcom_partial : cof:t m -> ty:t m -> hcom
+  val coe_partial : ty:t m -> coe
+  val hcom_partial : ty:t m -> hcom
 
   val coe_cfill : tp:t m -> coe
   val hcom_cfill : tp:t m -> hcom

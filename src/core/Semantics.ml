@@ -1544,15 +1544,14 @@ and enact_rigid_coe line r r' con tag =
         Splice.con con @@ fun bdy ->
         Splice.term @@
         TB.Kan.coe_sub ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
-      | `Partial (`Fib cof, ty) ->
+      | `Partial (_, ty) ->
         splice_tm @@
-        Splice.con cof @@ fun cof ->
         Splice.con ty @@ fun ty ->
         Splice.dim r @@ fun r ->
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@
-        TB.Kan.coe_partial ~cof ~ty ~r ~r' ~bdy
+        TB.Kan.coe_partial ~ty ~r ~r' ~bdy
       | `Ext (n, n', psi, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con psi @@ fun psi ->
@@ -1656,16 +1655,15 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sub ~cof ~fam ~bdry ~r ~r' ~phi ~bdy
-      | `Partial (`Fib cof, ty) ->
+      | `Partial (_, ty) ->
         splice_tm @@
-        Splice.con cof @@ fun cof ->
         Splice.con ty @@ fun ty ->
         Splice.dim r @@ fun r ->
         Splice.dim r' @@ fun r' ->
         Splice.cof phi @@ fun phi ->
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
-        TB.Kan.hcom_partial ~cof ~ty ~r ~r' ~phi ~bdy
+        TB.Kan.hcom_partial ~ty ~r ~r' ~phi ~bdy
       | `Ext (n, n', psi, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con psi @@ fun psi ->
