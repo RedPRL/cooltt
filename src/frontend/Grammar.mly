@@ -52,7 +52,7 @@
 %token SUC NAT ZERO GENERALIZE WITH
 %token CIRCLE BASE LOOP
 %token SIG STRUCT AS INCLUDE RENAMING OPEN
-%token EXT DEXT
+%token EXT
 %token COE COM HCOM HFILL
 %token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL
 
@@ -420,21 +420,11 @@ plain_term_except_cof_case:
     { Cap t }
   | hole = HOLE; SEMI; t = term
     { Hole (hole, Some t) }
-  | EXT; names = list(plain_name); PIPE; dnames = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
-    { Ext (names, dnames, phi, fam, cases) }
-  | EXT; names = list(plain_name); PIPE; dnames = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
-    { Ext (names, dnames, { node = TopC ; info = None }, fam, cases) }
   | EXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { Ext (names, [], { node = TopC ; info = None }, fam, cases) }
-  | EXT; names = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
-    { Ext (names, [], phi, fam, cases) }
-  | DEXT; names = list(plain_name); RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
-    { Ext ([], names, { node = TopC ; info = None }, fam, cases) }
-  | DEXT; names = list(plain_name); LSQ; phi = located(plain_cof_or_atomic_term_except_name); RSQ; RRIGHT_ARROW; fam = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
-    { Ext ([], names, phi, fam, cases) }
   | FSUB; tp = term; WITH; LSQ; ioption(PIPE) cases = separated_list(PIPE, cof_case); RSQ;
     { FSub (tp, cases) }
-  | LANG; phi = located(plain_cof_or_atomic_term_except_name); RANG; RIGHT_ARROW; ty = term;
+  | LANG; phi = located(plain_cof_or_term); RANG; RIGHT_ARROW; ty = term;
     { Partial (phi, ty) }
   | COE; fam = atomic_term; src = atomic_term; trg = atomic_term; body = atomic_term
     { Coe (fam, src, trg, body) }
