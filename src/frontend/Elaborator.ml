@@ -154,13 +154,14 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
   | CS.Sub (ctp, cphi, ctm) -> CoolTp.sub (cool_chk_tp ctp) (chk_tm cphi) (chk_tm ctm)
   | CS.Ext (idents, didents, phi, tp, cases) ->
-    let m = List.length idents in
-    let n = List.length didents in
-    let tac_phi = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, phi); info = None} in
-    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, tp); info = tp.info} in (* R.Pi.intro (etc...) *)
-    let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
-    CoolTp.ext m n tac_phi tac_fam tac_cof tac_bdry
+    let tac_phi = chk_tm @@ phi in
+    let tac_fam = chk_tm @@ tp in (* R.Pi.intro (etc...) *)
+    let tac_cof = chk_tm @@ {node = CS.Join (List.map fst cases); info = None} in
+    let tac_bdry = chk_tm @@ {node = CS.CofSplit cases; info = None} in
+    let body = CoolTp.partial tac_phi @@ R.Pi.intro @@ fun _ -> R.Univ.sub tac_fam tac_cof tac_bdry in
+    List.fold_right (CoolTp.pi (cool_chk_tp CS.{node = CS.Dim; info = None})) idents @@
+    List.fold_right (CoolTp.pi (cool_chk_tp CS.{node = CS.DDim; info = None})) didents @@
+    body
   | CS.FSub (tp, cases) ->
     let tac_tp = chk_tm @@ tp in
     let tac_cof = chk_tm @@ CS.{node = CS.Join (List.map fst cases); info = None} in
@@ -348,13 +349,16 @@ and chk_tm : CS.con -> T.Chk.tac =
       R.Cof.split branch_tacs
 
     | CS.Ext (idents, didents, phi, tp, cases) ->
-    let m = List.length idents in
-    let n = List.length didents in
-    let tac_phi = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, phi); info = None} in
-    let tac_fam = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, tp); info = tp.info} in (* R.Pi.intro (etc...) *)
-    let tac_cof = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.Join (List.map fst cases); info = None}); info = None} in
-    let tac_bdry = chk_tm @@ CS.{node = CS.Lam (List.append idents didents, {node = CS.CofSplit cases; info = None}); info = None} in
-      R.Univ.ext m n tac_phi tac_fam tac_cof tac_bdry
+      let itacs = let tp = chk_tm CS.{node = CS.Dim; info = None} in List.map (fun name -> name, tp) idents in
+      let dtacs = let tp = chk_tm CS.{node = CS.DDim; info = None} in List.map (fun name -> name, tp) didents in
+      let tacs = itacs @ dtacs in
+      let quant base (nm, fam) = R.Univ.pi base (R.Pi.intro ~ident:nm fam) in
+      let tac_phi = chk_tm @@ phi in
+      let tac_fam = chk_tm @@ tp in (* R.Pi.intro (etc...) *)
+      let tac_cof = chk_tm @@ {node = CS.Join (List.map fst cases); info = None} in
+      let tac_bdry = chk_tm @@ {node = CS.CofSplit cases; info = None} in
+      let body = R.Univ.partial tac_phi @@ R.Pi.intro @@ fun _ -> R.Univ.sub tac_fam tac_cof tac_bdry in
+      Tactics.tac_nary_quantifier quant tacs @@ body
 
     | CS.FSub (tp, cases) ->
       let tac_tp = chk_tm @@ tp in
