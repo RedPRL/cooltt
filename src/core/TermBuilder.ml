@@ -251,6 +251,10 @@ let code_path mfam mbdry : _ m =
   and+ bdry = mbdry in
   S.CodeExt (1, 0, fam, S.Cof (S.Cof.Meet []) , `Global (S.Lam (Ident.anon, CB.boundary (S.Var 0))), bdry)
 
+  (*
+  S.CodePi (S.CodeDim, S.Lam (Ident.anon, S.CodeSub (S.Ap (fam, S.Var 0) , `Fib (CB.boundary (S.Var 0)), bdry)))
+  *)
+
 let code_v mr mpcode mcode mpequiv : _ m=
   let+ r = mr
   and+ pcode = mpcode
