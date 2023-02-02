@@ -106,7 +106,7 @@ struct
   type tac =
     | Chk of string * (D.tp -> S.t RM.m)
     | BChk of string * (D.tp * D.cof * D.tm_clo -> S.t RM.m)
-(*  | FibChk of string * int Set * (D.tp -> S.t RM.m) WRONG *)
+    (*  | FibChk of string * int Set * (D.tp -> S.t RM.m) WRONG *)
 
   let run =
     function
@@ -169,7 +169,6 @@ and Syn : sig
 end =
 struct
   type tac = string * (S.t * D.tp) RM.m
-(*         | Fib of string * int Set * (S.t * D.tp) RM.m  WRONG *)
 
   let rule ?(name = "") tac = (name, tac)
   let run (name, tac) =
@@ -198,3 +197,17 @@ end
 let abstract = Var.abstract
 
 type var = Var.tac
+
+let refine tac tps =
+  let rec go =
+    function
+    | [] ->
+      RM.expected_one_of tps
+    | tp :: tps ->
+      begin
+        RM.trap (Chk.run tac tp) |>>
+        function
+        | Ok tm -> RM.ret (tm, tp)
+        | Error _ -> go tps
+      end
+  in go tps

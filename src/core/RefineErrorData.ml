@@ -35,6 +35,7 @@ struct
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t * Conversion.Error.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | ExpectedConnective of connective * Pp.env * S.tp
+    | ExpectedOnOf of Pp.env * S.tp list
     | ExpectedDimensionLiteral of int
     | ExpectedDDimensionLiteral of int
     | ExpectedOfMatchingIntervalType of Pp.env * S.t * S.t
@@ -48,5 +49,5 @@ struct
     | UnsolvedHoles of int
     | ExpectedSignature of Pp.env * S.t
     | ExpectedStructure of Pp.env * S.t
-    | ExpectedFibVar (* of Pp.env * int *)
+    | ExpectedDomVar of Pp.env * int
 end

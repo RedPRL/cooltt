@@ -399,8 +399,8 @@ struct
         (pp_atomic env) bdry
     | CodePartial (`Fib phi, tp) ->
       Format.fprintf fmt "@[<hv>sub@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
-      (pp_atomic env) phi
-      (pp_atomic env) tp
+        (pp_atomic env) phi
+        (pp_atomic env) tp
 
     | CodeNat when Debug.is_debug_mode () ->
       Format.fprintf fmt "`nat"
@@ -750,6 +750,7 @@ struct
     | Sub (tp, Cof (Cof.Join []), _) -> get_constraints tp
     | Sub (tp, phi, tm) -> `Boundary (tp, phi, tm)
     | El (CodeExt (0, 0, Cof (Cof.Meet []), tp, `Global phi, (Lam (_, tm)))) -> `Boundary (El tp, phi, tm)
+    | El (CodeSub (tp, `Fib phi, (Lam (_, tm)))) -> `Boundary (El tp, phi, tm)
     | tp -> `Unconstrained tp
 
   let pp_sequent_goal ~lbl env fmt tp  =

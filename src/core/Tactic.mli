@@ -64,3 +64,6 @@ end
 type var = Var.tac
 
 val abstract : ?ident:Ident.t -> D.tp -> (var -> 'a RM.m) -> 'a RM.m
+
+(** Run a tactic against multiple possible goals, and return the choice it made. *)
+val refine : Chk.tac -> D.tp list -> (S.t * D.tp) RM.m

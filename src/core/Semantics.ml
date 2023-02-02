@@ -33,7 +33,7 @@ let get_local i =
   | v -> EvM.ret v
   | exception _ ->
     let _ = print_int i in
-     EvM.throw @@ NbeFailed "Variable out of bounds"
+    EvM.throw @@ NbeFailed "Variable out of bounds"
 
 let get_local_tp i =
   let open EvM in
@@ -480,8 +480,8 @@ and eval_tp : S.tp -> D.tp EvM.m =
     D.TpSplit (List.combine phis pclos)
   | S.TpESub (sb, tp) ->
     eval_sub sb @@ eval_tp tp
-    | S.DomTp ->
-      ret D.DomTp
+  | S.DomTp ->
+    ret D.DomTp
 
 and eval : S.t -> D.con EvM.m =
   let open EvM in
@@ -765,7 +765,7 @@ and eval_dim tr =
 and eval_cof tphi =
   let open EvM in
   let* vphi =
-      eval tphi in
+    eval tphi in
   lift_cmp @@ con_to_cof vphi
 
 
@@ -1518,16 +1518,17 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
-      | `FSub (fam, `Fib cof, bdry) ->
+      | `FSub (code, `Fib cof, bdry) ->
+        Debug.print "Attempting to do hcom in fsub!@.";
         splice_tm @@
         Splice.con cof @@ fun cof ->
-        Splice.con fam @@ fun fam_line ->
+        Splice.con code @@ fun code ->
         Splice.con bdry @@ fun bdry_line ->
         Splice.dim r @@ fun r ->
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@
-        TB.Kan.coe_sub ~cof ~fam_line ~bdry_line ~r ~r' ~bdy
+        TB.Kan.coe_sub ~cof ~code ~bdry_line ~r ~r' ~bdy
       | `Partial (_, ty) ->
         splice_tm @@
         Splice.con ty @@ fun ty ->

@@ -128,7 +128,7 @@ module Kan : sig
   val coe_ext : n:int -> n':int -> psi:t m -> cof:t m -> fam_line:t m -> bdry_line:t m -> coe
   val hcom_ext : n:int -> n':int -> psi:t m -> cof:t m -> fam:t m -> bdry:t m -> hcom
 
-  val coe_sub : cof:t m -> fam_line:t m -> bdry_line:t m -> coe
+  val coe_sub : cof:t m -> code:t m -> bdry_line:t m -> coe
   val hcom_sub : cof:t m -> fam:t m -> bdry:t m -> hcom
 
   val coe_partial : ty:t m -> coe

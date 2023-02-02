@@ -24,8 +24,11 @@ let refine_err err =
 let resolve id =
   let* env = read in
   match Env.resolve_local id env with
-  | Some ix -> ret @@ `Local ix
-  | None ->
+  | `Local ix -> ret @@ `Local ix
+  | `NotDomain ix ->
+    let* env = read in
+    refine_err (Err.ExpectedDomVar (Env.pp_env env, ix))
+  | `NotFound ->
     let* st = get in
     match St.resolve_global id st with
     | Some sym -> ret @@ `Global sym
@@ -41,13 +44,9 @@ let resolve_unfolder_syms (idents : Ident.t list) =
   MU.filter_map resolve_global idents
 
 
-let set_fib b m = scope (Env.set_fib b) m
-
-let ensure_dom lvl =
-  let* env = read in
-    if Env.get_dom_bool lvl env
-      then ret ()
-      else refine_err (Err.ExpectedFibVar)
+(* See [NOTE: Binding Domain Variables] *)
+let mark_next_dom m =
+  scope (Env.mark_next_dom true) m
 
 let get_num_holes =
   let+ st = get in
@@ -197,6 +196,11 @@ let expected_connective conn tp =
   with_pp @@ fun ppenv ->
   let* ttp = quote_tp tp in
   refine_err @@ Err.ExpectedConnective (conn, ppenv, ttp)
+
+let expected_one_of tps =
+  with_pp @@ fun ppenv ->
+  let* ttps = MU.map quote_tp tps in
+  refine_err @@ Err.ExpectedOnOf (ppenv, ttps)
 
 let expected_field sign con lbl =
   with_pp @@ fun ppenv ->

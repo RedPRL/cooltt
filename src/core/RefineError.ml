@@ -67,6 +67,9 @@ let pp fmt =
       "Head connective mismatch, expected %a but got %a"
       pp_connective conn
       (S.pp_tp ppenv) tp
+  | ExpectedOnOf (ppenv, tps) ->
+    Fmt.fprintf fmt
+      "Expected a term of one of %a" (Format.pp_print_list (S.pp_tp ppenv)) tps
   | ExpectedDimensionLiteral n ->
     Fmt.fprintf fmt
       "Expected dimension literal 0 or 1, but got %i" n
@@ -74,7 +77,7 @@ let pp fmt =
     Fmt.fprintf fmt
       "Expected directed dimension literal 0 or 1, but got %i" n
   | ExpectedOfMatchingIntervalType (ppenv, tm0 , tm1) ->
-      Fmt.fprintf fmt "Expected %a and %a to be terms of a matching interval type"
+    Fmt.fprintf fmt "Expected %a and %a to be terms of a matching interval type"
       (S.pp ppenv) tm0
       (S.pp ppenv) tm1
   | ExpectedTrue (ppenv, cof) ->
@@ -118,9 +121,8 @@ let pp fmt =
   | ExpectedStructure (ppenv, tm) ->
     Fmt.fprintf fmt
       "Expected structure but got %a" (S.pp ppenv) tm
-  | ExpectedFibVar ->
-    Fmt.fprintf fmt
-      "Not a ~fancy~ var!"
+  | ExpectedDomVar (ppenv, ix) -> 
+    Fmt.fprintf fmt "Variable %s is not a domain variable!" (Pp.Env.var ix ppenv)
 
 
 

@@ -106,3 +106,14 @@ def sigmaCov (Γ : type) (A : Γ → type) (B : (γ : Γ) → A γ → type)
          fix refiner to work in type signatures
          fix bug in semantics of Σ-types stopping sigmaInner/sigmaCov
 -/
+
+-- Make sure that we can't do anything weird with domain variables...
+#fail def domScope (A : type) (a b : type) : type :=
+  (i : 𝕀) × fsub A with [ i = 0 => a | i = 1 => b ]
+
+def path (A : type) (x y : A) : type :=
+  (i : 𝕀) → fsub A with [i=0 => x | i=1 => y]
+
+-- Make sure that variables bound by 'coe' are not marked as domain variables!
+#fail def evilCode (x y : nat) : path nat x y :=
+  i => coe {j => {fsub nat with [ j=0 => x | j=1 => y ]}} 0 i x

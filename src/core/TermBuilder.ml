@@ -560,10 +560,10 @@ struct
       ; join [phi; eq k r], sub_out @@ ap (el_out (ap bdy [k; prf])) js
       ]
 
-  let coe_sub ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
+  let coe_sub ~cof ~code ~bdry_line ~r ~r' ~bdy =
     el_in @@
     sub_in @@
-    com (lam @@ fun i -> ap fam_line [i]) r r' cof @@
+    hcom (lam @@ fun _ -> code) r r' cof @@
     lam @@ fun i ->
     lam @@ fun _ ->
     cof_split

@@ -16,8 +16,7 @@ val get_global : Global.t -> D.tp m
 val resolve : Ident.t -> [`Local of int | `Global of Global.t | `Unbound] m
 val resolve_unfolder_syms : Ident.t list -> Global.t list m
 
-val set_fib : bool -> 'a m -> 'a m
-val ensure_dom : int -> unit m
+val mark_next_dom : 'a m -> 'a m
 
 val inc_num_holes : unit m
 
@@ -50,5 +49,6 @@ val equate : D.tp -> D.con -> D.con -> unit m
 val with_pp : (Pp.env -> 'a m) -> 'a m
 
 val expected_connective : RefineError.connective -> D.tp -> 'a m
+val expected_one_of : D.tp list -> 'a m
 val expected_field : D.sign -> S.t -> Ident.user -> 'a m
 val field_names_mismatch : expected:Ident.user list -> actual:Ident.user list -> 'a m
