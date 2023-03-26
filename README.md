@@ -66,4 +66,4 @@ above.
 
 ## Acknowledgments
 
-This research was supported by the Air Force Office of Scientific Research under MURI grants FA9550-15-1-0053, FA9550-19-1-0216, and FA9550-21-0009. Any opinions, findings and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of any sponsoring institution, government or any other entity.
+This research was supported by the Air Force Office of Scientific Research under MURI grants FA9550-15-1-0053, FA9550-19-1-0216, and FA9550-21-1-0009. Any opinions, findings and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of any sponsoring institution, government or any other entity.
