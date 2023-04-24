@@ -23,6 +23,7 @@ let commands =
       ("#normalize", NORMALIZE);
       ("#print", PRINT);
       ("#viz", VISUALIZE);
+      ("#edit", EDIT);
       ("#quit", QUIT);
     ]
 

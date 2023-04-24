@@ -1,6 +1,9 @@
+(* [NOTE: June; 2022-07-14] See ConcreteSyntaxData for Yojson stuff *)
 type t = [`Anon | `User of string list | `Machine of string | `Unfolder of t | `Blocked of t list]
+[@@deriving yojson]
 type 'a some = 'a constraint 'a = [< t ]
 type user = [ `User of string list ]
+[@@deriving yojson]
 
 module J = Ezjsonm
 

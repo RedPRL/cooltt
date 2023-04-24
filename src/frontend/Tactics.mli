@@ -31,7 +31,7 @@ val tac_nary_quantifier : ('a, 'b) R.quantifier -> (Ident.t * 'a) list -> 'b -> 
 
 val match_goal : (D.tp * D.cof * D.tm_clo -> Chk.tac RM.m) -> Chk.tac
 
-val refine : ((D.tp * D.cof * D.tm_clo) list -> exn option -> Chk.tac) -> Chk.tac
+val refine : Chk.tac -> ((Ident.t * S.tp) list -> (D.tp * D.cof * D.tm_clo) list -> exn option -> Chk.tac RM.m) -> Chk.tac
 
 module Elim : sig
   type case_tac = CS.pat * Chk.tac

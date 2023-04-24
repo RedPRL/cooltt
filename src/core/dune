@@ -1,8 +1,8 @@
 (library
  (name Core)
- (libraries kado bantorra cooltt.basis ezjsonm yuujinchou bwd)
+ (libraries kado bantorra cooltt.basis ezjsonm yuujinchou bwd yojson)
  (preprocess
-  (pps ppx_deriving.std))
+  (pps ppx_deriving.std ppx_yojson_conv))
  (flags
   (:standard -w -32-37-38 -warn-error -a+31))
  (public_name cooltt.core))

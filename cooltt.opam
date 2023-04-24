@@ -18,14 +18,16 @@ depends: [
   "containers" {>= "3.4"}
   "ezjsonm" {>= "1.2.0"}
   "menhir" {>= "20180703"}
+  "ppx_yojson_conv" {>= "0.15.0"}
   "uuseg" {>= "12.0.0"}
   "uutf" {>= "1.0.2"}
+  "yojson" {>= "1.7" & < "2"}
   "yuujinchou" {>= "2.0.0" & < "3"}
   "odoc" {with-doc}
   "kado"
 ]
 pin-depends: [
-  [ "kado.~dev" "git+https://github.com/RedPRL/kado" ]
+  [ "kado.~dev" "git+https://github.com/RedPRL/kado#main" ]
   [ "bantorra.0.1.0" "git+https://github.com/RedPRL/bantorra#1e78633d9a2ef7104552a24585bb8bea36d4117b" ]
 ]
 build: [

@@ -54,7 +54,7 @@
 %token SIG STRUCT AS INCLUDE RENAMING OPEN
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL VISUALIZE
+%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL VISUALIZE EDIT
 
 %token UNFOLD
 %token <string list> IMPORT
@@ -307,6 +307,8 @@ plain_atomic_term_except_sq:
     { Hole (name, None) }
   | VISUALIZE
     { Visualize }
+  | EDIT
+    { Edit }
   | DIM
     { Dim }
   | COF
