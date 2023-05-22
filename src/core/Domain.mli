@@ -22,13 +22,17 @@ module Make : functor (Symbol : Symbol.S) -> sig
 
   val fst : con
   val snd : con
-  val proj : Ident.user -> con
+  val proj : Ident.t -> int -> con
   val el_out : con
 
   val tm_abort : con
   val tp_abort : tp
 
-  val sign_lbls : sign -> Ident.user list
+  val tele_lbls : tele -> Ident.t list
+  val kan_tele_lbls : kan_tele -> Ident.t list
+
+  val empty_env : env
+  val extend_env : env -> con -> env                  
 
   (** {1 Pretty-printers }
 
@@ -43,5 +47,6 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val pp_hd : hd Pp.printer
   val pp_frame : frm Pp.printer
   val pp_spine : frm list Pp.printer
-  val pp_sign : sign Pp.printer
+  val pp_tele : tele Pp.printer
+  val pp_kan_tele : kan_tele Pp.printer
 end

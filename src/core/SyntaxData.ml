@@ -25,8 +25,8 @@ struct
     | Fst of t
     | Snd of t
 
-    | Struct of (Ident.user * t) list
-    | Proj of t * Ident.user
+    | Struct of fields
+    | Proj of t * Ident.t * int
 
     | Coe of t * t * t * t
     | HCom of t * t * t * t * t
@@ -54,7 +54,7 @@ struct
     | CodeExt of int * t * [`Global of t] * t
     | CodePi of t * t
     | CodeSg of t * t
-    | CodeSignature of (Ident.user * t) list
+    | CodeSignature of kan_tele
     | CodeNat
     | CodeUniv
     | CodeV of t * t * t * t
@@ -74,12 +74,27 @@ struct
     | Sub of tp * t * t
     | Pi of tp * Ident.t * tp
     | Sg of tp * Ident.t * tp
-    | Signature of sign
+    | Signature of tele
     | Nat
     | Circle
     | TpESub of sub * tp
 
-  and sign = (Ident.user * tp) list
+  and tele =
+    | ElTele of kan_tele
+    | Cell of Ident.t * tp * tele
+    | Empty
+
+  and kan_tele =
+    | KCell of Ident.t * t * kan_tele
+    | KEmpty
+
+  and fields =
+    | Fields of (Ident.t * t) list
+    | Unpack of tele * t
+    (** Unpack a {!val:Struct} into it's list of fields. *)
+    | MCoe of Ident.t * kan_tele * t * t * fields
+    (** Coercion along a line in a telescope.
+        The {i kan_tele} has a free variable for a dimension variable. *)
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

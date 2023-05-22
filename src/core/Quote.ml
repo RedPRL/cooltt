@@ -1,5 +1,7 @@
 open Basis
 open Monads
+open Bwd
+open Bwd.Infix
 
 open CodeUnit
 
@@ -112,8 +114,13 @@ let rec quote_con (tp : D.tp) con =
     and+ tsnd = quote_con fib snd in
     S.Pair (tfst, tsnd)
 
-  | D.Signature sign, _ ->
-    let+ tfields = quote_fields sign con in
+  | D.Signature tele, D.Struct fields ->
+    let+ tfields = quote_fields tele fields in
+    S.Struct tfields
+
+  | D.Signature tele, _ ->
+    let* fields = lift_cmp @@ do_unpack tele con in
+    let+ tfields = quote_fields tele fields in
     S.Struct tfields
 
   | D.Sub (tp, _phi, _clo), _ ->
@@ -281,15 +288,19 @@ let rec quote_con (tp : D.tp) con =
     Format.eprintf "bad: %a / %a@." D.pp_tp tp D.pp_con con;
     throw @@ QuotationError (Error.IllTypedQuotationProblem (tp, con))
 
-and quote_fields (sign : D.sign) con : (Ident.user * S.t) list m =
-  match sign with
-  | D.Field (lbl, tp, sign_clo) ->
-    let* fcon = lift_cmp @@ do_proj con lbl in
-    let* sign = lift_cmp @@ inst_sign_clo sign_clo fcon in
-    let* tfield = quote_con tp fcon in
-    let+ tfields = quote_fields sign con in
-    (lbl, tfield) :: tfields
-  | D.Empty -> ret []
+and quote_fields (tele : D.tele) (fields : D.fields) : S.fields m =
+  let D.Fields fields = fields in
+  let rec go qfields tele fields =
+    match tele, fields with
+    | D.Cell (lbl, tp, clo), ((_, field) :: fields) ->
+      let* qfield = quote_con tp field in
+      let* tele = lift_cmp @@ inst_tele_clo clo field in
+      go (qfields #< (lbl, qfield)) tele fields
+    | D.Empty, [] ->
+      ret @@ S.Fields (Bwd.to_list qfields)
+    | _ ->
+      invalid_arg "quote_fields: telescope/field mismatch."
+  in go Emp tele fields
 
 and quote_stable_field_code univ args (lbl, fam) =
   (* See [NOTE: Sig Code Quantifiers] for more details *)
@@ -337,10 +348,9 @@ and quote_stable_code univ =
       lift_cmp @@ do_ap fam var
     in
     S.CodeSg (tbase, tfam)
-  | `Signature fields ->
-    let+ tfields = MU.map_accum_left_m (quote_stable_field_code univ) fields
-    in
-    S.CodeSignature tfields
+  | `Signature tele ->
+    let+ tele = quote_kan_tele tele in
+    S.CodeSignature tele
 
   | `Ext (n, code, `Global phi, bdry) ->
     let+ tphi =
@@ -407,15 +417,28 @@ and quote_tp_clo base fam =
   let* tp = lift_cmp @@ inst_tp_clo fam var in
   quote_tp tp
 
-and quote_sign : D.sign -> S.sign m =
+and quote_tele : D.tele -> S.tele m =
   function
-  | Field (ident, field, clo) ->
-    let* tfield = quote_tp field in
-    bind_var field @@ fun var ->
-    let* fields = lift_cmp @@ inst_sign_clo clo var in
-    let+ tfields = quote_sign fields in
-    (ident, tfield) :: tfields
-  | Empty -> ret []
+  | D.Cell (lbl, tp, clo) ->
+    let* qtp = quote_tp tp in
+    bind_var tp @@ fun var ->
+    let* tele = lift_cmp @@ inst_tele_clo clo var in
+    let+ qtele = quote_tele tele in
+    S.Cell (lbl, qtp, qtele)
+  | D.Empty ->
+    ret S.Empty
+
+and quote_kan_tele : D.kan_tele -> S.kan_tele m =
+  function
+  | D.KCell (lbl, code, clo) ->
+    let* qcode = quote_con D.Univ code in
+    let* tp = lift_cmp @@ do_el code in
+    bind_var tp @@ fun var ->
+    let* tele = lift_cmp @@ inst_kan_tele_clo clo var in
+    let+ qtele = quote_kan_tele tele in
+    S.KCell (lbl, qcode, qtele)
+  | D.KEmpty ->
+    ret S.KEmpty
 
 and quote_tp (tp : D.tp) =
   let* tp = contractum_or tp <@> lift_cmp @@ Sem.whnf_tp tp in
@@ -430,9 +453,9 @@ and quote_tp (tp : D.tp) =
     let* tbase = quote_tp base in
     let+ tfam = quote_tp_clo base fam in
     S.Sg (tbase, ident, tfam)
-  | D.Signature sign ->
-    let+ sign = quote_sign sign in
-    S.Signature sign
+  | D.Signature tele ->
+    let+ tele = quote_tele tele in
+    S.Signature tele
   | D.Univ ->
     ret S.Univ
   | D.ElStable code ->
@@ -648,8 +671,8 @@ and quote_frm tm =
     ret @@ S.Fst tm
   | D.KSnd ->
     ret @@ S.Snd tm
-  | D.KProj lbl ->
-    ret @@ S.Proj (tm, lbl)
+  | D.KProj (lbl, ix) ->
+    ret @@ S.Proj (tm, lbl, ix)
   | D.KAp (tp, con) ->
     let+ targ = quote_con tp con in
     S.Ap (tm, targ)

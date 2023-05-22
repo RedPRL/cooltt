@@ -1,5 +1,6 @@
 open Basis
 open Bwd
+open Bwd.Infix
 
 open CodeUnit
 
@@ -116,7 +117,7 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     and+ con1 = subst_con r x con1 in
     D.Pair (con0, con1)
   | D.Struct fields ->
-    let+ fields = MU.map (MU.second (subst_con r x)) fields in
+    let+ fields = subst_fields r x fields in
     D.Struct fields
   | D.StableCode code ->
     let+ code = subst_stable_code r x code in
@@ -190,6 +191,14 @@ and push_subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
     let+ branches = MU.map go_branch branches in
     D.Split branches
 
+and subst_fields : D.dim -> DimProbe.t -> D.fields -> D.fields CM.m =
+  let open CM in
+  fun r x ->
+    function
+    | D.Fields fields ->
+      let+ fields = MU.map (MU.second (subst_con r x)) fields
+      in D.Fields fields
+
 and subst_dim : D.dim -> DimProbe.t -> D.dim -> D.dim CM.m =
   fun r x s ->
   let open CM in
@@ -212,7 +221,13 @@ and subst_tp_clo : D.dim -> DimProbe.t -> D.tp_clo -> D.tp_clo CM.m =
   let+ env = subst_env r x env in
   D.Clo (tp, env)
 
-and subst_sign_clo : D.dim -> DimProbe.t -> D.sign_clo -> D.sign_clo CM.m =
+and subst_tele_clo : D.dim -> DimProbe.t -> D.tele_clo -> D.tele_clo CM.m =
+  fun r x (Clo (sign, env)) ->
+  let open CM in
+  let+ env = subst_env r x env in
+  D.Clo (sign, env)
+
+and subst_kan_tele_clo : D.dim -> DimProbe.t -> D.kan_tele_clo -> D.kan_tele_clo CM.m =
   fun r x (Clo (sign, env)) ->
   let open CM in
   let+ env = subst_env r x env in
@@ -225,15 +240,25 @@ and subst_env : D.dim -> DimProbe.t -> D.env -> D.env CM.m =
   and+ conenv = MU.map_bwd (subst_con r x) conenv in
   D.{tpenv; conenv}
 
-and subst_sign : D.dim -> DimProbe.t -> D.sign -> D.sign CM.m =
+and subst_tele : D.dim -> DimProbe.t -> D.tele -> D.tele CM.m =
   fun r x ->
   let open CM in
   function
-  | D.Field (ident, tp, clo) ->
+  | D.Cell (ident, tp, clo) ->
     let+ tp = subst_tp r x tp
-    and+ clo = subst_sign_clo r x clo in
-    D.Field (ident, tp, clo)
+    and+ clo = subst_tele_clo r x clo in
+    D.Cell (ident, tp, clo)
   | D.Empty -> ret D.Empty
+
+and subst_kan_tele : D.dim -> DimProbe.t -> D.kan_tele -> D.kan_tele CM.m =
+  fun r x ->
+  let open CM in
+  function
+  | D.KCell (ident, code, clo) ->
+    let+ code = subst_con r x code
+    and+ clo = subst_kan_tele_clo r x clo in
+    D.KCell (ident, code, clo)
+  | D.KEmpty -> ret D.KEmpty
 
 and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
   fun r x ->
@@ -247,9 +272,9 @@ and subst_tp : D.dim -> DimProbe.t -> D.tp -> D.tp CM.m =
     let+ base = subst_tp r x base
     and+ fam = subst_tp_clo r x fam in
     D.Sg (base, ident, fam)
-  | D.Signature sign ->
-    let+ sign = subst_sign r x sign in
-    D.Signature sign
+  | D.Signature tele ->
+    let+ tele = subst_tele r x tele in
+    D.Signature tele
   | D.Sub (base, phi, clo) ->
     let+ base = subst_tp r x base
     and+ phi = subst_cof r x phi
@@ -298,9 +323,9 @@ and subst_stable_code : D.dim -> DimProbe.t -> D.con D.stable_code -> D.con D.st
     let+ con0 = subst_con r x con0
     and+ con1 = subst_con r x con1 in
     `Sg (con0, con1)
-  | `Signature fields ->
-    let+ fields = MU.map (MU.second (subst_con r x)) fields in
-    `Signature fields
+  | `Signature tele ->
+    let+ tele = subst_kan_tele r x tele in
+    `Signature tele
   | `Ext (n, code, `Global cof, con) ->
     let+ code = subst_con r x code
     and+ con = subst_con r x con in
@@ -383,14 +408,26 @@ and subst_sp : D.dim -> DimProbe.t -> D.frm list -> D.frm list CM.m =
   fun r x ->
   CM.MU.map @@ subst_frm r x
 
-and eval_sign : S.sign -> D.sign EvM.m =
+and eval_tele : S.tele -> D.tele EvM.m =
   let open EvM in
   function
-  | [] -> ret D.Empty
-  | (ident, field) :: fields ->
+  | S.ElTele tele ->
+    let* tele = eval_kan_tele tele in
+    lift_cmp @@ unfold_kan_tele tele
+  | S.Cell (ident, tp, tele) ->
     let+ env = read_local
-    and+ vfield = eval_tp field in
-    D.Field (ident, vfield, D.Clo (fields, env))
+    and+ vtp = eval_tp tp in
+    D.Cell (ident, vtp, D.Clo (tele, env))
+  | S.Empty -> ret D.Empty
+
+and eval_kan_tele : S.kan_tele -> D.kan_tele EvM.m =
+  let open EvM in
+  function
+  | S.KCell (ident, code, tele) ->
+    let+ env = read_local
+    and+ vcode = eval code in
+    D.KCell (ident, vcode, D.Clo (tele, env))
+  | S.KEmpty -> ret D.KEmpty
 
 and eval_tp : S.tp -> D.tp EvM.m =
   let open EvM in
@@ -406,7 +443,7 @@ and eval_tp : S.tp -> D.tp EvM.m =
     and+ vbase = eval_tp base in
     D.Sg (vbase, ident, D.Clo (fam, env))
   | S.Signature sign ->
-    let+ vsign = eval_sign sign in
+    let+ vsign = eval_tele sign in
     D.Signature vsign
   | S.Univ ->
     ret D.Univ
@@ -499,11 +536,11 @@ and eval : S.t -> D.con EvM.m =
       let* con = eval t in
       lift_cmp @@ do_snd con
     | S.Struct fields ->
-      let+ vfields = MU.map (MU.second eval) fields in
-      D.Struct vfields
-    | S.Proj (t, lbl) ->
+      let+ fields = eval_fields fields in
+      D.Struct fields
+    | S.Proj (t, lbl, ix) ->
       let* con = eval t in
-      lift_cmp @@ do_proj con lbl
+      lift_cmp @@ do_proj con lbl ix
     | S.Coe (tpcode, tr, tr', tm) ->
       let* r = eval_dim tr in
       let* r' = eval_dim tr' in
@@ -599,12 +636,11 @@ and eval : S.t -> D.con EvM.m =
       let+ vbase = eval base
       and+ vfam = eval fam in
       D.StableCode (`Sg (vbase, vfam))
-    | S.CodeSignature fields ->
-      let+ vfields = fields |> MU.map @@ fun (ident, tp) ->
-        let+ vtp = eval tp in
-        (ident, vtp)
-      in
-      D.StableCode (`Signature vfields)
+
+    | S.CodeSignature tele ->
+      let+ tele = eval_kan_tele tele in
+      D.StableCode (`Signature tele)
+
     | S.CodeNat ->
       ret @@ D.StableCode `Nat
 
@@ -669,6 +705,24 @@ and eval : S.t -> D.con EvM.m =
 
     | S.ESub (sb, tm) ->
       eval_sub sb @@ eval tm
+
+and eval_fields : S.fields -> D.fields EvM.m =
+  let open EvM in
+  function
+  | S.Fields fields ->
+    let+ fields = MU.map (MU.second eval) fields in
+    D.Fields fields
+  | S.Unpack (tele, tm) ->
+    let* tele = eval_tele tele in
+    let* vtm = eval tm in
+    lift_cmp @@ do_unpack tele vtm
+  | S.MCoe (_, lines, r, s, fields) ->
+    let* env = read_local in
+    let lines = D.Clo (lines, env) in
+    let* r = eval_dim r in
+    let* s = eval_dim s in
+    let* fields = eval_fields fields in
+    lift_cmp @@ do_rigid_mcoe lines r s fields
 
 and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
@@ -985,11 +1039,17 @@ and inst_tm_clo : D.tm_clo -> D.con -> D.con CM.m =
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@
     eval bdy
 
-and inst_sign_clo : D.sign_clo -> D.con -> D.sign CM.m =
+and inst_tele_clo : D.tele_clo -> D.con -> D.tele CM.m =
   fun clo x ->
   match clo with
-  | D.Clo (sign, env) ->
-    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_sign sign
+  | D.Clo (tele, env) ->
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_tele tele
+
+and inst_kan_tele_clo : D.kan_tele_clo -> D.con -> D.kan_tele CM.m =
+  fun clo x ->
+  match clo with
+  | D.Clo (tele, env) ->
+    CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_kan_tele tele
 
 (* Apply each of the functions in a code signature to some value
    INVARIANT: the first element of the code signature should have only *one* lambda binding
@@ -1064,40 +1124,59 @@ and do_snd con : D.con CM.m =
       throw @@ NbeFailed ("Couldn't snd argument in do_snd")
   end
 
-and cut_frm_sign (cut : D.cut) (sign : D.sign) (lbl : Ident.user) =
+and cut_frm_tele (cut : D.cut) (tele : D.tele) (ix : int) =
   let open CM in
-  match sign with
-  | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> ret @@ cut_frm ~tp ~cut (D.KProj lbl)
-  | D.Field (flbl, _, clo) ->
-    (* FIXME: Is this right?? *)
-    let* field = cut_frm_sign cut sign flbl in
-    let* sign = inst_sign_clo clo field in
-    cut_frm_sign cut sign lbl
-  | D.Empty ->
-    throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
+  let rec go n =
+    function
+    | D.Cell (flbl, tp, _) when n = ix ->
+      ret @@ cut_frm ~tp ~cut (D.KProj (flbl, ix))
+    | D.Cell (flbl, tp, clo) ->
+      let field = cut_frm ~tp ~cut (D.KProj (flbl, n)) in
+      let* tele = inst_tele_clo clo field in
+      go (n + 1) tele
+    | D.Empty ->
+      throw @@ NbeFailed ("Couldn't find field label in cut_frm_sign")
+  in go 0 tele
 
-and do_proj (con : D.con) (lbl : Ident.user) : D.con CM.m =
+and proj_field (fields : D.fields) (ix : int) : D.con CM.m =
+  let open CM in
+  match fields with
+  | D.Fields fields ->
+    ret @@ snd @@ List.nth fields ix
+
+and do_proj (con : D.con) (lbl : Ident.t) (ix : int) : D.con CM.m =
   let open CM in
   abort_if_inconsistent (ret D.tm_abort) @@
-  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl) in
+  let splitter con phis = splice_tm @@ Splice.Macro.commute_split con phis (fun tm -> TB.proj tm lbl ix) in
   begin
     inspect_con con |>>
     function
     | D.Struct fields ->
-      begin
-        match List.assoc_opt lbl fields with
-        | Some con -> ret con
-        | None -> throw @@ NbeFailed "Couldn't proj argument in do_proj, struct was missing field"
-      end
+      proj_field fields ix
     | D.Split branches ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.TpSplit branches; _} as con ->
       splitter con @@ List.map fst branches
     | D.Cut {tp = D.Signature sign; cut} ->
-      cut_frm_sign cut sign lbl
+      cut_frm_tele cut sign ix
     | _ ->
       throw @@ NbeFailed ("Couldn't proj argument in do_proj")
   end
+
+and do_unpack (tele : D.tele) (con : D.con) : D.fields CM.m =
+  let open CM in
+  let rec unpack_eta fields n =
+    function
+    | D.Cell (lbl, _, clo) ->
+      let* field = do_proj con lbl n in
+      let* tele = inst_tele_clo clo field in
+      unpack_eta (fields #< (lbl, field)) (n + 1) tele
+    | D.Empty ->
+      ret @@ D.Fields (Bwd.to_list fields)
+  in
+  match con with
+  | D.Struct fields -> ret @@ fields
+  | _ -> unpack_eta Emp 0 tele
 
 and do_aps (con : D.con) (args : D.con list) : D.con CM.m =
   let open CM in
@@ -1315,12 +1394,9 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         Splice.term @@
         TB.sg (TB.el base) @@ fun x ->
         TB.el @@ TB.ap fam [x]
-      | `Signature fields ->
-        let (lbls, field_cons) = ListUtil.unzip fields in
-        splice_tp @@
-        Splice.cons field_cons @@ fun fields ->
-        Splice.term @@ TB.signature @@ List.map2 (fun ident fam -> (ident, fun args -> TB.el @@ TB.ap fam args)) lbls fields
-
+      | `Signature tele ->
+        let+ tele = unfold_kan_tele tele in
+        D.Signature tele
       | `Ext (n, fam, `Global phi, bdry) ->
         splice_tp @@
         Splice.con phi @@ fun phi ->
@@ -1332,6 +1408,14 @@ and unfold_el : D.con D.stable_code -> D.tp CM.m =
         TB.ap bdry @@ js @ [TB.prf]
     end
 
+and unfold_kan_tele : D.kan_tele -> D.tele CM.m =
+  let open CM in
+  function
+  | D.KCell (lbl, code, D.Clo (tele, env)) ->
+    let+ tp = do_el code in
+    D.Cell (lbl, tp, D.Clo (S.ElTele tele, env))
+  | D.KEmpty ->
+    ret D.Empty
 
 and dispatch_rigid_coe line =
   let open CM in
@@ -1412,14 +1496,12 @@ and enact_rigid_coe line r r' con tag =
         Splice.dim r' @@ fun r' ->
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
-      | `Signature fields ->
-        let (lbls, fams) = ListUtil.unzip fields in
-        splice_tm @@
-        Splice.cons (List.map (fun famx -> D.BindSym (x, famx)) fams) @@ fun fam_lines ->
-        Splice.dim r @@ fun r ->
-        Splice.dim r' @@ fun r' ->
-        Splice.con con @@ fun bdy ->
-        Splice.term @@ TB.Kan.coe_sign ~field_lines:(ListUtil.zip lbls fam_lines) ~r ~r' ~bdy
+      | `Signature telex ->
+        (* HACK: do_unpack just needs label names. *)
+        let* eltelex = unfold_kan_tele telex in
+        let* fields = do_unpack eltelex con in
+        let+ coe_fields = enact_rigid_mcoe telex x r r' fields in
+        D.Struct coe_fields
       | `Ext (n, famx, `Global cof, bdryx) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1466,6 +1548,22 @@ and enact_rigid_coe line r r' con tag =
     Splice.term @@
     let branch psi = psi, TB.coe line r r' bdy in
     TB.cof_split @@ List.map branch psis
+
+and enact_rigid_mcoe linesx x r s fields =
+  let open CM in
+  let D.Fields fields = fields in
+  let rec go acc linesx fields =
+    match linesx, fields with
+    | D.KCell (lbl, linex, linesx), (_, field) :: fields ->
+      let* coe_field = do_rigid_coe (D.BindSym (x, linex)) r (Dim.DimProbe x) field in
+      let* linesx = inst_kan_tele_clo linesx coe_field in
+      go (acc #< (lbl, D.LetSym (s, x, coe_field))) linesx fields
+    | D.KEmpty, [] ->
+      ret @@ D.Fields (Bwd.to_list acc)
+    | _ ->
+      invalid_arg "bad do_rigid_mcoe: telescope/fields mismatch"
+  in
+  go Emp linesx fields
 
 and enact_rigid_hcom code r r' phi bdy tag =
   let open CM in
@@ -1624,12 +1722,18 @@ and do_rigid_com (line : D.con) r s phi bdy =
   TB.coe line i s @@
   TB.ap bdy [i; prf]
 
+and do_rigid_mcoe (lines : D.kan_tele_clo) (r : D.dim) (s : D.dim) (fields : D.fields) =
+  let open CM in
+  let x = DimProbe.fresh () in
+  let* linesx = inst_kan_tele_clo lines (D.DimProbe x) in
+  enact_rigid_mcoe linesx x r s fields
+
 and do_frm con =
   function
   | D.KAp (_, con') -> do_ap con con'
   | D.KFst -> do_fst con
   | D.KSnd -> do_snd con
-  | D.KProj lbl -> do_proj con lbl
+  | D.KProj (lbl, ix) -> do_proj con lbl ix
   | D.KNatElim (mot, case_zero, case_suc) -> do_nat_elim mot case_zero case_suc con
   | D.KCircleElim (mot, case_base, case_loop) -> do_circle_elim mot case_base case_loop con
   | D.KElOut -> do_el_out con

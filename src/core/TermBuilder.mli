@@ -30,8 +30,8 @@ val snd : t m -> t m
 
 val lams : Ident.t list -> (t m list -> t m) -> t m
 
-val struct_ : (Ident.user * t m) list -> t m
-val proj : t m -> Ident.user -> t m
+val struct_ : S.fields m -> t m
+val proj : t m -> Ident.t -> int -> t m
 
 val zero : t m
 val suc : t m -> t m
@@ -64,7 +64,7 @@ val circle_elim : t m -> t m -> t m -> t m -> t m
 
 val pi : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
-val signature : (Ident.user * (t m list -> tp m)) list -> tp m
+val signature : S.tele m -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m

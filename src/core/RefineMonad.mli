@@ -50,7 +50,7 @@ val equate : D.tp -> D.con -> D.con -> unit m
 val with_pp : (Pp.env -> 'a m) -> 'a m
 
 val expected_connective : RefineError.connective -> D.tp -> 'a m
-val expected_field : D.sign -> S.t -> Ident.user -> 'a m
+val expected_field : D.tele -> S.t -> Ident.user -> 'a m
 val field_names_mismatch : expected:Ident.user list -> actual:Ident.user list -> 'a m
 
 (* [HACK: Hazel; 2022-06-24] FKA GlobalUtil, maybe this shouldn't go here *)
