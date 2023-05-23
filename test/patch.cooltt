@@ -1,15 +1,5 @@
 import prelude
 
-def test : type :=
-  sig
-    def hom : sig [ s : type, t : type ] -> type
-    def idn : hom # []
-  end
-
-#print test
-
-#quit
-
 def el : type :=
 sig
   def A : type
