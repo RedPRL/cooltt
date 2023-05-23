@@ -119,7 +119,7 @@ let rec quote_con (tp : D.tp) con =
     S.Struct tfields
 
   | D.Signature tele, _ ->
-    let* fields = lift_cmp @@ do_unpack tele con in
+    let* fields = lift_cmp @@ do_unpack (D.tele_lbls tele) con in
     let+ tfields = quote_fields tele fields in
     S.Struct tfields
 

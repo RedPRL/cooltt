@@ -711,10 +711,9 @@ and eval_fields : S.fields -> D.fields EvM.m =
   | S.Fields fields ->
     let+ fields = MU.map (MU.second eval) fields in
     D.Fields fields
-  | S.Unpack (tele, tm) ->
-    let* tele = eval_tele tele in
+  | S.Unpack (lbls, tm) ->
     let* vtm = eval tm in
-    lift_cmp @@ do_unpack tele vtm
+    lift_cmp @@ do_unpack lbls vtm
   | S.MCoe (_, lines, r, s, fields) ->
     let* env = read_local in
     let lines = D.Clo (lines, env) in
@@ -1175,20 +1174,19 @@ and do_proj (con : D.con) (lbl : Ident.t) (ix : int) : D.con CM.m =
       throw @@ NbeFailed ("Couldn't proj argument in do_proj")
   end
 
-and do_unpack (tele : D.tele) (con : D.con) : D.fields CM.m =
+and do_unpack (lbls : Ident.t list) (con : D.con) : D.fields CM.m =
   let open CM in
   let rec unpack_eta fields n =
     function
-    | D.Cell (lbl, _, clo) ->
+    | lbl :: lbls ->
       let* field = do_proj con lbl n in
-      let* tele = inst_tele_clo clo field in
-      unpack_eta (fields #< (lbl, field)) (n + 1) tele
-    | D.Empty ->
+      unpack_eta (fields #< (lbl, field)) (n + 1) lbls
+    | [] ->
       ret @@ D.Fields (Bwd.to_list fields)
   in
   match con with
   | D.Struct fields -> ret @@ fields
-  | _ -> unpack_eta Emp 0 tele
+  | _ -> unpack_eta Emp 0 lbls
 
 and do_aps (con : D.con) (args : D.con list) : D.con CM.m =
   let open CM in
@@ -1509,9 +1507,7 @@ and enact_rigid_coe line r r' con tag =
         Splice.con con @@ fun bdy ->
         Splice.term @@ TB.Kan.coe_sg ~base_line ~fam_line ~r ~r' ~bdy
       | `Signature telex ->
-        (* HACK: do_unpack just needs label names. *)
-        let* eltelex = unfold_kan_tele telex in
-        let* fields = do_unpack eltelex con in
+        let* fields = do_unpack (D.kan_tele_lbls telex) con in
         let+ coe_fields = enact_rigid_mcoe telex x r r' fields in
         D.Struct coe_fields
       | `Ext (n, famx, `Global cof, bdryx) ->

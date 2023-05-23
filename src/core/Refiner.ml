@@ -187,7 +187,7 @@ struct
         Splice.term @@ TB.lam @@ fun _ ->
         TB.cof_split
           [phi_a, TB.ap fn_a [TB.prf];
-            phi_sub, TB.sub_out @@ TB.ap fn_sub [TB.prf]]
+           phi_sub, TB.sub_out @@ TB.ap fn_sub [TB.prf]]
       in
       let+ tm = T.Chk.brun tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
@@ -326,19 +326,19 @@ struct
       open Bwd.Infix
       type t =
         {disj : D.cof;
-          fns : (D.cof * D.con) bwd;
-          acc : (S.t * S.t) bwd}
+         fns : (D.cof * D.con) bwd;
+         acc : (S.t * S.t) bwd}
 
       let init : t =
         {disj = CofBuilder.bot;
-          fns = Emp;
-          acc = Emp}
+         fns = Emp;
+         acc = Emp}
 
       let append : t -> branch -> t =
         fun state branch ->
         {disj = CofBuilder.join [state.disj; branch.cof];
-          fns = state.fns #< (branch.cof, branch.fn);
-          acc = state.acc #< (branch.tcof, branch.bdy)}
+         fns = state.fns #< (branch.cof, branch.fn);
+         acc = state.acc #< (branch.tcof, branch.bdy)}
     end
 
     let split (branches : branch_tac list) : T.Chk.tac =
@@ -581,14 +581,14 @@ struct
   (** Abstract over all the variables in a code signature *)
   let abstract_kan_tele sign k =
     let rec go vars = function
-      | D.KEmpty -> k vars
+      | D.KEmpty -> k (Bwd.to_list vars)
       | D.KCell (lbl, code, tele) ->
         let* tp = RM.lift_cmp @@ Sem.do_el code in
         RM.abstract lbl tp @@ fun x ->
         let* sign = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele x in
-        go (x :: vars) sign
+        go (vars #< x) sign
     in
-    go [] sign
+    go Emp sign
 
   let signature (tacs : [`Field of (Ident.t * T.Chk.tac) | `Include of T.Chk.tac * (Ident.t -> Ident.t option)] list) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
@@ -1035,7 +1035,7 @@ struct
           TB.lam @@ fun _ -> (* [r=0 ∨ phi] *)
           TB.cof_split
             [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
-              phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
+             phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
         in
         T.Chk.brun tac_tot (tp, CofBuilder.join [CofBuilder.eq0 r; phi], D.un_lam bdry_fn)
       in
@@ -1118,7 +1118,7 @@ struct
           TB.lam @@ fun _ -> (* [phi ∨ psi] *)
           TB.cof_split
             [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
-              phi, TB.coe (TB.lam ~ident:(Ident.machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
+             phi, TB.coe (TB.lam ~ident:(Ident.machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
         T.Chk.brun tac_cap (tp_cap, CofBuilder.join [phi; psi], D.un_lam bdry_fn)
       and+ tr = RM.quote_dim r

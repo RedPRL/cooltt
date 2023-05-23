@@ -1,6 +1,15 @@
 -- Various tests for sig types + structs
 import prelude
 
+def test : type :=
+  sig
+    def x : type
+    def y : type
+    def fn : x -> y
+  end
+
+#print test
+
 def basic : type :=
   sig
     def foo::x : nat

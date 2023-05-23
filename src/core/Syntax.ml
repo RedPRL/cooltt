@@ -115,6 +115,14 @@ struct
         dump r
         dump s
         dump_fields fields
+    | MCom (tele, r, s, phi, fields) ->
+      Format.fprintf fmt "mcom[%a, %a, %a, %a, %a]"
+        dump_kan_tele tele
+        dump r
+        dump s
+        dump phi
+        dump_fields fields
+
 
   and dump_tele fmt sign =
     Format.fprintf fmt "TODO: dump_tele"
@@ -255,16 +263,6 @@ struct
   let ppenv_bind env ident =
     Pp.Env.bind env @@ Ident.to_string_opt ident
 
-  let pp_fields ~pp_copula pp_bdy env =
-    let pp_item fmt (lbl, tp) =
-      Format.fprintf fmt "@[<hv2>def %a %a@;%a@]"
-        Ident.pp_user lbl
-        pp_copula ()
-        (pp_bdy env P.(right_of colon)) tp
-    in
-    let pp_sep fmt () = Format.pp_print_break fmt 1 0 in
-    Format.pp_print_list ~pp_sep pp_item
-
   let rec pp env =
     pp_braced_cond P.classify_tm @@ fun penv fmt ->
     function
@@ -277,9 +275,7 @@ struct
     | Pair (tm0, tm1) ->
       pp_tuple (pp env P.isolated) fmt [tm0; tm1]
     | Struct fields ->
-      Format.fprintf fmt "TODO: pp struct"
-    (* let pp_copula fmt () = Format.fprintf fmt ":=" in *)
-    (* Format.fprintf fmt "@[<hv>struct@;<1 2>@[<hv>%a@]@;end@]" (pp_fields ~pp_copula pp env) fields *)
+      Format.fprintf fmt "@[<hv>struct@;<1 2>@[<hv>%a@]@;end@]" (pp_fields env) fields
     | Proj (tm, lbl, _) ->
       Format.fprintf fmt "%a.%a" (pp env P.(left_of proj)) tm Ident.pp lbl
     | CofSplit branches ->
@@ -394,10 +390,9 @@ struct
         (pp_atomic env) fam
     | CodeSg (base, tm) ->
       pp_code_sigma env base tm fmt
-    | CodeSignature fields ->
-      Format.fprintf fmt "TODO: pp code signature"
-    (* let pp_copula fmt () = Format.fprintf fmt ":" in *)
-    (* Format.fprintf fmt "@[<hv>sig@;<1 2>@[<hv>%a@]@;end@]" (pp_fields ~pp_copula pp_binders env) fields *)
+    | CodeSignature tele ->
+      Format.fprintf fmt "@[<hv>sig@;<1 2>@[<hv>%a@]@;end@]"
+        (pp_kan_tele env) tele
     | CodeExt (_, fam, `Global phi, bdry) ->
       Format.fprintf fmt "@[<hv>ext@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@;<1 2>@[<hov>%a@]@]"
         (pp_atomic env) fam
@@ -499,23 +494,78 @@ struct
         (pp_sub env P.(right_of sub_compose)) sb1
 
   and pp_tele env fmt : tele -> unit =
-    fun _ ->
-    Format.fprintf fmt "TODO: pp_tele"
-  (* let pp_item env fmt (lbl, tp) = *)
-  (*   Format.fprintf fmt "@[<hv2>def %a :@;%a@]" *)
-  (*     Ident.pp_user lbl *)
-  (*     (pp_tp env P.(right_of colon)) tp *)
-  (* in *)
-  (* function *)
-  (* | [] -> () *)
-  (* | [(lbl, tp)] -> *)
-  (*   pp_item env fmt (lbl, tp) *)
-  (* | ((lbl, tp) :: fields) -> *)
-  (*   let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in *)
-  (*   Format.fprintf fmt "@ (%s : %a)%a" *)
-  (*     lbl *)
-  (*     (pp_tp env P.(right_of colon)) tp *)
-  (*     (pp_sign envlbl) fields *)
+    let pp_item env fmt (lbl, tp) =
+      Format.fprintf fmt "@[<hv2>def %a :@;%a@]"
+        Ident.pp lbl
+        (pp_tp env P.(right_of colon)) tp
+    in
+    function
+    | Empty ->
+      ()
+    | Cell (lbl, tp, Empty) ->
+      pp_item env fmt (lbl, tp)
+    | ElTele tele ->
+      pp_kan_tele env fmt tele
+    | Cell (lbl, tp, tele) ->
+      let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in
+      Format.fprintf fmt "@ (%s : %a)%a"
+        lbl
+        (pp_tp env P.(right_of colon)) tp
+        (pp_tele envlbl) tele
+
+  and pp_kan_tele env fmt : kan_tele -> unit =
+    let pp_item env fmt (lbl, tp) =
+      Format.fprintf fmt "@[<hv2>def %s :@;%a@]@;"
+        lbl
+        (pp env P.(right_of colon)) tp
+    in
+    function
+    | KEmpty ->
+      ()
+    | KCell (lbl, tp, KEmpty) ->
+      let lbl, _ = ppenv_bind env lbl in
+      pp_item env fmt (lbl, tp)
+    | KCell (lbl, code, tele) ->
+      let lbl, envlbl = ppenv_bind env lbl in
+      pp_item env fmt (lbl, code);
+      pp_kan_tele envlbl fmt tele
+
+  and pp_fields env fmt =
+    function
+    | Fields fields ->
+      let pp_copula fmt () = Format.fprintf fmt ":=" in
+      let pp_item fmt (lbl, tp) =
+        Format.fprintf fmt "@[<hv2>def %a %a@;%a@]"
+          Ident.pp lbl
+          pp_copula ()
+          (pp env P.(right_of colon)) tp
+      in
+      let pp_sep fmt () = Format.pp_print_break fmt 1 0 in
+      Format.pp_print_list ~pp_sep pp_item fmt fields
+    | Unpack (lbls, tm) ->
+      Format.fprintf fmt "@[<hov2>unpack@;%a@;as@;[%a]@]"
+        (pp env P.(right_of juxtaposition)) tm
+        (Pp.pp_sep_list ~sep:"," Ident.pp) lbls
+    | MCoe (lbl, line, r, s, fields) ->
+      let lbl, envlbl = ppenv_bind env lbl in
+      Format.fprintf fmt "@[<hov2>mcoe@;{%s => %a}@;@[<h>%a@;%a@]@;%a@]"
+        lbl
+        (pp_kan_tele envlbl) line
+        (pp_atomic env) r
+        (pp_atomic env) s
+        (pp_fields env) fields
+    | MCom (tele, r, s, phi, bdys) ->
+      Format.fprintf fmt "@[<hov2>mcom@;%a@;@[<h>%a@;%a@;%a@]@;%a@]"
+        (pp_kan_tele env) tele
+        (pp_atomic env) r
+        (pp_atomic env) s
+        (pp_atomic env) phi
+        (pp_fields env) bdys
+
+  (* Format.fprintf fmt "@ (%s : %a)%a" *)
+  (*   lbl *)
+  (*   (pp env P.(right_of colon)) code *)
+  (*   (pp_kan_tele envlbl) tele *)
 
   and pp_code_pi env base fam fmt =
     match fam with

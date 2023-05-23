@@ -1,5 +1,15 @@
 import prelude
 
+def test : type :=
+  sig
+    def hom : sig [ s : type, t : type ] -> type
+    def idn : hom # []
+  end
+
+#print test
+
+#quit
+
 def el : type :=
 sig
   def A : type
@@ -66,12 +76,13 @@ def types : category :=
     def ob := type
     def hom := args => {args.s} → {args.t}
     def idn := _ x => x
-    def seq := f g x => g {f x}
-
+    def seq := f g x =>  g {f x}
     def seqL := unfold seqL∷tp in f _ => f
     def seqR := unfold seqR∷tp in f _ => f
     def seqA := unfold seqA∷tp in f g h _ x => h {g {f x}}
   end
+
+#quit
 
 def test-auto (fam : sig [x : nat] → type) : type := fam
 #print test-auto

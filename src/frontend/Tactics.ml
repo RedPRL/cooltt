@@ -16,8 +16,11 @@ open Monad.Notation (RM)
 
 let is_total (tele : D.tele) =
   let rec go acc = function
-    | D.Cell (`User ["fib"],_,D.Clo (S.Empty,_)) -> RM.ret @@ acc
+    | D.Cell (`User ["fib"], _ , _) ->
+      Debug.print "is_total: Final field is magic@.";
+      RM.ret @@ acc
     | D.Cell (lbl, (D.ElStable (`Ext (0,_,`Global (Cof cof),_)) as tp), clo) ->
+      Debug.print "is_total: Patched field@.";
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       RM.abstract (lbl :> Ident.t) tp @@ fun v ->
       let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo v in
@@ -27,6 +30,7 @@ let is_total (tele : D.tele) =
         | false -> go `TotalSome tele
       end
     | D.Cell (lbl, tp, clo) ->
+      Debug.print "is_total: Non-patched field@.";
       RM.abstract (lbl :> Ident.t) tp @@ fun v ->
       let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo v in
       go `TotalSome tele
@@ -124,8 +128,12 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   | D.Signature sign, _, _ ->
     begin
       is_total sign |>> function
-      | `TotalAll -> RM.ret @@ R.Signature.intro [`Field (`User ["fib"], (intro_implicit_connectives tac))]
-      | _ -> RM.ret tac
+      | `TotalAll ->
+        Debug.print "Introducing implicit signature@.";
+        RM.ret @@ R.Signature.intro [`Field (`User ["fib"], (intro_implicit_connectives tac))]
+      | _ ->
+        Debug.print "Not a total space!@.";
+        RM.ret tac
     end
   | _ ->
     RM.ret tac
@@ -143,8 +151,12 @@ let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
       | D.Signature sign ->
         begin
           is_total sign |>> function
-          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro [`Field (`User ["fib"], (intro_subtypes_and_total tac))]
-          | _ -> RM.ret tac
+          | `TotalAll ->
+            Debug.print "Introducing implicit signature@.";
+            RM.ret @@ R.El.intro @@ R.Signature.intro [`Field (`User ["fib"], (intro_subtypes_and_total tac))]
+          | _ ->
+            Debug.print "Not a total space!@.";
+            RM.ret tac
         end
       | _ -> failwith "impossible"
     end
@@ -171,7 +183,9 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
             (* Same HACK *)
             match fam with
             | D.Univ
-            | D.ElStable `Univ -> RM.ret @@ R.Univ.total vsign vtm
+            | D.ElStable `Univ ->
+              Debug.print "Performing total space coercion!@.";
+              RM.ret @@ R.Univ.total vsign vtm
             | _ -> RM.ret @@ T.Chk.syn tac
           in
           T.Chk.run tac' tp
@@ -250,43 +264,43 @@ struct
     T.Syn.rule @@
     let* tscrut, ind_tp = T.Syn.run scrut in
     let scrut = T.Syn.rule @@ RM.ret (tscrut, ind_tp) (* only makes sense because because I know 'scrut' won't be used under some binder *) in
-        match ind_tp, mot with
-        | D.Nat, mot ->
-          let* tac_zero : T.Chk.tac =
-            match find_case ["zero"] cases with
-            | Some ([], tac) -> RM.ret tac
-            | Some _ -> elab_err ElabError.MalformedCase
-            | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "zero"
-          in
-          let* tac_suc =
-            match find_case ["suc"] cases with
-            | Some ([`Simple nm_z], tac) ->
-              RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro @@ fun _ -> tac
-            | Some ([`Inductive (nm_z, nm_ih)], tac) ->
-              RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro ~ident:nm_ih @@ fun _ -> tac
-            | Some _ -> elab_err ElabError.MalformedCase
-            | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "suc"
-          in
-          T.Syn.run @@ R.Nat.elim mot tac_zero tac_suc scrut
-        | D.Circle, mot ->
-          let* tac_base : T.Chk.tac =
-            match find_case ["base"] cases with
-            | Some ([], tac) -> RM.ret tac
-            | Some _ -> elab_err ElabError.MalformedCase
-            | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "base"
-          in
-          let* tac_loop =
-            match find_case ["loop"] cases with
-            | Some ([`Simple nm_x], tac) ->
-              RM.ret @@ R.Pi.intro ~ident:nm_x @@ fun _ -> tac
-            | Some _ -> elab_err ElabError.MalformedCase
-            | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "loop"
-          in
-          T.Syn.run @@ R.Circle.elim mot tac_base tac_loop scrut
-        | _ ->
-          RM.with_pp @@ fun ppenv ->
-          let* tp = RM.quote_tp ind_tp in
-          elab_err @@ ElabError.CannotEliminate (ppenv, tp)
+                  match ind_tp, mot with
+                  | D.Nat, mot ->
+                    let* tac_zero : T.Chk.tac =
+                      match find_case ["zero"] cases with
+                      | Some ([], tac) -> RM.ret tac
+                      | Some _ -> elab_err ElabError.MalformedCase
+                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "zero"
+                    in
+                    let* tac_suc =
+                      match find_case ["suc"] cases with
+                      | Some ([`Simple nm_z], tac) ->
+                        RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro @@ fun _ -> tac
+                      | Some ([`Inductive (nm_z, nm_ih)], tac) ->
+                        RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro ~ident:nm_ih @@ fun _ -> tac
+                      | Some _ -> elab_err ElabError.MalformedCase
+                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "suc"
+                    in
+                    T.Syn.run @@ R.Nat.elim mot tac_zero tac_suc scrut
+                  | D.Circle, mot ->
+                    let* tac_base : T.Chk.tac =
+                      match find_case ["base"] cases with
+                      | Some ([], tac) -> RM.ret tac
+                      | Some _ -> elab_err ElabError.MalformedCase
+                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "base"
+                    in
+                    let* tac_loop =
+                      match find_case ["loop"] cases with
+                      | Some ([`Simple nm_x], tac) ->
+                        RM.ret @@ R.Pi.intro ~ident:nm_x @@ fun _ -> tac
+                      | Some _ -> elab_err ElabError.MalformedCase
+                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "loop"
+                    in
+                    T.Syn.run @@ R.Circle.elim mot tac_base tac_loop scrut
+                  | _ ->
+                    RM.with_pp @@ fun ppenv ->
+                    let* tp = RM.quote_tp ind_tp in
+                    elab_err @@ ElabError.CannotEliminate (ppenv, tp)
 
   let assert_simple_inductive =
     function

@@ -50,7 +50,7 @@ val do_rigid_cap : D.dim -> D.dim -> D.cof -> D.con -> D.con -> D.con compute
 val do_rigid_vproj : D.dim -> D.con -> D.con -> D.con -> D.con -> D.con compute
 
 (** Unpack a struct into a list of fields, potentially performing eta-expansion. *)
-val do_unpack : D.tele -> D.con -> D.fields compute
+val do_unpack : Ident.t list -> D.con -> D.fields compute
 
 val splice_tm : S.t Splice.t -> D.con compute
 val splice_tp : S.tp Splice.t -> D.tp compute
