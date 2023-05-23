@@ -16,6 +16,9 @@ module Sem = Semantics
 open Monad.Notation (RM)
 module MU = Monad.Util (RM)
 
+let do_rename rn nm =
+  List.assoc_opt nm (rn :> (Ident.t * Ident.t) list)
+
 module CoolTp :
 sig
   include T.Tactic
@@ -23,7 +26,7 @@ sig
   val as_tp : tac -> T.Tp.tac
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list -> tac
+  val signature : [`Field of (Ident.t * tac) | `Include of tac * (Ident.t -> Ident.t option)] list -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -84,7 +87,7 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : [`Field of (Ident.user * tac) | `Include of tac * (Ident.user -> Ident.user option)] list) : tac =
+  let signature (tacs : [`Field of (Ident.t * tac) | `Include of tac * (Ident.t -> Ident.t option)] list) : tac =
     match as_codes tacs with
     | Some tacs ->
       let tac = R.Univ.signature tacs in
@@ -134,7 +137,12 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-    let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, cool_chk_tp con) | `Include (inc,rn) -> `Include (cool_chk_tp inc, R.Signature.find_field rn)) cells in
+    let tacs =
+      cells |> List.map @@
+      function
+      | `Field (lbl, con) -> `Field ((lbl :> Ident.t), cool_chk_tp con)
+      | `Include (inc, rn) -> `Include (cool_chk_tp inc, do_rename rn)
+    in
     CoolTp.signature tacs
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
@@ -257,10 +265,15 @@ and chk_tm : CS.con -> T.Chk.tac =
         end
 
       | CS.Open (tm,rn,body) ->
-        Tactics.open_ (syn_tm tm) (R.Signature.find_field rn) @@ fun _ -> chk_tm body
+        Tactics.open_ (syn_tm tm) (do_rename rn) @@ fun _ -> chk_tm body
 
       | CS.Struct fields ->
-        let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include (con,rn) -> `Include (syn_tm con,R.Signature.find_field rn)) fields in
+        let tacs =
+          fields |> List.map @@
+          function
+          | `Field (lbl, con) -> `Field ((lbl :> Ident.t), chk_tm con)
+          | `Include (con, rn) -> `Include (syn_tm con, do_rename rn)
+        in
         R.Signature.intro tacs
 
       | CS.Suc c ->
@@ -294,12 +307,22 @@ and chk_tm : CS.con -> T.Chk.tac =
         Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
       | CS.Signature fields ->
-        let tacs = List.map (function `Field (lbl,con) -> `Field (lbl, chk_tm con) | `Include (inc,rn) -> `Include (chk_tm inc, R.Signature.find_field rn)) fields in
+        let tacs =
+          fields |> List.map @@ function
+          | `Field (lbl, con) -> `Field ((lbl :> Ident.t), chk_tm con)
+          | `Include (inc, rn) -> `Include (chk_tm inc, do_rename rn)
+        in
         R.Univ.signature tacs
 
       | CS.Patch (tp, patches) ->
-        let tacs = List.map (function `Patch (lbl,con) -> lbl, `Patch (chk_tm con) | `Subst (lbl,con) -> lbl, `Subst (chk_tm con)) patches in
-        R.Univ.patch (chk_tm tp) (R.Signature.find_field tacs)
+        let tacs =
+          patches |> List.map @@ function
+          | `Patch (lbl, con) ->
+            (lbl :> Ident.t), `Patch (chk_tm con) 
+          | `Subst (lbl, con) ->
+            (lbl :> Ident.t), `Subst (chk_tm con) 
+        in
+        R.Univ.patch (chk_tm tp) (fun nm -> List.assoc_opt nm tacs)
 
       | CS.V (r, pcode, code, pequiv) ->
         R.Univ.code_v (chk_tm r) (chk_tm pcode) (chk_tm code) (chk_tm pequiv)
@@ -347,10 +370,15 @@ and chk_tm : CS.con -> T.Chk.tac =
         | D.Sg _ ->
           RM.ret @@ R.Sg.intro (chk_tm @@ CS.{node = CS.Fst con; info = None}) (chk_tm @@ CS.{node = CS.Snd con; info = None})
 
-        | D.Signature sign ->
-          let lbls = D.sign_lbls sign in
-          let fields = List.map (fun lbl -> `Field (lbl,chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None})) lbls in
-          RM.ret @@ R.Signature.intro fields
+        | D.Signature tele ->
+          let lbls = D.tele_lbls tele in
+          let tacs =
+            lbls |> List.map @@
+            function
+            | lbl -> `Field (lbl, chk_tm @@ CS.{ node = CS.Proj (con, lbl); info = None })
+          in
+          (* let fields = List.map (fun lbl -> `Field (lbl,chk_tm @@ CS.{node = CS.Proj (con, lbl); info = None})) lbls in *)
+          RM.ret @@ R.Signature.intro tacs
         | _ ->
           RM.ret @@ Tactics.intro_conversions @@ syn_tm con
 
@@ -403,7 +431,7 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
       (chk_cases cases)
       (syn_tm scrut)
 
-  | CS.Open (tm,rn,bdy) -> Tactics.open_syn (syn_tm tm) (R.Signature.find_field rn) @@ fun _ -> syn_tm bdy
+  | CS.Open (tm,rn,bdy) -> Tactics.open_syn (syn_tm tm) (do_rename rn) @@ fun _ -> syn_tm bdy
   | CS.Ann {term; tp} ->
     T.Syn.ann (chk_tm term) (chk_tp tp)
   | CS.Coe (tp, src, trg, body) ->
@@ -450,11 +478,11 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
     T.Syn.rule @@
     RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
-and chk_cases cases =
-  List.map chk_case cases
+      and chk_cases cases =
+        List.map chk_case cases
 
-and chk_case (pat, c) =
-  pat, chk_tm c
+      and chk_case (pat, c) =
+        pat, chk_tm c
 
 let rec modifier (con : CS.con) =
   let open Yuujinchou.Pattern in

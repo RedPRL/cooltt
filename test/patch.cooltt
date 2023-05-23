@@ -38,8 +38,6 @@ def testing (A Z : type) (B : A → type) (p : Z → sig [x : A, bx : B x]) (z :
 -- Record Patching + Total Space Conversion
 #fail def total-space/fail (fam : sig [A : type, a : A] → nat → type) : type := fam
 
-
-
 abstract
 def category : type :=
   sig

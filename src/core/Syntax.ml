@@ -32,6 +32,13 @@ struct
     | Empty ->
       []
 
+  let rec append_kan_tele tele0 tele1 =
+    match tele0 with
+    | KCell (lbl, code, tele0) ->
+      KCell (lbl, code, append_kan_tele tele0 tele1)
+    | KEmpty ->
+      tele1
+
   module Fmt = Format
 
   let rec dump fmt =

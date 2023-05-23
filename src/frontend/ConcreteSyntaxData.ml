@@ -39,7 +39,7 @@ and con_ =
   | Sg of cell list * con
   | Signature of field list
   | Struct of field list
-  | Proj of con * Ident.user
+  | Proj of con * Ident.t
   | Patch of con * patch_field list
   | Open of con * (Ident.user * Ident.user) list * con
   | Sub of con * con * con

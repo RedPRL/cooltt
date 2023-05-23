@@ -12,7 +12,7 @@ open Tactic
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
 type 'a telescope =
-  | Bind of Ident.user * 'a * (var -> 'a telescope)
+  | Bind of Ident.t * 'a * (var -> 'a telescope)
   | Done
 
 module Hole : sig
@@ -64,9 +64,9 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
-  val patch : Chk.tac -> (Ident.user -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
-  val total : (Ident.user * D.con) list -> D.con -> Chk.tac
+  val signature : [`Field of (Ident.t * Chk.tac) | `Include of Chk.tac * (Ident.t -> Ident.t option)] list -> Chk.tac
+  val patch : Chk.tac -> (Ident.t -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
+  val total : D.kan_tele -> D.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val infer_nullary_ext : Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
@@ -108,10 +108,8 @@ end
 
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
-  val intro : [`Field of Ident.user * Chk.tac |`Include of Syn.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
-  val proj : Syn.tac -> Ident.user -> Syn.tac
-
-  val find_field : (Ident.user * 'a) list -> Ident.user -> 'a option
+  val intro : [`Field of Ident.t * Chk.tac |`Include of Syn.tac * (Ident.t -> Ident.t option)] list -> Chk.tac
+  val proj : Syn.tac -> Ident.t -> Syn.tac
 end
 
 module Sub : sig

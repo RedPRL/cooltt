@@ -12,6 +12,9 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val tele_lbls : tele -> Ident.t list
   val kan_tele_lbls : kan_tele -> Ident.t list
 
+  (** Append two kan telescopes together.
+      INVARIANT: The second telescope is well-scoped with regard to the first. *)
+  val append_kan_tele : kan_tele -> kan_tele -> kan_tele
 
   (** {1 Pretty printers} *)
 

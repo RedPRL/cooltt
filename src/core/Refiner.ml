@@ -3,6 +3,7 @@ open Containers
 open Basis
 open Monads
 open Bwd
+open Bwd.Infix
 
 open CodeUnit
 
@@ -27,7 +28,7 @@ exception CJHM
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
 type 'a telescope =
-  | Bind of Ident.user * 'a * (T.var -> 'a telescope)
+  | Bind of Ident.t * 'a * (T.var -> 'a telescope)
   | Done
 
 
@@ -59,16 +60,16 @@ struct
 
   let probe_goal_syn k tac =
     T.Syn.rule ~name:"probe_goal_syn" @@
-    let* s, tp = T.Syn.run tac in
-    let+ () =
-      let* stp = RM.quote_tp tp in
-      let* env = RM.read in
-      let cells = Env.locals env in
-      RM.globally @@
-      let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
-      k ctx stp
-    in
-    s, tp
+      let* s, tp = T.Syn.run tac in
+      let+ () =
+        let* stp = RM.quote_tp tp in
+        let* env = RM.read in
+        let cells = Env.locals env in
+        RM.globally @@
+        let* ctx = RM.destruct_cells @@ BwdLabels.to_list cells in
+        k ctx stp
+      in
+      s, tp
 
   let probe_chk name tac =
     probe_goal_chk (RM.print_state name) tac
@@ -143,18 +144,18 @@ struct
 
   let silent_syn_hole name : T.Syn.tac =
     T.Syn.rule ~name:"silent_syn_hole" @@
-    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
-    let tp = D.ElCut cut in
-    let+ tm = tp |> T.Chk.run @@ unleash_hole name in
-    tm, tp
+      let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+      let tp = D.ElCut cut in
+      let+ tm = tp |> T.Chk.run @@ unleash_hole name in
+      tm, tp
 
   let unleash_syn_hole name : T.Syn.tac =
     Probe.probe_syn name @@
     T.Syn.rule ~name:"unleash_syn_hole" @@
-    let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
-    let tp = D.ElCut cut in
-    let+ tm = tp |> T.Chk.run @@ unleash_hole name in
-    tm, tp
+      let* cut = make_hole name @@ (D.Univ, CofBuilder.bot, D.Clo (S.tm_abort, {tpenv = Emp; conenv = Emp})) in
+      let tp = D.ElCut cut in
+      let+ tm = tp |> T.Chk.run @@ unleash_hole name in
+      tm, tp
 end
 
 
@@ -162,15 +163,15 @@ module Sub =
 struct
   let formation (tac_base : T.Tp.tac) (tac_phi : T.Chk.tac) (tac_tm : T.var -> T.Chk.tac) : T.Tp.tac =
     T.Tp.rule ~name:"Sub.formation" @@
-    let* base = T.Tp.run tac_base in
-    let* vbase = RM.lift_ev @@ Sem.eval_tp base in
-    let* phi = T.Chk.run tac_phi D.TpCof in
-    let+ tm =
-      let* vphi = RM.lift_ev @@ Sem.eval_cof phi in
-      T.abstract (D.TpPrf vphi) @@ fun prf ->
-      vbase |> T.Chk.run @@ tac_tm prf
-    in
-    S.Sub (base, phi, tm)
+      let* base = T.Tp.run tac_base in
+      let* vbase = RM.lift_ev @@ Sem.eval_tp base in
+      let* phi = T.Chk.run tac_phi D.TpCof in
+      let+ tm =
+        let* vphi = RM.lift_ev @@ Sem.eval_cof phi in
+        T.abstract (D.TpPrf vphi) @@ fun prf ->
+        vbase |> T.Chk.run @@ tac_tm prf
+      in
+      S.Sub (base, phi, tm)
 
   let intro (tac : T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Sub.intro" @@
@@ -195,12 +196,12 @@ struct
 
   let elim (tac : T.Syn.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Sub.elim" @@
-    let* tm, subtp = T.Syn.run tac in
-    match subtp with
-    | D.Sub (tp, _, _) ->
-      RM.ret (S.SubOut tm, tp)
-    | tp ->
-      RM.expected_connective `Sub tp
+      let* tm, subtp = T.Syn.run tac in
+      match subtp with
+      | D.Sub (tp, _, _) ->
+        RM.ret (S.SubOut tm, tp)
+      | tp ->
+        RM.expected_connective `Sub tp
 end
 
 module Dim =
@@ -211,19 +212,19 @@ struct
 
   let dim0 : T.Chk.tac =
     T.Chk.rule ~name:"Dim.dim0" @@
-    function
-    | D.TpDim ->
-      RM.ret S.Dim0
-    | tp ->
-      RM.expected_connective `Dim tp
+      function
+      | D.TpDim ->
+        RM.ret S.Dim0
+      | tp ->
+        RM.expected_connective `Dim tp
 
   let dim1 : T.Chk.tac =
     T.Chk.rule ~name:"Dim.dim1" @@
-    function
-    | D.TpDim ->
-      RM.ret S.Dim1
-    | tp ->
-      RM.expected_connective `Dim tp
+      function
+      | D.TpDim ->
+        RM.ret S.Dim1
+      | tp ->
+        RM.expected_connective `Dim tp
 
   let literal : int -> T.Chk.tac =
     function
@@ -231,7 +232,7 @@ struct
     | 1 -> dim1
     | n ->
       T.Chk.rule ~name:"Dim.literal" @@ fun _ ->
-      RM.refine_err @@ Err.ExpectedDimensionLiteral n
+        RM.refine_err @@ Err.ExpectedDimensionLiteral n
 end
 
 module Cof =
@@ -245,42 +246,42 @@ struct
 
   let eq tac0 tac1 =
     T.Chk.rule ~name:"Cof.eq" @@
-    function
-    | D.TpCof ->
-      let+ r0 = T.Chk.run tac0 D.TpDim
-      and+ r1 = T.Chk.run tac1 D.TpDim in
-      S.CofBuilder.eq r0 r1
-    | tp ->
-      expected_cof tp
+      function
+      | D.TpCof ->
+        let+ r0 = T.Chk.run tac0 D.TpDim
+        and+ r1 = T.Chk.run tac1 D.TpDim in
+        S.CofBuilder.eq r0 r1
+      | tp ->
+        expected_cof tp
 
   let le tac0 tac1 =
     T.Chk.rule ~name:"Cof.le" @@
-    function
-    | D.TpCof ->
-      let+ r0 = T.Chk.run tac0 D.TpDim
-      and+ r1 = T.Chk.run tac1 D.TpDim in
-      S.CofBuilder.le r0 r1
-    | tp ->
-      expected_cof tp
+      function
+      | D.TpCof ->
+        let+ r0 = T.Chk.run tac0 D.TpDim
+        and+ r1 = T.Chk.run tac1 D.TpDim in
+        S.CofBuilder.le r0 r1
+      | tp ->
+        expected_cof tp
 
 
   let join tacs =
     T.Chk.rule ~name:"Cof.join" @@
-    function
-    | D.TpCof ->
-      let+ phis = MU.map (fun t -> T.Chk.run t D.TpCof) tacs in
-      S.CofBuilder.join phis
-    | tp ->
-      expected_cof tp
+      function
+      | D.TpCof ->
+        let+ phis = MU.map (fun t -> T.Chk.run t D.TpCof) tacs in
+        S.CofBuilder.join phis
+      | tp ->
+        expected_cof tp
 
   let meet tacs =
     T.Chk.rule ~name:"Cof.meet" @@
-    function
-    | D.TpCof ->
-      let+ phis = MU.map (fun t -> T.Chk.run t D.TpCof) tacs in
-      S.CofBuilder.meet phis
-    | tp ->
-      expected_cof tp
+      function
+      | D.TpCof ->
+        let+ phis = MU.map (fun t -> T.Chk.run t D.TpCof) tacs in
+        S.CofBuilder.meet phis
+      | tp ->
+        expected_cof tp
 
   let boundary tac = join [eq tac Dim.dim0; eq tac Dim.dim1]
 
@@ -396,10 +397,10 @@ struct
   let formation : (T.Tp.tac, T.Tp.tac) quantifier =
     fun tac_base (nm, tac_fam) ->
       T.Tp.rule ~name:"Pi.formation" @@
-      let* base = T.Tp.run_virtual tac_base in
-      let* vbase = RM.lift_ev @@ Sem.eval_tp base in
-      let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
-      S.Pi (base, nm, fam)
+        let* base = T.Tp.run_virtual tac_base in
+        let* vbase = RM.lift_ev @@ Sem.eval_tp base in
+        let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
+        S.Pi (base, nm, fam)
 
   let intro ?(ident = Ident.anon) (tac_body : T.var -> T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Pi.intro" @@
@@ -414,18 +415,18 @@ struct
 
   let apply tac_fun tac_arg : T.Syn.tac =
     T.Syn.rule ~name:"Pi.apply" @@
-    let* tfun, tp = T.Syn.run tac_fun in
-    match tp with
-    | D.Pi (base, _, fam) ->
-      let* targ = T.Chk.run tac_arg base in
-      let+ fib =
-        let* varg = RM.lift_ev @@ Sem.eval targ in
-        RM.lift_cmp @@ Sem.inst_tp_clo fam varg
-      in
-      S.Ap (tfun, targ), fib
-    | _ ->
-      Format.printf "Bad apply!! %a@." D.pp_tp tp;
-      RM.expected_connective `Pi tp
+      let* tfun, tp = T.Syn.run tac_fun in
+      match tp with
+      | D.Pi (base, _, fam) ->
+        let* targ = T.Chk.run tac_arg base in
+        let+ fib =
+          let* varg = RM.lift_ev @@ Sem.eval targ in
+          RM.lift_cmp @@ Sem.inst_tp_clo fam varg
+        in
+        S.Ap (tfun, targ), fib
+      | _ ->
+        Format.printf "Bad apply!! %a@." D.pp_tp tp;
+        RM.expected_connective `Pi tp
 end
 
 module Sg =
@@ -433,10 +434,10 @@ struct
   let formation : (T.Tp.tac, T.Tp.tac) quantifier =
     fun tac_base (nm, tac_fam) ->
       T.Tp.rule ~name:"Sg.formation" @@
-      let* base = T.Tp.run tac_base in
-      let* vbase = RM.lift_ev @@ Sem.eval_tp base in
-      let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
-      S.Sg (base, nm, fam)
+        let* base = T.Tp.run tac_base in
+        let* vbase = RM.lift_ev @@ Sem.eval_tp base in
+        let+ fam = T.abstract ~ident:nm vbase @@ fun var -> T.Tp.run @@ tac_fam var in
+        S.Sg (base, nm, fam)
 
   let intro (tac_fst : T.Chk.tac) (tac_snd : T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Sg.intro" @@
@@ -454,41 +455,41 @@ struct
 
   let pi1 tac : T.Syn.tac =
     T.Syn.rule ~name:"Sg.pi1" @@
-    let* tpair, tp = T.Syn.run tac in
-    match tp with
-    | D.Sg (base, _, _) ->
-      RM.ret (S.Fst tpair, base)
-    | _ ->
-      RM.expected_connective `Sg tp
+      let* tpair, tp = T.Syn.run tac in
+      match tp with
+      | D.Sg (base, _, _) ->
+        RM.ret (S.Fst tpair, base)
+      | _ ->
+        RM.expected_connective `Sg tp
 
 
   let pi2 tac : T.Syn.tac =
     T.Syn.rule ~name:"Sg.pi2" @@
-    let* tpair, tp = T.Syn.run tac in
-    match tp with
-    | D.Sg (_, _, fam) ->
-      let+ fib =
-        let* vfst = RM.lift_ev @@ Sem.eval @@ S.Fst tpair in
-        RM.lift_cmp @@ Sem.inst_tp_clo fam vfst
-      in
-      S.Snd tpair, fib
-    | _ ->
-      RM.expected_connective `Sg tp
+      let* tpair, tp = T.Syn.run tac in
+      match tp with
+      | D.Sg (_, _, fam) ->
+        let+ fib =
+          let* vfst = RM.lift_ev @@ Sem.eval @@ S.Fst tpair in
+          RM.lift_cmp @@ Sem.inst_tp_clo fam vfst
+        in
+        S.Snd tpair, fib
+      | _ ->
+        RM.expected_connective `Sg tp
 end
 
 module Univ =
 struct
   let formation : T.Tp.tac =
     T.Tp.rule ~name:"Univ.formation" @@
-    RM.ret S.Univ
+      RM.ret S.Univ
 
   let univ_tac : string -> (D.tp -> S.t RM.m) -> T.Chk.tac =
     fun nm m ->
     T.Chk.rule ~name:nm @@
-    function
-    | D.Univ -> m D.Univ
-    | tp ->
-      RM.expected_connective `Univ tp
+      function
+      | D.Univ -> m D.Univ
+      | tp ->
+        RM.expected_connective `Univ tp
 
   let univ : T.Chk.tac =
     univ_tac "Univ.univ" @@ fun _ ->
@@ -530,21 +531,21 @@ struct
         `Patch will make the field an extension type, while `Subst will simply drop the field after instantiating it to the patch
      [renaming] is a function from fields to an optional new name for that field
   *)
-  let quote_code_sign_hooks
-      (sign : (Ident.user * D.con) list)
-      ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option)
-      ~(renaming : Ident.user -> Ident.user option)
+  let quote_kan_tele_hooks
+      (tele : D.kan_tele)
+      ~(patch_tacs : Ident.t -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option)
+      ~(renaming : Ident.t -> Ident.t option)
       (univ : D.tp) : _ m =
     let rec go = function
-      | [] -> RM.ret []
-      | (lbl,code) :: sign ->
+      | D.KEmpty -> RM.ret S.KEmpty
+      | D.KCell (lbl, code, tele) ->
         let lbl = Option.value ~default:lbl (renaming lbl) in
         match patch_tacs lbl with
         | Some (`Subst tac) ->
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           let* patch = T.Chk.run tac tp in
           let* vpatch = RM.eval patch in
-          RM.lift_cmp @@ Sem.inst_code_sign sign vpatch |>> go
+          RM.lift_cmp @@ Sem.inst_kan_tele_clo tele vpatch |>> go
         | Some (`Patch tac) ->
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           let* patch = T.Chk.run tac tp in
@@ -560,86 +561,64 @@ struct
           let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
           let* qpatched_code = RM.quote_con univ patched_code in
           RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
-          let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
-          let+ sign = go sign in
-          (lbl,qpatched_code) :: S.bind_code_sign_vars [lbl] sign
-
+          let* tele = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele vpatch in
+          let+ qtele = go tele in
+          S.KCell (lbl, qpatched_code, qtele)
         | None ->
           let* qcode = RM.quote_con univ code in
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           RM.abstract (lbl :> Ident.t) tp @@ fun x ->
-          let+ sign = RM.lift_cmp @@ Sem.inst_code_sign sign x |>> go in
-          (lbl,qcode) :: S.bind_code_sign_vars [lbl] sign
+          let+ qtele = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele x |>> go in
+          S.KCell (lbl, qcode, qtele)
     in
-    go sign
+    go tele
 
-  let quote_code_sign sign univ = quote_code_sign_hooks sign ~patch_tacs:(fun _ -> None) ~renaming:(fun _ -> None) univ
-  let patch_fields sign patch_tacs univ = quote_code_sign_hooks sign ~patch_tacs ~renaming:(fun _ -> None) univ
+  let quote_kan_tele sign univ = quote_kan_tele_hooks sign ~patch_tacs:(fun _ -> None) ~renaming:(fun _ -> None) univ
+  let patch_fields sign patch_tacs univ = quote_kan_tele_hooks sign ~patch_tacs ~renaming:(fun _ -> None) univ
 
-  let rename_code_sign sign renaming univ = quote_code_sign_hooks sign ~renaming ~patch_tacs:(fun _ -> None) univ
+  let rename_kan_tele sign renaming univ = quote_kan_tele_hooks sign ~renaming ~patch_tacs:(fun _ -> None) univ
 
-
-  (* [NOTE: Sig Code Quantifiers]
-     When we are creating a code for a signature, we need to make sure
-     that we can depend on the values of previous fields. To achieve this,
-     we do something similar to pi/sigma codes, and add in extra pi types to
-     bind the names of previous fields. As an example, the signature:
-         sig (x : type)
-             (y : (arg : x) -> type)
-             (z : (arg1 : x) -> (arg2 : y) -> type)
-     will produce the following goals:
-          type
-          (x : type) -> type
-          (x : type) -> (y : type) -> type
-     and once the tactics for each field are run, we will get the following
-     signature code (notice the lambdas!):
-         sig (x : type)
-             (y : x => (arg : x) -> type)
-             (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
-  *)
-
-  (* RM.abstract over all the variables in a code signature *)
-  let abstract_code_sign sign k =
+  (** Abstract over all the variables in a code signature *)
+  let abstract_kan_tele sign k =
     let rec go vars = function
-      | [] -> k vars
-      | (lbl,code) :: sign ->
+      | D.KEmpty -> k vars
+      | D.KCell (lbl, code, tele) ->
         let* tp = RM.lift_cmp @@ Sem.do_el code in
-        RM.abstract (lbl :> Ident.t) tp @@ fun x ->
-        let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign x in
+        RM.abstract lbl tp @@ fun x ->
+        let* sign = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele x in
         go (x :: vars) sign
     in
     go [] sign
 
-  let signature (tacs : [`Field of (Ident.user * T.Chk.tac) | `Include of T.Chk.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
+  let signature (tacs : [`Field of (Ident.t * T.Chk.tac) | `Include of T.Chk.tac * (Ident.t -> Ident.t option)] list) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
     let rec go = function
-      | [] -> RM.ret []
-      | `Field (lbl,tac) :: sign ->
+      | [] -> RM.ret S.KEmpty
+      | `Field (lbl,tac) :: tacs ->
         let* code = T.Chk.run tac univ in
         let* vcode = RM.lift_ev @@ Sem.eval code in
         let* tp = RM.lift_cmp @@ Sem.do_el vcode in
         RM.abstract (lbl :> Ident.t) tp @@ fun _ ->
-        let+ sign = go sign in
-        (lbl,code) :: S.bind_code_sign_vars [lbl] sign
-      | `Include (tac,renaming) :: sign ->
+        let+ tele = go tacs in
+        S.KCell (lbl, code, tele)
+      | `Include (tac, renaming) :: tacs ->
         let* inc = T.Chk.run tac univ in
         let* vinc = RM.eval inc in
         RM.lift_cmp @@ Sem.whnf_con_ vinc |>> function
-        | D.StableCode (`Signature inc_sign) ->
-          let lbls = List.map fst inc_sign in
-          let* qinc_sign = rename_code_sign inc_sign renaming univ in
-          abstract_code_sign inc_sign @@ fun _ ->
-          let+ sign = go sign in
-          qinc_sign @ S.bind_code_sign_vars lbls sign
+        | D.StableCode (`Signature inc_tele) ->
+          let* qinc_tele = rename_kan_tele inc_tele renaming univ in
+          abstract_kan_tele inc_tele @@ fun _ ->
+          let+ tele = go tacs in
+          S.append_kan_tele qinc_tele tele
         | _ ->
           RM.with_pp @@ fun ppenv ->
           RM.refine_err @@
           Err.ExpectedSignature (ppenv, inc)
     in
-    let+ fields = go tacs in
-    S.CodeSignature fields
+    let+ tele = go tacs in
+    S.CodeSignature tele
 
-  let patch (sig_tac : T.Chk.tac) (tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) : T.Chk.tac =
+  let patch (sig_tac : T.Chk.tac) (tacs : Ident.t -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) : T.Chk.tac =
     univ_tac "Univ.patch" @@ fun univ ->
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in
@@ -652,26 +631,14 @@ struct
     | _ ->
       RM.expected_connective `Signature whnf_tp
 
-  let total (vsign : (Ident.user * D.con) list) (vtm : D.con) : T.Chk.tac =
+  let total (vtele : D.kan_tele) (vfam : D.con) : T.Chk.tac =
     univ_tac "Univ.total" @@ fun univ ->
-    let (sign_names, vsign_codes) = List.split vsign in
-    let* qsign = quote_code_sign vsign univ in
-    (* See [NOTE: Sig Code Quantifiers]. *)
-    let* fib_tp =
-      RM.lift_cmp @@
-      Sem.splice_tp @@
-      Splice.tp univ @@ fun univ ->
-      Splice.cons vsign_codes @@ fun sign_codes ->
-      Splice.term @@ TB.pis ~idents:(sign_names :> Ident.t list) sign_codes @@ fun _ -> univ
-    in
-    let* fib =
-      RM.lift_cmp @@
-      Sem.splice_tm @@
-      Splice.con vtm @@ fun tm ->
-      Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
-    in
-    let+ qfib = RM.quote_con fib_tp fib in
-    S.CodeSignature (qsign @ [`User ["fib"], qfib])
+    let* qtele = quote_kan_tele vtele univ in
+    abstract_kan_tele vtele @@ fun vars ->
+    Debug.print "Taking total space of family: %a@." D.pp_con vfam;
+    let* fib = RM.lift_cmp @@ Sem.do_aps vfam vars in
+    let+ qfib = RM.quote_con D.Univ fib in
+    S.CodeSignature (S.append_kan_tele qtele (S.KCell (`User ["fib"], qfib, S.KEmpty)))
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->
@@ -708,23 +675,23 @@ struct
 
   let infer_nullary_ext : T.Chk.tac =
     T.Chk.rule ~name:"Univ.infer_nullary_ext" @@ function
-    | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
-      let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
-      let* () = Cof.assert_true cof in
-      let* tp = RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.con code @@ fun code ->
-        Splice.term @@ TB.el code
-      in
-      let* tm = RM.lift_cmp @@
-        Sem.splice_tm @@
-        Splice.con bdry @@ fun bdry ->
-        Splice.term @@
-        TB.ap bdry [TB.prf]
-      in
-      let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
-      S.ElIn (S.SubIn ttm)
-    | tp -> RM.expected_connective `ElExt tp
+      | ElStable (`Ext (0,code ,`Global (Cof cof),bdry)) ->
+        let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
+        let* () = Cof.assert_true cof in
+        let* tp = RM.lift_cmp @@
+          Sem.splice_tp @@
+          Splice.con code @@ fun code ->
+          Splice.term @@ TB.el code
+        in
+        let* tm = RM.lift_cmp @@
+          Sem.splice_tm @@
+          Splice.con bdry @@ fun bdry ->
+          Splice.term @@
+          TB.ap bdry [TB.prf]
+        in
+        let+ ttm = RM.lift_qu @@ Qu.quote_con tp tm in
+        S.ElIn (S.SubIn ttm)
+      | tp -> RM.expected_connective `ElExt tp
 
   let code_v (tac_dim : T.Chk.tac) (tac_pcode: T.Chk.tac) (tac_code : T.Chk.tac) (tac_pequiv : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.code_v" @@ fun _univ ->
@@ -750,20 +717,20 @@ struct
 
   let coe (tac_fam : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Univ.coe" @@
-    let* piuniv =
-      RM.lift_cmp @@
-      Sem.splice_tp @@
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun _i ->
-      TB.univ
-    in
-    let* fam = T.Chk.run tac_fam piuniv in
-    let* src = T.Chk.run tac_src D.TpDim in
-    let* trg = T.Chk.run tac_trg D.TpDim in
-    let* fam_src = RM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, src)) in
-    let+ tm = T.Chk.run tac_tm fam_src
-    and+ fam_trg = RM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
-    S.Coe (fam, src, trg, tm), fam_trg
+      let* piuniv =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun _i ->
+        TB.univ
+      in
+      let* fam = T.Chk.run tac_fam piuniv in
+      let* src = T.Chk.run tac_src D.TpDim in
+      let* trg = T.Chk.run tac_trg D.TpDim in
+      let* fam_src = RM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, src)) in
+      let+ tm = T.Chk.run tac_tm fam_src
+      and+ fam_trg = RM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
+      S.Coe (fam, src, trg, tm), fam_trg
 
 
   let hcom_bdy_tp tp r phi =
@@ -779,16 +746,16 @@ struct
 
   let hcom (tac_code : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Univ.hcom" @@
-    let* code = T.Chk.run tac_code D.Univ in
-    let* src = T.Chk.run tac_src D.TpDim in
-    let* trg = T.Chk.run tac_trg D.TpDim in
-    let* cof = T.Chk.run tac_cof D.TpCof in
-    let* vsrc = RM.lift_ev @@ Sem.eval src in
-    let* vcof = RM.lift_ev @@ Sem.eval cof in
-    let* vtp = RM.lift_ev @@ Sem.eval_tp @@ S.El code in
-    (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
-    let+ tm = T.Chk.run tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
-    S.HCom (code, src, trg, cof, tm), vtp
+      let* code = T.Chk.run tac_code D.Univ in
+      let* src = T.Chk.run tac_src D.TpDim in
+      let* trg = T.Chk.run tac_trg D.TpDim in
+      let* cof = T.Chk.run tac_cof D.TpCof in
+      let* vsrc = RM.lift_ev @@ Sem.eval src in
+      let* vcof = RM.lift_ev @@ Sem.eval cof in
+      let* vtp = RM.lift_ev @@ Sem.eval_tp @@ S.El code in
+      (* (i : dim) -> (_ : [i=src \/ cof]) -> A *)
+      let+ tm = T.Chk.run tac_tm @<< hcom_bdy_tp vtp vsrc vcof in
+      S.HCom (code, src, trg, cof, tm), vtp
 
   let hcom_chk (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Chk.tac =
     let as_code = function
@@ -826,136 +793,142 @@ struct
 
   let com (tac_fam : T.Chk.tac) (tac_src : T.Chk.tac) (tac_trg : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_tm : T.Chk.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Univ.com" @@
-    let* piuniv =
-      RM.lift_cmp @@
-      Sem.splice_tp @@
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun _i ->
-      TB.univ
-    in
-    let* fam = T.Chk.run tac_fam piuniv in
-    let* src = T.Chk.run tac_src D.TpDim in
-    let* trg = T.Chk.run tac_trg D.TpDim in
-    let* cof = T.Chk.run tac_cof D.TpCof in
-    let* vfam = RM.lift_ev @@ Sem.eval fam in
-    let* vsrc = RM.lift_ev @@ Sem.eval src in
-    let* vcof = RM.lift_ev @@ Sem.eval cof in
-    (* (i : dim) -> (_ : [i=src \/ cof]) -> A i *)
-    let+ tm =
-      T.Chk.run tac_tm @<<
-      RM.lift_cmp @@
-      Sem.splice_tp @@
-      Splice.con vfam @@ fun vfam ->
-      Splice.con vsrc @@ fun src ->
-      Splice.con vcof @@ fun cof ->
-      Splice.term @@
-      TB.pi TB.tp_dim @@ fun i ->
-      TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
-      TB.el @@ TB.ap vfam [i]
-    and+ vfam_trg = RM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
-    S.Com (fam, src, trg, cof, tm), vfam_trg
+      let* piuniv =
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun _i ->
+        TB.univ
+      in
+      let* fam = T.Chk.run tac_fam piuniv in
+      let* src = T.Chk.run tac_src D.TpDim in
+      let* trg = T.Chk.run tac_trg D.TpDim in
+      let* cof = T.Chk.run tac_cof D.TpCof in
+      let* vfam = RM.lift_ev @@ Sem.eval fam in
+      let* vsrc = RM.lift_ev @@ Sem.eval src in
+      let* vcof = RM.lift_ev @@ Sem.eval cof in
+      (* (i : dim) -> (_ : [i=src \/ cof]) -> A i *)
+      let+ tm =
+        T.Chk.run tac_tm @<<
+        RM.lift_cmp @@
+        Sem.splice_tp @@
+        Splice.con vfam @@ fun vfam ->
+        Splice.con vsrc @@ fun src ->
+        Splice.con vcof @@ fun cof ->
+        Splice.term @@
+        TB.pi TB.tp_dim @@ fun i ->
+        TB.pi (TB.tp_prf (TB.join [TB.eq i src; cof])) @@ fun _ ->
+        TB.el @@ TB.ap vfam [i]
+      and+ vfam_trg = RM.lift_ev @@ Sem.eval_tp @@ S.El (S.Ap (fam, trg)) in
+      S.Com (fam, src, trg, cof, tm), vfam_trg
 end
 
 
 module Signature =
 struct
   let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
-    let rec form_fields tele =
+    let rec form_tele =
       function
       | Bind (lbl, tac, tacs) ->
         let* tp = T.Tp.run tac in
         let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
-      | Done -> RM.ret @@ S.Signature (BwdLabels.to_list tele)
-    in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
+        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var ->
+        let+ tele = form_tele (tacs var) in
+        S.Cell ((lbl :> Ident.t), tp, tele)
+      | Done ->
+        RM.ret @@ S.Empty
+    in
+    T.Tp.rule ~name:"Signature.formation" @@
+      let+ tele = form_tele tacs
+      in S.Signature tele
 
-  let rec find_field (fields : (Ident.user * 'a) list) (lbl : Ident.user) : 'a option =
-    match fields with
-    | (lbl', x) :: _ when Ident.equal lbl lbl'  ->
-      Some x
-    | _ :: fields ->
-      find_field fields lbl
-    | [] ->
-      None
-
-  (* Check that [sign0] is a prefix of [sign1], and return the rest of [sign1]
+  (* Check that [tele0] is a prefix of [tele1], and return the rest of [tele1]
      along with the quoted eta-expansion of [con], which has type [sign0]
   *)
-  let equate_sign_prefix sign0 sign1 con ~renaming =
-    let rec go acc sign0 sign1 =
-      match sign0, sign1 with
-      | D.Empty, _ -> RM.ret (List.rev acc, sign1)
-      | D.Field (lbl0,tp0,sign_clo0), D.Field (lbl1,tp1,sign_clo1) when Ident.equal (Option.value ~default:lbl0 (renaming lbl0)) lbl1 ->
+  let equate_tele_prefix tele0 tele1 con ~renaming =
+    let rec go n projs tele0 tele1 =
+      match tele0, tele1 with
+      | D.Empty, _ ->
+        RM.ret (Bwd.to_list projs, tele1)
+
+      (* Matching fields *)
+      | D.Cell (lbl0, tp0, clo0), D.Cell (lbl1, tp1, clo1) when Ident.equal (Option.value ~default:lbl0 (renaming lbl0)) lbl1 ->
         let* () = RM.equate_tp tp0 tp1 in
-        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
+        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 n in
         let* qproj = RM.quote_con tp0 proj in
-        let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
-        let* sign1 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo1 proj in
-        go ((lbl1,qproj) :: acc) sign0 sign1
+        let* tele0 = RM.lift_cmp @@ Sem.inst_tele_clo clo0 proj in
+        let* tele1 = RM.lift_cmp @@ Sem.inst_tele_clo clo1 proj in
+        go (n + 1) (projs #< (lbl0, qproj)) tele0 tele1
+
       (* Extra field in included sign *)
-      | D.Field (lbl0,_,sign_clo0), _ ->
-        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
-        let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
-        go acc sign0 sign1
-    in
-    go [] sign0 sign1
+      | D.Cell (lbl0, _, clo0), _ ->
+        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 n in
+        let* tele0 = RM.lift_cmp @@ Sem.inst_tele_clo clo0 proj in
+        go (n + 1) projs tele0 tele1
+    in go 0 Emp tele0 tele1
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : (Ident.user * S.t) list m =
-    let add_field lbl sign_clo tfield tacs =
-      let* vfield = RM.lift_ev @@ Sem.eval tfield in
-      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
-      let+ tfields = intro_fields phi phi_clo tsign tacs in
-      (lbl, tfield) :: tfields
-    in
-    match sign,tacs with
-    (* The sig and struct labels line up, run the tactic and add the field *)
-    | D.Field (lbl0, tp, sign_clo), `Field (lbl1,tac) :: tacs when Ident.equal lbl0 lbl1 ->
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0) @@ D.Lam (Ident.anon, phi_clo)) in
-      add_field lbl0 sign_clo tfield tacs
-    (* The labels do not line up.
-       If the sig field is a nullary extension type then we fill it automatically
-       and continue with our list of struct tactics unchanged.
-       Otherwise we ignore the extra field
-    *)
-    | D.Field (lbl,tp,sign_clo), (`Field _ :: tacs as all_tacs) ->
-      Univ.is_nullary_ext tp |>> begin function
-        | true ->
-          let* tfield = T.Chk.brun Univ.infer_nullary_ext (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
-          add_field lbl sign_clo tfield all_tacs
-        | false ->
-          intro_fields phi phi_clo sign tacs
-      end
-    (* There are no more struct tactics.
-       If the sig field is a nullary extension type then we fill it automatically.
-       Otherwise the field is missing, so we unleash a hole for it
-    *)
-    | D.Field (lbl,tp,sign_clo), [] ->
-      let* tac = Univ.is_nullary_ext tp |>> function
-        | true -> RM.ret Univ.infer_nullary_ext
-        | false -> RM.ret @@ Hole.unleash_hole @@ Ident.user_to_string_opt lbl
-      in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
-      add_field lbl sign_clo tfield tacs
-    (* Including the fields of another struct *)
-    | sign, `Include (tac,renaming) :: tacs ->
-      let* tm,tp = T.Syn.run tac in
-      RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
-        | D.Signature inc_sign ->
-          let* vtm = RM.lift_ev @@ Sem.eval tm in
-          let* fields,sign = equate_sign_prefix ~renaming inc_sign sign vtm in
-          let+ tfields = intro_fields phi phi_clo sign tacs in
-          fields @ tfields
-        | _ ->
-          RM.with_pp @@ fun ppenv ->
-          RM.refine_err @@ Err.ExpectedStructure (ppenv, tm)
-      end
-    (* There are extra fields, they can be ignored *)
-    | D.Empty, `Field _ :: _
-    (* There are no extra fields, we're done *)
-    | D.Empty,[] ->
-      RM.ret []
+  let intro_fields phi phi_clo (tele : D.tele) (tacs : [`Field of Ident.t * T.Chk.tac | `Include of T.Syn.tac * (Ident.t -> Ident.t option)] list) : S.fields m =
+    let rec go fields n tele tacs =
+      match tele, tacs with
+      (* The sig and struct labels line up, run the tactic and add the field *)
+      | D.Cell (lbl0, tp, clo), `Field (lbl1, tac) :: tacs when Ident.equal lbl0 lbl1 ->
+        let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0 n) @@ D.Lam (Ident.anon, phi_clo)) in
+        let* vfield = RM.lift_ev @@ Sem.eval tfield in
+        let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+        go (fields #< (lbl0, tfield)) (n + 1) tele tacs
 
-  let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
+      (* The labels do not line up.
+         If the sig field is a nullary extension type then we fill it automatically
+         and continue with our list of struct tactics unchanged.
+         Otherwise we ignore the extra field
+      *)
+      | D.Cell (lbl, tp, clo), (`Field _ :: tacs as all_tacs) ->
+        Univ.is_nullary_ext tp |>> begin function
+          | true ->
+            let* tfield = T.Chk.brun Univ.infer_nullary_ext (tp, phi, D.un_lam @@ D.compose (D.proj lbl n) @@ D.Lam (Ident.anon, phi_clo)) in
+            let* vfield = RM.lift_ev @@ Sem.eval tfield in
+            let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+            go (fields #< (lbl, tfield)) (n + 1) tele all_tacs
+          | false ->
+            go fields n tele tacs
+        end
+
+      (* There are no more struct tactics.
+         If the sig field is a nullary extension type then we fill it automatically.
+         Otherwise the field is missing, so we unleash a hole for it
+      *)
+      | D.Cell (lbl,tp, clo), [] ->
+        let* tac = Univ.is_nullary_ext tp |>> function
+          | true -> RM.ret Univ.infer_nullary_ext
+          | false -> RM.ret @@ Hole.unleash_hole @@ Ident.to_string_opt lbl
+        in
+        let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl n) @@ D.Lam (Ident.anon, phi_clo)) in
+        let* vfield = RM.lift_ev @@ Sem.eval tfield in
+        let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+        go (fields #< (lbl, tfield)) (n + 1) tele []
+
+      (* Including the fields of another struct *)
+      | tele, `Include (tac,renaming) :: tacs ->
+        let* tm,tp = T.Syn.run tac in
+        RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
+          | D.Signature inc_sign ->
+            let* vtm = RM.lift_ev @@ Sem.eval tm in
+            let* inc_fields, tele = equate_tele_prefix ~renaming inc_sign tele vtm in
+            go (Bwd.append fields inc_fields) (n + List.length inc_fields) tele tacs
+          | _ ->
+            RM.with_pp @@ fun ppenv ->
+            RM.refine_err @@ Err.ExpectedStructure (ppenv, tm)
+        end
+
+      (* There are no extra fields, we're done *)
+      | D.Empty, `Field _ :: _
+      | D.Empty,[] ->
+        RM.ret @@ Bwd.to_list fields
+    in
+    let+ fields = go Emp 0 tele tacs in
+    S.Fields fields
+
+  let intro (tacs : [`Field of Ident.t * T.Chk.tac | `Include of T.Syn.tac * (Ident.t -> Ident.t option)] list) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->
@@ -963,25 +936,25 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
-    let rec go =
+  let proj_tp (tele : D.tele) (tstruct : S.t) (lbl : Ident.t) : (D.tp * int) m =
+    let rec go n =
       function
-      | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret tp
-      | D.Field (flbl, __, clo) ->
-        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
-        let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
-        go vsign
-      | D.Empty -> RM.expected_field sign tstruct lbl
-    in go sign
+      | D.Cell (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret (tp, n)
+      | D.Cell (flbl, __, clo) ->
+        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl, n) in
+        let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+        go (n + 1) tele
+      | D.Empty -> RM.expected_field tele tstruct lbl
+    in go 0 tele
 
   let proj tac lbl : T.Syn.tac =
     T.Syn.rule ~name:"Signature.proj" @@
-    let* tstruct, tp = T.Syn.run tac in
-    match tp with
-    | D.Signature sign ->
-      let+ tp = proj_tp sign tstruct lbl in
-      S.Proj (tstruct, lbl), tp
-    | _ -> RM.expected_connective `Signature tp
+      let* tstruct, tp = T.Syn.run tac in
+      match tp with
+      | D.Signature sign ->
+        let+ (tp, n) = proj_tp sign tstruct lbl in
+        S.Proj (tstruct, lbl, n), tp
+      | _ -> RM.expected_connective `Signature tp
 end
 
 
@@ -989,8 +962,8 @@ module El =
 struct
   let formation tac =
     T.Tp.rule ~name:"El.formation" @@
-    let+ tm = T.Chk.run tac D.Univ in
-    S.El tm
+      let+ tm = T.Chk.run tac D.Univ in
+      S.El tm
 
   let dest_el tp =
     match tp with
@@ -1007,9 +980,9 @@ struct
 
   let elim tac =
     T.Syn.rule ~name:"El.elim" @@
-    let* tm, tp = T.Syn.run tac in
-    let+ unfolded = dest_el tp in
-    S.ElOut tm, unfolded
+      let* tm, tp = T.Syn.run tac in
+      let+ unfolded = dest_el tp in
+      S.ElOut tm, unfolded
 end
 
 
@@ -1072,24 +1045,24 @@ struct
 
   let elim (tac_v : T.Syn.tac) : T.Syn.tac =
     T.Syn.rule ~name:"ElV.elim" @@
-    let* tm, tp = T.Syn.run tac_v in
-    match tp with
-    | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
-      let* tr = RM.quote_dim r in
-      let* tpcode = RM.quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), Ident.anon, D.const_tp_clo D.Univ)) pcode in
-      let* tcode = RM.quote_con D.Univ code in
-      let* t_pequiv =
-        let* tp_pequiv =
-          RM.lift_cmp @@ Sem.splice_tp @@
-          Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+      let* tm, tp = T.Syn.run tac_v in
+      match tp with
+      | D.ElUnstable (`V (r, pcode, code, pequiv)) ->
+        let* tr = RM.quote_dim r in
+        let* tpcode = RM.quote_con (D.Pi (D.TpPrf (CofBuilder.eq0 r), Ident.anon, D.const_tp_clo D.Univ)) pcode in
+        let* tcode = RM.quote_con D.Univ code in
+        let* t_pequiv =
+          let* tp_pequiv =
+            RM.lift_cmp @@ Sem.splice_tp @@
+            Splice.Macro.tp_pequiv_in_v ~r ~pcode ~code
+          in
+          RM.quote_con tp_pequiv pequiv
         in
-        RM.quote_con tp_pequiv pequiv
-      in
-      let vproj = S.VProj (tr, tpcode, tcode, t_pequiv, tm) in
-      let* tp_vproj = RM.lift_cmp @@ Sem.do_el code in
-      RM.ret (vproj, tp_vproj)
-    | _ ->
-      RM.expected_connective `ElV tp
+        let vproj = S.VProj (tr, tpcode, tcode, t_pequiv, tm) in
+        let* tp_vproj = RM.lift_cmp @@ Sem.do_el code in
+        RM.ret (vproj, tp_vproj)
+      | _ ->
+        RM.expected_connective `ElV tp
 end
 
 module ElHCom =
@@ -1150,22 +1123,22 @@ struct
 
   let elim (tac_box : T.Syn.tac) : T.Syn.tac =
     T.Syn.rule ~name:"ElHCom.elim" @@
-    let* box, box_tp = T.Syn.run tac_box in
-    match box_tp with
-    | D.ElUnstable (`HCom (r, r', phi, bdy)) ->
-      let+ tr = RM.quote_dim r
-      and+ tr' = RM.quote_dim r'
-      and+ tphi = RM.quote_cof phi
-      and+ tbdy =
-        let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) (D.cof_to_con phi) in
-        RM.quote_con tp_bdy bdy
-      and+ tp_cap =
-        let* code_fib = RM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
-        RM.lift_cmp @@ Sem.do_el code_fib
-      in
-      S.Cap (tr, tr', tphi, tbdy, box), tp_cap
-    | _ ->
-      RM.expected_connective `ElHCom box_tp
+      let* box, box_tp = T.Syn.run tac_box in
+      match box_tp with
+      | D.ElUnstable (`HCom (r, r', phi, bdy)) ->
+        let+ tr = RM.quote_dim r
+        and+ tr' = RM.quote_dim r'
+        and+ tphi = RM.quote_cof phi
+        and+ tbdy =
+          let* tp_bdy = Univ.hcom_bdy_tp D.Univ (D.dim_to_con r) (D.cof_to_con phi) in
+          RM.quote_con tp_bdy bdy
+        and+ tp_cap =
+          let* code_fib = RM.lift_cmp @@ Sem.do_ap2 bdy (D.dim_to_con r) D.Prf in
+          RM.lift_cmp @@ Sem.do_el code_fib
+        in
+        S.Cap (tr, tr', tphi, tbdy, box), tp_cap
+      | _ ->
+        RM.expected_connective `ElHCom box_tp
 end
 
 
@@ -1174,16 +1147,16 @@ struct
 
   let lookup_var id : T.Syn.tac =
     T.Syn.rule ~name:"Structural.lookup_var" @@
-    let* res = RM.resolve id in
-    match res with
-    | `Local ix ->
-      let+ tp = RM.get_local_tp ix in
-      S.Var ix, tp
-    | `Global sym ->
-      let+ tp = RM.get_global sym in
-      S.Global sym, tp
-    | `Unbound ->
-      RM.refine_err @@ Err.UnboundVariable id
+      let* res = RM.resolve id in
+      match res with
+      | `Local ix ->
+        let+ tp = RM.get_local_tp ix in
+        S.Var ix, tp
+      | `Global sym ->
+        let+ tp = RM.get_global sym in
+        S.Global sym, tp
+      | `Unbound ->
+        RM.refine_err @@ Err.UnboundVariable id
 
   let index ix =
     let+ tp = RM.get_local_tp ix in
@@ -1191,9 +1164,9 @@ struct
 
   let level lvl =
     T.Syn.rule ~name:"Structural.level" @@
-    let* env = RM.read in
-    let ix = RefineEnv.size env - lvl - 1 in
-    index ix
+      let* env = RM.read in
+      let ix = RefineEnv.size env - lvl - 1 in
+      index ix
 
 
   let rec intros ~cells tac =
@@ -1262,42 +1235,42 @@ struct
 
   let generalize ident (tac : T.Chk.tac) : T.Chk.tac =
     T.Chk.rule ~name:"Structural.generalize" @@
-    fun tp ->
-    let* env = RM.read in
-    let* lvl =
-      RM.resolve ident |>>
-      function
-      | `Local ix -> RM.ret @@ RefineEnv.size env - ix - 1
-      | _ -> RM.refine_err @@ Err.UnboundVariable ident
-    in
+      fun tp ->
+      let* env = RM.read in
+      let* lvl =
+        RM.resolve ident |>>
+        function
+        | `Local ix -> RM.ret @@ RefineEnv.size env - ix - 1
+        | _ -> RM.refine_err @@ Err.UnboundVariable ident
+      in
 
-    let cells = Env.locals env in
-    let cells_fwd = BwdLabels.to_list cells in
+      let cells = Env.locals env in
+      let cells_fwd = BwdLabels.to_list cells in
 
-    let* cut =
-      RM.globally @@
-      let* global_tp =
-        let* tp = RM.multi_pi cells_fwd @@ RM.quote_tp tp in
-        RM.lift_ev @@ Sem.eval_tp tp
+      let* cut =
+        RM.globally @@
+        let* global_tp =
+          let* tp = RM.multi_pi cells_fwd @@ RM.quote_tp tp in
+          RM.lift_ev @@ Sem.eval_tp tp
+        in
+        let* vdef =
+          let prefix = List.take lvl cells_fwd in
+          let* tm = global_tp |> T.Chk.run @@ intros ~cells:prefix tac in
+          RM.lift_ev @@ Sem.eval tm
+        in
+        let* tp_sub =
+          RM.lift_cmp @@ Sem.splice_tp @@
+          Splice.tp global_tp @@ fun vtp ->
+          Splice.con vdef @@ fun vtm ->
+          Splice.term @@
+          TB.sub vtp TB.top @@ fun _ -> vtm
+        in
+        let* sym = RM.add_global ~unfolder:None ~shadowing:true Ident.anon tp_sub in
+        let top = Kado.Syntax.Free.top in
+        let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
+        RM.ret @@ RM.multi_ap cells (hd, [])
       in
-      let* vdef =
-        let prefix = List.take lvl cells_fwd in
-        let* tm = global_tp |> T.Chk.run @@ intros ~cells:prefix tac in
-        RM.lift_ev @@ Sem.eval tm
-      in
-      let* tp_sub =
-        RM.lift_cmp @@ Sem.splice_tp @@
-        Splice.tp global_tp @@ fun vtp ->
-        Splice.con vdef @@ fun vtm ->
-        Splice.term @@
-        TB.sub vtp TB.top @@ fun _ -> vtm
-      in
-      let* sym = RM.add_global ~unfolder:None ~shadowing:true Ident.anon tp_sub in
-      let top = Kado.Syntax.Free.top in
-      let hd = D.UnstableCut ((D.Global sym, []), D.KSubOut (top, D.const_tm_clo vdef)) in
-      RM.ret @@ RM.multi_ap cells (hd, [])
-    in
-    RM.quote_cut cut
+      RM.quote_cut cut
 
   let let_ ?(ident = Ident.anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Chk.tac) : T.Chk.tac =
     T.Chk.brule ~name:"Structural.let_" @@ fun goal ->
@@ -1315,20 +1288,20 @@ struct
 
   let let_syn ?(ident = Ident.anon) (tac_def : T.Syn.tac) (tac_bdy : T.var -> T.Syn.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Structural.let_syn" @@
-    let* tdef, tp_def = T.Syn.run tac_def in
-    let* vdef = RM.lift_ev @@ Sem.eval tdef in
-    let* tbdy, tbdytp =
-      let* const_vdef =
-        RM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
-        Splice.term @@ TB.lam @@ fun _ -> vdef
+      let* tdef, tp_def = T.Syn.run tac_def in
+      let* vdef = RM.lift_ev @@ Sem.eval tdef in
+      let* tbdy, tbdytp =
+        let* const_vdef =
+          RM.lift_cmp @@ Sem.splice_tm @@ Splice.con vdef @@ fun vdef ->
+          Splice.term @@ TB.lam @@ fun _ -> vdef
+        in
+        T.abstract ~ident (D.Sub (tp_def, CofBuilder.top, D.un_lam const_vdef)) @@ fun var ->
+        let* tbdy, bdytp = T.Syn.run @@ tac_bdy var in
+        let* tbdytp = RM.quote_tp bdytp in
+        RM.ret (tbdy, tbdytp)
       in
-      T.abstract ~ident (D.Sub (tp_def, CofBuilder.top, D.un_lam const_vdef)) @@ fun var ->
-      let* tbdy, bdytp = T.Syn.run @@ tac_bdy var in
-      let* tbdytp = RM.quote_tp bdytp in
-      RM.ret (tbdy, tbdytp)
-    in
-    let* bdytp = RM.lift_ev @@ EvM.append [D.SubIn vdef] @@ Sem.eval_tp tbdytp in
-    RM.ret (S.Let (S.SubIn tdef, ident, tbdy), bdytp)
+      let* bdytp = RM.lift_ev @@ EvM.append [D.SubIn vdef] @@ Sem.eval_tp tbdytp in
+      RM.ret (S.Let (S.SubIn tdef, ident, tbdy), bdytp)
 
 end
 
@@ -1337,7 +1310,7 @@ module Nat =
 struct
   let formation =
     T.Tp.rule ~name:"Nat.formation" @@
-    RM.ret S.Nat
+      RM.ret S.Nat
 
   let assert_nat =
     function
@@ -1351,53 +1324,53 @@ struct
 
   let literal n : T.Chk.tac =
     T.Chk.rule ~name:"Nat.literal" @@
-    fun tp ->
-    let+ () = assert_nat tp in
-    int_to_term n
+      fun tp ->
+      let+ () = assert_nat tp in
+      int_to_term n
 
   let suc tac : T.Chk.tac =
     T.Chk.rule ~name:"Nat.suc" @@
-    fun tp ->
-    let* () = assert_nat tp in
-    let+ t = T.Chk.run tac tp in
-    S.Suc t
+      fun tp ->
+      let* () = assert_nat tp in
+      let+ t = T.Chk.run tac tp in
+      S.Suc t
 
   let elim (tac_mot : T.Chk.tac) (tac_case_zero : T.Chk.tac) (tac_case_suc : T.Chk.tac) (tac_scrut : T.Syn.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Nat.elim" @@
-    let* tscrut, nattp = T.Syn.run tac_scrut in
-    let* () = assert_nat nattp in
-    let* tmot =
-      T.Chk.run tac_mot @<<
-      RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.nat @@ fun _ -> TB.univ
-    in
-    let* vmot = RM.lift_ev @@ Sem.eval tmot in
-
-    let* tcase_zero =
-      let* code = RM.lift_cmp @@ Sem.do_ap vmot D.Zero in
-      let* tp = RM.lift_cmp @@ Sem.do_el code in
-      T.Chk.run tac_case_zero tp
-    in
-
-    let* tcase_suc =
-      let* suc_tp =
-        RM.lift_cmp @@ Sem.splice_tp @@
-        Splice.con vmot @@ fun mot ->
-        Splice.term @@
-        TB.pi TB.nat @@ fun x ->
-        TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
-        TB.el @@ TB.ap mot [TB.suc x]
+      let* tscrut, nattp = T.Syn.run tac_scrut in
+      let* () = assert_nat nattp in
+      let* tmot =
+        T.Chk.run tac_mot @<<
+        RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+        TB.pi TB.nat @@ fun _ -> TB.univ
       in
-      T.Chk.run tac_case_suc suc_tp
-    in
+      let* vmot = RM.lift_ev @@ Sem.eval tmot in
 
-    let+ fib_scrut =
-      let* vscrut = RM.lift_ev @@ Sem.eval tscrut in
-      let* code = RM.lift_cmp @@ Sem.do_ap vmot vscrut in
-      RM.lift_cmp @@ Sem.do_el code
-    in
+      let* tcase_zero =
+        let* code = RM.lift_cmp @@ Sem.do_ap vmot D.Zero in
+        let* tp = RM.lift_cmp @@ Sem.do_el code in
+        T.Chk.run tac_case_zero tp
+      in
 
-    S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
+      let* tcase_suc =
+        let* suc_tp =
+          RM.lift_cmp @@ Sem.splice_tp @@
+          Splice.con vmot @@ fun mot ->
+          Splice.term @@
+          TB.pi TB.nat @@ fun x ->
+          TB.pi (TB.el (TB.ap mot [x])) @@ fun _ih ->
+          TB.el @@ TB.ap mot [TB.suc x]
+        in
+        T.Chk.run tac_case_suc suc_tp
+      in
+
+      let+ fib_scrut =
+        let* vscrut = RM.lift_ev @@ Sem.eval tscrut in
+        let* code = RM.lift_cmp @@ Sem.do_ap vmot vscrut in
+        RM.lift_cmp @@ Sem.do_el code
+      in
+
+      S.NatElim (tmot, tcase_zero, tcase_suc, tscrut), fib_scrut
 end
 
 
@@ -1405,7 +1378,7 @@ module Circle =
 struct
   let formation =
     T.Tp.rule ~name:"Circle.formation" @@
-    RM.ret S.Circle
+      RM.ret S.Circle
 
   let assert_circle =
     function
@@ -1414,48 +1387,48 @@ struct
 
   let base =
     T.Chk.rule ~name:"Circle.base" @@ fun tp ->
-    let+ () = assert_circle tp in
-    S.Base
+      let+ () = assert_circle tp in
+      S.Base
 
   let loop tac : T.Chk.tac =
     T.Chk.rule ~name:"Circle.loop" @@ fun tp ->
-    let* () = assert_circle tp in
-    let+ r = T.Chk.run tac D.TpDim in
-    S.Loop r
+      let* () = assert_circle tp in
+      let+ r = T.Chk.run tac D.TpDim in
+      S.Loop r
 
   let elim (tac_mot : T.Chk.tac) (tac_case_base : T.Chk.tac) (tac_case_loop : T.Chk.tac) (tac_scrut : T.Syn.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Circle.elim" @@
-    let* tscrut, circletp = T.Syn.run tac_scrut in
-    let* () = assert_circle circletp in
-    let* tmot =
-      T.Chk.run tac_mot @<<
-      RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
-      TB.pi TB.circle @@ fun _ -> TB.univ
-    in
-    let* vmot = RM.lift_ev @@ Sem.eval tmot in
-
-    let* tcase_base =
-      let* code = RM.lift_cmp @@ Sem.do_ap vmot D.Base in
-      let* tp = RM.lift_cmp @@ Sem.do_el code in
-      T.Chk.run tac_case_base tp
-    in
-
-    let* tcase_loop =
-      let* loop_tp =
-        RM.lift_cmp @@ Sem.splice_tp @@
-        Splice.con vmot @@ fun mot ->
-        Splice.term @@
-        TB.pi TB.tp_dim @@ fun x ->
-        TB.el @@ TB.ap mot [TB.loop x]
+      let* tscrut, circletp = T.Syn.run tac_scrut in
+      let* () = assert_circle circletp in
+      let* tmot =
+        T.Chk.run tac_mot @<<
+        RM.lift_cmp @@ Sem.splice_tp @@ Splice.term @@
+        TB.pi TB.circle @@ fun _ -> TB.univ
       in
-      T.Chk.run tac_case_loop loop_tp
-    in
+      let* vmot = RM.lift_ev @@ Sem.eval tmot in
 
-    let+ fib_scrut =
-      let* vscrut = RM.lift_ev @@ Sem.eval tscrut in
-      let* code = RM.lift_cmp @@ Sem.do_ap vmot vscrut in
-      RM.lift_cmp @@ Sem.do_el code
-    in
+      let* tcase_base =
+        let* code = RM.lift_cmp @@ Sem.do_ap vmot D.Base in
+        let* tp = RM.lift_cmp @@ Sem.do_el code in
+        T.Chk.run tac_case_base tp
+      in
 
-    S.CircleElim (tmot, tcase_base, tcase_loop, tscrut), fib_scrut
+      let* tcase_loop =
+        let* loop_tp =
+          RM.lift_cmp @@ Sem.splice_tp @@
+          Splice.con vmot @@ fun mot ->
+          Splice.term @@
+          TB.pi TB.tp_dim @@ fun x ->
+          TB.el @@ TB.ap mot [TB.loop x]
+        in
+        T.Chk.run tac_case_loop loop_tp
+      in
+
+      let+ fib_scrut =
+        let* vscrut = RM.lift_ev @@ Sem.eval tscrut in
+        let* code = RM.lift_cmp @@ Sem.do_ap vmot vscrut in
+        RM.lift_cmp @@ Sem.do_el code
+      in
+
+      S.CircleElim (tmot, tcase_base, tcase_loop, tscrut), fib_scrut
 end
