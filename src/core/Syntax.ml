@@ -619,7 +619,8 @@ struct
     | Sg (base, ident, fam) ->
       pp_sigma env base ident fam fmt
     | Signature fields ->
-      Format.fprintf fmt "@[<hov 4>sig%a]" (pp_sign env) fields
+      Format.fprintf fmt "TODO: pp_tp signature"
+    (* Format.fprintf fmt "@[<hov 4>sig%a]" (pp_sign env) fields *)
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env Ident.anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

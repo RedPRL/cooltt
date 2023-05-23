@@ -26,7 +26,7 @@ val inst_tp_clo : D.tp_clo -> D.con -> D.tp compute
 val inst_tm_clo : D.tm_clo -> D.con -> D.con compute
 val inst_tele_clo : D.tele_clo -> D.con -> D.tele compute
 val inst_kan_tele_clo : D.kan_tele_clo -> D.con -> D.kan_tele compute
-val inst_tele : D.tele -> D.con -> D.kan_tele compute
+val inst_tele : D.tele -> D.con -> D.tele compute
 val inst_kan_tele : D.kan_tele -> D.con -> D.kan_tele compute
 
 

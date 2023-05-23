@@ -80,7 +80,6 @@ and con_to_dim =
       Format.eprintf "bad: %a@." D.pp_con con;
       throw @@ NbeFailed "con_to_dim"
 
-
 and subst_con : D.dim -> DimProbe.t -> D.con -> D.con CM.m =
   fun r x con ->
   CM.ret @@ D.LetSym (r, x, con)
@@ -723,6 +722,13 @@ and eval_fields : S.fields -> D.fields EvM.m =
     let* s = eval_dim s in
     let* fields = eval_fields fields in
     lift_cmp @@ do_rigid_mcoe lines r s fields
+  | S.MCom (tele, r, s, phi, bdys) ->
+    let* tele = eval_kan_tele tele in
+    let* r = eval_dim r in
+    let* s = eval_dim s in
+    let* phi = eval_cof phi in
+    let* bdys = eval_fields bdys in
+    lift_cmp @@ do_rigid_mcom tele r s phi bdys
 
 and eval_sub : 'a. S.sub -> 'a EvM.m -> 'a EvM.m =
   fun sb kont ->
@@ -1051,15 +1057,21 @@ and inst_kan_tele_clo : D.kan_tele_clo -> D.con -> D.kan_tele CM.m =
   | D.Clo (tele, env) ->
     CM.lift_ev {env with conenv = Snoc (env.conenv, x)} @@ eval_kan_tele tele
 
-(* Apply each of the functions in a code signature to some value
-   INVARIANT: the first element of the code signature should have only *one* lambda binding
-   This is meant to have the same effect as instantiating the sign_clo in a real signature,
-   in that, assuming the invariant, the first element of the resulting list will be a bare code
-   with all field variables already instantiated
-*)
-and inst_code_sign : (Ident.user * D.con) list -> D.con -> (Ident.user * D.con) list CM.m =
-  fun sign x ->
-  CM.MU.map (fun (lbl,code_fun) -> CM.bind (do_ap code_fun x) @@ fun code -> CM.ret (lbl,code)) sign
+and inst_tele : D.tele -> D.con -> D.tele CM.m =
+  fun tele x ->
+  match tele with
+  | D.Cell (_, _, clo) ->
+    inst_tele_clo clo x
+  | D.Empty ->
+    CM.throw @@ NbeFailed "Tried to instantiate empty telescope"
+
+and inst_kan_tele : D.kan_tele -> D.con -> D.kan_tele CM.m =
+  fun tele x ->
+  match tele with
+  | D.KCell (_, _, clo) ->
+    inst_kan_tele_clo clo x
+  | D.KEmpty ->
+    CM.throw @@ NbeFailed "Tried to instantiate empty telescope"
 
 (* reduces a constructor to something that is stable to pattern match on *)
 and whnf_inspect_con con =
@@ -1591,16 +1603,24 @@ and enact_rigid_hcom code r r' phi bdy tag =
         Splice.con bdy @@ fun bdy ->
         Splice.term @@
         TB.Kan.hcom_sg ~base ~fam ~r ~r' ~phi ~bdy
-      | `Signature fields ->
-        let (lbls, fams) = ListUtil.unzip fields in
-        splice_tm @@
-        Splice.cons fams @@ fun fams ->
-        Splice.dim r @@ fun r ->
-        Splice.dim r' @@ fun r' ->
-        Splice.cof phi @@ fun phi ->
-        Splice.con bdy @@ fun bdy ->
-        Splice.term @@
-        TB.Kan.hcom_sign ~fields:(ListUtil.zip lbls fams) ~r ~r' ~phi ~bdy
+      | `Signature tele ->
+        let rec go bdys =
+          function
+          | lbl :: lbls ->
+            let* bdy =
+              splice_tm @@
+              Splice.con bdy @@ fun bdy ->
+              Splice.term @@
+              TB.lam @@ fun i ->
+              TB.lam @@ fun prf ->
+              TB.ap bdy [i; prf]
+            in go (bdys #< (lbl, bdy)) lbls
+          | [] ->
+            ret @@ D.Fields (Bwd.to_list bdys)
+        in
+        let* bdys = go Emp (D.kan_tele_lbls tele) in
+        let+ fields = do_rigid_mcom tele r r' phi bdys in
+        D.ElIn (D.Struct fields)
       | `Ext (n, fam, `Global cof, bdry) ->
         splice_tm @@
         Splice.con cof @@ fun cof ->
@@ -1722,11 +1742,38 @@ and do_rigid_com (line : D.con) r s phi bdy =
   TB.coe line i s @@
   TB.ap bdy [i; prf]
 
-and do_rigid_mcoe (lines : D.kan_tele_clo) (r : D.dim) (s : D.dim) (fields : D.fields) =
+and do_rigid_mcoe lines r s fields =
   let open CM in
   let x = DimProbe.fresh () in
   let* linesx = inst_kan_tele_clo lines (D.DimProbe x) in
   enact_rigid_mcoe linesx x r s fields
+
+and do_rigid_mcom tele r s phi bdys =
+  let open CM in
+  let D.Fields bdys = bdys in
+  let x = DimProbe.fresh () in
+  let rec go tele bdys =
+    match (tele, bdys) with
+    | D.KCell (lbl, code, tele), ((_, bdy) :: bdys) ->
+      let* line = do_rigid_com (D.BindSym (x, code)) r (Dim.DimProbe x) phi bdy in
+      let* tele = inst_kan_tele_clo tele line in
+      let+ fields = go tele bdys in
+      (lbl, D.LetSym (s, x, line)) :: fields
+    | D.KEmpty, [] ->
+      ret []
+    | _, _ ->
+      invalid_arg "bad do_rigid_mcom: telescope/field mismatch"
+  in
+  match tele, bdys with
+  | D.KCell (lbl, code, tele), ((_, bdy) :: bdys) ->
+    let* line = do_rigid_hcom code r (Dim.DimProbe x) phi bdy in
+    let* tele = inst_kan_tele_clo tele line in
+    let+ fields = go tele bdys in
+    D.Fields ((lbl, D.LetSym (s, x, line)) :: fields)
+  | D.KEmpty, [] ->
+    ret @@ D.Fields []
+  | _, _ ->
+    invalid_arg "bad do_rigid_mcom: telescope/field mismatch"
 
 and do_frm con =
   function
@@ -1754,3 +1801,7 @@ and splice_tm t =
 and splice_tp t =
   let env, tp = Splice.compile t in
   CM.lift_ev env @@ eval_tp tp
+
+and splice_fields t =
+  let env, fields = Splice.compile t in
+  CM.lift_ev env @@ eval_fields fields

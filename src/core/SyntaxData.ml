@@ -95,6 +95,8 @@ struct
     | MCoe of Ident.t * kan_tele * t * t * fields
     (** Coercion along a line in a telescope.
         The {i kan_tele} has a free variable for a dimension variable. *)
+    | MCom of kan_tele * t * t * t * fields
+    (** Composition in a telescope, provided a list of systems. *)
 
   (** The language of substitions from {{:https://arxiv.org/abs/1102.2405} Abel, Coquand, and Pagano}. *)
   and sub =

@@ -470,34 +470,6 @@ struct
     el_in @@
     pair p0 p1
 
-  let hcom_sign ~fields ~r ~r' ~phi ~bdy : _ m =
-    __
-  (* let mk_line bound_lines (lbl, fam) = *)
-  (*   let fib_line = lam @@ fun i -> ap fam (List.map (fun (_, p_line) -> ap p_line [i]) bound_lines) in *)
-  (*   let p_line = *)
-  (*     lam @@ fun i -> *)
-  (*     com fib_line r i phi @@ *)
-  (*     lam @@ fun j -> *)
-  (*     lam @@ fun prf -> *)
-  (*     proj (ap bdy [j; prf]) lbl *)
-  (*   in *)
-  (*   bound_lines @ [(lbl, p_line)] *)
-  (* in *)
-  (* (\* We want to ensure that the first line we build is going to be an hcom. *\) *)
-  (* let lines = *)
-  (*   match fields with *)
-  (*   | [] -> [] *)
-  (*   | (lbl, field) :: fields -> *)
-  (*     let p0_line = *)
-  (*       lam @@ fun i -> *)
-  (*       hcom field r i phi @@ *)
-  (*       lam @@ fun j -> *)
-  (*       lam @@ fun prf -> *)
-  (*       proj (ap bdy [j; prf]) lbl *)
-  (*     in List.fold_left mk_line [(lbl, p0_line)] fields *)
-  (* in *)
-  (* el_in @@ struct_ @@ List.map (fun (lbl, p_line) -> lbl, ap p_line [r']) lines *)
-
   let coe_ext ~n ~cof ~fam_line ~bdry_line ~r ~r' ~bdy =
     el_in @@
     nlam n @@ fun js ->

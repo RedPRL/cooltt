@@ -11,6 +11,7 @@ module S := Syntax
 
 type t := S.t
 type tp := S.tp
+type tele := S.tele
 
 type 'a b = t m -> 'a m
 val scope : 'a b -> 'a m
@@ -64,7 +65,7 @@ val circle_elim : t m -> t m -> t m -> t m -> t m
 
 val pi : ?ident:Ident.t -> tp m -> tp b -> tp m
 val sg : ?ident:Ident.t -> tp m -> tp b -> tp m
-val signature : S.tele m -> tp m
+val signature : tele m -> tp m
 val sub : tp m -> t m -> t b -> tp m
 val tp_prf : t m -> tp m
 val tp_dim : tp m
@@ -116,9 +117,6 @@ module Kan : sig
 
   val coe_sg : base_line:t m -> fam_line:t m -> coe
   val hcom_sg : base:t m -> fam:t m -> hcom
-
-  val coe_sign : field_lines:(Ident.user * t m) list -> coe
-  val hcom_sign : fields:(Ident.user * t m) list -> hcom
 
   val hcom_ext : n:int -> cof:t m -> fam:t m -> bdry:t m -> hcom
   val coe_ext : n:int -> cof:t m -> fam_line:t m -> bdry_line:t m -> coe
