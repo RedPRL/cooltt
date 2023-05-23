@@ -107,7 +107,7 @@ struct
       Format.fprintf fmt "%a"
         (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl dump tp))
         fields
-    | Unpack (tele, con) -> Format.fprintf fmt "<unpack>"
+    | Unpack (_, _) -> Format.fprintf fmt "<unpack>"
     | MCoe (lbl, tele, r, s, fields) ->
       Format.fprintf fmt "mcoe[%a, %a, %a, %a, %a]"
         Ident.pp lbl
@@ -123,13 +123,28 @@ struct
         dump phi
         dump_fields fields
 
+  and dump_tele fmt =
+    function
+    | Cell (lbl, tp, tele) ->
+      Format.fprintf fmt "tele/cell[%a, %a, %a]"
+        Ident.pp lbl
+        dump_tp tp
+        dump_tele tele
+    | ElTele tel ->
+      Format.fprintf fmt "el-tele[%a]"
+        dump_kan_tele tel
+    | Empty ->
+      Format.fprintf fmt "tele/empty"
 
-  and dump_tele fmt sign =
-    Format.fprintf fmt "TODO: dump_tele"
-
-  and dump_kan_tele fmt sign =
-    Format.fprintf fmt "TODO: dump_kan_tele"
-  (* Format.fprintf fmt "%a" (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl dump_tp tp)) sign *)
+  and dump_kan_tele fmt =
+    function
+    | KCell (lbl, tp, tele) ->
+      Format.fprintf fmt "ktele/cell[%a, %a, %a]"
+        Ident.pp lbl
+        dump tp
+        dump_kan_tele tele
+    | KEmpty ->
+      Format.fprintf fmt "ktele/empty"
 
   and dump_tp fmt =
     function
@@ -495,23 +510,22 @@ struct
 
   and pp_tele env fmt : tele -> unit =
     let pp_item env fmt (lbl, tp) =
-      Format.fprintf fmt "@[<hv2>def %a :@;%a@]"
-        Ident.pp lbl
+      Format.fprintf fmt "@[<hv2>def %s :@;%a@]"
+        lbl
         (pp_tp env P.(right_of colon)) tp
     in
     function
     | Empty ->
       ()
     | Cell (lbl, tp, Empty) ->
+      let lbl, _ = ppenv_bind env lbl in
       pp_item env fmt (lbl, tp)
     | ElTele tele ->
       pp_kan_tele env fmt tele
     | Cell (lbl, tp, tele) ->
-      let lbl,envlbl = ppenv_bind env (lbl :> Ident.t) in
-      Format.fprintf fmt "@ (%s : %a)%a"
-        lbl
-        (pp_tp env P.(right_of colon)) tp
-        (pp_tele envlbl) tele
+      let lbl, envlbl = ppenv_bind env lbl in
+      pp_item env fmt (lbl, tp);
+      pp_tele envlbl fmt tele
 
   and pp_kan_tele env fmt : kan_tele -> unit =
     let pp_item env fmt (lbl, tp) =
@@ -676,8 +690,7 @@ struct
     | Sg (base, ident, fam) ->
       pp_sigma env base ident fam fmt
     | Signature fields ->
-      Format.fprintf fmt "TODO: pp_tp signature"
-    (* Format.fprintf fmt "@[<hov 4>sig%a]" (pp_sign env) fields *)
+      Format.fprintf fmt "@[<hov 4>sig%a]" (pp_tele env) fields
     | Sub (tp, phi, tm) ->
       let _x, envx = ppenv_bind env Ident.anon in
       Format.fprintf fmt "@[sub %a %a@ %a@]"

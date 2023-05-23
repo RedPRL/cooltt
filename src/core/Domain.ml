@@ -178,7 +178,7 @@ struct
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
-      Format.fprintf fmt "TODO: Domain.pp Struct"
+      Format.fprintf fmt "struct[%a]" pp_fields fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Le (x, y)) ->
@@ -238,6 +238,11 @@ struct
         pp_con code
         pp_kan_tele_clo clo
     | KEmpty -> Format.fprintf fmt "sig/empty"
+
+  and pp_fields fmt =
+    function
+    | Fields fields ->
+      Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl pp_con tp) fmt fields
 
   and pp_tp fmt =
     function
