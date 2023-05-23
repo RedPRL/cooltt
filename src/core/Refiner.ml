@@ -187,7 +187,7 @@ struct
         Splice.term @@ TB.lam @@ fun _ ->
         TB.cof_split
           [phi_a, TB.ap fn_a [TB.prf];
-           phi_sub, TB.sub_out @@ TB.ap fn_sub [TB.prf]]
+            phi_sub, TB.sub_out @@ TB.ap fn_sub [TB.prf]]
       in
       let+ tm = T.Chk.brun tac (tp_a, phi, D.un_lam partial) in
       S.SubIn tm
@@ -326,19 +326,19 @@ struct
       open Bwd.Infix
       type t =
         {disj : D.cof;
-         fns : (D.cof * D.con) bwd;
-         acc : (S.t * S.t) bwd}
+          fns : (D.cof * D.con) bwd;
+          acc : (S.t * S.t) bwd}
 
       let init : t =
         {disj = CofBuilder.bot;
-         fns = Emp;
-         acc = Emp}
+          fns = Emp;
+          acc = Emp}
 
       let append : t -> branch -> t =
         fun state branch ->
         {disj = CofBuilder.join [state.disj; branch.cof];
-         fns = state.fns #< (branch.cof, branch.fn);
-         acc = state.acc #< (branch.tcof, branch.bdy)}
+          fns = state.fns #< (branch.cof, branch.fn);
+          acc = state.acc #< (branch.tcof, branch.bdy)}
     end
 
     let split (branches : branch_tac list) : T.Chk.tac =
@@ -636,7 +636,15 @@ struct
     let* qtele = quote_kan_tele vtele univ in
     abstract_kan_tele vtele @@ fun vars ->
     Debug.print "Taking total space of family: %a@." D.pp_con vfam;
-    let* fib = RM.lift_cmp @@ Sem.do_aps vfam vars in
+    let lbls = D.kan_tele_lbls vtele in
+    let strct = D.Struct (D.Fields (List.combine lbls vars)) in
+    let* fib =
+      RM.lift_cmp @@ Sem.splice_tm @@
+      Splice.con vfam @@ fun fam ->
+      Splice.con strct @@ fun strct ->
+      Splice.term @@
+      TB.el_out @@ TB.ap fam [TB.el_in strct]
+    in
     let+ qfib = RM.quote_con D.Univ fib in
     S.CodeSignature (S.append_kan_tele qtele (S.KCell (`User ["fib"], qfib, S.KEmpty)))
 
@@ -1027,7 +1035,7 @@ struct
           TB.lam @@ fun _ -> (* [r=0 ∨ phi] *)
           TB.cof_split
             [TB.eq r TB.dim0, TB.ap (TB.Equiv.equiv_fwd (TB.ap pequiv [TB.prf])) [TB.ap part [TB.prf]];
-             phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
+              phi, TB.vproj r pcode code pequiv @@ TB.ap clo [TB.prf]]
         in
         T.Chk.brun tac_tot (tp, CofBuilder.join [CofBuilder.eq0 r; phi], D.un_lam bdry_fn)
       in
@@ -1110,7 +1118,7 @@ struct
           TB.lam @@ fun _ -> (* [phi ∨ psi] *)
           TB.cof_split
             [psi, TB.cap r r' phi bdy @@ TB.ap psi_clo [TB.prf];
-             phi, TB.coe (TB.lam ~ident:(Ident.machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
+              phi, TB.coe (TB.lam ~ident:(Ident.machine "i") @@ fun i -> TB.ap bdy [i; TB.prf]) r' r (TB.ap walls [TB.prf])]
         in
         T.Chk.brun tac_cap (tp_cap, CofBuilder.join [phi; psi], D.un_lam bdry_fn)
       and+ tr = RM.quote_dim r
