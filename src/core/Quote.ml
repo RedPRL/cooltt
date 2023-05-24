@@ -303,7 +303,6 @@ and quote_fields (tele : D.tele) (fields : D.fields) : S.fields m =
   in go Emp tele fields
 
 and quote_stable_field_code univ args (lbl, fam) =
-  (* See [NOTE: Sig Code Quantifiers] for more details *)
   let rec go vars =
     function
     | [] -> quote_con univ @<< lift_cmp @@ do_aps fam vars
