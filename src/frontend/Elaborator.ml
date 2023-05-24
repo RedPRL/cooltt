@@ -478,11 +478,11 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
     T.Syn.rule @@
     RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
 
-      and chk_cases cases =
-        List.map chk_case cases
+and chk_cases cases =
+  List.map chk_case cases
 
-      and chk_case (pat, c) =
-        pat, chk_tm c
+and chk_case (pat, c) =
+  pat, chk_tm c
 
 let rec modifier (con : CS.con) =
   let open Yuujinchou.Pattern in

@@ -84,15 +84,14 @@ let rec elim_implicit_connectives : T.Syn.tac -> T.Syn.tac =
   fun tac ->
   T.Syn.rule @@
   let* tm, tp = T.Syn.run @@ T.Syn.whnf tac in
-  (* FIXME: Why is ocp-indent trying to align 'rule'??? *)
   match tp with
   | D.Sub _ ->
     T.Syn.run @@ elim_implicit_connectives @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
-                                                                     (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
-                                                                     | D.ElStable _ ->
+  (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
+  | D.ElStable _ ->
     T.Syn.run @@ elim_implicit_connectives @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
-                                                                    | D.Pi (TpPrf _,_,_) -> T.Syn.run @@ elim_implicit_connectives @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
-                                                                                          | _ ->
+  | D.Pi (TpPrf _,_,_) -> T.Syn.run @@ elim_implicit_connectives @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
+  | _ ->
     RM.ret (tm, tp)
 
 let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
@@ -102,10 +101,10 @@ let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
   match tp with
   | D.Sub _ ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Sub.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
-                                                                               (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
-                                                                               | D.ElStable _ ->
+  (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
+  | D.ElStable _ ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
-                                                                              | D.Pi (TpPrf _,_,_) ->
+  | D.Pi (TpPrf _,_,_) ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
   | D.Signature sign ->
     begin
@@ -171,27 +170,27 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
      Therefore, we do an explicit check here instead.
      If we add universe levels, this code should probably be reconsidered. *)
   T.Chk.rule ~name:"intro_conversions" @@ function
-    | D.Univ | D.ElStable `Univ as tp ->
-      let* tm, tp' = T.Syn.run tac in
-      let* vtm = RM.lift_ev @@ Sem.eval tm in
-      begin
-        match tp' with
-        | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
-          let* tac' = T.abstract ~ident base @@ fun var ->
-            let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
-            let* fam = RM.lift_cmp @@ Sem.whnf_tp_ fam in
-            (* Same HACK *)
-            match fam with
-            | D.Univ
-            | D.ElStable `Univ ->
-              Debug.print "Performing total space coercion!@.";
-              RM.ret @@ R.Univ.total vsign vtm
-            | _ -> RM.ret @@ T.Chk.syn tac
-          in
-          T.Chk.run tac' tp
-        | _ -> T.Chk.run (T.Chk.syn tac) tp
-      end
-    | tp -> T.Chk.run (T.Chk.syn tac) tp
+  | D.Univ | D.ElStable `Univ as tp ->
+    let* tm, tp' = T.Syn.run tac in
+    let* vtm = RM.lift_ev @@ Sem.eval tm in
+    begin
+      match tp' with
+      | D.Pi (D.ElStable (`Signature vsign) as base, ident, clo) ->
+        let* tac' = T.abstract ~ident base @@ fun var ->
+          let* fam = RM.lift_cmp @@ Sem.inst_tp_clo clo (T.Var.con var) in
+          let* fam = RM.lift_cmp @@ Sem.whnf_tp_ fam in
+          (* Same HACK *)
+          match fam with
+          | D.Univ
+          | D.ElStable `Univ ->
+            Debug.print "Performing total space coercion!@.";
+            RM.ret @@ R.Univ.total vsign vtm
+          | _ -> RM.ret @@ T.Chk.syn tac
+        in
+        T.Chk.run tac' tp
+      | _ -> T.Chk.run (T.Chk.syn tac) tp
+    end
+  | tp -> T.Chk.run (T.Chk.syn tac) tp
 
 
 let open_sign_chk sign tm_tac tac_bdy ~renaming =
@@ -204,8 +203,8 @@ let open_sign_chk sign tm_tac tac_bdy ~renaming =
       let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
       let* sign = RM.lift_cmp @@ Sem.inst_tele_clo sign_clo y in
       T.Chk.run (go (x :: vars) sign) goal
-        in
-        go [] sign
+  in
+  go [] sign
 
 let open_sign_syn sign tm_tac tac_bdy ~renaming =
   let rec go vars = function
@@ -217,28 +216,28 @@ let open_sign_syn sign tm_tac tac_bdy ~renaming =
       let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
       let* sign = RM.lift_cmp @@ Sem.inst_tele_clo sign_clo y in
       T.Syn.run (go (x :: vars) sign)
-        in
-        go [] sign
+  in
+  go [] sign
 
 let open_ tac renaming tac_bdy : T.Chk.tac =
   T.Chk.rule ~name:"Signature.open_" @@ fun goal ->
-    let* tm,tp = T.Syn.run tac in
-    RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
-    | D.Signature sign ->
-      T.Chk.run (open_sign_chk ~renaming sign tac tac_bdy) goal
-    | _ ->
-      RM.with_pp @@ fun ppenv ->
-      RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
+  let* tm,tp = T.Syn.run tac in
+  RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
+  | D.Signature sign ->
+    T.Chk.run (open_sign_chk ~renaming sign tac tac_bdy) goal
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
 
 let open_syn tac renaming tac_bdy : T.Syn.tac =
   T.Syn.rule ~name:"Signature.open_syn" @@
-    let* tm, tp = T.Syn.run tac in
-    RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
-    | D.Signature sign ->
-      T.Syn.run @@ open_sign_syn ~renaming sign tac tac_bdy
-    | _ ->
-      RM.with_pp @@ fun ppenv ->
-      RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
+  let* tm, tp = T.Syn.run tac in
+  RM.lift_cmp @@ Sem.whnf_tp_ tp |>> function
+  | D.Signature sign ->
+    T.Syn.run @@ open_sign_syn ~renaming sign tac tac_bdy
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
 
 
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
@@ -264,43 +263,43 @@ struct
     T.Syn.rule @@
     let* tscrut, ind_tp = T.Syn.run scrut in
     let scrut = T.Syn.rule @@ RM.ret (tscrut, ind_tp) (* only makes sense because because I know 'scrut' won't be used under some binder *) in
-                  match ind_tp, mot with
-                  | D.Nat, mot ->
-                    let* tac_zero : T.Chk.tac =
-                      match find_case ["zero"] cases with
-                      | Some ([], tac) -> RM.ret tac
-                      | Some _ -> elab_err ElabError.MalformedCase
-                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "zero"
-                    in
-                    let* tac_suc =
-                      match find_case ["suc"] cases with
-                      | Some ([`Simple nm_z], tac) ->
-                        RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro @@ fun _ -> tac
-                      | Some ([`Inductive (nm_z, nm_ih)], tac) ->
-                        RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro ~ident:nm_ih @@ fun _ -> tac
-                      | Some _ -> elab_err ElabError.MalformedCase
-                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "suc"
-                    in
-                    T.Syn.run @@ R.Nat.elim mot tac_zero tac_suc scrut
-                  | D.Circle, mot ->
-                    let* tac_base : T.Chk.tac =
-                      match find_case ["base"] cases with
-                      | Some ([], tac) -> RM.ret tac
-                      | Some _ -> elab_err ElabError.MalformedCase
-                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "base"
-                    in
-                    let* tac_loop =
-                      match find_case ["loop"] cases with
-                      | Some ([`Simple nm_x], tac) ->
-                        RM.ret @@ R.Pi.intro ~ident:nm_x @@ fun _ -> tac
-                      | Some _ -> elab_err ElabError.MalformedCase
-                      | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "loop"
-                    in
-                    T.Syn.run @@ R.Circle.elim mot tac_base tac_loop scrut
-                  | _ ->
-                    RM.with_pp @@ fun ppenv ->
-                    let* tp = RM.quote_tp ind_tp in
-                    elab_err @@ ElabError.CannotEliminate (ppenv, tp)
+    match ind_tp, mot with
+    | D.Nat, mot ->
+      let* tac_zero : T.Chk.tac =
+        match find_case ["zero"] cases with
+        | Some ([], tac) -> RM.ret tac
+        | Some _ -> elab_err ElabError.MalformedCase
+        | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "zero"
+      in
+      let* tac_suc =
+        match find_case ["suc"] cases with
+        | Some ([`Simple nm_z], tac) ->
+          RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro @@ fun _ -> tac
+        | Some ([`Inductive (nm_z, nm_ih)], tac) ->
+          RM.ret @@ R.Pi.intro ~ident:nm_z @@ fun _ -> R.Pi.intro ~ident:nm_ih @@ fun _ -> tac
+        | Some _ -> elab_err ElabError.MalformedCase
+        | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "suc"
+      in
+      T.Syn.run @@ R.Nat.elim mot tac_zero tac_suc scrut
+    | D.Circle, mot ->
+      let* tac_base : T.Chk.tac =
+        match find_case ["base"] cases with
+        | Some ([], tac) -> RM.ret tac
+        | Some _ -> elab_err ElabError.MalformedCase
+        | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "base"
+      in
+      let* tac_loop =
+        match find_case ["loop"] cases with
+        | Some ([`Simple nm_x], tac) ->
+          RM.ret @@ R.Pi.intro ~ident:nm_x @@ fun _ -> tac
+        | Some _ -> elab_err ElabError.MalformedCase
+        | None -> RM.ret @@ R.Hole.unleash_hole @@ Some "loop"
+      in
+      T.Syn.run @@ R.Circle.elim mot tac_base tac_loop scrut
+    | _ ->
+      RM.with_pp @@ fun ppenv ->
+      let* tp = RM.quote_tp ind_tp in
+      elab_err @@ ElabError.CannotEliminate (ppenv, tp)
 
   let assert_simple_inductive =
     function
@@ -343,86 +342,86 @@ struct
   let step (code_tac : T.Chk.tac) (lhs_tac : T.Chk.tac) (mid_tac : T.Chk.tac) (rhs_tac : T.Chk.tac)
       (p_tac : T.Chk.tac) (q_tac : T.Chk.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Equations.step" @@
-      let* code = RM.eval @<< T.Chk.run code_tac D.Univ in
-      let* tp = RM.lift_cmp @@ Sem.do_el code in
+    let* code = RM.eval @<< T.Chk.run code_tac D.Univ in
+    let* tp = RM.lift_cmp @@ Sem.do_el code in
 
-      let* lhs = RM.eval @<< T.Chk.run lhs_tac tp in
-      let* mid = RM.eval @<< T.Chk.run mid_tac tp in
-      let* rhs = RM.eval @<< T.Chk.run rhs_tac tp in
+    let* lhs = RM.eval @<< T.Chk.run lhs_tac tp in
+    let* mid = RM.eval @<< T.Chk.run mid_tac tp in
+    let* rhs = RM.eval @<< T.Chk.run rhs_tac tp in
 
-      let* p_tp =
-        RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.con code @@ fun code ->
-        Splice.con lhs @@ fun lhs ->
-        Splice.con mid @@ fun mid ->
-        Splice.term @@
-        TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) lhs mid
-      in
-      let* q_tp =
-        RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.con code @@ fun code ->
-        Splice.con mid @@ fun mid ->
-        Splice.con rhs @@ fun rhs ->
-        Splice.term @@
-        TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) mid rhs
-      in
+    let* p_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con lhs @@ fun lhs ->
+      Splice.con mid @@ fun mid ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) lhs mid
+    in
+    let* q_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con mid @@ fun mid ->
+      Splice.con rhs @@ fun rhs ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) mid rhs
+    in
 
-      let* p = RM.eval @<< T.Chk.run p_tac p_tp in
-      let* q = RM.eval @<< T.Chk.run q_tac q_tp in
+    let* p = RM.eval @<< T.Chk.run p_tac p_tp in
+    let* q = RM.eval @<< T.Chk.run q_tac q_tp in
 
-      let* path_tp =
-        RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.con code @@ fun code ->
-        Splice.con lhs @@ fun lhs ->
-        Splice.con rhs @@ fun rhs ->
-        Splice.term @@
-        TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) lhs rhs
-      in
-      let* path =
-        RM.lift_cmp @@
-        Sem.splice_tm @@
-        Splice.con code @@ fun code ->
-        Splice.con p @@ fun p ->
-        Splice.con q @@ fun q ->
-        Splice.term @@
-        TB.el_in @@
-        TB.lam @@ fun i ->
-        TB.sub_in @@
-        TB.hcom code TB.dim0 TB.dim1 (TB.boundary i) @@
-        TB.lam @@ fun j ->
-        TB.lam @@ fun _ ->
-        TB.cof_split [
-          TB.join [TB.eq j TB.dim0; TB.eq i TB.dim0], TB.sub_out @@ TB.ap (TB.el_out p) [i];
-          TB.eq i TB.dim1, TB.sub_out @@ TB.ap (TB.el_out q) [j]
-        ]
-      in
-      let+ tpath = RM.quote_con path_tp path in
-      (tpath, path_tp)
+    let* path_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con lhs @@ fun lhs ->
+      Splice.con rhs @@ fun rhs ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) lhs rhs
+    in
+    let* path =
+      RM.lift_cmp @@
+      Sem.splice_tm @@
+      Splice.con code @@ fun code ->
+      Splice.con p @@ fun p ->
+      Splice.con q @@ fun q ->
+      Splice.term @@
+      TB.el_in @@
+      TB.lam @@ fun i ->
+      TB.sub_in @@
+      TB.hcom code TB.dim0 TB.dim1 (TB.boundary i) @@
+      TB.lam @@ fun j ->
+      TB.lam @@ fun _ ->
+      TB.cof_split [
+        TB.join [TB.eq j TB.dim0; TB.eq i TB.dim0], TB.sub_out @@ TB.ap (TB.el_out p) [i];
+        TB.eq i TB.dim1, TB.sub_out @@ TB.ap (TB.el_out q) [j]
+      ]
+    in
+    let+ tpath = RM.quote_con path_tp path in
+    (tpath, path_tp)
 
   let qed (code_tac : T.Chk.tac) (x_tac : T.Chk.tac) : T.Syn.tac =
     T.Syn.rule ~name:"Equations.qed" @@
-      let* code = RM.eval @<< T.Chk.run code_tac D.Univ in
-      let* tp = RM.lift_cmp @@ Sem.do_el code in
-      let* x = RM.eval @<< T.Chk.run x_tac tp in
-      let* refl_tp =
-        RM.lift_cmp @@
-        Sem.splice_tp @@
-        Splice.con code @@ fun code ->
-        Splice.con x @@ fun x ->
-        Splice.term @@
-        TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) x x
-      in
-      let* refl =
-        RM.lift_cmp @@
-        Sem.splice_tm @@
-        Splice.con x @@ fun x ->
-        Splice.term @@
-        TB.el_in @@
-        TB.lam @@ fun _ -> TB.sub_in @@ x
-      in
-      let+ trefl = RM.quote_con refl_tp refl in
-      (trefl, refl_tp)
+    let* code = RM.eval @<< T.Chk.run code_tac D.Univ in
+    let* tp = RM.lift_cmp @@ Sem.do_el code in
+    let* x = RM.eval @<< T.Chk.run x_tac tp in
+    let* refl_tp =
+      RM.lift_cmp @@
+      Sem.splice_tp @@
+      Splice.con code @@ fun code ->
+      Splice.con x @@ fun x ->
+      Splice.term @@
+      TB.el @@ TB.code_path' (TB.lam @@ fun _ -> code) x x
+    in
+    let* refl =
+      RM.lift_cmp @@
+      Sem.splice_tm @@
+      Splice.con x @@ fun x ->
+      Splice.term @@
+      TB.el_in @@
+      TB.lam @@ fun _ -> TB.sub_in @@ x
+    in
+    let+ trefl = RM.quote_con refl_tp refl in
+    (trefl, refl_tp)
 end
