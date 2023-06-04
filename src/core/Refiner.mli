@@ -106,6 +106,12 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
+module Tele : sig
+  val empty : Tele.tac
+  val cell : (Tp.tac, Tele.tac) quantifier
+  val include_ : (Ident.t -> Ident.t option) -> Tele.tac -> (Var.tac list -> Tele.tac) -> Tele.tac
+end
+
 module Signature : sig
   val formation : Tp.tac telescope -> Tp.tac
   val intro : [`Field of Ident.t * Chk.tac |`Include of Syn.tac * (Ident.t -> Ident.t option)] list -> Chk.tac

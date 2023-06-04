@@ -32,6 +32,38 @@ struct
     | Empty ->
       []
 
+  let rec rename_kan_tele rn =
+    function
+    | KCell (lbl, code, tele) ->
+      KCell (Option.value ~default:lbl (rn lbl), code, rename_kan_tele rn tele)
+    | KEmpty ->
+      KEmpty
+
+  let rec rename_tele rn =
+    function
+    | Cell (lbl, tp, tele) ->
+      Cell (Option.value ~default:lbl (rn lbl), tp, rename_tele rn tele)
+    | ElTele ktele ->
+      ElTele (rename_kan_tele rn ktele)
+    | Empty ->
+      Empty
+
+  let rec append_kan_tele_to_tele ktele0 tele1 =
+    match ktele0 with
+    | KCell (lbl, code, tele0) ->
+      Cell (lbl, El code, append_kan_tele_to_tele tele0 tele1)
+    | KEmpty ->
+      tele1
+
+  let rec append_tele tele0 tele1 =
+    match tele0 with
+    | Cell (lbl, code, tele0) ->
+      Cell (lbl, code, append_tele tele0 tele1)
+    | ElTele ktele0 ->
+      append_kan_tele_to_tele ktele0 tele1
+    | Empty ->
+      tele1
+
   let rec append_kan_tele tele0 tele1 =
     match tele0 with
     | KCell (lbl, code, tele0) ->
@@ -575,11 +607,6 @@ struct
         (pp_atomic env) s
         (pp_atomic env) phi
         (pp_fields env) bdys
-
-  (* Format.fprintf fmt "@ (%s : %a)%a" *)
-  (*   lbl *)
-  (*   (pp env P.(right_of colon)) code *)
-  (*   (pp_kan_tele envlbl) tele *)
 
   and pp_code_pi env base fam fmt =
     match fam with

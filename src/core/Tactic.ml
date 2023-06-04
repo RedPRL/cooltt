@@ -218,6 +218,32 @@ struct
     | `Reduce tp' -> RM.ret (tm, tp')
 end
 
+module Tele =
+struct
+  type tac = string * S.tele RM.m
+
+  let rule ?(name = "") tac = (name, tac)
+
+  let run (name, tac) =
+    debug_tactic name;
+    tac
+
+  let update_span loc (name, tac) =
+    (name, RM.update_span loc tac)
+
+  let whnf tac =
+    tac
+end
+
 let abstract = Var.abstract
 
 type var = Var.tac
+
+let rec abstract_tele (tele : D.tele) (k : var list -> 'a RM.m) : 'a RM.m =
+  match tele with
+  | Cell (ident, tp, tele_clo) ->
+    abstract ~ident tp @@ fun var ->
+    let* tele = RM.lift_cmp @@ Sem.inst_tele_clo tele_clo (Var.con var) in
+    abstract_tele tele (fun vars -> k (var :: vars))
+  | Empty ->
+    k []

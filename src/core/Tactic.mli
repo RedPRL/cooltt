@@ -55,6 +55,13 @@ sig
   val catch : Syn.tac -> (exn -> Syn.tac) -> Syn.tac
 end
 
+module Tele :
+sig
+  include Tactic
+
+  val rule : ?name:string -> S.tele RM.m -> tac
+  val run : tac -> S.tele RM.m
+end
 
 module Var :
 sig
@@ -68,3 +75,4 @@ end
 type var = Var.tac
 
 val abstract : ?ident:Ident.t -> D.tp -> (var -> 'a RM.m) -> 'a RM.m
+val abstract_tele : D.tele -> (var list -> 'a RM.m) -> 'a RM.m

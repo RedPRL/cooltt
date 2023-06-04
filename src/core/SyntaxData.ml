@@ -91,7 +91,7 @@ struct
   and fields =
     | Fields of (Ident.t * t) list
     | Unpack of Ident.t list * t
-    (** Unpack a {!val:Struct} into it's list of fields. *)
+    (** Unpack a {!val:Struct} into its list of fields. *)
     | MCoe of Ident.t * kan_tele * t * t * fields
     (** Coercion along a line in a telescope.
         The {i kan_tele} has a free variable for a dimension variable. *)

@@ -831,6 +831,28 @@ struct
     S.Com (fam, src, trg, cof, tm), vfam_trg
 end
 
+module Tele =
+struct
+  let empty : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.empty" @@
+    RM.ret @@ S.Empty
+
+  let cell tp_tac (ident, tele_tac) : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.cell" @@
+    let* tp = T.Tp.run tp_tac in
+    let* vtp = RM.eval_tp tp in
+    T.abstract ~ident vtp @@ fun var ->
+    let+ tele = T.Tele.run (tele_tac var) in
+    S.Cell (ident, tp, tele)
+
+  let include_ (rename : Ident.t -> Ident.t option) (inc_tac : T.Tele.tac) (tele_tac : T.Var.tac list -> T.Tele.tac) : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.include" @@
+    let* inc = T.Tele.run inc_tac in
+    let inc = S.rename_tele rename inc in
+    let* vinc = RM.lift_ev @@ Sem.eval_tele inc in
+    T.abstract_tele vinc @@ fun vars ->
+    T.Tele.run (tele_tac vars)
+end
 
 module Signature =
 struct
