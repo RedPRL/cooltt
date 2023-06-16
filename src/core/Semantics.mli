@@ -9,6 +9,7 @@ val eval : S.t -> D.con evaluate
 val eval_cof : S.t -> D.cof evaluate
 val eval_tp : S.tp -> D.tp evaluate
 val eval_tele : S.tele -> D.tele evaluate
+val eval_kan_tele : S.kan_tele -> D.kan_tele evaluate
 
 type 'a whnf = [`Done | `Reduce of 'a]
 val whnf_con : D.con -> D.con whnf compute

@@ -22,11 +22,14 @@ let do_rename rn nm =
 module CoolTp :
 sig
   include T.Tactic
+  type tele_tac
 
   val as_tp : tac -> T.Tp.tac
+  val as_tele : tele_tac -> T.Tele.tac
+
   val pi : tac -> Ident.t -> tac -> tac
   val sg : tac -> Ident.t -> tac -> tac
-  val signature : [`Field of (Ident.t * tac) | `Include of tac * (Ident.t -> Ident.t option)] list -> tac
+  val signature : tele_tac -> tac
   val sub : tac -> T.Chk.tac -> T.Chk.tac -> tac
   val ext : int -> T.Chk.tac -> T.Chk.tac -> T.Chk.tac -> tac
   val nat : tac
@@ -35,13 +38,21 @@ sig
   val dim : tac
   val cof : tac
   val prf : T.Chk.tac -> tac
-
   val code : T.Chk.tac -> tac
+
+  val empty : tele_tac
+  val cell : Ident.t -> tac -> tele_tac -> tele_tac
+  val include_ : (Ident.t -> Ident.t option) -> tele_tac -> tele_tac -> tele_tac
+  val tele_of_sign : tac -> tele_tac
 end =
 struct
   type tac =
     | Tp of T.Tp.tac
     | Code of T.Chk.tac
+
+  type tele_tac =
+    | Tele of T.Tele.tac
+    | KanTele of T.KanTele.tac
 
   let whnf =
     function
@@ -58,12 +69,10 @@ struct
     | Tp tac -> tac
     | Code tac -> R.El.formation tac
 
-  let as_codes =
-    ListUtil.map_opt @@
+  let as_tele =
     function
-    | `Field (_, Tp _) | `Include ((Tp _),_) -> None
-    | `Field (lbl, Code tac) -> Some (`Field (lbl, tac))
-    | `Include ((Code tac),rn) -> Some (`Include (tac,rn))
+    | Tele tac -> tac
+    | KanTele tac -> R.Telescope.el tac
 
   let pi (tac_base : tac) (ident : Ident.t) (tac_fam : tac) : tac =
     match tac_base, tac_fam with
@@ -87,22 +96,13 @@ struct
       let tac = R.Sg.formation tac_base (ident, fun _ -> tac_fam) in
       Tp tac
 
-  let signature (tacs : [`Field of (Ident.t * tac) | `Include of tac * (Ident.t -> Ident.t option)] list) : tac =
-    match as_codes tacs with
-    | Some tacs ->
-      let tac = R.Univ.signature tacs in
+  let signature (tac : tele_tac) : tac =
+    match tac with
+    | KanTele tac ->
+      let tac = R.Univ.signature tac in
       Code tac
-    | None ->
-      let alg =
-        function
-        | `Field (nm, tac) -> (fun tele -> R.Bind (nm, as_tp tac, fun _ -> tele))
-        | `Include _ -> failwith "cannot use include in non-code signature types"
-      in
-      let tele =
-        List.fold_right
-          alg tacs R.Done
-      in
-      let tac = R.Signature.formation tele in
+    | Tele tac ->
+      let tac = R.Signature.formation tac in
       Tp tac
 
   let sub tac_tp tac_phi tac_pel : tac =
@@ -120,6 +120,33 @@ struct
   let cof = Tp R.Cof.formation
   let prf tac = Tp (R.Prf.formation tac)
   let code tac = Code tac
+
+  let empty = KanTele R.KanTelescope.empty
+
+  let cell ident tac tele_tac =
+    match tac, tele_tac with
+    | Code tac, KanTele tele_tac ->
+      KanTele (R.KanTelescope.cell tac (ident, fun _ -> tele_tac))
+    | _, _ ->
+      let tac = as_tp tac in
+      let tele_tac = as_tele tele_tac in
+      Tele (R.Telescope.cell tac (ident, fun _ -> tele_tac))
+
+  let include_ rename inc_tac tele_tac =
+    match inc_tac, tele_tac with
+    | KanTele inc_tac, KanTele tele_tac ->
+      KanTele (R.KanTelescope.include_ rename inc_tac (fun _ -> tele_tac))
+    | _, _ ->
+      let inc_tac = as_tele inc_tac in
+      let tele_tac = as_tele tele_tac in
+      Tele (R.Telescope.include_ rename inc_tac (fun _ -> tele_tac))
+
+  let tele_of_sign tac =
+    match tac with
+    | Code tac ->
+      KanTele (Tactics.kan_tele_of_sign tac)
+    | Tp tac ->
+      Tele (Tactics.tele_of_sign tac)
 end
 
 let rec cool_chk_tp : CS.con -> CoolTp.tac =
@@ -137,13 +164,8 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     List.fold_right (CoolTp.sg (cool_chk_tp cell.tp)) cell.names @@
     cool_chk_tp {con with node = CS.Sg (cells, body)}
   | CS.Signature cells ->
-    let tacs =
-      cells |> List.map @@
-      function
-      | `Field (lbl, con) -> `Field ((lbl :> Ident.t), cool_chk_tp con)
-      | `Include (inc, rn) -> `Include (cool_chk_tp inc, do_rename rn)
-    in
-    CoolTp.signature tacs
+    let tac = cool_chk_tele cells in
+    CoolTp.signature tac
   | CS.Dim -> CoolTp.dim
   | CS.Cof -> CoolTp.cof
   | CS.Prf phi -> CoolTp.prf @@ chk_tm phi
@@ -156,6 +178,14 @@ let rec cool_chk_tp : CS.con -> CoolTp.tac =
     CoolTp.ext n tac_fam tac_cof tac_bdry
   | _ -> CoolTp.code @@ chk_tm con
 
+and cool_chk_tele : CS.field list -> CoolTp.tele_tac =
+  function
+  | [] ->
+    CoolTp.empty
+  | `Field (lbl, con) :: fields ->
+    CoolTp.cell (lbl :> Ident.t) (cool_chk_tp con) (cool_chk_tele fields)
+  | `Include (con, rn) :: fields ->
+    CoolTp.include_ (do_rename rn) (CoolTp.tele_of_sign @@ cool_chk_tp con) (cool_chk_tele fields)
 
 and chk_tp : CS.con -> T.Tp.tac =
   fun con ->
@@ -307,12 +337,14 @@ and chk_tm : CS.con -> T.Chk.tac =
         Tactics.tac_nary_quantifier quant tacs @@ chk_tm body
 
       | CS.Signature fields ->
-        let tacs =
-          fields |> List.map @@ function
-          | `Field (lbl, con) -> `Field ((lbl :> Ident.t), chk_tm con)
-          | `Include (inc, rn) -> `Include (chk_tm inc, do_rename rn)
-        in
-        R.Univ.signature tacs
+        let tac = chk_kan_tele fields in
+        R.Univ.signature tac
+      (* let tacs = *)
+      (*   fields |> List.map @@ function *)
+      (*   | `Field (lbl, con) -> `Field ((lbl :> Ident.t), chk_tm con) *)
+      (*   | `Include (inc, rn) -> `Include (chk_tm inc, do_rename rn) *)
+      (* in *)
+      (* R.Univ.signature tacs *)
 
       | CS.Patch (tp, patches) ->
         let tacs =
@@ -477,6 +509,16 @@ and syn_tm : ?elim_total:bool -> CS.con -> T.Syn.tac =
   | _ ->
     T.Syn.rule @@
     RM.throw @@ ElabError.ElabError (ElabError.ExpectedSynthesizableTerm con.node, con.info)
+
+and chk_kan_tele fields =
+  let chk_field field tele_tac =
+    match field with
+    | `Field (lbl, con) ->
+      R.KanTelescope.cell (chk_tm con) ((lbl :> Ident.t), fun _ -> tele_tac)
+    | `Include (con, rn) ->
+      R.KanTelescope.include_ (do_rename rn) (Tactics.kan_tele_of_sign @@ chk_tm con) (fun _ -> tele_tac)
+  in
+  List.fold_right chk_field fields R.KanTelescope.empty
 
 and chk_cases cases =
   List.map chk_case cases

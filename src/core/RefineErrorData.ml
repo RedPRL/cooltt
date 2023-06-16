@@ -40,6 +40,7 @@ struct
     | CyclicImport of CodeUnitID.t
     | ErrorsInSection
     | UnsolvedHoles of int
-    | ExpectedSignature of Pp.env * S.t
+    | ExpectedSignature of Pp.env * S.tp
+    | ExpectedKanSignature of Pp.env * S.t
     | ExpectedStructure of Pp.env * S.t
 end

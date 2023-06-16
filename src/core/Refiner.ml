@@ -27,11 +27,6 @@ exception CJHM
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
 
-type 'a telescope =
-  | Bind of Ident.t * 'a * (T.var -> 'a telescope)
-  | Done
-
-
 module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
   val probe_boundary : T.Chk.tac -> T.Chk.tac -> T.Chk.tac
@@ -590,32 +585,9 @@ struct
     in
     go Emp sign
 
-  let signature (tacs : [`Field of (Ident.t * T.Chk.tac) | `Include of T.Chk.tac * (Ident.t -> Ident.t option)] list) : T.Chk.tac =
+  let signature (tac : T.KanTele.tac) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
-    let rec go = function
-      | [] -> RM.ret S.KEmpty
-      | `Field (lbl,tac) :: tacs ->
-        let* code = T.Chk.run tac univ in
-        let* vcode = RM.lift_ev @@ Sem.eval code in
-        let* tp = RM.lift_cmp @@ Sem.do_el vcode in
-        RM.abstract (lbl :> Ident.t) tp @@ fun _ ->
-        let+ tele = go tacs in
-        S.KCell (lbl, code, tele)
-      | `Include (tac, renaming) :: tacs ->
-        let* inc = T.Chk.run tac univ in
-        let* vinc = RM.eval inc in
-        RM.lift_cmp @@ Sem.whnf_con_ vinc |>> function
-        | D.StableCode (`Signature inc_tele) ->
-          let* qinc_tele = rename_kan_tele inc_tele renaming univ in
-          abstract_kan_tele inc_tele @@ fun _ ->
-          let+ tele = go tacs in
-          S.append_kan_tele qinc_tele tele
-        | _ ->
-          RM.with_pp @@ fun ppenv ->
-          RM.refine_err @@
-          Err.ExpectedSignature (ppenv, inc)
-    in
-    let+ tele = go tacs in
+    let+ tele = T.KanTele.run tac univ in
     S.CodeSignature tele
 
   let patch (sig_tac : T.Chk.tac) (tacs : Ident.t -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) : T.Chk.tac =
@@ -831,7 +803,7 @@ struct
     S.Com (fam, src, trg, cof, tm), vfam_trg
 end
 
-module Tele =
+module Telescope =
 struct
   let empty : T.Tele.tac =
     T.Tele.rule ~name:"Tele.empty" @@
@@ -852,24 +824,42 @@ struct
     let* vinc = RM.lift_ev @@ Sem.eval_tele inc in
     T.abstract_tele vinc @@ fun vars ->
     T.Tele.run (tele_tac vars)
+
+  let el (tac : T.KanTele.tac) : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.el" @@
+    let+ tele = T.KanTele.run tac D.Univ in
+    S.ElTele tele
+end
+
+module KanTelescope =
+struct
+  let empty : T.KanTele.tac =
+    T.KanTele.rule ~name:"KanTele.empty" @@ fun _ ->
+    RM.ret @@ S.KEmpty
+
+  let cell code_tac (ident, tele_tac) : T.KanTele.tac =
+    T.KanTele.rule ~name:"KanTele.cell" @@ fun univ ->
+    let* code = T.Chk.run code_tac univ in
+    let* vcode = RM.eval code in
+    let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+    T.abstract ~ident tp @@ fun var ->
+    let+ tele = T.KanTele.run (tele_tac var) univ in
+    S.KCell (ident, code, tele)
+
+  let include_ (rename : Ident.t -> Ident.t option) (inc_tac : T.KanTele.tac) (tele_tac : T.Var.tac list -> T.KanTele.tac) : T.KanTele.tac =
+    T.KanTele.rule ~name:"KanTele.include" @@ fun univ ->
+    let* inc = T.KanTele.run inc_tac univ in
+    let inc = S.rename_kan_tele rename inc in
+    let* vinc = RM.lift_ev @@ Sem.eval_kan_tele inc in
+    T.abstract_kan_tele vinc @@ fun vars ->
+    T.KanTele.run (tele_tac vars) univ
 end
 
 module Signature =
 struct
-  let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
-    let rec form_tele =
-      function
-      | Bind (lbl, tac, tacs) ->
-        let* tp = T.Tp.run tac in
-        let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var ->
-        let+ tele = form_tele (tacs var) in
-        S.Cell ((lbl :> Ident.t), tp, tele)
-      | Done ->
-        RM.ret @@ S.Empty
-    in
+  let formation (tele_tac : T.Tele.tac) : T.Tp.tac =
     T.Tp.rule ~name:"Signature.formation" @@
-    let+ tele = form_tele tacs
+    let+ tele = T.Tele.run tele_tac
     in S.Signature tele
 
   (* Check that [tele0] is a prefix of [tele1], and return the rest of [tele1]

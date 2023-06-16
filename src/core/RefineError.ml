@@ -99,7 +99,10 @@ let pp fmt =
       "There are %i unsolved holes" n
   | ExpectedSignature (ppenv, tm) ->
     Fmt.fprintf fmt
-      "Expected signature but got %a" (S.pp ppenv) tm
+      "Expected signature but got %a" (S.pp_tp ppenv) tm
+  | ExpectedKanSignature (ppenv, tm) ->
+    Fmt.fprintf fmt
+      "Expected kan signature but got %a" (S.pp ppenv) tm
   | ExpectedStructure (ppenv, tm) ->
     Fmt.fprintf fmt
       "Expected structure but got %a" (S.pp ppenv) tm

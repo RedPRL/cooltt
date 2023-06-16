@@ -239,6 +239,27 @@ let open_syn tac renaming tac_bdy : T.Syn.tac =
     RM.with_pp @@ fun ppenv ->
     RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
 
+let tele_of_sign tp_tac =
+  T.Tele.rule ~name:"Telescope.of_sign" @@
+  let* tp = T.Tp.run tp_tac in
+  let* vtp = RM.eval_tp tp in
+  match vtp with
+  | D.Signature tele ->
+    RM.lift_qu @@ Quote.quote_tele tele
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedSignature (ppenv, tp)
+
+let kan_tele_of_sign code_tac =
+  T.KanTele.rule ~name:"KanTelescope.of_sign" @@ fun univ ->
+  let* code = T.Chk.run code_tac univ in
+  let* vcode = RM.eval code in
+  match vcode with
+  | D.StableCode (`Signature tele) ->
+    RM.lift_qu @@ Quote.quote_kan_tele tele
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedKanSignature (ppenv, code)
 
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with

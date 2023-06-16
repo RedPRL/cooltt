@@ -63,6 +63,14 @@ sig
   val run : tac -> S.tele RM.m
 end
 
+module KanTele :
+sig
+  include Tactic
+
+  val rule : ?name:string -> (D.tp -> S.kan_tele RM.m) -> tac
+  val run : tac -> D.tp -> S.kan_tele RM.m
+end
+
 module Var :
 sig
   type tac
@@ -76,3 +84,4 @@ type var = Var.tac
 
 val abstract : ?ident:Ident.t -> D.tp -> (var -> 'a RM.m) -> 'a RM.m
 val abstract_tele : D.tele -> (var list -> 'a RM.m) -> 'a RM.m
+val abstract_kan_tele : D.kan_tele -> (var list -> 'a RM.m) -> 'a RM.m
