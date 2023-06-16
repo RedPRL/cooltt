@@ -823,7 +823,8 @@ struct
     let inc = S.rename_tele rename inc in
     let* vinc = RM.lift_ev @@ Sem.eval_tele inc in
     T.abstract_tele vinc @@ fun vars ->
-    T.Tele.run (tele_tac vars)
+    let+ tele = T.Tele.run (tele_tac vars) in
+    S.append_tele inc tele
 
   let el (tac : T.KanTele.tac) : T.Tele.tac =
     T.Tele.rule ~name:"Tele.el" @@
@@ -852,7 +853,8 @@ struct
     let inc = S.rename_kan_tele rename inc in
     let* vinc = RM.lift_ev @@ Sem.eval_kan_tele inc in
     T.abstract_kan_tele vinc @@ fun vars ->
-    T.KanTele.run (tele_tac vars) univ
+    let+ tele = T.KanTele.run (tele_tac vars) univ in
+    S.append_kan_tele inc tele
 end
 
 module Signature =
