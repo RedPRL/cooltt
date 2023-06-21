@@ -561,19 +561,21 @@ struct
 
   and pp_kan_tele env fmt : kan_tele -> unit =
     let pp_item env fmt (lbl, tp) =
-      Format.fprintf fmt "@[<hv2>def %s :@;%a@]@;"
-        lbl
+      Format.fprintf fmt "@[<hv2>def %a :@;%a@]"
+        Ident.pp lbl
         (pp env P.(right_of colon)) tp
     in
     function
     | KEmpty ->
       ()
     | KCell (lbl, tp, KEmpty) ->
-      let lbl, _ = ppenv_bind env lbl in
       pp_item env fmt (lbl, tp)
     | KCell (lbl, code, tele) ->
-      let lbl, envlbl = ppenv_bind env lbl in
+      (* We ignore the variable returned from ppenv_bind, as we want
+         to print out the field name without any suffix. *)
+      let _, envlbl = ppenv_bind env lbl in
       pp_item env fmt (lbl, code);
+      Format.pp_print_break fmt 1 0;
       pp_kan_tele envlbl fmt tele
 
   and pp_fields env fmt =

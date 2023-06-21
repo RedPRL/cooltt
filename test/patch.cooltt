@@ -72,8 +72,6 @@ def types : category :=
     def seqA := unfold seqA∷tp in f g h _ x => h {g {f x}}
   end
 
-#quit
-
 def test-auto (fam : sig [x : nat] → type) : type := fam
 #print test-auto
 
