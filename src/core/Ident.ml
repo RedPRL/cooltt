@@ -72,6 +72,11 @@ let rec json_to_ident : J.value -> t =
   | `O [("blocked", ts)] -> blocked @@ J.get_list json_to_ident ts
   | j -> J.parse_error j "json_to_ident"
 
-let equal i0 i1 =
+let rec equal i0 i1 =
   match (i0, i1) with
+  | `Anon, `Anon -> true
   | `User p0, `User p1 -> List.equal String.equal p0 p1
+  | `Machine s0, `Machine s1 -> String.equal s0 s1
+  | `Unfolder u0, `Unfolder u1 -> equal u0 u1
+  | `Blocked b0, `Blocked b1 -> List.equal equal b0 b1
+  | _, _ -> false

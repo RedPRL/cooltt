@@ -1974,18 +1974,18 @@ patch.cooltt:39.5-39.87 [Info]:
    Expected type = sig def A : type def a : A end → (_x₁ : nat) → type
 
 
-patch.cooltt:79.7-79.16 [Info]:
+patch.cooltt:76.7-76.16 [Info]:
   def test-auto : (fam : (_x : sig def x : nat end) → type) → type :=
     fam => sig def x : nat def fib : fam {struct def x := x end} end
 
-patch.cooltt:82.7-82.22 [Info]:
+patch.cooltt:79.7-79.22 [Info]:
   def test-auto-patch : (fam : (_x : sig def x : nat end) → type) → type :=
     fam =>
       sig
         def x : ext nat ⊤ {_x₁ => 0} def fib : fam {struct def x := 0 end}
       end
 
-patch.cooltt:86.7-86.24 [Info]:
+patch.cooltt:83.7-83.24 [Info]:
   def test-unfold-total : (fam : (_x : sig def x : nat end) → type) → type :=
     fam => sig def x : nat def fib : fam {struct def x := x end} end
 
@@ -2011,24 +2011,27 @@ path-types.cooltt:55.11-55.18 [Info]:
 
 --------------------[prelude.cooltt]--------------------
 --------------------[record.cooltt]--------------------
-record.cooltt:12.7-12.12 [Info]:
+record.cooltt:11.7-11.11 [Info]:
+  def test : type := sig def x : type def y : type def fn : (_x₁ : x) → y end
+
+record.cooltt:21.7-21.12 [Info]:
   def basic : type := sig def foo∷x : nat def bar : (_x₁ : nat) → nat end
 
-record.cooltt:13.7-13.21 [Info]:
+record.cooltt:22.7-22.21 [Info]:
   def basic∷inhabit : sig def foo∷x : nat def bar : (_x : nat) → nat end :=
     struct def foo∷x := 1 def bar := x => suc x end
 
-record.cooltt:14.11-14.25 [Info]:
+record.cooltt:23.11-23.25 [Info]:
   Computed normal form of basic∷inhabit as
    struct def foo∷x := 1 def bar := x => suc x end
 
-record.cooltt:15.11-15.32 [Info]:
+record.cooltt:24.11-24.32 [Info]:
   Computed normal form of basic∷inhabit.foo∷x as 1
 
-record.cooltt:16.11-16.31 [Info]:
+record.cooltt:25.11-25.31 [Info]:
   Computed normal form of {basic∷inhabit.bar} 1 as 2
 
-record.cooltt:35.7-35.13 [Info]:
+record.cooltt:44.7-44.13 [Info]:
   def depend : type := sig def tp : type def fun : (_x₁ : tp) → tp end
 
 --------------------[repack.cooltt]--------------------

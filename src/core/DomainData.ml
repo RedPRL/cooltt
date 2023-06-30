@@ -20,7 +20,7 @@ struct
     | `Sg of 'a * 'a
     (** Dependent sum type *)
 
-    | `Signature of (Ident.user * 'a) list
+    | `Signature of kan_tele
     (** First-Class Record types *)
 
     | `Ext of int * 'a * [`Global of 'a] * 'a
@@ -38,7 +38,7 @@ struct
 
   (** A type code which {i may or may not} be stable under dimension substitution. That is,
       type codes with these constructors may or may not remain in normal forms under substitution. *)
-  type 'a unstable_code =
+  and 'a unstable_code =
     [ `HCom of dim * dim * cof * 'a
     (** Formal composite types *)
 
@@ -46,13 +46,14 @@ struct
       (** V types, for univalence *)
     ]
 
-  type env = {tpenv : tp bwd; conenv: con bwd}
+  and env = {tpenv : tp bwd; conenv: con bwd}
 
   (** A {i closure} combines a semantic environment with a syntactic object binding an additional variable. *)
   and 'a clo = Clo of 'a * env
   and tp_clo = S.tp clo
   and tm_clo = S.t clo
-  and sign_clo = S.sign clo
+  and tele_clo = S.tele clo
+  and kan_tele_clo = S.kan_tele clo
 
   (** Value constructors are governed by {!type:con}; we do not maintain in the datatype {i a priori} any invariant that these represent whnfs (weak head normal forms). Whether a value constructor is a whnf is contingent on the ambient local state, such as the cofibration theory. *)
   and con =
@@ -72,7 +73,7 @@ struct
     | Base
     | Loop of dim
     | Pair of con * con
-    | Struct of (Ident.user * con) list
+    | Struct of fields
     | SubIn of con
 
     | ElIn of con
@@ -109,13 +110,20 @@ struct
     | TpSplit of (cof * tp_clo) list
     | Pi of tp * Ident.t * tp_clo
     | Sg of tp * Ident.t * tp_clo
-    | Signature of sign
+    | Signature of tele
     | Nat
     | Circle
 
-  and sign =
-    | Field of Ident.user * tp * S.sign clo
+  and tele =
+    | Cell of Ident.t * tp * S.tele clo
     | Empty
+
+  and kan_tele =
+    | KCell of Ident.t * con * S.kan_tele clo
+    | KEmpty
+
+  and fields =
+    | Fields of (Ident.t * con) list
 
   (** A head is a variable (e.g. {!constructor:Global}, {!constructor:Var}), or it is some kind of unstable elimination form ({!constructor:Coe}, {!constructor:UnstableCut}). The geometry of {!type:cut}, {!type:hd}, {!type:unstable_frm} enables a very direct way to re-reduce a complex cut to whnf by following the unstable nodes to the root. *)
   and hd =
@@ -136,7 +144,7 @@ struct
     | KAp of tp * con
     | KFst
     | KSnd
-    | KProj of Ident.user
+    | KProj of Ident.t * int
     | KNatElim of con * con * con
     | KCircleElim of con * con * con
 

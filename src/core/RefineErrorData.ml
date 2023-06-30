@@ -27,7 +27,7 @@ struct
   type t =
     | UnboundVariable of Ident.t
     | FieldNameMismatches of Ident.user list * Ident.user list
-    | ExpectedField of Pp.env * S.sign * S.t * Ident.user
+    | ExpectedField of Pp.env * S.tele * S.t * Ident.t
     | ExpectedEqual of Pp.env * S.tp * S.t * S.t * Conversion.Error.t
     | ExpectedEqualTypes of Pp.env * S.tp * S.tp * Conversion.Error.t
     | ExpectedConnective of connective * Pp.env * S.tp
@@ -40,6 +40,7 @@ struct
     | CyclicImport of CodeUnitID.t
     | ErrorsInSection
     | UnsolvedHoles of int
-    | ExpectedSignature of Pp.env * S.t
+    | ExpectedSignature of Pp.env * S.tp
+    | ExpectedKanSignature of Pp.env * S.t
     | ExpectedStructure of Pp.env * S.t
 end

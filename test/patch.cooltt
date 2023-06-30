@@ -38,8 +38,6 @@ def testing (A Z : type) (B : A → type) (p : Z → sig [x : A, bx : B x]) (z :
 -- Record Patching + Total Space Conversion
 #fail def total-space/fail (fam : sig [A : type, a : A] → nat → type) : type := fam
 
-
-
 abstract
 def category : type :=
   sig
@@ -68,8 +66,7 @@ def types : category :=
     def ob := type
     def hom := args => {args.s} → {args.t}
     def idn := _ x => x
-    def seq := f g x => g {f x}
-
+    def seq := f g x =>  g {f x}
     def seqL := unfold seqL∷tp in f _ => f
     def seqR := unfold seqR∷tp in f _ => f
     def seqA := unfold seqA∷tp in f g h _ x => h {g {f x}}

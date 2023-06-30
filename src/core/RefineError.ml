@@ -67,7 +67,7 @@ let pp fmt =
       "Expected true cofibration: %a"
       (S.pp ppenv) cof
   | ExpectedField (ppenv, sign, tm, lbl) ->
-    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_sign ppenv) sign Ident.pp_user lbl
+    Fmt.fprintf fmt "Expected (%a : sig %a) to have field %a" (S.pp ppenv) tm (S.pp_tele ppenv) sign Ident.pp lbl
   | FieldNameMismatches (expected, actual) ->
     Fmt.fprintf fmt "Field names mismatch, expected [%a] but got [%a]" (Pp.pp_sep_list Ident.pp_user) expected (Pp.pp_sep_list Ident.pp_user) actual
   | VirtualType ->
@@ -99,7 +99,10 @@ let pp fmt =
       "There are %i unsolved holes" n
   | ExpectedSignature (ppenv, tm) ->
     Fmt.fprintf fmt
-      "Expected signature but got %a" (S.pp ppenv) tm
+      "Expected signature but got %a" (S.pp_tp ppenv) tm
+  | ExpectedKanSignature (ppenv, tm) ->
+    Fmt.fprintf fmt
+      "Expected kan signature but got %a" (S.pp ppenv) tm
   | ExpectedStructure (ppenv, tm) ->
     Fmt.fprintf fmt
       "Expected structure but got %a" (S.pp ppenv) tm

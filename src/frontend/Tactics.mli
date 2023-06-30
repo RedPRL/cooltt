@@ -15,7 +15,7 @@ open Tactic
     `TotalSome : A total space created by the `total` tactic, where at least one non-`fib` field is *not* patched
     `NotTotal : Not a total space created by the `total` tactic
 *)
-val is_total : D.sign -> [`TotalAll | `TotalSome | `NotTotal] RM.m
+val is_total : D.tele -> [`TotalAll | `TotalSome | `NotTotal] RM.m
 
 val intro_subtypes_and_total : Chk.tac -> Chk.tac
 val intro_implicit_connectives : Chk.tac -> Chk.tac
@@ -23,9 +23,17 @@ val elim_implicit_connectives : Syn.tac -> Syn.tac
 val elim_implicit_connectives_and_total : Syn.tac -> Syn.tac
 val intro_conversions : Syn.tac -> Chk.tac
 
-val open_ : Syn.tac -> (Ident.user -> Ident.user option) -> (var list -> Chk.tac) -> Chk.tac
-val open_syn : Syn.tac -> (Ident.user -> Ident.user option) -> (var list -> Syn.tac) -> Syn.tac
+(** Brings all fields of a struct into scope, potentially applying a renaming. *)
+val open_ : Syn.tac -> (Ident.t -> Ident.t option) -> (var list -> Chk.tac) -> Chk.tac
 
+(** Brings all fields of a struct into scope, potentially applying a renaming. *)
+val open_syn : Syn.tac -> (Ident.t -> Ident.t option) -> (var list -> Syn.tac) -> Syn.tac
+
+(** Attempt to extract a telescope from a signature. *)
+val tele_of_sign : Tp.tac -> Tele.tac
+
+(** Attempt to extract a kan telescope from a signature code. *)
+val kan_tele_of_sign : Chk.tac -> KanTele.tac
 
 val tac_nary_quantifier : ('a, 'b) R.quantifier -> (Ident.t * 'a) list -> 'b -> 'b
 

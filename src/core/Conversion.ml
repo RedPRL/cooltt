@@ -20,7 +20,8 @@ struct
     | ExpectedTypeEq of D.tp * D.tp
     | ExpectedConEq of D.tp * D.con * D.con
     | ExpectedFrmEq of D.frm * D.frm
-    | ExpectedSignEq of D.sign * D.sign
+    | ExpectedTeleEq of D.tele * D.tele
+    | ExpectedKanTeleEq of D.kan_tele * D.kan_tele
     | SpineLengthMismatch of D.frm list * D.frm list
     | HeadMismatch of D.hd * D.hd
 
@@ -37,8 +38,10 @@ struct
       Format.fprintf fmt "Expected %a = %a : %a" D.pp_con con0 D.pp_con con1 D.pp_tp tp
     | ExpectedFrmEq (frm0, frm1) ->
       Format.fprintf fmt "Expected %a = %a" D.pp_frame frm0 D.pp_frame frm1
-    | ExpectedSignEq (sign0, sign1) ->
-      Format.fprintf fmt "Expected %a = %a sig" D.pp_sign sign0 D.pp_sign sign1
+    | ExpectedTeleEq (sign0, sign1) ->
+      Format.fprintf fmt "Expected %a = %a sig" D.pp_tele sign0 D.pp_tele sign1
+    | ExpectedKanTeleEq (sign0, sign1) ->
+      Format.fprintf fmt "Expected %a = %a sig" D.pp_kan_tele sign0 D.pp_kan_tele sign1
     | SpineLengthMismatch (sp0, sp1) ->
       Format.fprintf fmt "Spine length mismatch between %a and %a" D.pp_spine sp0 D.pp_spine sp1
     | HeadMismatch (hd0, hd1) ->
@@ -92,7 +95,7 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
     let* fib0 = lift_cmp @@ inst_tp_clo fam0 x in
     let* fib1 = lift_cmp @@ inst_tp_clo fam1 x in
     equate_tp fib0 fib1
-  | D.Signature sign1, D.Signature sign2 -> equate_sign sign1 sign2
+  | D.Signature tele0, D.Signature tele1 -> equate_tele tele0 tele1
   | D.Sub (tp0, phi0, clo0), D.Sub (tp1, phi1, clo1) ->
     let* () = equate_tp tp0 tp1 in
     let* () = equate_cof phi0 phi1 in
@@ -128,16 +131,32 @@ let rec equate_tp (tp0 : D.tp) (tp1 : D.tp) =
   | _ ->
     conv_err @@ ExpectedTypeEq (tp0, tp1)
 
-and equate_sign sign0 sign1 =
-  match sign0, sign1 with
-  | D.Field (lbl0, tp0, clo0), D.Field (lbl1, tp1, clo1) when Ident.equal lbl0 lbl1 ->
+and equate_tele tele0 tele1 =
+  match tele0, tele1 with
+  | D.Cell (lbl0, tp0, tele0), D.Cell (lbl1, tp1, tele1) when Ident.equal lbl0 lbl1 ->
     let* () = equate_tp tp0 tp1 in
     bind_var_ tp0 @@ fun x ->
-    let* sign0 = lift_cmp @@ inst_sign_clo clo0 x in
-    let* sign1 = lift_cmp @@ inst_sign_clo clo1 x in
-    equate_sign sign0 sign1
-  | D.Empty, D.Empty -> ret ()
-  | _, _ -> conv_err @@ ExpectedSignEq (sign0, sign1)
+    let* tele0 = lift_cmp @@ inst_tele_clo tele0 x in
+    let* tele1 = lift_cmp @@ inst_tele_clo tele1 x in
+    equate_tele tele0 tele1
+  | D.Empty, D.Empty ->
+    ret ()
+  | _, _ ->
+    conv_err @@ ExpectedTeleEq (tele0, tele1)
+
+and equate_kan_tele univ tele0 tele1 =
+  match tele0, tele1 with
+  | D.KCell (lbl0, code0, tele0), D.KCell (lbl1, code1, tele1) when Ident.equal lbl0 lbl1 ->
+    let* () = equate_con univ code0 code1 in
+    let* tp = lift_cmp @@ do_el code0 in
+    bind_var_ tp @@ fun x ->
+    let* tele0 = lift_cmp @@ inst_kan_tele_clo tele0 x in
+    let* tele1 = lift_cmp @@ inst_kan_tele_clo tele1 x in
+    equate_kan_tele univ tele0 tele1
+  | D.KEmpty, D.KEmpty ->
+    ret ()
+  | _, _ ->
+    conv_err @@ ExpectedKanTeleEq (tele0, tele1)
 
 and equate_stable_code univ code0 code1 =
   match code0, code1 with
@@ -174,27 +193,10 @@ and equate_stable_code univ code0 code1 =
     in
     equate_con tp_bdry bdry0 bdry1
 
-  | `Signature sign0, `Signature sign1 ->
-    equate_sign_code univ sign0 sign1
+  | `Signature tele0, `Signature tele1 ->
+    equate_kan_tele univ tele0 tele1
   | code0, code1 ->
     conv_err @@ ExpectedConEq (univ, D.StableCode code0, D.StableCode code1)
-
-and equate_sign_code univ sign0 sign1 =
-  let rec go vfams sign0 sign1 =
-    match sign0, sign1 with
-    | [], [] -> ret ()
-    | (lbl0, fam0) :: sign0 , (lbl1, fam1) :: sign1 when Ident.equal lbl0 lbl1 ->
-      let* fam_tp =
-        lift_cmp @@
-        splice_tp @@
-        Splice.tp univ @@ fun univ ->
-        Splice.cons vfams @@ fun args ->
-        Splice.term @@ TB.pis args @@ fun _ -> univ
-      in
-      let* _ = equate_con fam_tp fam0 fam1 in
-      go (vfams @ [fam0]) sign0 sign1
-    | _, _ -> conv_err @@ ExpectedConEq (univ, D.StableCode (`Signature sign0), D.StableCode (`Signature sign1))
-  in go [] sign0 sign1
 
 (* Invariant: tp, con0, con1 not necessarily whnf *)
 and equate_con tp con0 con1 =
@@ -302,16 +304,18 @@ and equate_con tp con0 con1 =
     Format.eprintf "failed: %a, %a@." D.pp_con con0 D.pp_con con1;
     conv_err @@ ExpectedConEq (tp, con0, con1)
 
-and equate_struct (sign : D.sign) con0 con1 =
-  match sign with
-  | D.Field (lbl, tp, clo) ->
-    let* field0 = lift_cmp @@ do_proj con0 lbl in
-    let* field1 = lift_cmp @@ do_proj con1 lbl in
-    let* () = equate_con tp field0 field1 in
-    let* sign = lift_cmp @@ inst_sign_clo clo field0 in
-    equate_struct sign con0 con1
-  | D.Empty ->
-    ret ()
+and equate_struct (tele : D.tele) con0 con1 =
+  let rec go n =
+    function
+    | D.Cell (lbl, tp, clo) ->
+      let* field0 = lift_cmp @@ do_proj con0 lbl n in
+      let* field1 = lift_cmp @@ do_proj con1 lbl n in
+      let* () = equate_con tp field0 field1 in
+      let* tele = lift_cmp @@ inst_tele_clo clo field0 in
+      go (n + 1) tele
+    | D.Empty ->
+      ret ()
+  in go 0 tele
 
 
 (* Invariant: cut0, cut1 are whnf *)
@@ -343,7 +347,7 @@ and equate_frm k0 k1 =
   | D.KFst, D.KFst
   | D.KSnd, D.KSnd ->
     ret ()
-  | D.KProj lbl0, D.KProj lbl1 when Ident.equal lbl0 lbl1 ->
+  | D.KProj (_, ix0), D.KProj (_, ix1) when ix0 = ix1 ->
     ret ()
   | D.KAp (tp0, con0), D.KAp (tp1, con1) ->
     let* () = equate_tp tp0 tp1 in

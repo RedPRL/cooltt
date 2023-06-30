@@ -357,7 +357,7 @@ plain_term_except_cof_case:
     { ap_or_atomic (List.concat [List.map term_of_name @@ Option.value ~default:[] spine; [arg1]; args2]) }
   | spine = nonempty_list_left_recursive(name)
     { ap_or_atomic (List.map term_of_name spine) }
-  | t = term; DOT; lbl = user; spine = list_left_recursive(atomic_term)
+  | t = term; DOT; lbl = plain_name; spine = list_left_recursive(atomic_term)
     { ap_or_atomic ({ node = Proj(t, lbl); info = None } :: spine) }
   | GENERALIZE; name = plain_name; IN; body = term;
     { Generalize (name, body) }
@@ -489,9 +489,9 @@ patches:
 
 patch:
   | lbl = user; COLON_EQUALS; con = term
-    { `Patch (lbl,con) }
+    { `Patch (lbl, con) }
   | lbl = user; COLON_COLON_EQUALS; con = term
-    { `Subst (lbl,con) }
+    { `Subst (lbl, con) }
 
 inline_struct_body:
   | LSQ fields = separated_list(COMMA, bare_field) RSQ

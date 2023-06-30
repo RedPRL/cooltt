@@ -32,16 +32,27 @@ struct
   let fst = Lam (Ident.anon, Clo (S.Fst (S.Var 0), {tpenv = Emp; conenv = Emp}))
   let snd = Lam (Ident.anon, Clo (S.Snd (S.Var 0), {tpenv = Emp; conenv = Emp}))
 
-  let proj lbl = Lam (Ident.anon, Clo (S.Proj (S.Var 0, lbl), {tpenv = Emp; conenv = Emp}))
+  let proj lbl ix = Lam (Ident.anon, Clo (S.Proj (S.Var 0, lbl, ix), {tpenv = Emp; conenv = Emp}))
   let el_out = Lam (Ident.anon, Clo (S.ElOut (S.Var 0), {tpenv = Emp; conenv = Emp}))
+
+  let tele_lbls =
+    function
+    | Cell (lbl, _, Clo(tele, _)) ->
+      lbl :: S.tele_lbls tele
+    | Empty -> []
+
+  let kan_tele_lbls =
+    function
+    | KCell (lbl, _, Clo(tele, _)) ->
+      lbl :: S.kan_tele_lbls tele
+    | KEmpty -> []
+
+  let empty_env = { conenv = Emp; tpenv = Emp }
+
+  let extend_env env con = { env with conenv = Snoc(env.conenv, con) }
 
   let tm_abort = Split []
   let tp_abort = TpSplit []
-
-  let sign_lbls =
-    function
-    | Field (lbl, _, Clo (sign, _)) -> lbl :: (List.map (fun (lbl, _) -> lbl) sign)
-    | Empty -> []
 
   let dim_to_con =
     function
@@ -106,7 +117,7 @@ struct
     | KAp (_, con) -> Format.fprintf fmt "ap[%a]" pp_con con
     | KFst -> Format.fprintf fmt "fst"
     | KSnd -> Format.fprintf fmt "snd"
-    | KProj lbl -> Format.fprintf fmt "proj[%a]" Ident.pp_user lbl
+    | KProj (lbl, _) -> Format.fprintf fmt "proj[%a]" Ident.pp lbl
     | KNatElim _ -> Format.fprintf fmt "<nat-elim>"
     | KCircleElim _ -> Format.fprintf fmt "<circle-elim>"
     | KElOut -> Uuseg_string.pp_utf_8 fmt "⭝ₑₗ"
@@ -135,11 +146,19 @@ struct
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
-  and pp_sign_clo : (S.sign clo) Pp.printer =
+  and pp_tele_clo : (S.tele clo) Pp.printer =
     let sep fmt () = Format.fprintf fmt "," in
     fun fmt (Clo (sign, {tpenv; conenv})) ->
       Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
-        S.dump_sign sign
+        S.dump_tele sign
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
+        (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
+
+  and pp_kan_tele_clo : (S.kan_tele clo) Pp.printer =
+    let sep fmt () = Format.fprintf fmt "," in
+    fun fmt (Clo (sign, {tpenv; conenv})) ->
+      Format.fprintf fmt "tpclo[%a ; [%a ; %a]]"
+        S.dump_kan_tele sign
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_tp) (BwdLabels.to_list tpenv)
         (pp_list_group ~left:pp_lsq ~right:pp_rsq ~sep pp_con) (BwdLabels.to_list conenv)
 
@@ -159,8 +178,7 @@ struct
     | Pair (con0, con1) ->
       Format.fprintf fmt "pair[%a,%a]" pp_con con0 pp_con con1
     | Struct fields ->
-      Format.fprintf fmt "struct[%a]"
-        (Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp_user lbl pp_con tp)) fields
+      Format.fprintf fmt "struct[%a]" pp_fields fields
     | Prf ->
       Format.fprintf fmt "*"
     | Cof (Le (x, y)) ->
@@ -202,10 +220,29 @@ struct
         fmt
         branches
 
-  and pp_sign fmt =
+  and pp_tele fmt =
     function
-    | Field (ident, tp, clo) -> Format.fprintf fmt "sig/field[%a,%a,%a]" Ident.pp_user ident pp_tp tp pp_sign_clo clo
-    | Empty -> Format.fprintf fmt "sig/empty"
+    | Cell (ident, tp, clo) ->
+      Format.fprintf fmt "sig/field[%a,%a,%a]"
+        Ident.pp ident
+        pp_tp tp
+        pp_tele_clo clo
+    | Empty ->
+      Format.fprintf fmt "sig/empty"
+
+  and pp_kan_tele fmt =
+    function
+    | KCell (ident, code, clo) ->
+      Format.fprintf fmt "sig/field[%a,%a,%a]"
+        Ident.pp ident
+        pp_con code
+        pp_kan_tele_clo clo
+    | KEmpty -> Format.fprintf fmt "sig/empty"
+
+  and pp_fields fmt =
+    function
+    | Fields fields ->
+      Pp.pp_sep_list (fun fmt (lbl, tp) -> Format.fprintf fmt "%a : %a" Ident.pp lbl pp_con tp) fmt fields
 
   and pp_tp fmt =
     function
@@ -214,7 +251,7 @@ struct
     | Sg _ ->
       Format.fprintf fmt "<sg>"
     | Signature sign ->
-      Format.fprintf fmt "sig[%a]" pp_sign sign
+      Format.fprintf fmt "sig[%a]" pp_tele sign
     | Sub (tp, cof, clo) ->
       Format.fprintf fmt "sub[%a, %a, %a]" pp_tp tp pp_cof cof pp_clo clo
     | TpPrf _ ->

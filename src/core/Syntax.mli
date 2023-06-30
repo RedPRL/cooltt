@@ -9,9 +9,19 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val tm_abort : t
   val tp_abort : tp
 
-  (** Lambda bind a list of variables on all of the fields of code signature *)
-  val bind_code_sign_vars : Ident.user list -> (Ident.user * t) list -> (Ident.user * t) list
+  val tele_lbls : tele -> Ident.t list
+  val kan_tele_lbls : kan_tele -> Ident.t list
 
+  val rename_tele : (Ident.t -> Ident.t option) -> tele -> tele
+  val rename_kan_tele : (Ident.t -> Ident.t option) -> kan_tele -> kan_tele
+
+  (** Append two kan telescopes together.
+      INVARIANT: The second telescope is well-scoped with regard to the first. *)
+  val append_tele : tele -> tele -> tele
+
+  (** Append two kan telescopes together.
+      INVARIANT: The second telescope is well-scoped with regard to the first. *)
+  val append_kan_tele : kan_tele -> kan_tele -> kan_tele
 
   (** {1 Pretty printers} *)
 
@@ -22,7 +32,7 @@ module Make : functor (Symbol : Symbol.S) -> sig
   val pp : Pp.env -> t Pp.printer
 
   (** Print a signature. *)
-  val pp_sign : Pp.env -> sign Pp.printer
+  val pp_tele : Pp.env -> tele Pp.printer
 
   (** Print a core language type. *)
   val pp_tp : Pp.env -> tp Pp.printer
@@ -39,6 +49,7 @@ module Make : functor (Symbol : Symbol.S) -> sig
       When debugging, we are not likely to have enough context to use the nice pretty printers above; as a last resort, {!val:dump} and {!val:dump_tp} may be used. *)
 
   val dump : t Pp.printer
-  val dump_sign : sign Pp.printer
+  val dump_tele : tele Pp.printer
+  val dump_kan_tele : kan_tele Pp.printer
   val dump_tp : tp Pp.printer
 end

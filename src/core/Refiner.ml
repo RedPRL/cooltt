@@ -3,6 +3,7 @@ open Containers
 open Basis
 open Monads
 open Bwd
+open Bwd.Infix
 
 open CodeUnit
 
@@ -25,11 +26,6 @@ exception CJHM
 
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (T.var -> 'b) -> 'b
-
-type 'a telescope =
-  | Bind of Ident.user * 'a * (T.var -> 'a telescope)
-  | Done
-
 
 module Probe : sig
   val probe_chk : string option -> T.Chk.tac -> T.Chk.tac
@@ -530,21 +526,21 @@ struct
         `Patch will make the field an extension type, while `Subst will simply drop the field after instantiating it to the patch
      [renaming] is a function from fields to an optional new name for that field
   *)
-  let quote_code_sign_hooks
-      (sign : (Ident.user * D.con) list)
-      ~(patch_tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option)
-      ~(renaming : Ident.user -> Ident.user option)
+  let quote_kan_tele_hooks
+      (tele : D.kan_tele)
+      ~(patch_tacs : Ident.t -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option)
+      ~(renaming : Ident.t -> Ident.t option)
       (univ : D.tp) : _ m =
     let rec go = function
-      | [] -> RM.ret []
-      | (lbl,code) :: sign ->
+      | D.KEmpty -> RM.ret S.KEmpty
+      | D.KCell (lbl, code, tele) ->
         let lbl = Option.value ~default:lbl (renaming lbl) in
         match patch_tacs lbl with
         | Some (`Subst tac) ->
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           let* patch = T.Chk.run tac tp in
           let* vpatch = RM.eval patch in
-          RM.lift_cmp @@ Sem.inst_code_sign sign vpatch |>> go
+          RM.lift_cmp @@ Sem.inst_kan_tele_clo tele vpatch |>> go
         | Some (`Patch tac) ->
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           let* patch = T.Chk.run tac tp in
@@ -560,86 +556,41 @@ struct
           let* patched_tp = RM.lift_cmp @@ Sem.do_el patched_code in
           let* qpatched_code = RM.quote_con univ patched_code in
           RM.abstract (lbl :> Ident.t) patched_tp @@ fun _ ->
-          let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign vpatch in
-          let+ sign = go sign in
-          (lbl,qpatched_code) :: S.bind_code_sign_vars [lbl] sign
-
+          let* tele = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele vpatch in
+          let+ qtele = go tele in
+          S.KCell (lbl, qpatched_code, qtele)
         | None ->
           let* qcode = RM.quote_con univ code in
           let* tp = RM.lift_cmp @@ Sem.do_el code in
           RM.abstract (lbl :> Ident.t) tp @@ fun x ->
-          let+ sign = RM.lift_cmp @@ Sem.inst_code_sign sign x |>> go in
-          (lbl,qcode) :: S.bind_code_sign_vars [lbl] sign
+          let+ qtele = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele x |>> go in
+          S.KCell (lbl, qcode, qtele)
     in
-    go sign
+    go tele
 
-  let quote_code_sign sign univ = quote_code_sign_hooks sign ~patch_tacs:(fun _ -> None) ~renaming:(fun _ -> None) univ
-  let patch_fields sign patch_tacs univ = quote_code_sign_hooks sign ~patch_tacs ~renaming:(fun _ -> None) univ
+  let quote_kan_tele sign univ = quote_kan_tele_hooks sign ~patch_tacs:(fun _ -> None) ~renaming:(fun _ -> None) univ
+  let patch_fields sign patch_tacs univ = quote_kan_tele_hooks sign ~patch_tacs ~renaming:(fun _ -> None) univ
 
-  let rename_code_sign sign renaming univ = quote_code_sign_hooks sign ~renaming ~patch_tacs:(fun _ -> None) univ
+  let rename_kan_tele sign renaming univ = quote_kan_tele_hooks sign ~renaming ~patch_tacs:(fun _ -> None) univ
 
-
-  (* [NOTE: Sig Code Quantifiers]
-     When we are creating a code for a signature, we need to make sure
-     that we can depend on the values of previous fields. To achieve this,
-     we do something similar to pi/sigma codes, and add in extra pi types to
-     bind the names of previous fields. As an example, the signature:
-         sig (x : type)
-             (y : (arg : x) -> type)
-             (z : (arg1 : x) -> (arg2 : y) -> type)
-     will produce the following goals:
-          type
-          (x : type) -> type
-          (x : type) -> (y : type) -> type
-     and once the tactics for each field are run, we will get the following
-     signature code (notice the lambdas!):
-         sig (x : type)
-             (y : x => (arg : x) -> type)
-             (z : x => y => (arg1 : x) -> (arg2 : y) -> type)
-  *)
-
-  (* RM.abstract over all the variables in a code signature *)
-  let abstract_code_sign sign k =
+  (** Abstract over all the variables in a code signature *)
+  let abstract_kan_tele sign k =
     let rec go vars = function
-      | [] -> k vars
-      | (lbl,code) :: sign ->
+      | D.KEmpty -> k (Bwd.to_list vars)
+      | D.KCell (lbl, code, tele) ->
         let* tp = RM.lift_cmp @@ Sem.do_el code in
-        RM.abstract (lbl :> Ident.t) tp @@ fun x ->
-        let* sign = RM.lift_cmp @@ Sem.inst_code_sign sign x in
-        go (x :: vars) sign
+        RM.abstract lbl tp @@ fun x ->
+        let* sign = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele x in
+        go (vars #< x) sign
     in
-    go [] sign
+    go Emp sign
 
-  let signature (tacs : [`Field of (Ident.user * T.Chk.tac) | `Include of T.Chk.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
+  let signature (tac : T.KanTele.tac) : T.Chk.tac =
     univ_tac "Univ.signature" @@ fun univ ->
-    let rec go = function
-      | [] -> RM.ret []
-      | `Field (lbl,tac) :: sign ->
-        let* code = T.Chk.run tac univ in
-        let* vcode = RM.lift_ev @@ Sem.eval code in
-        let* tp = RM.lift_cmp @@ Sem.do_el vcode in
-        RM.abstract (lbl :> Ident.t) tp @@ fun _ ->
-        let+ sign = go sign in
-        (lbl,code) :: S.bind_code_sign_vars [lbl] sign
-      | `Include (tac,renaming) :: sign ->
-        let* inc = T.Chk.run tac univ in
-        let* vinc = RM.eval inc in
-        RM.lift_cmp @@ Sem.whnf_con_ vinc |>> function
-        | D.StableCode (`Signature inc_sign) ->
-          let lbls = List.map fst inc_sign in
-          let* qinc_sign = rename_code_sign inc_sign renaming univ in
-          abstract_code_sign inc_sign @@ fun _ ->
-          let+ sign = go sign in
-          qinc_sign @ S.bind_code_sign_vars lbls sign
-        | _ ->
-          RM.with_pp @@ fun ppenv ->
-          RM.refine_err @@
-          Err.ExpectedSignature (ppenv, inc)
-    in
-    let+ fields = go tacs in
-    S.CodeSignature fields
+    let+ tele = T.KanTele.run tac univ in
+    S.CodeSignature tele
 
-  let patch (sig_tac : T.Chk.tac) (tacs : Ident.user -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) : T.Chk.tac =
+  let patch (sig_tac : T.Chk.tac) (tacs : Ident.t -> [`Patch of T.Chk.tac | `Subst of T.Chk.tac] option) : T.Chk.tac =
     univ_tac "Univ.patch" @@ fun univ ->
     let* code = T.Chk.run sig_tac univ in
     let* vcode = RM.lift_ev @@ Sem.eval code in
@@ -652,26 +603,22 @@ struct
     | _ ->
       RM.expected_connective `Signature whnf_tp
 
-  let total (vsign : (Ident.user * D.con) list) (vtm : D.con) : T.Chk.tac =
+  let total (vtele : D.kan_tele) (vfam : D.con) : T.Chk.tac =
     univ_tac "Univ.total" @@ fun univ ->
-    let (sign_names, vsign_codes) = List.split vsign in
-    let* qsign = quote_code_sign vsign univ in
-    (* See [NOTE: Sig Code Quantifiers]. *)
-    let* fib_tp =
-      RM.lift_cmp @@
-      Sem.splice_tp @@
-      Splice.tp univ @@ fun univ ->
-      Splice.cons vsign_codes @@ fun sign_codes ->
-      Splice.term @@ TB.pis ~idents:(sign_names :> Ident.t list) sign_codes @@ fun _ -> univ
-    in
+    let* qtele = quote_kan_tele vtele univ in
+    abstract_kan_tele vtele @@ fun vars ->
+    Debug.print "Taking total space of family: %a@." D.pp_con vfam;
+    let lbls = D.kan_tele_lbls vtele in
+    let strct = D.Struct (D.Fields (List.combine lbls vars)) in
     let* fib =
-      RM.lift_cmp @@
-      Sem.splice_tm @@
-      Splice.con vtm @@ fun tm ->
-      Splice.term @@ TB.lams (sign_names :> Ident.t list) @@ fun args -> TB.el_out @@ TB.ap tm [TB.el_in @@ TB.struct_ @@ List.combine sign_names args]
+      RM.lift_cmp @@ Sem.splice_tm @@
+      Splice.con vfam @@ fun fam ->
+      Splice.con strct @@ fun strct ->
+      Splice.term @@
+      TB.el_out @@ TB.ap fam [TB.el_in strct]
     in
-    let+ qfib = RM.quote_con fib_tp fib in
-    S.CodeSignature (qsign @ [`User ["fib"], qfib])
+    let+ qfib = RM.quote_con D.Univ fib in
+    S.CodeSignature (S.append_kan_tele qtele (S.KCell (`User ["fib"], qfib, S.KEmpty)))
 
   let ext (n : int) (tac_fam : T.Chk.tac) (tac_cof : T.Chk.tac) (tac_bdry : T.Chk.tac) : T.Chk.tac =
     univ_tac "Univ.ext" @@ fun univ ->
@@ -856,106 +803,154 @@ struct
     S.Com (fam, src, trg, cof, tm), vfam_trg
 end
 
+module Telescope =
+struct
+  let empty : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.empty" @@
+    RM.ret @@ S.Empty
+
+  let cell tp_tac (ident, tele_tac) : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.cell" @@
+    let* tp = T.Tp.run tp_tac in
+    let* vtp = RM.eval_tp tp in
+    T.abstract ~ident vtp @@ fun var ->
+    let+ tele = T.Tele.run (tele_tac var) in
+    S.Cell (ident, tp, tele)
+
+  let include_ (rename : Ident.t -> Ident.t option) (inc_tac : T.Tele.tac) (tele_tac : T.Var.tac list -> T.Tele.tac) : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.include" @@
+    let* inc = T.Tele.run inc_tac in
+    let inc = S.rename_tele rename inc in
+    let* vinc = RM.lift_ev @@ Sem.eval_tele inc in
+    T.abstract_tele vinc @@ fun vars ->
+    let+ tele = T.Tele.run (tele_tac vars) in
+    S.append_tele inc tele
+
+  let el (tac : T.KanTele.tac) : T.Tele.tac =
+    T.Tele.rule ~name:"Tele.el" @@
+    let+ tele = T.KanTele.run tac D.Univ in
+    S.ElTele tele
+end
+
+module KanTelescope =
+struct
+  let empty : T.KanTele.tac =
+    T.KanTele.rule ~name:"KanTele.empty" @@ fun _ ->
+    RM.ret @@ S.KEmpty
+
+  let cell code_tac (ident, tele_tac) : T.KanTele.tac =
+    T.KanTele.rule ~name:"KanTele.cell" @@ fun univ ->
+    let* code = T.Chk.run code_tac univ in
+    let* vcode = RM.eval code in
+    let* tp = RM.lift_cmp @@ Sem.do_el vcode in
+    T.abstract ~ident tp @@ fun var ->
+    let+ tele = T.KanTele.run (tele_tac var) univ in
+    S.KCell (ident, code, tele)
+
+  let include_ (rename : Ident.t -> Ident.t option) (inc_tac : T.KanTele.tac) (tele_tac : T.Var.tac list -> T.KanTele.tac) : T.KanTele.tac =
+    T.KanTele.rule ~name:"KanTele.include" @@ fun univ ->
+    let* inc = T.KanTele.run inc_tac univ in
+    let inc = S.rename_kan_tele rename inc in
+    let* vinc = RM.lift_ev @@ Sem.eval_kan_tele inc in
+    T.abstract_kan_tele vinc @@ fun vars ->
+    let+ tele = T.KanTele.run (tele_tac vars) univ in
+    S.append_kan_tele inc tele
+end
 
 module Signature =
 struct
-  let formation (tacs : T.Tp.tac telescope) : T.Tp.tac =
-    let rec form_fields tele =
-      function
-      | Bind (lbl, tac, tacs) ->
-        let* tp = T.Tp.run tac in
-        let* vtp = RM.lift_ev @@ Sem.eval_tp tp in
-        T.abstract ~ident:(lbl :> Ident.t) vtp @@ fun var -> form_fields (Snoc (tele, (lbl, tp))) (tacs var)
-      | Done -> RM.ret @@ S.Signature (BwdLabels.to_list tele)
-    in T.Tp.rule ~name:"Signature.formation" @@ form_fields Emp tacs
+  let formation (tele_tac : T.Tele.tac) : T.Tp.tac =
+    T.Tp.rule ~name:"Signature.formation" @@
+    let+ tele = T.Tele.run tele_tac
+    in S.Signature tele
 
-  let rec find_field (fields : (Ident.user * 'a) list) (lbl : Ident.user) : 'a option =
-    match fields with
-    | (lbl', x) :: _ when Ident.equal lbl lbl'  ->
-      Some x
-    | _ :: fields ->
-      find_field fields lbl
-    | [] ->
-      None
-
-  (* Check that [sign0] is a prefix of [sign1], and return the rest of [sign1]
+  (* Check that [tele0] is a prefix of [tele1], and return the rest of [tele1]
      along with the quoted eta-expansion of [con], which has type [sign0]
   *)
-  let equate_sign_prefix sign0 sign1 con ~renaming =
-    let rec go acc sign0 sign1 =
-      match sign0, sign1 with
-      | D.Empty, _ -> RM.ret (List.rev acc, sign1)
-      | D.Field (lbl0,tp0,sign_clo0), D.Field (lbl1,tp1,sign_clo1) when Ident.equal (Option.value ~default:lbl0 (renaming lbl0)) lbl1 ->
+  let equate_tele_prefix tele0 tele1 con ~renaming =
+    let rec go n projs tele0 tele1 =
+      match tele0, tele1 with
+      | D.Empty, _ ->
+        RM.ret (Bwd.to_list projs, tele1)
+
+      (* Matching fields *)
+      | D.Cell (lbl0, tp0, clo0), D.Cell (lbl1, tp1, clo1) when Ident.equal (Option.value ~default:lbl0 (renaming lbl0)) lbl1 ->
         let* () = RM.equate_tp tp0 tp1 in
-        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
+        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 n in
         let* qproj = RM.quote_con tp0 proj in
-        let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
-        let* sign1 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo1 proj in
-        go ((lbl1,qproj) :: acc) sign0 sign1
+        let* tele0 = RM.lift_cmp @@ Sem.inst_tele_clo clo0 proj in
+        let* tele1 = RM.lift_cmp @@ Sem.inst_tele_clo clo1 proj in
+        go (n + 1) (projs #< (lbl0, qproj)) tele0 tele1
+
       (* Extra field in included sign *)
-      | D.Field (lbl0,_,sign_clo0), _ ->
-        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 in
-        let* sign0 = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo0 proj in
-        go acc sign0 sign1
-    in
-    go [] sign0 sign1
+      | D.Cell (lbl0, _, clo0), _ ->
+        let* proj = RM.lift_cmp @@ Sem.do_proj con lbl0 n in
+        let* tele0 = RM.lift_cmp @@ Sem.inst_tele_clo clo0 proj in
+        go (n + 1) projs tele0 tele1
+    in go 0 Emp tele0 tele1
 
-  let rec intro_fields phi phi_clo (sign : D.sign) (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : (Ident.user * S.t) list m =
-    let add_field lbl sign_clo tfield tacs =
-      let* vfield = RM.lift_ev @@ Sem.eval tfield in
-      let* tsign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo vfield in
-      let+ tfields = intro_fields phi phi_clo tsign tacs in
-      (lbl, tfield) :: tfields
-    in
-    match sign,tacs with
-    (* The sig and struct labels line up, run the tactic and add the field *)
-    | D.Field (lbl0, tp, sign_clo), `Field (lbl1,tac) :: tacs when Ident.equal lbl0 lbl1 ->
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0) @@ D.Lam (Ident.anon, phi_clo)) in
-      add_field lbl0 sign_clo tfield tacs
-    (* The labels do not line up.
-       If the sig field is a nullary extension type then we fill it automatically
-       and continue with our list of struct tactics unchanged.
-       Otherwise we ignore the extra field
-    *)
-    | D.Field (lbl,tp,sign_clo), (`Field _ :: tacs as all_tacs) ->
-      Univ.is_nullary_ext tp |>> begin function
-        | true ->
-          let* tfield = T.Chk.brun Univ.infer_nullary_ext (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
-          add_field lbl sign_clo tfield all_tacs
-        | false ->
-          intro_fields phi phi_clo sign tacs
-      end
-    (* There are no more struct tactics.
-       If the sig field is a nullary extension type then we fill it automatically.
-       Otherwise the field is missing, so we unleash a hole for it
-    *)
-    | D.Field (lbl,tp,sign_clo), [] ->
-      let* tac = Univ.is_nullary_ext tp |>> function
-        | true -> RM.ret Univ.infer_nullary_ext
-        | false -> RM.ret @@ Hole.unleash_hole @@ Ident.user_to_string_opt lbl
-      in
-      let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl) @@ D.Lam (Ident.anon, phi_clo)) in
-      add_field lbl sign_clo tfield tacs
-    (* Including the fields of another struct *)
-    | sign, `Include (tac,renaming) :: tacs ->
-      let* tm,tp = T.Syn.run tac in
-      RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
-        | D.Signature inc_sign ->
-          let* vtm = RM.lift_ev @@ Sem.eval tm in
-          let* fields,sign = equate_sign_prefix ~renaming inc_sign sign vtm in
-          let+ tfields = intro_fields phi phi_clo sign tacs in
-          fields @ tfields
-        | _ ->
-          RM.with_pp @@ fun ppenv ->
-          RM.refine_err @@ Err.ExpectedStructure (ppenv, tm)
-      end
-    (* There are extra fields, they can be ignored *)
-    | D.Empty, `Field _ :: _
-    (* There are no extra fields, we're done *)
-    | D.Empty,[] ->
-      RM.ret []
+  let intro_fields phi phi_clo (tele : D.tele) (tacs : [`Field of Ident.t * T.Chk.tac | `Include of T.Syn.tac * (Ident.t -> Ident.t option)] list) : S.fields m =
+    let rec go fields n tele tacs =
+      match tele, tacs with
+      (* The sig and struct labels line up, run the tactic and add the field *)
+      | D.Cell (lbl0, tp, clo), `Field (lbl1, tac) :: tacs when Ident.equal lbl0 lbl1 ->
+        let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0 n) @@ D.Lam (Ident.anon, phi_clo)) in
+        let* vfield = RM.lift_ev @@ Sem.eval tfield in
+        let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+        go (fields #< (lbl0, tfield)) (n + 1) tele tacs
 
-  let intro (tacs : [`Field of Ident.user * T.Chk.tac | `Include of T.Syn.tac * (Ident.user -> Ident.user option)] list) : T.Chk.tac =
+      (* The labels do not line up.
+         If the sig field is a nullary extension type then we fill it automatically
+         and continue with our list of struct tactics unchanged.
+         Otherwise we ignore the extra field
+      *)
+      | D.Cell (lbl, tp, clo), (`Field _ :: tacs as all_tacs) ->
+        Univ.is_nullary_ext tp |>> begin function
+          | true ->
+            let* tfield = T.Chk.brun Univ.infer_nullary_ext (tp, phi, D.un_lam @@ D.compose (D.proj lbl n) @@ D.Lam (Ident.anon, phi_clo)) in
+            let* vfield = RM.lift_ev @@ Sem.eval tfield in
+            let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+            go (fields #< (lbl, tfield)) (n + 1) tele all_tacs
+          | false ->
+            go fields n tele tacs
+        end
+
+      (* There are no more struct tactics.
+         If the sig field is a nullary extension type then we fill it automatically.
+         Otherwise the field is missing, so we unleash a hole for it
+      *)
+      | D.Cell (lbl,tp, clo), [] ->
+        let* tac = Univ.is_nullary_ext tp |>> function
+          | true -> RM.ret Univ.infer_nullary_ext
+          | false -> RM.ret @@ Hole.unleash_hole @@ Ident.to_string_opt lbl
+        in
+        let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl n) @@ D.Lam (Ident.anon, phi_clo)) in
+        let* vfield = RM.lift_ev @@ Sem.eval tfield in
+        let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+        go (fields #< (lbl, tfield)) (n + 1) tele []
+
+      (* Including the fields of another struct *)
+      | tele, `Include (tac,renaming) :: tacs ->
+        let* tm,tp = T.Syn.run tac in
+        RM.lift_cmp @@ Sem.whnf_tp_ tp |>> begin function
+          | D.Signature inc_sign ->
+            let* vtm = RM.lift_ev @@ Sem.eval tm in
+            let* inc_fields, tele = equate_tele_prefix ~renaming inc_sign tele vtm in
+            go (Bwd.append fields inc_fields) (n + List.length inc_fields) tele tacs
+          | _ ->
+            RM.with_pp @@ fun ppenv ->
+            RM.refine_err @@ Err.ExpectedStructure (ppenv, tm)
+        end
+
+      (* There are no extra fields, we're done *)
+      | D.Empty, `Field _ :: _
+      | D.Empty,[] ->
+        RM.ret @@ Bwd.to_list fields
+    in
+    let+ fields = go Emp 0 tele tacs in
+    S.Fields fields
+
+  let intro (tacs : [`Field of Ident.t * T.Chk.tac | `Include of T.Syn.tac * (Ident.t -> Ident.t option)] list) : T.Chk.tac =
     T.Chk.brule ~name:"Signature.intro" @@
     function
     | (D.Signature sign, phi, phi_clo) ->
@@ -963,24 +958,24 @@ struct
       S.Struct fields
     | (tp, _, _) -> RM.expected_connective `Signature tp
 
-  let proj_tp (sign : D.sign) (tstruct : S.t) (lbl : Ident.user) : D.tp m =
-    let rec go =
+  let proj_tp (tele : D.tele) (tstruct : S.t) (lbl : Ident.t) : (D.tp * int) m =
+    let rec go n =
       function
-      | D.Field (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret tp
-      | D.Field (flbl, __, clo) ->
-        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl) in
-        let* vsign = RM.lift_cmp @@ Sem.inst_sign_clo clo vfield in
-        go vsign
-      | D.Empty -> RM.expected_field sign tstruct lbl
-    in go sign
+      | D.Cell (flbl, tp, _) when Ident.equal flbl lbl -> RM.ret (tp, n)
+      | D.Cell (flbl, __, clo) ->
+        let* vfield = RM.lift_ev @@ Sem.eval @@ S.Proj (tstruct, flbl, n) in
+        let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
+        go (n + 1) tele
+      | D.Empty -> RM.expected_field tele tstruct lbl
+    in go 0 tele
 
   let proj tac lbl : T.Syn.tac =
     T.Syn.rule ~name:"Signature.proj" @@
     let* tstruct, tp = T.Syn.run tac in
     match tp with
     | D.Signature sign ->
-      let+ tp = proj_tp sign tstruct lbl in
-      S.Proj (tstruct, lbl), tp
+      let+ (tp, n) = proj_tp sign tstruct lbl in
+      S.Proj (tstruct, lbl, n), tp
     | _ -> RM.expected_connective `Signature tp
 end
 

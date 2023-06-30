@@ -14,25 +14,29 @@ module TB = TermBuilder
 open Monad.Notation (RM)
 
 
-let is_total (sign : D.sign) =
+let is_total (tele : D.tele) =
   let rec go acc = function
-    | D.Field (`User ["fib"],_,D.Clo ([],_)) -> RM.ret @@ acc
-    | D.Field (lbl,(D.ElStable (`Ext (0,_,`Global (Cof cof),_)) as tp),sign_clo) ->
+    | D.Cell (`User ["fib"], _ , _) ->
+      Debug.print "is_total: Final field is magic@.";
+      RM.ret @@ acc
+    | D.Cell (lbl, (D.ElStable (`Ext (0,_,`Global (Cof cof),_)) as tp), clo) ->
+      Debug.print "is_total: Patched field@.";
       let* cof = RM.lift_cmp @@ Sem.cof_con_to_cof cof in
       RM.abstract (lbl :> Ident.t) tp @@ fun v ->
-      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo v in
+      let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo v in
       begin
         RM.lift_cmp @@ Monads.CmpM.test_sequent [] cof |>> function
-        | true -> go acc sign
-        | false -> go `TotalSome sign
+        | true -> go acc tele
+        | false -> go `TotalSome tele
       end
-    | D.Field (lbl,tp,sign_clo) ->
+    | D.Cell (lbl, tp, clo) ->
+      Debug.print "is_total: Non-patched field@.";
       RM.abstract (lbl :> Ident.t) tp @@ fun v ->
-      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo v in
-      go `TotalSome sign
+      let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo v in
+      go `TotalSome tele
     | D.Empty -> RM.ret `NotTotal
   in
-  go `TotalAll sign
+  go `TotalAll tele
 
 let elab_err err =
   let* env = RM.read in
@@ -100,7 +104,8 @@ let rec elim_implicit_connectives_and_total : T.Syn.tac -> T.Syn.tac =
   (* The above code only makes sense because I know that the argument to Sub.elim will not be called under a further binder *)
   | D.ElStable _ ->
     T.Syn.run @@ elim_implicit_connectives_and_total @@ R.El.elim @@ T.Syn.rule @@ RM.ret (tm, tp)
-  | D.Pi (TpPrf _,_,_) -> T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
+  | D.Pi (TpPrf _,_,_) ->
+    T.Syn.run @@ elim_implicit_connectives_and_total @@ R.Pi.apply (T.Syn.rule @@ RM.ret (tm, tp)) R.Prf.intro
   | D.Signature sign ->
     begin
       is_total sign |>> function
@@ -122,8 +127,12 @@ let rec intro_implicit_connectives : T.Chk.tac -> T.Chk.tac =
   | D.Signature sign, _, _ ->
     begin
       is_total sign |>> function
-      | `TotalAll -> RM.ret @@ R.Signature.intro [`Field (`User ["fib"], (intro_implicit_connectives tac))]
-      | _ -> RM.ret tac
+      | `TotalAll ->
+        Debug.print "Introducing implicit signature@.";
+        RM.ret @@ R.Signature.intro [`Field (`User ["fib"], (intro_implicit_connectives tac))]
+      | _ ->
+        Debug.print "Not a total space!@.";
+        RM.ret tac
     end
   | _ ->
     RM.ret tac
@@ -141,8 +150,12 @@ let rec intro_subtypes_and_total : T.Chk.tac -> T.Chk.tac =
       | D.Signature sign ->
         begin
           is_total sign |>> function
-          | `TotalAll -> RM.ret @@ R.El.intro @@ R.Signature.intro [`Field (`User ["fib"], (intro_subtypes_and_total tac))]
-          | _ -> RM.ret tac
+          | `TotalAll ->
+            Debug.print "Introducing implicit signature@.";
+            RM.ret @@ R.El.intro @@ R.Signature.intro [`Field (`User ["fib"], (intro_subtypes_and_total tac))]
+          | _ ->
+            Debug.print "Not a total space!@.";
+            RM.ret tac
         end
       | _ -> failwith "impossible"
     end
@@ -169,7 +182,9 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
           (* Same HACK *)
           match fam with
           | D.Univ
-          | D.ElStable `Univ -> RM.ret @@ R.Univ.total vsign vtm
+          | D.ElStable `Univ ->
+            Debug.print "Performing total space coercion!@.";
+            RM.ret @@ R.Univ.total vsign vtm
           | _ -> RM.ret @@ T.Chk.syn tac
         in
         T.Chk.run tac' tp
@@ -181,12 +196,12 @@ let intro_conversions (tac : T.Syn.tac) : T.Chk.tac =
 let open_sign_chk sign tm_tac tac_bdy ~renaming =
   let rec go vars = function
     | D.Empty -> tac_bdy vars
-    | D.Field (lbl,_,sign_clo) ->
+    | D.Cell (lbl,_,sign_clo) ->
       let ident = (Option.value ~default:lbl (renaming lbl) :> Ident.t) in
       R.Structural.let_ ~ident (R.Signature.proj tm_tac lbl) @@ fun x ->
       T.Chk.rule @@ fun goal ->
       let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
-      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo y in
+      let* sign = RM.lift_cmp @@ Sem.inst_tele_clo sign_clo y in
       T.Chk.run (go (x :: vars) sign) goal
   in
   go [] sign
@@ -194,12 +209,12 @@ let open_sign_chk sign tm_tac tac_bdy ~renaming =
 let open_sign_syn sign tm_tac tac_bdy ~renaming =
   let rec go vars = function
     | D.Empty -> tac_bdy vars
-    | D.Field (lbl,_,sign_clo) ->
+    | D.Cell (lbl,_,sign_clo) ->
       let ident = (Option.value ~default:lbl (renaming lbl) :> Ident.t) in
       R.Structural.let_syn ~ident (R.Signature.proj tm_tac lbl) @@ fun x ->
       T.Syn.rule @@
       let* y = RM.lift_cmp @@ Sem.do_sub_out (T.Var.con x) in
-      let* sign = RM.lift_cmp @@ Sem.inst_sign_clo sign_clo y in
+      let* sign = RM.lift_cmp @@ Sem.inst_tele_clo sign_clo y in
       T.Syn.run (go (x :: vars) sign)
   in
   go [] sign
@@ -224,6 +239,27 @@ let open_syn tac renaming tac_bdy : T.Syn.tac =
     RM.with_pp @@ fun ppenv ->
     RM.refine_err @@ RefineError.ExpectedStructure (ppenv, tm)
 
+let tele_of_sign tp_tac =
+  T.Tele.rule ~name:"Telescope.of_sign" @@
+  let* tp = T.Tp.run tp_tac in
+  let* vtp = RM.eval_tp tp in
+  match vtp with
+  | D.Signature tele ->
+    RM.lift_qu @@ Quote.quote_tele tele
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedSignature (ppenv, tp)
+
+let kan_tele_of_sign code_tac =
+  T.KanTele.rule ~name:"KanTelescope.of_sign" @@ fun univ ->
+  let* code = T.Chk.run code_tac univ in
+  let* vcode = RM.eval code in
+  match vcode with
+  | D.StableCode (`Signature tele) ->
+    RM.lift_qu @@ Quote.quote_kan_tele tele
+  | _ ->
+    RM.with_pp @@ fun ppenv ->
+    RM.refine_err @@ RefineError.ExpectedKanSignature (ppenv, code)
 
 let rec tac_nary_quantifier (quant : ('a, 'b) R.quantifier) cells body =
   match cells with

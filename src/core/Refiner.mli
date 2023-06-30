@@ -11,10 +11,6 @@ open Tactic
 
 type ('a, 'b) quantifier = 'a -> Ident.t * (var -> 'b) -> 'b
 
-type 'a telescope =
-  | Bind of Ident.user * 'a * (var -> 'a telescope)
-  | Done
-
 module Hole : sig
   val silent_hole : string option -> Chk.tac
   val unleash_hole : string option -> Chk.tac
@@ -64,9 +60,9 @@ module Univ : sig
   val circle : Chk.tac
   val pi : Chk.tac -> Chk.tac -> Chk.tac
   val sg : Chk.tac -> Chk.tac -> Chk.tac
-  val signature : [`Field of (Ident.user * Chk.tac) | `Include of Chk.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
-  val patch : Chk.tac -> (Ident.user -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
-  val total : (Ident.user * D.con) list -> D.con -> Chk.tac
+  val signature : KanTele.tac -> Chk.tac
+  val patch : Chk.tac -> (Ident.t -> [`Patch of Chk.tac | `Subst of Chk.tac] option) -> Chk.tac
+  val total : D.kan_tele -> D.con -> Chk.tac
   val ext : int -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
   val infer_nullary_ext : Chk.tac
   val code_v : Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac -> Chk.tac
@@ -106,12 +102,23 @@ module Sg : sig
   val pi2 : Syn.tac -> Syn.tac
 end
 
-module Signature : sig
-  val formation : Tp.tac telescope -> Tp.tac
-  val intro : [`Field of Ident.user * Chk.tac |`Include of Syn.tac * (Ident.user -> Ident.user option)] list -> Chk.tac
-  val proj : Syn.tac -> Ident.user -> Syn.tac
+module Telescope : sig
+  val empty : Tele.tac
+  val cell : (Tp.tac, Tele.tac) quantifier
+  val include_ : (Ident.t -> Ident.t option) -> Tele.tac -> (Var.tac list -> Tele.tac) -> Tele.tac
+  val el : KanTele.tac -> Tele.tac
+end
 
-  val find_field : (Ident.user * 'a) list -> Ident.user -> 'a option
+module KanTelescope : sig
+  val empty : KanTele.tac
+  val cell : (Chk.tac, KanTele.tac) quantifier
+  val include_ : (Ident.t -> Ident.t option) -> KanTele.tac -> (Var.tac list -> KanTele.tac) -> KanTele.tac
+end
+
+module Signature : sig
+  val formation : Tele.tac -> Tp.tac
+  val intro : [`Field of Ident.t * Chk.tac |`Include of Syn.tac * (Ident.t -> Ident.t option)] list -> Chk.tac
+  val proj : Syn.tac -> Ident.t -> Syn.tac
 end
 
 module Sub : sig

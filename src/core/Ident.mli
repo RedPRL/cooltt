@@ -26,4 +26,4 @@ val json_to_ident : J.value -> t
 val json_of_user : [`User of string list ] -> [> `A of J.value list ]
 val json_to_user : J.value -> [`User of string list]
 
-val equal : user -> user -> bool
+val equal : t -> t -> bool
