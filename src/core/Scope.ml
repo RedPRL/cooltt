@@ -1,6 +1,6 @@
-type 'a t =
-  { view : 'a Namespace.t
-  ; export : 'a Namespace.t
+type t =
+  { view : Namespace.t
+  ; export : Namespace.t
   }
 
 let empty = {view = Namespace.empty; export = Namespace.empty}

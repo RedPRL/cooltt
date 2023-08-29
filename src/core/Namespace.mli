@@ -1,17 +1,21 @@
-type path = Yuujinchou.Pattern.path
+type path = Yuujinchou.Trie.path
 
-type +'a t
-type 'a pattern = ([< `Print of string option ] as 'a) Yuujinchou.Pattern.t
+type t
+type pattern = [`Print of string option ] Yuujinchou.Language.t
 type ('a, 'error) result = ('a, [> `BindingNotFound of path | `Shadowing of path ] as 'error) Stdlib.result
 
-val empty : 'a t
+val empty : t
 
-val prefix : path -> 'a t -> 'a t
+val prefix : path -> t -> t
 
-val transform : shadowing:bool -> pp:(Format.formatter -> 'a -> unit) -> _ pattern -> 'a t -> ('a t, 'error) result
+val transform : shadowing:bool
+  -> pp:(Format.formatter -> CodeUnit.Global.t -> unit)
+  -> pattern
+  -> t
+  -> (t, 'error) result
 
-val union : shadowing:bool -> 'a t -> 'a t -> ('a t, 'error) result
+val union : shadowing:bool -> t -> t -> (t, 'error) result
 
-val add : shadowing:bool -> Ident.t -> 'a -> 'a t -> ('a t, 'error) result
+val add : shadowing:bool -> Ident.t -> CodeUnit.Global.t -> t -> (t, 'error) result
 
-val find : Ident.t -> 'a t -> 'a option
+val find : Ident.t -> t -> CodeUnit.Global.t option

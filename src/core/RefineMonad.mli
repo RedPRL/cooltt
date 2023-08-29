@@ -27,12 +27,12 @@ val get_local : int -> D.con m
 val get_lib : Bantorra.Manager.library m
 val with_unit : Bantorra.Manager.library -> id -> 'a m -> 'a m
 
-val import : shadowing:bool -> _ Namespace.pattern -> id -> unit m
+val import : shadowing:bool -> Namespace.pattern -> id -> unit m
 val loading_status : CodeUnitID.t -> [ `Loaded | `Loading | `Unloaded ] m
 
-val view : shadowing:bool -> _ Namespace.pattern -> unit m
-val export : shadowing:bool -> _ Namespace.pattern -> unit m
-val repack : shadowing:bool -> _ Namespace.pattern -> unit m
+val view : shadowing:bool -> Namespace.pattern -> unit m
+val export : shadowing:bool -> Namespace.pattern -> unit m
+val repack : shadowing:bool -> Namespace.pattern -> unit m
 val with_section : shadowing:bool -> prefix:Namespace.path option -> 'a m -> 'a m
 
 val eval : S.t -> D.con m

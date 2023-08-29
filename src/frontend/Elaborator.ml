@@ -350,9 +350,9 @@ and chk_tm : CS.con -> T.Chk.tac =
         let tacs =
           patches |> List.map @@ function
           | `Patch (lbl, con) ->
-            (lbl :> Ident.t), `Patch (chk_tm con) 
+            (lbl :> Ident.t), `Patch (chk_tm con)
           | `Subst (lbl, con) ->
-            (lbl :> Ident.t), `Subst (chk_tm con) 
+            (lbl :> Ident.t), `Subst (chk_tm con)
         in
         R.Univ.patch (chk_tm tp) (fun nm -> List.assoc_opt nm tacs)
 
@@ -527,10 +527,10 @@ and chk_case (pat, c) =
   pat, chk_tm c
 
 let rec modifier (con : CS.con) =
-  let open Yuujinchou.Pattern in
+  let open Yuujinchou.Language in
   RM.update_span con.info @@
   match con.node with
-  | CS.ModAny -> RM.ret any
+  | CS.ModAll -> RM.ret all
   | CS.ModOnly path -> RM.ret @@ only path
   | CS.ModRename (path1, path2) -> RM.ret @@ renaming path1 path2
   | CS.ModNone -> RM.ret none

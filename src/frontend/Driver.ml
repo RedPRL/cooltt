@@ -257,7 +257,7 @@ and execute_decl (decl : CS.decl) : command =
 
   | CS.Import {shadowing; unitpath; modifier} ->
     RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
-    let* modifier = Option.fold ~none:(RM.ret Yuujinchou.Pattern.any) ~some:Elaborator.modifier modifier in
+    let* modifier = Option.fold ~none:(RM.ret Yuujinchou.Language.all) ~some:Elaborator.modifier modifier in
     import_unit ~shadowing unitpath modifier
   | CS.View {shadowing; modifier} ->
     RM.update_span (CS.get_info modifier) @@
@@ -280,7 +280,7 @@ and execute_decl (decl : CS.decl) : command =
       function
       | Ok () ->
         RM.update_span (Option.fold ~none:None ~some:CS.get_info modifier) @@
-        let* modifier = Option.fold ~none:(RM.ret @@ Yuujinchou.Pattern.seq []) ~some:Elaborator.modifier modifier in
+        let* modifier = Option.fold ~none:(RM.ret @@ Yuujinchou.Language.id) ~some:Elaborator.modifier modifier in
         let* () = RM.repack ~shadowing modifier in
         RM.ret Continue
       | Error () -> RM.refine_err ErrorsInSection

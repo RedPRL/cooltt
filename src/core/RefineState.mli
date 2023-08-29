@@ -11,10 +11,10 @@ val get_holes : t -> (D.tp * D.cof * D.tm_clo) list
 val add_hole : (D.tp * D.cof * D.tm_clo) -> t -> t
 
 (* Manipulate of scopes *)
-val transform_view : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Namespace.result
-val transform_export : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Namespace.result
-val export_view : shadowing:bool -> _ Namespace.pattern -> t -> (t, 'error) Namespace.result
-val import : shadowing:bool -> _ Namespace.pattern -> CodeUnitID.t -> t -> (t, 'error) Namespace.result
+val transform_view : shadowing:bool -> Namespace.pattern -> t -> (t, 'error) Namespace.result
+val transform_export : shadowing:bool -> Namespace.pattern -> t -> (t, 'error) Namespace.result
+val export_view : shadowing:bool -> Namespace.pattern -> t -> (t, 'error) Namespace.result
+val import : shadowing:bool -> Namespace.pattern -> CodeUnitID.t -> t -> (t, 'error) Namespace.result
 
 val begin_section : t -> t
 val end_section : shadowing:bool -> prefix:Namespace.path option -> t -> (t, 'error) Namespace.result

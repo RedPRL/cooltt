@@ -79,7 +79,7 @@ and con_ =
   | V of con * con * con * con
   | VProj of con
   | Cap of con
-  | ModAny
+  | ModAll
   | ModOnly of string list
   | ModRename of string list * string list
   | ModNone

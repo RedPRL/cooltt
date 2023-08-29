@@ -11,7 +11,7 @@ type t =
     (** current unit ID *)
     unit_id : CodeUnitID.t;
     (** current nested scopes *)
-    scopes : Global.t Scopes.t;
+    scopes : Scopes.t;
     (** numbers of holes in the current unit *)
     holes : (D.tp * D.cof * D.tm_clo) list;
 
@@ -21,7 +21,7 @@ type t =
     (** all known units (including the ones that are being processed), which keep the data associated with global symbols *)
     units : CodeUnit.t IDMap.t;
     (** all global cofibrations and namespaces exported by processed units (not including the ones in proccessing) *)
-    exports : (Global.t Namespace.t * CofThy.Disj.t) IDMap.t;
+    exports : (Namespace.t * CofThy.Disj.t) IDMap.t;
   }
 
 let init lib =

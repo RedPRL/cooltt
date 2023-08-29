@@ -1,6 +1,6 @@
 open Bwd
 
-type 'a t = 'a Scope.t bwd
+type t = Scope.t bwd
 
 let init s = Snoc (Emp, s)
 

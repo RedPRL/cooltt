@@ -229,7 +229,7 @@ plain_atomic_modifier:
 
 plain_modifier:
   | COLON_COLON
-    { ModAny }
+    { ModAll }
   | path = iocc_path COLON_COLON m = atomic_modifier
     { ModInSubtree (path, m) }
   | RIGHT_ARROW
