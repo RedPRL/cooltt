@@ -10,7 +10,7 @@ struct
 
   type dim = Dim.t
   type cof_var = CofVar.t
-  type cof = Cof.cof
+  type cof = Cof.t
 
   (** A type code whose head constructor is stable under dimension substitution. *)
   type 'a stable_code =
