@@ -53,7 +53,7 @@ you'll need to [install or enable flakes](https://nixos.wiki/wiki/Flakes).
 Then, cooltt can be built with the command
 
 ```
-nix build --impure
+nix build
 ```
 
 to put a binary `cooltt` in `result/bin/cooltt`. This is good for if you just want to build
@@ -63,7 +63,7 @@ If you're working on cooltt, you can enter a development shell with an OCaml com
 and other tools with
 
 ```
-nix develop --impure
+nix develop
 ```
 
 and then build as in the [with OPAM](https://github.com/RedPRL/cooltt/#with-opam=) section
