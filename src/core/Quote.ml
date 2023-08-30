@@ -295,7 +295,7 @@ and quote_fields (tele : D.tele) (fields : D.fields) : S.fields m =
     | D.Cell (lbl, tp, clo), ((_, field) :: fields) ->
       let* qfield = quote_con tp field in
       let* tele = lift_cmp @@ inst_tele_clo clo field in
-      go (qfields #< (lbl, qfield)) tele fields
+      go (qfields <: (lbl, qfield)) tele fields
     | D.Empty, [] ->
       ret @@ S.Fields (Bwd.to_list qfields)
     | _ ->

@@ -11,7 +11,7 @@ type 'a t = D.env -> 'a TB.m * D.env
 
 let foreign con k : _ t =
   fun env ->
-  let env' = {env with conenv = env.conenv <>< [con]} in
+  let env' = {env with conenv = env.conenv <: con} in
   let var = TB.lvl @@ BwdLabels.length env.conenv in
   k var env'
 
@@ -21,7 +21,7 @@ let foreign_clo clo = foreign @@ D.Lam (Ident.anon, clo)
 
 let foreign_tp tp k : _ t =
   fun env ->
-  let env' = {env with tpenv = env.tpenv <>< [tp]} in
+  let env' = {env with tpenv = env.tpenv <: tp} in
   let var = TB.tplvl @@ BwdLabels.length env.tpenv in
   k var env'
 

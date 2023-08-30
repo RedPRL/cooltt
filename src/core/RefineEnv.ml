@@ -94,7 +94,7 @@ let restrict phis env =
 let append_con ident con tp env =
   {env with
    pp = snd @@ Pp.Env.bind env.pp (Ident.to_string_opt ident);
-   locals = env.locals #< (Cell.make ident (tp, con));
+   locals = env.locals <: Cell.make ident (tp, con);
    cof_thy =
      match tp with
      | D.TpPrf phi -> CofThy.Disj.assume env.cof_thy [phi]

@@ -332,8 +332,8 @@ struct
       let append : t -> branch -> t =
         fun state branch ->
         {disj = CofBuilder.join [state.disj; branch.cof];
-         fns = state.fns #< (branch.cof, branch.fn);
-         acc = state.acc #< (branch.tcof, branch.bdy)}
+         fns = state.fns <: (branch.cof, branch.fn);
+         acc = state.acc <: (branch.tcof, branch.bdy)}
     end
 
     let split (branches : branch_tac list) : T.Chk.tac =
@@ -581,7 +581,7 @@ struct
         let* tp = RM.lift_cmp @@ Sem.do_el code in
         RM.abstract lbl tp @@ fun x ->
         let* sign = RM.lift_cmp @@ Sem.inst_kan_tele_clo tele x in
-        go (vars #< x) sign
+        go (vars <: x) sign
     in
     go Emp sign
 
@@ -880,7 +880,7 @@ struct
         let* qproj = RM.quote_con tp0 proj in
         let* tele0 = RM.lift_cmp @@ Sem.inst_tele_clo clo0 proj in
         let* tele1 = RM.lift_cmp @@ Sem.inst_tele_clo clo1 proj in
-        go (n + 1) (projs #< (lbl0, qproj)) tele0 tele1
+        go (n + 1) (projs <: (lbl0, qproj)) tele0 tele1
 
       (* Extra field in included sign *)
       | D.Cell (lbl0, _, clo0), _ ->
@@ -897,7 +897,7 @@ struct
         let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl0 n) @@ D.Lam (Ident.anon, phi_clo)) in
         let* vfield = RM.lift_ev @@ Sem.eval tfield in
         let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
-        go (fields #< (lbl0, tfield)) (n + 1) tele tacs
+        go (fields <: (lbl0, tfield)) (n + 1) tele tacs
 
       (* The labels do not line up.
          If the sig field is a nullary extension type then we fill it automatically
@@ -910,7 +910,7 @@ struct
             let* tfield = T.Chk.brun Univ.infer_nullary_ext (tp, phi, D.un_lam @@ D.compose (D.proj lbl n) @@ D.Lam (Ident.anon, phi_clo)) in
             let* vfield = RM.lift_ev @@ Sem.eval tfield in
             let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
-            go (fields #< (lbl, tfield)) (n + 1) tele all_tacs
+            go (fields <: (lbl, tfield)) (n + 1) tele all_tacs
           | false ->
             go fields n tele tacs
         end
@@ -927,7 +927,7 @@ struct
         let* tfield = T.Chk.brun tac (tp, phi, D.un_lam @@ D.compose (D.proj lbl n) @@ D.Lam (Ident.anon, phi_clo)) in
         let* vfield = RM.lift_ev @@ Sem.eval tfield in
         let* tele = RM.lift_cmp @@ Sem.inst_tele_clo clo vfield in
-        go (fields #< (lbl, tfield)) (n + 1) tele []
+        go (fields <: (lbl, tfield)) (n + 1) tele []
 
       (* Including the fields of another struct *)
       | tele, `Include (tac,renaming) :: tacs ->

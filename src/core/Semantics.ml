@@ -1180,7 +1180,7 @@ and do_unpack (lbls : Ident.t list) (con : D.con) : D.fields CM.m =
     function
     | lbl :: lbls ->
       let* field = do_proj con lbl n in
-      unpack_eta (fields #< (lbl, field)) (n + 1) lbls
+      unpack_eta (fields <: (lbl, field)) (n + 1) lbls
     | [] ->
       ret @@ D.Fields (Bwd.to_list fields)
   in
@@ -1565,7 +1565,7 @@ and enact_rigid_mcoe linesx x r s fields =
     | D.KCell (lbl, linex, linesx), (_, field) :: fields ->
       let* coe_field = do_rigid_coe (D.BindSym (x, linex)) r (Dim.DimProbe x) field in
       let* linesx = inst_kan_tele_clo linesx coe_field in
-      go (acc #< (lbl, D.LetSym (s, x, coe_field))) linesx fields
+      go (acc <: (lbl, D.LetSym (s, x, coe_field))) linesx fields
     | D.KEmpty, [] ->
       ret @@ D.Fields (Bwd.to_list acc)
     | _ ->
@@ -1610,7 +1610,7 @@ and enact_rigid_hcom code r r' phi bdy tag =
               TB.lam @@ fun i ->
               TB.lam @@ fun prf ->
               TB.ap bdy [i; prf]
-            in go (bdys #< (lbl, bdy)) lbls
+            in go (bdys <: (lbl, bdy)) lbls
           | [] ->
             ret @@ D.Fields (Bwd.to_list bdys)
         in

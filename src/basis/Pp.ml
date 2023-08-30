@@ -40,10 +40,10 @@ struct
       | None -> choose_name env "_x"
       | Some x -> choose_name env x
     in
-    x, env #< x
+    x, env <: x
 
   let bind_underscore (env : t) : string * t =
-    "_", env #< "_"
+    "_", env <: "_"
 
   let rec bindn (env : t) (nms : string option list) : string list * t =
     match nms with
@@ -55,7 +55,7 @@ struct
       (x :: xs), env''
 
   let names (env : t) : string list =
-    env <>> []
+    Bwd.to_list env
 end
 
 let pp_sep_list ?(sep = ", ") pp_elem fmt xs =
