@@ -2,12 +2,17 @@
   description = "Experimental implementation of Cartesian cubical type theory";
 
   inputs = {
+    opam-repository = {
+      url = "github:ocaml/opam-repository";
+      flake = false;
+    };
     opam-nix.url = "github:tweag/opam-nix";
+    opam-nix.inputs.opam-repository.follows = "opam-repository";
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.follows = "opam-nix/nixpkgs";
   };
 
-  outputs = { self, flake-utils, opam-nix, nixpkgs }@inputs:
+  outputs = { self, flake-utils, opam-nix, opam-repository, nixpkgs }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
