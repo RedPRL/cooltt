@@ -285,6 +285,9 @@ and execute_decl (decl : CS.decl) : command =
         RM.ret Continue
       | Error () -> RM.refine_err ErrorsInSection
     end
+  | CS.Debug b ->
+    Debug.debug_mode b;
+    RM.ret Continue
   | CS.Quit ->
     RM.ret Quit
 

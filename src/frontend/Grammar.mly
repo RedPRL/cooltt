@@ -54,7 +54,8 @@
 %token SIG STRUCT AS INCLUDE RENAMING OPEN
 %token EXT
 %token COE COM HCOM HFILL
-%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL VISUALIZE
+%token QUIT NORMALIZE PRINT DEF AXIOM ABSTRACT FAIL VISUALIZE DEBUG
+%token ON OFF
 
 %token UNFOLD
 %token <string list> IMPORT
@@ -74,6 +75,7 @@
 %start <ConcreteSyntax.signature> sign
 %start <ConcreteSyntax.repl_command> repl_command
 %type <Ident.t> plain_name
+%type <bool> flag
 %type <con_>
   plain_atomic_in_cof_except_term
   plain_cof_except_term
@@ -151,6 +153,12 @@ plain_name:
   | UNDERSCORE
     { name_of_underscore }
 
+flag:
+  | ON
+    { true }
+  | OFF
+    { false }
+
 unfold_spec:
   | UNFOLD list = list(plain_name)
     { list }
@@ -173,11 +181,12 @@ plain_decl:
     { Def {abstract = dmod.abstract; shadowing = dmod.shadowing; name = nm; args = tele; def = body; tp; unfolding = dmod.unfolding} }
   | dmod = decl_modifiers; AXIOM; nm = plain_name; tele = list(tele_cell); COLON; tp = term
     { Axiom {shadowing = dmod.shadowing; name = nm; args = tele; tp} }
-
   | FAIL; d = decl
     { Fail d }
   | QUIT
     { Quit }
+  | DEBUG; b = flag
+    { Debug b }
   | dmod = decl_modifiers; NORMALIZE; tm = term
     { NormalizeTerm {unfolding = dmod.unfolding; con = tm} }
   | dmod = decl_modifiers; unitpath = IMPORT; modifier = ioption(bracketed_modifier)
