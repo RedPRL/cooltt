@@ -2,35 +2,50 @@
   description = "Experimental implementation of Cartesian cubical type theory";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.05";
-    flake-utils.url = "github:numtide/flake-utils";
-
     opam-repository = {
       url = "github:ocaml/opam-repository";
       flake = false;
     };
-    
-    opam-nix = {
-      url = "github:tweag/opam-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.opam-repository.follows = "opam-repository";
-    };
+    opam-nix.url = "github:tweag/opam-nix";
+    opam-nix.inputs.opam-repository.follows = "opam-repository";
+    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.follows = "opam-nix/nixpkgs";
   };
 
-  outputs = { self
-            , flake-utils
-            , opam-nix
-            , nixpkgs
-            , opam-repository
-            }@inputs:
-    flake-utils.lib.eachDefaultSystem (system: {
-      legacyPackages = let
+  outputs = { self, flake-utils, opam-nix, opam-repository, nixpkgs }@inputs:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
         on = opam-nix.lib.${system};
-      in on.buildDuneProject { } "cooltt" ./. {
-        ocaml-base-compiler = null;
-      };
+        localPackagesQuery = builtins.mapAttrs (_: pkgs.lib.last)
+          (on.listRepo (on.makeOpamRepo ./.));
+        devPackagesQuery = {
+          ocaml-lsp-server = "*";
+          ocp-indent = "*";
+          merlin = "*";
+        };
+        query = devPackagesQuery // {
+          ocaml-base-compiler = "*";
+        };
+        scope = on.buildDuneProject { } "cooltt" ./. query;
+        devPackages = builtins.attrValues
+          (pkgs.lib.getAttrs (builtins.attrNames devPackagesQuery) scope);
+        packages =
+          pkgs.lib.getAttrs (builtins.attrNames localPackagesQuery) scope;
+      in
+      {
+        legacyPackages = scope;
 
-      defaultPackage = self.legacyPackages.${system}."cooltt";
-    });
+        packages = packages // { default = packages.cooltt; };
+
+        devShells.default = pkgs.mkShell {
+          inputsFrom = builtins.attrValues packages;
+          buildInputs = devPackages ++ [
+            pkgs.fd
+            pkgs.nixpkgs-fmt
+            pkgs.pkg-config
+            pkgs.shellcheck
+          ];
+        };
+      });
 }
