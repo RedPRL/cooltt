@@ -25,7 +25,7 @@ depends: [
   "kado"
 ]
 pin-depends: [
-  [ "kado.~dev" "git+https://github.com/RedPRL/kado#afe9b7916d532b67cdec10586ce2eefa8fe56de1" ]
+  [ "kado.~dev" "git+https://github.com/RedPRL/kado#65573a1c0f14f6b09836f8ae317fda17f5900968" ]
   [ "bantorra.0.1.0" "git+https://github.com/RedPRL/bantorra#1e78633d9a2ef7104552a24585bb8bea36d4117b" ]
 ]
 build: [
