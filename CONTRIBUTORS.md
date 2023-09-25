@@ -1,6 +1,7 @@
 # Contributors
 
 Carlo Angiuli
+Solomon Bothwell
 Evan Cavallo
 Jt Gleason
 Daniel Gratzer
