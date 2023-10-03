@@ -1,16 +1,16 @@
 # Contributors
 
-Carlo Angiuli
-Solomon Bothwell
-Evan Cavallo
-Jt Gleason
-Daniel Gratzer
-Alex Gryzlov
-Favonia
-Matthew McQuaid
-Reed Mullanix
-Jonathan Sterling
-Ian Voysey
+- Carlo Angiuli
+- Solomon Bothwell
+- Evan Cavallo
+- Jt Gleason
+- Daniel Gratzer
+- Alex Gryzlov
+- Favonia
+- Matthew McQuaid
+- Reed Mullanix
+- Jonathan Sterling
+- Ian Voysey
 
 ## External Copyrighted Materials
 
