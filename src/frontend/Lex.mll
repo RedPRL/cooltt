@@ -1,4 +1,6 @@
 {
+open Bwd
+open Bwd.Infix
 open Lexing
 open Grammar
 
@@ -238,28 +240,28 @@ and real_token = parse
     {
       let input = lexeme lexbuf in
       match Hashtbl.find keywords input with
-      | IMPORT _ -> import_path [] lexbuf
+      | IMPORT _ -> import_path Emp lexbuf
       | tok -> tok
       | exception Not_found -> Grammar.ATOM input
     }
   | _
     { Printf.eprintf "Unexpected char: %s\n" (lexeme lexbuf); token lexbuf }
 
-and import_path rev_path = parse "" { skip_whitespace (real_import_path rev_path) lexbuf }
+and import_path path = parse "" { skip_whitespace (real_import_path path) lexbuf }
 
-and real_import_path rev_path = parse
+and real_import_path path = parse
   | module_part
-    { dot_import_path (lexeme lexbuf :: rev_path) lexbuf }
+    { dot_import_path (path <: lexeme lexbuf) lexbuf }
   | _
     { Printf.eprintf "Expected unit path: %s" (lexeme lexbuf); token lexbuf }
 
-and dot_import_path rev_path = parse "" { skip_whitespace (real_dot_import_path rev_path) lexbuf }
+and dot_import_path path = parse "" { skip_whitespace (real_dot_import_path path) lexbuf }
 
-and real_dot_import_path rev_path = parse
+and real_dot_import_path path = parse
   | '.'
-    { import_path rev_path lexbuf }
+    { import_path path lexbuf }
   | ""
-    { IMPORT (List.rev rev_path) }
+    { IMPORT (Bwd.to_list path) }
 
 and line_comment kont = parse
   | line_ending
